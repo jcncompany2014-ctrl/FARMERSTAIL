@@ -17,7 +17,7 @@ import JsonLd from '@/components/JsonLd'
 import WebChrome from '@/components/WebChrome'
 import WebMotion from '@/components/web/motion/WebMotion'
 import StickyCta from '@/components/web/fd/StickyCta'
-import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
+import { Button, Container, Display, Eyebrow, PhotoSlot, Section } from '@/components/web/fd/ui'
 import Reveal from '@/components/landing/Reveal'
 import { cred } from '@/lib/copy/credibility'
 import FunnelCta from '@/components/web/FunnelCta'
@@ -159,6 +159,96 @@ export default async function SciencePage() {
                 </li>
               ))}
             </ul>
+          </Container>
+        </Section>
+
+        {/* Evidence — 실물 서류 (2026-09-04 사장님 자료: 교차검증표·품목보고·수입신고).
+            문서 이미지는 ratio 를 원본 비율로 — cover 크롭되면 표·서류가 잘린다. */}
+        <Section bg="cream" pad="md">
+          <Container size="lg">
+            <Eyebrow>EVIDENCE</Eyebrow>
+            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
+              말이 아니라 서류로
+            </Display>
+            <p className="pt-4 text-[13.5px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65, maxWidth: 640 }}>
+              레시피 4종의 설계값을 AAFCO·FEDIAF·NRC 3대 기준과 항목별로 교차
+              대조한 표, 그리고 비타민·미네랄 프리믹스의 품목보고·원료 수입신고
+              서류를 그대로 공개합니다.
+            </p>
+
+            <Reveal delay={80}>
+              <div className="pt-8">
+                <PhotoSlot
+                  src="/nutrition-crossval-landing.webp"
+                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
+                  label="영양 교차검증표"
+                  ratio="3141 / 3010"
+                  tone="green"
+                  rounded={12}
+                  className="w-full mx-auto"
+                />
+                <p className="pt-3 text-[12px] md:text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                  기준치는 메뉴별 칼로리 기반 환산치, 설계값은 투입 재료의
+                  영양성분 분석에 기반한 추정치입니다.
+                </p>
+                <div className="pt-5">
+                  {/* FD Button 은 target 을 안 받는다(내부 Link) — 새 탭 PDF 는 순수 <a>. */}
+                  <a
+                    href="/docs/farmerstail-cross-validation.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full text-[14px] md:text-[15px]"
+                    style={{ padding: '13px 26px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '-0.01em' }}
+                  >
+                    교차검증표 원문(PDF) 보기
+                    <ArrowRight size={17} strokeWidth={2.4} />
+                  </a>
+                </div>
+              </div>
+            </Reveal>
+
+            <div className="pt-10 grid md:grid-cols-2 gap-4 md:gap-6">
+              <Reveal delay={60}>
+                <article style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
+                  <PhotoSlot
+                    src="/evidence-premix-report.webp"
+                    alt="파머스테일 뉴트리 코어 프리믹스 — 식품안전나라 품목보고 조회 화면"
+                    label="프리믹스 품목보고"
+                    ratio="697 / 385"
+                    tone="cream"
+                    rounded={0}
+                    className="w-full"
+                  />
+                  <div style={{ padding: '16px 18px 20px' }}>
+                    <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>정식 품목보고된 프리믹스</h3>
+                    <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                      비타민·미네랄 프리믹스 &lsquo;파머스테일 뉴트리 코어&rsquo;는
+                      식품안전나라에 품목보고된 제품입니다.
+                    </p>
+                  </div>
+                </article>
+              </Reveal>
+              <Reveal delay={130}>
+                <article style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
+                  <PhotoSlot
+                    src="/evidence-import-cert.webp"
+                    alt="비타민·미네랄 원료의 수입식품 수입신고확인증"
+                    label="원료 수입신고확인증"
+                    ratio="1740 / 2205"
+                    tone="cream"
+                    rounded={0}
+                    className="w-full"
+                  />
+                  <div style={{ padding: '16px 18px 20px' }}>
+                    <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>원료까지 신고 서류로</h3>
+                    <p className="mt-1.5 text-[12.5px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                      프리믹스에 쓰이는 원료는 수입식품 안전관리 특별법에 따른
+                      수입신고확인증을 갖춘 것을 사용합니다.
+                    </p>
+                  </div>
+                </article>
+              </Reveal>
+            </div>
           </Container>
         </Section>
 

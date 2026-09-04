@@ -775,7 +775,10 @@ function ScienceExpertise() {
           </Reveal>
           <Reveal variant="right" delay={100}>
             <Parallax speed={0.06}>
-            <PhotoSlot src="/recipe-analysis.webp" alt="식품 정보 분석 보고서 — 레시피 설계·영양 분석" label="레시피 설계 / 영양 분석" ratio="1600 / 764" tone="green" rounded={10} className="w-full" />
+            {/* 2026-09-04 사장님 제작 교차검증표(AAFCO·FEDIAF·NRC × 레시피 4종)로
+                교체. 문서 이미지라 ratio 를 원본 비율로 정확히 — cover 크롭되면
+                표가 잘린다. 원문 PDF 는 /science 의 실물 근거 섹션에. */}
+            <PhotoSlot src="/nutrition-crossval-landing.webp" alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증" label="영양 교차검증표" ratio="3141 / 3010" tone="green" rounded={10} className="w-full" />
             </Parallax>
           </Reveal>
         </div>
