@@ -2099,9 +2099,13 @@ select {
   --radius-xl: calc(var(--adm-radius, 0.625rem) + 4px);
 }
 
-/* 어드민 라이트 팔레트(shadcn neutral) — 어드민 서브트리에서만 유효.
+/* 어드민 라이트 팔레트(shadcn neutral) — 변수가 전부 --adm-* 라 충돌이
+   없으므로 :root 전역 정의. 원래 .admin-scope 스코프였는데, 모바일 드로어·
+   드롭다운·툴팁이 **포털로 body 에 직접 렌더**되며 스코프 밖으로 나가
+   배경 변수를 못 받아 메뉴가 반투명하게 비쳤다(2026-09-04 사장님 실기기
+   제보). .admin-scope 래퍼 클래스는 마커로만 유지.
    포인트 컬러(primary)는 FD 테라코타 계열로 브랜드 접점만 남긴다. */
-.admin-scope {
+:root {
   --adm-background: oklch(0.985 0.002 90);
   --adm-foreground: oklch(0.16 0.01 60);
   --adm-card: oklch(1 0 0);

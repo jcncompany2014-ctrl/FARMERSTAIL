@@ -34,13 +34,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 }
 
-export default function AdminPreviewPage() {
+export default async function AdminPreviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ collapsed?: string }>
+}) {
+  // ?collapsed=1 — 접힘 레일 검수용(개발 편의).
+  const { collapsed } = await searchParams
   return (
     <div className="admin-scope min-h-screen bg-background font-sans text-foreground antialiased">
       <div className="bg-primary px-4 py-2 text-center text-[12.5px] font-bold text-primary-foreground">
         어드민 개편 시안 — 화면의 모든 수치는 데모 데이터입니다
       </div>
-      <AdminShellNext userEmail="ian020529@gmail.com">
+      <AdminShellNext userEmail="ian020529@gmail.com" defaultOpen={collapsed !== '1'}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { t: '오늘 주문', v: '3건', d: '+2 어제 대비', up: true },

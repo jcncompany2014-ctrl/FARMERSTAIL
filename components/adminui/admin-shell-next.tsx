@@ -126,11 +126,14 @@ const NAV_GROUPS = [
 export default function AdminShellNext({
   userEmail,
   bell,
+  defaultOpen = true,
   children,
 }: {
   userEmail: string
   /** 실시간 주문 벨(서버 컴포넌트) — 헤더 우측 슬롯 */
   bell?: ReactNode
+  /** 사이드바 접힘 유지 — layout 이 sidebar_state 쿠키를 읽어 넘긴다. */
+  defaultOpen?: boolean
   children: ReactNode
 }) {
   const pathname = usePathname()
@@ -143,17 +146,17 @@ export default function AdminShellNext({
   const crumb = pathname === '/admin' ? '대시보드' : (current?.label ?? '관리자')
   return (
     <TooltipProvider>
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={defaultOpen}>
       <Sidebar collapsible="icon">
         <SidebarHeader>
           {/* 정본 로고 — 라이트 사이드바엔 mark(그린 워드마크), 아이콘 접힘
               상태엔 stamp(원형 도장). "이상한 FT" 지적(2026-09-04) 수정. */}
-          <div className="flex h-12 items-center gap-2 px-2">
+          <div className="flex h-12 items-center gap-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
             <Image
               src="/logo-stamp.png"
               alt=""
-              width={28}
-              height={28}
+              width={36}
+              height={36}
               priority
               className="hidden shrink-0 group-data-[collapsible=icon]:block"
             />

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import OrderRealtimeBell from '@/components/admin/OrderRealtimeBell'
@@ -44,9 +45,15 @@ export default async function AdminLayout({
   // shadcn 기반 AdminShellNext(39개 라우트 업무 그룹 내비). shadcn 팔레트는
   // `.admin-scope` 서브트리에서만 유효(globals.css) — 웹/앱 무영향.
   // 구 셸 파일은 롤백 대비로 보존(components/admin/AdminShell.tsx).
+  // 사이드바 접힘 상태 유지 — shadcn 표준(sidebar_state 쿠키). 없으면 펼침.
+  const sidebarState = (await cookies()).get('sidebar_state')?.value
   return (
     <div className="admin-scope min-h-screen bg-background font-sans text-foreground antialiased">
-      <AdminShellNext userEmail={user.email ?? ''} bell={<OrderRealtimeBell />}>
+      <AdminShellNext
+        userEmail={user.email ?? ''}
+        bell={<OrderRealtimeBell />}
+        defaultOpen={sidebarState !== 'false'}
+      >
         {children}
       </AdminShellNext>
     </div>
