@@ -1,7 +1,20 @@
 import Link from 'next/link'
+import { Download, Search as SearchIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { Hl, Em, FilterChip } from '@/components/admin/ui'
+import { Hl, Em } from '@/components/admin/ui'
+import { Badge } from '@/components/adminui/badge'
+import { Button } from '@/components/adminui/button'
+import { Card, CardContent } from '@/components/adminui/card'
+import { Input } from '@/components/adminui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/adminui/table'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
 
@@ -32,7 +45,14 @@ function formatDate(iso: string) {
   return `${get('year')}.${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`
 }
 
-function statusBadge(paymentStatus: string, orderStatus: string) {
+/**
+ * 상태 배지 — 라벨/색 의미는 구버전 그대로(준비=브랜드 테라코타, 배송=그린,
+ * 완료=옅은 그린, 취소·실패=적색 계열, 미결제=회색). 부품만 shadcn Badge.
+ */
+function statusBadge(paymentStatus: string, orderStatus: string): {
+  label: string
+  cls: string
+} {
   if (paymentStatus !== 'paid') {
     const labelMap: Record<string, string> = {
       pending: '결제 대기',
@@ -41,22 +61,26 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
       partially_refunded: '부분 환불',
       refunded: '환불',
     }
-    return {
-      label: labelMap[paymentStatus] ?? paymentStatus,
-      color: 'bg-rule text-zinc-800',
-    }
+    const label = labelMap[paymentStatus] ?? paymentStatus
+    const cls =
+      paymentStatus === 'partially_refunded'
+        ? 'bg-amber-100 text-amber-900 border-transparent'
+        : paymentStatus === 'refunded' || paymentStatus === 'failed'
+          ? 'bg-red-100 text-red-900 border-transparent'
+          : 'bg-secondary text-secondary-foreground border-transparent'
+    return { label, cls }
   }
   switch (orderStatus) {
     case 'preparing':
-      return { label: '준비 중', color: 'bg-terracotta text-white' }
+      return { label: '준비 중', cls: 'bg-primary text-primary-foreground border-transparent' }
     case 'shipping':
-      return { label: '배송 중', color: 'bg-moss text-white' }
+      return { label: '배송 중', cls: 'bg-emerald-600 text-white border-transparent' }
     case 'delivered':
-      return { label: '배송 완료', color: 'bg-[#8BA05A] text-white' }
+      return { label: '배송 완료', cls: 'bg-emerald-100 text-emerald-900 border-transparent' }
     case 'cancelled':
-      return { label: '취소', color: 'bg-sale text-white' }
+      return { label: '취소', cls: 'bg-destructive text-white border-transparent' }
     default:
-      return { label: orderStatus, color: 'bg-rule text-zinc-800' }
+      return { label: orderStatus, cls: 'bg-secondary text-secondary-foreground border-transparent' }
   }
 }
 
@@ -147,35 +171,30 @@ export default async function AdminOrdersPage({
   }`
 
   return (
-    <div>
-      <div className="mb-6 flex items-end justify-between gap-4">
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            주문 관리
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">주문 관리</h1>
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
             <Hl>들어온 주문을 결제·배송 상태별로 찾고 관리</Hl>하는 곳이에요.
             정기배송 자동결제도 결제될 때마다 여기에 주문 한 건으로 쌓여요.{' '}
             <Em>주문번호를 누르면</Em> 상세에서 배송 상태 변경·환불을 처리할 수
             있어요.
           </p>
         </div>
-        <a
-          href={exportHref}
-          // download 속성이 있으면 브라우저가 바로 저장. 서버는 Content-Disposition
-          // 으로 파일명을 지정하지만, 구형 Safari/Edge 에서 href 그대로 네비게이션
-          // 되는 이슈를 방지.
-          download
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-zinc-900 hover:border-terracotta hover:text-terracotta transition"
-        >
-          <span>⬇</span>
-          <span>CSV 내보내기</span>
-        </a>
+        <Button variant="outline" size="sm" asChild>
+          {/* download 속성: 서버 Content-Disposition 파일명 + 구형 브라우저
+              네비게이션 방지(기존 동작 유지) */}
+          <a href={exportHref} download>
+            <Download />
+            CSV 내보내기
+          </a>
+        </Button>
       </div>
 
-      {/* 필터 탭 + 검색 */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1.5 flex-wrap">
+      {/* 필터 탭 + 검색 — URL(GET) 기반 동작은 구버전과 동일 */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
           {FILTERS.map((f) => {
             const active = status === f.key
             const href =
@@ -183,151 +202,138 @@ export default async function AdminOrdersPage({
                 ? `/admin/orders${q ? `?q=${encodeURIComponent(q)}` : ''}`
                 : `/admin/orders?status=${f.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`
             return (
-              <FilterChip
+              <Button
                 key={f.key}
-                href={href}
-                active={active}
-                label={f.label}
-              />
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                className="h-8 rounded-full px-3.5"
+                asChild
+              >
+                <Link href={href}>{f.label}</Link>
+              </Button>
             )
           })}
         </div>
 
-        <form
-          action="/admin/orders"
-          method="get"
-          className="flex gap-2 items-center"
-        >
+        <form action="/admin/orders" method="get" className="flex items-center gap-2">
           {status !== 'all' && (
             <input type="hidden" name="status" value={status} />
           )}
-          <input
+          <Input
             type="search"
             name="q"
             defaultValue={q}
             placeholder="주문번호 · 이름 · 전화"
             inputMode="search"
             autoComplete="off"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-56"
+            className="h-9 w-56 rounded-full"
           />
-          <button
-            type="submit"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
-          >
+          <Button type="submit" size="sm" className="h-9 rounded-full">
+            <SearchIcon />
             검색
-          </button>
+          </Button>
         </form>
       </div>
 
-      {/* 주문 테이블(데스크톱) / 카드(모바일) */}
-      <div className="md:p-6 md:rounded-lg md:bg-white md:border md:border-zinc-200">
-        {error ? (
-          <p className="text-sale text-sm">에러: {error.message}</p>
-        ) : !orders || orders.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 py-10">
+      {error ? (
+        <Card className="py-4">
+          <CardContent className="px-4 text-sm text-destructive">
+            에러: {error.message}
+          </CardContent>
+        </Card>
+      ) : !orders || orders.length === 0 ? (
+        <Card className="py-10">
+          <CardContent className="text-center text-sm text-muted-foreground">
             조건에 맞는 주문이 없어요
-          </p>
-        ) : (
-          <>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
           {/* 모바일 카드 — 테이블은 폰에서 셀이 부러진다(2026-07-19 사장님 폰). */}
-          <div className="md:hidden space-y-2.5">
+          <div className="space-y-2.5 md:hidden">
             {orders.map((o) => {
               const badge = statusBadge(o.payment_status, o.order_status)
               return (
-                <Link
-                  key={o.id}
-                  href={`/admin/orders/${o.id}`}
-                  className="block rounded-lg border border-zinc-200 bg-white p-4 active:bg-zinc-50"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] text-zinc-500 truncate">
-                      {o.order_number}
-                    </span>
-                    <span
-                      className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.color}`}
-                    >
-                      {badge.label}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-bold text-zinc-900 truncate">
-                      {o.recipient_name}
-                    </span>
-                    <strong className="shrink-0 text-[14px] text-zinc-900">
-                      {o.total_amount.toLocaleString()}원
-                    </strong>
-                  </div>
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    {o.recipient_phone} · {formatDate(o.created_at)}
-                  </p>
+                <Link key={o.id} href={`/admin/orders/${o.id}`} className="block">
+                  <Card className="gap-0 py-3.5 transition active:bg-muted">
+                    <CardContent className="px-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-mono text-[11px] text-muted-foreground">
+                          {o.order_number}
+                        </span>
+                        <Badge className={`shrink-0 ${badge.cls}`}>{badge.label}</Badge>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <span className="truncate text-[13px] font-bold">
+                          {o.recipient_name}
+                        </span>
+                        <strong className="shrink-0 text-sm tabular-nums">
+                          {o.total_amount.toLocaleString()}원
+                        </strong>
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {o.recipient_phone} · {formatDate(o.created_at)}
+                      </p>
+                    </CardContent>
+                  </Card>
                 </Link>
               )
             })}
           </div>
 
           {/* 데스크톱 테이블 */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
-                  <th className="text-left py-2 font-medium">주문번호</th>
-                  <th className="text-left py-2 font-medium">주문자</th>
-                  <th className="text-left py-2 font-medium">연락처</th>
-                  <th className="text-right py-2 font-medium">금액</th>
-                  <th className="text-center py-2 font-medium">상태</th>
-                  <th className="text-right py-2 font-medium">주문 시각</th>
-                  <th className="text-center py-2 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => {
-                  const badge = statusBadge(o.payment_status, o.order_status)
-                  return (
-                    <tr
-                      key={o.id}
-                      className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
-                    >
-                      <td className="py-3 font-mono text-[11px] text-zinc-900">
-                        {o.order_number}
-                      </td>
-                      <td className="py-3 text-zinc-900">{o.recipient_name}</td>
-                      <td className="py-3 text-[11px] text-zinc-800">
-                        {o.recipient_phone}
-                      </td>
-                      <td className="py-3 text-right font-semibold text-zinc-900">
-                        {o.total_amount.toLocaleString()}원
-                      </td>
-                      <td className="py-3 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${badge.color}`}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full bg-current opacity-80"
-                            aria-hidden
-                          />
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right text-[11px] text-zinc-500">
-                        {formatDate(o.created_at)}
-                      </td>
-                      <td className="py-3 text-center">
-                        <Link
-                          href={`/admin/orders/${o.id}`}
-                          className="text-[11px] text-terracotta hover:underline font-semibold"
-                        >
-                          상세 →
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          </>
-        )}
-      </div>
+          <Card className="hidden gap-0 py-2 md:block">
+            <CardContent className="px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>주문번호</TableHead>
+                    <TableHead>주문자</TableHead>
+                    <TableHead>연락처</TableHead>
+                    <TableHead className="text-right">금액</TableHead>
+                    <TableHead className="text-center">상태</TableHead>
+                    <TableHead className="text-right">주문 시각</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((o) => {
+                    const badge = statusBadge(o.payment_status, o.order_status)
+                    return (
+                      <TableRow key={o.id}>
+                        <TableCell className="font-mono text-[11.5px]">
+                          {o.order_number}
+                        </TableCell>
+                        <TableCell className="font-medium">{o.recipient_name}</TableCell>
+                        <TableCell className="text-[12px] text-muted-foreground">
+                          {o.recipient_phone}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {o.total_amount.toLocaleString()}원
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={badge.cls}>{badge.label}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-[11.5px] tabular-nums text-muted-foreground">
+                          {formatDate(o.created_at)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Link
+                            href={`/admin/orders/${o.id}`}
+                            className="text-[12px] font-semibold text-primary hover:underline"
+                          >
+                            상세 →
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {!error && (
         <AdminPagination

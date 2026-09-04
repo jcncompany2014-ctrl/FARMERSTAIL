@@ -79,7 +79,7 @@ export function AdminCard({
 }) {
   return (
     <div
-      className={`rounded-lg border border-zinc-200 bg-white ${padded ? 'p-5' : ''} ${className}`}
+      className={`rounded-xl border border-zinc-200 bg-white shadow-sm ${padded ? 'p-5' : ''} ${className}`}
     >
       {children}
     </div>
@@ -150,7 +150,7 @@ export function FilterChip({
   const cls =
     'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition ' +
     (active
-      ? 'bg-zinc-900 text-white'
+      ? 'bg-primary text-primary-foreground'
       : 'bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400')
 
   if (href) {
@@ -256,7 +256,7 @@ export function StatCard({
   tone?: StatTone
 }) {
   return (
-    <div className="p-4 rounded-lg bg-white border border-zinc-200">
+    <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-sm">
       <p className="flex items-center text-[12px] text-zinc-500 font-semibold">
         <span>{label}</span>
         {help && <HelpTip text={help} />}

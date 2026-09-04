@@ -5,7 +5,6 @@ import { isAdmin } from '@/lib/auth/admin'
 import { redirect } from 'next/navigation'
 import {
   RefreshCcw,
-  ArrowLeft,
   Calendar,
   TrendingDown,
   AlertTriangle,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { Hl, Em } from '@/components/admin/ui'
+import { Badge } from '@/components/adminui/badge'
+import { Card, CardContent } from '@/components/adminui/card'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,50 +115,27 @@ export default async function AdminRefundsPage() {
   }
 
   return (
-    <div className="px-5 py-6">
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-800 font-semibold mb-3"
-          >
-            <ArrowLeft className="w-3 h-3" strokeWidth={2.5} />
-            대시보드
-          </Link>
-          <div className="flex items-center gap-2">
-            <RefreshCcw className="w-5 h-5 text-terracotta" strokeWidth={2} />
-            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-              환불 관리
-            </h1>
-          </div>
-          <p className="text-[13px] text-zinc-500 mt-1">
-            <Hl>지금까지 처리한 환불 내역</Hl>을 보는 곳이에요. 각 건은 토스
-            거래번호와 연결돼 있어요. <Em>환불 자체는 주문 상세에서 처리</Em>해요.
-          </p>
+    <div className="grid gap-4">
+      <div>
+        <div className="flex items-center gap-2">
+          <RefreshCcw className="size-5 text-primary" strokeWidth={2} />
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">환불 관리</h1>
         </div>
+        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+          <Hl>지금까지 처리한 환불 내역</Hl>을 보는 곳이에요. 각 건은 토스
+          거래번호와 연결돼 있어요. <Em>환불 자체는 주문 상세에서 처리</Em>해요.
+        </p>
       </div>
 
       {/* Hero stat 3-grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <StatCard
-          kicker="이번 달 환불"
-          value={monthCount}
-          unit="건"
-          tone="terracotta"
-          Icon={Calendar}
-        />
-        <StatCard
-          kicker="이번 달 환불액"
-          value={monthTotal}
-          unit="원"
-          tone="sale"
-          Icon={TrendingDown}
-        />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <StatCard kicker="이번 달 환불" value={monthCount} unit="건" tone="brand" Icon={Calendar} />
+        <StatCard kicker="이번 달 환불액" value={monthTotal} unit="원" tone="danger" Icon={TrendingDown} />
         <StatCard
           kicker="처리 대기"
           value={pendingCount ?? 0}
           unit="건"
-          tone={pendingCount && pendingCount > 0 ? 'sale' : 'muted'}
+          tone={pendingCount && pendingCount > 0 ? 'danger' : 'muted'}
           Icon={AlertTriangle}
           highlight={pendingCount && pendingCount > 0 ? true : false}
         />
@@ -165,58 +143,59 @@ export default async function AdminRefundsPage() {
 
       {/* 데드레터 — 자동 재시도 모두 실패(수동 처리 필요). 최우선 노출. */}
       {dead.length > 0 && (
-        <section className="mb-6 rounded-xl border-2 border-sale/40 bg-sale/5 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-sale" strokeWidth={2.4} />
-            <h2 className="text-[13px] font-bold text-sale">
-              환불 영구 실패 — 수동 처리 필요 ({dead.length})
-            </h2>
-          </div>
-          <ul className="space-y-1.5">
-            {dead.map((d) => (
-              <li
-                key={d.id}
-                className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2"
-              >
-                <Link
-                  href={`/admin/orders/${d.order_id}`}
-                  className="font-mono text-[12px] text-zinc-800 hover:text-terracotta truncate"
+        <Card className="gap-3 border-destructive/40 bg-destructive/5 py-4">
+          <CardContent className="px-4">
+            <div className="mb-3 flex items-center gap-2">
+              <AlertTriangle className="size-4 text-destructive" strokeWidth={2.4} />
+              <h2 className="text-[13px] font-bold text-destructive">
+                환불 영구 실패 — 수동 처리 필요 ({dead.length})
+              </h2>
+            </div>
+            <ul className="space-y-1.5">
+              {dead.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-2"
                 >
-                  주문 #{String(d.order_id).slice(0, 8)} ·{' '}
-                  {Number(d.amount).toLocaleString()}원
-                </Link>
-                <span className="text-[10px] text-zinc-500 shrink-0">
-                  {d.attempts}회 실패
-                  {d.last_error ? ` · ${String(d.last_error).slice(0, 28)}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-[10.5px] text-zinc-500 mt-2 leading-relaxed">
-            자동 재시도가 모두 실패했어요. Toss 콘솔에서 직접 환불 후 해당 주문을
-            처리해 주세요. (이 목록은 비어 있는 게 정상이에요)
-          </p>
-        </section>
+                  <Link
+                    href={`/admin/orders/${d.order_id}`}
+                    className="truncate font-mono text-[12px] hover:text-primary"
+                  >
+                    주문 #{String(d.order_id).slice(0, 8)} ·{' '}
+                    {Number(d.amount).toLocaleString()}원
+                  </Link>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {d.attempts}회 실패
+                    {d.last_error ? ` · ${String(d.last_error).slice(0, 28)}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[10.5px] leading-relaxed text-muted-foreground">
+              자동 재시도가 모두 실패했어요. Toss 콘솔에서 직접 환불 후 해당 주문을
+              처리해 주세요. (이 목록은 비어 있는 게 정상이에요)
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* 환불 list */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">최근 100건</span>
+        <div className="mb-2.5 flex items-center gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            최근 100건
+          </span>
         </div>
         {list.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
-            <RefreshCcw
-              className="w-10 h-10 text-zinc-500 mx-auto mb-3"
-              strokeWidth={1.3}
-            />
-            <p className="text-[13px] font-bold text-zinc-800">
-              아직 환불 내역이 없어요
-            </p>
-            <p className="text-[11px] text-zinc-500 mt-1">
-              고객이 직접 환불하거나 관리자가 부분취소하면 여기에 기록돼요
-            </p>
-          </div>
+          <Card className="py-12">
+            <CardContent className="text-center">
+              <RefreshCcw className="mx-auto mb-3 size-10 text-muted-foreground" strokeWidth={1.3} />
+              <p className="text-[13px] font-bold">아직 환불 내역이 없어요</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                고객이 직접 환불하거나 관리자가 부분취소하면 여기에 기록돼요
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <ul className="space-y-2">
             {list.map((r) => (
@@ -240,55 +219,32 @@ function StatCard({
   kicker: string
   value: number
   unit: string
-  tone: 'terracotta' | 'sale' | 'muted' | 'moss'
+  tone: 'brand' | 'danger' | 'muted'
   Icon: typeof RefreshCcw
   highlight?: boolean
 }) {
-  const colorMap = {
-    terracotta: 'var(--terracotta)',
-    sale: 'var(--sale)',
-    muted: 'var(--muted)',
-    moss: 'var(--moss)',
-  }
-  const accent = colorMap[tone]
+  const accentCls = {
+    brand: 'text-primary',
+    danger: 'text-destructive',
+    muted: 'text-muted-foreground',
+  }[tone]
   return (
-    <div
-      className="rounded-xl border px-4 py-3"
-      style={{
-        background: highlight
-          ? `color-mix(in srgb, ${accent} 6%, white)`
-          : 'white',
-        borderColor: highlight ? accent : 'var(--rule)',
-      }}
+    <Card
+      className={`gap-1 py-3.5 ${highlight ? 'border-destructive/50 bg-destructive/5' : ''}`}
     >
-      <div className="flex items-center gap-1.5">
-        <Icon
-          className="w-3 h-3"
-          style={{ color: accent }}
-          strokeWidth={2.5}
-        />
-        <span
-          className="text-[10px] font-bold"
-          style={{ color: accent }}
-        >
-          {kicker}
-        </span>
-      </div>
-      <div className="mt-1 flex items-baseline gap-0.5">
-        <span
-          className="font-sans tabular-nums leading-none"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {value.toLocaleString()}
-        </span>
-        <span className="text-[11px] text-zinc-500">{unit}</span>
-      </div>
-    </div>
+      <CardContent className="px-4">
+        <div className={`flex items-center gap-1.5 ${accentCls}`}>
+          <Icon className="size-3" strokeWidth={2.5} />
+          <span className="text-[10.5px] font-bold">{kicker}</span>
+        </div>
+        <div className="mt-1 flex items-baseline gap-0.5">
+          <span className="text-xl font-extrabold leading-none tracking-tight tabular-nums md:text-2xl">
+            {value.toLocaleString()}
+          </span>
+          <span className="text-[11px] text-muted-foreground">{unit}</span>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -308,81 +264,49 @@ function RefundRow({
   }
 }) {
   const statusMeta = {
-    pending: { label: '대기', Icon: Clock, color: 'var(--gold)' },
-    succeeded: { label: '완료', Icon: Check, color: 'var(--moss)' },
-    failed: { label: '실패', Icon: AlertTriangle, color: 'var(--sale)' },
+    pending: { label: '대기', Icon: Clock, iconCls: 'bg-amber-100 text-amber-700', badgeCls: 'bg-amber-100 text-amber-900 border-transparent' },
+    succeeded: { label: '완료', Icon: Check, iconCls: 'bg-emerald-100 text-emerald-700', badgeCls: 'bg-emerald-100 text-emerald-900 border-transparent' },
+    failed: { label: '실패', Icon: AlertTriangle, iconCls: 'bg-red-100 text-red-700', badgeCls: 'bg-destructive text-white border-transparent' },
   }[refund.status]
   const StatusIcon = statusMeta.Icon
 
   return (
     <li>
-      <Link
-        href={`/admin/orders/${refund.order_id}`}
-        className="block bg-white rounded-xl border border-zinc-200 px-4 py-3 hover:border-zinc-800 transition"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-              style={{
-                background: `color-mix(in srgb, ${statusMeta.color} 12%, white)`,
-              }}
-            >
-              <StatusIcon
-                className="w-4 h-4"
-                style={{ color: statusMeta.color }}
-                strokeWidth={2}
-              />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span
-                  className="font-sans tabular-nums"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: 'var(--terracotta)',
-                    letterSpacing: '-0.015em',
-                  }}
-                >
-                  {refund.amount.toLocaleString()}원
-                </span>
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{
-                    background: refund.is_partial
-                      ? 'color-mix(in srgb, var(--gold) 15%, white)'
-                      : 'var(--bg-2)',
-                    color: refund.is_partial ? 'var(--gold)' : 'var(--text)',
-                  }}
-                >
-                  {refund.is_partial ? '부분' : '전체'}
-                </span>
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{
-                    color: statusMeta.color,
-                    border: `1px solid ${statusMeta.color}`,
-                  }}
-                >
-                  {statusMeta.label}
-                </span>
+      <Link href={`/admin/orders/${refund.order_id}`} className="block">
+        <Card className="gap-0 py-3 transition hover:border-ring">
+          <CardContent className="px-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className={`flex size-9 shrink-0 items-center justify-center rounded-full ${statusMeta.iconCls}`}>
+                  <StatusIcon className="size-4" strokeWidth={2} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-sm font-extrabold tracking-tight text-primary tabular-nums">
+                      {refund.amount.toLocaleString()}원
+                    </span>
+                    <Badge variant={refund.is_partial ? 'outline' : 'secondary'} className={refund.is_partial ? 'border-amber-300 text-amber-800' : ''}>
+                      {refund.is_partial ? '부분' : '전체'}
+                    </Badge>
+                    <Badge className={statusMeta.badgeCls}>{statusMeta.label}</Badge>
+                  </div>
+                  <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">
+                    주문 #{refund.order_id.slice(0, 8)}
+                    {refund.reason && ` · ${refund.reason}`}
+                  </div>
+                </div>
               </div>
-              <div className="text-[10.5px] text-zinc-500 mt-0.5 truncate">
-                주문 #{refund.order_id.slice(0, 8)}
-                {refund.reason && ` · ${refund.reason}`}
+              <div className="shrink-0 text-right">
+                <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
+                  {formatDate(refund.refunded_at)}
+                </div>
+                {refund.refunded_by === null && (
+                  <div className="mt-0.5 text-[10.5px] text-muted-foreground">고객 직접 환불</div>
+                )}
               </div>
             </div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-[10px] text-zinc-500 font-mono tabular-nums">
-              {formatDate(refund.refunded_at)}
-            </div>
-            {refund.refunded_by === null && (
-              <div className="text-[10.5px] text-zinc-500 mt-0.5">고객 직접 환불</div>
-            )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </Link>
     </li>
   )

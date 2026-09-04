@@ -2056,81 +2056,83 @@ select {
      bg-background / text-foreground 는 기존 @theme(974행 부근)의 매핑을
      같은 이름으로 리바인드하지만, 저장소 전체에 해당 유틸 사용처 0건을
      확인하고 진행(grep 실측). 값 자체는 사용 지점에서 var() 로 풀리므로:
-   - `.admin-scope` 서브트리 안에서만 shadcn 팔레트가 적용되고, 웹/앱
-     화면은 어떤 값도 바뀌지 않는다. 어드민 밖에서 이 유틸을 쓰지 말 것.
+   - 변수는 전부 --adm-* 네임스페이스 — 사이트 변수(--muted 등)와 이름이
+     겹치면 레거시 어드민 페이지의 var(--muted) 텍스트가 씻겨 보이는 사고가
+     나서(2026-09-04 실측 직전 차단) 격리했다. background/foreground/muted 는
+     어드민 밖 폴백을 사이트 값으로 걸어 기존 의미 보존.
    ========================================================================= */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--adm-background, var(--bg));
+  --color-foreground: var(--adm-foreground, var(--text));
+  --color-card: var(--adm-card);
+  --color-card-foreground: var(--adm-card-foreground);
+  --color-popover: var(--adm-popover);
+  --color-popover-foreground: var(--adm-popover-foreground);
+  --color-primary: var(--adm-primary);
+  --color-primary-foreground: var(--adm-primary-foreground);
+  --color-secondary: var(--adm-secondary);
+  --color-secondary-foreground: var(--adm-secondary-foreground);
+  --color-muted-foreground: var(--adm-muted-foreground);
+  --color-accent: var(--adm-accent);
+  --color-accent-foreground: var(--adm-accent-foreground);
+  --color-destructive: var(--adm-destructive);
+  --color-destructive-foreground: var(--adm-destructive-foreground);
+  --color-border: var(--adm-border);
+  --color-input: var(--adm-input);
+  --color-ring: var(--adm-ring);
+  --color-chart-1: var(--adm-chart-1);
+  --color-chart-2: var(--adm-chart-2);
+  --color-chart-3: var(--adm-chart-3);
+  --color-chart-4: var(--adm-chart-4);
+  --color-chart-5: var(--adm-chart-5);
+  --color-sidebar: var(--adm-sidebar);
+  --color-sidebar-foreground: var(--adm-sidebar-foreground);
+  --color-sidebar-primary: var(--adm-sidebar-primary);
+  --color-sidebar-primary-foreground: var(--adm-sidebar-primary-foreground);
+  --color-sidebar-accent: var(--adm-sidebar-accent);
+  --color-sidebar-accent-foreground: var(--adm-sidebar-accent-foreground);
+  --color-sidebar-border: var(--adm-sidebar-border);
+  --color-sidebar-ring: var(--adm-sidebar-ring);
+  --radius-sm: calc(var(--adm-radius, 0.625rem) - 4px);
+  --radius-md: calc(var(--adm-radius, 0.625rem) - 2px);
+  --radius-lg: var(--adm-radius, 0.625rem);
+  --radius-xl: calc(var(--adm-radius, 0.625rem) + 4px);
 }
 
 /* 어드민 라이트 팔레트(shadcn neutral) — 어드민 서브트리에서만 유효.
    포인트 컬러(primary)는 FD 테라코타 계열로 브랜드 접점만 남긴다. */
 .admin-scope {
-  --background: oklch(0.985 0.002 90);
-  --foreground: oklch(0.16 0.01 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.01 60);
-  --primary: oklch(0.62 0.13 40);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.004 90);
-  --secondary-foreground: oklch(0.24 0.01 60);
-  --muted: oklch(0.955 0.004 90);
-  --muted-foreground: oklch(0.5 0.012 60);
-  --accent: oklch(0.955 0.006 80);
-  --accent-foreground: oklch(0.24 0.01 60);
-  --destructive: oklch(0.577 0.215 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.912 0.005 90);
-  --input: oklch(0.912 0.005 90);
-  --ring: oklch(0.62 0.13 40);
-  --chart-1: oklch(0.62 0.13 40);
-  --chart-2: oklch(0.55 0.09 150);
-  --chart-3: oklch(0.6 0.1 250);
-  --chart-4: oklch(0.75 0.13 85);
-  --chart-5: oklch(0.5 0.05 300);
-  --sidebar: oklch(0.97 0.003 90);
-  --sidebar-foreground: oklch(0.24 0.01 60);
-  --sidebar-primary: oklch(0.62 0.13 40);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.93 0.006 85);
-  --sidebar-accent-foreground: oklch(0.2 0.01 60);
-  --sidebar-border: oklch(0.905 0.005 90);
-  --sidebar-ring: oklch(0.62 0.13 40);
-  --radius: 0.625rem;
+  --adm-background: oklch(0.985 0.002 90);
+  --adm-foreground: oklch(0.16 0.01 60);
+  --adm-card: oklch(1 0 0);
+  --adm-card-foreground: oklch(0.16 0.01 60);
+  --adm-popover: oklch(1 0 0);
+  --adm-popover-foreground: oklch(0.16 0.01 60);
+  --adm-primary: oklch(0.62 0.13 40);
+  --adm-primary-foreground: oklch(0.99 0 0);
+  --adm-secondary: oklch(0.96 0.004 90);
+  --adm-secondary-foreground: oklch(0.24 0.01 60);
+  --adm-muted: oklch(0.955 0.004 90);
+  --adm-muted-foreground: oklch(0.5 0.012 60);
+  --adm-accent: oklch(0.955 0.006 80);
+  --adm-accent-foreground: oklch(0.24 0.01 60);
+  --adm-destructive: oklch(0.577 0.215 27);
+  --adm-destructive-foreground: oklch(0.99 0 0);
+  --adm-border: oklch(0.912 0.005 90);
+  --adm-input: oklch(0.912 0.005 90);
+  --adm-ring: oklch(0.62 0.13 40);
+  --adm-chart-1: oklch(0.62 0.13 40);
+  --adm-chart-2: oklch(0.55 0.09 150);
+  --adm-chart-3: oklch(0.6 0.1 250);
+  --adm-chart-4: oklch(0.75 0.13 85);
+  --adm-chart-5: oklch(0.5 0.05 300);
+  --adm-sidebar: oklch(0.97 0.003 90);
+  --adm-sidebar-foreground: oklch(0.24 0.01 60);
+  --adm-sidebar-primary: oklch(0.62 0.13 40);
+  --adm-sidebar-primary-foreground: oklch(0.99 0 0);
+  --adm-sidebar-accent: oklch(0.93 0.006 85);
+  --adm-sidebar-accent-foreground: oklch(0.2 0.01 60);
+  --adm-sidebar-border: oklch(0.905 0.005 90);
+  --adm-sidebar-ring: oklch(0.62 0.13 40);
+  --adm-radius: 0.625rem;
 }
