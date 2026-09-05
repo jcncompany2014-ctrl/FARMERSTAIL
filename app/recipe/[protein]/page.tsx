@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import WebChrome from '@/components/WebChrome'
 import WebMotion from '@/components/web/motion/WebMotion'
+import AppBackButton from './AppBackButton'
 import {
   Button,
   Container,
@@ -24,6 +25,8 @@ import {
   Section,
 } from '@/components/web/fd/ui'
 import { WEB_RECIPES, WEB_RECIPE_ORDER, type WebRecipe } from '@/lib/web-recipes'
+import { FRESH_TIERS } from '@/lib/subscription/freshTier'
+import { isAppContextServer } from '@/lib/app-context'
 import {
   RECIPE_DETAIL,
   RECIPE_FAQ,
@@ -116,15 +119,30 @@ const PROCESS_STEPS = [
 
 /**
  * 처음 2주 전환 램프 — 기존 사료에 화식을 섞는 비중을 시각 막대로.
- * 숫자(%)는 쓰지 않는다 — 아이마다 속도가 다르고, 브랜드 보이스가 정확
- * 수치 단정을 피한다. 막대 채움(fill/4칸)만으로 "점점 늘린다"를 전한다.
+ * 막대 채움(fill/4칸)만으로 "점점 늘린다"를 전한다.
+ *
+ * ★도착점 = '완전 화식'이 아니라 **내가 신청한 비율** (2026-09-05 사장님
+ * 지적). 구독은 곁들임 30% · 반반 50% · 완전 화식 100% 세 비율 중 하나로
+ * 오는데, 예전 카피는 무조건 "이제 완전히 전환"으로 끝나 곁들임·반반
+ * 구독자에게 틀린 안내였다. 티어 정본 = lib/subscription/freshTier.
  */
 const TRANSITION_PHASES = [
   { day: '1~2일', fill: 1, label: '기존 사료에 한두 숟갈만 섞어 시작해요' },
-  { day: '3~4일', fill: 2, label: '잘 먹고 변이 편안하면 절반씩 섞어요' },
-  { day: '5~6일', fill: 3, label: '화식 위주로, 기존 사료는 조금만 남겨요' },
-  { day: '7일~', fill: 4, label: '이제 완전히 전환. 화식이 매일의 식사가 돼요' },
+  { day: '3~4일', fill: 2, label: '잘 먹고 변이 편안하면 조금씩 늘려요' },
+  { day: '5~6일', fill: 3, label: '신청한 비율 가까이 — 변 상태를 보며 조절해요' },
+  { day: '7일~', fill: 4, label: '내 박스의 비율로 안착. 여기가 우리 아이의 매일이에요' },
 ] as const
+
+/**
+ * 파우치 스튜디오 컷 — 레시피별 패키지 목업(2026-08 앱 자산 정본과 동일 원본).
+ * 상세페이지 중간의 시각 브레이크 요소(2026-09-05 사장님 요청).
+ */
+const POUCH_IMG: Record<WebRecipe['protein'], string> = {
+  chicken: '/pouch-chicken.webp',
+  duck: '/pouch-duck.webp',
+  pork: '/pouch-blackpork.webp',
+  beef: '/pouch-hanwoo.webp',
+}
 
 /**
  * 급여 순간의 질문들 — 파우치를 든 보호자가 실제로 검색하는 것.
@@ -219,9 +237,12 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
 
   const others = WEB_RECIPE_ORDER.filter((p) => p !== key)
 
-  return (
-    <WebChrome>
-      <WebMotion />
+  // ★앱(PWA/Capacitor) 진입이면 웹 chrome(내비·푸터) 없이 콘텐츠만 렌더 —
+  //   좌상단 고정 ← 버튼 하나로 나간다(2026-09-05 사장님: 앱에서 "웹화면이
+  //   다 보이는 느낌"). 콘텐츠 자체는 웹과 동일(QR 라벨 페이지 속성 유지).
+  const isApp = await isAppContextServer()
+
+  const content = (
       <main>
         {/* ── Hero: 페르소나 헤드라인 + 사진 + 퀵팩트 ── */}
         <Section bg="offwhite" pad="md" className="overflow-hidden">
@@ -493,6 +514,31 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
           </Container>
         </Section>
 
+        {/* ── 파우치 — 이 이야기가 담기는 실제 봉투(스튜디오 컷).
+             긴 정보 섹션 사이의 시각 브레이크(2026-09-05 사장님 요청). ── */}
+        <Section bg="offwhite" pad="md">
+          <Container size="sm">
+            <div className="text-center">
+              <Eyebrow>The Pouch · 봉투 그대로</Eyebrow>
+              <Hand className="block mt-4" style={{ fontSize: 'clamp(24px, 4.5vw, 32px)' }}>
+                이 이야기가 담기는 봉투
+              </Hand>
+            </div>
+            <PhotoSlot
+              label={`${d.displayName} 파우치`}
+              src={POUCH_IMG[key]}
+              alt={`파머스테일 ${d.displayName} 파우치 패키지`}
+              ratio="1 / 1"
+              tone="offwhite"
+              rounded={14}
+              className="mx-auto mt-7 w-full max-w-[380px]"
+            />
+            <p className="mx-auto mt-4 text-center" style={{ maxWidth: 380, fontSize: 12.5, lineHeight: 1.6, color: 'var(--fd-muted)' }}>
+              지금 손에 든 그 봉투예요. 뒷면 라벨의 QR이 이 페이지로 이어져요.
+            </p>
+          </Container>
+        </Section>
+
         {/* ── 영양 설계 — 기준·마진·급여량이 정해지는 방식을 풀어서 ── */}
         <Section bg="white" pad="md">
           <Container size="md">
@@ -672,13 +718,58 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                 <br />
                 편하게 적응해요
               </Display>
-              <p className="mx-auto mt-4" style={{ maxWidth: 440, fontSize: 14, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
+              <p className="mx-auto mt-4" style={{ maxWidth: 480, fontSize: 14, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
                 갑자기 바꾸면 좋은 음식도 배탈이 날 수 있어요. 기존 사료에
-                조금씩 섞어 일주일에 걸쳐 늘려 주세요. 아이마다 속도가 다르니,
-                변 상태를 보며 한 단계씩요.
+                조금씩 섞어 일주일에 걸쳐 늘려 주세요. 도착점은 &lsquo;전부
+                화식&rsquo;이 아니라 <b style={{ color: 'var(--fd-pine)' }}>내가 신청한 비율</b>이에요
+                — 파머스테일 밥은 세 가지 비율 중 설문에서 고른 만큼만 매일
+                그릇에 담겨요.
               </p>
             </div>
-            {/* 전환 램프 — %는 쓰지 않는다. 채움 칸(1~4/4)만으로 "점점"을 전한다. */}
+
+            {/* 화식 비율 3단계 — 정본(lib/subscription/freshTier)에서 그대로.
+                이 페이지의 전환 안내가 "무조건 완전 화식"으로 읽히지 않게,
+                내 박스가 어느 비율로 오는지부터 보여준다(2026-09-05). */}
+            <div className="mx-auto mt-8 grid max-w-[720px] gap-3 sm:grid-cols-3">
+              {FRESH_TIERS.map((t) => (
+                <div
+                  key={t.key}
+                  className="rounded-[12px] px-5 py-4"
+                  style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span style={{ fontSize: 15.5, fontWeight: 900, color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}>
+                      {t.label}
+                    </span>
+                    {'badge' in t && t.badge && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 800,
+                          color: 'var(--fd-coral-text)',
+                          background: '#FFFFFF',
+                          border: '1px solid var(--fd-line)',
+                          borderRadius: 999,
+                          padding: '2px 8px',
+                        }}
+                      >
+                        처음이라면
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1" style={{ fontSize: 12, fontWeight: 800, color: 'var(--fd-coral-text)' }}>
+                    {t.sub}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mx-auto mt-3 text-center" style={{ maxWidth: 480, fontSize: 12.5, lineHeight: 1.6, color: 'var(--fd-muted)' }}>
+              화식이 처음이라면 곁들임부터 시작해, 아이가 잘 적응하면 다음
+              박스에서 비율을 올려도 좋아요. 아이마다 속도가 다르니 변 상태를
+              보며 한 단계씩요.
+            </p>
+
+            {/* 전환 램프 — 채움 칸(1~4/4)으로 "내 비율까지 점점"을 전한다. */}
             <ol className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {TRANSITION_PHASES.map((ph) => (
                 <li key={ph.day} className="rounded-[12px] px-5 py-5" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
@@ -884,6 +975,22 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
           </Container>
         </Section>
       </main>
+  )
+
+  if (isApp) {
+    return (
+      <div>
+        <AppBackButton />
+        <WebMotion />
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <WebChrome>
+      <WebMotion />
+      {content}
     </WebChrome>
   )
 }
