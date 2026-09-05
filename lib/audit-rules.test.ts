@@ -3343,3 +3343,66 @@ test('규칙75: 런타임 코드에 apex(https://farmerstail.kr) 하드코딩 �
     `apex 하드코딩이 다시 생겼다 — www 정본(NEXT_PUBLIC_SITE_URL 폴백 포함)으로 바꿀 것:\n${offenders.join('\n')}`,
   )
 })
+
+test('규칙76: 토스 웹훅 CANCELED 가드는 refunded 종결 상태를 skip 해야 한다 — 원장 이중 기록 방지', () => {
+  /**
+   * # 왜 (2026-09-05 실측)
+   *
+   * admin 전액환불(partial-cancel 라우트)은 payment_status='refunded' 로
+   * 종결하는데, 웹훅의 종결 가드가 'cancelled' 만 봐서 뒤따라온 토스
+   * CANCELED 웹훅이 ① refunded 주문을 cancelled 로 덮어쓰고 ② 원장에 같은
+   * 환불을 한 번 더 기록했다. 결제원장·매출리포트의 환불 합계가 정확히
+   * 2배(65,400 = 32,700×2)로 부풀던 원인. 부분취소는 금액 기반 멱등
+   * (refunded_amount >= 토스 cancels 합)으로 같은 구멍을 막는다.
+   */
+  const src = stripCommentsKeepLines(
+    read(join(ROOT, 'app', 'api', 'payments', 'webhook', 'route.ts')),
+  )
+  assert.ok(
+    /payment_status\s*===\s*'cancelled'\s*\|\|\s*order\.payment_status\s*===\s*'refunded'/.test(
+      src,
+    ),
+    "웹훅 CANCELED 종결 가드에 'refunded' 가 빠졌다 — admin 전액환불 직후 웹훅이 원장에 환불을 이중 기록한다",
+  )
+  assert.ok(
+    /refunded_amount[\s\S]{0,120}>=\s*refundedTotal/.test(src),
+    '부분취소 금액 기반 멱등(refunded_amount >= 토스 누적 환불액 skip)이 사라졌다',
+  )
+})
+
+test('규칙77: 원장 집계(finance·reports)는 환불 event_type 화이트리스트 + 부호 합산이어야 한다', () => {
+  /**
+   * # 왜 (2026-09-05, 규칙76과 한 세트)
+   *
+   * 부호(amount<0)만 보면 정보성·정정 이벤트까지 환불에 섞인다. 그리고 과거
+   * 오기입은 반대 기입(+금액, 회계식 reversal)으로 상쇄하는데, 절대값
+   * 합산이면 정정이 반영되지 않고 환불이 계속 부풀어 보인다. 그래서:
+   *   · 환불 합계 = refunded 계열 3종의 **부호 합산**(-sum)
+   *   · 매출 합계 = event_type 'paid' 만
+   */
+  const finance = stripCommentsKeepLines(
+    read(join(ROOT, 'app', 'admin', 'finance', 'page.tsx')),
+  )
+  assert.ok(
+    /REFUND_TYPES\.has\(e\.event_type\)/.test(finance) &&
+      /\+=\s*-e\.amount/.test(finance),
+    'finance 집계가 event_type 화이트리스트 + 부호 합산이 아니다',
+  )
+  assert.ok(
+    /e\.event_type\s*===\s*'paid'/.test(finance),
+    "finance 매출 집계가 event_type 'paid' 필터를 잃었다",
+  )
+  const reports = stripCommentsKeepLines(
+    read(join(ROOT, 'app', 'admin', 'reports', 'page.tsx')),
+  )
+  assert.ok(
+    /\.in\('event_type',\s*\['refunded',\s*'partial_refunded',\s*'cron_refund_queue'\]\)/.test(
+      reports,
+    ),
+    'reports 환불 쿼리가 event_type 화이트리스트를 잃었다',
+  )
+  assert.ok(
+    /reduce\(\(s,\s*e\)\s*=>\s*s\s*-\s*\(e\.amount\s*\?\?\s*0\)/.test(reports),
+    'reports 환불 합산이 부호 합산(-sum)이 아니다 — 정정 기입이 상쇄되지 않는다',
+  )
+})

@@ -90,7 +90,10 @@ export default async function AdminReportsPage({
     supabase
       .from('payment_events')
       .select('amount, created_at')
-      .lt('amount', 0)
+      // ★환불 계열 event_type 만, 부호 제한 없이 (2026-09-05 이중 기록 수정과
+      //   한 세트) — 부호만 보면 정보성 이벤트가 섞이고, 오기입 정정용 반대
+      //   기입(+금액)은 부호 합산으로 자연 상쇄돼야 한다(회계식 reversal).
+      .in('event_type', ['refunded', 'partial_refunded', 'cron_refund_queue'])
       .gte('created_at', monthStart)
       .lt('created_at', monthEnd),
     supabase
@@ -121,8 +124,8 @@ export default async function AdminReportsPage({
   const charges = (subCharges ?? []) as Array<{ amount: number }>
 
   const grossRevenue = orders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
-  // 원장의 음수 amount 합의 절대값 = 그 달 실제 환불 총액.
-  const refundTotal = refundEvents.reduce((s, e) => s + Math.abs(e.amount ?? 0), 0)
+  // 원장 환불 계열의 **부호 합산**(음수→양수 환불액, 정정 기입은 상쇄).
+  const refundTotal = refundEvents.reduce((s, e) => s - (e.amount ?? 0), 0)
   const netRevenue = grossRevenue - refundTotal
   const orderCount = orders.length
   const subRevenue = charges.reduce((s, c) => s + c.amount, 0)

@@ -69,6 +69,16 @@ export default async function AdminFinancePage({
 
   const events = (rawEvents ?? []) as EventRow[]
 
+  // ★집계는 event_type 화이트리스트로 (2026-09-05 이중 기록 수정과 한 세트).
+  //   부호만 보면 정보성·보정(admin_action) 이벤트까지 매출/환불에 섞인다 —
+  //   과거 이중 기록의 상쇄용 보정 기입(+금액)이 매출로 잡히면 안 된다.
+  //   매출 = 'paid', 환불 = refunded 계열 3종(모든 환불 경로가 이 중 하나).
+  const REFUND_TYPES = new Set([
+    'refunded',
+    'partial_refunded',
+    'cron_refund_queue',
+  ])
+
   // 일별 집계
   type DayBucket = {
     date: string
@@ -95,14 +105,16 @@ export default async function AdminFinancePage({
       }
       buckets.set(day, bucket)
     }
-    if (e.amount > 0) {
+    if (e.event_type === 'paid' && e.amount > 0) {
       bucket.paid += e.amount
       totalPaid += e.amount
       bucket.orderCount.add(e.order_id)
       uniqueOrderIds.add(e.order_id)
-    } else if (e.amount < 0) {
-      bucket.refunded += Math.abs(e.amount)
-      totalRefunded += Math.abs(e.amount)
+    } else if (REFUND_TYPES.has(e.event_type)) {
+      // 부호 합산 — 환불(-)은 더해지고, 오기입 정정용 반대 기입(+)은 자연
+      // 상쇄된다(회계식 reversal). 절대값 합산이면 정정이 반영되지 않는다.
+      bucket.refunded += -e.amount
+      totalRefunded += -e.amount
     }
     bucket.net = bucket.paid - bucket.refunded
   }

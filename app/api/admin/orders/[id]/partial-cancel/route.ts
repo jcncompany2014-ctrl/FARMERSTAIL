@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { recordAdminAction } from '@/lib/admin-audit'
 import { recordPaymentEvent } from '@/lib/payment-events'
+import { notifyOrderCancelled } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -95,7 +96,7 @@ export async function POST(
   const { data: order, error: orderErr } = await admin
     .from('orders')
     .select(
-      'id, user_id, payment_status, payment_method, payment_key, total_amount, refunded_amount, subscription_id'
+      'id, user_id, order_number, recipient_name, payment_status, payment_method, payment_key, total_amount, refunded_amount, subscription_id'
     )
     .eq('id', id)
     .single()
@@ -342,6 +343,29 @@ export async function POST(
       isPartialAdmin: true,
     },
   })
+
+  // ★전액 환불 고객 통지 (2026-09-05) — 예전엔 뒤따라오는 토스 CANCELED
+  //   웹훅이 취소 메일을 보냈지만, 웹훅이 refunded 종결 주문을 skip 하도록
+  //   고치면서(원장 이중 기록 수정) 통지 책임이 이 경로로 왔다. 전자상거래법
+  //   §13 통지 대상. sendEmail 멱등키(order-cancelled:orderId)가 경합·재시도
+  //   중복 발송을 막는다. 실패해도 환불 자체는 완료 — 응답을 막지 않는다.
+  if (isFullyRefunded) {
+    try {
+      await notifyOrderCancelled(admin, {
+        orderId: order.id,
+        userId: order.user_id,
+        orderNumber:
+          (order as { order_number?: string }).order_number ?? order.id,
+        recipientName:
+          (order as { recipient_name?: string | null }).recipient_name ?? null,
+        totalAmount: order.total_amount,
+        reason: cancelReason?.trim() || '관리자 환불',
+        refundAmount: nextRefunded,
+      })
+    } catch (e) {
+      console.error('[partial-cancel] 취소 메일 발송 실패:', e)
+    }
+  }
 
   // Audit log — 환불은 돈 관련 critical action. fail-silent.
   await recordAdminAction(supabase, {

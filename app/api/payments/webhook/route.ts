@@ -106,8 +106,9 @@ export async function POST(req: Request) {
   //   주문번호를 보내도록 고쳤고, 여기서는 **양쪽 다 받는다**: 과거에 UUID 로
   //   보낸 결제의 웹훅(재시도·지연 도착)도 정상 처리되게.
   const supabase = createAdminClient()
+  // refunded_amount — 부분취소 금액 기반 멱등 판정에 필요(2026-09-05).
   const ORDER_COLS =
-    'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
+    'id, user_id, order_number, total_amount, refunded_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)
   let { data: order, error: orderErr } = await supabase
@@ -477,7 +478,16 @@ export async function POST(req: Request) {
       // PARTIAL_CANCELED = 일부 환불이 일어났지만 나머지는 유효한 상태.
       // 이 플로우에서는 "전액 환불"만 지원하므로 PARTIAL을 'partially_refunded'
       // 라벨로 기록만 해두고 order_status 는 유지 (관리자가 수동 처리).
-      if (order.payment_status === 'cancelled') {
+      // ★종결 상태 skip 에 'refunded' 포함 (2026-09-05 실측 수정).
+      //   admin 전액환불(partial-cancel 라우트)은 payment_status='refunded' 로
+      //   종결하는데, 이 가드가 'cancelled' 만 봐서 뒤따라온 토스 웹훅이
+      //   ① refunded 주문을 'cancelled' 로 **덮어쓰고**(환불 완료 표시가 취소로
+      //   둔갑) ② 원장에 같은 환불을 한 번 더 기록했다 — 결제원장·매출리포트의
+      //   환불 합계가 정확히 2배(65,400=32,700×2)로 부풀던 원인.
+      if (
+        order.payment_status === 'cancelled' ||
+        order.payment_status === 'refunded'
+      ) {
         return NextResponse.json({ ok: true, skipped: 'already_cancelled' })
       }
       const isPartial = payment.status === 'PARTIAL_CANCELED'
@@ -503,6 +513,17 @@ export async function POST(req: Request) {
             isPartial
             ? null
             : order.total_amount
+      // ★부분취소 금액 기반 멱등 (2026-09-05, 위 refunded 가드와 한 세트).
+      //   admin 부분환불 직후의 웹훅은 우리 장부(refunded_amount)가 이미 토스
+      //   누적 환불액을 반영한 상태 — 재기록하면 원장 부분환불이 이중이 된다.
+      //   토스 대시보드 직접 부분환불은 장부 < 토스합이라 정상 통과한다.
+      if (
+        isPartial &&
+        refundedTotal != null &&
+        ((order.refunded_amount as number | null) ?? 0) >= refundedTotal
+      ) {
+        return NextResponse.json({ ok: true, skipped: 'already_recorded' })
+      }
       // 원자 전이 가드 — 다른 흐름(cancel 라우트/동시 웹훅)이 이미 payment_status
       // 를 바꿨으면 0-row 로 bail. 점검 fix: 이전엔 read-snapshot 가드(293)만 있어
       // cancel 라우트와 동시 진입 시 아래 recovery 의 쿠폰 회수가 이중 실행될 수
