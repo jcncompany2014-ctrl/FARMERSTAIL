@@ -366,25 +366,51 @@ export default function AnalysisView({
 
   return (
     <div className="pb-10 pt-1">
+      {/* 설문 직후(focusMode — AppChrome 헤더 숨김)의 출구. 처음엔 우상단
+          떠 있는 원형 X 였는데 사장님 기각(2026-09-05 "토스 화면처럼 상단
+          고정바에") — AppChrome 헤더와 같은 문법의 sticky 바 + 우측 X 로. */}
       {fromSurvey && (
-        <button
-          type="button"
-          aria-label="분석 닫고 홈으로"
-          onClick={() => router.replace('/dashboard')}
-          className="fixed z-50 flex items-center justify-center rounded-full border"
+        <div
+          className="sticky top-0 z-40 -mt-1"
           style={{
-            top: 'calc(env(safe-area-inset-top) + 12px)',
-            right: 16,
-            width: 40,
-            height: 40,
-            background: 'var(--bg-3)',
-            borderColor: 'var(--rule-2)',
-            color: 'var(--muted-strong)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            background: 'var(--paper)',
+            backdropFilter: 'blur(14px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+            boxShadow: '0 2px 14px -12px rgba(22,20,15,0.22)',
+            paddingTop: 'env(safe-area-inset-top)',
           }}
         >
-          <X className="w-5 h-5" strokeWidth={2} />
-        </button>
+          <div
+            className="flex items-center justify-between"
+            style={{ minHeight: 56, paddingLeft: 20, paddingRight: 8 }}
+          >
+            <span
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                color: 'var(--ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              분석 결과
+            </span>
+            <button
+              type="button"
+              aria-label="분석 닫고 홈으로"
+              onClick={() => router.replace('/dashboard')}
+              className="flex items-center justify-center transition active:scale-95"
+              style={{
+                padding: 12,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--ink)',
+              }}
+            >
+              <X style={{ width: 23, height: 23 }} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
       )}
       <AnalysisStickySummary
         dogName={dog.name}
@@ -392,6 +418,7 @@ export default function AnalysisView({
         feedG={analysis.feed_g}
         bcsLabel={analysis.bcs_label}
         analysisDate={analysisDate}
+        stickyBelowBar={fromSurvey}
       />
 
       {/* 참고할 점(안전·주의 신호) — 결과 최상단이 아니라 페이지 최하단으로 이동

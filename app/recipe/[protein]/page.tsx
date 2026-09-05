@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import WebChrome from '@/components/WebChrome'
 import WebMotion from '@/components/web/motion/WebMotion'
-import AppBackButton from './AppBackButton'
+import AppTopBar from './AppTopBar'
 import {
   Button,
   Container,
@@ -980,7 +980,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
   if (isApp) {
     return (
       <div>
-        <AppBackButton />
+        <AppTopBar />
         <WebMotion />
         {content}
       </div>

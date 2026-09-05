@@ -19,6 +19,11 @@ type Props = {
   feedG: number
   bcsLabel: string
   analysisDate: string
+  /**
+   * 설문 직후(fromSurvey) 화면 상단에 토스식 고정바(높이 56 + safe-area)가
+   * 있을 때 true — 요약 바의 sticky 기준점을 그 아래로 내려 겹침을 막는다.
+   */
+  stickyBelowBar?: boolean
 }
 
 export default function AnalysisStickySummary({
@@ -27,6 +32,7 @@ export default function AnalysisStickySummary({
   feedG,
   bcsLabel,
   analysisDate,
+  stickyBelowBar = false,
 }: Props) {
   const toast = useToast()
 
@@ -62,7 +68,12 @@ export default function AnalysisStickySummary({
   }
 
   return (
-    <div className="sticky top-0 z-30 -mx-0 mt-2 px-5 py-2.5 bg-bg/85 backdrop-blur-md border-y border-rule">
+    <div
+      className="sticky z-30 -mx-0 mt-2 px-5 py-2.5 bg-bg/85 backdrop-blur-md border-y border-rule"
+      style={{
+        top: stickyBelowBar ? 'calc(env(safe-area-inset-top) + 56px)' : 0,
+      }}
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 text-[10.5px] text-text">
           <span className="inline-flex items-center gap-1 font-bold">
