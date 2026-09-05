@@ -255,7 +255,7 @@ export default async function AdminOrdersPage({
               const badge = statusBadge(o.payment_status, o.order_status)
               return (
                 <Link key={o.id} href={`/admin/orders/${o.id}`} className="block">
-                  <Card className="gap-0 py-3.5 transition active:bg-muted">
+                  <Card className="gap-0 py-3.5 transition active:bg-secondary">
                     <CardContent className="px-4">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate font-mono text-[11px] text-muted-foreground">

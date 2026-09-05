@@ -179,7 +179,9 @@ export default function ActionsPanel(props: ActionsPanelProps) {
           const active = it.count > 0
           return (
             <Link
-              key={it.href}
+              // '자동작업 실패'와 '안 돈 자동작업'이 같은 href(/admin/cron-health)라
+              // href 만으론 key 가 겹친다 — 라벨이 유일 식별자(2026-09-05 감사).
+              key={it.label}
               href={it.href}
               className="px-4 py-3 bg-bg hover:bg-bg-2 transition flex items-center justify-between"
             >
