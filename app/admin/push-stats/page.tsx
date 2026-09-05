@@ -25,12 +25,13 @@ export default async function PushStatsPage() {
   // eslint-disable-next-line react-hooks/purity
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
 
-  const { data: logs } = await supabase
+  const { data: logs, error: logsErr } = await supabase
     .from('push_log')
     .select('id, category, sent_at, read_at, sent_count')
     .gte('sent_at', since)
     .order('sent_at', { ascending: false })
     .limit(5000)
+  if (logsErr) console.error('[admin-push-stats] push_log 조회 실패:', logsErr.message)
 
   type LogRow = {
     id: string
@@ -121,8 +122,8 @@ export default async function PushStatsPage() {
       <AdminTabs tabs={PUSH_TABS} active="/admin/push-stats" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 통계</h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">알림 통계</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>보낸 알림을 고객이 얼마나 열어봤는지</Hl> 보는 곳이에요 — 어떤
             종류의 알림이 잘 읽히는지 알면 다음 알림을 더 잘 쓸 수 있어요 (최근{' '}
             <Em>30일</Em>).
@@ -130,13 +131,22 @@ export default async function PushStatsPage() {
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
+          className="text-[11px] text-muted-foreground hover:text-primary font-semibold"
         >
           ← 대시보드
         </Link>
       </header>
 
       {/* KPI cards — admin/page.tsx 의 MetricCard grid 와 동일한 gap-4 */}
+      {logsErr && (
+        <div className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <p className="text-[12px] font-semibold text-destructive">
+            알림 기록을 불러오지 못했어요 — 발송 0건이 아니라 조회가 실패한
+            상태예요. 새로고침해 주세요.
+          </p>
+        </div>
+      )}
+
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <StatCard label="총 발송" value={totalSent.toLocaleString()} unit="건" />
         <StatCard
@@ -160,18 +170,18 @@ export default async function PushStatsPage() {
 
       {/* 카테고리별 표 */}
       <section className="mb-6">
-        <h2 className="text-[13px] font-black text-zinc-800 mb-3">
+        <h2 className="text-[13px] font-black text-foreground mb-3">
           카테고리별 성과
         </h2>
         {categoryRows.length === 0 ? (
-          <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-            <p className="text-[12px] text-zinc-500">최근 30일 발송 기록이 없어요.</p>
+          <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
+            <p className="text-[12px] text-muted-foreground">최근 30일 발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
+          <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
             <table className="w-full text-[12px]">
-              <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] text-zinc-500 font-bold">
+              <thead className="bg-secondary">
+                <tr className="text-left text-[10px] text-muted-foreground font-bold">
                   <th className="px-4 py-3">카테고리</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
@@ -184,26 +194,26 @@ export default async function PushStatsPage() {
                 {categoryRows.map((c) => (
                   <tr
                     key={c.category}
-                    className="border-t border-zinc-200 hover:bg-zinc-50/40"
+                    className="border-t border-border hover:bg-secondary/40"
                   >
-                    <td className="px-4 py-3 font-bold text-zinc-800">
+                    <td className="px-4 py-3 font-bold text-foreground">
                       {c.category}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {c.total.toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-moss">
+                    <td className="px-4 py-3 text-right tabular-nums text-emerald-700">
                       {c.read.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       <ReadRateBar rate={c.readRate} />
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-zinc-500">
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                       {c.avgReactionMin === null
                         ? '—'
                         : formatMinutes(c.avgReactionMin)}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-zinc-500">
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                       {c.avgRecipients.toFixed(1)}
                     </td>
                   </tr>
@@ -216,18 +226,18 @@ export default async function PushStatsPage() {
 
       {/* 일자별 추이 (최근 14일) */}
       <section>
-        <h2 className="text-[13px] font-black text-zinc-800 mb-3">
+        <h2 className="text-[13px] font-black text-foreground mb-3">
           일자별 추이 (최근 14일)
         </h2>
         {dayRows.length === 0 ? (
-          <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-            <p className="text-[12px] text-zinc-500">발송 기록이 없어요.</p>
+          <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
+            <p className="text-[12px] text-muted-foreground">발송 기록이 없어요.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-zinc-200 overflow-x-auto">
+          <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
             <table className="w-full text-[12px]">
-              <thead className="bg-zinc-50">
-                <tr className="text-left text-[10px] text-zinc-500 font-bold">
+              <thead className="bg-secondary">
+                <tr className="text-left text-[10px] text-muted-foreground font-bold">
                   <th className="px-4 py-3">날짜</th>
                   <th className="px-4 py-3 text-right">발송</th>
                   <th className="px-4 py-3 text-right">읽음</th>
@@ -240,13 +250,13 @@ export default async function PushStatsPage() {
                   return (
                     <tr
                       key={day}
-                      className="border-t border-zinc-200 hover:bg-zinc-50/40"
+                      className="border-t border-border hover:bg-secondary/40"
                     >
-                      <td className="px-4 py-3 font-mono text-zinc-800">{day}</td>
+                      <td className="px-4 py-3 font-mono text-foreground">{day}</td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         {agg.sent}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-moss">
+                      <td className="px-4 py-3 text-right tabular-nums text-emerald-700">
                         {agg.read}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
@@ -270,10 +280,10 @@ function ReadRateBar({ rate }: { rate: number }) {
   const clamped = Math.min(100, Math.max(0, rate))
   const tone =
     clamped >= 50
-      ? 'var(--moss)'
+      ? '#059669'
       : clamped >= 25
-        ? 'var(--terracotta)'
-        : 'var(--muted)'
+        ? 'var(--adm-primary)'
+        : 'var(--adm-muted-foreground)'
   return (
     <div className="inline-flex items-center gap-2">
       <div
@@ -281,7 +291,7 @@ function ReadRateBar({ rate }: { rate: number }) {
         style={{
           width: 60,
           height: 6,
-          background: 'var(--rule)',
+          background: 'var(--adm-border)',
         }}
       >
         <div

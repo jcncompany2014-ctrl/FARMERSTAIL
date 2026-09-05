@@ -48,7 +48,7 @@ export default async function FunnelPage({
   const since = sinceIso(days)
 
   // Stage 1: 가입자 수 (profiles.created_at >= since)
-  const { count: signups } = await supabase
+  const { count: signups, error: signupsErr } = await supabase
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .gte('created_at', since)
@@ -59,7 +59,7 @@ export default async function FunnelPage({
   //   가입 4 vs analyses 행 8 = 설문 200%, 막대 100% 초과). 퍼널 분모가 사람
   //   (가입자)이므로 이 단계도 사람 수여야 한다. 베타 규모라 select 후 Set 으로
   //   distinct 를 세는 것이 정확하고 가볍다.
-  const { data: analysisRows } = await supabase
+  const { data: analysisRows, error: analysesErr } = await supabase
     .from('analyses')
     .select('user_id')
     .gte('created_at', since)
@@ -79,11 +79,21 @@ export default async function FunnelPage({
   //   '신청만' 한 active 구독은 결제한 것으로 **거짓 집계**됐다. 이 단계의 뜻은
   //   "첫 결제까지 간 사람"이므로 last_charged_at 존재(= subscription-charge 가
   //   성공 시 기록)로 판정하고 status 는 보지 않는다. 사람 수로 distinct.
-  const { data: chargedRows } = await supabase
+  const { data: chargedRows, error: chargedErr } = await supabase
     .from('subscriptions')
     .select('user_id')
     .gte('created_at', since)
     .not('last_charged_at', 'is', null)
+  // ★조회 실패 표면화 (2026-09-05 전수감사, 규칙1) — 실패가 '이탈 100%'로
+  //   위장되면 퍼널을 잘못 읽는다. 배너로 '못 봄'을 분리.
+  const funnelLoadFailed = Boolean(signupsErr || analysesErr || chargedErr)
+  for (const [what, err] of [
+    ['가입', signupsErr],
+    ['설문', analysesErr],
+    ['결제 구독', chargedErr],
+  ] as const) {
+    if (err) console.error(`[admin-funnel] ${what} 조회 실패:`, err.message)
+  }
   const subscribed = new Set(
     (chargedRows ?? []).map((r) => (r as { user_id: string }).user_id),
   ).size
@@ -102,17 +112,17 @@ export default async function FunnelPage({
       <Link
         href="/admin"
         className="inline-flex items-center gap-1 text-[12px] font-bold"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--adm-muted-foreground)' }}
       >
         <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
         관리자
       </Link>
 
       <header className="mt-3 mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
           가입 여정 분석
         </h1>
-        <p className="mt-1 text-[13px] text-zinc-500 leading-relaxed">
+        <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
           고객이 가입 → 설문 → 분석 → 첫 정기배송 결제까지 오는 동안 어느
           단계에서 얼마나 이탈하는지 보는 곳이에요 (최근 {days}일). 숫자 자체보다
           &lsquo;어디서 많이 빠지나&rsquo;를 보면 뭘 고칠지 알 수 있어요.
@@ -120,6 +130,15 @@ export default async function FunnelPage({
       </header>
 
       {/* 기간 필터 */}
+      {funnelLoadFailed && (
+        <div className="mb-4 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <p className="text-[12px] font-semibold text-destructive">
+            일부 단계를 불러오지 못했어요 — 아래 숫자가 실제보다 적을 수
+            있어요(이탈이 아니라 조회 실패). 새로고침해 주세요.
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-5">
         {[30, 60, 90].map((d) => (
           <Link
@@ -128,9 +147,9 @@ export default async function FunnelPage({
             className="px-3 py-1.5 rounded-full text-[11px] font-bold"
             style={{
               background:
-                days === d ? 'var(--terracotta)' : 'var(--surface-card)',
-              color: days === d ? '#fff' : 'var(--ink)',
-              border: `1px solid ${days === d ? 'var(--terracotta)' : 'var(--rule)'}`,
+                days === d ? 'var(--adm-primary)' : 'var(--adm-card)',
+              color: days === d ? '#fff' : 'var(--adm-foreground)',
+              border: `1px solid ${days === d ? 'var(--adm-primary)' : 'var(--adm-border)'}`,
             }}
           >
             지난 {d}일
@@ -157,8 +176,8 @@ export default async function FunnelPage({
               key={s.label}
               className="rounded p-4"
               style={{
-                background: 'var(--surface-card)',
-                border: '1px solid var(--rule)',
+                background: 'var(--adm-card)',
+                border: '1px solid var(--adm-border)',
               }}
             >
               <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -167,14 +186,14 @@ export default async function FunnelPage({
                     className="font-mono text-[10.5px]"
                     style={{
                       letterSpacing: '0.16em',
-                      color: 'var(--muted)',
+                      color: 'var(--adm-muted-foreground)',
                     }}
                   >
                     {i + 1}단계
                   </span>
                   <span
                     className="text-[14px] font-bold"
-                    style={{ color: 'var(--ink)' }}
+                    style={{ color: 'var(--adm-foreground)' }}
                   >
                     {s.label}
                   </span>
@@ -184,10 +203,10 @@ export default async function FunnelPage({
                   style={{
                     color:
                       pctOfTotal >= 50
-                        ? 'var(--moss)'
+                        ? '#059669'
                         : pctOfTotal >= 20
-                          ? 'var(--gold)'
-                          : 'var(--sale)',
+                          ? '#d97706'
+                          : 'var(--adm-destructive)',
                   }}
                 >
                   {s.count}
@@ -196,7 +215,7 @@ export default async function FunnelPage({
               {/* progress bar — pctOfTotal */}
               <div
                 className="h-2 rounded-full overflow-hidden"
-                style={{ background: 'var(--rule)' }}
+                style={{ background: 'var(--adm-border)' }}
               >
                 <div
                   className="h-full rounded-full transition-[width]"
@@ -204,17 +223,17 @@ export default async function FunnelPage({
                     width: `${Math.max(pctOfTotal, 2)}%`,
                     background:
                       pctOfTotal >= 50
-                        ? 'var(--moss)'
+                        ? '#059669'
                         : pctOfTotal >= 20
-                          ? 'var(--gold)'
-                          : 'var(--sale)',
+                          ? '#d97706'
+                          : 'var(--adm-destructive)',
                   }}
                 />
               </div>
               <div className="mt-2 flex items-center justify-between text-[10.5px]">
                 <span
                   className="font-mono tabular-nums"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ color: 'var(--adm-muted-foreground)' }}
                 >
                   전체 대비 {pctOfTotal}%
                 </span>
@@ -224,10 +243,10 @@ export default async function FunnelPage({
                     style={{
                       color:
                         dropoff <= 20
-                          ? 'var(--moss)'
+                          ? '#059669'
                           : dropoff <= 50
-                            ? 'var(--gold)'
-                            : 'var(--sale)',
+                            ? '#d97706'
+                            : 'var(--adm-destructive)',
                     }}
                   >
                     이전 단계 대비 {pctOfPrev}% ({dropoff > 0 ? '-' : ''}
@@ -242,7 +261,7 @@ export default async function FunnelPage({
 
       <p
         className="mt-6 text-[11px] leading-relaxed"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--adm-muted-foreground)' }}
       >
         ※ 가입·설문·분석·정기구독 데이터를 기준으로 집계해요. (설문 완료는
         분석이 만들어진 시점으로 추정 — 추후 더 정밀하게 개선할 예정이에요.)

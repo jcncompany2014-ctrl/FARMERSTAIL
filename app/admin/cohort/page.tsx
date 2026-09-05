@@ -107,14 +107,15 @@ export default async function AdminCohortPage() {
   // audit #79: 두 RPC 모두 generated types 에 없어 cast 필요.
   let cohortRows: CohortRow[] = []
   try {
-    const { data } = await (
+    const { data, error } = await (
       supabase as unknown as {
         rpc: (
           fn: string,
           args: Record<string, unknown>,
-        ) => Promise<{ data: unknown }>
+        ) => Promise<{ data: unknown; error: { message: string } | null }>
       }
     ).rpc('cohort_retention_weekly', { p_max_cohorts: 12 })
+    if (error) console.error('[admin-cohort] retention RPC 실패:', error.message)
     cohortRows = ((data as unknown) ?? []) as CohortRow[]
   } catch {
     /* 마이그레이션 미적용 / 권한 미확보 */
@@ -122,7 +123,8 @@ export default async function AdminCohortPage() {
 
   let ltvRows: LtvRow[] = []
   try {
-    const { data } = await supabase.rpc('cohort_ltv_weekly', { weeks_back: 12 })
+    const { data, error } = await supabase.rpc('cohort_ltv_weekly', { weeks_back: 12 })
+    if (error) console.error('[admin-cohort] LTV RPC 실패:', error.message)
     ltvRows = (data ?? []) as LtvRow[]
   } catch {
     /* 동상 */
@@ -223,10 +225,10 @@ export default async function AdminCohortPage() {
 
   return (
     <div className="px-5 py-6">
-      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+      <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
         가입 시기별 분석
       </h1>
-      <p className="text-[13px] text-zinc-500 mt-1">
+      <p className="text-[13px] text-muted-foreground mt-1">
         같은 주에 가입한 고객끼리 묶어서, 시기별로 재주문·환불·별점·체크인
         응답이 어떻게 다른지 비교하는 곳이에요.{' '}
         <Hl>언제 들어온 손님이 오래 남는가</Hl>를 볼 때 써요.
@@ -276,12 +278,12 @@ export default async function AdminCohortPage() {
         title={`그룹·유형별 집계 (총 ${outcomes.length}건 · 강아지 ${dogCount ?? 0}마리 기준)`}
       >
         {cohortIds.length === 0 ? (
-          <p className="text-[11.5px] text-zinc-500">데이터 없음</p>
+          <p className="text-[11.5px] text-muted-foreground">데이터 없음</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[11.5px]">
               <thead>
-                <tr className="text-left text-zinc-500 border-b border-zinc-200">
+                <tr className="text-left text-muted-foreground border-b border-border">
                   <th className="py-1.5 pr-3 font-bold">그룹</th>
                   {sourceTypes.map((s) => (
                     <th key={s} className="py-1.5 px-2 font-bold text-right">
@@ -296,17 +298,17 @@ export default async function AdminCohortPage() {
                   const m = cohortMatrix.get(cid)!
                   const total = sourceTypes.reduce((s, src) => s + (m.get(src) ?? 0), 0)
                   return (
-                    <tr key={cid} className="border-b border-zinc-200/40">
-                      <td className="py-1.5 pr-3 font-mono text-zinc-900">{cid}</td>
+                    <tr key={cid} className="border-b border-border/50">
+                      <td className="py-1.5 pr-3 font-mono text-foreground">{cid}</td>
                       {sourceTypes.map((s) => (
                         <td
                           key={s}
-                          className="py-1.5 px-2 text-right font-mono tabular-nums text-zinc-900"
+                          className="py-1.5 px-2 text-right font-mono tabular-nums text-foreground"
                         >
                           {m.get(s) ?? 0}
                         </td>
                       ))}
-                      <td className="py-1.5 pl-2 text-right font-mono tabular-nums font-bold text-zinc-900">
+                      <td className="py-1.5 pl-2 text-right font-mono tabular-nums font-bold text-foreground">
                         {total}
                       </td>
                     </tr>
@@ -321,7 +323,7 @@ export default async function AdminCohortPage() {
       {/* 별점 분포 */}
       <Card icon={<Star className="w-4 h-4" />} title="별점 분포">
         {ratings.length === 0 ? (
-          <p className="text-[11.5px] text-zinc-500">아직 별점 없음</p>
+          <p className="text-[11.5px] text-muted-foreground">아직 별점 없음</p>
         ) : (
           <div className="space-y-1.5">
             {ratingDist
@@ -334,16 +336,16 @@ export default async function AdminCohortPage() {
                     key={star}
                     className="flex items-center gap-2 text-[11.5px]"
                   >
-                    <span className="w-12 font-mono text-zinc-900">
+                    <span className="w-12 font-mono text-foreground">
                       {'★'.repeat(star)}
                     </span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-zinc-50">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary">
                       <div
-                        className="h-full rounded-full bg-terracotta"
+                        className="h-full rounded-full bg-primary"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="font-mono text-zinc-500 tabular-nums w-20 text-right">
+                    <span className="font-mono text-muted-foreground tabular-nums w-20 text-right">
                       {count} ({pct.toFixed(0)}%)
                     </span>
                   </div>
@@ -359,7 +361,7 @@ export default async function AdminCohortPage() {
         title={`환불 / 해지 사유 분포 (${reasonRows.length}건)`}
       >
         {reasonPieData.length === 0 ? (
-          <p className="text-[11.5px] text-zinc-500">환불·해지 사유 데이터 없음</p>
+          <p className="text-[11.5px] text-muted-foreground">환불·해지 사유 데이터 없음</p>
         ) : (
           <CohortReasonPie data={reasonPieData} />
         )}
@@ -371,7 +373,7 @@ export default async function AdminCohortPage() {
         title={`SKU별 별점 평균 (Top ${skuBarData.length})`}
       >
         {skuBarData.length === 0 ? (
-          <p className="text-[11.5px] text-zinc-500">SKU별 별점 데이터 없음</p>
+          <p className="text-[11.5px] text-muted-foreground">SKU별 별점 데이터 없음</p>
         ) : (
           <CohortSkuRatingBar data={skuBarData} />
         )}
@@ -385,7 +387,7 @@ export default async function AdminCohortPage() {
         <CohortTrendLine data={weekBuckets} />
       </Card>
 
-      <p className="text-[10.5px] text-zinc-500 mt-6 leading-relaxed">
+      <p className="text-[10.5px] text-muted-foreground mt-6 leading-relaxed">
         ※ 데이터는 고객 부담 없이 자동·자발적으로 모여요. 매주 확인해서
         제품·레시피 개선에 활용하세요.
       </p>
@@ -474,18 +476,18 @@ function Kpi({
   help?: string
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3.5">
+    <div className="rounded-xl border border-border bg-card p-3.5">
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-terracotta flex items-center">{icon}</span>
-        <span className="text-[10px] font-bold text-zinc-500">
+        <span className="text-primary flex items-center">{icon}</span>
+        <span className="text-[10px] font-bold text-muted-foreground">
           {label}
         </span>
         {help && <HelpTip text={help} />}
       </div>
-      <p className="text-2xl font-bold tracking-tight text-zinc-900 tabular-nums">
+      <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
         {value}
       </p>
-      <p className="text-[10.5px] font-mono text-zinc-500 mt-0.5">{sub}</p>
+      <p className="text-[10.5px] font-mono text-muted-foreground mt-0.5">{sub}</p>
     </div>
   )
 }
@@ -500,10 +502,10 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <section className="mt-5 rounded-lg border border-zinc-200 bg-white p-5">
-      <div className="flex items-center gap-2 mb-3 text-terracotta">
+    <section className="mt-5 rounded-lg border border-border bg-card p-5">
+      <div className="flex items-center gap-2 mb-3 text-primary">
         {icon}
-        <h2 className="text-[11px] font-bold text-zinc-500">
+        <h2 className="text-[11px] font-bold text-muted-foreground">
           {title}
         </h2>
       </div>

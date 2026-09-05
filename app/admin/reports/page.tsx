@@ -64,9 +64,9 @@ export default async function AdminReportsPage({
   ).toISOString()
 
   const [
-    { data: paidOrders },
-    { data: refunds },
-    { data: subCharges },
+    { data: paidOrders, error: ordersErr },
+    { data: refunds, error: refundsErr },
+    { data: subCharges, error: chargesErr },
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -119,6 +119,17 @@ export default async function AdminReportsPage({
       line_total: number
     }> | null
   }
+  // ★조회 실패 표면화 (2026-09-05 전수감사, 규칙1) — 세무 기준 숫자가
+  //   실패 시 0으로 위장되면 안 된다. 배너로 '못 봄'을 분리한다.
+  const reportLoadFailed = Boolean(ordersErr || refundsErr || chargesErr)
+  for (const [what, err] of [
+    ['주문', ordersErr],
+    ['환불 원장', refundsErr],
+    ['정기결제', chargesErr],
+  ] as const) {
+    if (err) console.error(`[admin-reports] ${what} 조회 실패:`, err.message)
+  }
+
   const orders = (paidOrders ?? []) as Order[]
   const refundEvents = (refunds ?? []) as Array<{ amount: number }>
   const charges = (subCharges ?? []) as Array<{ amount: number }>
@@ -196,10 +207,10 @@ export default async function AdminReportsPage({
       </div>
       <div className="flex items-end justify-between mb-6 no-print">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             매출 리포트
           </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>장사가 얼마나 됐는지 달별로</Hl> 보는 곳이에요 — 매출·환불·정기배송
             수· 많이 나간 레시피를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수
             있어요.
@@ -208,10 +219,20 @@ export default async function AdminReportsPage({
         <PrintButtonClient />
       </div>
 
+      {reportLoadFailed && (
+        <div className="no-print mb-4 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <p className="text-[12px] font-semibold text-destructive">
+            일부 데이터를 불러오지 못했어요 — 아래 숫자가 실제보다 적을 수
+            있어요(실제 0이 아님). 새로고침 후 다시 확인해 주세요. 이 상태로
+            세무·정산에 쓰지 마세요.
+          </p>
+        </div>
+      )}
+
       {/* 월 navigate */}
       <div className="flex items-center justify-between mb-5 px-1">
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-zinc-800" strokeWidth={2} />
+          <Calendar className="w-4 h-4 text-foreground" strokeWidth={2} />
           <span
             className="font-sans"
             style={{
@@ -227,13 +248,13 @@ export default async function AdminReportsPage({
         <div className="flex items-center gap-2 no-print">
           <Link
             href={prevHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-zinc-800 transition"
+            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-[11px] font-bold hover:border-zinc-800 transition"
           >
             ← 이전 달
           </Link>
           <Link
             href={nextHref}
-            className="px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold hover:border-zinc-800 transition"
+            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-[11px] font-bold hover:border-zinc-800 transition"
           >
             다음 달 →
           </Link>
@@ -241,16 +262,16 @@ export default async function AdminReportsPage({
       </div>
 
       {/* Hero 매출 카드 — 클린 zinc 다크 (2026-07 잔재청소: 웜브라운+골드 serif 제거) */}
-      <section className="rounded-lg px-6 py-5 text-white mb-5 bg-zinc-900 print:break-inside-avoid print:bg-white print:text-zinc-900 print:border print:border-zinc-300">
-        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.16em] uppercase text-zinc-400 print:text-zinc-500">
+      <section className="rounded-lg px-6 py-5 text-white mb-5 bg-zinc-900 print:break-inside-avoid print:bg-card print:text-foreground print:border print:border-input">
+        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.16em] uppercase text-muted-foreground print:text-muted-foreground">
           순매출
           <HelpTip text="이번 달 결제 완료 합계(매출)에서 환불을 뺀, 실제로 남는 매출이에요. 세무 신고·운영 리뷰의 기준 숫자." />
         </span>
         <div className="mt-2 flex items-baseline gap-1.5">
-          <span className="font-bold leading-none tabular-nums tracking-tight text-white text-[40px] print:text-zinc-900">
+          <span className="font-bold leading-none tabular-nums tracking-tight text-white text-[40px] print:text-foreground">
             {netRevenue.toLocaleString()}
           </span>
-          <span className="text-[16px] text-white/85 font-bold print:text-zinc-500">
+          <span className="text-[16px] text-white/85 font-bold print:text-muted-foreground">
             원
           </span>
         </div>
@@ -304,8 +325,8 @@ export default async function AdminReportsPage({
       </section>
 
       {/* 차감 합계 */}
-      <section className="bg-white rounded-xl border border-zinc-200 px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+      <section className="bg-card rounded-xl border border-border px-5 py-4 mb-6 print:break-inside-avoid">
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
           차감 항목
           <HelpTip
             text={
@@ -321,23 +342,23 @@ export default async function AdminReportsPage({
           }`}
         >
           <div>
-            <span className="text-zinc-500">할인</span>
-            <div className="font-bold tabular-nums text-zinc-800">
+            <span className="text-muted-foreground">할인</span>
+            <div className="font-bold tabular-nums text-foreground">
               -{totalDiscount.toLocaleString()}원
             </div>
           </div>
           {/* 포인트는 폐지된 제도(2026-07-16) — 과거 이력이 있을 때만 표시. */}
           {totalPointsUsed > 0 && (
             <div>
-              <span className="text-zinc-500">포인트 사용 (폐지)</span>
-              <div className="font-bold tabular-nums text-zinc-800">
+              <span className="text-muted-foreground">포인트 사용 (폐지)</span>
+              <div className="font-bold tabular-nums text-foreground">
                 -{totalPointsUsed.toLocaleString()}원
               </div>
             </div>
           )}
           <div>
-            <span className="text-zinc-500">환불</span>
-            <div className="font-bold tabular-nums text-sale">
+            <span className="text-muted-foreground">환불</span>
+            <div className="font-bold tabular-nums text-destructive">
               -{refundTotal.toLocaleString()}원
             </div>
           </div>
@@ -347,13 +368,13 @@ export default async function AdminReportsPage({
       {/* Top 5 상품 */}
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">많이 팔린 상품</span>
-          <ol className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">많이 팔린 상품</span>
+          <ol className="bg-card rounded-xl border border-border overflow-hidden">
             {topProducts.map((p, i) => (
               <li
                 key={p.id}
                 className={`flex items-center justify-between px-4 py-3 ${
-                  i < topProducts.length - 1 ? 'border-b border-zinc-200' : ''
+                  i < topProducts.length - 1 ? 'border-b border-border' : ''
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -364,21 +385,21 @@ export default async function AdminReportsPage({
                         i === 0
                           ? 'var(--terracotta)'
                           : i === 1
-                            ? 'var(--moss)'
-                            : 'var(--muted)',
+                            ? '#059669'
+                            : 'var(--adm-muted-foreground)',
                     }}
                   >
                     {i + 1}
                   </span>
-                  <span className="text-[13px] font-bold text-zinc-800 truncate">
+                  <span className="text-[13px] font-bold text-foreground truncate">
                     {p.name}
                   </span>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[12px] font-bold text-terracotta tabular-nums">
+                  <div className="text-[12px] font-bold text-primary tabular-nums">
                     {p.revenue.toLocaleString()}원
                   </div>
-                  <div className="text-[10px] text-zinc-500 tabular-nums">
+                  <div className="text-[10px] text-muted-foreground tabular-nums">
                     {p.qty}개 판매
                   </div>
                 </div>
@@ -391,18 +412,18 @@ export default async function AdminReportsPage({
       {/* 결제수단 분포 */}
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">결제수단</span>
-          <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3">
+          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">결제수단</span>
+          <div className="bg-card rounded-xl border border-border px-4 py-3">
             {Array.from(methodCount.entries()).map(([method, count]) => {
               const pct =
                 orderCount > 0 ? Math.round((count / orderCount) * 100) : 0
               return (
                 <div key={method} className="mb-2 last:mb-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11.5px] font-bold text-zinc-800">
+                    <span className="text-[11.5px] font-bold text-foreground">
                       {method}
                     </span>
-                    <span className="text-[10.5px] text-zinc-500 tabular-nums">
+                    <span className="text-[10.5px] text-muted-foreground tabular-nums">
                       {count}건 · {pct}%
                     </span>
                   </div>
@@ -425,7 +446,7 @@ export default async function AdminReportsPage({
         </section>
       )}
 
-      <p className="text-[10px] text-zinc-500 text-center mt-8 no-print">
+      <p className="text-[10px] text-muted-foreground text-center mt-8 no-print">
         * 결제 완료 주문과 환불 완료 건을 기준으로 해요. 입금 대기(가상계좌)는
         입금된 날짜로 자동 합산돼요.
       </p>
@@ -451,12 +472,12 @@ function ReportStat({
   const colorMap = {
     ink: 'var(--ink)',
     terracotta: 'var(--terracotta)',
-    moss: 'var(--moss)',
-    muted: 'var(--muted)',
+    moss: '#059669',
+    muted: 'var(--adm-muted-foreground)',
   }
   const accent = colorMap[tone]
   return (
-    <div className="bg-white rounded-xl border border-zinc-200 px-4 py-3.5">
+    <div className="bg-card rounded-xl border border-border px-4 py-3.5">
       <div className="flex items-center gap-1">
         <Icon
           className="w-3 h-3"
@@ -480,12 +501,12 @@ function ReportStat({
         }}
       >
         {value.toLocaleString()}
-        <span className="text-[10px] text-zinc-500 ml-0.5 font-sans">
+        <span className="text-[10px] text-muted-foreground ml-0.5 font-sans">
           {unit}
         </span>
       </div>
       {sub && (
-        <div className="text-[10px] text-zinc-500 mt-0.5 tabular-nums">{sub}</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{sub}</div>
       )}
     </div>
   )

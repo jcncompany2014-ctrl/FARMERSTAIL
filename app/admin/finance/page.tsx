@@ -8,7 +8,7 @@
  */
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs, StatCard, Hl, Em } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em, LoadError } from '@/components/admin/ui'
 import { REVENUE_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -56,16 +56,24 @@ export default async function AdminFinancePage({
           col: string,
           opts: { ascending: boolean },
         ) => {
-          limit: (n: number) => Promise<{ data: EventRow[] | null }>
+          limit: (n: number) => Promise<{
+            data: EventRow[] | null
+            // ★error 포함 (2026-09-05 전수감사, 규칙1) — 예전 cast 는 {data}만
+            //   있어서 조회 실패가 '매출 0원'으로 위장됐다.
+            error: { message: string } | null
+          }>
         }
       }
     }
   }
-  const { data: rawEvents } = await client
+  const { data: rawEvents, error: ledgerErr } = await client
     .select('event_type, amount, order_id, created_at')
     .gte('created_at', sinceIso(days))
     .order('created_at', { ascending: true })
     .limit(50000)
+  if (ledgerErr) {
+    console.error('[admin-finance] 원장 조회 실패:', ledgerErr.message)
+  }
 
   const events = (rawEvents ?? []) as EventRow[]
 
@@ -135,8 +143,8 @@ export default async function AdminFinancePage({
       {/* 대개편 v2 T3 — 매출·결제 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
       <AdminTabs tabs={REVENUE_TABS} active="/admin/finance" />
       <div className="mb-5">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">결제 원장</h1>
-        <p className="text-[13px] text-zinc-500 mt-1">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">결제 원장</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>실제 카드 결제 기록</Hl>을 하루 단위로 쌓아 보여주는 곳이에요 —{' '}
           <Em>토스에서 승인된 금액 기준</Em>이라 &lsquo;진짜 들어온 돈&rsquo;에
           가장 가까워요 (최근 <Em>{days}일</Em>).
@@ -148,8 +156,8 @@ export default async function AdminFinancePage({
               href={`/admin/finance?days=${d}`}
               className={`rounded border px-3 py-1.5 ${
                 days === d
-                  ? 'border-terracotta text-terracotta bg-terracotta/5'
-                  : 'border-zinc-200 hover:border-ink/40'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'border-border hover:border-ring'
               }`}
             >
               {d}일
@@ -157,6 +165,15 @@ export default async function AdminFinancePage({
           ))}
         </div>
       </div>
+
+      {ledgerErr && (
+        <div className="mb-4">
+          <LoadError
+            what="결제 원장"
+            hint="아래 숫자가 전부 0으로 보이는 건 매출이 없어서가 아니라 조회가 실패한 상태예요. 새로고침해 주세요."
+          />
+        </div>
+      )}
 
       {/* KPI 그리드 */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -190,10 +207,10 @@ export default async function AdminFinancePage({
       </section>
 
       {/* 일별 매출 차트 + 표 */}
-      <section className="rounded border border-zinc-200 p-4">
-        <h2 className="text-sm font-semibold text-zinc-900 mb-3">일별 순매출</h2>
+      <section className="rounded-lg border border-border p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">일별 순매출</h2>
         {dayList.length === 0 ? (
-          <p className="text-xs text-zinc-500 py-5 text-center">
+          <p className="text-xs text-muted-foreground py-5 text-center">
             기간 내 결제 이벤트가 없어요.
           </p>
         ) : (
@@ -203,25 +220,25 @@ export default async function AdminFinancePage({
               return (
                 <div key={d.date} className="text-xs">
                   <div className="flex justify-between mb-0.5">
-                    <span className="text-zinc-900 font-mono">{d.date}</span>
-                    <span className="text-zinc-500">
+                    <span className="text-foreground font-mono">{d.date}</span>
+                    <span className="text-muted-foreground">
                       결제 {d.paid.toLocaleString()}원
                       {d.refunded > 0 && (
-                        <span className="text-sale ml-2">
+                        <span className="text-destructive ml-2">
                           -{d.refunded.toLocaleString()}원
                         </span>
                       )}
-                      <span className="ml-2 text-zinc-900 font-semibold">
+                      <span className="ml-2 text-foreground font-semibold">
                         순매출 {d.net.toLocaleString()}원
                       </span>
-                      <span className="ml-2 text-zinc-500">
+                      <span className="ml-2 text-muted-foreground">
                         ({d.orderCount.size}건)
                       </span>
                     </span>
                   </div>
-                  <div className="h-2 bg-zinc-100 rounded">
+                  <div className="h-2 bg-secondary rounded">
                     <div
-                      className="h-2 bg-moss rounded"
+                      className="h-2 bg-emerald-600 rounded"
                       style={{ width: `${Math.max(pct, 1)}%` }}
                     />
                   </div>

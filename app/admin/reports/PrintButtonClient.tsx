@@ -11,7 +11,7 @@ export default function PrintButtonClient() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-ink text-bg text-[11px] font-bold hover:opacity-90 transition"
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-foreground text-bg text-[11px] font-bold hover:opacity-90 transition"
     >
       <Printer className="w-3.5 h-3.5" strokeWidth={2.5} />
       인쇄 / PDF
