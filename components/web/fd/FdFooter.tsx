@@ -12,7 +12,8 @@ const BROWSE: { href: string; label: string }[] = [
   { href: '/our-food', label: '우리 음식' },
   { href: '/why-fresh', label: '왜 신선식' },
   { href: '/why-app', label: '앱 소개' },
-  { href: '/reviews', label: '후기' },
+  // 후기 — 실제 후기가 쌓일 때까지 숨김(2026-09-05, /reviews 는 홈 redirect).
+  // { href: '/reviews', label: '후기' },
   { href: '/about', label: '브랜드 이야기' },
   // 실 자문 없을 땐 '영양 근거'로 톤다운(lib/copy/credibility 토글).
   { href: '/science', label: cred.navVetLabel },

@@ -67,7 +67,9 @@ type Category = {
 // 톤다운(수의사 '사람 개입' 함의 회피), 자문 확보 시 '수의사 전문가'로 복원.
 const CATEGORIES: readonly Category[] = [
   { href: '/our-food', label: '우리 음식', en: 'Our Food', kind: 'shop' },
-  { href: '/reviews', label: '후기', en: 'Reviews', kind: 'shop' },
+  // 후기 — 실제 후기가 쌓일 때까지 숨김(2026-09-05 사장님). 페이지는
+  // app/reviews 에 보존, /reviews 는 홈으로 redirect 중.
+  // { href: '/reviews', label: '후기', en: 'Reviews', kind: 'shop' },
   { href: '/about', label: '브랜드 이야기', en: 'About', kind: 'shop' },
   { href: '/faq', label: '자주 묻는 질문', en: 'FAQ', kind: 'shop' },
   { href: '/science', label: cred.navVetLabel, en: cred.navVetEn, kind: 'shop' },

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { ArrowRight, Quote } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import WebChrome from '@/components/WebChrome'
@@ -376,6 +377,11 @@ function FinalCta({ isAuthed }: { isAuthed: boolean }) {
 
 // Page =======================================================================
 export default async function ReviewsPage() {
+  // ★2026-09-05 사장님: 실제 제품 후기가 쌓이기 전까지 후기 페이지 숨김.
+  //   페이지 코드는 보존(전부 placeholder 라 삭제할 이유 없음) — 후기가
+  //   모이면 이 redirect 한 줄과 WebChrome·FdFooter·sitemap 의 링크 주석을
+  //   함께 되살린다. 북마크·외부 링크는 홈으로 안내.
+  redirect('/')
   const supabase = await createClient()
   const {
     data: { user },

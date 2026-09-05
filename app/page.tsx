@@ -314,7 +314,9 @@ function ValueProp({ ctaHref }: { ctaHref: string }) {
                   style={{ inset: '10px -10px -10px 10px', background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12 }}
                 />
                 <span className="relative block overflow-hidden" style={{ aspectRatio: '4 / 3', borderRadius: 12 }}>
-                  <Image src="/founder-field.jpg" alt="밭길을 반려견과 함께 걷는 설립자의 뒷모습" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
+                  {/* 2026-09-05 사장님: 밭길 뒷모습 → 강아지 발을 맞잡은 손
+                      실사로 교체 — "한 끼를 책임집니다"의 약속을 손으로. */}
+                  <Image src="/paw-hold.jpg" alt="보호자의 손이 강아지 발을 감싸 쥔 모습" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
                 </span>
               </div>
               <p
@@ -479,7 +481,9 @@ const MAKE = [
   { Icon: ClipboardList, img: '/serving-custom-43.jpg', alt: '우리 아이 옆에서 맞춤 정량을 덜어 주는 모습', t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
   // ★sub-box.jpg 는 타사 브랜드("The Wholesome Dog") 박스가 박힌 AI 사진이었다
   //   (2026-09-02 실사 검수에서 발견 — 8월 타사브랜드 소탕에서 살아남은 것).
-  { Icon: Truck, img: '/pouch-freezer-43.jpg', alt: '주문 확정 후 조리해 급속 냉동한 파머스테일 레시피 파우치', t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
+  // 2026-09-05 사장님: 파우치 냉동 컷 → 파머스테일 테이프가 붙은 실제 배송
+  //   박스(주방 실촬영)로 교체 — '배송' 단계에 배송 박스가 맞는 그림.
+  { Icon: Truck, img: '/box-coldchain-43.jpg', alt: '파머스테일 테이프로 포장한 콜드체인 배송 박스', t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
 ]
 
 function HowWeMakeIt() {

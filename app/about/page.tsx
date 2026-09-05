@@ -141,9 +141,11 @@ export default async function AboutPage() {
           <Container size="xl">
             <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
               <Reveal>
+                {/* 2026-09-05 사장님: 밭길 뒷모습 → 눈밭의 셸티 실사로 교체.
+                    '한 마리 개에게서 시작된 브랜드' 옆엔 그 개의 얼굴이 맞다. */}
                 <PhotoSlot
                   motion
-                  src="/founder-field-tall.jpg" alt="밭길을 반려견과 함께 걷는 설립자의 뒷모습" label="설립자와 반려견 / 농장 사진"
+                  src="/sheltie-snow-45.jpg" alt="눈밭에서 눈을 뒤집어쓴 셰틀랜드 시프도그" label="반려견 실사"
                   sub="브랜드의 시작을 보여주는 컷"
                   ratio="4 / 5"
                   tone="offwhite"

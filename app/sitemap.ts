@@ -69,12 +69,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     },
-    {
-      url: `${siteUrl}/reviews`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    },
+    // /reviews — 실제 후기가 쌓일 때까지 숨김(2026-09-05, 홈 redirect 중).
+    // {
+    //   url: `${siteUrl}/reviews`,
+    //   lastModified: now,
+    //   changeFrequency: 'weekly',
+    //   priority: 0.7,
+    // },
     {
       url: `${siteUrl}/plans`,
       lastModified: now,
