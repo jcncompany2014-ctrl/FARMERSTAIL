@@ -96,9 +96,9 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
   return (
     <div className="space-y-6">
       {/* 목록 */}
-      <div className="p-6 rounded-lg bg-white border border-zinc-200">
+      <div className="p-6 rounded-xl bg-card border border-border shadow-sm">
         {items.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 py-6">
+          <p className="text-center text-sm text-muted-foreground py-6">
             카테고리가 없어요
           </p>
         ) : (
@@ -108,7 +108,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
               return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-secondary"
                 >
                   <NumberInput
                     value={c.sort_order}
@@ -116,31 +116,31 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
                       updateItem(c.id, { sort_order: v ?? 0 })
                     }
                     emptyAs={0}
-                    className="w-14 px-2 py-1.5 rounded bg-white text-xs text-center text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="w-14 px-2 py-1.5 rounded bg-card text-xs text-center text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     aria-label="정렬 순서"
                   />
                   <input
                     type="text"
                     value={c.name}
                     onChange={(e) => updateItem(c.id, { name: e.target.value })}
-                    className="flex-1 px-3 py-1.5 rounded bg-white text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="flex-1 px-3 py-1.5 rounded bg-card text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="이름"
                   />
                   <input
                     type="text"
                     value={c.slug}
                     onChange={(e) => updateItem(c.id, { slug: e.target.value })}
-                    className="w-40 px-3 py-1.5 rounded bg-white text-xs font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
+                    className="w-40 px-3 py-1.5 rounded bg-card text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="slug"
                   />
-                  <span className="text-[10px] text-zinc-500 w-14 text-right">
+                  <span className="text-[10px] text-muted-foreground w-14 text-right">
                     {count}개 글
                   </span>
                   <button
                     type="button"
                     onClick={() => saveOne(c)}
                     disabled={loading}
-                    className="p-2 rounded bg-zinc-900 text-white hover:bg-zinc-700 transition disabled:opacity-50"
+                    className="p-2 rounded bg-zinc-900 text-white hover:opacity-90 transition disabled:opacity-50"
                     aria-label="저장"
                   >
                     <Save className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -149,7 +149,7 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
                     type="button"
                     onClick={() => remove(c)}
                     disabled={loading || count > 0}
-                    className="p-2 rounded bg-white border border-sale/40 text-sale hover:border-sale transition disabled:opacity-30"
+                    className="p-2 rounded bg-card border border-destructive/40 text-destructive hover:border-destructive transition disabled:opacity-30"
                     aria-label="삭제"
                   >
                     <Trash2 className="w-3.5 h-3.5" strokeWidth={2.25} />
@@ -164,9 +164,9 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
       {/* 새 카테고리 */}
       <form
         onSubmit={addCategory}
-        className="p-6 rounded-lg bg-white border border-zinc-200"
+        className="p-6 rounded-xl bg-card border border-border shadow-sm"
       >
-        <h3 className="text-sm font-bold text-zinc-900 mb-3">
+        <h3 className="text-sm font-bold text-foreground mb-3">
           새 카테고리 추가
         </h3>
         <div className="flex items-center gap-2">
@@ -175,19 +175,19 @@ export default function CategoriesManager({ initial, postCounts }: Props) {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="이름 (예: 훈련 팁)"
-            className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="flex-1 px-3 py-2 rounded-lg bg-secondary text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <input
             type="text"
             value={newSlug}
             onChange={(e) => setNewSlug(e.target.value)}
             placeholder="slug (예: training-tips)"
-            className="w-48 px-3 py-2 rounded-lg bg-zinc-50 text-xs font-mono text-zinc-900 focus:outline-none focus:ring-2 focus:ring-terracotta"
+            className="w-48 px-3 py-2 rounded-lg bg-secondary text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             type="submit"
             disabled={loading || !newName.trim() || !newSlug.trim()}
-            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-terracotta text-white text-xs font-bold hover:bg-[#8A3822] transition disabled:opacity-40"
+            className="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 transition disabled:opacity-40"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
             추가

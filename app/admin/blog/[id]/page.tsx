@@ -31,21 +31,21 @@ export default async function AdminBlogEditPage({
         <div>
           <Link
             href="/admin/blog"
-            className="text-xs text-zinc-500 hover:text-terracotta"
+            className="text-xs text-muted-foreground hover:text-primary"
           >
             ← 매거진
           </Link>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
+          <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">
             글 수정
           </h1>
-          <p className="text-xs text-zinc-500 mt-1 font-mono">{post.slug}</p>
+          <p className="text-xs text-muted-foreground mt-1 font-mono">{post.slug}</p>
         </div>
         {post.is_published && (
           <Link
             href={`/blog/${post.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-terracotta hover:underline font-semibold"
+            className="text-[11px] text-primary hover:underline font-semibold"
           >
             사이트에서 보기 ↗
           </Link>

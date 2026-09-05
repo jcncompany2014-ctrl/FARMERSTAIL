@@ -16,11 +16,11 @@ export default async function AdminBlogNewPage() {
       <div className="mb-6">
         <Link
           href="/admin/blog"
-          className="text-xs text-zinc-500 hover:text-terracotta"
+          className="text-xs text-muted-foreground hover:text-primary"
         >
           ← 매거진
         </Link>
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
+        <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">
           새 글 작성
         </h1>
       </div>

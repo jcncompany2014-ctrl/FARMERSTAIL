@@ -33,20 +33,20 @@ export default async function AdminBlogCategoriesPage() {
       <div className="mb-6">
         <Link
           href="/admin/blog"
-          className="text-xs text-zinc-500 hover:text-terracotta"
+          className="text-xs text-muted-foreground hover:text-primary"
         >
           ← 매거진
         </Link>
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
+        <h1 className="mt-2 text-xl font-bold tracking-tight md:text-2xl">
           카테고리 관리
         </h1>
-        <p className="text-xs text-zinc-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           카테고리는 블로그 필터링과 URL에 쓰여요.
         </p>
       </div>
 
       {error ? (
-        <p className="text-sale text-sm">에러: {error.message}</p>
+        <p className="text-destructive text-sm">에러: {error.message}</p>
       ) : (
         <CategoriesManager
           initial={(data ?? []) as Category[]}

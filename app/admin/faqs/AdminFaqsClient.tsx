@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Pencil, X } from 'lucide-react'
+import { Plus, Trash2, Pencil, X, MessageCircleQuestion } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
@@ -152,12 +152,15 @@ export default function AdminFaqsClient({
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-6">
+      <div className="mb-6 flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            자주 묻는 질문
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <div className="flex items-center gap-2">
+            <MessageCircleQuestion className="size-5 text-primary" strokeWidth={2} />
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              자주 묻는 질문
+            </h1>
+          </div>
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>고객이 보는 /faq 페이지의 질문·답변</Hl>을 관리하는 곳이에요.
             문의가 자주 들어오는 내용을 여기 넣어두면 CS를 줄일 수 있어요. — 총{' '}
             {initialFaqs.length}개
@@ -165,7 +168,7 @@ export default function AdminFaqsClient({
         </div>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition"
+          className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />새 항목
         </button>
@@ -177,8 +180,8 @@ export default function AdminFaqsClient({
           onClick={() => setFilterCategory('all')}
           className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
             filterCategory === 'all'
-              ? 'bg-ink text-white'
-              : 'bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card border border-border text-foreground hover:bg-secondary/50'
           }`}
         >
           전체 ({initialFaqs.length})
@@ -189,8 +192,8 @@ export default function AdminFaqsClient({
             onClick={() => setFilterCategory(cat)}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition ${
               filterCategory === cat
-                ? 'bg-ink text-white'
-                : 'bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card border border-border text-foreground hover:bg-secondary/50'
             }`}
           >
             {cat} ({counts.get(cat) ?? 0})
@@ -199,18 +202,18 @@ export default function AdminFaqsClient({
       </div>
 
       {visible.length === 0 ? (
-        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
-          <p className="text-sm text-zinc-500">
+        <div className="p-12 rounded-xl bg-card border border-border shadow-sm text-center">
+          <p className="text-sm text-muted-foreground">
             {filterCategory === 'all'
               ? '등록된 FAQ 가 없어요.'
               : '이 카테고리에 등록된 FAQ 가 없어요.'}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg bg-white border border-zinc-200">
+        <div className="overflow-x-auto rounded-xl bg-card border border-border shadow-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-zinc-500 border-b border-zinc-200 bg-zinc-50">
+              <tr className="text-[11px] text-muted-foreground border-b border-border bg-secondary">
                 <th className="text-left py-3 px-4 font-medium">카테고리</th>
                 <th className="text-left py-3 px-4 font-medium">질문 / 답변</th>
                 <th className="text-right py-3 px-4 font-medium">정렬</th>
@@ -222,20 +225,20 @@ export default function AdminFaqsClient({
               {visible.map((f) => (
                 <tr
                   key={f.id}
-                  className="border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/60 transition"
+                  className="border-b border-border last:border-b-0 hover:bg-secondary/60 transition"
                 >
                   <td className="py-3 px-4 align-top">
-                    <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta">
+                    <span className="whitespace-nowrap inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                       {f.category}
                     </span>
                   </td>
                   <td className="py-3 px-4 align-top">
-                    <div className="font-semibold text-zinc-900">{f.question}</div>
-                    <p className="text-[11px] text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                    <div className="font-semibold text-foreground">{f.question}</div>
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                       {f.answer}
                     </p>
                   </td>
-                  <td className="py-3 px-4 text-right text-[11px] font-mono tabular-nums text-zinc-900 align-top">
+                  <td className="py-3 px-4 text-right text-[11px] font-mono tabular-nums text-foreground align-top">
                     {f.sort_order}
                   </td>
                   <td className="py-3 px-4 text-right align-top">
@@ -243,8 +246,8 @@ export default function AdminFaqsClient({
                       onClick={() => togglePublished(f)}
                       className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         f.is_published
-                          ? 'bg-moss text-white'
-                          : 'bg-rule text-zinc-800'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-secondary text-foreground'
                       }`}
                     >
                       {f.is_published ? '공개' : '숨김'}
@@ -254,16 +257,16 @@ export default function AdminFaqsClient({
                     <div className="inline-flex gap-1">
                       <button
                         onClick={() => openEdit(f)}
-                        className="p-1.5 rounded hover:bg-rule transition"
+                        className="p-1.5 rounded hover:bg-secondary transition"
                       >
-                        <Pencil className="w-3.5 h-3.5 text-zinc-900" strokeWidth={2} />
+                        <Pencil className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
                       </button>
                       <button
                         onClick={() => remove(f)}
                         disabled={deleting === f.id}
-                        className="p-1.5 rounded hover:bg-sale/10 transition disabled:opacity-40"
+                        className="p-1.5 rounded hover:bg-destructive/10 transition disabled:opacity-40"
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-sale" strokeWidth={2} />
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" strokeWidth={2} />
                       </button>
                     </div>
                   </td>
@@ -285,18 +288,18 @@ export default function AdminFaqsClient({
             aria-modal="true"
             aria-labelledby="faq-modal-title"
             tabIndex={-1}
-            className="w-full max-w-xl bg-zinc-50 rounded-lg shadow-2xl"
+            className="w-full max-w-xl bg-secondary rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-zinc-50 rounded-t-2xl z-10">
-              <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-zinc-900">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-secondary rounded-t-2xl z-10">
+              <h2 id="faq-modal-title" className="font-bold tracking-tight text-lg text-foreground">
                 {editing ? 'EDIT FAQ' : 'NEW FAQ'}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1 rounded hover:bg-rule transition"
+                className="p-1 rounded hover:bg-secondary transition"
               >
-                <X className="w-4 h-4 text-zinc-900" strokeWidth={2} />
+                <X className="w-4 h-4 text-foreground" strokeWidth={2} />
               </button>
             </div>
 
@@ -305,7 +308,7 @@ export default function AdminFaqsClient({
                 <select
                   value={category}
                   onChange={(ev) => setCategory(ev.target.value as FaqCategory)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -320,7 +323,7 @@ export default function AdminFaqsClient({
                   type="text"
                   value={question}
                   onChange={(ev) => setQuestion(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                   placeholder="하루에 얼마나 먹여야 하나요?"
                 />
               </Field>
@@ -330,7 +333,7 @@ export default function AdminFaqsClient({
                   value={answer}
                   onChange={(ev) => setAnswer(ev.target.value)}
                   rows={5}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none leading-relaxed"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm resize-none leading-relaxed"
                   placeholder="체중과 활동량에 따라 다르며..."
                 />
               </Field>
@@ -341,7 +344,7 @@ export default function AdminFaqsClient({
                     value={sortOrder}
                     onChange={(v) => setSortOrder(v ?? 0)}
                     emptyAs={0}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm font-mono"
                   />
                 </Field>
                 <Field label="공개 여부">
@@ -352,23 +355,23 @@ export default function AdminFaqsClient({
                       onChange={(ev) => setIsPublished(ev.target.checked)}
                       className="w-5 h-5"
                     />
-                    <span className="text-sm text-zinc-900">{isPublished ? '공개' : '숨김'}</span>
+                    <span className="text-sm text-foreground">{isPublished ? '공개' : '숨김'}</span>
                   </label>
                 </Field>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-zinc-50 rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border sticky bottom-0 bg-secondary rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm text-zinc-900 hover:bg-rule transition"
+                className="px-4 py-2 rounded-lg text-sm text-foreground hover:bg-secondary transition"
               >
                 취소
               </button>
               <button
                 onClick={save}
                 disabled={saving}
-                className="px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
               >
                 {saving ? '저장 중…' : editing ? '수정 저장' : 'FAQ 생성'}
               </button>
@@ -391,11 +394,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-zinc-500 mb-1.5">
+      <label className="block text-[11px] font-bold text-muted-foreground mb-1.5">
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[11.5px] text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-1 text-[11.5px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }

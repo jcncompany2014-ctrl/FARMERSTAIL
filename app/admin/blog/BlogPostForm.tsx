@@ -347,7 +347,7 @@ export default function BlogPostForm({
               className={`${inputClass} font-mono text-xs`}
               placeholder="weight-management-diet"
             />
-            <p className="mt-1 text-[11.5px] text-zinc-500">
+            <p className="mt-1 text-[11.5px] text-muted-foreground">
               /blog/<span className="font-mono">{form.slug || '...'}</span>
             </p>
           </Field>
@@ -449,7 +449,7 @@ export default function BlogPostForm({
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   !preview
                     ? 'bg-zinc-900 text-white'
-                    : 'text-zinc-500 hover:bg-zinc-50'
+                    : 'text-muted-foreground hover:bg-secondary/50'
                 } transition font-bold`}
               >
                 <Pencil className="w-3 h-3" strokeWidth={2.25} />
@@ -461,7 +461,7 @@ export default function BlogPostForm({
                 className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded ${
                   preview
                     ? 'bg-zinc-900 text-white'
-                    : 'text-zinc-500 hover:bg-zinc-50'
+                    : 'text-muted-foreground hover:bg-secondary/50'
                 } transition font-bold`}
               >
                 <Eye className="w-3 h-3" strokeWidth={2.25} />
@@ -470,14 +470,14 @@ export default function BlogPostForm({
             </div>
           </div>
           {preview ? (
-            <div className="min-h-[400px] bg-zinc-50 rounded-lg p-4">
+            <div className="min-h-[400px] bg-secondary rounded-lg p-4">
               {form.content.trim() ? (
                 <article
-                  className="ft-md text-[14px] text-zinc-800 leading-relaxed"
+                  className="ft-md text-[14px] text-foreground leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(form.content) }}
                 />
               ) : (
-                <p className="text-[11px] text-zinc-500 italic">
+                <p className="text-[11px] text-muted-foreground italic">
                   본문이 비어 있어요
                 </p>
               )}
@@ -493,11 +493,11 @@ export default function BlogPostForm({
             />
           )}
           {inlineUpload.status === 'error' && (
-            <p className="mt-1 text-[11px] text-sale font-bold">
+            <p className="mt-1 text-[11px] text-destructive font-bold">
               {inlineUpload.message}
             </p>
           )}
-          <p className="mt-1 text-[11.5px] text-zinc-500">
+          <p className="mt-1 text-[11.5px] text-muted-foreground">
             {form.content.length.toLocaleString()}자 · 마크다운: **굵게** *기울임* # 제목 - 목록 [링크](url) ![alt](img)
           </p>
         </Section>
@@ -510,8 +510,8 @@ export default function BlogPostForm({
             <div
               className={`text-[11px] font-bold px-3 py-2 rounded-lg ${
                 form.is_published
-                  ? 'bg-moss/10 text-moss'
-                  : 'bg-rule text-zinc-500'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-secondary text-muted-foreground'
               }`}
             >
               현재 상태 ·{' '}
@@ -519,7 +519,7 @@ export default function BlogPostForm({
             </div>
 
             {form.is_published && form.published_at && (
-              <p className="text-[11.5px] text-zinc-500">
+              <p className="text-[11.5px] text-muted-foreground">
                 최초 발행 ·{' '}
                 {new Date(form.published_at).toLocaleString('ko-KR')}
               </p>
@@ -529,14 +529,14 @@ export default function BlogPostForm({
               type="button"
               onClick={(e) => handleSubmit(e, true)}
               disabled={loading}
-              className="w-full py-2.5 rounded-full bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition disabled:opacity-50"
+              className="w-full py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
             >
               {form.is_published ? '저장 & 계속 게시' : '저장 & 바로 게시'}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-full bg-white text-zinc-800 border border-zinc-200 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full py-2.5 rounded-full bg-card text-foreground border border-border text-xs font-semibold hover:border-primary hover:text-primary transition disabled:opacity-50"
             >
               임시저장
             </button>
@@ -545,7 +545,7 @@ export default function BlogPostForm({
                 type="button"
                 onClick={(e) => handleSubmit(e, false)}
                 disabled={loading}
-                className="w-full py-2 text-[11px] text-zinc-500 hover:text-sale transition"
+                className="w-full py-2 text-[11px] text-muted-foreground hover:text-destructive transition"
               >
                 게시 내리기 (비공개로 전환)
               </button>
@@ -555,7 +555,7 @@ export default function BlogPostForm({
 
         <Section title="커버 이미지">
           {form.cover_url ? (
-            <div className="relative group aspect-[16/9] rounded-lg bg-zinc-50 overflow-hidden border border-zinc-200">
+            <div className="relative group aspect-[16/9] rounded-lg bg-secondary overflow-hidden border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={form.cover_url}
@@ -565,7 +565,7 @@ export default function BlogPostForm({
               <button
                 type="button"
                 onClick={clearCover}
-                className="absolute top-2 right-2 w-7 h-7 bg-sale text-white rounded-full flex items-center justify-center hover:bg-[#8A2A1E] transition"
+                className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-full flex items-center justify-center hover:bg-[#8A2A1E] transition"
                 aria-label="커버 제거"
               >
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -576,7 +576,7 @@ export default function BlogPostForm({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={upload.status === 'uploading'}
-              className="w-full aspect-[16/9] rounded-lg bg-zinc-50 border border-dashed border-zinc-200 flex flex-col items-center justify-center text-zinc-500 hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+              className="w-full aspect-[16/9] rounded-lg bg-secondary border border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition disabled:opacity-50"
             >
               {upload.status === 'uploading' ? (
                 <Loader2 className="w-6 h-6 animate-spin" strokeWidth={1.5} />
@@ -600,7 +600,7 @@ export default function BlogPostForm({
             }}
           />
           {upload.status === 'error' && (
-            <p className="mt-1 text-[11px] text-sale font-bold">
+            <p className="mt-1 text-[11px] text-destructive font-bold">
               {upload.message}
             </p>
           )}
@@ -623,7 +623,7 @@ export default function BlogPostForm({
           </Field>
           <Link
             href="/admin/blog/categories"
-            className="text-[10px] text-terracotta hover:underline"
+            className="text-[10px] text-primary hover:underline"
           >
             카테고리 관리 →
           </Link>
@@ -634,7 +634,7 @@ export default function BlogPostForm({
             type="button"
             onClick={handleDelete}
             disabled={loading}
-            className="w-full py-2.5 rounded-full bg-white text-sale border border-sale/40 text-xs font-semibold hover:border-sale transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-full bg-card text-destructive border border-destructive/40 text-xs font-semibold hover:border-destructive transition disabled:opacity-50"
           >
             삭제
           </button>
@@ -645,7 +645,7 @@ export default function BlogPostForm({
 }
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-zinc-50 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-terracotta'
+  'w-full px-3 py-2 rounded-lg bg-secondary text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary'
 
 function Section({
   title,
@@ -655,8 +655,8 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="p-5 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-zinc-900 mb-3">{title}</h2>
+    <section className="p-5 rounded-xl bg-card border border-border shadow-sm">
+      <h2 className="text-sm font-bold text-foreground mb-3">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )
@@ -671,7 +671,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+      <label className="block text-[11px] font-semibold text-foreground mb-1">
         {label}
       </label>
       {children}
@@ -696,7 +696,7 @@ function ToolBtn({
       onClick={onClick}
       title={title}
       disabled={disabled}
-      className="inline-flex items-center justify-center w-7 h-7 rounded text-zinc-800 hover:bg-zinc-50 hover:text-terracotta transition disabled:opacity-40"
+      className="inline-flex items-center justify-center w-7 h-7 rounded text-foreground hover:bg-secondary/50 hover:text-primary transition disabled:opacity-40"
     >
       {children}
     </button>
@@ -764,7 +764,7 @@ function AiDraftHelper({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-zinc-50 text-zinc-800 hover:border-terracotta transition"
+        className="mb-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-border bg-secondary text-foreground hover:border-primary transition"
       >
         ✨ AI 초안 생성
       </button>
@@ -772,22 +772,22 @@ function AiDraftHelper({
   }
 
   return (
-    <div className="mb-3 p-4 rounded-xl border border-terracotta/40 bg-terracotta/5 space-y-3">
+    <div className="mb-3 p-4 rounded-xl border border-primary/40 bg-primary/5 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-black text-zinc-800">
+        <h3 className="text-[12px] font-black text-foreground">
           ✨ AI 글 초안 생성기
         </h3>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-[10px] text-zinc-500 hover:text-zinc-800"
+          className="text-[10px] text-muted-foreground hover:text-foreground"
         >
           닫기
         </button>
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+        <label className="block text-[10px] font-bold text-muted-foreground mb-1">
           주제 / 키워드 *
         </label>
         <input
@@ -796,12 +796,12 @@ function AiDraftHelper({
           onChange={(e) => setTopic(e.target.value.slice(0, 100))}
           maxLength={100}
           placeholder="예: 노령견 관절 영양제 선택법, 사료에서 화식 전환"
-          className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-[12px] focus:outline-none focus:border-terracotta"
+          className="w-full px-3 py-2 rounded-lg border border-border bg-card text-[12px] focus:outline-none focus:border-primary"
         />
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+        <label className="block text-[10px] font-bold text-muted-foreground mb-1">
           타겟 독자 (선택)
         </label>
         <input
@@ -810,12 +810,12 @@ function AiDraftHelper({
           onChange={(e) => setAudience(e.target.value.slice(0, 100))}
           maxLength={100}
           placeholder="예: 첫 반려견을 키우는 30대 보호자"
-          className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-[12px] focus:outline-none focus:border-terracotta"
+          className="w-full px-3 py-2 rounded-lg border border-border bg-card text-[12px] focus:outline-none focus:border-primary"
         />
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 mb-1">
+        <label className="block text-[10px] font-bold text-muted-foreground mb-1">
           본문 길이
         </label>
         <div className="flex gap-1.5">
@@ -833,7 +833,7 @@ function AiDraftHelper({
               className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
                 length === opt.key
                   ? 'bg-zinc-900 text-white border-transparent'
-                  : 'bg-white border-zinc-200 text-zinc-800 hover:border-zinc-800'
+                  : 'bg-card border-border text-foreground hover:border-zinc-800'
               }`}
             >
               {opt.label}
@@ -843,14 +843,14 @@ function AiDraftHelper({
       </div>
 
       {error && (
-        <p className="text-[11px] font-bold text-sale">{error}</p>
+        <p className="text-[11px] font-bold text-destructive">{error}</p>
       )}
 
       <button
         type="button"
         onClick={generate}
         disabled={loading || !topic.trim()}
-        className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-terracotta text-white text-[12px] font-black active:scale-[0.98] transition disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary text-white text-[12px] font-black active:scale-[0.98] transition disabled:opacity-50"
       >
         {loading ? (
           <>
@@ -862,7 +862,7 @@ function AiDraftHelper({
         )}
       </button>
 
-      <p className="text-[11.5px] text-zinc-500 leading-relaxed">
+      <p className="text-[11.5px] text-muted-foreground leading-relaxed">
         AI 가 초안을 만들어 제목·요약·본문에 자동으로 채워줘요. 그대로
         발행하지 말고 사실·표현·톤을 점검한 뒤 게시하세요.
       </p>

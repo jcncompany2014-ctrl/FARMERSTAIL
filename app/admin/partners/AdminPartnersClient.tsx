@@ -11,6 +11,7 @@ import {
   Upload,
   MapPin,
   Award,
+  Tractor,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -184,12 +185,15 @@ export default function AdminPartnersClient({
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-8">
+      <div className="mb-8 flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            산지·공급자
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <div className="flex items-center gap-2">
+            <Tractor className="size-5 text-primary" strokeWidth={2} />
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              산지·공급자
+            </h1>
+          </div>
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>원물을 어디서 받아오는지(산지·농장)</Hl> 관리하는 곳이에요.
             고객이 보는 /partners 페이지에 &lsquo;믿을 수 있는 재료&rsquo; 근거로
             노출돼요. — 총 {initialPartners.length}개
@@ -197,80 +201,80 @@ export default function AdminPartnersClient({
         </div>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition"
+          className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />새 산지
         </button>
       </div>
 
       {initialPartners.length === 0 ? (
-        <div className="p-12 rounded-lg bg-white border border-zinc-200 text-center">
-          <p className="text-sm text-zinc-500">등록된 산지가 없어요.</p>
+        <div className="p-12 rounded-xl bg-card border border-border shadow-sm text-center">
+          <p className="text-sm text-muted-foreground">등록된 산지가 없어요.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {initialPartners.map((p) => (
             <div
               key={p.id}
-              className="rounded-lg bg-white border border-zinc-200 p-4 flex gap-4"
+              className="rounded-xl bg-card border border-border shadow-sm p-4 flex gap-4"
             >
               {p.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={p.image_url}
                   alt=""
-                  className="w-20 h-24 rounded object-cover border border-zinc-200 shrink-0"
+                  className="w-20 h-24 rounded object-cover border border-border shrink-0"
                 />
               ) : (
-                <div className="w-20 h-24 rounded border border-zinc-200 shrink-0 flex items-center justify-center bg-zinc-50">
-                  <ImageIcon className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+                <div className="w-20 h-24 rounded border border-border shrink-0 flex items-center justify-center bg-secondary">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      p.is_published ? 'bg-moss text-white' : 'bg-rule text-zinc-800'
+                      p.is_published ? 'bg-emerald-600 text-white' : 'bg-secondary text-foreground'
                     }`}
                   >
                     {p.is_published ? '공개' : '숨김'}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
+                  <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                     <MapPin className="w-2.5 h-2.5" strokeWidth={2} />
                     {p.region}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-mono">
+                  <span className="text-[10px] text-muted-foreground font-mono">
                     order={p.sort_order}
                   </span>
                 </div>
-                <div className="font-semibold text-zinc-900 mt-1">{p.name}</div>
-                <div className="text-[11px] text-terracotta mt-0.5">{p.ingredient}</div>
+                <div className="font-semibold text-foreground mt-1">{p.name}</div>
+                <div className="text-[11px] text-primary mt-0.5">{p.ingredient}</div>
                 {p.cert && (
-                  <div className="inline-flex items-center gap-1 text-[10px] text-zinc-500 mt-1">
+                  <div className="inline-flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
                     <Award className="w-2.5 h-2.5" strokeWidth={2} />
                     {p.cert}
                   </div>
                 )}
-                <p className="text-[11px] text-zinc-500 mt-1.5 line-clamp-2">{p.body}</p>
+                <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2">{p.body}</p>
                 <div className="flex items-center gap-1 mt-2">
                   <button
                     onClick={() => togglePublished(p)}
-                    className="px-2 py-1 rounded border border-zinc-200 text-[10px] hover:bg-zinc-50 transition"
+                    className="px-2 py-1 rounded border border-border text-[10px] hover:bg-secondary/50 transition"
                   >
                     {p.is_published ? '숨기기' : '공개'}
                   </button>
                   <button
                     onClick={() => openEdit(p)}
-                    className="p-1.5 rounded hover:bg-rule transition"
+                    className="p-1.5 rounded hover:bg-secondary transition"
                   >
-                    <Pencil className="w-3.5 h-3.5 text-zinc-900" strokeWidth={2} />
+                    <Pencil className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
                   </button>
                   <button
                     onClick={() => remove(p)}
                     disabled={deleting === p.id}
-                    className="p-1.5 rounded hover:bg-sale/10 transition disabled:opacity-40"
+                    className="p-1.5 rounded hover:bg-destructive/10 transition disabled:opacity-40"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-sale" strokeWidth={2} />
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" strokeWidth={2} />
                   </button>
                 </div>
               </div>
@@ -290,18 +294,18 @@ export default function AdminPartnersClient({
             aria-modal="true"
             aria-labelledby="partner-modal-title"
             tabIndex={-1}
-            className="w-full max-w-xl bg-zinc-50 rounded-lg shadow-2xl"
+            className="w-full max-w-xl bg-secondary rounded-lg shadow-2xl"
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 sticky top-0 bg-zinc-50 rounded-t-2xl z-10">
-              <h2 id="partner-modal-title" className="font-bold tracking-tight text-lg text-zinc-900">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-secondary rounded-t-2xl z-10">
+              <h2 id="partner-modal-title" className="font-bold tracking-tight text-lg text-foreground">
                 {editing ? 'EDIT PARTNER' : 'NEW PARTNER'}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1 rounded hover:bg-rule transition"
+                className="p-1 rounded hover:bg-secondary transition"
               >
-                <X className="w-4 h-4 text-zinc-900" strokeWidth={2} />
+                <X className="w-4 h-4 text-foreground" strokeWidth={2} />
               </button>
             </div>
 
@@ -312,7 +316,7 @@ export default function AdminPartnersClient({
                     type="text"
                     value={region}
                     onChange={(ev) => setRegion(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                     placeholder="강원 평창"
                   />
                 </Field>
@@ -321,7 +325,7 @@ export default function AdminPartnersClient({
                     type="text"
                     value={name}
                     onChange={(ev) => setName(ev.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                     placeholder="평창 청옥 한우농가"
                   />
                 </Field>
@@ -332,7 +336,7 @@ export default function AdminPartnersClient({
                   type="text"
                   value={ingredient}
                   onChange={(ev) => setIngredient(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                   placeholder="한우 안심 / 양지"
                 />
               </Field>
@@ -342,7 +346,7 @@ export default function AdminPartnersClient({
                   value={body}
                   onChange={(ev) => setBody(ev.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm resize-none"
                   placeholder="해발 700m 이상 청정 목초지에서 방목·곡물 병행 사육..."
                 />
               </Field>
@@ -352,19 +356,19 @@ export default function AdminPartnersClient({
                   type="text"
                   value={cert}
                   onChange={(ev) => setCert(ev.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm"
                   placeholder="1++ 등급"
                 />
               </Field>
 
               <Field label="이미지" hint="4:5 권장, 8MB 이하">
                 <div className="flex gap-3 items-start">
-                  <div className="w-24 h-30 rounded border border-zinc-200 bg-zinc-50 shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4 / 5' }}>
+                  <div className="w-24 h-30 rounded border border-border bg-secondary shrink-0 overflow-hidden flex items-center justify-center" style={{ aspectRatio: '4 / 5' }}>
                     {imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={imageUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <ImageIcon className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+                      <ImageIcon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
                     )}
                   </div>
                   <div className="flex-1 flex flex-col gap-2">
@@ -379,7 +383,7 @@ export default function AdminPartnersClient({
                       type="button"
                       onClick={() => fileRef.current?.click()}
                       disabled={uploading}
-                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-ink text-white text-xs font-semibold hover:bg-[#3A2F22] transition disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-foreground text-white text-xs font-semibold hover:bg-[#3A2F22] transition disabled:opacity-50"
                     >
                       <Upload className="w-3.5 h-3.5" strokeWidth={2.5} />
                       {uploading ? '업로드 중…' : imageUrl ? '교체' : '이미지 선택'}
@@ -388,7 +392,7 @@ export default function AdminPartnersClient({
                       type="text"
                       value={imageUrl}
                       onChange={(ev) => setImageUrl(ev.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-xs font-mono"
                       placeholder="또는 URL"
                     />
                   </div>
@@ -401,7 +405,7 @@ export default function AdminPartnersClient({
                     value={sortOrder}
                     onChange={(v) => setSortOrder(v ?? 0)}
                     emptyAs={0}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm font-mono"
                   />
                 </Field>
                 <Field label="공개 여부">
@@ -412,23 +416,23 @@ export default function AdminPartnersClient({
                       onChange={(ev) => setIsPublished(ev.target.checked)}
                       className="w-5 h-5"
                     />
-                    <span className="text-sm text-zinc-900">{isPublished ? '공개' : '숨김'}</span>
+                    <span className="text-sm text-foreground">{isPublished ? '공개' : '숨김'}</span>
                   </label>
                 </Field>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 sticky bottom-0 bg-zinc-50 rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border sticky bottom-0 bg-secondary rounded-b-2xl">
               <button
                 onClick={() => setModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm text-zinc-900 hover:bg-rule transition"
+                className="px-4 py-2 rounded-lg text-sm text-foreground hover:bg-secondary transition"
               >
                 취소
               </button>
               <button
                 onClick={save}
                 disabled={saving}
-                className="px-4 py-2 rounded-lg bg-terracotta text-white text-sm font-semibold hover:bg-[#8A3822] transition disabled:opacity-50"
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
               >
                 {saving ? '저장 중…' : editing ? '수정 저장' : '산지 생성'}
               </button>
@@ -451,11 +455,11 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[11px] font-bold text-zinc-500 mb-1.5">
+      <label className="block text-[11px] font-bold text-muted-foreground mb-1.5">
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-[11.5px] text-zinc-500">{hint}</p>}
+      {hint && <p className="mt-1 text-[11.5px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }
