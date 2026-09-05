@@ -28,7 +28,8 @@ import { Reveal } from './primitives'
 
 interface CTAStackProps {
   p: MagazinePalette
-  /** 제품 문의 CTA 경로 (/contact) */
+  /** 제품 문의 CTA 경로 — 앱의 1:1 상담(/chat). (웹 /contact 는 2026-09-05
+   *  기각 — 앱 전용 화면에서 웹 문의로 빠지는 동선이었다.) */
   consultHref: string
   /** 결과 저장 CTA 경로 — 수의사 리포트(/dogs/[id]/vet-report). 필수다:
    *  optional 로 두면 안 넘겨도 컴파일이 통과해 또 죽은 버튼이 된다. */

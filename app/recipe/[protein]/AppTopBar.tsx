@@ -15,7 +15,9 @@ export default function AppTopBar() {
     <div
       className="sticky top-0 z-50"
       style={{
-        background: 'rgba(255,255,255,0.92)',
+        // 반투명도를 낮춰 스크롤 시 콘텐츠가 은은히 비치는 블러가 살도록
+        // (2026-09-05 사장님: "살짝 블러처리 하는 느낌도").
+        background: 'rgba(255,255,255,0.78)',
         backdropFilter: 'blur(14px) saturate(150%)',
         WebkitBackdropFilter: 'blur(14px) saturate(150%)',
         borderBottom: '1px solid var(--fd-line)',

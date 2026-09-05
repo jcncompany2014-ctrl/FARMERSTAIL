@@ -202,7 +202,9 @@ export default function AnalysisMagazineSection({
           영양제 라인 출시 대비해 그대로 유지(데이터·매핑은 살아 있음). */}
       <MagCTA
         p={magP}
-        consultHref="/contact"
+        // ★/contact 는 웹 문의 페이지 — 앱 전용 화면((main))에서 웹으로 빠지는
+        //   동선이었다(사장님 2026-09-05). 앱의 1:1 상담(/chat)으로.
+        consultHref="/chat"
         reportHref={`/dogs/${dogId}/vet-report`}
       />
       <div style={{ height: 12, background: magP.bg }} />

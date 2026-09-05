@@ -271,11 +271,25 @@ export default async function SciencePage() {
               ].map((d) => (
                 <Reveal key={d.t} delay={d.delay} className="h-full">
                   <article className="h-full flex flex-col" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12, overflow: 'hidden' }}>
+                    {/* 서류 출처 라벨 — 이미지 위 어두운 pill 은 버튼처럼 읽혀
+                        기각(사장님 2026-09-05). 카드 머리의 서류철 탭 느낌
+                        kicker(코랄 소문자 자간)로 — Eyebrow 와 같은 문법. */}
+                    <div
+                      className="text-[11px]"
+                      style={{
+                        padding: '12px 18px 10px',
+                        borderBottom: '1px solid var(--fd-line)',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        color: 'var(--fd-coral-text)',
+                      }}
+                    >
+                      {d.chip}
+                    </div>
                     <div className="relative" style={{ aspectRatio: '16 / 10', background: 'var(--fd-cream)' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- 문서 원장:
                           contain 표시가 필수라 PhotoSlot(cover) 대신 직접 렌더 */}
                       <img src={d.src} alt={d.alt} loading="lazy" className="absolute inset-0" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 14, boxSizing: 'border-box' }} />
-                      <span className="absolute rounded-full text-[10.5px]" style={{ top: 12, left: 12, padding: '4px 10px', background: 'var(--fd-pine)', color: '#FFFFFF', fontWeight: 800, letterSpacing: '0.03em' }}>{d.chip}</span>
                     </div>
                     <div className="flex-1" style={{ padding: '16px 18px 20px' }}>
                       <h3 className="text-[15px] md:text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{d.t}</h3>

@@ -373,7 +373,8 @@ export default function AnalysisView({
         <div
           className="sticky top-0 z-40 -mt-1"
           style={{
-            background: 'var(--paper)',
+            // 반투명 — 스크롤 시 콘텐츠가 비치는 블러 질감(사장님 2026-09-05).
+            background: 'color-mix(in srgb, var(--paper) 82%, transparent)',
             backdropFilter: 'blur(14px) saturate(150%)',
             WebkitBackdropFilter: 'blur(14px) saturate(150%)',
             boxShadow: '0 2px 14px -12px rgba(22,20,15,0.22)',
