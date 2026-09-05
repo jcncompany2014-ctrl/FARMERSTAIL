@@ -55,10 +55,14 @@ export default async function AdminCsInboxPage() {
     { name: string | null; email: string | null }
   >()
   if (userIds.length > 0) {
-    const { data: profiles } = await supabase
+    // 이름·이메일 라벨용 — 실패해도 본문은 보이므로 로그만(규칙1: 버리진 않는다).
+    const { data: profiles, error: profilesErr } = await supabase
       .from('profiles')
       .select('id, name, email')
       .in('id', userIds)
+    if (profilesErr) {
+      console.error('[admin-cs-inbox] 프로필 조회 실패:', profilesErr.message)
+    }
     profilesById = new Map(
       ((profiles ?? []) as Array<{
         id: string
@@ -74,10 +78,13 @@ export default async function AdminCsInboxPage() {
       <AdminTabs tabs={CUSTOMER_TABS} active="/admin/cs-inbox" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            고객 답장
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <div className="flex items-center gap-2">
+            <Inbox className="size-5 text-primary" strokeWidth={2} />
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              고객 답장
+            </h1>
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
             고객이 1:1 메시지에 답장을 보냈는데{' '}
             <Hl>아직 사장님이 안 읽은 것들</Hl>이에요. 여기 쌓이면 답을 기다리는
             중이니 빨리 봐주세요.
@@ -86,7 +93,7 @@ export default async function AdminCsInboxPage() {
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
+          className="text-[11px] text-muted-foreground hover:text-primary font-semibold"
         >
           ← 대시보드
         </Link>
@@ -95,55 +102,55 @@ export default async function AdminCsInboxPage() {
       {messagesError ? (
         <LoadError what="문의" hint="문의가 없는 게 아니라 조회가 실패했어요. 새로고침해 주세요." />
       ) : grouped.length === 0 ? (
-        <div className="bg-white rounded-lg border border-zinc-200 p-12 text-center">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-12 text-center">
           <Inbox
-            className="w-10 h-10 text-zinc-500 mx-auto mb-3"
+            className="w-10 h-10 text-muted-foreground mx-auto mb-3"
             strokeWidth={1.3}
           />
-          <p className="text-[13px] font-bold text-zinc-800">
+          <p className="text-[13px] font-bold text-foreground">
             모든 답장을 확인했어요
           </p>
-          <p className="text-[11px] text-zinc-500 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             사용자가 보낸 새 메시지가 들어오면 여기에 표시됩니다.
           </p>
         </div>
       ) : (
-        <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden">
+        <ul className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           {grouped.map((g) => {
             const p = profilesById.get(g.user_id)
             return (
               <li
                 key={g.id}
-                className="border-b border-zinc-200 last:border-b-0"
+                className="border-b border-border last:border-b-0"
               >
                 <Link
                   href={`/admin/users/${g.user_id}/message`}
-                  className="block px-4 py-4 hover:bg-zinc-50/40 transition"
+                  className="block px-4 py-4 hover:bg-secondary/40 transition"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[13px] font-bold text-zinc-800">
+                        <p className="text-[13px] font-bold text-foreground">
                           {p?.name ?? '(이름 없음)'}
                         </p>
                         {g.unreadCount > 1 && (
-                          <span className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full bg-sale">
+                          <span className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full bg-destructive">
                             +{g.unreadCount - 1}
                           </span>
                         )}
-                        <span className="text-[10px] text-zinc-500 font-mono">
+                        <span className="text-[10px] text-muted-foreground font-mono">
                           {p?.email ?? '—'}
                         </span>
                       </div>
-                      <p className="text-[12px] text-zinc-800 leading-relaxed line-clamp-2">
+                      <p className="text-[12px] text-foreground leading-relaxed line-clamp-2">
                         {g.body}
                       </p>
-                      <p className="text-[10px] text-zinc-500 font-mono mt-1">
+                      <p className="text-[10px] text-muted-foreground font-mono mt-1">
                         {new Date(g.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                       </p>
                     </div>
                     <ArrowRight
-                      className="w-4 h-4 text-terracotta shrink-0"
+                      className="w-4 h-4 text-primary shrink-0"
                       strokeWidth={2.5}
                     />
                   </div>

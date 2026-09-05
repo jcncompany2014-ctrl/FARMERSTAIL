@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { AdminTabs, Hl, Em } from '@/components/admin/ui'
@@ -64,16 +65,23 @@ export default async function AdminUsersPage({
   // 각 유저별 주문 수/누적 금액 집계 (현재 페이지 50명에 한정 — N+1 bounded)
   const userIds = (users ?? []).map((u) => u.id)
   const orderStats: Record<string, { count: number; total: number }> = {}
+  let orderStatsFailed = false
 
   if (userIds.length > 0) {
     // R101-D: 누적 결제액에 partially_refunded 주문도 포함 + net(환불 제외)으로
     // 합산. 이전엔 'paid' 만 봐서 부분환불된 주문이 통째로 누락됐다(5만원 결제 후
     // 1만원만 환불해도 4만원이 0 으로 사라짐).
-    const { data: orders } = await supabase
+    // ★error 를 받는다 (2026-09-05 전수감사, AGENTS.md 규칙1) — 실패를 버리면
+    //   전원 '주문 0건 · 누적 0원'으로 위장된다. 실패 시 아래 배너로 표시.
+    const { data: orders, error: ordersErr } = await supabase
       .from('orders')
       .select('user_id, total_amount, refunded_amount, payment_status')
       .in('user_id', userIds)
       .in('payment_status', ['paid', 'partially_refunded'])
+    if (ordersErr) {
+      console.error('[admin-users] 주문 집계 조회 실패:', ordersErr.message)
+      orderStatsFailed = true
+    }
 
     ;(orders ?? []).forEach(
       (o: {
@@ -95,10 +103,13 @@ export default async function AdminUsersPage({
       {/* 대개편 v2 T2 — 고객 그룹 탭 (회원|답장|검색) */}
       <AdminTabs tabs={CUSTOMER_TABS} active="/admin/users" />
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-          회원 관리
-        </h1>
-        <p className="text-[13px] text-zinc-500 mt-1">
+        <div className="flex items-center gap-2">
+          <Users className="size-5 text-primary" strokeWidth={2} />
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+            회원 관리
+          </h1>
+        </div>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
           <Hl>가입한 고객 명단</Hl>이에요. 주문 횟수·누적 금액·연락처를 한눈에
           보고 &lsquo;메시지&rsquo;로 1:1 대화를 시작할 수 있어요. 특정 고객의
           주문·정기배송을 찾을 땐 옆의{' '}
@@ -115,18 +126,18 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={q}
             placeholder="이메일, 이름, 연락처로 검색"
-            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-white border border-zinc-200 focus:outline-none focus:border-terracotta"
+            className="flex-1 max-w-md px-4 py-2 rounded-full text-sm bg-card border border-border focus:outline-none focus:border-primary"
           />
           <button
             type="submit"
-            className="px-5 py-2 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
+            className="px-5 py-2 rounded-full text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 transition"
           >
             검색
           </button>
           {q && (
             <Link
               href="/admin/users"
-              className="px-4 py-2 rounded-full text-xs font-semibold bg-white border border-zinc-200 text-zinc-800 hover:border-terracotta transition"
+              className="px-4 py-2 rounded-full text-xs font-semibold bg-card border border-border text-foreground hover:border-primary transition"
             >
               초기화
             </Link>
@@ -134,21 +145,30 @@ export default async function AdminUsersPage({
         </form>
       </div>
 
+      {orderStatsFailed && (
+        <div className="mb-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3">
+          <p className="text-[12px] font-semibold text-destructive">
+            주문 횟수·누적 금액을 불러오지 못했어요 — 아래 숫자가 전부 0으로
+            보일 수 있어요. 실제 0이 아니라 조회가 실패한 상태예요.
+          </p>
+        </div>
+      )}
+
       {/* 테이블(데스크톱) / 카드(모바일) — 모바일에선 흰 컨테이너를 벗겨
           카드-인-카드 이중 보더를 피한다. */}
-      <div className="md:p-6 md:rounded-lg md:bg-white md:border md:border-zinc-200">
+      <div className="md:p-6 md:rounded-xl md:bg-card md:border md:border-border md:shadow-sm">
         {error ? (
           <div>
-            <p className="text-sale text-sm">
+            <p className="text-destructive text-sm">
               회원 정보를 불러오지 못했어요.
             </p>
-            <p className="text-xs text-zinc-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 이 화면을
               알려주세요. (회원 조회 권한 설정 문제일 수 있어요.)
             </p>
           </div>
         ) : !users || users.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 py-10">
+          <p className="text-center text-sm text-muted-foreground py-10">
             {q ? '조건에 맞는 회원이 없어요' : '가입한 회원이 없어요'}
           </p>
         ) : (
@@ -170,30 +190,30 @@ export default async function AdminUsersPage({
               return (
                 <div
                   key={u.id}
-                  className="rounded-lg border border-zinc-200 bg-white p-4"
+                  className="rounded-xl border border-border bg-card p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-bold text-zinc-900 text-[13px] truncate">
+                      <p className="font-bold text-foreground text-[13px] truncate">
                         {u.name ?? '(이름 미등록)'}
                         {u.role === 'admin' && (
-                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-900 text-white align-middle">
+                          <span className="ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-foreground text-background align-middle">
                             ADMIN
                           </span>
                         )}
                       </p>
-                      <p className="text-[11px] text-zinc-400 truncate">
+                      <p className="text-[11px] text-muted-foreground truncate">
                         {u.email ?? '-'}
                       </p>
                     </div>
                     <Link
                       href={`/admin/users/${u.id}/message`}
-                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-terracotta/10 text-terracotta"
+                      className="shrink-0 px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary"
                     >
                       메시지
                     </Link>
                   </div>
-                  <div className="mt-2 text-[12px] text-zinc-600 space-y-0.5">
+                  <div className="mt-2 text-[12px] text-muted-foreground space-y-0.5">
                     {u.phone && <p>{u.phone}</p>}
                     {u.address && (
                       <p className="truncate">
@@ -202,10 +222,10 @@ export default async function AdminUsersPage({
                       </p>
                     )}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+                  <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>
                       주문 {stats.count}건 · 누적{' '}
-                      <strong className="text-zinc-800">
+                      <strong className="text-foreground">
                         {stats.total.toLocaleString()}원
                       </strong>
                     </span>
@@ -220,7 +240,7 @@ export default async function AdminUsersPage({
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
+                <tr className="text-[11px] text-muted-foreground border-b border-border">
                   <th className="text-left py-2 font-medium">이메일</th>
                   <th className="text-left py-2 font-medium">이름</th>
                   <th className="text-left py-2 font-medium">연락처</th>
@@ -249,42 +269,42 @@ export default async function AdminUsersPage({
                   return (
                     <tr
                       key={u.id}
-                      className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
+                      className="border-b border-border/60 hover:bg-secondary/50 transition"
                     >
-                      <td className="py-3 text-[11px] text-zinc-900">
+                      <td className="py-3 text-[11px] text-foreground">
                         {u.email ?? '-'}
                       </td>
-                      <td className="py-3 text-zinc-900">{u.name ?? '-'}</td>
-                      <td className="py-3 text-[11px] text-zinc-800">
+                      <td className="py-3 text-foreground">{u.name ?? '-'}</td>
+                      <td className="py-3 text-[11px] text-foreground">
                         {u.phone ?? '-'}
                       </td>
-                      <td className="py-3 text-[11px] text-zinc-800 max-w-xs truncate">
+                      <td className="py-3 text-[11px] text-foreground max-w-xs truncate">
                         {u.address
                           ? `${u.address}${u.address_detail ? ' ' + u.address_detail : ''}`
                           : '-'}
                       </td>
                       <td className="py-3 text-center">
                         {u.role === 'admin' ? (
-                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#2A2118] text-white">
+                          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-foreground text-background">
                             ADMIN
                           </span>
                         ) : (
-                          <span className="text-[11px] text-zinc-500">user</span>
+                          <span className="text-[11px] text-muted-foreground">user</span>
                         )}
                       </td>
-                      <td className="py-3 text-right text-zinc-900 font-semibold">
+                      <td className="py-3 text-right text-foreground font-semibold">
                         {stats.count}건
                       </td>
-                      <td className="py-3 text-right font-semibold text-terracotta">
+                      <td className="py-3 text-right font-semibold text-primary">
                         {stats.total.toLocaleString()}원
                       </td>
-                      <td className="py-3 text-right text-[11px] text-zinc-500">
+                      <td className="py-3 text-right text-[11px] text-muted-foreground">
                         {formatDate(u.created_at)}
                       </td>
                       <td className="py-3 text-center">
                         <Link
                           href={`/admin/users/${u.id}/message`}
-                          className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-terracotta/10 text-terracotta hover:bg-terracotta hover:text-white transition"
+                          className="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition"
                         >
                           메시지
                         </Link>
@@ -310,8 +330,8 @@ export default async function AdminUsersPage({
       )}
 
       {/* 안내 */}
-      <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200">
-        <p className="text-[11px] text-zinc-800">
+      <div className="mt-4 p-4 rounded-xl bg-secondary/60 border border-border">
+        <p className="text-[11px] text-foreground">
           ℹ️ 개인정보 보호를 위해 회원 정보는 조회만 가능해요. 수정이 필요하면
           회원 본인이 직접 마이페이지에서 변경해야 해요. 관리자 권한 부여는
           Supabase SQL Editor에서 직접 처리하세요.
