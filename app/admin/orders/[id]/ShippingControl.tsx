@@ -127,17 +127,17 @@ export default function ShippingControl({
   }
 
   return (
-    <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-zinc-900 mb-1">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <h2 className="mb-1 text-sm font-bold">
         {isShipped ? '운송장 수정' : '발송 처리'}
       </h2>
-      <p className="text-[11px] text-zinc-500 mb-4">
+      <p className="mb-4 text-[11px] text-muted-foreground">
         {isShipped
           ? '잘못 입력한 송장을 고칠 수 있어요. 배송 시작 알림은 다시 가지 않고, 번호가 바뀌면 변경 안내만 한 번 갑니다.'
           : '택배사와 송장번호를 입력하면 배송 중으로 전환됩니다.'}
       </p>
       {isShipped && !currentCarrier && (
-        <p className="text-[11px] text-amber-700 font-semibold mb-3">
+        <p className="mb-3 text-[11px] font-semibold text-amber-700">
           이 주문에는 택배사가 저장돼 있지 않아요. 아래에서 실제 택배사를 골라
           주세요 — 기본값이 그대로 저장되지 않습니다.
         </p>
@@ -145,7 +145,9 @@ export default function ShippingControl({
 
       <div className="space-y-3">
         <label className="block">
-          <span className="block text-[11px] text-zinc-500 mb-1">택배사</span>
+          <span className="mb-1 block text-[11px] text-muted-foreground">
+            택배사
+          </span>
           <select
             value={carrier}
             onChange={(e) => {
@@ -153,7 +155,7 @@ export default function ShippingControl({
               setCarrierTouched(true)
             }}
             disabled={loading}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm disabled:opacity-50"
+            className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm disabled:opacity-50"
           >
             {CARRIER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -164,7 +166,9 @@ export default function ShippingControl({
         </label>
 
         <label className="block">
-          <span className="block text-[11px] text-zinc-500 mb-1">송장번호</span>
+          <span className="mb-1 block text-[11px] text-muted-foreground">
+            송장번호
+          </span>
           <input
             type="text"
             inputMode="numeric"
@@ -172,19 +176,19 @@ export default function ShippingControl({
             onChange={(e) => setTrackingNumber(e.target.value)}
             disabled={loading}
             placeholder="송장번호를 입력하세요"
-            className="w-full px-3 py-2 rounded-lg bg-zinc-50 border border-zinc-200 text-sm font-mono disabled:opacity-50"
+            className="w-full rounded-lg border border-input bg-secondary px-3 py-2 font-mono text-sm disabled:opacity-50"
           />
         </label>
 
         {error && (
-          <p className="text-[11px] text-sale font-semibold">{error}</p>
+          <p className="text-[11px] font-semibold text-destructive">{error}</p>
         )}
 
         <button
           type="button"
           onClick={submit}
           disabled={loading || (isShipped && !dirty)}
-          className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold bg-moss text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-moss/90 transition"
+          className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {loading
             ? '처리 중…'

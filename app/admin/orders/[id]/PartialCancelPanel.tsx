@@ -135,19 +135,19 @@ export default function PartialCancelPanel({
   }
 
   return (
-    <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-zinc-900">부분 환불</h2>
-        <span className="text-[10px] text-zinc-500 font-mono">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-bold">부분 환불</h2>
+        <span className="font-mono text-[10px] text-muted-foreground">
           refunded {refundedAmount.toLocaleString()}/{totalAmount.toLocaleString()}
         </span>
       </div>
 
-      <div className="px-4 py-3 rounded-lg bg-zinc-50 mb-4">
-        <div className="text-[10px] text-zinc-500 font-semibold">
+      <div className="mb-4 rounded-lg bg-secondary px-4 py-3">
+        <div className="text-[10px] font-semibold text-muted-foreground">
           환불 가능 잔액
         </div>
-        <div className="text-lg font-black text-terracotta mt-0.5">
+        <div className="mt-0.5 text-lg font-black text-primary tabular-nums">
           {/* 야간점검(2026-07-25): 미결제 취소 주문에도 total 이 '환불 가능'으로
               떠 혼란 — 환불 가능 상태(paid/partially_refunded)일 때만 잔액 표시. */}
           {canRefund ? `${remaining.toLocaleString()}원` : '—'}
@@ -155,7 +155,7 @@ export default function PartialCancelPanel({
       </div>
 
       {!canRefund ? (
-        <p className="text-xs text-zinc-500 leading-relaxed">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           {paymentStatus === 'refunded'
             ? '이미 전액 환불된 주문입니다.'
             : '결제 완료 상태가 아니라 부분 환불이 불가합니다.'}
@@ -163,7 +163,7 @@ export default function PartialCancelPanel({
       ) : (
         <div className="space-y-3">
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+            <label className="mb-1 block text-[11px] font-semibold">
               환불 금액
             </label>
             <div className="flex gap-2">
@@ -184,12 +184,12 @@ export default function PartialCancelPanel({
                   setAmount(v)
                 }}
                 placeholder="0"
-                className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
+                className="flex-1 rounded-lg border border-input bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => setAmount(remaining)}
-                className="px-3 py-2 rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-800 hover:border-terracotta hover:text-terracotta"
+                className="rounded-lg border border-input px-3 py-2 text-xs font-semibold hover:border-primary hover:text-primary"
               >
                 전액
               </button>
@@ -197,7 +197,7 @@ export default function PartialCancelPanel({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+            <label className="mb-1 block text-[11px] font-semibold">
               취소 사유
             </label>
             <input
@@ -205,15 +205,15 @@ export default function PartialCancelPanel({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="예: 품절 1개, 하자 상품 교환 불가"
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
             />
           </div>
 
           {isVirtualAccount && (
-            <div className="pt-3 border-t border-zinc-200 space-y-2">
-              <div className="flex items-start gap-1.5 text-[11px] text-zinc-500 leading-relaxed">
+            <div className="space-y-2 border-t border-border pt-3">
+              <div className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
                 <AlertTriangle
-                  className="w-3 h-3 text-terracotta mt-0.5 shrink-0"
+                  className="mt-0.5 size-3 shrink-0 text-primary"
                   strokeWidth={2}
                 />
                 <span>
@@ -221,13 +221,13 @@ export default function PartialCancelPanel({
                 </span>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+                <label className="mb-1 block text-[11px] font-semibold">
                   은행
                 </label>
                 <select
                   value={bank}
                   onChange={(e) => setBank(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 >
                   <option value="">선택</option>
                   {BANK_OPTIONS.map((b) => (
@@ -238,7 +238,7 @@ export default function PartialCancelPanel({
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+                <label className="mb-1 block text-[11px] font-semibold">
                   계좌번호
                 </label>
                 <input
@@ -247,25 +247,25 @@ export default function PartialCancelPanel({
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
                   placeholder="숫자만"
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm font-mono focus:outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm focus:border-primary focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-800 mb-1">
+                <label className="mb-1 block text-[11px] font-semibold">
                   예금주
                 </label>
                 <input
                   type="text"
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm focus:outline-none focus:border-terracotta"
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 />
               </div>
             </div>
           )}
 
           {error && (
-            <div className="px-3 py-2 rounded-lg bg-sale/5 border border-sale/30 text-[11px] text-sale font-semibold">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] font-semibold text-destructive">
               {error}
             </div>
           )}
@@ -274,11 +274,11 @@ export default function PartialCancelPanel({
             type="button"
             onClick={onSubmit}
             disabled={submitting || amount <= 0}
-            className="w-full py-2.5 rounded-lg bg-terracotta text-white text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8A3A27] active:scale-[0.98] transition"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-black text-primary-foreground transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? '처리 중…' : `${amount.toLocaleString()}원 환불 실행`}
           </button>
-          <p className="text-[11.5px] text-zinc-500 leading-relaxed">
+          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
             실행 후 되돌릴 수 없으며, 토스페이먼츠 결제 상태가 즉시 업데이트됩니다.
             포인트/쿠폰은 부분 환불 시 자동 조정되지 않으므로 필요 시 별도 조치해
             주세요.

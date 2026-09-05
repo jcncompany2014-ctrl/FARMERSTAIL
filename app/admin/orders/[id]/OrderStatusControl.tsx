@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import {
   ORDER_STATUS_LABEL,
@@ -12,12 +11,13 @@ import {
   type OrderStatus,
 } from '@/lib/commerce/order-fsm'
 
+// 활성(현재) 상태 버튼 색 — orders 목록 배지와 같은 토큰 팔레트.
 const STATUS_COLOR: Record<OrderStatus, string> = {
-  pending: 'bg-muted',
-  preparing: 'bg-terracotta',
-  shipping: 'bg-moss',
-  delivered: 'bg-[#8BA05A]',
-  cancelled: 'bg-sale',
+  pending: 'bg-stone-500',
+  preparing: 'bg-primary',
+  shipping: 'bg-emerald-600',
+  delivered: 'bg-emerald-700',
+  cancelled: 'bg-destructive',
 }
 
 /**
@@ -36,7 +36,6 @@ export default function OrderStatusControl({
   paymentStatus: string
 }) {
   const router = useRouter()
-  const supabase = createClient()
   const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
@@ -44,11 +43,11 @@ export default function OrderStatusControl({
   // DB에서 읽어온 문자열이 FSM enum에서 벗어난 경우 방어.
   if (!isOrderStatus(currentOrderStatus) || !isPaymentStatus(paymentStatus)) {
     return (
-      <section className="p-6 rounded-lg bg-white border border-zinc-200">
-        <h2 className="text-sm font-bold text-sale mb-1">
+      <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 shadow-sm">
+        <h2 className="mb-1 text-sm font-bold text-destructive">
           주문 상태에 문제가 있어요
         </h2>
-        <p className="text-[11px] text-zinc-500">
+        <p className="text-[11px] text-muted-foreground">
           이 주문의 상태 값이 정상 범위를 벗어났어요. 개발 담당에게 이
           주문번호를 알려주세요.
         </p>
@@ -90,14 +89,10 @@ export default function OrderStatusControl({
     startTransition(() => router.refresh())
   }
 
-  // 미사용 변수 방어 — createClient 는 이 파일의 다른 훅에서 향후 확장 여지. 린터는
-  // 사용 없음 경고를 낼 테니 바로 제거.
-  void supabase
-
   return (
-    <section className="p-6 rounded-lg bg-white border border-zinc-200">
-      <h2 className="text-sm font-bold text-zinc-900 mb-1">주문 상태 관리</h2>
-      <p className="text-[11px] text-zinc-500 mb-4">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <h2 className="mb-1 text-sm font-bold">주문 상태 관리</h2>
+      <p className="mb-4 text-[11px] text-muted-foreground">
         {allowed.length === 0
           ? '이 주문은 더 이상 상태를 변경할 수 없어요'
           : '클릭해서 상태를 변경하세요'}
@@ -112,11 +107,11 @@ export default function OrderStatusControl({
               key={s}
               onClick={() => updateStatus(s)}
               disabled={!enabled || loading}
-              className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition text-left flex items-center justify-between ${
+              className={`flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm font-semibold transition ${
                 active
                   ? `${STATUS_COLOR[s]} text-white`
-                  : 'bg-zinc-50 text-zinc-800 hover:bg-rule'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
+                  : 'bg-secondary hover:bg-accent'
+              } disabled:cursor-not-allowed disabled:opacity-40`}
             >
               <span>{ORDER_STATUS_LABEL[s]}</span>
               {active && <span className="text-xs">✓ 현재</span>}
