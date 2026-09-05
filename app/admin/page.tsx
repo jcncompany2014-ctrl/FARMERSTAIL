@@ -596,7 +596,10 @@ export default async function AdminHome() {
                 {d.title}
               </p>
               {d.tone !== 'ok' && (
-                <p className="mt-1 text-[12px] leading-relaxed">{d.detail}</p>
+                // 본문을 아이콘 폭만큼 들여 제목과 좌측 라인을 맞춘다(시각 QA).
+                <p className="mt-1 pl-[22px] text-[12px] leading-relaxed">
+                  {d.detail}
+                </p>
               )}
             </CardContent>
           </Card>
@@ -728,13 +731,17 @@ export default async function AdminHome() {
             tone={lowStockCount > 0 ? 'red' : 'neutral'}
             help="재고가 얼마 안 남은 상품이에요. 품절되기 전에 미리 채워두세요."
           />
-          <StatCard
-            label="결제 실패 (30일)"
-            value={`${failedOrderCount}건`}
-            sub="카드 문제 등으로 실패"
-            tone={failedOrderCount > 0 ? 'red' : 'neutral'}
-            help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
-          />
+          {/* 2열(모바일)에서 3번째 카드가 반폭 고아로 남지 않게 전폭으로
+              (2026-09-05 시각 QA — 오른쪽 빈칸이 어색했다). */}
+          <div className="col-span-2 lg:col-span-1">
+            <StatCard
+              label="결제 실패 (30일)"
+              value={`${failedOrderCount}건`}
+              sub="카드 문제 등으로 실패"
+              tone={failedOrderCount > 0 ? 'red' : 'neutral'}
+              help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
+            />
+          </div>
         </div>
       </section>
 
@@ -772,11 +779,11 @@ export default async function AdminHome() {
           }
         >
           {thirtyDayOrdersRes.error ? (
-            <p className="py-10 text-center text-sm text-destructive">
+            <p className="py-6 text-center text-sm text-destructive">
               판매 데이터를 불러오지 못했어요 — 새로고침해 주세요
             </p>
           ) : topProducts.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               30일 내 판매가 없어요
             </p>
           ) : (
@@ -819,11 +826,11 @@ export default async function AdminHome() {
           }
         >
           {lowStockRes.error ? (
-            <p className="py-10 text-center text-sm text-destructive">
+            <p className="py-6 text-center text-sm text-destructive">
               재고 정보를 불러오지 못했어요 — 새로고침해 주세요
             </p>
           ) : lowStockItems.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               모든 상품 재고가 안전 범위예요
             </p>
           ) : (
@@ -874,11 +881,11 @@ export default async function AdminHome() {
         }
       >
         {recentOrdersRes.error ? (
-          <p className="py-10 text-center text-sm text-destructive">
+          <p className="py-6 text-center text-sm text-destructive">
             최근 주문을 불러오지 못했어요 — 새로고침해 주세요
           </p>
         ) : recentOrders.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
+          <p className="py-6 text-center text-sm text-muted-foreground">
             아직 주문이 없어요
           </p>
         ) : (
@@ -1013,7 +1020,7 @@ function StatCard({
   tone?: keyof typeof STAT_TONE_TEXT
 }) {
   return (
-    <Card className="gap-1 py-3.5">
+    <Card className="h-full gap-1 py-3.5">
       <CardContent className="px-4">
         <p className="flex items-center text-[11px] font-bold text-muted-foreground">
           <span>{label}</span>

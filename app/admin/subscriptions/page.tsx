@@ -429,19 +429,25 @@ function StatusBadge({ status }: { status: SubscriptionRow['status'] }) {
   )
 }
 
-/** 관리 버튼 — 이모지 단독(⏸▶✕) 대신 라벨 버튼(폰 오터치·의미 명확). */
+/** 관리 버튼 — 이모지 단독(⏸▶✕) 대신 라벨 버튼(폰 오터치·의미 명확).
+ *  정렬: 테이블 셀에선 중앙, 모바일 카드에선 좌측 — 카드 중앙 정렬은
+ *  버튼이 붕 떠 보였다(2026-09-05 시각 QA). */
 function RowActions({
   sub,
   isLoading,
   onAction,
+  align = 'center',
 }: {
   sub: SubscriptionRow
   isLoading: boolean
   onAction: (id: string, status: string) => void
+  align?: 'center' | 'start'
 }) {
   if (sub.status === 'cancelled') return null
   return (
-    <div className="flex gap-1.5 justify-center flex-wrap">
+    <div
+      className={`flex flex-wrap gap-1.5 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
+    >
       {sub.status === 'active' && (
         <button
           onClick={() => onAction(sub.id, 'paused')}
@@ -586,7 +592,7 @@ function SubCard({
         </strong>
       </div>
       <div className="mt-3">
-        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} />
+        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} align="start" />
       </div>
     </div>
   )
