@@ -68,16 +68,16 @@ export default async function InventionFlagsPage() {
     <main className="px-5 pb-24 pt-6 max-w-2xl mx-auto">
       {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기·킥커 대체, serif 헤더 zinc 통일) */}
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/invention-flags" />
-      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+      <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
         발명 기능 켜고 끄기
       </h1>
-      <p className="text-[13px] text-zinc-500 mt-2 leading-relaxed">
+      <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
         특허 출원 전이라, 핵심 알고리즘을 고객·외부에 안 보이게 가려두는
         스위치들의 현재 상태를 보는 곳이에요. 여기선 켜짐/꺼짐만 확인하고,
         실제 변경은 별도 설정(환경변수)에서만 돼요.
       </p>
 
-      <section className="mt-5 rounded-lg border bg-white p-5" style={{ borderColor: 'var(--rule)' }}>
+      <section className="mt-5 rounded-lg border bg-card p-5" style={{ borderColor: 'var(--adm-border)' }}>
         <div className="space-y-3">
           {featureRows.map((row) => {
             const on = flags[row.key]
@@ -88,16 +88,16 @@ export default async function InventionFlagsPage() {
                 className="flex items-start gap-3 rounded-xl border px-4 py-3"
                 style={{
                   borderColor: on
-                    ? 'color-mix(in srgb, var(--moss) 30%, transparent)'
-                    : 'var(--rule)',
+                    ? 'color-mix(in srgb, #059669 30%, transparent)'
+                    : 'var(--adm-border)',
                   background: on
-                    ? 'color-mix(in srgb, var(--moss) 6%, white)'
+                    ? 'color-mix(in srgb, #059669 6%, white)'
                     : 'var(--bg)',
                 }}
               >
                 <span
                   className="shrink-0 mt-0.5"
-                  style={{ color: on ? 'var(--moss)' : 'var(--muted)' }}
+                  style={{ color: on ? '#059669' : 'var(--adm-muted-foreground)' }}
                   aria-label={on ? 'ON' : 'OFF'}
                 >
                   {on ? (
@@ -110,24 +110,24 @@ export default async function InventionFlagsPage() {
                   <div className="flex items-center gap-2">
                     <span
                       className="text-[13px] font-bold"
-                      style={{ color: 'var(--ink)' }}
+                      style={{ color: 'var(--adm-foreground)' }}
                     >
                       {row.label}
                     </span>
                     <span
                       className="text-[10.5px] font-bold px-1.5 py-0.5 rounded"
                       style={{
-                        background: on ? 'var(--moss)' : 'var(--muted)',
+                        background: on ? '#059669' : 'var(--adm-muted-foreground)',
                         color: 'white',
                       }}
                     >
                       {on ? 'ON' : 'OFF'}
                     </span>
                   </div>
-                  <p className="text-[11.5px] leading-relaxed mt-0.5 text-zinc-500">
+                  <p className="text-[11.5px] leading-relaxed mt-0.5 text-muted-foreground">
                     {row.description}
                   </p>
-                  <p className="text-[10.5px] mt-1 font-mono text-zinc-500">
+                  <p className="text-[10.5px] mt-1 font-mono text-muted-foreground">
                     설정 이름 {envVar} · 현재 {on ? '켜짐' : '꺼짐(또는 미설정)'}
                   </p>
                 </div>
@@ -140,20 +140,20 @@ export default async function InventionFlagsPage() {
       <section
         className="mt-4 rounded-lg px-5 py-4 flex items-start gap-2"
         style={{
-          background: 'color-mix(in srgb, var(--gold) 10%, white)',
-          border: '1px solid color-mix(in srgb, var(--gold) 28%, transparent)',
+          background: 'color-mix(in srgb, #d97706 10%, white)',
+          border: '1px solid color-mix(in srgb, #d97706 28%, transparent)',
         }}
       >
         <AlertCircle
           className="w-4 h-4 shrink-0 mt-0.5"
           strokeWidth={2}
-          style={{ color: 'var(--gold)' }}
+          style={{ color: '#d97706' }}
         />
         <div className="flex-1 text-[12px] leading-relaxed">
-          <p className="font-bold" style={{ color: 'var(--ink)' }}>
+          <p className="font-bold" style={{ color: 'var(--adm-foreground)' }}>
             특허 출원 전에는 꺼두는 게 원칙이에요
           </p>
-          <p className="mt-1 text-zinc-800/80">
+          <p className="mt-1 text-foreground/80">
             아무 설정도 안 하면 전부 꺼진 상태예요. 켜려면 설정값을 직접
             &lsquo;on&rsquo; 으로 바꿔야 해요. 특허를 낼지 정한 뒤,
             또는 공개해도 특허에 지장 없는 기간 안에서만 켜는 걸 권해요.

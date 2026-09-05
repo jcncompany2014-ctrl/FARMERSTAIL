@@ -41,6 +41,9 @@ import {
   Workflow,
   Handshake,
   Search,
+  PawPrint,
+  Lightbulb,
+  Gauge,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -68,6 +71,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/adminui/breadcrumb'
+
+/** 내비에는 안 띄우지만 브레드크럼 라벨이 필요한 딥링크 화면. */
+const CRUMB_ONLY: Array<{ href: string; label: string }> = [
+  { href: '/admin/label', label: '라벨 인쇄' },
+]
 
 /** 실제 39개 라우트를 업무 그룹으로 — Phase 2 에서 이 표가 정본이 된다. */
 const NAV_GROUPS = [
@@ -110,6 +118,8 @@ const NAV_GROUPS = [
       { href: '/admin/reports', label: '리포트', icon: LineChart },
       { href: '/admin/funnel', label: '퍼널', icon: Filter },
       { href: '/admin/cohort', label: '코호트', icon: Grid3x3 },
+      { href: '/admin/beta-cohort', label: '베타 현황', icon: PawPrint },
+      { href: '/admin/personalization-insights', label: '맞춤 분석 품질', icon: Gauge },
     ],
   },
   {
@@ -117,6 +127,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/cron-health', label: '크론 상태', icon: Activity },
       { href: '/admin/automation', label: '자동화', icon: Workflow },
+      { href: '/admin/invention-flags', label: '발명 보호', icon: Lightbulb },
       { href: '/admin/partners', label: '파트너', icon: Handshake },
       { href: '/admin/search-all', label: '통합 검색', icon: Search },
     ],
@@ -137,13 +148,27 @@ export default function AdminShellNext({
   children: ReactNode
 }) {
   const pathname = usePathname()
-  // 가장 긴 접두 매치가 활성 메뉴·브레드크럼 라벨의 정본
+  // 가장 긴 접두 매치가 활성 메뉴·브레드크럼 라벨의 정본.
+  // ★'/admin'(홈)은 정확 일치만 (2026-09-06 수정) — 접두 매치를 허용하면
+  //   모든 하위 경로에 걸려, 내비에 없는 라우트가 전부 '홈' 활성/크럼으로
+  //   표시됐다(베타 현황·발명 보호 화면에서 실측).
   const flat = NAV_GROUPS.flatMap((g) => g.items)
   const current = flat
-    .filter((it) => pathname === it.href || pathname.startsWith(it.href + '/'))
+    .filter(
+      (it) =>
+        pathname === it.href ||
+        (it.href !== '/admin' && pathname.startsWith(it.href + '/')),
+    )
     .sort((a, b) => b.href.length - a.href.length)[0]
+  // 내비에 안 띄우는 딥링크 화면의 크럼 라벨.
+  const crumbOnly = CRUMB_ONLY.find(
+    (it) => pathname === it.href || pathname.startsWith(it.href + '/'),
+  )
   const activeHref = current?.href ?? '/admin'
-  const crumb = pathname === '/admin' ? '대시보드' : (current?.label ?? '관리자')
+  const crumb =
+    pathname === '/admin'
+      ? '대시보드'
+      : (current?.label ?? crumbOnly?.label ?? '관리자')
   return (
     <TooltipProvider>
     <SidebarProvider defaultOpen={defaultOpen}>

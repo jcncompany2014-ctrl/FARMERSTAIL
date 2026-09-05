@@ -98,10 +98,10 @@ export default async function PersonalizationInsightsPage() {
 
   return (
     <main className="px-5 pb-24 pt-6 max-w-3xl mx-auto">
-      <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+      <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
         맞춤 분석
       </h1>
-      <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
+      <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">
         <Hl>맞춤 추천이 잘 돌아가는지 뒤에서 점검</Hl>하는 곳이에요. 고객들이
         체중을 어떤 방식으로 재는지, 계산이 얼마나 믿을 만한지 같은 내부 품질
         지표를 봐요.
@@ -114,7 +114,7 @@ export default async function PersonalizationInsightsPage() {
       </Card>
 
       <Card icon={<Sparkles className="w-4 h-4" />} title="자기 표명 boost">
-        <p className="text-[13px]" style={{ color: 'var(--ink)' }}>
+        <p className="text-[13px]" style={{ color: 'var(--adm-foreground)' }}>
           전체 강아지 중 boost ON: <strong>{boostedDogs ?? 0}</strong> /{' '}
           {totalDogs ?? 0} ({boostPct}%)
         </p>
@@ -148,12 +148,12 @@ function Card({
 }) {
   return (
     <section
-      className="mt-4 rounded-lg border bg-white p-5"
-      style={{ borderColor: 'var(--rule)' }}
+      className="mt-4 rounded-lg border bg-card p-5"
+      style={{ borderColor: 'var(--adm-border)' }}
     >
-      <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--terracotta)' }}>
+      <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--adm-primary)' }}>
         {icon}
-        <h2 className="text-[11px] font-bold" style={{ color: 'var(--muted)' }}>
+        <h2 className="text-[11px] font-bold" style={{ color: 'var(--adm-muted-foreground)' }}>
           {title}
         </h2>
       </div>
@@ -173,12 +173,12 @@ function Distribution({
   const sorted = Array.from(data.entries()).sort((a, b) => b[1] - a[1])
   if (sorted.length === 0) {
     return (
-      <div className="text-[11.5px] text-zinc-500">{title}: 데이터 없음</div>
+      <div className="text-[11.5px] text-muted-foreground">{title}: 데이터 없음</div>
     )
   }
   return (
     <div>
-      <div className="text-[10.5px] font-bold text-zinc-500 mb-1.5">
+      <div className="text-[10.5px] font-bold text-muted-foreground mb-1.5">
         {title} ({total}건)
       </div>
       <div className="space-y-1">
@@ -188,7 +188,7 @@ function Distribution({
             <div key={key} className="flex items-center gap-2 text-[11.5px]">
               <span
                 className="w-24 truncate"
-                style={{ color: 'var(--ink)' }}
+                style={{ color: 'var(--adm-foreground)' }}
               >
                 {key}
               </span>
@@ -200,12 +200,12 @@ function Distribution({
                   className="h-full rounded-full"
                   style={{
                     width: `${pct}%`,
-                    background: 'var(--terracotta)',
+                    background: 'var(--adm-primary)',
                   }}
                 />
               </div>
               <span
-                className="font-mono text-zinc-500 tabular-nums w-16 text-right"
+                className="font-mono text-muted-foreground tabular-nums w-16 text-right"
               >
                 {count} ({pct}%)
               </span>

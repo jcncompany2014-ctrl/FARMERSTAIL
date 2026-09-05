@@ -158,9 +158,9 @@ export default function SimulatorClient() {
   }
 
   return (
-    <section className="bg-white border border-zinc-200 rounded-lg p-5">
+    <section className="bg-card border border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800">
+        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-foreground">
           시뮬레이션
         </h3>
         <div className="ml-auto flex gap-1.5">
@@ -168,8 +168,8 @@ export default function SimulatorClient() {
             onClick={() => setMode('first')}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
               mode === 'first'
-                ? 'bg-zinc-900 text-white'
-                : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800'
+                ? 'bg-foreground text-background'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
             }`}
           >
             First box
@@ -178,8 +178,8 @@ export default function SimulatorClient() {
             onClick={() => setMode('next')}
             className={`px-3 py-1.5 rounded-full text-[11px] font-bold ${
               mode === 'next'
-                ? 'bg-zinc-900 text-white'
-                : 'bg-zinc-50 text-zinc-500 hover:text-zinc-800'
+                ? 'bg-foreground text-background'
+                : 'bg-secondary text-muted-foreground hover:text-foreground'
             }`}
           >
             Next box (cycle 2)
@@ -310,8 +310,8 @@ export default function SimulatorClient() {
                   onClick={() => toggleAllergy(a)}
                   className={`px-2 py-1 rounded-full text-[10.5px] font-bold ${
                     input.allergies.includes(a)
-                      ? 'bg-zinc-900 text-white'
-                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
+                      ? 'bg-foreground text-background'
+                      : 'bg-secondary text-foreground border border-border'
                   }`}
                 >
                   {a}
@@ -328,8 +328,8 @@ export default function SimulatorClient() {
                   onClick={() => toggleChronic(c)}
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.chronicConditions.includes(c)
-                      ? 'bg-terracotta text-white'
-                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-secondary text-foreground border border-border'
                   }`}
                 >
                   {c}
@@ -346,8 +346,8 @@ export default function SimulatorClient() {
                   onClick={() => toggleProtein(p)}
                   className={`px-2 py-1 rounded-full text-[10.5px] font-mono ${
                     input.preferredProteins.includes(p)
-                      ? 'bg-zinc-900 text-white'
-                      : 'bg-zinc-50 text-zinc-800 border border-zinc-200'
+                      ? 'bg-foreground text-background'
+                      : 'bg-secondary text-foreground border border-border'
                   }`}
                 >
                   {p}
@@ -366,8 +366,8 @@ export default function SimulatorClient() {
           </Field>
 
           {mode === 'next' && (
-            <div className="pt-3 border-t border-zinc-200">
-              <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+            <div className="pt-3 border-t border-border">
+              <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-2">
                 Next box · 체크인 응답
               </div>
               <Field label="체크포인트">
@@ -459,16 +459,16 @@ export default function SimulatorClient() {
         <div>
           {/* 실제 출고 박스 — 고객이 받는 것. 최대 2종, 2종이면 50:50,
               첫 박스는 무조건 1종. (아래 Line ratios 는 내부 근거일 뿐.) */}
-          <div className="rounded-xl border-2 border-zinc-300 bg-white p-4 mb-3">
+          <div className="rounded-xl border-2 border-input bg-card p-4 mb-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-[11px] font-bold text-zinc-900">
+              <div className="text-[11px] font-bold text-foreground">
                 📦 실제 출고 박스
               </div>
-              <div className="text-[10px] text-zinc-400">
+              <div className="text-[10px] text-muted-foreground">
                 {mode === 'first' ? '첫 박스 = 1종' : '최대 2종 · 반반'}
               </div>
             </div>
-            <div className="flex h-4 rounded-full overflow-hidden bg-zinc-100 mb-3">
+            <div className="flex h-4 rounded-full overflow-hidden bg-secondary mb-3">
               {shippedLines.map(({ line, ratio }) => (
                 <div
                   key={line}
@@ -484,7 +484,7 @@ export default function SimulatorClient() {
               {shippedLines.map(({ line, ratio }) => (
                 <li
                   key={line}
-                  className="flex items-center gap-2 text-[13px] text-zinc-800"
+                  className="flex items-center gap-2 text-[13px] text-foreground"
                 >
                   <span
                     className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -499,14 +499,14 @@ export default function SimulatorClient() {
             </ul>
           </div>
 
-          <div className="bg-zinc-50 rounded-xl p-4 mb-3">
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+          <div className="bg-secondary rounded-xl p-4 mb-3">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-2">
               내부 근거 — Line ratios{' '}
-              <span className="font-normal normal-case tracking-normal text-zinc-400">
+              <span className="font-normal normal-case tracking-normal text-muted-foreground">
                 (출고 박스 아님 · 왜 이 단백질인지의 계산값)
               </span>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden bg-rule mb-3">
+            <div className="flex h-3 rounded-full overflow-hidden bg-secondary mb-3">
               {ALL_LINES.filter((l) => result.lineRatios[l] > 0).map((line) => (
                 <div
                   key={line}
@@ -525,7 +525,7 @@ export default function SimulatorClient() {
                   <li
                     key={line}
                     className={`flex items-center gap-2 text-[11.5px] ${
-                      pct === 0 ? 'text-zinc-500' : 'text-zinc-800'
+                      pct === 0 ? 'text-muted-foreground' : 'text-foreground'
                     }`}
                   >
                     <span
@@ -540,37 +540,37 @@ export default function SimulatorClient() {
                 )
               })}
             </ul>
-            <div className="mt-3 pt-3 border-t border-zinc-200 text-[11px] text-zinc-500">
+            <div className="mt-3 pt-3 border-t border-border text-[11px] text-muted-foreground">
               토퍼: 야채 {Math.round(result.toppers.vegetable * 100)}% · 단백질{' '}
               {Math.round(result.toppers.protein * 100)}%
             </div>
-            <div className="text-[10px] text-zinc-500 mt-1">
+            <div className="text-[10px] text-muted-foreground mt-1">
               전환: {result.transitionStrategy} · {result.algorithmVersion}
             </div>
           </div>
 
           {/* Reasoning */}
-          <div className="bg-zinc-50 rounded-xl p-4">
-            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-2">
+          <div className="bg-secondary rounded-xl p-4">
+            <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-2">
               Reasoning ({result.reasoning.length})
             </div>
             <ul className="space-y-2">
               {result.reasoning.map((r, i) => (
                 <li
                   key={i}
-                  className="text-[11.5px] text-zinc-800 leading-relaxed"
+                  className="text-[11.5px] text-foreground leading-relaxed"
                 >
                   <span
                     className="font-mono text-[9.5px] mr-1.5 px-1 rounded"
                     style={{
                       background: 'var(--bg)',
-                      color: 'var(--terracotta)',
+                      color: 'var(--adm-primary)',
                     }}
                   >
                     P{r.priority}
                   </span>
                   <strong>{r.chipLabel}</strong>
-                  <span className="text-zinc-500 block mt-0.5 ml-7">
+                  <span className="text-muted-foreground block mt-0.5 ml-7">
                     {r.trigger} → {r.action}
                   </span>
                 </li>
@@ -579,11 +579,11 @@ export default function SimulatorClient() {
           </div>
 
           <details className="mt-3">
-            <summary className="text-[10px] text-zinc-500 cursor-pointer font-bold uppercase tracking-[0.2em]">
+            <summary className="text-[10px] text-muted-foreground cursor-pointer font-bold uppercase tracking-[0.2em]">
               Raw JSON
             </summary>
             <pre
-              className="mt-2 text-[10px] bg-zinc-50 p-3 rounded-xl overflow-auto"
+              className="mt-2 text-[10px] bg-secondary p-3 rounded-xl overflow-auto"
               style={{ maxHeight: 320 }}
             >
               {JSON.stringify(result, null, 2)}
@@ -596,17 +596,17 @@ export default function SimulatorClient() {
         .ft-inp {
           width: 100%;
           background: white;
-          box-shadow: inset 0 0 0 1px var(--rule);
+          box-shadow: inset 0 0 0 1px var(--adm-border);
           border: 0;
           border-radius: 8px;
           padding: 7px 10px;
           font-size: 12px;
           font-family: inherit;
-          color: var(--ink);
+          color: var(--adm-foreground);
           outline: 0;
         }
         .ft-inp:focus {
-          box-shadow: inset 0 0 0 1.5px var(--ink);
+          box-shadow: inset 0 0 0 1.5px var(--adm-foreground);
         }
       `}</style>
     </section>
@@ -622,7 +622,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-1">
+      <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-muted-foreground mb-1">
         {label}
       </div>
       {children}

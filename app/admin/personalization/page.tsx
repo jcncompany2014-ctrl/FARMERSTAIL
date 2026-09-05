@@ -132,17 +132,17 @@ export default async function AdminPersonalizationPage({
       {/* 대개편 v2 R4 — 목적 명확화: 승인(동의) 현황이 주인공, 시뮬레이터는 접이식 개발도구로. */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             레시피 승인
           </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>고객에게 제안한 다음 박스 레시피에 고객이 동의했는지</Hl> 보는
             곳이에요. <Em>5일</Em> 안에 응답이 없으면 이전 레시피가 유지돼요.
           </p>
         </div>
         <Link
           href="/admin/algorithm"
-          className="text-[11px] font-bold text-terracotta hover:underline shrink-0"
+          className="text-[11px] font-bold text-primary hover:underline shrink-0"
         >
           알고리즘 계수 →
         </Link>
@@ -178,8 +178,8 @@ export default async function AdminPersonalizationPage({
 
       {/* pending_approval 임박 큐 */}
       {(pendingNearTimeout ?? []).length > 0 && (
-        <section className="mb-6 bg-terracotta/5 border-2 border-terracotta/30 rounded-lg p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-terracotta mb-3">
+        <section className="mb-6 bg-primary/5 border-2 border-primary/30 rounded-lg p-5">
+          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-primary mb-3">
             ⚠️ 동의 마감 임박 ({(pendingNearTimeout ?? []).length})
           </h3>
           <ul className="space-y-1.5">
@@ -201,19 +201,19 @@ export default async function AdminPersonalizationPage({
               return (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between text-[12px] py-1.5 px-3 bg-white rounded-lg"
+                  className="flex items-center justify-between text-[12px] py-1.5 px-3 bg-card rounded-lg"
                 >
-                  <span className="text-zinc-800">
+                  <span className="text-foreground">
                     강아지 <span className="font-mono">{r.dog_id.slice(0, 8)}</span> ·{' '}
                     {r.cycle_number}번째 박스
                   </span>
                   <span
                     className={`font-bold text-[10.5px] ${
                       daysLeft === 0
-                        ? 'text-terracotta'
+                        ? 'text-primary'
                         : daysLeft === 1
-                          ? 'text-gold'
-                          : 'text-zinc-500'
+                          ? 'text-amber-600'
+                          : 'text-muted-foreground'
                     }`}
                   >
                     {daysLeft === 0 ? '오늘 마감' : `${daysLeft}일 남음`}
@@ -228,8 +228,8 @@ export default async function AdminPersonalizationPage({
       {/* 만족도 분포 + cycle 응답률 (2열) */}
       <section className="grid grid-cols-2 gap-3 mb-6">
         {totalSatisfaction > 0 && (
-          <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
+          <div className="bg-card border border-border rounded-lg p-5">
+            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-foreground mb-3">
               체크인 만족도 (5점 만점 · {totalSatisfaction}건)
             </h3>
             <ul className="space-y-2">
@@ -238,14 +238,14 @@ export default async function AdminPersonalizationPage({
                 const pct = Math.round((count / totalSatisfaction) * 100)
                 const color =
                   score >= 4
-                    ? 'var(--moss)'
+                    ? '#059669'
                     : score === 3
-                      ? 'var(--gold)'
-                      : 'var(--terracotta)'
+                      ? '#d97706'
+                      : 'var(--adm-primary)'
                 return (
                   <li key={score} className="flex items-center gap-2 text-[11.5px]">
-                    <span className="w-3 font-mono text-zinc-500">{score}</span>
-                    <div className="flex-1 h-2 rounded-full bg-rule overflow-hidden">
+                    <span className="w-3 font-mono text-muted-foreground">{score}</span>
+                    <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
                       <span
                         className="block h-full"
                         style={{
@@ -254,7 +254,7 @@ export default async function AdminPersonalizationPage({
                         }}
                       />
                     </div>
-                    <span className="w-10 text-right font-bold text-zinc-800 font-mono">
+                    <span className="w-10 text-right font-bold text-foreground font-mono">
                       {count}
                     </span>
                   </li>
@@ -265,8 +265,8 @@ export default async function AdminPersonalizationPage({
         )}
 
         {Object.keys(responseByCycle).length > 0 && (
-          <div className="bg-white border border-zinc-200 rounded-lg p-5">
-            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
+          <div className="bg-card border border-border rounded-lg p-5">
+            <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-foreground mb-3">
               박스별 체크인 응답
             </h3>
             <ul className="space-y-1.5">
@@ -277,11 +277,11 @@ export default async function AdminPersonalizationPage({
                     key={cycle}
                     className="flex items-center text-[11.5px]"
                   >
-                    <span className="w-20 text-zinc-500">{cycle}번째 박스</span>
+                    <span className="w-20 text-muted-foreground">{cycle}번째 박스</span>
                     <span className="flex-1 inline-flex gap-1.5 items-center">
-                      <span className="text-moss font-bold">2주차 {counts.week_2}</span>
-                      <span className="text-zinc-500">·</span>
-                      <span className="text-terracotta font-bold">4주차 {counts.week_4}</span>
+                      <span className="text-emerald-700 font-bold">2주차 {counts.week_2}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-primary font-bold">4주차 {counts.week_4}</span>
                     </span>
                   </li>
                 ))}
@@ -292,8 +292,8 @@ export default async function AdminPersonalizationPage({
 
       {/* 케어 목표 분포 */}
       {Object.keys(goalCounts).length > 0 && (
-        <section className="mb-6 bg-white border border-zinc-200 rounded-lg p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800 mb-3">
+        <section className="mb-6 bg-card border border-border rounded-lg p-5">
+          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-foreground mb-3">
             고객들이 고른 케어 목표
           </h3>
           <ul className="space-y-1.5">
@@ -302,10 +302,10 @@ export default async function AdminPersonalizationPage({
               .map(([goal, count]) => (
                 <li
                   key={goal}
-                  className="flex items-center text-[12.5px] text-zinc-800"
+                  className="flex items-center text-[12.5px] text-foreground"
                 >
                   <span className="flex-1">{CARE_GOAL_LABEL[goal] ?? goal}</span>
-                  <span className="font-black text-terracotta">{count}</span>
+                  <span className="font-black text-primary">{count}</span>
                 </li>
               ))}
           </ul>
@@ -317,16 +317,16 @@ export default async function AdminPersonalizationPage({
       {showDevTools ? (
         <section className="mt-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold text-zinc-700">
+            <h2 className="text-[13px] font-bold text-foreground">
               🧪 알고리즘 시험 (개발용)
-              <span className="block mt-0.5 text-[11px] font-normal text-zinc-400">
+              <span className="block mt-0.5 text-[11px] font-normal text-muted-foreground">
                 ※ 아래 비율은 알고리즘 내부 계산값이에요. 실제 고객 박스는 최대
                 2가지 레시피, 섞으면 무조건 반반(5:5)으로 변환돼 나가요.
               </span>
             </h2>
             <Link
               href="/admin/personalization"
-              className="text-[11px] text-zinc-500 hover:text-zinc-800 font-semibold"
+              className="text-[11px] text-muted-foreground hover:text-foreground font-semibold"
             >
               닫기 ✕
             </Link>
@@ -337,10 +337,10 @@ export default async function AdminPersonalizationPage({
       ) : (
         <Link
           href="/admin/personalization?dev=1"
-          className="block mt-2 rounded-lg border border-zinc-200 bg-white px-5 py-4 text-[13px] font-bold text-zinc-700 hover:text-zinc-900 hover:border-zinc-300 transition"
+          className="block mt-2 rounded-lg border border-border bg-card px-5 py-4 text-[13px] font-bold text-foreground hover:text-foreground hover:border-input transition"
         >
           🧪 알고리즘 시험해보기{' '}
-          <span className="font-normal text-zinc-400">
+          <span className="font-normal text-muted-foreground">
             — 개발용 도구예요. 임의 강아지 조건을 넣어 추천 결과를 미리 볼 수
             있어요 (평소엔 안 보셔도 돼요)
           </span>
@@ -377,14 +377,14 @@ function KpiCard({
       className={
         'rounded-lg px-4 py-3.5 ' +
         (warn
-          ? 'bg-terracotta/8 border-2 border-terracotta/40'
-          : 'bg-white border border-zinc-200')
+          ? 'bg-primary/10 border-2 border-primary/40'
+          : 'bg-card border border-border')
       }
     >
       <div
         className={
           'text-[10px] font-bold tracking-[0.2em] uppercase ' +
-          (warn ? 'text-terracotta' : 'text-zinc-500')
+          (warn ? 'text-primary' : 'text-muted-foreground')
         }
       >
         {label}
@@ -394,15 +394,15 @@ function KpiCard({
           className="font-bold tracking-tight"
           style={{
             fontSize: 22,
-            color: warn ? 'var(--terracotta)' : '#18181b',
+            color: warn ? 'var(--adm-primary)' : '#18181b',
           }}
         >
           {value}
         </span>
-        {unit && <span className="text-[11px] text-zinc-500">{unit}</span>}
+        {unit && <span className="text-[11px] text-muted-foreground">{unit}</span>}
       </div>
       {hint && (
-        <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{hint}</p>
+        <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{hint}</p>
       )}
     </div>
   )

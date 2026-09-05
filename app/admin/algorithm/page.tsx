@@ -48,10 +48,10 @@ export default async function AdminAlgorithmPage() {
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/algorithm" />
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             알고리즘 계수
           </h1>
-          <p className="text-[13px] text-zinc-500 mt-1.5 leading-relaxed">
+          <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
             <Hl>맞춤 추천이 쓰는 계산 계수를 직접 손보는 고급 설정</Hl>이에요 —
             라인별 영양 구성·질환 강도 등.{' '}
             <Warn>저장하면 다음 계산부터 바로 반영</Warn>되니 신중하게
@@ -61,12 +61,12 @@ export default async function AdminAlgorithmPage() {
         <div className="flex flex-col gap-1.5 items-end">
           <Link
             href="/admin/personalization"
-            className="text-[11px] text-zinc-500 hover:text-terracotta"
+            className="text-[11px] text-muted-foreground hover:text-primary"
           >
-            ← Simulator
+            ← 시뮬레이터
           </Link>
-          <Link href="/admin" className="text-[11px] text-zinc-500 hover:text-zinc-800">
-            Admin home
+          <Link href="/admin" className="text-[11px] text-muted-foreground hover:text-foreground">
+            대시보드
           </Link>
         </div>
       </div>

@@ -31,13 +31,13 @@ const CONCERN_OPTS: { key: ConcernKey; kr: string }[] = [
 function gradeColor(grade: EvidenceClaim['grade']): string {
   switch (grade) {
     case 'T1':
-      return 'var(--moss)'
+      return '#059669'
     case 'T2':
-      return 'var(--ink)'
+      return 'var(--adm-foreground)'
     case 'T3':
-      return 'var(--muted)'
+      return 'var(--adm-muted-foreground)'
     case 'positioning':
-      return 'var(--terracotta)'
+      return 'var(--adm-primary)'
   }
 }
 
@@ -80,12 +80,12 @@ export default function V3SimulatorClient() {
     arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
 
   return (
-    <section className="mt-8 bg-white border border-zinc-200 rounded-lg p-5">
+    <section className="mt-8 bg-card border border-border rounded-lg p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-800">
+        <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-foreground">
           추천 엔진 v3 시뮬레이터
         </h3>
-        <span className="font-mono text-[10px] text-zinc-500">{engineVersion}</span>
+        <span className="font-mono text-[10px] text-muted-foreground">{engineVersion}</span>
       </div>
 
       {/* 입력 */}
@@ -133,9 +133,9 @@ export default function V3SimulatorClient() {
               min={50}
               max={4000}
               onChange={(e) => setDailyKcal(Number(e.target.value) || 0)}
-              className="w-24 border border-zinc-200 rounded-lg px-2 py-1 text-[12px] font-mono"
+              className="w-24 border border-border rounded-lg px-2 py-1 text-[12px] font-mono"
             />
-            <label className="flex items-center gap-1 text-[11px] text-zinc-500 cursor-pointer">
+            <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={senior}
@@ -189,9 +189,9 @@ export default function V3SimulatorClient() {
       </Field>
 
       {/* 결과 */}
-      <div className="mt-5 border-t border-zinc-200 pt-4">
+      <div className="mt-5 border-t border-border pt-4">
         {layerA.needsConsultation ? (
-          <div className="bg-terracotta/8 border border-terracotta/30 rounded-xl p-4 text-[12.5px] text-zinc-800">
+          <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 text-[12.5px] text-foreground">
             ⚠ 상담 라우팅 — {layerA.consultationReason}
           </div>
         ) : (
@@ -201,21 +201,21 @@ export default function V3SimulatorClient() {
               {layerA.picks.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-zinc-50 border border-zinc-200 rounded-xl p-3"
+                  className="bg-secondary border border-border rounded-xl p-3"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-[14px] text-zinc-900">
+                    <span className="font-bold text-[14px] text-foreground">
                       {p.nameKr}
                       {p.isPrimary && layerA.picks.length > 1 && (
-                        <span className="ml-2 text-[9.5px] font-bold text-moss">
+                        <span className="ml-2 text-[9.5px] font-bold text-emerald-700">
                           주재료
                         </span>
                       )}
                     </span>
-                    <span className="font-mono font-bold text-[15px] text-zinc-900">
+                    <span className="font-mono font-bold text-[15px] text-foreground">
                       {Math.round(p.ratio * 100)}%
-                      <span className="ml-1.5 text-[10px] text-zinc-500 font-normal">
+                      <span className="ml-1.5 text-[10px] text-muted-foreground font-normal">
                         {p.kcalPer100g}kcal/100g
                       </span>
                     </span>
@@ -224,7 +224,7 @@ export default function V3SimulatorClient() {
                     {p.claims.map((c, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-1.5 text-[11.5px] text-zinc-800"
+                        className="flex items-start gap-1.5 text-[11.5px] text-foreground"
                       >
                         <span
                           className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
@@ -233,7 +233,7 @@ export default function V3SimulatorClient() {
                         />
                         <span>
                           {c.text}{' '}
-                          <span className="font-mono text-[9px] text-zinc-500">
+                          <span className="font-mono text-[9px] text-muted-foreground">
                             [{c.grade}]
                           </span>
                         </span>
@@ -246,14 +246,14 @@ export default function V3SimulatorClient() {
 
             {/* 그램 + 교차반응 */}
             <div className="flex items-center gap-4 text-[12px] mb-4 font-mono">
-              <span className="text-zinc-900 font-bold">
+              <span className="text-foreground font-bold">
                 {layerA.dailyGrams}g/일
               </span>
-              <span className="text-zinc-500">
+              <span className="text-muted-foreground">
                 혼합 {layerA.blendedKcalPer100g}kcal/100g
               </span>
               {layerA.crossReactWarnings.length > 0 && (
-                <span className="text-terracotta">
+                <span className="text-primary">
                   ⚠ 교차반응{' '}
                   {layerA.crossReactWarnings
                     .map((w) => w.allergyLabel)
@@ -271,7 +271,7 @@ export default function V3SimulatorClient() {
               {layerA.scores.map((s) => (
                 <span
                   key={s.protein}
-                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-zinc-50 border border-zinc-200"
+                  className="font-mono text-[11px] px-2 py-0.5 rounded bg-secondary border border-border"
                   style={{ background: 'var(--paper, #f4ede0)' }}
                 >
                   {s.protein} <b>{s.score}</b>
@@ -286,10 +286,10 @@ export default function V3SimulatorClient() {
           <ol className="space-y-1">
             {layerA.trace.map((t, i) => (
               <li key={i} className="flex gap-2 text-[11px]">
-                <span className="font-bold text-moss shrink-0 w-20">
+                <span className="font-bold text-emerald-700 shrink-0 w-20">
                   {t.step}
                 </span>
-                <span className="text-zinc-500">{t.detail}</span>
+                <span className="text-muted-foreground">{t.detail}</span>
               </li>
             ))}
           </ol>
@@ -298,16 +298,16 @@ export default function V3SimulatorClient() {
         {/* 레이어 B */}
         <TraceBlock title="레이어 B 소스 라우팅">
           {layerB.routes.length === 0 ? (
-            <p className="text-[11px] text-zinc-500">기능성 우려 없음</p>
+            <p className="text-[11px] text-muted-foreground">기능성 우려 없음</p>
           ) : (
             <ul className="space-y-1">
               {layerB.routes.map((r) => (
-                <li key={r.concern} className="text-[11px] text-zinc-800">
-                  <span className="font-mono text-zinc-500">{r.concern}</span> →{' '}
+                <li key={r.concern} className="text-[11px] text-foreground">
+                  <span className="font-mono text-muted-foreground">{r.concern}</span> →{' '}
                   {r.sourceNameKr ?? '소스 없음'}{' '}
                   <span
                     className={
-                      r.available ? 'text-moss' : 'text-terracotta'
+                      r.available ? 'text-emerald-700' : 'text-primary'
                     }
                   >
                     ({r.available ? '출시' : '준비중'})
@@ -331,7 +331,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[10px] font-bold tracking-wide uppercase text-zinc-500 mb-1.5">
+      <div className="text-[10px] font-bold tracking-wide uppercase text-muted-foreground mb-1.5">
         {label}
       </div>
       {children}
@@ -349,7 +349,7 @@ function Seg({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="inline-flex rounded-lg border border-zinc-200 overflow-hidden">
+    <div className="inline-flex rounded-lg border border-border overflow-hidden">
       {opts.map(([v, label]) => (
         <button
           key={v}
@@ -358,8 +358,8 @@ function Seg({
           className={
             'px-2.5 py-1 text-[11px] font-bold ' +
             (value === v
-              ? 'bg-terracotta text-white'
-              : 'bg-white text-zinc-500 hover:text-zinc-800')
+              ? 'bg-primary text-white'
+              : 'bg-card text-muted-foreground hover:text-foreground')
           }
         >
           {label}
@@ -385,8 +385,8 @@ function Chip({
       className={
         'px-2.5 py-1 rounded-full text-[11px] font-bold border ' +
         (on
-          ? 'bg-terracotta text-white border-terracotta'
-          : 'bg-white text-zinc-500 border-zinc-200 hover:text-zinc-800')
+          ? 'bg-primary text-white border-primary'
+          : 'bg-card text-muted-foreground border-border hover:text-foreground')
       }
     >
       {children}
@@ -402,8 +402,8 @@ function TraceBlock({
   children: React.ReactNode
 }) {
   return (
-    <div className="mt-3 bg-zinc-50 rounded-lg p-3" style={{ background: 'rgba(0,0,0,0.02)' }}>
-      <div className="text-[9.5px] font-bold tracking-[0.15em] uppercase text-zinc-500 mb-2">
+    <div className="mt-3 bg-secondary rounded-lg p-3" style={{ background: 'rgba(0,0,0,0.02)' }}>
+      <div className="text-[9.5px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-2">
         {title}
       </div>
       {children}

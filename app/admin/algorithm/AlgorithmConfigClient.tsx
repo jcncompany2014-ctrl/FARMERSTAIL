@@ -109,7 +109,7 @@ export default function AlgorithmConfigClient({
   return (
     <div>
       {/* Tab 전환 */}
-      <div className="flex gap-2 mb-5 border-b border-zinc-200">
+      <div className="flex gap-2 mb-5 border-b border-border">
         <TabBtn active={tab === 'lines'} onClick={() => setTab('lines')}>
           라인 영양 ({foodLines.length})
         </TabBtn>
@@ -213,7 +213,7 @@ function BreedEditor({
       className="rounded-lg"
       style={{
         background: row.enabled ? '#fff' : 'var(--bg-2)',
-        border: `1px solid ${row.enabled ? 'var(--rule)' : 'var(--rule-2)'}`,
+        border: `1px solid ${row.enabled ? 'var(--adm-border)' : 'var(--rule-2)'}`,
         padding: 14,
         opacity: row.enabled ? 1 : 0.7,
       }}
@@ -221,12 +221,12 @@ function BreedEditor({
       <div className="flex items-baseline justify-between mb-2.5">
         <h3
           className="font-bold text-[13px] inline-flex items-center gap-2"
-          style={{ color: 'var(--ink)' }}
+          style={{ color: 'var(--adm-foreground)' }}
         >
           {row.korean_label}
           <span
             className="font-mono text-[10px] font-normal"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--adm-muted-foreground)' }}
           >
             {row.breed_key}
           </span>
@@ -237,7 +237,7 @@ function BreedEditor({
             onClick={() => onChange({ ...row, enabled: !row.enabled })}
             className="inline-flex items-center gap-1 text-[10.5px] font-bold transition-colors"
             style={{
-              color: row.enabled ? 'var(--moss)' : 'var(--muted)',
+              color: row.enabled ? '#059669' : 'var(--adm-muted-foreground)',
             }}
           >
             {row.enabled ? (
@@ -253,7 +253,7 @@ function BreedEditor({
             disabled={saving}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold transition-transform active:scale-95"
             style={{
-              background: 'var(--ink)',
+              background: 'var(--adm-foreground)',
               color: 'var(--bg)',
               fontSize: 10.5,
               opacity: saving ? 0.6 : 1,
@@ -291,7 +291,7 @@ function BreedEditor({
       {row.citations.length > 0 && (
         <p
           className="text-[10px] mt-2 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--adm-muted-foreground)' }}
         >
           출처: {row.citations.join(' · ')}
         </p>
@@ -316,7 +316,7 @@ function ArrayField({
     <label className="block mb-2">
       <div
         className="text-[10px] font-bold uppercase tracking-[0.06em] mb-1"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--adm-muted-foreground)' }}
       >
         {label}
       </div>
@@ -335,8 +335,8 @@ function ArrayField({
         style={{
           padding: '7px 10px',
           background: '#fff',
-          borderColor: 'var(--rule)',
-          color: 'var(--ink)',
+          borderColor: 'var(--adm-border)',
+          color: 'var(--adm-foreground)',
         }}
       />
     </label>
@@ -358,8 +358,8 @@ function TabBtn({
       onClick={onClick}
       className="text-[12px] font-bold py-2 px-3 transition-colors"
       style={{
-        color: active ? 'var(--terracotta)' : 'var(--muted)',
-        borderBottom: active ? '2px solid var(--terracotta)' : '2px solid transparent',
+        color: active ? 'var(--adm-primary)' : 'var(--adm-muted-foreground)',
+        borderBottom: active ? '2px solid var(--adm-primary)' : '2px solid transparent',
         marginBottom: -1,
       }}
     >
@@ -374,7 +374,7 @@ function Note({ children }: { children: React.ReactNode }) {
       className="flex gap-2 text-[11px] leading-relaxed"
       style={{
         background: 'var(--bg-2)',
-        color: 'var(--muted)',
+        color: 'var(--adm-muted-foreground)',
         padding: '10px 12px',
         borderRadius: 10,
         marginBottom: 8,
@@ -399,18 +399,18 @@ function LineEditor({
 }) {
   // weighted info chip — fat 18% 면 "고지방", 8% 면 "저지방"
   const fatTier = useMemo(() => {
-    if (row.fat_pct_dm < 10) return { label: '저지방', color: 'var(--moss)' }
-    if (row.fat_pct_dm < 16) return { label: '중지방', color: 'var(--gold)' }
-    return { label: '고지방', color: 'var(--terracotta)' }
+    if (row.fat_pct_dm < 10) return { label: '저지방', color: '#059669' }
+    if (row.fat_pct_dm < 16) return { label: '중지방', color: '#d97706' }
+    return { label: '고지방', color: 'var(--adm-primary)' }
   }, [row.fat_pct_dm])
 
   return (
     <div
-      className="bg-white border border-zinc-200 rounded-lg"
+      className="bg-card border border-border rounded-lg"
       style={{ padding: 16 }}
     >
       <div className="flex items-baseline justify-between mb-3">
-        <h3 className="font-bold text-[13.5px]" style={{ color: 'var(--ink)' }}>
+        <h3 className="font-bold text-[13.5px]" style={{ color: 'var(--adm-foreground)' }}>
           {LINE_LABELS[row.line]}
         </h3>
         <span
@@ -553,7 +553,7 @@ function LineEditor({
       <div className="flex items-center justify-between mt-1">
         <span
           className="text-[10px]"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--adm-muted-foreground)' }}
         >
           {/* 전수검사(2026-07-25): toLocaleString 은 서버·브라우저 ICU 가 오전/AM 을
               다르게 내 hydration mismatch → 결정적 KST 포맷터로 교체. */}
@@ -565,7 +565,7 @@ function LineEditor({
           disabled={saving}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold transition-transform active:scale-95"
           style={{
-            background: 'var(--terracotta)',
+            background: 'var(--adm-primary)',
             color: '#fff',
             fontSize: 11.5,
             opacity: saving ? 0.6 : 1,
@@ -595,13 +595,13 @@ function ChronicEditor({
   onSave: () => void
 }) {
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg" style={{ padding: 14 }}>
+    <div className="bg-card border border-border rounded-lg" style={{ padding: 14 }}>
       <div className="flex items-baseline justify-between mb-2.5">
-        <h3 className="font-bold text-[13px]" style={{ color: 'var(--ink)' }}>
+        <h3 className="font-bold text-[13px]" style={{ color: 'var(--adm-foreground)' }}>
           {row.korean_label}
           <span
             className="ml-2 font-mono text-[10px] font-normal"
-            style={{ color: 'var(--muted)' }}
+            style={{ color: 'var(--adm-muted-foreground)' }}
           >
             {row.condition}
           </span>
@@ -612,7 +612,7 @@ function ChronicEditor({
           disabled={saving}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold transition-transform active:scale-95"
           style={{
-            background: 'var(--ink)',
+            background: 'var(--adm-foreground)',
             color: 'var(--bg)',
             fontSize: 10.5,
             opacity: saving ? 0.6 : 1,
@@ -638,12 +638,12 @@ function ChronicEditor({
               background:
                 row.default_severity === s
                   ? s === 'mild'
-                    ? 'var(--moss)'
+                    ? '#059669'
                     : s === 'moderate'
-                      ? 'var(--gold)'
-                      : 'var(--terracotta)'
+                      ? '#d97706'
+                      : 'var(--adm-primary)'
                   : 'var(--bg-2)',
-              color: row.default_severity === s ? '#fff' : 'var(--muted)',
+              color: row.default_severity === s ? '#fff' : 'var(--adm-muted-foreground)',
             }}
           >
             {s === 'mild' ? '경증 mild' : s === 'moderate' ? '중등 moderate' : '중증 severe'}
@@ -673,7 +673,7 @@ function ChronicEditor({
       {row.notes && (
         <p
           className="text-[10.5px] mt-2 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
+          style={{ color: 'var(--adm-muted-foreground)' }}
         >
           {row.notes}
         </p>
@@ -707,7 +707,7 @@ function NumField({
     <label className="block">
       <div
         className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.06em] mb-1"
-        style={{ color: 'var(--muted)' }}
+        style={{ color: 'var(--adm-muted-foreground)' }}
       >
         <span>{label}</span>
         {allowNull && (
@@ -715,7 +715,7 @@ function NumField({
             type="button"
             onClick={onNullToggle}
             className="text-[9px] font-mono underline"
-            style={{ color: isNull ? 'var(--terracotta)' : 'var(--muted)' }}
+            style={{ color: isNull ? 'var(--adm-primary)' : 'var(--adm-muted-foreground)' }}
           >
             {isNull ? 'NULL' : '값 있음'}
           </button>
@@ -733,8 +733,8 @@ function NumField({
         style={{
           padding: '7px 10px',
           background: isNull ? 'var(--bg-2)' : '#fff',
-          borderColor: 'var(--rule)',
-          color: isNull ? 'var(--muted)' : 'var(--ink)',
+          borderColor: 'var(--adm-border)',
+          color: isNull ? 'var(--adm-muted-foreground)' : 'var(--adm-foreground)',
         }}
       />
     </label>

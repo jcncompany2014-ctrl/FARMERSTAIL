@@ -169,16 +169,16 @@ export default async function AdminCronHealthPage() {
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/cron-health" />
       {!rowsError && missedCrons.length > 0 && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sale text-sm font-bold">
+          <p className="text-destructive text-sm font-bold">
             안 돈 자동작업 {missedCrons.length}건 — 어제 이 시각 이후 기록이 없어요
           </p>
-          <p className="text-xs text-zinc-700 mt-1.5 leading-relaxed">
+          <p className="text-xs text-foreground mt-1.5 leading-relaxed">
             실패한 게 아니라 <strong>아예 실행되지 않았다</strong>는 뜻이에요.
             결제·발송·알림이 멈춰 있을 수 있어요. 가장 흔한 원인은 Vercel 환경변수
-            <code className="mx-1 px-1 bg-white rounded">CRON_SECRET</code>
+            <code className="mx-1 px-1 bg-card rounded">CRON_SECRET</code>
             누락(전부 401)과 크론 요금 한도로 인한 배포 거부예요.
           </p>
-          <p className="text-[11px] text-zinc-600 mt-2 font-mono break-all">
+          <p className="text-[11px] text-muted-foreground mt-2 font-mono break-all">
             {missedCrons.join(' · ')}
           </p>
         </div>
@@ -192,10 +192,10 @@ export default async function AdminCronHealthPage() {
         </div>
       )}
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
           자동작업 상태
         </h1>
-        <p className="text-[13px] text-zinc-500 mt-1">
+        <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>뒤에서 자동으로 도는 작업들이 잘 돌아갔는지</Hl> 보는 곳이에요
           (결제·배송·알림). <Warn>빨간 게 있으면 뭔가 멈춘 것</Warn>이라 확인이
           필요해요 (최근 <Em>{WINDOW_DAYS}일</Em>).
@@ -255,7 +255,7 @@ export default async function AdminCronHealthPage() {
       {/* 실패 큐 — 가장 중요. status='error' 행 최신순. */}
       <section className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">실패 기록 · 최근 {WINDOW_DAYS}일</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">실패 기록 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {rowsError ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-8 text-center">
@@ -267,22 +267,22 @@ export default async function AdminCronHealthPage() {
             </p>
           </div>
         ) : errorRows.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
+          <div className="rounded-xl border border-border px-5 py-12 text-center bg-card">
             <CheckCircle2
-              className="w-10 h-10 text-moss mx-auto mb-3"
+              className="w-10 h-10 text-emerald-700 mx-auto mb-3"
               strokeWidth={1.3}
             />
-            <p className="text-[13px] font-bold text-zinc-800">
+            <p className="text-[13px] font-bold text-foreground">
               최근 {WINDOW_DAYS}일 자동작업 실패 없음 — 정상
             </p>
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-muted-foreground mt-1">
               자동작업이 실패하면 작업·오류 메시지·시각이 여기에 기록돼요
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-zinc-200 overflow-x-auto">
+          <div className="bg-card rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-[13px]">
-              <thead className="bg-zinc-50 text-zinc-500 text-[11px]">
+              <thead className="bg-secondary text-muted-foreground text-[11px]">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-bold">실행 시각</th>
                   <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
@@ -294,24 +294,24 @@ export default async function AdminCronHealthPage() {
                 {errorRows.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-t border-zinc-200 hover:bg-zinc-50/40 align-top"
+                    className="border-t border-border hover:bg-secondary/40 align-top"
                   >
-                    <td className="px-4 py-3 text-zinc-800 whitespace-nowrap tabular-nums">
+                    <td className="px-4 py-3 text-foreground whitespace-nowrap tabular-nums">
                       {formatKst(row.executed_at)}
                     </td>
                     {/* 경로(/api/cron/…) 대신 한국어 이름. 라벨 미등록이면
                         cronLabel 이 원본을 돌려주므로 빠진 게 눈에 띈다. */}
                     <td className="px-4 py-3">
-                      <span className="text-[12.5px] font-semibold text-zinc-800 break-keep">
+                      <span className="text-[12.5px] font-semibold text-foreground break-keep">
                         {cronLabel(row.path)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-zinc-500 font-mono tabular-nums whitespace-nowrap">
+                    <td className="px-4 py-3 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">
                       {formatDuration(row.duration_ms)}
                     </td>
-                    <td className="px-4 py-3 text-[11.5px] text-sale break-words">
+                    <td className="px-4 py-3 text-[11.5px] text-destructive break-words">
                       {row.error_message ?? (
-                        <span className="text-zinc-500">(메시지 없음)</span>
+                        <span className="text-muted-foreground">(메시지 없음)</span>
                       )}
                     </td>
                   </tr>
@@ -325,25 +325,25 @@ export default async function AdminCronHealthPage() {
       {/* cron 별 요약 — path 별 성공/실패 + 마지막 실행 결과. */}
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">자동작업별 요약 · 최근 {WINDOW_DAYS}일</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">자동작업별 요약 · 최근 {WINDOW_DAYS}일</span>
         </div>
         {summaries.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 px-5 py-12 text-center bg-white">
+          <div className="rounded-xl border border-border px-5 py-12 text-center bg-card">
             <Clock
-              className="w-10 h-10 text-zinc-500 mx-auto mb-3"
+              className="w-10 h-10 text-muted-foreground mx-auto mb-3"
               strokeWidth={1.3}
             />
-            <p className="text-[13px] font-bold text-zinc-800">
+            <p className="text-[13px] font-bold text-foreground">
               최근 {WINDOW_DAYS}일 자동작업 실행 기록이 없어요
             </p>
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-muted-foreground mt-1">
               자동작업이 돌기 시작하면 여기에 요약이 쌓여요
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-zinc-200 overflow-x-auto">
+          <div className="bg-card rounded-xl border border-border overflow-x-auto">
             <table className="w-full text-[13px]">
-              <thead className="bg-zinc-50 text-zinc-500 text-[11px]">
+              <thead className="bg-secondary text-muted-foreground text-[11px]">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-bold">자동작업</th>
                   <th className="text-center px-4 py-2.5 font-bold">마지막</th>
@@ -359,10 +359,10 @@ export default async function AdminCronHealthPage() {
                   return (
                     <tr
                       key={s.path}
-                      className="border-t border-zinc-200 hover:bg-zinc-50/40"
+                      className="border-t border-border hover:bg-secondary/40"
                     >
                       <td className="px-4 py-3">
-                        <span className="text-[12.5px] font-semibold text-zinc-800 break-keep">
+                        <span className="text-[12.5px] font-semibold text-foreground break-keep">
                           {cronLabel(s.path)}
                         </span>
                       </td>
@@ -371,8 +371,8 @@ export default async function AdminCronHealthPage() {
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold"
                           style={{
                             background: lastOk
-                              ? 'var(--moss)'
-                              : 'var(--sale)',
+                              ? '#059669'
+                              : 'var(--adm-destructive)',
                             color: 'white',
                           }}
                         >
@@ -390,21 +390,21 @@ export default async function AdminCronHealthPage() {
                           {lastOk ? '성공' : '실패'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-500 font-mono tabular-nums">
+                      <td className="px-4 py-3 text-right text-muted-foreground font-mono tabular-nums">
                         {s.total.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-right text-moss font-mono tabular-nums">
+                      <td className="px-4 py-3 text-right text-emerald-700 font-mono tabular-nums">
                         {s.success.toLocaleString()}
                       </td>
                       <td
                         className="px-4 py-3 text-right font-mono tabular-nums"
                         style={{
-                          color: s.error > 0 ? 'var(--sale)' : 'var(--muted)',
+                          color: s.error > 0 ? 'var(--adm-destructive)' : 'var(--adm-muted-foreground)',
                         }}
                       >
                         {s.error.toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-right text-[11px] text-zinc-500 font-mono tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-3 text-right text-[11px] text-muted-foreground font-mono tabular-nums whitespace-nowrap">
                         {formatKst(s.lastAt)}
                       </td>
                     </tr>

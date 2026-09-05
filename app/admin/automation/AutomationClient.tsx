@@ -60,10 +60,10 @@ export default function AutomationClient({
   return (
     <main className="px-1 py-2 max-w-2xl">
       <header className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
           설정 · 자동화
         </h1>
-        <p className="text-[13px] text-zinc-500 mt-1">
+        <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>자동으로 나가는 알림·재제안을 켜고 끄거나 시각을 조절</Hl>하는
           곳이에요. 코드를 건드리지 않고 여기서 바꿀 수 있어요 (재검토 주기{' '}
           <Em>박스 3개</Em>·승인 대기 <Em>5일</Em>은 안전을 위해 고정돼 있어요).
@@ -71,11 +71,11 @@ export default function AutomationClient({
       </header>
 
       {/* 재제안 kill switch */}
-      <section className="rounded-lg border border-zinc-200 bg-white p-4 mb-4">
+      <section className="rounded-lg border border-border bg-card p-4 mb-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-[14px] font-bold text-zinc-900">처방 재제안</h2>
-            <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed">
+            <h2 className="text-[14px] font-bold text-foreground">처방 재제안</h2>
+            <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
               박스 3개마다 새 처방을 계산해 보호자에게 확인을 요청하는 자동화예요.
               끄면 <b>새 처방 생성·확인 요청·관련 알림이 전부 멈춰요.</b> 이미 적용된
               처방과 배송은 그대로예요. 문제가 생기면 여기서 즉시 끄세요.
@@ -91,7 +91,7 @@ export default function AutomationClient({
             }`}
           >
             <span
-              className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${
+              className={`absolute top-1 w-5 h-5 rounded-full bg-card transition-all ${
                 enabled ? 'left-6' : 'left-1'
               }`}
             />
@@ -105,9 +105,9 @@ export default function AutomationClient({
       </section>
 
       {/* 마케팅 알림 발송 시각 */}
-      <section className="rounded-lg border border-zinc-200 bg-white p-4 mb-4">
-        <h2 className="text-[14px] font-bold text-zinc-900">마케팅 알림 발송 시각</h2>
-        <p className="text-[12px] text-zinc-500 mt-1 leading-relaxed">
+      <section className="rounded-lg border border-border bg-card p-4 mb-4">
+        <h2 className="text-[14px] font-bold text-foreground">마케팅 알림 발송 시각</h2>
+        <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
           가입 다음 날 환영·D+7 분석 안내·D+30 구독 권유가 나가는 시각(KST)이에요.
           복약 알림처럼 사용자가 정한 시각에 가는 알림은 여기 영향을 받지 않아요.
         </p>
@@ -115,7 +115,7 @@ export default function AutomationClient({
           <select
             value={hour}
             onChange={(e) => setHour(Number(e.target.value))}
-            className="border border-zinc-300 rounded-md px-3 py-2 text-[14px] font-semibold text-zinc-900 bg-white"
+            className="border border-input rounded-md px-3 py-2 text-[14px] font-semibold text-foreground bg-card"
           >
             {/* 8~20 시만 고를 수 있다 — 정보통신망법 §50⑧ 은 21:00~08:00 광고
                 전송에 **별도 동의**를 요구하는데 우리는 그 동의를 안 받는다.
@@ -131,7 +131,7 @@ export default function AutomationClient({
               </option>
             ))}
           </select>
-          <span className="text-[12px] text-zinc-500">
+          <span className="text-[12px] text-muted-foreground">
             광고성 알림은 {MARKETING_HOUR_MIN}–{MARKETING_HOUR_MAX}시에만 보낼 수 있어요
             (야간 전송은 별도 동의가 필요해요).
           </span>
@@ -139,11 +139,11 @@ export default function AutomationClient({
       </section>
 
       {/* 미리보기 */}
-      <section className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 mb-4">
-        <h2 className="text-[13px] font-bold text-zinc-700">
+      <section className="rounded-lg border border-border bg-secondary p-4 mb-4">
+        <h2 className="text-[13px] font-bold text-foreground">
           지금 이 순간 기준 미리보기
         </h2>
-        <p className="text-[11px] text-zinc-500 mt-0.5 mb-3">
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-3">
           현재 KST {String(currentHourKst).padStart(2, '0')}시. 다음 크론이 지금 돈다면:
         </p>
         <ul className="space-y-2">
@@ -187,8 +187,8 @@ export default function AutomationClient({
           disabled={!dirty || saving}
           className={`px-5 py-2.5 rounded-md text-[14px] font-bold transition-colors ${
             dirty && !saving
-              ? 'bg-zinc-900 text-white hover:bg-zinc-700'
-              : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              ? 'bg-foreground text-background hover:bg-zinc-700'
+              : 'bg-zinc-200 text-muted-foreground cursor-not-allowed'
           }`}
         >
           {saving ? '저장 중…' : dirty ? '저장' : '변경 없음'}
@@ -219,16 +219,16 @@ function PreviewRow({
   note: string
 }) {
   return (
-    <li className="flex items-baseline justify-between gap-3 bg-white rounded-md px-3 py-2 border border-zinc-200">
+    <li className="flex items-baseline justify-between gap-3 bg-card rounded-md px-3 py-2 border border-border">
       <div className="min-w-0">
-        <div className="text-[13px] font-semibold text-zinc-800">{label}</div>
-        <div className="text-[11px] text-zinc-500 mt-0.5">{note}</div>
+        <div className="text-[13px] font-semibold text-foreground">{label}</div>
+        <div className="text-[11px] text-muted-foreground mt-0.5">{note}</div>
       </div>
       <div className="shrink-0 text-right">
-        <span className="text-lg font-bold text-zinc-900">
+        <span className="text-lg font-bold text-foreground">
           {value.toLocaleString('ko-KR')}
         </span>
-        <span className="text-[11px] text-zinc-500 ml-1">{unit}</span>
+        <span className="text-[11px] text-muted-foreground ml-1">{unit}</span>
       </div>
     </li>
   )
