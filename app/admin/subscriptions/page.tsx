@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { nextShipDate } from '@/lib/shipping-schedule'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
+import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 type SubscriptionRow = {
@@ -70,10 +72,11 @@ const TABS = [
   { value: 'upcoming', label: '📦 배송 예정' },
 ]
 
+// 색은 orders/refunds 와 같은 토큰 팔레트(2026-09-05 어드민 개편).
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active: { label: '구독 중', cls: 'bg-moss/10 text-moss' },
-  paused: { label: '일시정지', cls: 'bg-gold/10 text-gold' },
-  cancelled: { label: '해지', cls: 'bg-muted/10 text-zinc-500' },
+  active: { label: '구독 중', cls: 'bg-emerald-100 text-emerald-900 border-transparent' },
+  paused: { label: '일시정지', cls: 'bg-amber-100 text-amber-900 border-transparent' },
+  cancelled: { label: '해지', cls: 'bg-secondary text-secondary-foreground border-transparent' },
 }
 
 
@@ -265,13 +268,16 @@ export default function AdminSubscriptionsPage() {
     <div>
       {/* 대개편 v2 T1 — 정기배송 그룹 탭 (구독|캘린더|자동결제) */}
       <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions" />
-      {/* 헤더 — 기능형 클린 어드민(zinc) 통일 (2026-07-19 마스터피스 2차) */}
+      {/* 헤더 — orders/refunds 와 같은 패턴(2026-09-05 어드민 개편) */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            정기배송 관리
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <div className="flex items-center gap-2">
+            <Repeat className="size-5 text-primary" strokeWidth={2} />
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              정기배송 관리
+            </h1>
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
             <Hl>고객들의 정기배송(2주마다 · 화요일 발송)</Hl>을 조회·관리하는
             곳이에요. 결제와 배송 예약은 자동으로 돌아가서,{' '}
             <Em>문제 있는 구독만</Em> 손보면 돼요.
@@ -295,7 +301,7 @@ export default function AdminSubscriptionsPage() {
               label={t.label}
             >
               {t.value === 'upcoming' && upcomingCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[10px]">
+                <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
                   {upcomingCount}
                 </span>
               )}
@@ -307,19 +313,19 @@ export default function AdminSubscriptionsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="고객명 · 이메일 · 상품명"
-          className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-full sm:w-56"
+          className="w-full rounded-full border border-input bg-card px-3 py-1.5 text-xs focus:border-primary focus:outline-none sm:w-56"
         />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-zinc-400">
+        <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
           <Spinner size={16} />
           <span className="text-[12px]">불러오는 중...</span>
         </div>
       ) : loadError ? (
         <LoadError what="구독 목록" />
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-400">
+        <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-sm">
           {/* ★0건일 때가 안내가 가장 필요한 순간이다 (2026-08-08 재검증 2차 #4).
               총계보다 덜 불러온 상태의 0건은 "없다"가 아니라 "여기엔 없다"다 —
               옛 해지 건·오래된 고객은 최근 200건 밖에 있을 수 있다. */}
@@ -332,7 +338,7 @@ export default function AdminSubscriptionsPage() {
               <button
                 onClick={() => void loadMore()}
                 disabled={loadingMore}
-                className="mt-4 px-5 py-2.5 rounded-full bg-white border border-zinc-200 text-zinc-800 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+                className="mt-4 rounded-full border border-input bg-card px-5 py-2.5 text-xs font-semibold transition hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 {loadingMore
                   ? '불러오는 중...'
@@ -346,11 +352,11 @@ export default function AdminSubscriptionsPage() {
       ) : (
         <>
           {/* ── 데스크톱: 테이블 ─────────────────────────────── */}
-          <div className="hidden md:block bg-white rounded-lg border border-zinc-200 overflow-hidden">
+          <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[11px] text-zinc-400 border-b border-zinc-200">
+                  <tr className="border-b border-border text-[11px] text-muted-foreground">
                     <th className="text-left px-4 py-2.5 font-medium">고객</th>
                     <th className="text-left px-4 py-2.5 font-medium">구성</th>
                     <th className="text-center px-4 py-2.5 font-medium">상태</th>
@@ -360,7 +366,7 @@ export default function AdminSubscriptionsPage() {
                     <th className="text-center px-4 py-2.5 font-medium">관리</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-border">
                   {filtered.map((sub) => (
                     <SubRow
                       key={sub.id}
@@ -391,14 +397,14 @@ export default function AdminSubscriptionsPage() {
               <button
                 onClick={() => void loadMore()}
                 disabled={loadingMore}
-                className="px-5 py-2.5 rounded-full bg-white border border-zinc-200 text-zinc-800 text-xs font-semibold hover:border-terracotta hover:text-terracotta transition disabled:opacity-50"
+                className="rounded-full border border-input bg-card px-5 py-2.5 text-xs font-semibold transition hover:border-primary hover:text-primary disabled:opacity-50"
               >
                 {loadingMore
                   ? '불러오는 중...'
                   : `더 불러오기 (${subs.length}/${totalCount})`}
               </button>
               {search && (
-                <p className="mt-2 text-[11px] text-zinc-500">
+                <p className="mt-2 text-[11px] text-muted-foreground">
                   검색은 불러온 {subs.length}건 안에서만 찾아요 — 못 찾으면 더
                   불러온 뒤 다시 검색해 주세요.
                 </p>
@@ -416,12 +422,10 @@ export default function AdminSubscriptionsPage() {
 function StatusBadge({ status }: { status: SubscriptionRow['status'] }) {
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.active!
   return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${badge.cls}`}
-    >
-      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" aria-hidden />
+    <Badge className={`gap-1 ${badge.cls}`}>
+      <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden />
       {badge.label}
-    </span>
+    </Badge>
   )
 }
 
@@ -466,7 +470,7 @@ function RowActions({
       {/* 동선 단축 — 카드 문제·배송 문의 시 바로 1:1 메시지로. */}
       <a
         href={`/admin/users/${sub.user_id}/message`}
-        className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400 transition"
+        className="rounded-full border border-border bg-card px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground transition hover:border-ring hover:text-foreground"
       >
         메시지
       </a>
@@ -485,21 +489,21 @@ function SubRow({
 }) {
   return (
     <tr
-      className={`hover:bg-zinc-50 transition ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+      className={`transition hover:bg-secondary/50 ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
     >
       <td className="px-4 py-3">
-        <div className="font-bold text-zinc-900 text-xs">
+        <div className="text-xs font-bold">
           {sub.profiles?.name || sub.recipient_name || '-'}
         </div>
-        <div className="text-[10px] text-zinc-400">{sub.profiles?.email || ''}</div>
+        <div className="text-[10px] text-muted-foreground">{sub.profiles?.email || ''}</div>
       </td>
       <td className="px-4 py-3">
         {sub.subscription_items.map((item, i) => (
-          <div key={i} className="text-xs text-zinc-700">
+          <div key={i} className="text-xs">
             {item.product_name} ×{item.quantity}
           </div>
         ))}
-        <div className="text-[10px] text-zinc-400 mt-0.5">
+        <div className="mt-0.5 text-[10px] text-muted-foreground">
           {freshTierLabel(sub.fresh_ratio)}
           {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
         </div>
@@ -507,7 +511,7 @@ function SubRow({
       <td className="px-4 py-3 text-center">
         <StatusBadge status={sub.status} />
       </td>
-      <td className="px-4 py-3 text-center text-xs text-zinc-700">
+      <td className="px-4 py-3 text-center text-xs">
         {sub.next_delivery_date
           ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
               month: 'short',
@@ -515,10 +519,10 @@ function SubRow({
             })
           : '-'}
       </td>
-      <td className="px-4 py-3 text-right text-xs font-bold text-zinc-900">
+      <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
         {sub.total_amount.toLocaleString()}원
       </td>
-      <td className="px-4 py-3 text-center text-xs text-zinc-700">
+      <td className="px-4 py-3 text-center text-xs">
         {sub.total_deliveries}회
       </td>
       <td className="px-4 py-3 text-center">
@@ -540,34 +544,34 @@ function SubCard({
 }) {
   return (
     <div
-      className={`rounded-lg border border-zinc-200 bg-white p-4 ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+      className={`rounded-xl border border-border bg-card p-4 shadow-sm ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-zinc-900 text-[13px] truncate">
+          <p className="truncate text-[13px] font-bold">
             {sub.profiles?.name || sub.recipient_name || '-'}
           </p>
-          <p className="text-[10px] text-zinc-400 truncate">
+          <p className="truncate text-[10px] text-muted-foreground">
             {sub.profiles?.email || ''}
           </p>
         </div>
         <StatusBadge status={sub.status} />
       </div>
-      <div className="mt-2.5 text-[12px] text-zinc-700">
+      <div className="mt-2.5 text-[12px]">
         {sub.subscription_items.map((item, i) => (
           <div key={i}>
             {item.product_name} ×{item.quantity}
           </div>
         ))}
-        <p className="text-[10px] text-zinc-400 mt-0.5">
+        <p className="mt-0.5 text-[10px] text-muted-foreground">
           {freshTierLabel(sub.fresh_ratio)}
           {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
         </p>
       </div>
-      <div className="mt-2.5 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[12px]">
-        <span className="text-zinc-500">
+      <div className="mt-2.5 flex items-center justify-between border-t border-border pt-2.5 text-[12px]">
+        <span className="text-muted-foreground">
           다음 배송{' '}
-          <strong className="text-zinc-800">
+          <strong className="text-foreground">
             {sub.next_delivery_date
               ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
                   month: 'short',
@@ -577,7 +581,7 @@ function SubCard({
           </strong>{' '}
           · 누적 {sub.total_deliveries}회
         </span>
-        <strong className="text-zinc-900">
+        <strong className="tabular-nums">
           {sub.total_amount.toLocaleString()}원
         </strong>
       </div>

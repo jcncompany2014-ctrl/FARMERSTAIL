@@ -101,7 +101,7 @@ export function AdminTabs({
   active: string
 }) {
   return (
-    <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg bg-zinc-100 p-1">
+    <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg bg-secondary p-1">
       {tabs.map((t) => {
         const isActive = t.href === active
         return (
@@ -111,8 +111,8 @@ export function AdminTabs({
             aria-current={isActive ? 'page' : undefined}
             className={`px-3.5 py-1.5 rounded-md text-[12.5px] font-bold transition ${
               isActive
-                ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
-                : 'text-zinc-500 hover:text-zinc-800'
+                ? 'border border-border bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {t.label}
