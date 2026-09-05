@@ -67,11 +67,9 @@ export default function FoodInfoCompletion({
 }) {
   if (products.length === 0) {
     return (
-      <section className="bg-white rounded-lg border border-zinc-200 p-5">
-        <h3 className="text-[13px] font-bold text-text mb-2">
-          식품정보고시 채움률
-        </h3>
-        <p className="text-[13px] text-muted">상품이 없어요.</p>
+      <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="mb-2 text-[13px] font-bold">식품정보고시 채움률</h3>
+        <p className="text-[13px] text-muted-foreground">상품이 없어요.</p>
       </section>
     )
   }
@@ -105,25 +103,30 @@ export default function FoodInfoCompletion({
   )
   const completionPct = (filledCells / totalCells) * 100
 
-  // 색상 — 50% 미만 sale, 80% 미만 gold, 그 외 moss.
-  const tone =
+  // 색상 — 50% 미만 destructive, 80% 미만 amber, 그 외 emerald.
+  // (--adm- 팔레트 밖 시맨틱 3색은 refunds 등과 같은 Tailwind 표준 톤.)
+  const toneText =
     completionPct < 50
-      ? 'var(--sale)'
+      ? 'text-destructive'
       : completionPct < 80
-        ? 'var(--gold)'
-        : 'var(--moss)'
+        ? 'text-amber-600'
+        : 'text-emerald-600'
+  const toneBar =
+    completionPct < 50
+      ? 'bg-destructive'
+      : completionPct < 80
+        ? 'bg-amber-500'
+        : 'bg-emerald-600'
 
   return (
-    <section className="bg-white rounded-lg border border-zinc-200 p-5">
-      <div className="flex items-baseline justify-between mb-3">
+    <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="mb-3 flex items-baseline justify-between">
         {/* ★영문 kicker("Food Info ·") 제거 + 한글 uppercase/자간 정리
             (2026-08-10). 한글엔 uppercase 가 효과가 없고 tracking-widest 는
             자간만 벌려 "식 품 정 보"처럼 읽힌다. 영문 머리말은 템플릿 티만
             나고 뜻을 더하지 않는다. */}
-        <h3 className="text-[13px] font-bold text-text">
-          식품정보고시 채움률
-        </h3>
-        <span className="text-[10.5px] text-muted">
+        <h3 className="text-[13px] font-bold">식품정보고시 채움률</h3>
+        <span className="text-[10.5px] text-muted-foreground">
           전자상거래법 §13 + 사료관리법
         </span>
       </div>
@@ -131,29 +134,26 @@ export default function FoodInfoCompletion({
       {/* 큰 숫자 + progress bar */}
       <div className="flex items-baseline gap-3">
         <span
-          className="text-[32px] font-black tabular-nums"
-          style={{ color: tone, letterSpacing: '-0.02em', lineHeight: 1 }}
+          className={`text-[32px] font-black tabular-nums ${toneText}`}
+          style={{ letterSpacing: '-0.02em', lineHeight: 1 }}
         >
           {completionPct.toFixed(1)}%
         </span>
-        <span className="text-[12px] text-muted">
+        <span className="text-[12px] text-muted-foreground">
           {filledCells} / {totalCells} 항목 채워짐
         </span>
       </div>
-      <div className="mt-2 h-1.5 bg-rule rounded-full overflow-hidden">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
         <div
-          className="h-full rounded-full transition-all"
-          style={{
-            background: tone,
-            width: `${completionPct}%`,
-          }}
+          className={`h-full rounded-full transition-all ${toneBar}`}
+          style={{ width: `${completionPct}%` }}
         />
       </div>
 
       {/* 누락 가장 많은 항목 Top 3 */}
       {(missingByField[0]?.missing ?? 0) > 0 && (
         <div className="mt-5">
-          <p className="text-[11.5px] font-bold text-muted mb-2">
+          <p className="mb-2 text-[11.5px] font-bold text-muted-foreground">
             가장 많이 빠진 항목
           </p>
           <ul className="space-y-1.5">
@@ -162,8 +162,8 @@ export default function FoodInfoCompletion({
                 key={f.key as string}
                 className="flex items-center justify-between text-[12.5px]"
               >
-                <span className="text-text">{f.label}</span>
-                <span className="font-mono text-[11px] text-muted tabular-nums">
+                <span>{f.label}</span>
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
                   {f.missing}개 ({(f.ratio * 100).toFixed(0)}%)
                 </span>
               </li>
@@ -175,7 +175,7 @@ export default function FoodInfoCompletion({
       {/* 누락 많은 상품 Top 3 */}
       {missingByProduct.length > 0 && (
         <div className="mt-5">
-          <p className="text-[11.5px] font-bold text-muted mb-2">
+          <p className="mb-2 text-[11.5px] font-bold text-muted-foreground">
             먼저 채워야 할 상품
           </p>
           <ul className="space-y-1.5">
@@ -186,17 +186,14 @@ export default function FoodInfoCompletion({
               >
                 <Link
                   href={`/admin/products/${p.id}`}
-                  className="text-text hover:text-terracotta truncate flex-1"
+                  className="flex-1 truncate hover:text-primary"
                 >
                   {p.name}
                 </Link>
                 <span
-                  className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                  style={{
-                    background:
-                      p.missingCount >= 7 ? 'var(--sale)' : 'var(--gold)',
-                    color: 'white',
-                  }}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${
+                    p.missingCount >= 7 ? 'bg-destructive' : 'bg-amber-500'
+                  }`}
                 >
                   {p.missingCount}개 누락
                 </span>
@@ -206,7 +203,7 @@ export default function FoodInfoCompletion({
         </div>
       )}
 
-      <p className="mt-4 text-[10.5px] text-muted leading-relaxed">
+      <p className="mt-4 text-[10.5px] leading-relaxed text-muted-foreground">
         14개 의무항목이 모두 채워져야 시정명령·과태료 위험이 없어요. 항목별로
         admin 의 상품 편집 페이지에서 채울 수 있어요.
       </p>

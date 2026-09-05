@@ -142,38 +142,41 @@ export default function ActionsPanel(props: ActionsPanelProps) {
   const pending = items.filter((it) => it.count > 0)
   const clearedCount = items.length - pending.length
 
+  // 색은 --adm- 토큰(2026-09-05 어드민 개편) — 할 일 있으면 destructive 톤,
+  // 없으면 secondary 로 조용히.
   return (
     <section
-      className="rounded-lg border overflow-hidden"
-      style={{
-        background: totalActions > 0 ? 'color-mix(in srgb, var(--sale) 4%, var(--bg))' : 'var(--bg-2)',
-        borderColor: totalActions > 0 ? 'var(--sale)' : 'var(--rule)',
-      }}
+      className={`overflow-hidden rounded-xl border ${
+        totalActions > 0
+          ? 'border-destructive/40 bg-destructive/5'
+          : 'border-border bg-secondary/60'
+      }`}
     >
       <div
-        className={`px-5 py-3 flex items-center justify-between ${
-          pending.length > 0 ? 'border-b border-zinc-200' : ''
+        className={`flex items-center justify-between px-5 py-3 ${
+          pending.length > 0 ? 'border-b border-border' : ''
         }`}
       >
         <div className="flex items-center gap-2">
           <AlertTriangle
-            className={totalActions > 0 ? 'text-sale' : 'text-muted'}
+            className={
+              totalActions > 0 ? 'text-destructive' : 'text-muted-foreground'
+            }
             strokeWidth={2.2}
             style={{ width: 16, height: 16 }}
           />
-          <span className="text-[12px] font-bold text-text">
-            처리 대기
-          </span>
+          <span className="text-[12px] font-bold">처리 대기</span>
         </div>
         <span
-          className="text-[11px] font-bold"
-          style={{ color: totalActions > 0 ? 'var(--sale)' : 'var(--muted)' }}
+          className={`text-[11px] font-bold ${
+            totalActions > 0 ? 'text-destructive' : 'text-muted-foreground'
+          }`}
         >
           {totalActions === 0 ? '모두 처리됨' : `${totalActions}건`}
         </span>
       </div>
       {pending.length > 0 && (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-rule">
+      <div className="grid grid-cols-2 gap-px bg-border md:grid-cols-3">
         {pending.map((it) => {
           const Icon = it.icon
           const active = it.count > 0
@@ -183,23 +186,22 @@ export default function ActionsPanel(props: ActionsPanelProps) {
               // href 만으론 key 가 겹친다 — 라벨이 유일 식별자(2026-09-05 감사).
               key={it.label}
               href={it.href}
-              className="px-4 py-3 bg-bg hover:bg-bg-2 transition flex items-center justify-between"
+              className="flex items-center justify-between bg-card px-4 py-3 transition hover:bg-secondary"
             >
               <span className="flex items-center gap-2">
                 <Icon
-                  className={active ? 'text-sale' : 'text-muted'}
+                  className={
+                    active ? 'text-destructive' : 'text-muted-foreground'
+                  }
                   strokeWidth={2}
                   style={{ width: 14, height: 14 }}
                 />
-                <span className="text-[11.5px] font-bold text-text">
-                  {it.label}
-                </span>
+                <span className="text-[11.5px] font-bold">{it.label}</span>
               </span>
               <span
-                className="text-[12px] font-bold tabular-nums"
-                style={{
-                  color: active ? 'var(--sale)' : 'var(--muted)',
-                }}
+                className={`text-[12px] font-bold tabular-nums ${
+                  active ? 'text-destructive' : 'text-muted-foreground'
+                }`}
               >
                 {it.count}
               </span>
@@ -209,7 +211,7 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       </div>
       )}
       {pending.length > 0 && clearedCount > 0 && (
-        <p className="px-5 py-2.5 text-[11px] text-muted border-t border-zinc-200">
+        <p className="border-t border-border px-5 py-2.5 text-[11px] text-muted-foreground">
           나머지 {clearedCount}개 항목은 처리할 게 없어요.
         </p>
       )}
