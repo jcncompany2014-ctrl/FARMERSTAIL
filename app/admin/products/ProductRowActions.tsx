@@ -100,7 +100,7 @@ function StockEditor({
           }}
           autoFocus
           disabled={loading}
-          className="w-16 px-2 py-1 text-center text-xs rounded border border-terracotta focus:outline-none"
+          className="w-16 px-2 py-1 text-center text-xs rounded border border-primary focus:outline-none"
         />
       </div>
     )
@@ -132,10 +132,10 @@ function StockEditor({
 
   const color =
     initialValue === 0
-      ? 'text-sale'
+      ? 'text-destructive'
       : initialValue < 10
-      ? 'text-terracotta'
-      : 'text-zinc-900'
+      ? 'text-primary'
+      : 'text-foreground'
 
   return (
     <div className="group flex items-center justify-center gap-0.5">
@@ -145,7 +145,7 @@ function StockEditor({
         onClick={() => setEditing(true)}
         disabled={loading}
         title="클릭해서 직접 입력"
-        className={`inline-flex items-center justify-center min-w-[2.5rem] min-h-[36px] text-sm font-semibold hover:bg-zinc-100 rounded px-2 transition ${color}`}
+        className={`inline-flex items-center justify-center min-w-[2.5rem] min-h-[36px] text-sm font-semibold hover:bg-secondary rounded px-2 transition ${color}`}
       >
         {initialValue}
       </button>
@@ -159,7 +159,7 @@ function StockEditor({
  * 재고 델타 버튼.
  *
  * # 왜 hover 의존을 뺐나 (2026-08-07 어드민 감사)
- * 평소 `text-zinc-300`, 행 hover 시에만 `group-hover:text-zinc-500` 로 또렷해지는
+ * 평소 `text-muted-foreground/50`, 행 hover 시에만 `group-hover:text-muted-foreground` 로 또렷해지는
  * 구조였다. 그런데 **폰에는 hover 가 없다** — 이 어드민은 폰 운영용으로 만든
  * 것이고(드로어화), 폰에서는 이 버튼들이 끝까지 흐린 채였다. 크기도
  * px-1.5 py-1 = 약 22×24px 라 손가락으로 정확히 누르기 어려웠다.
@@ -182,7 +182,7 @@ function QuickBump({
       onClick={onClick}
       disabled={disabled}
       aria-label={`재고 ${label}`}
-      className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] rounded text-[12px] font-bold text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 disabled:opacity-40"
+      className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] rounded text-[12px] font-bold text-muted-foreground transition hover:bg-secondary hover:text-foreground active:bg-zinc-200 disabled:opacity-40"
     >
       {label}
     </button>
@@ -227,11 +227,11 @@ function ActiveToggle({
         onClick={toggle}
         disabled={loading}
         className={`relative w-10 h-6 rounded-full transition ${
-          active ? 'bg-moss' : 'bg-rule'
+          active ? 'bg-emerald-600' : 'bg-stone-300'
         } disabled:opacity-50`}
       >
         <span
-          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${
+          className={`absolute top-0.5 w-5 h-5 rounded-full bg-card transition-all ${
             active ? 'left-[18px]' : 'left-0.5'
           }`}
         />

@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import { Package } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/types'
 import ProductRowActions from './ProductRowActions'
 import AdminPagination from '@/components/admin/AdminPagination'
-import { Hl, Warn, FilterChip } from '@/components/admin/ui'
+import { Hl, Warn, LoadError, FilterChip } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,17 +80,21 @@ export default async function AdminProductsPage({
   }
 
   const { data: products, error, count } = await query
+  if (error) console.error('[admin-products] 상품 목록 조회 실패:', error.message)
   const total = count ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
-            제품 관리
-          </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <div className="flex items-center gap-2">
+            <Package className="size-5 text-primary" strokeWidth={2} />
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">
+              제품 관리
+            </h1>
+          </div>
+          <p className="text-[13px] text-muted-foreground mt-1">
             {/*
               ★ 문구를 사실에 맞췄다 (2026-07-31). 예전엔 "가격을 바꾸면 새
               결제부터 바로 반영"이라고 적혀 있었는데 **기존 구독은 안 바뀐다.**
@@ -110,7 +115,7 @@ export default async function AdminProductsPage({
         </div>
         <Link
           href="/admin/products/new"
-          className="px-4 py-2 rounded-full bg-terracotta text-white text-xs font-semibold hover:bg-[#8A3822] transition"
+          className="shrink-0 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
         >
           + 새 상품 등록
         </Link>
@@ -130,8 +135,8 @@ export default async function AdminProductsPage({
               href={`/admin/products?${sp.toString()}`}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold transition border ${
                 isActive
-                  ? 'bg-terracotta text-white border-terracotta'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400'
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-card text-muted-foreground border-border hover:border-ring'
               }`}
             >
               {f.key === 'own' ? '🏠 ' : f.key === 'external' ? '🛒 ' : ''}
@@ -139,7 +144,7 @@ export default async function AdminProductsPage({
             </Link>
           )
         })}
-        <span className="self-center text-[11px] text-zinc-400 ml-1">
+        <span className="self-center text-[11px] text-muted-foreground ml-1">
           외부 채널 상품은 자사몰·앱에 노출되지 않아요
         </span>
       </div>
@@ -178,31 +183,92 @@ export default async function AdminProductsPage({
             defaultValue={q}
             placeholder="상품명 · slug · 카테고리"
             autoComplete="off"
-            className="px-3 py-1.5 rounded-full text-xs bg-white border border-zinc-200 focus:outline-none focus:border-terracotta w-56"
+            className="px-3 py-1.5 rounded-full text-xs bg-card border border-border focus:outline-none focus:border-primary w-56"
           />
           <button
             type="submit"
-            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-terracotta text-white hover:bg-[#8A3822] transition"
+            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-primary text-white hover:opacity-90 transition"
           >
             검색
           </button>
         </form>
       </div>
 
-      <div className="p-6 rounded-lg bg-white border border-zinc-200">
+      <div className="p-6 rounded-xl bg-card border border-border shadow-sm">
         {error ? (
-          <p className="text-sale text-sm">에러: {error.message}</p>
+          // 원시 error.message 대신 사람 말 — 상세는 서버 로그(규칙1).
+          <LoadError what="상품 목록" />
         ) : !products || products.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 py-10">
+          <p className="text-center text-sm text-muted-foreground py-10">
             {q || active !== 'all'
               ? '조건에 맞는 상품이 없어요'
               : '등록된 상품이 없어요'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* 모바일: 카드 리스트 — 재고 ±·활성 토글을 폰에서도 바로
+              (7열 테이블은 가로 스크롤. 2026-09-05 개편). */}
+          <ul className="space-y-3 md:hidden">
+            {(products as ProductRow[]).map((p) => (
+              <li
+                key={p.id}
+                className="rounded-xl border border-border bg-card p-3.5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
+                    {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.image_url}
+                        alt={p.name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg">🐾</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold">{p.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {p.category ?? '-'} ·{' '}
+                      {p.sale_price ? (
+                        <span className="font-semibold text-primary">
+                          {p.sale_price.toLocaleString()}원
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-foreground">
+                          {p.price.toLocaleString()}원
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/admin/products/${p.id}`}
+                    className="shrink-0 text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    편집 →
+                  </Link>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+                  <ProductRowActions
+                    productId={p.id}
+                    field="stock"
+                    initialValue={p.stock ?? 0}
+                  />
+                  <ProductRowActions
+                    productId={p.id}
+                    field="is_active"
+                    initialValue={p.is_active ?? false}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
+                <tr className="text-[11px] text-muted-foreground border-b border-border">
                   <th className="text-left py-2 font-medium w-16">이미지</th>
                   <th className="text-left py-2 font-medium">상품명</th>
                   <th className="text-left py-2 font-medium">카테고리</th>
@@ -216,10 +282,10 @@ export default async function AdminProductsPage({
                 {(products as ProductRow[]).map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
+                    className="border-b border-border/60 hover:bg-secondary/50 transition"
                   >
                     <td className="py-3">
-                      <div className="w-12 h-12 rounded-lg bg-zinc-50 overflow-hidden flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-lg bg-secondary overflow-hidden flex items-center justify-center">
                         {p.image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -233,26 +299,26 @@ export default async function AdminProductsPage({
                       </div>
                     </td>
                     <td className="py-3">
-                      <p className="text-zinc-900 font-medium">{p.name}</p>
-                      <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                      <p className="text-foreground font-medium">{p.name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
                         {p.slug}
                       </p>
                     </td>
-                    <td className="py-3 text-zinc-800 text-xs">
+                    <td className="py-3 text-foreground text-xs">
                       {p.category ?? '-'}
                     </td>
                     <td className="py-3 text-right">
                       {p.sale_price ? (
                         <div>
-                          <p className="text-[10px] text-zinc-500 line-through">
+                          <p className="text-[10px] text-muted-foreground line-through">
                             {p.price.toLocaleString()}원
                           </p>
-                          <p className="font-semibold text-terracotta">
+                          <p className="font-semibold text-primary">
                             {p.sale_price.toLocaleString()}원
                           </p>
                         </div>
                       ) : (
-                        <p className="font-semibold text-zinc-900">
+                        <p className="font-semibold text-foreground">
                           {p.price.toLocaleString()}원
                         </p>
                       )}
@@ -274,7 +340,7 @@ export default async function AdminProductsPage({
                     <td className="py-3 text-center">
                       <Link
                         href={`/admin/products/${p.id}`}
-                        className="text-[11px] text-terracotta hover:underline font-semibold"
+                        className="text-[11px] text-primary hover:underline font-semibold"
                       >
                         편집 →
                       </Link>
@@ -284,6 +350,7 @@ export default async function AdminProductsPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

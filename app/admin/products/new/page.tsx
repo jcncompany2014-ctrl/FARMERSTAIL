@@ -7,14 +7,14 @@ export default function AdminProductNewPage() {
       <div className="mb-6">
         <Link
           href="/admin/products"
-          className="text-xs text-zinc-500 hover:text-terracotta"
+          className="text-xs text-muted-foreground hover:text-primary"
         >
           ← 제품 목록
         </Link>
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-2">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight mt-2">
           새 상품 등록
         </h1>
-        <p className="text-xs text-zinc-500 mt-1">새 상품을 등록하세요</p>
+        <p className="text-xs text-muted-foreground mt-1">새 상품을 등록하세요</p>
       </div>
 
       <ProductForm mode="create" />
