@@ -151,21 +151,26 @@ export default async function AppRequiredPage({
          *   ⚠️ NEXT_PUBLIC_* 은 **빌드 시점에 박힌다** — env 만 넣고 재배포를
          *   안 하면 화면은 그대로 비어 있다.
          */}
+        {/* ★공식 스토어 배지로 교체 (2026-09-05 사장님: "공식 버튼 같은 걸로").
+            Apple 정식 SVG(ko-KR, 원본 높이 40)·Google Play 공식 배지(ko).
+            구글 배지는 아트워크 안에 여백이 포함돼 있어 같은 시각 높이가
+            되려면 애플보다 약 1.21배 높게 렌더해야 한다(250/40 비율 실측).
+            두 배지 모두 가이드라인상 변형 금지 — 이미지 그대로, 링크만. */}
         {(IOS_URL || ANDROID_URL) && (
-          <div className="mt-10 md:mt-14 flex flex-col md:flex-row gap-3 md:gap-4 md:max-w-md md:mx-auto">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 md:mt-14 md:gap-4">
             {IOS_URL && (
               <a
                 href={IOS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold active:scale-[0.98] transition"
-                style={{
-                  background: 'var(--ink)',
-                  color: 'var(--bg)',
-                  letterSpacing: '-0.01em',
-                }}
+                className="active:scale-[0.98] transition"
               >
-                App Store에서 받기
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/badge-appstore-ko.svg"
+                  alt="App Store에서 다운로드"
+                  className="h-12 w-auto md:h-[52px]"
+                />
               </a>
             )}
             {ANDROID_URL && (
@@ -173,15 +178,14 @@ export default async function AppRequiredPage({
                 href={ANDROID_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full py-3.5 md:py-4 rounded-2xl text-[14px] md:text-[15px] font-bold border active:scale-[0.98] transition"
-                style={{
-                  background: 'var(--bg)',
-                  color: 'var(--ink)',
-                  borderColor: 'var(--ink)',
-                  letterSpacing: '-0.01em',
-                }}
+                className="active:scale-[0.98] transition"
               >
-                Google Play에서 받기
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/badge-googleplay-ko.png"
+                  alt="Google Play에서 다운로드"
+                  className="h-[58px] w-auto md:h-[63px]"
+                />
               </a>
             )}
           </div>
