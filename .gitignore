@@ -52,7 +52,6 @@ next-env.d.ts
 .claude-design/
 
 # 임시 개발용 관리자 계정 스크립트 — 어드민 개편 끝나면 계정과 함께 삭제
-/scripts/dev-admin.tmp.mjs
 
 # Capacitor — 네이티브 빌드 산출물 / 임시 webDir
 # ─────────────────────────────────────────────────
