@@ -5,7 +5,8 @@ import Link from 'next/link'
  * 기능형 클린 어드민 공통 프리미티브 (2026-07 Phase B).
  *
  * admin 페이지들이 제각각 쓰던 헤더(font-Archivo_Black)·카드(rounded-2xl)·
- * 배지를 하나로 통일. 중립 회색조(zinc) + terracotta 절제 포인트.
+ * 배지를 하나로 통일. 2026-09 개편부터 색은 adminui 토큰(--adm-*)만 쓴다 —
+ * ⚠️ bg-muted 는 admin 에서 사이트 다크 토큰으로 매핑되므로 bg-secondary 를 쓸 것.
  * 페이지는 이걸 import 해서 시각을 일관화한다.
  */
 
@@ -26,7 +27,7 @@ import Link from 'next/link'
  */
 export function Hl({ children }: { children: ReactNode }) {
   return (
-    <mark className="bg-amber-100 text-zinc-800 rounded px-1 font-bold">
+    <mark className="bg-amber-100 text-foreground rounded px-1 font-bold">
       {children}
     </mark>
   )
@@ -34,12 +35,12 @@ export function Hl({ children }: { children: ReactNode }) {
 
 /** 색 강조 — 숫자·기준·조건 등 정확히 읽어야 하는 값. 한 문단에 여러 개 OK. */
 export function Em({ children }: { children: ReactNode }) {
-  return <b className="text-zinc-800 font-bold">{children}</b>
+  return <b className="text-foreground font-bold">{children}</b>
 }
 
 /** 경고성 강조 — 되돌릴 수 없거나 고객에게 바로 나가는 동작. 절제해서 쓸 것. */
 export function Warn({ children }: { children: ReactNode }) {
-  return <b className="text-red-700 font-bold">{children}</b>
+  return <b className="text-destructive font-bold">{children}</b>
 }
 
 /** 페이지 상단 헤더 — 제목 + 부제 + 우측 액션 슬롯. */
@@ -55,11 +56,11 @@ export function AdminHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
           {title}
         </h1>
         {sub != null && (
-          <p className="text-[13px] text-zinc-500 mt-1">{sub}</p>
+          <p className="text-[13px] text-muted-foreground mt-1">{sub}</p>
         )}
       </div>
       {actions != null && <div className="shrink-0">{actions}</div>}
@@ -79,7 +80,7 @@ export function AdminCard({
 }) {
   return (
     <div
-      className={`rounded-xl border border-zinc-200 bg-white shadow-sm ${padded ? 'p-5' : ''} ${className}`}
+      className={`rounded-xl border border-border bg-card shadow-sm ${padded ? 'p-5' : ''} ${className}`}
     >
       {children}
     </div>
@@ -128,7 +129,7 @@ export function AdminTabs({
  *
  * 주문·상품·정기배송·자동결제 4곳이 같은 칩을 제각각 만들어 쓰면서 활성 색이
  * `bg-[#2A2118]`(웜 하드코딩) / `bg-ink`(웜 토큰) / `bg-zinc-900` 세 갈래로
- * 갈렸다. admin 정본은 zinc 이므로 `bg-zinc-900` 으로 통일하고 여기 하나로 모은다.
+ * 갈렸다. 여기 하나로 모으고, 색은 adminui 토큰(활성 = primary)으로 통일한다.
  *
  * 링크형(서버 컴포넌트 · 쿼리스트링 필터)과 버튼형(클라이언트 state 필터)을
  * 모두 지원한다 — `href` 를 주면 Link, `onClick` 을 주면 button.
@@ -151,7 +152,7 @@ export function FilterChip({
     'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition ' +
     (active
       ? 'bg-primary text-primary-foreground'
-      : 'bg-white text-zinc-600 border border-zinc-200 hover:border-zinc-400')
+      : 'bg-card text-muted-foreground border border-border hover:border-input hover:text-foreground')
 
   if (href) {
     return (
@@ -177,7 +178,7 @@ export function FilterChip({
 export type BadgeTone = 'neutral' | 'green' | 'red' | 'amber' | 'blue'
 
 const BADGE_TONES: Record<BadgeTone, string> = {
-  neutral: 'bg-zinc-100 text-zinc-600',
+  neutral: 'bg-secondary text-muted-foreground',
   green: 'bg-emerald-100 text-emerald-700',
   red: 'bg-red-100 text-red-700',
   amber: 'bg-amber-100 text-amber-700',
@@ -210,7 +211,7 @@ export function HelpTip({ text }: { text: string }) {
   return (
     <span className="group/help relative inline-flex align-middle">
       <span
-        className="ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-zinc-200 text-zinc-500 text-[9px] font-bold cursor-help select-none leading-none"
+        className="ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-muted-foreground text-[9px] font-bold cursor-help select-none leading-none"
         aria-hidden="true"
       >
         ?
@@ -218,7 +219,7 @@ export function HelpTip({ text }: { text: string }) {
       <span className="sr-only">{text}</span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 w-56 rounded-lg bg-zinc-900 px-3 py-2 text-[11px] font-normal normal-case tracking-normal leading-relaxed text-white opacity-0 shadow-xl transition-opacity duration-150 group-hover/help:opacity-100"
+        className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 w-56 rounded-lg bg-foreground px-3 py-2 text-[11px] font-normal normal-case tracking-normal leading-relaxed text-background opacity-0 shadow-xl transition-opacity duration-150 group-hover/help:opacity-100"
       >
         {text}
       </span>
@@ -229,7 +230,7 @@ export function HelpTip({ text }: { text: string }) {
 export type StatTone = 'neutral' | 'green' | 'red' | 'amber'
 
 const STAT_TONE_TEXT: Record<StatTone, string> = {
-  neutral: 'text-zinc-900',
+  neutral: 'text-foreground',
   green: 'text-emerald-600',
   red: 'text-red-600',
   amber: 'text-amber-600',
@@ -256,20 +257,20 @@ export function StatCard({
   tone?: StatTone
 }) {
   return (
-    <div className="p-4 rounded-xl bg-white border border-zinc-200 shadow-sm">
-      <p className="flex items-center text-[12px] text-zinc-500 font-semibold">
+    <div className="p-4 rounded-xl bg-card border border-border shadow-sm">
+      <p className="flex items-center text-[12px] text-muted-foreground font-semibold">
         <span>{label}</span>
         {help && <HelpTip text={help} />}
       </p>
       <p className={`mt-1.5 font-bold tracking-tight text-2xl ${STAT_TONE_TEXT[tone]}`}>
         {value}
         {unit != null && (
-          <span className="ml-1 text-[12px] font-semibold text-zinc-400 align-baseline">
+          <span className="ml-1 text-[12px] font-semibold text-muted-foreground align-baseline">
             {unit}
           </span>
         )}
       </p>
-      {sub != null && <p className="mt-1 text-[11px] text-zinc-500 leading-snug">{sub}</p>}
+      {sub != null && <p className="mt-1 text-[11px] text-muted-foreground leading-snug">{sub}</p>}
     </div>
   )
 }
@@ -287,9 +288,9 @@ export function SectionTitle({
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-bold text-zinc-900">{title}</h2>
+        <h2 className="text-[15px] font-bold text-foreground">{title}</h2>
         {desc != null && (
-          <p className="text-[12px] text-zinc-500 mt-0.5 leading-snug">{desc}</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-snug">{desc}</p>
         )}
       </div>
       {action != null && <div className="shrink-0">{action}</div>}
@@ -297,7 +298,7 @@ export function SectionTitle({
   )
 }
 
-/** 주요 액션 버튼 — terracotta 포인트(절제 사용). */
+/** 주요 액션 버튼 — primary 포인트(절제 사용). */
 export function AdminButton({
   children,
   href,
@@ -315,8 +316,8 @@ export function AdminButton({
 }) {
   const cls =
     variant === 'primary'
-      ? 'bg-terracotta text-white hover:bg-[#8A3822]'
-      : 'bg-white text-zinc-700 border border-zinc-300 hover:border-zinc-400'
+      ? 'bg-primary text-primary-foreground hover:opacity-90'
+      : 'bg-card text-foreground border border-input hover:bg-secondary/50'
   const base = `inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-50 ${cls}`
   if (href) {
     return (
@@ -354,11 +355,11 @@ export function LoadError({
   hint?: string
 }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-      <p className="text-sale text-sm font-bold">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+      <p className="text-destructive text-sm font-bold">
         {what}을(를) 불러오지 못했어요.
       </p>
-      <p className="text-xs text-zinc-600 mt-1.5 leading-relaxed">
+      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
         {hint ??
           '화면을 새로고침해 주세요. 계속 안 되면 개발 담당에게 알려주세요 — 데이터가 없는 게 아니라 조회가 실패한 상태예요.'}
       </p>

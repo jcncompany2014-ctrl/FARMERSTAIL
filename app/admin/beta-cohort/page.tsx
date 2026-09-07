@@ -4,7 +4,7 @@ import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import BetaCohortPrintButton from './BetaCohortPrintButton'
-import { HelpTip, Hl } from '@/components/admin/ui'
+import { HelpTip, Hl, LoadError } from '@/components/admin/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,7 +51,8 @@ export default async function BetaCohortPage() {
     created_at: string
   }
 
-  const { data: outcomesRaw } = await admin
+  // 규칙1 — error 를 버리면 조회 실패가 "베타 데이터 없음"으로 위장한다.
+  const { data: outcomesRaw, error: outcomesErr } = await admin
     .from('feeding_outcomes')
     .select(
       'id, dog_id, user_id, cohort_id, source, rating_stars, reason_category, sku_code, weight_kg, created_at',
@@ -74,11 +75,13 @@ export default async function BetaCohortPage() {
   }
 
   const dogMetaMap = new Map<string, DogMeta>()
+  let metaLoadFailed = false
   if (dogIds.length > 0) {
-    const { data: dogsRaw } = await admin
+    const { data: dogsRaw, error: dogsErr } = await admin
       .from('dogs')
       .select('id, name, breed, user_id')
       .in('id', dogIds)
+    if (dogsErr) metaLoadFailed = true
     const dogs = (dogsRaw ?? []) as Array<{
       id: string
       name: string
@@ -87,10 +90,11 @@ export default async function BetaCohortPage() {
     }>
 
     const userIds = Array.from(new Set(dogs.map((d) => d.user_id)))
-    const { data: profilesRaw } = await admin
+    const { data: profilesRaw, error: profilesErr } = await admin
       .from('profiles')
       .select('id, name')
       .in('id', userIds)
+    if (profilesErr) metaLoadFailed = true
     const profiles = (profilesRaw ?? []) as Array<{
       id: string
       name: string | null
@@ -164,10 +168,10 @@ export default async function BetaCohortPage() {
 
       <div className="flex items-end justify-between mb-6 no-print">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             베타 테스트 현황
           </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>2026 비공개 베타(강아지 30마리)의 진행 현황</Hl>을 관리하는
             곳이에요. 정부 발표·수의영양 검수용 자료도 여기서 인쇄해요.
           </p>
@@ -177,12 +181,25 @@ export default async function BetaCohortPage() {
 
       {/* 인쇄용 헤더 */}
       <div className="hidden print:block mb-4">
-        <h1 className="text-2xl font-bold text-zinc-900">파머스테일 베타 그룹 리포트</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">파머스테일 베타 그룹 리포트</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           대상: 2026 비공개 베타 · 생성일{' '}
           {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
         </p>
       </div>
+
+      {(outcomesErr || metaLoadFailed) && (
+        <div className="mb-4 no-print">
+          <LoadError
+            what="베타 현황"
+            hint={
+              outcomesErr
+                ? '아래 표가 비어 보여도 데이터가 없는 게 아니에요 — 조회가 실패했어요. 새로고침해 주세요.'
+                : '강아지·보호자 이름 일부를 못 불러왔어요(—로 표시). 새로고침해 주세요.'
+            }
+          />
+        </div>
+      )}
 
       {/* KPI */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:break-inside-avoid">
@@ -213,14 +230,14 @@ export default async function BetaCohortPage() {
       </div>
 
       {/* dog 별 표 */}
-      <section className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 print:break-inside-avoid">
-        <h2 className="text-[11px] font-bold text-zinc-500 mb-3">
+      <section className="mt-6 rounded-xl border border-border bg-card shadow-sm p-5 print:break-inside-avoid">
+        <h2 className="text-[11px] font-bold text-muted-foreground mb-3">
           강아지별 진행 상황
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-[11.5px]">
+          <table className="w-full min-w-[640px] text-[11.5px]">
             <thead>
-              <tr className="text-left text-zinc-500 border-b border-zinc-200">
+              <tr className="text-left text-muted-foreground border-b border-border">
                 <th className="py-2 pr-3 font-bold">강아지</th>
                 <th className="py-2 px-2 font-bold">보호자</th>
                 <th className="py-2 px-2 font-bold">견종</th>
@@ -235,31 +252,31 @@ export default async function BetaCohortPage() {
             <tbody>
               {dogSummaries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center text-zinc-500">
+                  <td colSpan={9} className="py-6 text-center text-muted-foreground">
                     아직 베타 cohort 데이터 없음
                   </td>
                 </tr>
               ) : (
                 dogSummaries.map((d) => (
-                  <tr key={d.dogId} className="border-b border-zinc-200/40">
-                    <td className="py-2 pr-3 text-zinc-900 font-bold">
+                  <tr key={d.dogId} className="border-b border-border/50">
+                    <td className="py-2 pr-3 text-foreground font-bold">
                       {d.meta?.name ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-zinc-800">
+                    <td className="py-2 px-2 text-foreground">
                       {d.meta?.user_name ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-zinc-500 text-[10.5px]">
+                    <td className="py-2 px-2 text-muted-foreground text-[10.5px]">
                       {d.meta?.breed ?? '—'}
                     </td>
-                    <td className="py-2 px-2 text-zinc-500 font-mono text-[10.5px]">
+                    <td className="py-2 px-2 text-muted-foreground font-mono text-[10.5px]">
                       {d.firstOrderAt
                         ? d.firstOrderAt.slice(0, 10)
                         : '—'}
                     </td>
-                    <td className="py-2 px-2 text-right font-mono tabular-nums text-zinc-900">
+                    <td className="py-2 px-2 text-right font-mono tabular-nums text-foreground">
                       {d.boxCount}
                     </td>
-                    <td className="py-2 px-2 text-right font-mono tabular-nums text-zinc-900">
+                    <td className="py-2 px-2 text-right font-mono tabular-nums text-foreground">
                       {d.ratingAvg != null
                         ? `${d.ratingAvg.toFixed(1)} (${d.ratingN})`
                         : '—'}
@@ -267,14 +284,14 @@ export default async function BetaCohortPage() {
                     <td className="py-2 px-2 text-center">
                       {d.checkinDone ? '✓' : '—'}
                     </td>
-                    <td className="py-2 px-2 text-center font-mono tabular-nums text-zinc-900">
+                    <td className="py-2 px-2 text-center font-mono tabular-nums text-foreground">
                       {d.refundCount > 0 ? `${d.refundCount}건` : '—'}
                     </td>
                     <td className="py-2 pl-2 text-center">
                       {d.cancelled ? (
-                        <span className="text-[10px] font-bold text-sale">해지</span>
+                        <span className="text-[10px] font-bold text-destructive">해지</span>
                       ) : (
-                        <span className="text-[10px] font-bold text-moss">활성</span>
+                        <span className="text-[10px] font-bold text-emerald-700">활성</span>
                       )}
                     </td>
                   </tr>
@@ -285,7 +302,7 @@ export default async function BetaCohortPage() {
         </div>
       </section>
 
-      <p className="text-[10.5px] text-zinc-500 mt-6 leading-relaxed print:break-inside-avoid">
+      <p className="text-[10.5px] text-muted-foreground mt-6 leading-relaxed print:break-inside-avoid">
         ※ 2026 비공개 베타 그룹의 반응 데이터를 자동 집계했어요. 정부 R&D
         평가 / 수의영양사 검수 자료로 활용하세요. 인쇄해서 PDF 로 저장할 수
         있어요.
@@ -306,15 +323,15 @@ function Kpi({
   help?: string
 }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-3.5 print:break-inside-avoid">
-      <p className="flex items-center text-[10px] font-bold text-zinc-500">
+    <div className="rounded-xl border border-border bg-card p-3.5 print:break-inside-avoid">
+      <p className="flex items-center text-[10px] font-bold text-muted-foreground">
         {label}
         {help && <HelpTip text={help} />}
       </p>
-      <p className="text-2xl font-bold tracking-tight text-zinc-900 tabular-nums mt-1">
+      <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums mt-1">
         {value}
       </p>
-      <p className="text-[10.5px] font-mono text-zinc-500 mt-0.5">{sub}</p>
+      <p className="text-[10.5px] font-mono text-muted-foreground mt-0.5">{sub}</p>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { AdminHeader, StatCard, HelpTip } from '@/components/admin/ui'
+import { AdminHeader, StatCard, HelpTip, LoadError } from '@/components/admin/ui'
 import { TIERS, tierMeta, resolveTierKey } from '@/lib/tiers'
 import { cardProgressFloored, STAMP_CARD_SIZE } from '@/lib/stamps'
 
@@ -94,16 +94,11 @@ export default async function AdminLoyaltyPage() {
       </div>
 
       {/* 손님 리스트 */}
-      <div className="md:p-6 md:rounded-lg md:bg-white md:border md:border-zinc-200">
+      <div className="md:p-6 md:rounded-lg md:bg-card md:border md:border-border">
         {error ? (
-          <div>
-            <p className="text-sale text-sm">멤버십 정보를 불러오지 못했어요.</p>
-            <p className="text-xs text-zinc-500 mt-2">
-              잠시 후 다시 시도해 주세요. 계속 안 되면 개발 담당에게 알려주세요.
-            </p>
-          </div>
+          <LoadError what="멤버십 정보" />
         ) : rows.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 py-10">
+          <p className="text-center text-sm text-muted-foreground py-10">
             스탬프 {MIN_STAMPS}개 이상인 손님이 아직 없어요.
           </p>
         ) : (
@@ -119,7 +114,7 @@ export default async function AdminLoyaltyPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-[11px] text-zinc-500 border-b border-zinc-200">
+                  <tr className="text-[11px] text-muted-foreground border-b border-border">
                     <th className="text-left py-2 font-medium">이름</th>
                     <th className="text-left py-2 font-medium">이메일</th>
                     <th className="text-center py-2 font-medium">등급</th>
@@ -136,24 +131,24 @@ export default async function AdminLoyaltyPage() {
                     return (
                       <tr
                         key={r.id}
-                        className="border-b border-zinc-200/50 hover:bg-zinc-50 transition"
+                        className="border-b border-border/60 hover:bg-secondary/50 transition"
                       >
-                        <td className="py-3 text-zinc-900 font-medium">
+                        <td className="py-3 text-foreground font-medium">
                           {r.name ?? '(이름 미등록)'}
                         </td>
-                        <td className="py-3 text-[11px] text-zinc-800">
+                        <td className="py-3 text-[11px] text-foreground">
                           {r.email ?? '-'}
                         </td>
                         <td className="py-3 text-center">
                           <TierPill meta={meta} />
                         </td>
-                        <td className="py-3 text-right font-bold text-zinc-900 tabular-nums">
+                        <td className="py-3 text-right font-bold text-foreground tabular-nums">
                           {sc}
                         </td>
-                        <td className="py-3 pl-4 text-[11px] text-zinc-800 tabular-nums">
+                        <td className="py-3 pl-4 text-[11px] text-foreground tabular-nums">
                           {card.cardNumber}판 · {card.filled}/{STAMP_CARD_SIZE}
                         </td>
-                        <td className="py-3 text-right text-[11px] text-zinc-500">
+                        <td className="py-3 text-right text-[11px] text-muted-foreground">
                           {formatDate(r.tier_updated_at)}
                         </td>
                       </tr>
@@ -166,8 +161,8 @@ export default async function AdminLoyaltyPage() {
         )}
       </div>
 
-      <div className="mt-4 p-4 rounded-xl bg-zinc-50 border border-zinc-200">
-        <p className="text-[11px] text-zinc-800 leading-relaxed">
+      <div className="mt-4 p-4 rounded-xl bg-secondary border border-border">
+        <p className="text-[11px] text-foreground leading-relaxed">
           ℹ️ 등급은 <b>한번 올라가면 내려가지 않아요</b>(2026-07-22). 스탬프는 찍힌 날부터
           1년 유효하지만, 등급을 만든 스탬프(판을 완성한 것)는 잠겨서 만료되지 않아요.
           오래 쉬면 현재 판의 스탬프만 빠지고(카드가 비고) 등급은 유지돼요. 만료 반영은
@@ -179,7 +174,7 @@ export default async function AdminLoyaltyPage() {
 }
 
 function TierPill({ meta }: { meta: ReturnType<typeof tierMeta> }) {
-  if (!meta) return <span className="text-[11px] text-zinc-500">곧 씨앗</span>
+  if (!meta) return <span className="text-[11px] text-muted-foreground">곧 씨앗</span>
   return (
     <span
       className="inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full"
@@ -195,19 +190,19 @@ function LoyaltyMobileCard({ r }: { r: Row }) {
   const meta = tierMeta(resolveTierKey(r.tier, sc))
   const card = cardProgressFloored(sc, meta?.threshold ?? 0)
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
+    <div className="rounded-xl border border-border bg-card shadow-sm p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-bold text-zinc-900 text-[13px] truncate">
+          <p className="font-bold text-foreground text-[13px] truncate">
             {r.name ?? '(이름 미등록)'}
           </p>
-          <p className="text-[11px] text-zinc-400 truncate">{r.email ?? '-'}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{r.email ?? '-'}</p>
         </div>
         <TierPill meta={meta} />
       </div>
-      <div className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+      <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
-          스탬프 <strong className="text-zinc-800">{sc}개</strong> ·{' '}
+          스탬프 <strong className="text-foreground">{sc}개</strong> ·{' '}
           {card.cardNumber}판 {card.filled}/{STAMP_CARD_SIZE}
         </span>
         <span>{formatDate(r.tier_updated_at)} 갱신</span>

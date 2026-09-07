@@ -60,11 +60,11 @@ export default function AdminNoteCard({
   }
 
   return (
-    <section className="mb-5 rounded-lg border border-zinc-200 bg-white p-4">
+    <section className="mb-5 rounded-xl border border-border bg-card shadow-sm p-4">
       <div className="flex items-center gap-1.5 mb-2">
         <StickyNote className="h-4 w-4 text-amber-500" strokeWidth={2.2} />
-        <h2 className="text-[13px] font-bold text-zinc-900">운영 메모</h2>
-        <span className="text-[11px] text-zinc-500">
+        <h2 className="text-[13px] font-bold text-foreground">운영 메모</h2>
+        <span className="text-[11px] text-muted-foreground">
           — 이 고객과 대화할 때 기억할 것
         </span>
       </div>
@@ -73,7 +73,7 @@ export default function AdminNoteCard({
         onChange={(e) => setValue(e.target.value.slice(0, 1000))}
         rows={3}
         placeholder="예: 7월 배송 지연으로 사과드림 · 오리 알레르기 문의 있었음"
-        className="w-full rounded-md border border-zinc-200 px-3 py-2 text-[13px] text-zinc-800 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+        className="w-full rounded-md border border-border px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-input focus:outline-none"
       />
       <div className="mt-2 flex items-center justify-between gap-3">
         <p className="text-[11px] text-amber-700">
@@ -85,8 +85,8 @@ export default function AdminNoteCard({
           disabled={!dirty || saving}
           className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[12px] font-bold transition ${
             dirty && !saving
-              ? 'bg-zinc-900 text-white hover:bg-zinc-700'
-              : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              ? 'bg-foreground text-background hover:opacity-90'
+              : 'bg-secondary text-muted-foreground cursor-not-allowed'
           }`}
         >
           {saving && <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.5} />}

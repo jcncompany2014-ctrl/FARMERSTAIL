@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
-import { AdminHeader } from '@/components/admin/ui'
+import { AdminHeader, LoadError } from '@/components/admin/ui'
 import PromotionsClient, { type PromoWithStat } from './PromotionsClient'
 
 /**
@@ -31,7 +31,11 @@ export default async function AdminPromotionsPage() {
   if (!(await isAdmin(supabase, user))) redirect('/')
 
   const admin = createAdminClient()
-  const [{ data: promos }, { data: claims }] = await Promise.all([
+  // 규칙1 — error 를 버리면 조회 실패가 "이벤트 없음 / 성과 0"으로 위장한다.
+  const [
+    { data: promos, error: promosErr },
+    { data: claims, error: claimsErr },
+  ] = await Promise.all([
     admin.from('promotions').select('*').order('created_at', { ascending: false }),
     admin.from('promotion_claims').select('promotion_id, redeemed_order_id'),
   ])
@@ -72,6 +76,18 @@ export default async function AdminPromotionsPage() {
         title="이벤트 · 프로모션"
         sub="오프라인 QR·인스타로 뿌릴 첫 주문 할인 링크를 만드는 곳이에요. 링크로 들어온 신규 고객이 웹 설문 → 가입 순서로 진행해야 할인이 적용돼요 (앱을 먼저 깔면 할인이 사라져요 — 홍보 문구도 이 순서로!)."
       />
+      {(promosErr || claimsErr) && (
+        <div className="mb-4">
+          <LoadError
+            what={promosErr ? '이벤트 목록' : '이벤트 성과(가입·결제 수)'}
+            hint={
+              promosErr
+                ? '목록이 비어 보여도 이벤트가 없는 게 아니에요 — 조회가 실패했어요. 새로고침해 주세요.'
+                : '가입·결제 숫자가 실제보다 적게(0으로) 보일 수 있어요. 새로고침해 주세요.'
+            }
+          />
+        </div>
+      )}
       <PromotionsClient initial={rows} siteUrl={siteUrl} />
     </div>
   )

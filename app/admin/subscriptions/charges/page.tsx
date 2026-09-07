@@ -4,7 +4,7 @@ import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
-import { AdminTabs, StatCard, Hl, Em, FilterChip } from '@/components/admin/ui'
+import { AdminTabs, StatCard, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -50,10 +50,10 @@ const STATUS_CONFIG: Record<
   ChargeRow['status'],
   { label: string; color: string; icon: typeof CheckCircle2 }
 > = {
-  pending: { label: '진행', color: 'var(--gold)', icon: Clock },
-  succeeded: { label: '성공', color: 'var(--moss)', icon: CheckCircle2 },
-  failed: { label: '실패', color: 'var(--sale)', icon: AlertTriangle },
-  skipped: { label: '건너뜀', color: 'var(--muted)', icon: X },
+  pending: { label: '진행', color: '#d97706', icon: Clock },
+  succeeded: { label: '성공', color: '#059669', icon: CheckCircle2 },
+  failed: { label: '실패', color: 'var(--adm-destructive)', icon: AlertTriangle },
+  skipped: { label: '건너뜀', color: '#78716c', icon: X },
 }
 
 function todayKstIsoDate(): string {
@@ -114,6 +114,9 @@ export default async function SubscriptionChargesPage({
   const todayRows = (todayRes.data ?? []) as AggRow[]
   const last30dRows = (last30dRes.data ?? []) as AggRow[]
   const list = (listRes.data ?? []) as ChargeRow[]
+  // 규칙1 — 집계·리스트 조회 실패를 "0건/결과 없음"으로 위장하지 않는다.
+  const statsLoadFailed = Boolean(todayRes.error || last30dRes.error)
+  const listLoadFailed = Boolean(listRes.error)
 
   const todayCounts = {
     total: todayRows.length,
@@ -146,15 +149,24 @@ export default async function SubscriptionChargesPage({
       {/* 대개편 v2 T1 — 정기배송 그룹 탭 + 헤더 zinc 통일 */}
       <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions/charges" />
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
           자동결제 이력
         </h1>
-        <p className="text-[13px] text-zinc-500 mt-1">
+        <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>정기배송 카드 자동결제가 언제 성공·실패했는지</Hl> 보는 곳이에요.
           실패한 결제는 <Em>자동으로 재시도</Em>되고, 계속 실패하면 대시보드
           처리 대기에 떠요.
         </p>
       </div>
+
+      {statsLoadFailed && (
+        <div className="mb-4">
+          <LoadError
+            what="결제 집계"
+            hint="아래 요약 카드 숫자는 실제보다 적게 보일 수 있어요. 새로고침해 주세요."
+          />
+        </div>
+      )}
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -215,10 +227,10 @@ export default async function SubscriptionChargesPage({
       {/* 리스트 */}
       {/* overflow-hidden 만 있으면 admin 공통 표 min-width(720px) 가 그냥 잘려서
           오른쪽 컬럼이 아예 안 보인다 — 안쪽에 가로 스크롤 래퍼(2026-07-25). */}
-      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full text-[13px]">
-          <thead className="bg-zinc-50 text-zinc-500 text-[11px]">
+        <table className="w-full min-w-[720px] text-[13px]">
+          <thead className="bg-secondary text-muted-foreground text-[11px]">
             <tr>
               <th className="text-left px-4 py-2.5 font-bold">시도일</th>
               <th className="text-left px-4 py-2.5 font-bold">상태</th>
@@ -229,9 +241,16 @@ export default async function SubscriptionChargesPage({
             </tr>
           </thead>
           <tbody>
-            {list.length === 0 ? (
+            {listLoadFailed ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-zinc-500">
+                <td colSpan={6} className="text-center py-12 text-destructive font-bold">
+                  결제 이력을 불러오지 못했어요 — 새로고침해 주세요 (없는 게
+                  아니라 조회 실패예요)
+                </td>
+              </tr>
+            ) : list.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-12 text-muted-foreground">
                   결과가 없어요
                 </td>
               </tr>
@@ -242,9 +261,9 @@ export default async function SubscriptionChargesPage({
                 return (
                   <tr
                     key={row.id}
-                    className="border-t border-zinc-200 hover:bg-zinc-50/40"
+                    className="border-t border-border hover:bg-secondary/40"
                   >
-                    <td className="px-4 py-3 text-zinc-800">
+                    <td className="px-4 py-3 text-foreground whitespace-nowrap">
                       {formatDateTime(row.attempted_at)}
                     </td>
                     <td className="px-4 py-3">
@@ -256,11 +275,11 @@ export default async function SubscriptionChargesPage({
                         {c.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
                       {row.amount.toLocaleString()}원
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">{row.scheduled_for}</td>
-                    <td className="px-4 py-3 text-[11.5px] text-zinc-500">
+                    <td className="px-4 py-3 text-muted-foreground">{row.scheduled_for}</td>
+                    <td className="px-4 py-3 text-[11.5px] text-muted-foreground">
                       {row.error_code && (
                         <span className="font-mono mr-1.5">
                           {row.error_code}
@@ -272,12 +291,12 @@ export default async function SubscriptionChargesPage({
                       {row.order_id ? (
                         <Link
                           href={`/admin/orders/${row.order_id}`}
-                          className="text-terracotta hover:underline text-[12px]"
+                          className="text-primary hover:underline text-[12px]"
                         >
                           주문 보기 →
                         </Link>
                       ) : (
-                        <span className="text-zinc-500/60">—</span>
+                        <span className="text-muted-foreground/60">—</span>
                       )}
                     </td>
                   </tr>
@@ -291,7 +310,7 @@ export default async function SubscriptionChargesPage({
 
       {/* 페이지네이션 — 단순 prev/next */}
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-[11.5px] text-zinc-500">
+        <p className="text-[11.5px] text-muted-foreground">
           페이지 {pageNum} · {list.length}건 표시 · 페이지당 {PAGE_SIZE}건
         </p>
         <div className="flex gap-2">
@@ -300,7 +319,7 @@ export default async function SubscriptionChargesPage({
               href={`${filterLink(status)}${
                 filterLink(status).includes('?') ? '&' : '?'
               }page=${pageNum - 1}`}
-              className="px-3 py-1.5 rounded-lg border border-zinc-200 text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
+              className="px-3 py-1.5 rounded-lg border border-border text-[12px] font-bold hover:border-primary hover:text-primary transition"
             >
               ← 이전
             </Link>
@@ -310,7 +329,7 @@ export default async function SubscriptionChargesPage({
               href={`${filterLink(status)}${
                 filterLink(status).includes('?') ? '&' : '?'
               }page=${pageNum + 1}`}
-              className="px-3 py-1.5 rounded-lg border border-zinc-200 text-[12px] font-bold hover:border-terracotta hover:text-terracotta transition"
+              className="px-3 py-1.5 rounded-lg border border-border text-[12px] font-bold hover:border-primary hover:text-primary transition"
             >
               다음 →
             </Link>
@@ -322,4 +341,4 @@ export default async function SubscriptionChargesPage({
 }
 
 // 로컬 FilterChip 제거(계획 B5-1, 2026-07-25) — ui.tsx 공통 컴포넌트로 통합.
-// 활성색이 여기만 웜 토큰 `bg-ink` 였는데 admin 정본인 zinc-900 으로 맞춰졌다.
+// 활성색이 여기만 웜 토큰 `bg-foreground` 였는데 admin 정본인 zinc-900 으로 맞춰졌다.

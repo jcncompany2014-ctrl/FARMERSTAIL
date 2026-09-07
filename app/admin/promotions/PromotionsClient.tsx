@@ -125,17 +125,17 @@ export default function PromotionsClient({
         <form onSubmit={create} className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">이벤트 이름</span>
+              <span className="text-[11px] font-bold text-muted-foreground">이벤트 이름</span>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="부산 펫박람회"
-                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-[13px]"
+                className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px]"
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">
+              <span className="text-[11px] font-bold text-muted-foreground">
                 링크 코드 (영문소문자·숫자)
               </span>
               <input
@@ -143,13 +143,13 @@ export default function PromotionsClient({
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
                 placeholder="busan1102"
-                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-[13px] font-mono"
+                className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px] font-mono"
               />
             </label>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">할인 %</span>
+              <span className="text-[11px] font-bold text-muted-foreground">할인 %</span>
               <input
                 required
                 type="number"
@@ -157,37 +157,37 @@ export default function PromotionsClient({
                 max={100}
                 value={form.discountPct}
                 onChange={(e) => setForm({ ...form, discountPct: e.target.value })}
-                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-[13px] tabular-nums"
+                className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px] tabular-nums"
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">시작</span>
+              <span className="text-[11px] font-bold text-muted-foreground">시작</span>
               <input
                 type="datetime-local"
                 value={form.startsAt}
                 onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-                className="mt-1 w-full rounded border border-zinc-300 px-2 py-2 text-[12px]"
+                className="mt-1 w-full rounded border border-input px-2 py-2 text-[12px]"
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">종료</span>
+              <span className="text-[11px] font-bold text-muted-foreground">종료</span>
               <input
                 required
                 type="datetime-local"
                 value={form.endsAt}
                 onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
-                className="mt-1 w-full rounded border border-zinc-300 px-2 py-2 text-[12px]"
+                className="mt-1 w-full rounded border border-input px-2 py-2 text-[12px]"
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-bold text-zinc-600">인원 상한</span>
+              <span className="text-[11px] font-bold text-muted-foreground">인원 상한</span>
               <input
                 type="number"
                 min={0}
                 value={form.maxSignups}
                 onChange={(e) => setForm({ ...form, maxSignups: e.target.value })}
                 placeholder="무제한"
-                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-[13px] tabular-nums"
+                className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px] tabular-nums"
               />
             </label>
           </div>
@@ -202,7 +202,7 @@ export default function PromotionsClient({
       {rows.length === 0 ? (
         <AdminCard>
           <SectionTitle title="이벤트" />
-          <p className="text-[12px] text-zinc-500">
+          <p className="text-[12px] text-muted-foreground">
             아직 이벤트가 없어요. 위에서 하나 만들면 링크와 QR 이 나와요.
           </p>
         </AdminCard>
@@ -217,11 +217,11 @@ export default function PromotionsClient({
                   {gate.open ? '진행 중' : PROMOTION_GATE_LABEL[gate.reason]}
                 </Badge>
                 <Badge tone="blue">{Math.round(p.discount_rate * 100)}% 할인</Badge>
-                <span className="text-[11px] text-zinc-500 tabular-nums">
+                <span className="text-[11px] text-muted-foreground tabular-nums">
                   {fmt(p.starts_at)} ~ {fmt(p.ends_at)}
                 </span>
                 {p.max_signups != null && (
-                  <span className="text-[11px] text-zinc-500 tabular-nums">
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
                     상한 {p.signups}/{p.max_signups}명
                   </span>
                 )}
@@ -229,14 +229,14 @@ export default function PromotionsClient({
 
               {/* 성과 — 광고 추적이 없는 지금, 채널 성과를 읽는 유일한 창 */}
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="rounded bg-zinc-50 px-3 py-2">
-                  <div className="text-[10px] font-bold text-zinc-500">
+                <div className="rounded bg-secondary px-3 py-2">
+                  <div className="text-[10px] font-bold text-muted-foreground">
                     가입
                   </div>
                   <div className="text-[20px] font-bold tabular-nums">{p.signups}명</div>
                 </div>
-                <div className="rounded bg-zinc-50 px-3 py-2">
-                  <div className="text-[10px] font-bold text-zinc-500">
+                <div className="rounded bg-secondary px-3 py-2">
+                  <div className="text-[10px] font-bold text-muted-foreground">
                     첫 결제
                   </div>
                   <div className="text-[20px] font-bold tabular-nums">{p.orders}명</div>
@@ -248,7 +248,7 @@ export default function PromotionsClient({
                   readOnly
                   value={linkOf(p.code)}
                   onClick={(e) => e.currentTarget.select()}
-                  className="flex-1 rounded border border-zinc-300 px-2 py-1.5 text-[11px] font-mono bg-zinc-50"
+                  className="flex-1 rounded border border-input px-2 py-1.5 text-[11px] font-mono bg-secondary"
                 />
                 <AdminButton type="button" onClick={() => copy(p.code)}>
                   {copied === p.code ? '복사됨' : '링크 복사'}
@@ -265,7 +265,7 @@ export default function PromotionsClient({
               </div>
 
               {openQr === p.code && (
-                <div className="mt-3 flex flex-col items-center gap-2 rounded border border-zinc-200 p-4 bg-white">
+                <div className="mt-3 flex flex-col items-center gap-2 rounded border border-border p-4 bg-card">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`/api/admin/promotions/qr?code=${encodeURIComponent(p.code)}`}
@@ -273,7 +273,7 @@ export default function PromotionsClient({
                     width={220}
                     height={220}
                   />
-                  <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
+                  <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
                     우클릭 → 이미지 저장 → 배너·포스터에 인쇄하세요.
                     <br />
                     찍으면 바로 설문이 열리고, 가입하면 {Math.round(p.discount_rate * 100)}%가

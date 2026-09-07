@@ -93,7 +93,8 @@ export default async function LabelPdfPage({
   const slug = meta ? SKU_TO_SLUG[skuKey] : undefined
   if (!meta || !slug) notFound()
 
-  const { data: productRow } = await supabase
+  // 규칙1 — error 를 버리면 DB 조회 실패가 "제품 미등록(404)"으로 위장한다.
+  const { data: productRow, error: productErr } = await supabase
     .from('products')
     .select(
       'name, net_weight_g, ingredients, allergens, feeding_guide, ' +
@@ -104,6 +105,7 @@ export default async function LabelPdfPage({
     .eq('is_active', true)
     .maybeSingle()
 
+  if (productErr) throw new Error(`제품 조회 실패: ${productErr.message}`)
   // 제품 미등록(연어 등) 또는 비활성 → 라벨 생성 불가.
   if (!productRow) notFound()
   const product = productRow as unknown as LabelProduct
@@ -168,7 +170,7 @@ export default async function LabelPdfPage({
             <ChevronLeft className="w-3 h-3" strokeWidth={2.5} />
             제품 관리
           </Link>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             {meta.code} 라벨 PDF
           </h1>
           <p className="text-[12px] text-muted mt-1">
@@ -180,7 +182,7 @@ export default async function LabelPdfPage({
 
       {/* 라벨 본문 — 인쇄 영역 */}
       <article
-        className="bg-white border-2 border-ink mx-auto"
+        className="bg-card border-2 border-ink mx-auto"
         style={{ maxWidth: 720, padding: '24px 32px' }}
       >
         {/* 1. 제품명 */}
@@ -188,7 +190,7 @@ export default async function LabelPdfPage({
           <p className="text-[10px] font-bold text-muted">
             제품명
           </p>
-          <h2 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight mt-0.5">
+          <h2 className="text-[22px] font-bold tracking-tight text-foreground leading-tight mt-0.5">
             파머스테일 {product.name}
             <span className="text-base font-mono text-muted ml-2">
               ({meta.code})
@@ -352,7 +354,7 @@ function Section({
 }) {
   return (
     <section className="mt-4 print:break-inside-avoid">
-      <h3 className="text-[10px] font-bold text-muted border-b border-zinc-200 pb-1 mb-2">
+      <h3 className="text-[10px] font-bold text-muted border-b border-border pb-1 mb-2">
         {title}
       </h3>
       {children}
@@ -362,7 +364,7 @@ function Section({
 
 function NutritionLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-zinc-200/40 py-1">
+    <div className="flex justify-between border-b border-border/50 py-1">
       <span className="text-text">{label}</span>
       <span className="font-mono tabular-nums text-text">{value}</span>
     </div>

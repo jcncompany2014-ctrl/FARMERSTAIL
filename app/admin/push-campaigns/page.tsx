@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import CampaignBuilder from './CampaignBuilder'
-import { AdminTabs } from '@/components/admin/ui'
+import { AdminTabs, LoadError } from '@/components/admin/ui'
 import { PUSH_TABS } from '@/components/admin/tabGroups'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic'
 export default async function AdminPushCampaignsPage() {
   const supabase = await createClient()
 
-  const { data: rawCampaigns } = await supabase
+  // 규칙1 — error 를 버리면 조회 실패가 "발송 캠페인 없음"으로 위장한다.
+  const { data: rawCampaigns, error: campaignsErr } = await supabase
     .from('push_campaigns')
     .select(
       'id, title, body, url, segment, recipient_count, sent_count, failed_count, created_at',
@@ -48,15 +49,15 @@ export default async function AdminPushCampaignsPage() {
       <AdminTabs tabs={PUSH_TABS} active="/admin/push-campaigns" />
       <header className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">알림 보내기</h1>
-          <p className="text-[12px] text-zinc-500 mt-1">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">알림 보내기</h1>
+          <p className="text-[12px] text-muted-foreground mt-1">
             보낼 고객 그룹을 고르고 한 번에 알림을 보내요. 광고성 알림은 수신
             동의한 분에게만 나가고, 밤 시간대(22~08시)엔 자동으로 멈춰요.
           </p>
         </div>
         <Link
           href="/admin"
-          className="text-[11px] text-zinc-500 hover:text-terracotta font-semibold"
+          className="text-[11px] text-muted-foreground hover:text-primary font-semibold"
         >
           ← 대시보드
         </Link>
@@ -64,10 +65,10 @@ export default async function AdminPushCampaignsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section>
-          <h2 className="text-[13px] font-black text-zinc-800 mb-3">새 캠페인</h2>
+          <h2 className="text-[13px] font-black text-foreground mb-3">새 캠페인</h2>
           <CampaignBuilder />
-          <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
-            <p className="text-[11px] text-zinc-800 leading-relaxed">
+          <div className="mt-3 p-3 rounded-xl bg-secondary border border-border">
+            <p className="text-[11px] text-foreground leading-relaxed">
               ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
               <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서
               마케팅을 끈 분이나 밤 시간대(22:00~08:00)인 분은 자동으로
@@ -77,17 +78,19 @@ export default async function AdminPushCampaignsPage() {
         </section>
 
         <section>
-          <h2 className="text-[13px] font-black text-zinc-800 mb-3">
+          <h2 className="text-[13px] font-black text-foreground mb-3">
             발송 이력 (최근 50건)
           </h2>
-          {campaigns.length === 0 ? (
-            <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
-              <p className="text-[12px] text-zinc-500">
+          {campaignsErr ? (
+            <LoadError what="발송 이력" />
+          ) : campaigns.length === 0 ? (
+            <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
+              <p className="text-[12px] text-muted-foreground">
                 아직 발송한 캠페인이 없어요.
               </p>
             </div>
           ) : (
-            <ul className="bg-white rounded-lg border border-zinc-200 overflow-hidden max-h-[600px] overflow-y-auto">
+            <ul className="bg-card rounded-xl border border-border shadow-sm overflow-hidden max-h-[600px] overflow-y-auto">
               {campaigns.map((c) => {
                 const successRate =
                   c.recipient_count > 0
@@ -96,36 +99,36 @@ export default async function AdminPushCampaignsPage() {
                 return (
                   <li
                     key={c.id}
-                    className="border-b border-zinc-200 last:border-b-0 px-4 py-3"
+                    className="border-b border-border last:border-b-0 px-4 py-3"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[12.5px] font-bold text-zinc-800">
+                      <p className="text-[12.5px] font-bold text-foreground">
                         {c.title}
                       </p>
-                      <span className="text-[9px] text-terracotta font-bold shrink-0">
+                      <span className="text-[9px] text-primary font-bold shrink-0">
                         {segmentLabel[c.segment]}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-500 mt-1 line-clamp-2">
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">
                       {c.body}
                     </p>
                     <div className="flex items-center gap-3 mt-2 text-[10px] tabular-nums">
-                      <span className="text-zinc-800">
+                      <span className="text-foreground">
                         대상 {c.recipient_count.toLocaleString()}명
                       </span>
-                      <span className="text-moss font-bold">
+                      <span className="text-emerald-700 font-bold">
                         성공 {c.sent_count.toLocaleString()}
                       </span>
                       {c.failed_count > 0 && (
-                        <span className="text-sale font-bold">
+                        <span className="text-destructive font-bold">
                           실패 {c.failed_count}
                         </span>
                       )}
-                      <span className="text-terracotta font-bold ml-auto">
+                      <span className="text-primary font-bold ml-auto">
                         {successRate.toFixed(1)}%
                       </span>
                     </div>
-                    <p className="text-[10px] text-zinc-500 font-mono mt-1">
+                    <p className="text-[10px] text-muted-foreground font-mono mt-1">
                       {new Date(c.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </p>
                   </li>

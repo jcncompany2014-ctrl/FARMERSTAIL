@@ -179,18 +179,18 @@ export default function MessageComposer({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-zinc-200 p-5 space-y-4">
+    <div className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-4">
       {/* 템플릿 */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">
             템플릿 (자주 쓰는 메시지)
           </label>
           {/* 계획 A-F7 — 지금 쓴 문구를 템플릿으로 저장(이 기기에만) */}
           <button
             type="button"
             onClick={saveCurrentAsTemplate}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-500 hover:text-zinc-800"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-3 w-3" strokeWidth={2.6} />
             현재 문구 저장
@@ -202,7 +202,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
               key={t.label}
               type="button"
               onClick={() => applyTemplate(t)}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-zinc-200 bg-white text-zinc-800 hover:border-zinc-800 transition"
+              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-border bg-card text-foreground hover:border-input transition"
             >
               {t.label}
             </button>
@@ -232,15 +232,15 @@ export default function MessageComposer({ userId }: { userId: string }) {
           ))}
         </div>
         {customTemplates.length > 0 && (
-          <p className="mt-1.5 text-[10.5px] text-zinc-400">
+          <p className="mt-1.5 text-[10.5px] text-muted-foreground">
             초록색은 직접 만든 템플릿이에요 (이 기기에만 저장돼요).
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
-          제목 <span className="text-zinc-500/70">({title.length}/80)</span>
+        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1.5">
+          제목 <span className="text-muted-foreground/70">({title.length}/80)</span>
         </label>
         <input
           type="text"
@@ -248,13 +248,13 @@ export default function MessageComposer({ userId }: { userId: string }) {
           onChange={(e) => setTitle(e.target.value.slice(0, 80))}
           maxLength={80}
           placeholder="알림 제목"
-          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-border bg-card text-[13px] focus:outline-none focus:border-primary transition"
         />
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
-          본문 <span className="text-zinc-500/70">({body.length}/240)</span>
+        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1.5">
+          본문 <span className="text-muted-foreground/70">({body.length}/240)</span>
         </label>
         <textarea
           value={body}
@@ -262,12 +262,12 @@ export default function MessageComposer({ userId }: { userId: string }) {
           maxLength={240}
           rows={4}
           placeholder="알림 본문"
-          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition resize-none"
+          className="w-full px-3 py-2.5 rounded-lg border border-border bg-card text-[13px] focus:outline-none focus:border-primary transition resize-none"
         />
       </div>
 
       <div>
-        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-1.5">
+        <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1.5">
           이동할 URL (선택)
         </label>
         <input
@@ -275,25 +275,25 @@ export default function MessageComposer({ userId }: { userId: string }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="예: /mypage/orders/123 (생략 시 알림 센터)"
-          className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-[#FDFDFD] text-[13px] focus:outline-none focus:border-terracotta transition"
+          className="w-full px-3 py-2.5 rounded-lg border border-border bg-card text-[13px] focus:outline-none focus:border-primary transition"
         />
       </div>
 
       {/* preview */}
       {(title || body) && (
-        <div className="rounded-xl border border-dashed border-zinc-200 p-3.5 bg-zinc-50">
+        <div className="rounded-xl border border-dashed border-border p-3.5 bg-secondary">
           <div className="flex items-start gap-2">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <Bell className="w-3.5 h-3.5 text-white" strokeWidth={2} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] text-zinc-500 font-bold">
+              <p className="text-[10px] text-muted-foreground font-bold">
                 Preview · 미리보기
               </p>
-              <p className="text-[12.5px] font-bold text-zinc-800 mt-0.5 truncate">
+              <p className="text-[12.5px] font-bold text-foreground mt-0.5 truncate">
                 {title || '(제목)'}
               </p>
-              <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-3">
+              <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-3">
                 {body || '(본문)'}
               </p>
             </div>
@@ -305,7 +305,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
         type="button"
         onClick={send}
         disabled={sending || !title.trim() || !body.trim()}
-        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-900 text-white text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-foreground text-background text-[13px] font-black active:scale-[0.98] transition disabled:opacity-50"
       >
         {sending ? (
           <>
@@ -321,7 +321,7 @@ export default function MessageComposer({ userId }: { userId: string }) {
       </button>
 
       {lastResult && (
-        <div className="text-[11px] text-zinc-500 text-center">
+        <div className="text-[11px] text-muted-foreground text-center">
           마지막 발송 결과 · 성공 {lastResult.sent}대 / 만료 토큰 정리{' '}
           {lastResult.dead}대
           {lastResult.reason ? ` · ${lastResult.reason}` : ''}

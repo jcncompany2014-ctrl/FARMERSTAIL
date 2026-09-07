@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { AdminTabs, Hl, Em } from '@/components/admin/ui'
+import { AdminTabs, Hl, Em, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 
 /**
@@ -61,7 +61,8 @@ export default async function SubscriptionsCalendarPage({
   const supabase = await createClient()
 
   // 활성 + paused 구독 모두 표시 (paused 는 다음 발송 예정인지 본 후 dim 으로).
-  const { data: subs } = await supabase
+  // 규칙1 — error 를 버리면 조회 실패가 "이번 달 배송 없음" 빈 달력으로 보인다.
+  const { data: subs, error: subsErr } = await supabase
     .from('subscriptions')
     .select(
       'id, status, next_delivery_date, total_amount, recipient_name, profiles(name, email), subscription_items(product_name, quantity)',
@@ -146,10 +147,10 @@ export default async function SubscriptionsCalendarPage({
       <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions/calendar" />
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
-          <h1 className="text-[22px] font-bold tracking-tight text-zinc-900 leading-tight">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
             배송 캘린더
           </h1>
-          <p className="text-[13px] text-zinc-500 mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>앞으로 나갈 배송을 달력으로</Hl> 봐요 (발송은{' '}
             <Em>매주 화요일 하루</Em>예요). 날짜를 보고 몇 박스를 준비해야 할지
             미리 가늠할 수 있어요. — 이번 달 예정 {monthTotalCount}건 · 합계{' '}
@@ -160,46 +161,55 @@ export default async function SubscriptionsCalendarPage({
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/subscriptions/calendar?ym=${prevYm}`}
-            className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition"
+            className="p-2 rounded-lg border border-border hover:bg-secondary/50 transition"
             aria-label="이전 달"
           >
-            <ChevronLeft className="w-4 h-4 text-zinc-900" strokeWidth={2} />
+            <ChevronLeft className="w-4 h-4 text-foreground" strokeWidth={2} />
           </Link>
           <h2
-            className="font-bold tracking-tight text-xl text-zinc-900 min-w-[140px] text-center"
+            className="font-bold tracking-tight text-xl text-foreground min-w-[140px] text-center"
             style={{ letterSpacing: '0.02em' }}
           >
             {year}.{pad(month)}
           </h2>
           <Link
             href={`/admin/subscriptions/calendar?ym=${nextYm}`}
-            className="p-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 transition"
+            className="p-2 rounded-lg border border-border hover:bg-secondary/50 transition"
             aria-label="다음 달"
           >
-            <ChevronRight className="w-4 h-4 text-zinc-900" strokeWidth={2} />
+            <ChevronRight className="w-4 h-4 text-foreground" strokeWidth={2} />
           </Link>
           <Link
             href="/admin/subscriptions/calendar"
-            className="ml-2 px-3 py-2 rounded-lg border border-zinc-200 text-[11px] hover:bg-zinc-50 transition"
+            className="ml-2 px-3 py-2 rounded-lg border border-border text-[11px] hover:bg-secondary/50 transition"
           >
             오늘
           </Link>
         </div>
       </div>
 
+      {subsErr && (
+        <div className="mb-4">
+          <LoadError
+            what="배송 일정"
+            hint="달력이 비어 보여도 배송이 없는 게 아니에요 — 조회가 실패했어요. 새로고침해 주세요."
+          />
+        </div>
+      )}
+
       {/* 캘린더 그리드 */}
-      <div className="rounded-lg bg-white border border-zinc-200 overflow-hidden">
+      <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 border-b border-zinc-200">
+        <div className="grid grid-cols-7 border-b border-border">
           {WEEK_LABELS.map((label, i) => (
             <div
               key={label}
               className={`px-3 py-2 text-[10px] font-bold text-center ${
                 i === 0
-                  ? 'text-sale'
+                  ? 'text-destructive'
                   : i === 6
-                  ? 'text-terracotta'
-                  : 'text-zinc-500'
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
               }`}
             >
               {label}
@@ -212,16 +222,20 @@ export default async function SubscriptionsCalendarPage({
           {cells.map((c, idx) => {
             const weekday = idx % 7
             const dayColor =
-              weekday === 0 ? '#A23B2A' : weekday === 6 ? '#A0452E' : 'var(--ink)'
+              weekday === 0
+                ? 'var(--adm-destructive)'
+                : weekday === 6
+                  ? 'var(--adm-primary)'
+                  : 'var(--adm-foreground)'
             return (
               <div
                 key={idx}
-                className={`relative min-h-[110px] border-r border-b border-zinc-200 p-2 ${
-                  c.isToday ? 'bg-terracotta/5' : ''
-                } ${c.date === null ? 'bg-zinc-50/60' : ''}`}
+                className={`relative min-h-[110px] border-r border-b border-border p-2 ${
+                  c.isToday ? 'bg-primary/5' : ''
+                } ${c.date === null ? 'bg-secondary/60' : ''}`}
                 style={{
                   borderRight:
-                    weekday === 6 ? 'none' : '1px solid var(--rule)',
+                    weekday === 6 ? 'none' : '1px solid var(--adm-border)',
                 }}
               >
                 {c.day !== null && (
@@ -231,12 +245,12 @@ export default async function SubscriptionsCalendarPage({
                         c.isToday ? 'font-bold' : ''
                       }`}
                       style={{
-                        color: c.isToday ? 'var(--terracotta)' : dayColor,
+                        color: c.isToday ? 'var(--adm-primary)' : dayColor,
                       }}
                     >
                       {c.day}
                       {c.isToday && (
-                        <span className="ml-1 inline-flex items-center text-[8px] font-bold px-1 rounded bg-terracotta text-white">
+                        <span className="ml-1 inline-flex items-center text-[8px] font-bold px-1 rounded bg-primary text-white">
                           오늘
                         </span>
                       )}
@@ -248,8 +262,8 @@ export default async function SubscriptionsCalendarPage({
                           href={`/admin/subscriptions?focus=${it.id}`}
                           className={`block text-[10px] px-1.5 py-1 rounded transition hover:opacity-80 ${
                             it.status === 'paused'
-                              ? 'bg-gold/15 text-gold'
-                              : 'bg-moss/15 text-moss'
+                              ? 'bg-amber-500/15 text-amber-600'
+                              : 'bg-emerald-600/15 text-emerald-700'
                           }`}
                           title={`${it.recipient_name ?? '수령인 미지정'} · ${(it.subscription_items ?? []).map((x) => `${x.product_name}×${x.quantity}`).join(', ')}`}
                         >
@@ -271,7 +285,7 @@ export default async function SubscriptionsCalendarPage({
                       {c.items.length > 3 && c.date && (
                         <Link
                           href={`/admin/subscriptions/calendar?ym=${year}-${pad(month)}&day=${c.date}#day-detail`}
-                          className="block text-[10px] font-bold text-terracotta px-1.5 hover:underline"
+                          className="block text-[10px] font-bold text-primary px-1.5 hover:underline"
                         >
                           +{c.items.length - 3}건 더 보기
                         </Link>
@@ -290,38 +304,38 @@ export default async function SubscriptionsCalendarPage({
       {dayParam && (
         <section
           id="day-detail"
-          className="mt-6 rounded-lg border border-zinc-200 bg-white p-5"
+          className="mt-6 rounded-xl border border-border bg-card shadow-sm p-5"
         >
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-[15px] font-bold text-zinc-900">
+              <h2 className="text-[15px] font-bold text-foreground">
                 {dayParam} 배송 전체
               </h2>
-              <p className="text-[12px] text-zinc-500 mt-0.5">
+              <p className="text-[12px] text-muted-foreground mt-0.5">
                 이 날짜에 나갈 정기배송 {(subsByDay.get(dayParam) ?? []).length}
                 건이에요.
               </p>
             </div>
             <Link
               href={`/admin/subscriptions/calendar?ym=${year}-${pad(month)}`}
-              className="text-[11px] font-bold text-zinc-500 hover:text-zinc-800 shrink-0"
+              className="text-[11px] font-bold text-muted-foreground hover:text-foreground shrink-0"
             >
               닫기 ✕
             </Link>
           </div>
           {(subsByDay.get(dayParam) ?? []).length === 0 ? (
-            <p className="text-[13px] text-zinc-500">
+            <p className="text-[13px] text-muted-foreground">
               이 날짜에 예정된 배송이 없어요.
             </p>
           ) : (
-            <ul className="divide-y divide-zinc-100">
+            <ul className="divide-y divide-border">
               {(subsByDay.get(dayParam) ?? []).map((it) => (
                 <li key={it.id} className="py-2.5">
                   <Link
                     href={`/admin/subscriptions?focus=${it.id}`}
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80"
                   >
-                    <span className="text-[13px] font-bold text-zinc-900">
+                    <span className="text-[13px] font-bold text-foreground">
                       {it.recipient_name ?? it.profiles?.name ?? '수령인 미지정'}
                     </span>
                     {it.status === 'paused' && (
@@ -329,12 +343,12 @@ export default async function SubscriptionsCalendarPage({
                         일시정지
                       </span>
                     )}
-                    <span className="text-[12px] text-zinc-500">
+                    <span className="text-[12px] text-muted-foreground">
                       {(it.subscription_items ?? [])
                         .map((x) => `${x.product_name}×${x.quantity}`)
                         .join(', ') || '구성 미등록'}
                     </span>
-                    <span className="ml-auto text-[12px] font-bold text-zinc-700 tabular-nums">
+                    <span className="ml-auto text-[12px] font-bold text-foreground tabular-nums">
                       {(it.total_amount ?? 0).toLocaleString()}원
                     </span>
                   </Link>
@@ -346,13 +360,13 @@ export default async function SubscriptionsCalendarPage({
       )}
 
       {/* 범례 */}
-      <div className="mt-4 flex items-center gap-4 text-[11px] text-zinc-500">
+      <div className="mt-4 flex items-center gap-4 text-[11px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-moss" />
+          <span className="w-2.5 h-2.5 rounded bg-emerald-600" />
           구독 중
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-gold" />
+          <span className="w-2.5 h-2.5 rounded bg-amber-500" />
           일시정지
         </span>
         <span className="ml-auto text-[10px] font-mono">
