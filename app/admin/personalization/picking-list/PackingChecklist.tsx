@@ -97,12 +97,12 @@ export default function PackingChecklist({
   return (
     <div>
       {/* 진행 바 — 몇 개 남았는지 한눈에 */}
-      <div className="mb-3 flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3">
+      <div className="mb-3 flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
         <div className="flex-1">
-          <p className="text-[12px] font-bold text-zinc-800">
+          <p className="text-[12px] font-bold text-foreground">
             포장 진행 {loaded ? doneCount : 0} / {total}
           </p>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full rounded-full bg-emerald-500 transition-[width]"
               style={{
@@ -110,7 +110,7 @@ export default function PackingChecklist({
               }}
             />
           </div>
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             박스를 쌀 때마다 체크하세요. 이 기기에만 저장되고, 발송일이 바뀌면
             자동으로 초기화돼요.
           </p>
@@ -119,7 +119,7 @@ export default function PackingChecklist({
           <button
             type="button"
             onClick={reset}
-            className="shrink-0 rounded-full border border-zinc-200 px-3 py-1.5 text-[11px] font-bold text-zinc-600 hover:border-zinc-400"
+            className="shrink-0 rounded-full border border-border px-3 py-1.5 text-[11px] font-bold text-muted-foreground hover:border-input"
           >
             체크 초기화
           </button>
@@ -140,7 +140,7 @@ export default function PackingChecklist({
                 className={`absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
                   isDone
                     ? 'bg-emerald-500 text-white'
-                    : 'border border-zinc-300 bg-white text-zinc-600 hover:border-emerald-400 hover:text-emerald-600'
+                    : 'border border-input bg-card text-muted-foreground hover:border-emerald-400 hover:text-emerald-600'
                 }`}
               >
                 <Check className="h-3.5 w-3.5" strokeWidth={2.6} />

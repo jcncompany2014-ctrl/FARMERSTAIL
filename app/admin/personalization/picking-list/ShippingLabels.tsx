@@ -98,7 +98,7 @@ export default function ShippingLabels({
       type="button"
       onClick={openLabels}
       disabled={rows.length === 0}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-zinc-200 bg-white text-[12px] font-bold text-zinc-700 hover:border-zinc-400 transition disabled:opacity-40"
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-border bg-card text-[12px] font-bold text-foreground hover:border-input transition disabled:opacity-40"
     >
       <Tag className="w-3.5 h-3.5" strokeWidth={2.2} />
       배송 라벨 인쇄

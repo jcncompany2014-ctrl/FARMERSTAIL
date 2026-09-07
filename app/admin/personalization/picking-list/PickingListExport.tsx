@@ -164,7 +164,7 @@ export default function PickingListExport({
       type="button"
       onClick={downloadCsv}
       disabled={rows.length === 0}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold disabled:opacity-40 bg-zinc-900 text-white"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold disabled:opacity-40 bg-foreground text-background"
     >
       <Download size={12} strokeWidth={2.5} />
       CSV 다운로드

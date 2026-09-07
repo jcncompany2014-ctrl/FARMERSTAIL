@@ -603,14 +603,14 @@ export default async function PickingListPage({
             {[...cookTotals.entries()].map(([name, t]) => (
               <div
                 key={name}
-                className="rounded-lg border border-zinc-200 px-3 py-2.5"
+                className="rounded-lg border border-border px-3 py-2.5"
               >
-                <p className="text-[12px] font-bold text-zinc-800 truncate">
+                <p className="text-[12px] font-bold text-foreground truncate">
                   {name}
                 </p>
-                <p className="text-[15px] font-bold text-zinc-900 mt-0.5">
+                <p className="text-[15px] font-bold text-foreground mt-0.5">
                   {(t.grams / 1000).toFixed(2)}kg
-                  <span className="text-[11px] text-zinc-500 font-semibold ml-1.5">
+                  <span className="text-[11px] text-muted-foreground font-semibold ml-1.5">
                     {t.packs}팩
                   </span>
                 </p>
@@ -623,7 +623,7 @@ export default async function PickingListPage({
       {/* 박스 목록 */}
       {rows.length === 0 ? (
         <AdminCard>
-          <p className="text-[13px] text-zinc-500">
+          <p className="text-[13px] text-muted-foreground">
             이 발송일에 나갈 박스가 없어요. 카드가 등록된 활성 구독만 발송
             대상이에요.
           </p>
@@ -634,10 +634,10 @@ export default async function PickingListPage({
           {rows.map((r) => (
             <AdminCard key={r.subId} className="overflow-hidden">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[15px] font-bold text-zinc-900">
+                <span className="text-[15px] font-bold text-foreground">
                   {r.dogName}
                 </span>
-                <span className="text-[12px] text-zinc-500">
+                <span className="text-[12px] text-muted-foreground">
                   {r.recipientName}
                 </span>
                 <Badge tone={r.freshUnknown ? 'red' : 'blue'}>
@@ -766,13 +766,13 @@ export default async function PickingListPage({
                   {r.packs.map((p) => (
                     <div
                       key={p.name}
-                      className="rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2"
+                      className="rounded-lg bg-secondary border border-border px-3 py-2"
                     >
-                      <p className="text-[12px] font-bold text-zinc-800">
+                      <p className="text-[12px] font-bold text-foreground">
                         {p.name}
                       </p>
-                      <p className="text-[12.5px] text-zinc-600 mt-0.5">
-                        <strong className="text-zinc-900">{p.packG}g</strong> ×{' '}
+                      <p className="text-[12.5px] text-muted-foreground mt-0.5">
+                        <strong className="text-foreground">{p.packG}g</strong> ×{' '}
                         {p.count}팩 ={' '}
                         {p.totalG >= 1000
                           ? `${(p.totalG / 1000).toFixed(2)}kg`
@@ -785,7 +785,7 @@ export default async function PickingListPage({
 
               {/* 주소·전화는 눌러서 복사 — 폰으로 드래그 선택하다 잘못 복사하면
                   엉뚱한 곳으로 박스가 간다(2026-08-07 감사). */}
-              <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-zinc-500">
+              <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
                 <CopyField
                   value={`[${r.zip}] ${r.addressLine}`}
                   label={`[${r.zip}] ${r.addressLine}`}
@@ -799,12 +799,12 @@ export default async function PickingListPage({
                 {r.order && (
                   <Link
                     href={`/admin/orders/${r.order.id}`}
-                    className="font-bold text-terracotta underline underline-offset-2"
+                    className="font-bold text-primary underline underline-offset-2"
                   >
                     주문 {r.order.orderNumber} →
                   </Link>
                 )}
-                <span className="ml-auto font-bold text-zinc-700">
+                <span className="ml-auto font-bold text-foreground">
                   {r.totalAmount.toLocaleString()}원
                 </span>
               </div>
@@ -815,9 +815,9 @@ export default async function PickingListPage({
 
       {/* 합계 푸터 */}
       {rows.length > 0 && (
-        <p className="mt-4 text-right text-[12px] text-zinc-500">
+        <p className="mt-4 text-right text-[12px] text-muted-foreground">
           청구 합계{' '}
-          <strong className="text-zinc-800">
+          <strong className="text-foreground">
             {totalAmountSum.toLocaleString()}원
           </strong>{' '}
           · {rows.length}박스 · {totalPacks}팩 ·{' '}
