@@ -113,9 +113,10 @@ const SLIDES: Slide[] = [
     ],
   },
   {
-    // 홈 화면 자산을 재사용하고 그 위에 알림 카드를 얹는다 — 알림은 원래
-    // 앱을 안 보고 있을 때 오는 것이라 별도 촬영본이 필요 없다.
-    shot: '/onboarding/app-home.webp',
+    // ★홈 화면이 아니라 **체중 기록 바텀시트**를 깐다(2026-09-08 사장님:
+    //   "홈메뉴 없이 알림만 강조, 아래에 무게 재라는 팝업 살짝").
+    //   알림을 누르면 가는 곳이 바로 이 화면이라 이야기도 이어진다.
+    shot: '/onboarding/app-weight.webp',
     lead: '체중만 기록해두면',
     punch: '다음 박스가 달라져요',
     note: '4주마다 변화를 확인해서, 먹일 열량을 다시 계산해 알려드려요',
@@ -492,6 +493,19 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
         >
           {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
               2~4번째 장이 영영 로드되지 않는다(naturalWidth 0). 전부 eager. */}
+          {/* ★알림 장은 화면을 어둡게 깔아 알림만 도드라지게 한다(레퍼런스).
+              팝업 형태는 남을 만큼만 덮는다 — 사장님이 "살짝 넣고" 라고 했다. */}
+          {slide.notify && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 2,
+                background:
+                  'linear-gradient(180deg, rgba(26,12,4,0.62) 0%, rgba(26,12,4,0.52) 45%, rgba(26,12,4,0.34) 100%)',
+              }}
+            />
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element -- 화면 스크린샷, next/image 이득 없음 */}
           <img
             src={slide.shot}
@@ -539,77 +553,80 @@ function NotifyCard({ notify }: { notify: NonNullable<Slide['notify']> }) {
     <div
       style={{
         position: 'absolute',
-        top: '9%',
-        left: '4%',
-        right: '4%',
-        zIndex: 4,
-        display: 'flex',
-        gap: 10,
-        padding: '12px 13px',
-        borderRadius: 18,
-        background: 'rgba(255,255,255,0.86)',
+        // 레퍼런스처럼 **화면 폭을 거의 꽉** 채우고 위쪽에 크게 앉힌다.
+        top: '11%',
+        left: '3%',
+        right: '3%',
+        zIndex: 5,
+        padding: '17px 17px 18px',
+        borderRadius: 22,
+        background: 'rgba(255,255,255,0.80)',
         border: '1px solid rgba(255,255,255,0.9)',
-        backdropFilter: 'blur(16px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(150%)',
+        backdropFilter: 'blur(20px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(150%)',
         boxShadow:
-          '0 22px 40px -16px rgba(48,14,3,0.6), 0 4px 12px -4px rgba(48,14,3,0.3)',
+          '0 28px 52px -18px rgba(30,10,2,0.7), 0 6px 16px -6px rgba(30,10,2,0.4)',
       }}
     >
+      {/* 벨은 **카드 밖 좌상단으로 돌출** — 레퍼런스의 가장 특징적인 부분이다. */}
       <span
         style={{
+          position: 'absolute',
+          top: -16,
+          left: -12,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 30,
-          height: 30,
-          flexShrink: 0,
-          borderRadius: 10,
+          width: 42,
+          height: 42,
+          borderRadius: '50%',
           background: 'var(--terracotta, #C86B45)',
           color: '#fff',
-          boxShadow: '0 5px 12px -4px rgba(200,107,69,0.75)',
+          border: '3px solid rgba(255,255,255,0.55)',
+          boxShadow: '0 10px 20px -6px rgba(150,60,25,0.8)',
         }}
       >
-        <Bell size={16} strokeWidth={2.6} />
+        <Bell size={19} strokeWidth={2.7} />
       </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 10,
+          paddingLeft: 22,
+        }}
+      >
+        <span
           style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
-            gap: 8,
+            fontSize: 15.5,
+            fontWeight: 800,
+            letterSpacing: '-0.035em',
+            color: 'var(--ink, #2A1F16)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
         >
-          <span
-            style={{
-              fontSize: 12.5,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              color: 'var(--ink, #2A1F16)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {notify.title}
-          </span>
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: '#8A7768', flexShrink: 0 }}>
-            방금
-          </span>
-        </div>
-        <p
-          style={{
-            margin: '3px 0 0',
-            fontSize: 11.5,
-            lineHeight: 1.45,
-            letterSpacing: '-0.02em',
-            color: '#5A4A3A',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {notify.body}
-        </p>
+          {notify.title}
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A7768', flexShrink: 0 }}>
+          방금
+        </span>
       </div>
+      <p
+        style={{
+          margin: '7px 0 0',
+          fontSize: 13,
+          lineHeight: 1.5,
+          letterSpacing: '-0.02em',
+          color: '#4A3B2C',
+          wordBreak: 'keep-all',
+        }}
+      >
+        {notify.body}
+      </p>
     </div>
   )
 }
