@@ -7,7 +7,7 @@
  *   ① **채도 있는 그라데이션 배경** 위에 흰 헤드라인 — 예전의 베이지 배경 +
  *      흰 패널 조합은 전부 평평해 보였다.
  *   ② 큰 두 줄 헤드라인 — 조건줄 작고 연하게, 결과줄 크고 진하게. 결과줄은
- *      **구체적 숫자**를 말하고(화식 65g / 하루 288kcal) 스크린샷이 그걸 증명한다.
+ *      **구체적 숫자**를 말하고(화식 210g / 하루 288kcal) 스크린샷이 그걸 증명한다.
  *   ③ 폰이 아래로 잘려 나간다 — 여백 안에 얌전히 들어가면 작아 보인다.
  *   ④ 폰 가장자리에 걸친 **유리 카드** 배지. 알약(pill) 금지 — CTA 버튼과 같은
  *      옷이 되어 "버튼같이 설명하는 거"로 읽힌다(사장님 반려). 카드는 폰 밖으로
@@ -28,10 +28,30 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  CalendarDays,
+  FileDown,
+  PauseCircle,
+  PawPrint,
+  Scale,
+  ShieldCheck,
+  Truck,
+  UtensilsCrossed,
+  type LucideIcon,
+} from 'lucide-react'
 import { markOnboarded } from '@/lib/onboarding'
 
-/** 폰 가장자리에 걸치는 유리 카드. top 은 **화면(스크린샷) 높이 기준 비율**. */
-type Badge = { text: string; side: 'left' | 'right'; top: string }
+/**
+ * 폰 가장자리에 걸치는 유리 카드. top 은 **화면(스크린샷) 높이 기준 비율**.
+ * icon 은 lucide 아이콘 — 브랜드색 원 안에 흰 아이콘으로 앞에 세운다
+ * (2026-09-08 사장님 레퍼런스: 반투명 카드 + 앞에 컬러 아이콘).
+ */
+type Badge = {
+  text: string
+  side: 'left' | 'right'
+  top: string
+  Icon: LucideIcon
+}
 
 type Slide = {
   shot: string
@@ -64,22 +84,22 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     shot: '/onboarding/app-home.webp',
-    lead: '오늘 코코가 먹을 양은',
-    punch: '화식 65g',
+    lead: '오늘 푸린이가 먹을 양은',
+    punch: '화식 210g',
     note: '먹일 양을 그램까지 계산하고, 그 양 그대로 소분 포장해 보내드려요',
     badges: [
-      { text: '오늘 급여량', side: 'left', top: '62%' },
-      { text: '여러 마리 관리', side: 'right', top: '27%' },
+      { text: '오늘 급여량', side: 'left', top: '62%', Icon: UtensilsCrossed },
+      { text: '여러 마리 관리', side: 'right', top: '27%', Icon: PawPrint },
     ],
   },
   {
     shot: '/onboarding/app-analysis.webp',
-    lead: '4.2kg 푸들 코코에게 필요한 건',
+    lead: '4.3kg 푸들 푸린이에게 필요한 건',
     punch: '하루 288kcal',
     note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
     badges: [
-      { text: '그램 단위 계산', side: 'right', top: '20%' },
-      { text: '국제 기준 충족', side: 'left', top: '72%' },
+      { text: '그램 단위 계산', side: 'right', top: '20%', Icon: Scale },
+      { text: '국제 기준 충족', side: 'left', top: '72%', Icon: ShieldCheck },
     ],
   },
   {
@@ -88,8 +108,8 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { text: '12개월 요약', side: 'left', top: '36%' },
-      { text: 'PDF 저장', side: 'right', top: '62%' },
+      { text: '12개월 요약', side: 'left', top: '36%', Icon: CalendarDays },
+      { text: 'PDF 저장', side: 'right', top: '62%', Icon: FileDown },
     ],
   },
   {
@@ -100,8 +120,8 @@ const SLIDES: Slide[] = [
     note: '봉지만 뜯어 그대로 주면 끝 — 계량도 남는 양 고민도 없어요',
     // 이 자산은 아래 절반이 비어 있다 — 배지를 그 자리에 내려 균형을 맞춘다.
     badges: [
-      { text: '배송일 변경', side: 'left', top: '58%' },
-      { text: '일시정지', side: 'right', top: '72%' },
+      { text: '배송일 변경', side: 'left', top: '58%', Icon: Truck },
+      { text: '일시정지', side: 'right', top: '72%', Icon: PauseCircle },
     ],
   },
 ]
@@ -494,22 +514,44 @@ function BadgeCard({ badge }: { badge: Badge }) {
         // 밖으로 잘린다. 32px 면 배지의 1/3 이 밖, 2/3 가 기기 위에 걸친다.
         ...(badge.side === 'left' ? { left: -(BEZEL + 32) } : { right: -(BEZEL + 32) }),
         zIndex: 3,
-        display: 'inline-block',
-        padding: '9px 14px',
-        borderRadius: 13,
-        background: 'rgba(255,255,255,0.97)',
-        border: '1px solid rgba(255,255,255,0.9)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        // ★반투명 유리 + 앞에 브랜드색 아이콘(2026-09-08 사장님 레퍼런스).
+        //   불투명 흰 카드는 스크린샷 위에 종이를 덧댄 것처럼 보였다 — 살짝
+        //   비쳐야 "화면 위에 뜬 라벨"로 읽힌다. blur 를 크게 줘야 비침이
+        //   지저분해지지 않는다.
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '7px 13px 7px 7px',
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.74)',
+        border: '1px solid rgba(255,255,255,0.85)',
+        backdropFilter: 'blur(14px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(140%)',
         fontSize: 12,
         fontWeight: 800,
         letterSpacing: '-0.03em',
         whiteSpace: 'nowrap',
         color: 'var(--ink, #2A1F16)',
         boxShadow:
-          '0 18px 30px -14px rgba(48,14,3,0.6), 0 4px 10px -3px rgba(48,14,3,0.35)',
+          '0 18px 30px -14px rgba(48,14,3,0.55), 0 4px 10px -3px rgba(48,14,3,0.3)',
       }}
     >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 24,
+          height: 24,
+          borderRadius: 8,
+          flexShrink: 0,
+          background: 'var(--terracotta, #C86B45)',
+          color: '#fff',
+          boxShadow: '0 4px 10px -3px rgba(200,107,69,0.7)',
+        }}
+      >
+        <badge.Icon size={14} strokeWidth={2.6} />
+      </span>
       {badge.text}
     </span>
   )

@@ -20,9 +20,21 @@ type SearchParams = Promise<{ from?: string }>
  *
  * 디자인: 마케팅 + 파머스독(FD) 톤. 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
  */
-/** 스토어 URL — 출시 전에는 비어 있고, 그때는 배지를 아예 안 그린다. */
-const IOS_URL = process.env.NEXT_PUBLIC_IOS_APP_URL ?? ''
-const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL ?? ''
+/**
+ * 스토어 URL — **두 앱 모두 출시됐으므로 코드에 박는다**(2026-09-08 사장님 제보:
+ * "플레이스토어만 보이고 앱스토어가 없다").
+ *
+ * 예전엔 출시 전이라 env 로 두고 값이 없으면 배지를 숨겼는데, iOS 출시(9/5) 후
+ * `NEXT_PUBLIC_IOS_APP_URL` 이 **프로덕션 env 에 없어서 앱스토어 배지만 계속
+ * 빠져 있었다**. NEXT_PUBLIC_* 은 빌드 시점에 박히므로 env 를 넣어도 재배포
+ * 전까지는 안 뜬다 — 출시된 앱의 주소는 바뀔 일이 없으니 이 의존을 없앤다.
+ * env 가 있으면 그걸 우선(스테이징 등에서 덮어쓸 여지는 남김).
+ */
+const IOS_URL =
+  process.env.NEXT_PUBLIC_IOS_APP_URL ?? 'https://apps.apple.com/kr/app/id6807279982'
+const ANDROID_URL =
+  process.env.NEXT_PUBLIC_ANDROID_APP_URL ??
+  'https://play.google.com/store/apps/details?id=com.farmerstail.app'
 
 export default async function AppRequiredPage({
   searchParams,
