@@ -381,6 +381,11 @@ export default async function ReviewsPage() {
   //   페이지 코드는 보존(전부 placeholder 라 삭제할 이유 없음) — 후기가
   //   모이면 이 redirect 한 줄과 WebChrome·FdFooter·sitemap 의 링크 주석을
   //   함께 되살린다. 북마크·외부 링크는 홈으로 안내.
+  //
+  // ⚠️ 여기는 **307(`redirect`)이 정답**이다 — 되살릴 페이지이므로.
+  //   폐지된 낱개커머스 경로들은 2026-09-08 에 308(`permanentRedirect`)로
+  //   바꿨지만(검색 색인 이전 목적), 임시 숨김에 308 을 쓰면 브라우저가
+  //   영구 캐시해서 부활시켜도 방문자가 계속 홈으로 튕긴다.
   redirect('/')
   const supabase = await createClient()
   const {

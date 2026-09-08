@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { permanentRedirect } from 'next/navigation'
 
 /**
  * /checkout — 구독 전용 전환(2026-06-26 사장님 지시)으로 낱개 체크아웃 폐지.
@@ -7,5 +7,5 @@ import { redirect } from 'next/navigation'
  * ⚠️ 결제 확정 API(payments/confirm)·checkout/success 는 보존(불변).
  */
 export default function CheckoutPage() {
-  redirect('/start')
+  permanentRedirect('/start')
 }

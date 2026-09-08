@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { permanentRedirect } from 'next/navigation'
 
 /**
  * /best — 옛 낱개 커머스의 '베스트' 숏URL.
@@ -8,5 +8,5 @@ import { redirect } from 'next/navigation'
  * (2026-07-16 정리). 목적지를 /start 로 직결. 옛 링크·북마크 방어용으로만 남긴다.
  */
 export default function BestAlias() {
-  redirect('/start')
+  permanentRedirect('/start')
 }
