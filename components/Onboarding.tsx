@@ -29,6 +29,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  ArrowRight,
   Bell,
   CalendarClock,
   CalendarDays,
@@ -48,6 +49,12 @@ import { markOnboarded } from '@/lib/onboarding'
  * 폰 가장자리에 걸치는 유리 카드. top 은 **화면(스크린샷) 높이 기준 비율**.
  * icon 은 lucide 아이콘 — 브랜드색 원 안에 흰 아이콘으로 앞에 세운다
  * (2026-09-08 사장님 레퍼런스: 반투명 카드 + 앞에 컬러 아이콘).
+ *
+ * ⚠️ **top 은 87% 를 넘기지 말 것.** 폰은 `height:114%` 로 그려져 자산의 아래
+ *   12.3% 가 패널 밖으로 잘려 나간다(그게 "폰이 아래로 이어지는" 연출이다).
+ *   그 밖에 두면 배지가 통째로 안 보인다 — 89% 로 옮겼다가 '국제 기준 충족'이
+ *   사라졌다(2026-09-08 사장님 제보). 스크린샷에서 좌표를 따올 때 폰 하단
+ *   경계 근처면 이 한계부터 확인한다.
  */
 type Badge = {
   text: string
@@ -109,7 +116,7 @@ const SLIDES: Slide[] = [
     note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
     badges: [
       { text: '그램 단위 계산', side: 'right', top: '20%', Icon: Scale },
-      { text: '국제 기준 충족', side: 'left', top: '89%', Icon: ShieldCheck },
+      { text: '국제 기준 충족', side: 'left', top: '82%', Icon: ShieldCheck },
     ],
   },
   {
@@ -135,7 +142,7 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { text: '12개월 요약', side: 'left', top: '41%', Icon: CalendarDays },
+      { text: '12개월 요약', side: 'left', top: '26%', Icon: CalendarDays },
       { text: 'PDF 저장', side: 'right', top: '62%', Icon: FileDown },
     ],
   },
@@ -147,7 +154,7 @@ const SLIDES: Slide[] = [
     note: '봉지만 뜯어 그대로 주면 끝 — 계량도 남는 양 고민도 없어요',
     // 이 자산은 아래 절반이 비어 있다 — 배지를 그 자리에 내려 균형을 맞춘다.
     badges: [
-      { text: '배송일 변경', side: 'left', top: '38%', Icon: Truck },
+      { text: '배송일 변경', side: 'left', top: '23%', Icon: Truck },
       { text: '일시정지', side: 'right', top: '60%', Icon: PauseCircle },
     ],
   },
@@ -345,7 +352,18 @@ export default function Onboarding() {
               <PhoneStage slide={s} eager={i === 0} />
             </div>
 
-            <div style={{ flexShrink: 0, padding: '16px 22px 0' }}>
+            {/* ★하단 CTA 영역을 배경에서 떼어낸다(2026-09-08 사장님: "다음 버튼
+                있는 네모 부분이 배경색과 비슷해 구분감이 없다"). 폰이 잘려
+                들어가는 지점부터 아래로 어둡게 깔면 ①폰이 이 패널 뒤로
+                이어지는 것처럼 읽히고 ②그 위의 흰 버튼이 확실히 떠오른다. */}
+            <div
+              style={{
+                flexShrink: 0,
+                padding: '20px 22px 0',
+                background:
+                  'linear-gradient(180deg, rgba(74,26,8,0) 0%, rgba(74,26,8,0.42) 30%, rgba(74,26,8,0.62) 100%)',
+              }}
+            >
               <p
                 style={{
                   margin: '0 0 14px',
@@ -369,22 +387,45 @@ export default function Onboarding() {
                   다음
                 </button>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  <button type="button" onClick={() => complete('/start')} style={btnPrimary}>
+                /* ★마지막 장은 여정의 끝이자 전환 지점이다(2026-09-08 사장님:
+                   "더 강조되게"). 중간 장들의 '다음'과 같은 옷을 입으면 여기가
+                   결정 지점이라는 신호가 없다. 주 버튼은 키우고(56·17px) 화살표를
+                   붙여 진행 방향을 주고, 보조 버튼은 투명 → 옅은 유리로 올려
+                   "누를 수 있는 것"으로 보이게 한다. */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => complete('/start')}
+                    style={{
+                      ...btnPrimary,
+                      height: 56,
+                      fontSize: 17,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 7,
+                      boxShadow:
+                        '0 18px 36px -12px rgba(40,12,2,0.75), 0 0 0 5px rgba(255,255,255,0.18)',
+                    }}
+                  >
                     무료로 시작하기
+                    <ArrowRight size={18} strokeWidth={2.8} />
                   </button>
                   <button
                     type="button"
                     onClick={() => complete('/login')}
                     style={{
                       width: '100%',
-                      height: 46,
+                      height: 48,
                       borderRadius: 999,
-                      border: '1.5px solid rgba(255,255,255,0.55)',
-                      background: 'transparent',
+                      border: '1.5px solid rgba(255,255,255,0.72)',
+                      background: 'rgba(255,255,255,0.14)',
+                      backdropFilter: 'blur(6px)',
+                      WebkitBackdropFilter: 'blur(6px)',
                       color: '#fff',
-                      fontSize: 14,
-                      fontWeight: 700,
+                      fontSize: 14.5,
+                      fontWeight: 800,
+                      letterSpacing: '-0.02em',
                       cursor: 'pointer',
                     }}
                   >
