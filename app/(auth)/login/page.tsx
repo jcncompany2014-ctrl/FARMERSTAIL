@@ -300,6 +300,23 @@ function LoginInner() {
         <div
           className={`w-full max-w-[420px] mx-auto ${isApp ? '' : 'pt-4 lg:pt-10'}`}
         >
+          {/* ★앱에도 로고를 세운다(2026-09-08 사장님: "맨 위에 로고 넣자, 좀
+              심심하다"). 2026-07-19 에 앱에서 뺐던 이유는 **로고 헤더가 화면을
+              밀어 스크롤을 만들었기** 때문이지 로고 자체가 아니었다 — 그래서
+              별도 header 가 아니라 본문 컬럼 안에 작게(h-6) 얹고, 헤드라인
+              상단 여백을 그만큼 줄여 한 화면에 남게 한다. */}
+          {isApp && (
+            <div className="flex justify-center mb-3.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-ink.png"
+                alt="Farmer's Tail"
+                className="h-6 w-auto"
+                fetchPriority="high"
+              />
+            </div>
+          )}
+
           {/* 헤드라인 — 큰 "환영해요!" 중앙 (FD "Welcome!" 대응, 균형 잡힌 크기). */}
           <h1
             className="text-center text-[clamp(36px,11vw,50px)]"
