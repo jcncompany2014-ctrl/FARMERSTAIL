@@ -26,73 +26,63 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markOnboarded } from '@/lib/onboarding'
 
-type Badge =
-  | { kind: 'chip'; text: string; tone: 'accent' | 'plain'; side: 'left' | 'right'; top: string }
-  | { kind: 'photo'; src: string; side: 'left' | 'right'; top: string }
-
 type Slide = {
   shot: string
   lead: string
   punch: string
   note: string
-  badges: Badge[]
 }
 
+/**
+ * ⚠️ 스크린샷을 확대해서 자산의 빈 아래를 밀어내려다 실패했다(2026-09-08 실측).
+ * 자산 비율 = 화면 비율(9/19)이라 **어떤 확대든 좌우를 잘라 먹는다** — 구독
+ * 카드의 금액·버튼 글자가 양옆으로 잘려 나갔다. 파일 아래 SHOT_ASPECT 주석의
+ * 경고와 같은 함정이다. 빈 아래를 채우려면 확대가 아니라 **자산을 다시 찍어야**
+ * 한다(scratchpad/shoot-onboarding.mjs).
+ */
+
+/**
+ * ★배지(칩·원형 사진) 전면 제거 — 2026-09-08 사장님 지시("버튼같이 설명하는
+ *  거, 스티커 느낌이 짜친다").
+ *
+ * 실물에서 확인된 문제 셋:
+ *  ① 칩이 하단 CTA 와 **같은 옷**(테라코타 알약+그림자+800)이라 누를 수 있는
+ *     줄 안다. 화면에서 제일 중요한 '다음' 버튼과 위계가 붙어버렸다.
+ *  ② 스크린샷 내용을 가린다 — '여러 마리 전환' 칩이 정작 그 드롭다운을 덮었다.
+ *  ③ 화면에 이미 보이는 걸 또 말한다(드롭다운이 열려 있는데 "여러 마리 전환").
+ *     헤드라인·칩·설명문이 같은 말을 세 번 했다.
+ *
+ * 대신 **헤드라인이 직접 숫자를 말한다.** 이 제품의 무기는 강아지마다 다르게
+ * 나오는 그램·kcal 이고, 스크린샷은 그 숫자의 증거로 뒤에 선다. 스티커로
+ * 강조를 만들지 않고 타이포 위계(lead 작게·punch 크게)로 만든다.
+ * 숫자는 반드시 **자산에 실제로 보이는 값**과 일치시킨다 — 헤드라인이 65g 인데
+ * 화면이 다른 숫자면 그 순간 신뢰가 깨진다.
+ */
 const SLIDES: Slide[] = [
   {
     shot: '/onboarding/app-home.webp',
-    lead: '우리 아이 하루가',
-    punch: '앱 하나에 모여요',
-    note: '오늘 급여량·기록·다음 배송일까지 한 화면에서 봐요',
-    badges: [
-      // top 값은 **화면(스크린샷) 높이 기준 비율**이다. 가리키려는 UI 가 스크린샷
-      // 세로 어디쯤인지 재서 맞춘다 — 감으로 잡으면 강아지 얼굴을 덮는다(실제로 덮었다).
-      // 27% = 전환 드롭다운(9~27%) 바로 아래. 위에 두면 드롭다운이나 로고를 덮는다.
-      { kind: 'chip', text: '여러 마리 전환', tone: 'plain', side: 'right', top: '27%' },
-      // 62% = 통계 줄(53~61%)과 '이번 주' 제목(68%) 사이 빈 틈. 겹치면 체중 칸이 통째로 사라진다.
-      { kind: 'chip', text: '오늘 급여량', tone: 'accent', side: 'left', top: '62%' },
-    ],
+    lead: '오늘 코코가 먹을 양은',
+    punch: '화식 65g',
+    note: '체중과 활동량으로 계산해서, 앱을 열면 오늘 먹일 양이 바로 떠요',
   },
   {
     shot: '/onboarding/app-analysis.webp',
-    lead: '체형·건강·기호를 넣으면',
-    punch: '맞춤 레시피가 나와요',
-    note: '필요한 열량과 하루 급여량까지 그램 단위로 계산해요',
-    badges: [
-      // 요약 바(288kcal·209g)는 왼쪽에 붙어 있다. 왼쪽 칩은 그 숫자를 덮으므로
-      // 오른쪽(날짜·공유 아이콘 쪽)에 세운다 — 칩이 가리키는 숫자를 칩이 가리면 안 된다.
-      { kind: 'chip', text: '그램 단위 급여량', tone: 'accent', side: 'right', top: '19%' },
-      { kind: 'photo', src: '/bowl/chicken.webp', side: 'left', top: '42%' },
-    ],
+    lead: '4.2kg 푸들 코코에게 필요한 건',
+    punch: '하루 288kcal',
+    note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
   },
   {
     shot: '/onboarding/app-vet.webp',
     lead: '병원 갈 때는',
-    punch: '종이 한 장이면 끝나요',
+    punch: '종이 한 장이면 끝',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
-    badges: [
-      // 화면에 이미 "브라우저에서 저장하기" 검은 버튼이 있어 PDF 칩은 뺐다 —
-      // 같은 말을 두 번 하면 시선만 갈라진다. 그 검은 버튼(30~38%) 옆에 진한 칩을
-      // 또 세우면 어두운 덩어리가 겹쳐 보이므로, 칩은 보고서 카드 쪽으로 내린다.
-      // 36% = 설명문 끝(≈35%)과 보고서 카드 시작(≈39%) 사이. 46% 는 카드 제목
-      // "수의사 진료 보고서"를 정면으로 덮었다.
-      { kind: 'chip', text: '12개월 요약', tone: 'accent', side: 'left', top: '36%' },
-      { kind: 'chip', text: '체중·식이·분석', tone: 'plain', side: 'right', top: '66%' },
-    ],
   },
   {
+    // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감(다음 결제 전)을 명시한다.
     shot: '/onboarding/app-subscription.webp',
-    lead: '바꾸고 미루는 것까지',
-    punch: '앱에서 몇 번이면 끝',
+    lead: '레시피도 배송일도',
+    punch: '다음 결제 전까지 변경',
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
-    badges: [
-      // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감을 명시하거나 중립 표기.
-      // 구독 카드는 자산의 위 62% 만 쓰고 아래가 빈다. 배지 둘을 그 빈 자리에
-      // 내려 균형을 맞춘다 — 카드 위에 겹치면 버튼 글자를 가린다.
-      // 문구는 화면의 버튼 이름을 되풀이하지 않고, 규칙31 대로 마감을 명시한다.
-      { kind: 'chip', text: '다음 결제 전까지 변경', tone: 'accent', side: 'left', top: '66%' },
-      { kind: 'photo', src: '/pkg/pork.webp', side: 'right', top: '74%' },
-    ],
   },
 ]
 const LAST = SLIDES.length - 1
@@ -222,19 +212,42 @@ export default function Onboarding() {
                 boxShadow: '0 18px 40px -30px rgba(60,40,26,0.5)',
               }}
             >
+              {/* ★위계 = 타이포로 만든다(2026-09-08). 예전엔 두 줄이 **같은 22px**
+                  이고 굵기만 달라 강약이 없었다 — 그 빈 자리를 스티커 칩이 대신
+                  메우고 있었다. 조건줄은 작고 연하게, 결과줄은 크고 진하게. */}
               <h1
                 style={{
                   flexShrink: 0,
                   margin: 0,
-                  padding: '26px 22px 0',
-                  fontSize: 22,
-                  lineHeight: 1.34,
-                  letterSpacing: '-0.035em',
+                  padding: '24px 22px 0',
                   textAlign: 'center',
                 }}
               >
-                <span style={{ display: 'block', fontWeight: 700, color: '#5A4A3A' }}>{s.lead}</span>
-                <span style={{ display: 'block', fontWeight: 800, color: 'var(--ink, #2A1F16)' }}>{s.punch}</span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 14.5,
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--muted, #7A6A58)',
+                  }}
+                >
+                  {s.lead}
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    marginTop: 3,
+                    fontSize: 30,
+                    fontWeight: 800,
+                    lineHeight: 1.22,
+                    letterSpacing: '-0.045em',
+                    color: 'var(--ink, #2A1F16)',
+                  }}
+                >
+                  {s.punch}
+                </span>
               </h1>
 
               <PhoneStage slide={s} eager={i === 0} />
@@ -382,74 +395,7 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             }}
           />
         </div>
-        {slide.badges.map((b) => (
-          <BadgeView key={b.kind === 'chip' ? b.text : b.src} badge={b} />
-        ))}
       </div>
     </div>
-  )
-}
-
-/**
- * 칩 = 기능 이름, 원형 = 제품 실사진. 손으로 그린 SVG 동그라미는 사장님이
- * "못생겼다"고 반려했으므로 도형으로 뭘 가리키지 않는다 — 배지는 그 자체로
- * 정보만 담고, 아이콘·이모지로 자리를 때우지 않는다.
- */
-function BadgeView({ badge }: { badge: Badge }) {
-  // 기준은 **화면** 가장자리다. 베젤 링(BEZEL)이 그 바깥에 그려지므로 링을
-  // 넘어 걸쳐 보이려면 오프셋이 BEZEL 보다 커야 한다.
-  const overhang = badge.kind === 'photo' ? -(BEZEL + 22) : -(BEZEL + 11)
-  const anchor: React.CSSProperties = {
-    position: 'absolute',
-    top: badge.top,
-    ...(badge.side === 'left' ? { left: overhang } : { right: overhang }),
-    zIndex: 3,
-  }
-
-  if (badge.kind === 'photo') {
-    return (
-      <div
-        style={{
-          ...anchor,
-          width: 76,
-          height: 76,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: '4px solid #fff',
-          boxShadow: '0 14px 26px -10px rgba(60,40,26,0.45)',
-          background: '#fff',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- 정사각 자산, CSS 가 원형을 만든다 */}
-        <img
-          src={badge.src}
-          alt=""
-          decoding="async"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      </div>
-    )
-  }
-
-  const accent = badge.tone === 'accent'
-  return (
-    <span
-      style={{
-        ...anchor,
-        display: 'inline-block',
-        padding: '8px 14px',
-        borderRadius: 999,
-        fontSize: 12.5,
-        fontWeight: 800,
-        letterSpacing: '-0.02em',
-        whiteSpace: 'nowrap',
-        background: accent ? 'var(--terracotta, #C86B45)' : '#fff',
-        color: accent ? '#fff' : 'var(--ink, #2A1F16)',
-        border: accent ? 'none' : '1px solid #EFE7DA',
-        boxShadow: accent ? '0 12px 24px -10px rgba(200,107,69,0.6)' : '0 12px 24px -10px rgba(60,40,26,0.4)',
-      }}
-    >
-      {badge.text}
-    </span>
   )
 }
