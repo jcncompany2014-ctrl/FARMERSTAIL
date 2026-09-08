@@ -15,20 +15,22 @@ export default function robots(): MetadataRoute.Robots {
           '/admin/*',
           '/api/',
           '/api/*',
-          '/checkout',
-          '/checkout/*',
-          '/cart',
-          // 구독 전용 전환(2026-06-27): 낱개커머스 라우트 — 전부 /start 로
-          // redirect. sitemap 제외 + robots 차단으로 크롤러가 redirect URL 을
-          // 인덱싱(GSC "Page with redirect" 경고)하지 않게 한다.
-          '/products',
-          '/products/*',
-          '/collections',
-          '/collections/*',
-          '/events',
-          '/events/*',
-          '/best',
-          '/new',
+          /**
+           * ★폐지된 낱개커머스 경로(/products /collections /events /best /new
+           *  /cart /checkout)를 **차단 목록에서 뺐다** (2026-09-08 사장님 제보).
+           *
+           * 원래는 "sitemap 제외 + robots 차단으로 redirect URL 인덱싱을 막는다"
+           * 였는데, 그게 정반대로 작동했다. robots 차단은 **크롤을 막을 뿐 색인을
+           * 지우지 못한다** — 크롤러가 URL 을 가져갈 수 없으니 우리가 걸어둔
+           * 리다이렉트를 **볼 방법이 없고**, 그래서 폐지 3개월 뒤에도 네이버가
+           * 옛 컬렉션(/collections/first-meal)의 제목·설명·구 AI 썸네일을 그대로
+           * 노출하고 있었다. 검색콘솔 경고를 없애려다 색인 정리를 막은 셈이다.
+           *
+           * 색인을 실제로 정리하려면 **크롤을 허용**해서 308(permanentRedirect)을
+           * 보게 해야 한다. 그 과정에서 GSC 에 "Page with redirect" 가 잠시
+           * 뜨는데, 그건 오류가 아니라 정상 처리 신호이고 정리가 끝나면 사라진다.
+           * ⚠️ 다시 차단하지 말 것 — 차단하는 순간 옛 색인이 도로 굳는다.
+           */
           '/mypage',
           '/mypage/*',
           '/dogs',
