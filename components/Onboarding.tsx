@@ -116,7 +116,7 @@ const SLIDES: Slide[] = [
     note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
     badges: [
       { text: '그램 단위 계산', side: 'right', top: '20%', Icon: Scale },
-      { text: '국제 기준 충족', side: 'left', top: '82%', Icon: ShieldCheck },
+      { text: '국제 기준 충족', side: 'left', top: '75%', Icon: ShieldCheck },
     ],
   },
   {
@@ -293,7 +293,8 @@ export default function Onboarding() {
               display: 'flex',
               flexDirection: 'column',
               paddingTop: 'max(44px, calc(env(safe-area-inset-top) + 30px))',
-              paddingBottom: 'calc(18px + env(safe-area-inset-bottom))',
+              // 하단 고정 영역이 이 아래에 겹쳐 앉는다 — 폰은 그 뒤로 잘려 들어간다.
+              paddingBottom: 'calc(126px + env(safe-area-inset-bottom))',
             }}
           >
             {/* ★흰 패널 제거(2026-09-08) — 헤드라인·폰이 그라데이션 위에 바로
@@ -356,18 +357,28 @@ export default function Onboarding() {
               <PhoneStage slide={s} eager={i === 0} />
             </div>
 
-            {/* ★하단 CTA 영역을 배경에서 떼어낸다(2026-09-08 사장님: "다음 버튼
-                있는 네모 부분이 배경색과 비슷해 구분감이 없다"). 폰이 잘려
-                들어가는 지점부터 아래로 어둡게 깔면 ①폰이 이 패널 뒤로
-                이어지는 것처럼 읽히고 ②그 위의 흰 버튼이 확실히 떠오른다. */}
-            <div
-              style={{
-                flexShrink: 0,
-                padding: '20px 22px 0',
-                background:
-                  'linear-gradient(180deg, rgba(74,26,8,0) 0%, rgba(74,26,8,0.42) 30%, rgba(74,26,8,0.62) 100%)',
-              }}
-            >
+          </section>
+        ))}
+      </div>
+
+      {/* ★하단은 **슬라이드 밖 고정 영역**이다(2026-09-08 사장님: 넘기는 중간
+          화면이 이상하다 → 완벽하게).
+          예전엔 note·버튼·그늘이 각 슬라이드 안에 있어서 스와이프하면 **버튼 두
+          개가 나란히 밀려 지나가고** 그늘이 슬라이드 경계에서 세로로 잘렸다.
+          앱스토어 온보딩 표준대로 화면 아래는 붙박이로 두고, 문구만 현재 장에
+          맞춰 바꾼다. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 6,
+          padding: '24px 22px calc(18px + env(safe-area-inset-bottom))',
+          background:
+            'linear-gradient(180deg, rgba(74,26,8,0) 0%, rgba(74,26,8,0.5) 26%, rgba(74,26,8,0.74) 100%)',
+        }}
+      >
               <p
                 style={{
                   margin: '0 0 14px',
@@ -384,10 +395,10 @@ export default function Onboarding() {
                   textShadow: '0 1px 10px rgba(70,20,5,0.4)',
                 }}
               >
-                {s.note}
+                {SLIDES[idx]?.note}
               </p>
-              {i < LAST ? (
-                <button type="button" onClick={() => goTo(i + 1)} style={btnPrimary}>
+              {idx < LAST ? (
+                <button type="button" onClick={() => goTo(idx + 1)} style={btnPrimary}>
                   다음
                 </button>
               ) : (
@@ -437,9 +448,6 @@ export default function Onboarding() {
                   </button>
                 </div>
               )}
-            </div>
-          </section>
-        ))}
       </div>
     </div>
   )
