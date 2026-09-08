@@ -66,7 +66,7 @@ const SLIDES: Slide[] = [
     shot: '/onboarding/app-home.webp',
     lead: '오늘 코코가 먹을 양은',
     punch: '화식 65g',
-    note: '체중과 활동량으로 계산해서, 앱을 열면 오늘 먹일 양이 바로 떠요',
+    note: '먹일 양을 그램까지 계산하고, 그 양 그대로 소분 포장해 보내드려요',
     badges: [
       { text: '오늘 급여량', side: 'left', top: '62%' },
       { text: '여러 마리 관리', side: 'right', top: '27%' },
@@ -97,7 +97,7 @@ const SLIDES: Slide[] = [
     shot: '/onboarding/app-subscription.webp',
     lead: '레시피도 배송일도',
     punch: '다음 결제 전까지 변경',
-    note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
+    note: '봉지만 뜯어 그대로 주면 끝 — 계량도 남는 양 고민도 없어요',
     // 이 자산은 아래 절반이 비어 있다 — 배지를 그 자리에 내려 균형을 맞춘다.
     badges: [
       { text: '배송일 변경', side: 'left', top: '58%' },
@@ -154,7 +154,9 @@ export default function Onboarding() {
         zIndex: 100,
         overflow: 'hidden',
         background:
-          'radial-gradient(115% 75% at 50% 6%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 58%), linear-gradient(168deg, #E08A5F 0%, #C86B45 44%, #9A4227 100%)',
+          // 상단을 한 단계 진하게(#E08A5F→#CE7549) — 흰 헤드라인이 밝은 주황
+          // 위에서 흐려 보인다는 지적(2026-09-08)의 절반은 배경 대비 문제였다.
+          'radial-gradient(115% 75% at 50% 8%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 58%), linear-gradient(168deg, #CE7549 0%, #B85B39 44%, #8C3A21 100%)',
       }}
     >
       <div
@@ -266,7 +268,8 @@ export default function Onboarding() {
                     fontWeight: 600,
                     lineHeight: 1.4,
                     letterSpacing: '-0.02em',
-                    color: 'rgba(255,255,255,0.86)',
+                    color: 'rgba(255,255,255,0.94)',
+                    textShadow: '0 1px 8px rgba(70,20,5,0.35)',
                   }}
                 >
                   {s.lead}
@@ -275,12 +278,17 @@ export default function Onboarding() {
                   style={{
                     display: 'block',
                     marginTop: 3,
-                    fontSize: 30,
-                    fontWeight: 800,
-                    lineHeight: 1.22,
-                    letterSpacing: '-0.045em',
+                    // ★강조 강화(2026-09-08 사장님: "강조가 약하다 / 살짝 안
+                    //   읽힌다"). 크기·굵기를 올리고 그림자를 **두 겹**으로 —
+                    //   좁고 진한 그림자가 글자 가장자리를 배경에서 떼어내고,
+                    //   넓고 옅은 그림자가 덩어리째 띄운다.
+                    fontSize: 33,
+                    fontWeight: 900,
+                    lineHeight: 1.18,
+                    letterSpacing: '-0.05em',
                     color: '#fff',
-                    textShadow: '0 2px 18px rgba(90,30,10,0.30)',
+                    textShadow:
+                      '0 1px 3px rgba(70,18,4,0.5), 0 6px 24px rgba(70,18,4,0.4)',
                   }}
                 >
                   {s.punch}
@@ -294,11 +302,17 @@ export default function Onboarding() {
               <p
                 style={{
                   margin: '0 0 14px',
-                  fontSize: 12.5,
-                  lineHeight: 1.5,
+                  // ★여기가 제품의 약속을 말하는 자리다(2026-09-08 사장님:
+                  //   "먹는 양을 정확하게, 보호자가 안 귀찮게 포장해서 준다를
+                  //   다음 버튼 위 작은 글씨에 강조"). 보조 설명이 아니라
+                  //   두 번째 헤드라인처럼 읽히도록 크기·굵기·대비를 올린다.
+                  fontSize: 13.5,
+                  lineHeight: 1.55,
                   textAlign: 'center',
-                  color: 'rgba(255,255,255,0.84)',
-                  fontWeight: 500,
+                  color: '#fff',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  textShadow: '0 1px 10px rgba(70,20,5,0.4)',
                 }}
               >
                 {s.note}
@@ -366,7 +380,14 @@ const btnPrimary: React.CSSProperties = {
  * 정확히 일치해 잘림이 0 이고, 베젤 바깥 모서리는 `SCREEN_RADIUS + BEZEL` 로
  * 자동으로 따라온다 — 모서리가 어색했던 원인이 여기였다.
  */
-const BEZEL = 7
+/**
+ * ★베젤은 얇고 **어둡게**(2026-09-08 사장님: "그림자 좀 넣어서 구분감, 아주
+ * 얇은 베젤"). 예전 7px 흰 링은 **흰 패널 위에서 묻히지 않으려던 것**인데,
+ * 패널이 사라지고 배경이 테라코타가 되면서 오히려 굵고 허옇게 튀었다.
+ * 실제 기기처럼 어두운 테를 얇게 두르면 배경에서 또렷이 떨어지고,
+ * 바깥의 흰 실선 한 겹이 그 테를 배경에서 한 번 더 분리한다.
+ */
+const BEZEL = 4
 const SCREEN_RADIUS = 35
 /**
  * 스크린샷 비율 — `app-*.webp` 는 전부 720×1520.
@@ -415,8 +436,12 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             borderRadius: SCREEN_RADIUS,
             overflow: 'hidden',
             background: '#F4EFE7',
-            // 흰 베젤이 흰 패널에 묻히지 않도록 테두리 실선을 또렷하게 준다.
-            boxShadow: `0 0 0 ${BEZEL}px #FFFFFF, 0 0 0 ${BEZEL + 1}px rgba(60,40,26,0.20), 0 22px 42px -18px rgba(60,40,26,0.5), 0 4px 10px -4px rgba(60,40,26,0.18)`,
+            boxShadow: [
+              `0 0 0 ${BEZEL}px #241A12`, // 기기 테 — 얇고 어둡게
+              `0 0 0 ${BEZEL + 1.5}px rgba(255,255,255,0.22)`, // 테를 배경에서 떼는 실선
+              '0 34px 64px -22px rgba(48,14,3,0.72)', // 바닥에 떨어지는 큰 그림자
+              '0 12px 26px -10px rgba(48,14,3,0.45)', // 가까운 그림자(접지감)
+            ].join(', '),
           }}
         >
           {/* ★loading="lazy" 금지 (실측): 안드로이드 WebView 에서 가로 캐러셀의
@@ -461,21 +486,28 @@ function BadgeCard({ badge }: { badge: Badge }) {
       style={{
         position: 'absolute',
         top: badge.top,
-        ...(badge.side === 'left' ? { left: -(BEZEL + 30) } : { right: -(BEZEL + 30) }),
+        // ★"따로 논다"의 원인은 배지가 폰 **바깥 허공**에 떠 있던 것이다
+        //   (2026-09-08). 기기 테 위로 절반쯤 올라타야 "폰에 붙은 라벨"로
+        //   읽힌다. 그림자도 폰과 같은 방향·같은 갈색 계열로 맞춰 한 덩어리로
+        //   보이게 하고, 흰 테두리 한 겹으로 화면 위에서도 경계를 유지한다.
+        // 오프셋은 폰 좌우 여백(≈47px) 안에서만 키울 수 있다 — 더 빼면 슬라이드
+        // 밖으로 잘린다. 32px 면 배지의 1/3 이 밖, 2/3 가 기기 위에 걸친다.
+        ...(badge.side === 'left' ? { left: -(BEZEL + 32) } : { right: -(BEZEL + 32) }),
         zIndex: 3,
         display: 'inline-block',
-        padding: '10px 15px',
-        borderRadius: 15,
-        background: 'rgba(255,255,255,0.95)',
+        padding: '9px 14px',
+        borderRadius: 13,
+        background: 'rgba(255,255,255,0.97)',
+        border: '1px solid rgba(255,255,255,0.9)',
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
-        fontSize: 12.5,
+        fontSize: 12,
         fontWeight: 800,
-        letterSpacing: '-0.025em',
+        letterSpacing: '-0.03em',
         whiteSpace: 'nowrap',
         color: 'var(--ink, #2A1F16)',
         boxShadow:
-          '0 16px 34px -14px rgba(60,20,8,0.55), 0 2px 6px -2px rgba(60,20,8,0.25)',
+          '0 18px 30px -14px rgba(48,14,3,0.6), 0 4px 10px -3px rgba(48,14,3,0.35)',
       }}
     >
       {badge.text}
