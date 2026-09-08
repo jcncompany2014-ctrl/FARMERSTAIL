@@ -62,7 +62,7 @@ export default function VetReportPrintButton() {
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-ink text-white text-[12px] font-bold active:scale-[0.98] transition"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-ink text-white text-[11.5px] font-bold active:scale-[0.98] transition"
       >
         {copied ? (
           <>

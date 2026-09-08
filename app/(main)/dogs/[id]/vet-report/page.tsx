@@ -188,14 +188,21 @@ export default async function VetReportPage({ params }: { params: Params }) {
         }`}
       </style>
 
-      {/* 헤더 (인쇄 제외) */}
-      <div className="flex items-end justify-between mb-5 no-print max-w-4xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-black text-ink tracking-tight leading-snug">
-            수의사 진료 보고서
+      {/* 헤더 (인쇄 제외)
+          ★2026-09-08 사장님: "검은 버튼은 너무 크고 제목도 애매하다".
+          - 제목이 **두 번** 나왔다 — 이 화면 제목과 바로 아래 보고서 용지의
+            제목이 같은 문장이라, 큰 글씨 둘이 붙어 어느 게 화면 이름인지
+            흐렸다. 화면 제목은 짧게('진료 보고서') 줄이고 크기를 낮춰,
+            큰 제목은 **용지 안 것 하나만** 남긴다.
+          - 저장 버튼은 검은 알약이 제목만큼 무거워 시선을 갈랐다. 기능은
+            그대로 두고 크기만 낮춘다(액션이라 채움 자체는 유지). */}
+      <div className="flex items-start justify-between gap-3 mb-5 no-print max-w-4xl mx-auto">
+        <div className="min-w-0">
+          <h1 className="text-[19px] font-bold text-ink tracking-tight leading-snug">
+            진료 보고서
           </h1>
-          <p className="text-[12px] text-muted mt-1">
-            동물병원에 가져가서 수의사에게 보여주세요. 최근 12개월 식이·체중·분석 요약.
+          <p className="text-[12px] text-muted mt-1 leading-relaxed">
+            병원에 가져가 보여주세요 — 최근 12개월 식이·체중·분석 요약이에요.
           </p>
         </div>
         <VetReportPrintButton />

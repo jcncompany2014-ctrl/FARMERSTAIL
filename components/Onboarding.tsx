@@ -3,11 +3,15 @@
 /**
  * Farmer's Tail — 첫 설치 온보딩.
  *
- * # 레이아웃 정본 = 국내 앱스토어 스크린샷 문법 (사장님 레퍼런스: 필라이즈)
- *   ① 큰 두 줄 헤드라인 — 1줄 조건/행동, 2줄 결과(더 굵고 진하게).
- *   ② 폰이 아래로 잘려 나간다 — 여백 안에 얌전히 들어가면 작아 보인다.
- *      흰 패널이 폰을 아래에서 자르므로 "카드 밖으로 이어진다"로 읽힌다.
- *   ③ 폰 가장자리에 뜨는 배지 — 기능은 텍스트 칩, 제품은 원형 실사진.
+ * # 레이아웃 정본 (2026-09-08 사장님 레퍼런스: CAZZLE·아이클릭아트)
+ *   ① **채도 있는 그라데이션 배경** 위에 흰 헤드라인 — 예전의 베이지 배경 +
+ *      흰 패널 조합은 전부 평평해 보였다.
+ *   ② 큰 두 줄 헤드라인 — 조건줄 작고 연하게, 결과줄 크고 진하게. 결과줄은
+ *      **구체적 숫자**를 말하고(화식 65g / 하루 288kcal) 스크린샷이 그걸 증명한다.
+ *   ③ 폰이 아래로 잘려 나간다 — 여백 안에 얌전히 들어가면 작아 보인다.
+ *   ④ 폰 가장자리에 걸친 **유리 카드** 배지. 알약(pill) 금지 — CTA 버튼과 같은
+ *      옷이 되어 "버튼같이 설명하는 거"로 읽힌다(사장님 반려). 카드는 폰 밖으로
+ *      크게 빼서 스크린샷 내용을 가리지 않는다.
  *
  * # 화면 이미지
  * 에뮬레이터에서 실촬영한 앱 화면 `public/onboarding/app-*.webp` 를 **그대로**
@@ -26,11 +30,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markOnboarded } from '@/lib/onboarding'
 
+/** 폰 가장자리에 걸치는 유리 카드. top 은 **화면(스크린샷) 높이 기준 비율**. */
+type Badge = { text: string; side: 'left' | 'right'; top: string }
+
 type Slide = {
   shot: string
   lead: string
   punch: string
   note: string
+  badges: Badge[]
 }
 
 /**
@@ -42,21 +50,16 @@ type Slide = {
  */
 
 /**
- * ★배지(칩·원형 사진) 전면 제거 — 2026-09-08 사장님 지시("버튼같이 설명하는
- *  거, 스티커 느낌이 짜친다").
+ * ★배지는 **유리 카드**로만 쓴다 (2026-09-08 두 차례 수정).
  *
- * 실물에서 확인된 문제 셋:
- *  ① 칩이 하단 CTA 와 **같은 옷**(테라코타 알약+그림자+800)이라 누를 수 있는
- *     줄 안다. 화면에서 제일 중요한 '다음' 버튼과 위계가 붙어버렸다.
- *  ② 스크린샷 내용을 가린다 — '여러 마리 전환' 칩이 정작 그 드롭다운을 덮었다.
- *  ③ 화면에 이미 보이는 걸 또 말한다(드롭다운이 열려 있는데 "여러 마리 전환").
- *     헤드라인·칩·설명문이 같은 말을 세 번 했다.
+ * 1차: 테라코타 알약 칩 → 사장님 반려("버튼같이 설명하는 거 / 스티커 느낌").
+ *   실제 문제는 ①CTA 와 같은 옷이라 눌리는 줄 알고 ②가리키려던 UI 를 덮고
+ *   ③화면에 보이는 걸 또 말한 것이었다.
+ * 2차: 전부 제거 → 레퍼런스(CAZZLE)를 받고 **형태를 바꿔 재도입**. 배지 자체가
+ *   문제가 아니라 알약 모양이 문제였다.
  *
- * 대신 **헤드라인이 직접 숫자를 말한다.** 이 제품의 무기는 강아지마다 다르게
- * 나오는 그램·kcal 이고, 스크린샷은 그 숫자의 증거로 뒤에 선다. 스티커로
- * 강조를 만들지 않고 타이포 위계(lead 작게·punch 크게)로 만든다.
- * 숫자는 반드시 **자산에 실제로 보이는 값**과 일치시킨다 — 헤드라인이 65g 인데
- * 화면이 다른 숫자면 그 순간 신뢰가 깨진다.
+ * 헤드라인은 계속 **자산에 실제로 보이는 숫자**를 말한다(65 G / 288 kcal).
+ * 자산을 다시 찍으면 헤드라인 숫자도 함께 고친다.
  */
 const SLIDES: Slide[] = [
   {
@@ -64,18 +67,30 @@ const SLIDES: Slide[] = [
     lead: '오늘 코코가 먹을 양은',
     punch: '화식 65g',
     note: '체중과 활동량으로 계산해서, 앱을 열면 오늘 먹일 양이 바로 떠요',
+    badges: [
+      { text: '오늘 급여량', side: 'left', top: '62%' },
+      { text: '여러 마리 관리', side: 'right', top: '27%' },
+    ],
   },
   {
     shot: '/onboarding/app-analysis.webp',
     lead: '4.2kg 푸들 코코에게 필요한 건',
     punch: '하루 288kcal',
     note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
+    badges: [
+      { text: '그램 단위 계산', side: 'right', top: '20%' },
+      { text: '국제 기준 충족', side: 'left', top: '72%' },
+    ],
   },
   {
     shot: '/onboarding/app-vet.webp',
     lead: '병원 갈 때는',
     punch: '종이 한 장이면 끝',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
+    badges: [
+      { text: '12개월 요약', side: 'left', top: '36%' },
+      { text: 'PDF 저장', side: 'right', top: '62%' },
+    ],
   },
   {
     // 규칙31 — "언제든 해지/일시정지"는 과약속. 마감(다음 결제 전)을 명시한다.
@@ -83,6 +98,11 @@ const SLIDES: Slide[] = [
     lead: '레시피도 배송일도',
     punch: '다음 결제 전까지 변경',
     note: '화식 비율·배송일 변경, 일시정지와 해지 모두 앱에서 해요',
+    // 이 자산은 아래 절반이 비어 있다 — 배지를 그 자리에 내려 균형을 맞춘다.
+    badges: [
+      { text: '배송일 변경', side: 'left', top: '58%' },
+      { text: '일시정지', side: 'right', top: '72%' },
+    ],
   },
 ]
 const LAST = SLIDES.length - 1
@@ -119,7 +139,24 @@ export default function Onboarding() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg, #FAF7F2)', overflow: 'hidden' }}>
+    /**
+     * ★배경 = 브랜드 그라데이션(2026-09-08 사장님 레퍼런스: CAZZLE·아이클릭아트).
+     * 그 둘의 공통 문법은 ①채도 있는 그라데이션 위에 ②큰 흰 헤드라인 ③그 위에
+     * 떠 있는 폰과 유리 카드다. 우리는 베이지 배경 + 흰 패널이라 전부 평평했다.
+     * 색은 레퍼런스의 보라가 아니라 **우리 강조색(테라코타)** 으로 번역한다 —
+     * 음식 브랜드에 보라는 남의 옷이고, 앱 CTA 색과도 이어진다.
+     * 위쪽 방사형 광은 폰이 놓일 자리에 빛을 모아 입체감을 만든다.
+     */
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        overflow: 'hidden',
+        background:
+          'radial-gradient(115% 75% at 50% 6%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 58%), linear-gradient(168deg, #E08A5F 0%, #C86B45 44%, #9A4227 100%)',
+      }}
+    >
       <div
         style={{
           position: 'absolute',
@@ -147,7 +184,7 @@ export default function Onboarding() {
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',
-                background: i === idx ? 'var(--terracotta, #C86B45)' : 'rgba(60,40,26,0.22)',
+                background: i === idx ? '#fff' : 'rgba(255,255,255,0.42)',
                 transition: 'width 240ms ease, background 240ms ease',
               }}
             />
@@ -160,7 +197,7 @@ export default function Onboarding() {
             visibility: idx < LAST ? 'visible' : 'hidden',
             background: 'transparent',
             border: 'none',
-            color: 'var(--muted, #7A6A58)',
+            color: 'rgba(255,255,255,0.82)',
             fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
@@ -199,7 +236,9 @@ export default function Onboarding() {
               paddingBottom: 'calc(18px + env(safe-area-inset-bottom))',
             }}
           >
-            {/* 흰 패널 — 헤드라인 + 폰. 아래 모서리가 폰을 자른다. */}
+            {/* ★흰 패널 제거(2026-09-08) — 헤드라인·폰이 그라데이션 위에 바로
+                놓인다. 패널이 있으면 배경색이 위아래 띠로만 남아 레퍼런스의
+                "떠 있는" 느낌이 안 산다. 폰은 이 컨테이너 밖으로 잘려 나간다. */}
             <div
               style={{
                 flex: 1,
@@ -207,9 +246,6 @@ export default function Onboarding() {
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
-                background: '#fff',
-                borderRadius: '0 0 30px 30px',
-                boxShadow: '0 18px 40px -30px rgba(60,40,26,0.5)',
               }}
             >
               {/* ★위계 = 타이포로 만든다(2026-09-08). 예전엔 두 줄이 **같은 22px**
@@ -230,7 +266,7 @@ export default function Onboarding() {
                     fontWeight: 600,
                     lineHeight: 1.4,
                     letterSpacing: '-0.02em',
-                    color: 'var(--muted, #7A6A58)',
+                    color: 'rgba(255,255,255,0.86)',
                   }}
                 >
                   {s.lead}
@@ -243,7 +279,8 @@ export default function Onboarding() {
                     fontWeight: 800,
                     lineHeight: 1.22,
                     letterSpacing: '-0.045em',
-                    color: 'var(--ink, #2A1F16)',
+                    color: '#fff',
+                    textShadow: '0 2px 18px rgba(90,30,10,0.30)',
                   }}
                 >
                   {s.punch}
@@ -260,7 +297,7 @@ export default function Onboarding() {
                   fontSize: 12.5,
                   lineHeight: 1.5,
                   textAlign: 'center',
-                  color: 'var(--muted, #7A6A58)',
+                  color: 'rgba(255,255,255,0.84)',
                   fontWeight: 500,
                 }}
               >
@@ -282,9 +319,9 @@ export default function Onboarding() {
                       width: '100%',
                       height: 46,
                       borderRadius: 999,
-                      border: '1.5px solid var(--rule, #E4DBCE)',
+                      border: '1.5px solid rgba(255,255,255,0.55)',
                       background: 'transparent',
-                      color: 'var(--ink, #2A1F16)',
+                      color: '#fff',
                       fontSize: 14,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -302,18 +339,22 @@ export default function Onboarding() {
   )
 }
 
+/**
+ * 배경이 테라코타가 됐으므로 CTA 는 **반전**한다 — 흰 알약 + 테라코타 글씨.
+ * 같은 색 위에 같은 색 버튼을 두면 묻힌다(레퍼런스 둘 다 배경 대비 버튼).
+ */
 const btnPrimary: React.CSSProperties = {
   width: '100%',
   height: 52,
   borderRadius: 999,
   border: 'none',
-  background: 'var(--terracotta, #C86B45)',
-  color: '#fff',
+  background: '#fff',
+  color: '#A8462A',
   fontSize: 15,
   fontWeight: 800,
   letterSpacing: '-0.01em',
   cursor: 'pointer',
-  boxShadow: '0 10px 26px -12px rgba(200,107,69,0.75)',
+  boxShadow: '0 14px 30px -12px rgba(60,20,8,0.5)',
 }
 
 /**
@@ -395,7 +436,49 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             }}
           />
         </div>
+        {slide.badges.map((b) => (
+          <BadgeCard key={b.text} badge={b} />
+        ))}
       </div>
     </div>
+  )
+}
+
+/**
+ * 유리 카드 배지 (2026-09-08 재설계).
+ *
+ * 앞선 버전은 **테라코타 알약**이라 하단 CTA 와 같은 옷이었고, 사장님이
+ * "버튼같이 설명하는 거 / 스티커 느낌"이라고 반려했다. 레퍼런스(CAZZLE)의
+ * 배지는 알약이 아니라 **모서리 둥근 흰 유리 카드**다 — 버튼과 형태가 달라
+ * 눌리는 것으로 오해되지 않고, 컬러 배경 위에서 떠 보인다.
+ *
+ * 폰 **바깥쪽으로 크게 빼서**(카드 폭의 절반 이상이 화면 밖) 스크린샷 내용을
+ * 가리지 않는다 — 이전 버전이 정작 가리키려던 드롭다운을 덮었던 실수를 막는다.
+ */
+function BadgeCard({ badge }: { badge: Badge }) {
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        top: badge.top,
+        ...(badge.side === 'left' ? { left: -(BEZEL + 30) } : { right: -(BEZEL + 30) }),
+        zIndex: 3,
+        display: 'inline-block',
+        padding: '10px 15px',
+        borderRadius: 15,
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        fontSize: 12.5,
+        fontWeight: 800,
+        letterSpacing: '-0.025em',
+        whiteSpace: 'nowrap',
+        color: 'var(--ink, #2A1F16)',
+        boxShadow:
+          '0 16px 34px -14px rgba(60,20,8,0.55), 0 2px 6px -2px rgba(60,20,8,0.25)',
+      }}
+    >
+      {badge.text}
+    </span>
   )
 }
