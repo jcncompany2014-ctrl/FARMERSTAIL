@@ -2925,7 +2925,10 @@ test('규칙66: 온보딩 스크린샷 자산은 SHOT_ASPECT 와 같은 비율�
   const shots = [...src.matchAll(/shot:\s*'(\/onboarding\/[^']+)'/g)]
     .map((m) => m[1])
     .filter((s): s is string => !!s)
-  assert.equal(shots.length, 4, `온보딩 슬라이드가 4장이 아니다 (${shots.length}장)`)
+  // 장수는 5장(홈·분석·체중알림·보고서·구독). 체중 알림 장이 2026-09-08 에
+  // 추가되면서 4→5 가 됐다. **체중 알림 장은 홈 자산을 재사용**하므로 shots 에
+  // 같은 경로가 두 번 나온다 — 그래서 유일값이 아니라 등장 횟수를 센다.
+  assert.equal(shots.length, 5, `온보딩 슬라이드가 5장이 아니다 (${shots.length}장)`)
 
   for (const shot of shots) {
     const file = join(ROOT, 'public', ...shot.split('/').filter(Boolean))

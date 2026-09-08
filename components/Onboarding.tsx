@@ -29,12 +29,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  Bell,
+  CalendarClock,
   CalendarDays,
   FileDown,
   PauseCircle,
   PawPrint,
   Scale,
   ShieldCheck,
+  TrendingUp,
   Truck,
   UtensilsCrossed,
   type LucideIcon,
@@ -59,6 +62,13 @@ type Slide = {
   punch: string
   note: string
   badges: Badge[]
+  /**
+   * 폰 화면 위에 겹쳐 그리는 **푸시 알림 카드**(2026-09-08 사장님 요청).
+   * 문구는 실제로 나가는 알림과 같은 형식이다 —
+   * `app/api/cron/weight-change-detect/route.ts` 의 title/body.
+   * 없는 기능을 그림으로 약속하지 않기 위해 그 파일이 정본이다.
+   */
+  notify?: { title: string; body: string }
 }
 
 /**
@@ -88,8 +98,8 @@ const SLIDES: Slide[] = [
     punch: '화식 210g',
     note: '먹일 양을 그램까지 계산하고, 그 양 그대로 소분 포장해 보내드려요',
     badges: [
-      { text: '오늘 급여량', side: 'left', top: '62%', Icon: UtensilsCrossed },
-      { text: '여러 마리 관리', side: 'right', top: '27%', Icon: PawPrint },
+      { text: '오늘 급여량', side: 'left', top: '78%', Icon: UtensilsCrossed },
+      { text: '여러 마리 관리', side: 'right', top: '33%', Icon: PawPrint },
     ],
   },
   {
@@ -99,7 +109,23 @@ const SLIDES: Slide[] = [
     note: '체형·건강·기호를 넣으면 필요 열량과 급여량을 그램 단위로 계산해요',
     badges: [
       { text: '그램 단위 계산', side: 'right', top: '20%', Icon: Scale },
-      { text: '국제 기준 충족', side: 'left', top: '72%', Icon: ShieldCheck },
+      { text: '국제 기준 충족', side: 'left', top: '89%', Icon: ShieldCheck },
+    ],
+  },
+  {
+    // 홈 화면 자산을 재사용하고 그 위에 알림 카드를 얹는다 — 알림은 원래
+    // 앱을 안 보고 있을 때 오는 것이라 별도 촬영본이 필요 없다.
+    shot: '/onboarding/app-home.webp',
+    lead: '체중만 기록해두면',
+    punch: '다음 박스가 달라져요',
+    note: '4주마다 변화를 확인해서, 먹일 열량을 다시 계산해 알려드려요',
+    notify: {
+      title: '푸린이가 체중 +5.2% 증가',
+      body: '4주 만에 변화가 있었네요. 하루 급여 열량을 288→270kcal로 조정을 제안드려요.',
+    },
+    badges: [
+      { text: '4주마다 확인', side: 'left', top: '62%', Icon: CalendarClock },
+      { text: '열량 재계산', side: 'right', top: '78%', Icon: TrendingUp },
     ],
   },
   {
@@ -108,7 +134,7 @@ const SLIDES: Slide[] = [
     punch: '종이 한 장이면 끝',
     note: '12개월 체중 추이·식이·분석을 A4 한 장으로 정리해 드려요',
     badges: [
-      { text: '12개월 요약', side: 'left', top: '36%', Icon: CalendarDays },
+      { text: '12개월 요약', side: 'left', top: '41%', Icon: CalendarDays },
       { text: 'PDF 저장', side: 'right', top: '62%', Icon: FileDown },
     ],
   },
@@ -120,8 +146,8 @@ const SLIDES: Slide[] = [
     note: '봉지만 뜯어 그대로 주면 끝 — 계량도 남는 양 고민도 없어요',
     // 이 자산은 아래 절반이 비어 있다 — 배지를 그 자리에 내려 균형을 맞춘다.
     badges: [
-      { text: '배송일 변경', side: 'left', top: '58%', Icon: Truck },
-      { text: '일시정지', side: 'right', top: '72%', Icon: PauseCircle },
+      { text: '배송일 변경', side: 'left', top: '38%', Icon: Truck },
+      { text: '일시정지', side: 'right', top: '60%', Icon: PauseCircle },
     ],
   },
 ]
@@ -195,7 +221,7 @@ export default function Onboarding() {
         <div style={{ display: 'flex', gap: 6 }}>
           {SLIDES.map((s, i) => (
             <button
-              key={s.shot}
+              key={s.punch}
               type="button"
               onClick={() => goTo(i)}
               aria-label={`${i + 1}번 슬라이드`}
@@ -245,7 +271,7 @@ export default function Onboarding() {
       >
         {SLIDES.map((s, i) => (
           <section
-            key={s.shot}
+            key={s.punch}
             style={{
               position: 'relative',
               flex: '0 0 100%',
@@ -481,6 +507,7 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             }}
           />
         </div>
+        {slide.notify && <NotifyCard notify={slide.notify} />}
         {slide.badges.map((b) => (
           <BadgeCard key={b.text} badge={b} />
         ))}
@@ -500,6 +527,93 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
  * 폰 **바깥쪽으로 크게 빼서**(카드 폭의 절반 이상이 화면 밖) 스크린샷 내용을
  * 가리지 않는다 — 이전 버전이 정작 가리키려던 드롭다운을 덮었던 실수를 막는다.
  */
+/**
+ * 푸시 알림 카드 — 폰 화면 위에 실제 알림처럼 겹쳐 그린다(사장님 레퍼런스).
+ *
+ * 스크린샷을 다시 찍지 않고 CSS 로 그리는 이유: 알림은 **앱 밖에서** 오는 것이라
+ * 앱 화면 촬영본에 담기지 않는다. 문구는 실제 발송 문구와 같은 형식을 쓴다
+ * (weight-change-detect 크론) — 여기서 지어내면 없는 기능을 약속하게 된다.
+ */
+function NotifyCard({ notify }: { notify: NonNullable<Slide['notify']> }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '9%',
+        left: '4%',
+        right: '4%',
+        zIndex: 4,
+        display: 'flex',
+        gap: 10,
+        padding: '12px 13px',
+        borderRadius: 18,
+        background: 'rgba(255,255,255,0.86)',
+        border: '1px solid rgba(255,255,255,0.9)',
+        backdropFilter: 'blur(16px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(150%)',
+        boxShadow:
+          '0 22px 40px -16px rgba(48,14,3,0.6), 0 4px 12px -4px rgba(48,14,3,0.3)',
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 30,
+          height: 30,
+          flexShrink: 0,
+          borderRadius: 10,
+          background: 'var(--terracotta, #C86B45)',
+          color: '#fff',
+          boxShadow: '0 5px 12px -4px rgba(200,107,69,0.75)',
+        }}
+      >
+        <Bell size={16} strokeWidth={2.6} />
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              color: 'var(--ink, #2A1F16)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {notify.title}
+          </span>
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: '#8A7768', flexShrink: 0 }}>
+            방금
+          </span>
+        </div>
+        <p
+          style={{
+            margin: '3px 0 0',
+            fontSize: 11.5,
+            lineHeight: 1.45,
+            letterSpacing: '-0.02em',
+            color: '#5A4A3A',
+            wordBreak: 'keep-all',
+          }}
+        >
+          {notify.body}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function BadgeCard({ badge }: { badge: Badge }) {
   return (
     <span
@@ -520,14 +634,14 @@ function BadgeCard({ badge }: { badge: Badge }) {
         //   지저분해지지 않는다.
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 7,
-        padding: '7px 13px 7px 7px',
-        borderRadius: 14,
+        gap: 8,
+        padding: '8px 15px 8px 8px',
+        borderRadius: 15,
         background: 'rgba(255,255,255,0.74)',
         border: '1px solid rgba(255,255,255,0.85)',
         backdropFilter: 'blur(14px) saturate(140%)',
         WebkitBackdropFilter: 'blur(14px) saturate(140%)',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 800,
         letterSpacing: '-0.03em',
         whiteSpace: 'nowrap',
@@ -541,16 +655,16 @@ function BadgeCard({ badge }: { badge: Badge }) {
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 24,
-          height: 24,
-          borderRadius: 8,
+          width: 27,
+          height: 27,
+          borderRadius: 9,
           flexShrink: 0,
           background: 'var(--terracotta, #C86B45)',
           color: '#fff',
           boxShadow: '0 4px 10px -3px rgba(200,107,69,0.7)',
         }}
       >
-        <badge.Icon size={14} strokeWidth={2.6} />
+        <badge.Icon size={15} strokeWidth={2.6} />
       </span>
       {badge.text}
     </span>
