@@ -216,7 +216,17 @@ export default function Onboarding() {
     const el = scrollerRef.current
     if (!el) return
     const i = Number(new URLSearchParams(window.location.search).get('i') ?? '0')
-    if (Number.isFinite(i) && i > 0) el.scrollLeft = i * el.clientWidth
+    if (!Number.isFinite(i) || i <= 0) return
+    // `i * clientWidth` 로 계산하면 scroll-snap 이 인접 장으로 당겨 붙어 엉뚱한
+    // 장이 찍힌다(실측: 5장 중 3종류만 나옴). 실제 요소의 offsetLeft 로 옮기고,
+    // 이미지 로드 뒤 레이아웃이 확정되면 한 번 더 맞춘다.
+    const go = () => {
+      const target = el.children[i] as HTMLElement | undefined
+      if (target) el.scrollLeft = target.offsetLeft
+    }
+    go()
+    const t = window.setTimeout(go, 500)
+    return () => window.clearTimeout(t)
   }, [shotMode])
 
   useEffect(() => {
