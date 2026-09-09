@@ -206,6 +206,19 @@ export default function Onboarding() {
     setIdx((prev) => (prev === i ? prev : i))
   }, [])
 
+  /**
+   * 촬영 모드에서 `&i=3` 처럼 장 번호를 주면 그 장으로 바로 연다.
+   * 스토어 스크린샷을 찍을 때 스와이프로 넘기면 관성·스냅 때문에 장이 건너뛰거나
+   * 끝에서 안 넘어간다(실측: 5장 중 4장까지만 이동). 촬영은 결정적이어야 한다.
+   */
+  useEffect(() => {
+    if (!shotMode) return
+    const el = scrollerRef.current
+    if (!el) return
+    const i = Number(new URLSearchParams(window.location.search).get('i') ?? '0')
+    if (Number.isFinite(i) && i > 0) el.scrollLeft = i * el.clientWidth
+  }, [shotMode])
+
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
