@@ -26,7 +26,13 @@
  * 건강 일지 장은 사장님 지시로 뺐고, 그 자리를 실제 홈 화면이 대신한다.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowRight,
@@ -165,10 +171,27 @@ const SLIDES: Slide[] = [
 ]
 const LAST = SLIDES.length - 1
 
+/** URL 은 이 화면에서 바뀌지 않으므로 구독하지 않는다(참조 고정용 모듈 상수). */
+const NO_SUBSCRIBE = () => () => {}
+
 export default function Onboarding() {
   const router = useRouter()
   const scrollerRef = useRef<HTMLDivElement | null>(null)
   const [idx, setIdx] = useState(0)
+  /**
+   * 스토어 스크린샷 촬영 모드 — `/welcome?shot=1`.
+   *
+   * 앱스토어·플레이스토어 등록용 이미지에는 '다음/건너뛰기/페이지 점' 같은
+   * **조작 UI 가 없는 편이 깔끔하다**(스토어 방문자는 그 버튼을 누를 수 없다).
+   * 헤드라인·기기·배지·설명문만 남긴다. 쿼리가 없으면 아무것도 달라지지 않으므로
+   * 실제 온보딩 동작에는 영향이 없다.
+   * hydration 불일치를 피하려고 렌더 중이 아니라 effect 에서 읽는다.
+   */
+  const shotMode = useSyncExternalStore(
+    NO_SUBSCRIBE,
+    () => new URLSearchParams(window.location.search).has('shot'),
+    () => false, // 서버 스냅샷 — 기본은 평소 온보딩
+  )
 
   const goTo = useCallback((i: number) => {
     const el = scrollerRef.current
@@ -220,11 +243,11 @@ export default function Onboarding() {
       <div
         style={{
           position: 'absolute',
+          display: shotMode ? 'none' : 'flex',
           top: 'max(16px, env(safe-area-inset-top))',
           left: 0,
           right: 0,
           zIndex: 7,
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 20px',
@@ -374,7 +397,9 @@ export default function Onboarding() {
           right: 0,
           bottom: 0,
           zIndex: 6,
-          padding: '24px 22px calc(18px + env(safe-area-inset-bottom))',
+          padding: shotMode
+            ? '24px 22px calc(34px + env(safe-area-inset-bottom))'
+            : '24px 22px calc(18px + env(safe-area-inset-bottom))',
           background:
             'linear-gradient(180deg, rgba(74,26,8,0) 0%, rgba(74,26,8,0.5) 26%, rgba(74,26,8,0.74) 100%)',
         }}
@@ -397,7 +422,7 @@ export default function Onboarding() {
               >
                 {SLIDES[idx]?.note}
               </p>
-              {idx < LAST ? (
+              {shotMode ? null : idx < LAST ? (
                 <button type="button" onClick={() => goTo(idx + 1)} style={btnPrimary}>
                   다음
                 </button>
