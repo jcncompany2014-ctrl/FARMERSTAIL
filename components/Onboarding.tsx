@@ -207,27 +207,16 @@ export default function Onboarding() {
   }, [])
 
   /**
-   * 촬영 모드에서 `&i=3` 처럼 장 번호를 주면 그 장으로 바로 연다.
-   * 스토어 스크린샷을 찍을 때 스와이프로 넘기면 관성·스냅 때문에 장이 건너뛰거나
-   * 끝에서 안 넘어간다(실측: 5장 중 4장까지만 이동). 촬영은 결정적이어야 한다.
+   * 촬영 모드에서 `&i=3` 을 주면 **그 장만 렌더한다**.
+   * 스크롤로 옮기는 방식은 scroll-snap 이 인접 장으로 당겨 지정한 장이 안 찍혔다
+   * (offsetLeft 로 바꿔도 5장 중 3종류만 나왔다 — 실측). 한 장만 그리면 스냅이
+   * 개입할 여지 자체가 없어 촬영이 결정적이 된다.
    */
-  useEffect(() => {
-    if (!shotMode) return
-    const el = scrollerRef.current
-    if (!el) return
-    const i = Number(new URLSearchParams(window.location.search).get('i') ?? '0')
-    if (!Number.isFinite(i) || i <= 0) return
-    // `i * clientWidth` 로 계산하면 scroll-snap 이 인접 장으로 당겨 붙어 엉뚱한
-    // 장이 찍힌다(실측: 5장 중 3종류만 나옴). 실제 요소의 offsetLeft 로 옮기고,
-    // 이미지 로드 뒤 레이아웃이 확정되면 한 번 더 맞춘다.
-    const go = () => {
-      const target = el.children[i] as HTMLElement | undefined
-      if (target) el.scrollLeft = target.offsetLeft
-    }
-    go()
-    const t = window.setTimeout(go, 500)
-    return () => window.clearTimeout(t)
-  }, [shotMode])
+  const shotOne = shotMode
+    ? Number(new URLSearchParams(window.location.search).get('i') ?? '0')
+    : -1
+  const viewSlides =
+    shotOne >= 0 && shotOne < SLIDES.length ? [SLIDES[shotOne]!] : SLIDES
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -327,7 +316,7 @@ export default function Onboarding() {
           scrollbarWidth: 'none',
         }}
       >
-        {SLIDES.map((s, i) => (
+        {viewSlides.map((s, i) => (
           <section
             key={s.punch}
             style={{
@@ -443,7 +432,7 @@ export default function Onboarding() {
                   textShadow: '0 1px 10px rgba(70,20,5,0.4)',
                 }}
               >
-                {SLIDES[idx]?.note}
+                {viewSlides[idx]?.note}
               </p>
               {shotMode ? null : idx < LAST ? (
                 <button type="button" onClick={() => goTo(idx + 1)} style={btnPrimary}>
