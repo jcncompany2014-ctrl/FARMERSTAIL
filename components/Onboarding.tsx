@@ -412,25 +412,31 @@ export default function Onboarding() {
           //   "문자가 상단에 붙어 안 읽힌다"). 배경이 밝아지면서 그늘도 크림이
           //   되어, 예전 어두운 그늘과 달리 폰 화면(같은 크림)을 덮지 못했다.
           padding: shotMode
-            ? '46px 22px calc(34px + env(safe-area-inset-bottom))'
-            : '46px 22px calc(18px + env(safe-area-inset-bottom))',
+            ? '52px 22px calc(38px + env(safe-area-inset-bottom))'
+            : '52px 22px calc(20px + env(safe-area-inset-bottom))',
           background:
             'linear-gradient(180deg, rgba(238,226,209,0) 0%, rgba(238,226,209,0.98) 20%, #E9D9C4 62%, #E4D2B9 100%)',
         }}
       >
               <p
                 style={{
-                  margin: '0 0 14px',
+                  margin: '0 auto 18px',
                   // ★여기가 제품의 약속을 말하는 자리다(2026-09-08 사장님:
                   //   "먹는 양을 정확하게, 보호자가 안 귀찮게 포장해서 준다를
                   //   다음 버튼 위 작은 글씨에 강조"). 보조 설명이 아니라
                   //   두 번째 헤드라인처럼 읽히도록 크기·굵기·대비를 올린다.
-                  fontSize: 13.5,
+                  // ★한 줄짜리 문구가 좌우로 꽉 차 중앙 정렬로 안 보였다
+                  //   (2026-09-09 사장님). maxWidth 로 폭을 묶어 가운데 모으고,
+                  //   글자와 위아래 숨통을 살짝 키운다.
+                  fontSize: 14.5,
                   lineHeight: 1.55,
                   textAlign: 'center',
                   color: '#4A3B2C',
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
+                  maxWidth: 310,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
                 }}
               >
                 {viewSlides[idx]?.note}
