@@ -247,9 +247,11 @@ export default function Onboarding() {
         zIndex: 100,
         overflow: 'hidden',
         background:
-          // 상단을 한 단계 진하게(#E08A5F→#CE7549) — 흰 헤드라인이 밝은 주황
-          // 위에서 흐려 보인다는 지적(2026-09-08)의 절반은 배경 대비 문제였다.
-          'radial-gradient(115% 75% at 50% 8%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 58%), linear-gradient(168deg, #CE7549 0%, #B85B39 44%, #8C3A21 100%)',
+          // ★밝은 크림 배경(2026-09-09 사장님: "앱 배경색처럼 옅게").
+          //   앱 본체와 톤이 이어지고, 폰 목업 안 화면과도 한 덩어리로 읽힌다.
+          //   진한 테라코타였을 땐 흰 글씨였지만 이제 글자·그늘·버튼을 전부
+          //   반대로 뒤집어야 한다(아래 색들이 그 짝이다).
+          'radial-gradient(120% 78% at 50% 6%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 60%), linear-gradient(168deg, #FBF7F1 0%, #F4EADD 46%, #EBDCC9 100%)',
       }}
     >
       <div
@@ -279,7 +281,7 @@ export default function Onboarding() {
                 border: 'none',
                 padding: 0,
                 cursor: 'pointer',
-                background: i === idx ? '#fff' : 'rgba(255,255,255,0.42)',
+                background: i === idx ? 'var(--terracotta, #C86B45)' : 'rgba(60,40,26,0.22)',
                 transition: 'width 240ms ease, background 240ms ease',
               }}
             />
@@ -292,7 +294,7 @@ export default function Onboarding() {
             visibility: idx < LAST ? 'visible' : 'hidden',
             background: 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,0.82)',
+            color: 'var(--muted, #7A6A58)',
             fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
@@ -362,8 +364,7 @@ export default function Onboarding() {
                     fontWeight: 600,
                     lineHeight: 1.4,
                     letterSpacing: '-0.02em',
-                    color: 'rgba(255,255,255,0.94)',
-                    textShadow: '0 1px 8px rgba(70,20,5,0.35)',
+                    color: 'var(--muted, #7A6A58)',
                   }}
                 >
                   {s.lead}
@@ -380,9 +381,7 @@ export default function Onboarding() {
                     fontWeight: 900,
                     lineHeight: 1.18,
                     letterSpacing: '-0.05em',
-                    color: '#fff',
-                    textShadow:
-                      '0 1px 3px rgba(70,18,4,0.5), 0 6px 24px rgba(70,18,4,0.4)',
+                    color: 'var(--ink, #2A1F16)',
                   }}
                 >
                   {s.punch}
@@ -413,7 +412,7 @@ export default function Onboarding() {
             ? '24px 22px calc(34px + env(safe-area-inset-bottom))'
             : '24px 22px calc(18px + env(safe-area-inset-bottom))',
           background:
-            'linear-gradient(180deg, rgba(74,26,8,0) 0%, rgba(74,26,8,0.5) 26%, rgba(74,26,8,0.74) 100%)',
+            'linear-gradient(180deg, rgba(235,220,201,0) 0%, rgba(235,220,201,0.92) 30%, #E7D6C1 100%)',
         }}
       >
               <p
@@ -426,10 +425,9 @@ export default function Onboarding() {
                   fontSize: 13.5,
                   lineHeight: 1.55,
                   textAlign: 'center',
-                  color: '#fff',
+                  color: '#4A3B2C',
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
-                  textShadow: '0 1px 10px rgba(70,20,5,0.4)',
                 }}
               >
                 {viewSlides[idx]?.note}
@@ -457,7 +455,7 @@ export default function Onboarding() {
                       justifyContent: 'center',
                       gap: 7,
                       boxShadow:
-                        '0 18px 36px -12px rgba(40,12,2,0.75), 0 0 0 5px rgba(255,255,255,0.18)',
+                        '0 18px 36px -14px rgba(160,70,40,0.8), 0 0 0 5px rgba(200,107,69,0.16)',
                     }}
                   >
                     무료로 시작하기
@@ -470,11 +468,9 @@ export default function Onboarding() {
                       width: '100%',
                       height: 48,
                       borderRadius: 999,
-                      border: '1.5px solid rgba(255,255,255,0.72)',
-                      background: 'rgba(255,255,255,0.14)',
-                      backdropFilter: 'blur(6px)',
-                      WebkitBackdropFilter: 'blur(6px)',
-                      color: '#fff',
+                      border: '1.5px solid rgba(200,107,69,0.5)',
+                      background: '#fff',
+                      color: 'var(--terracotta, #C86B45)',
                       fontSize: 14.5,
                       fontWeight: 800,
                       letterSpacing: '-0.02em',
@@ -491,21 +487,22 @@ export default function Onboarding() {
 }
 
 /**
- * 배경이 테라코타가 됐으므로 CTA 는 **반전**한다 — 흰 알약 + 테라코타 글씨.
- * 같은 색 위에 같은 색 버튼을 두면 묻힌다(레퍼런스 둘 다 배경 대비 버튼).
+ * 배경이 밝은 크림이므로 CTA 는 **브랜드색 알약 + 흰 글씨**다(2026-09-09).
+ * 배경이 진했을 땐 흰 알약이었는데, 밝은 배경에선 흰 버튼이 묻힌다 —
+ * 버튼은 배경과 반대쪽으로 가야 눌러야 할 것으로 읽힌다.
  */
 const btnPrimary: React.CSSProperties = {
   width: '100%',
   height: 52,
   borderRadius: 999,
   border: 'none',
-  background: '#fff',
-  color: '#A8462A',
+  background: 'var(--terracotta, #C86B45)',
+  color: '#fff',
   fontSize: 15,
   fontWeight: 800,
   letterSpacing: '-0.01em',
   cursor: 'pointer',
-  boxShadow: '0 14px 30px -12px rgba(60,20,8,0.5)',
+  boxShadow: '0 14px 30px -14px rgba(160,70,40,0.75)',
 }
 
 /**
@@ -575,9 +572,9 @@ function PhoneStage({ slide, eager }: { slide: Slide; eager: boolean }) {
             background: '#F4EFE7',
             boxShadow: [
               `0 0 0 ${BEZEL}px #241A12`, // 기기 테 — 얇고 어둡게
-              `0 0 0 ${BEZEL + 1.5}px rgba(255,255,255,0.22)`, // 테를 배경에서 떼는 실선
-              '0 34px 64px -22px rgba(48,14,3,0.72)', // 바닥에 떨어지는 큰 그림자
-              '0 12px 26px -10px rgba(48,14,3,0.45)', // 가까운 그림자(접지감)
+              `0 0 0 ${BEZEL + 1.5}px rgba(255,255,255,0.85)`, // 테를 배경에서 떼는 실선
+              '0 34px 64px -24px rgba(60,40,26,0.5)', // 바닥에 떨어지는 큰 그림자
+              '0 12px 26px -12px rgba(60,40,26,0.3)', // 가까운 그림자(접지감)
             ].join(', '),
           }}
         >
@@ -650,12 +647,12 @@ function NotifyCard({ notify }: { notify: NonNullable<Slide['notify']> }) {
         zIndex: 5,
         padding: '17px 17px 18px',
         borderRadius: 22,
-        background: 'rgba(255,255,255,0.80)',
-        border: '1px solid rgba(255,255,255,0.9)',
+        background: 'rgba(255,255,255,0.95)',
+        border: '1px solid rgba(60,40,26,0.08)',
         backdropFilter: 'blur(20px) saturate(150%)',
         WebkitBackdropFilter: 'blur(20px) saturate(150%)',
         boxShadow:
-          '0 28px 52px -18px rgba(30,10,2,0.7), 0 6px 16px -6px rgba(30,10,2,0.4)',
+          '0 26px 46px -18px rgba(60,40,26,0.5), 0 6px 16px -6px rgba(60,40,26,0.28)',
       }}
     >
       {/* 벨은 **카드 밖 좌상단으로 돌출** — 레퍼런스의 가장 특징적인 부분이다. */}
@@ -744,8 +741,8 @@ function BadgeCard({ badge }: { badge: Badge }) {
         gap: 8,
         padding: '8px 15px 8px 8px',
         borderRadius: 15,
-        background: 'rgba(255,255,255,0.74)',
-        border: '1px solid rgba(255,255,255,0.85)',
+        background: 'rgba(255,255,255,0.94)',
+        border: '1px solid rgba(60,40,26,0.08)',
         backdropFilter: 'blur(14px) saturate(140%)',
         WebkitBackdropFilter: 'blur(14px) saturate(140%)',
         fontSize: 13,
@@ -754,7 +751,7 @@ function BadgeCard({ badge }: { badge: Badge }) {
         whiteSpace: 'nowrap',
         color: 'var(--ink, #2A1F16)',
         boxShadow:
-          '0 18px 30px -14px rgba(48,14,3,0.55), 0 4px 10px -3px rgba(48,14,3,0.3)',
+          '0 16px 28px -14px rgba(60,40,26,0.45), 0 3px 8px -3px rgba(60,40,26,0.22)',
       }}
     >
       <span
