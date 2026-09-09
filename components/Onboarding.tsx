@@ -62,6 +62,106 @@ import { markOnboarded } from '@/lib/onboarding'
  *   사라졌다(2026-09-08 사장님 제보). 스크린샷에서 좌표를 따올 때 폰 하단
  *   경계 근처면 이 한계부터 확인한다.
  */
+/**
+ * 배경 장식 — 크림 여백을 지나가는 갈색 발자국(2026-09-09 사장님: "강아지
+ * 발자국 갈색으로 해서 좀 이쁘게").
+ *
+ * lucide 의 `PawPrint` 를 쓰지 않는다 — 그건 **선** 아이콘이라 배경에 옅게
+ * 깔면 형태가 아니라 잔선으로 보인다. 배경 장식은 실루엣이어야 낮은
+ * 불투명도에서도 "발자국"으로 읽힌다. 그래서 채워진 모양을 직접 그린다.
+ */
+function PawMark({
+  size,
+  rot,
+  op,
+}: {
+  size: number
+  rot: number
+  op: number
+}) {
+  const fill = `rgba(150,92,52,${op})`
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      aria-hidden
+      focusable="false"
+      style={{ display: 'block', transform: `rotate(${rot}deg)` }}
+    >
+      <g fill={fill}>
+        <ellipse cx="12.5" cy="27" rx="6.6" ry="9.2" transform="rotate(-24 12.5 27)" />
+        <ellipse cx="25" cy="15.5" rx="6.9" ry="10" transform="rotate(-9 25 15.5)" />
+        <ellipse cx="39" cy="15.5" rx="6.9" ry="10" transform="rotate(9 39 15.5)" />
+        <ellipse cx="51.5" cy="27" rx="6.6" ry="9.2" transform="rotate(24 51.5 27)" />
+        <path d="M32 31c10 0 18 7.4 18 15.6 0 7.3-6.3 10.6-12.2 7.9-1.9-.9-3.8-1.3-5.8-1.3s-3.9.4-5.8 1.3C20.3 57.2 14 53.9 14 46.6 14 38.4 22 31 32 31Z" />
+      </g>
+    </svg>
+  )
+}
+
+type PawSpot = {
+  left?: string
+  right?: string
+  top: string
+  size: number
+  rot: number
+  op: number
+}
+
+/**
+ * 슬라이드마다 **다른** 궤적을 깐다. 같은 패턴을 배경(고정 레이어)에 한 번만
+ * 깔면 스토어에서 5장이 나란히 놓일 때 복사-붙여넣기처럼 보인다.
+ *
+ * ⚠️ 좌표는 헤드라인·배지와 겹치지 않게 잡은 값이다. **배지의 `top` 은 폰
+ *   컨테이너 기준이고 여기 `top` 은 슬라이드 기준이라 축이 다르다** — 폰은
+ *   슬라이드의 약 17~78% 구간에 놓이므로 `배지 top × 0.61 + 17` 이 대략의
+ *   환산이다. 배지를 옮기면 같은 슬라이드의 발자국도 다시 봐야 한다.
+ *   폰 몸통에 걸치는 건 괜찮다 — 폰이 불투명해서 "뒤로 지나간다"로 읽힌다.
+ */
+const PAW_TRAILS: PawSpot[][] = [
+  // 0 홈 — 배지 left@65% · right@37%
+  [
+    { left: '1.5%', top: '3%', size: 34, rot: -22, op: 0.13 },
+    { left: '7%', top: '10%', size: 28, rot: -4, op: 0.1 },
+    { right: '3%', top: '5%', size: 38, rot: 26, op: 0.11 },
+    { left: '2%', top: '24%', size: 30, rot: -14, op: 0.12 },
+    { right: '2%', top: '57%', size: 36, rot: 16, op: 0.12 },
+  ],
+  // 1 분석 — 배지 right@29% · left@57%
+  [
+    { left: '3%', top: '4%', size: 30, rot: -12, op: 0.11 },
+    { right: '5%', top: '9%', size: 34, rot: 20, op: 0.13 },
+    { left: '1.5%', top: '31%', size: 38, rot: -26, op: 0.12 },
+    { right: '2.5%', top: '48%', size: 28, rot: 8, op: 0.1 },
+    { left: '6%', top: '70%', size: 32, rot: -18, op: 0.11 },
+  ],
+  // 2 체중 알림 — 배지 left@55% · right@65%
+  [
+    { left: '2%', top: '5%', size: 36, rot: -18, op: 0.12 },
+    { right: '4%', top: '3.5%', size: 30, rot: 24, op: 0.11 },
+    { left: '5.5%', top: '27%', size: 28, rot: -6, op: 0.1 },
+    { right: '1.5%', top: '34%', size: 38, rot: 14, op: 0.12 },
+    { left: '1%', top: '72%', size: 32, rot: -24, op: 0.11 },
+  ],
+  // 3 진료 보고서 — 배지 left@33% · right@55%
+  [
+    { left: '4%', top: '3%', size: 32, rot: -20, op: 0.12 },
+    { right: '2%', top: '8%', size: 36, rot: 18, op: 0.12 },
+    { right: '6%', top: '31%', size: 28, rot: 4, op: 0.1 },
+    { left: '1.5%', top: '52%', size: 38, rot: -16, op: 0.12 },
+    { right: '3%', top: '71%', size: 30, rot: 22, op: 0.11 },
+  ],
+  // 4 구독 — 배지 left@34% · right@54%
+  [
+    { left: '2.5%', top: '4%', size: 38, rot: -24, op: 0.12 },
+    { right: '3.5%', top: '6%', size: 30, rot: 14, op: 0.11 },
+    { right: '1.5%', top: '33%', size: 34, rot: 22, op: 0.12 },
+    { left: '5%', top: '50%', size: 28, rot: -8, op: 0.1 },
+    { left: '1%', top: '73%', size: 36, rot: -20, op: 0.11 },
+  ],
+]
+
 type Badge = {
   text: string
   side: 'left' | 'right'
@@ -340,11 +440,41 @@ export default function Onboarding() {
               paddingBottom: 'calc(150px + env(safe-area-inset-bottom))',
             }}
           >
+            {/* 배경 발자국 — 내용보다 **먼저** 그린다. 아래 내용 div 에
+                `position:'relative'` 가 붙어 있어야 이 레이어 위로 올라온다
+                (positioned 요소는 zIndex 0 이어도 static 형제보다 위다).
+                `shot` 모드에선 viewSlides 가 한 장이라 i 가 늘 0 이므로
+                **원래 슬라이드 번호**로 궤적을 고른다. */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              {(PAW_TRAILS[shotOne >= 0 ? shotOne : i] ?? []).map((p, k) => (
+                <span
+                  key={k}
+                  style={{
+                    position: 'absolute',
+                    top: p.top,
+                    left: p.left,
+                    right: p.right,
+                  }}
+                >
+                  <PawMark size={p.size} rot={p.rot} op={p.op} />
+                </span>
+              ))}
+            </div>
+
             {/* ★흰 패널 제거(2026-09-08) — 헤드라인·폰이 그라데이션 위에 바로
                 놓인다. 패널이 있으면 배경색이 위아래 띠로만 남아 레퍼런스의
                 "떠 있는" 느낌이 안 산다. 폰은 이 컨테이너 밖으로 잘려 나간다. */}
             <div
               style={{
+                position: 'relative',
                 flex: 1,
                 minHeight: 0,
                 display: 'flex',
