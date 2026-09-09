@@ -331,7 +331,7 @@ export default function Onboarding() {
               flexDirection: 'column',
               paddingTop: 'max(44px, calc(env(safe-area-inset-top) + 30px))',
               // 하단 고정 영역이 이 아래에 겹쳐 앉는다 — 폰은 그 뒤로 잘려 들어간다.
-              paddingBottom: 'calc(126px + env(safe-area-inset-bottom))',
+              paddingBottom: 'calc(150px + env(safe-area-inset-bottom))',
             }}
           >
             {/* ★흰 패널 제거(2026-09-08) — 헤드라인·폰이 그라데이션 위에 바로
@@ -408,11 +408,14 @@ export default function Onboarding() {
           right: 0,
           bottom: 0,
           zIndex: 6,
+          // ★위 여백을 키워 문구를 **불투명해진 구간**에 앉힌다(2026-09-09 사장님:
+          //   "문자가 상단에 붙어 안 읽힌다"). 배경이 밝아지면서 그늘도 크림이
+          //   되어, 예전 어두운 그늘과 달리 폰 화면(같은 크림)을 덮지 못했다.
           padding: shotMode
-            ? '24px 22px calc(34px + env(safe-area-inset-bottom))'
-            : '24px 22px calc(18px + env(safe-area-inset-bottom))',
+            ? '46px 22px calc(34px + env(safe-area-inset-bottom))'
+            : '46px 22px calc(18px + env(safe-area-inset-bottom))',
           background:
-            'linear-gradient(180deg, rgba(235,220,201,0) 0%, rgba(235,220,201,0.92) 30%, #E7D6C1 100%)',
+            'linear-gradient(180deg, rgba(238,226,209,0) 0%, rgba(238,226,209,0.98) 20%, #E9D9C4 62%, #E4D2B9 100%)',
         }}
       >
               <p
