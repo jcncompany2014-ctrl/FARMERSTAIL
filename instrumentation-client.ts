@@ -63,6 +63,26 @@ Sentry.init({
       blockAllMedia: true,
     }),
   ],
+  // ★여기 걸리는 건 **우리 에러가 아니다** — 남의 인앱 브라우저가 우리 페이지에
+  //   얹은 스크립트가 터진 것이다.
+  //
+  //   2026-09-11 사장님 제보: iOS 18.7 WKWebView 에서
+  //   `ReferenceError: Can't find variable: sendWebMessage` 가 올라왔다.
+  //   카카오톡·인스타 같은 인앱 브라우저는 열어준 페이지에 자기 스크립트를
+  //   주입한다(상단 바·공유·집계). 그런데 **iOS 는 그 주입 스크립트를 페이지와
+  //   같은 컨텍스트에서 돌린다** — 그래서 남의 코드가 터져도 우리 window.onerror
+  //   가 주워 담아 Sentry 로 보낸다. 사용자에게는 아무 일도 안 일어난다.
+  //   표식: 스택이 `at global code (app:///:1:15)` 한 줄뿐이고 우리 번들
+  //   파일명이 없다. `sendWebMessage` 는 소스·Capacitor 브릿지·안드로이드
+  //   빌드 산출물 어디에도 없음을 확인했다(3곳 전부 0건).
+  //
+  //   ⚠️ **심볼 이름으로만 좁게 막는다.** `/is not defined/` 같은 넓은 패턴으로
+  //   막으면 우리 진짜 ReferenceError 까지 조용히 삼킨다 — 알림이 시끄러운 것보다
+  //   에러가 안 보이는 쪽이 훨씬 위험하다. 같은 유형이 또 오면 **그 심볼 이름만**
+  //   이 배열에 한 줄 추가한다.
+  //   (문자열은 Sentry 가 부분 일치로 본다 — 브라우저마다 문구가 달라도
+  //    "Can't find variable: X" / "X is not defined" 둘 다 걸린다.)
+  ignoreErrors: ['sendWebMessage'],
   sendDefaultPii: false,
   // 한국 환경 특화 PII scrubbing — server config 와 동일 패턴.
   // breadcrumb 의 navigation/click 라벨이나 에러 메시지 텍스트에 사용자 PII
