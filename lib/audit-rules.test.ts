@@ -721,8 +721,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:92',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 이동, 재확인함)",
+      at: 'app/api/cron/daily-briefing/route.ts:93',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동, 둘 다 같은 집계임을 재확인함)",
     },
   ]
 
@@ -3408,4 +3408,54 @@ test('규칙77: 원장 집계(finance·reports)는 환불 event_type 화이트�
     /reduce\(\(s,\s*e\)\s*=>\s*s\s*-\s*\(e\.amount\s*\?\?\s*0\)/.test(reports),
     'reports 환불 합산이 부호 합산(-sum)이 아니다 — 정정 기입이 상쇄되지 않는다',
   )
+})
+
+test('규칙78: 앱 홈 진입은 푸시 토큰을 자동 등록해야 한다 — 설정 화면 토글만으로는 아무도 안 켠다', () => {
+  /**
+   * # 왜 (2026-09-15 사장님 제보: "앱 깔았는데 알림이 한 번도 안 울렸다")
+   * 토큰 등록 함수를 부르는 곳이 알림 설정 화면의 토글 ON **하나뿐**이었다.
+   * 앱을 깔고 로그인해도 아무도 그 화면에 가지 않았고, 사용자 12명 전원 토큰 0 —
+   * 결제·배송·운영 브리핑이 3주간 `sent_count: 0` 으로 기록만 남았다.
+   * 등록 API 주석에는 "첫 실행 시 호출"이라 적혀 있었지만 그 코드는 없었다.
+   * 주석이 주장하는 동작은 grep 으로 실물을 확인한다(AGENTS.md 규칙4).
+   *
+   * # 무엇을 잠그나
+   * ① 홈(dashboard)이 자동 등록 컴포넌트를 렌더한다.
+   * ② 자동 등록은 **사용자가 껐다는 표시(opt-out)를 먼저 본다** — 없으면 토글
+   *    OFF 를 다음 홈 진입이 뒤집어 "껐는데 계속 온다"가 된다.
+   * ③ 토글 OFF 가 그 표시를 남기고, ON 이 지운다.
+   */
+  const home = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
+  assert.match(home, /<PushAutoRegister\s*\/>/, '홈이 PushAutoRegister 를 렌더하지 않는다 — 토큰이 다시 아무에게도 안 남는다')
+
+  const cap = stripComments(read(join(ROOT, 'lib', 'capacitor.ts')))
+  const fn = cap.slice(cap.indexOf('export async function autoRegisterNativePush'))
+  assert.ok(fn.length > 0, 'autoRegisterNativePush 가 없다')
+  const optOutIdx = fn.indexOf('hasPushOptOut')
+  const registerIdx = fn.indexOf('registerAndSyncNativePush')
+  assert.ok(optOutIdx > 0 && registerIdx > 0 && optOutIdx < registerIdx,
+    '자동 등록이 opt-out 확인 없이(또는 등록 뒤에) 토큰을 만든다 — 사용자가 끈 걸 뒤집는다')
+
+  const settings = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'notifications', 'NotificationSettingsClient.tsx')))
+  assert.match(settings, /markPushOptOut\(\)/, '토글 OFF 가 opt-out 표시를 남기지 않는다')
+  assert.match(settings, /clearPushOptOut\(\)/, '토글 ON 이 opt-out 표시를 지우지 않는다')
+})
+
+test('규칙79: 운영 브리핑 크론은 실제 발송 0건을 실패로 끝내야 한다 — "수신자 0명" 방어만으론 부족', () => {
+  /**
+   * # 왜 (2026-09-15)
+   * 이 크론엔 이미 "관리자 0명이면 500" 방어가 있었다(관리자 판정이 깨졌던 사고).
+   * 그런데 관리자는 1명 있고 **그 계정에 푸시 토큰이 없어** sent=0 인 경우는
+   * 초록으로 빠져나갔고, 2026-09-03 부터 13일간 매일 허공에 쐈다. 같은 병을
+   * 한 층 앞에서만 막은 것이다. 방어를 세우면 그 다음 단계도 같은 모양인지 본다.
+   *
+   * 잠그는 것: sent === 0 이면 ok:false + 500. 사장님 메일까지 가도록 Sentry 도.
+   */
+  const src = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
+  const guard = src.indexOf('sent === 0')
+  assert.ok(guard > 0, 'daily-briefing 에 sent === 0 판정이 없다')
+  const after = src.slice(guard, guard + 900)
+  assert.match(after, /no_push_targets/, 'sent=0 이 실패 사유(no_push_targets)로 안 나간다')
+  assert.match(after, /status:\s*500/, 'sent=0 인데 200 으로 끝난다 — 크론이 초록으로 집계된다')
+  assert.match(after, /Sentry\.captureMessage/, 'sent=0 이 Sentry 로 안 나간다 — 사장님이 모른다')
 })

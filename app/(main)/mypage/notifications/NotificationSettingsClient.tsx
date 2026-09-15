@@ -15,6 +15,8 @@ import PreferencesPanel from './PreferencesPanel'
 import {
   isNativeApp,
   registerAndSyncNativePush,
+  markPushOptOut,
+  clearPushOptOut,
   getDeviceId,
 } from '@/lib/capacitor'
 import { formatKstLongDate } from '@/lib/datetime-kst'
@@ -144,6 +146,8 @@ export default function NotificationSettingsClient({
           setStatus('off')
           return
         }
+        // 직접 켰다 — 홈 진입 자동 등록(autoRegisterNativePush)이 다시 돌게 플래그를 지운다.
+        void clearPushOptOut()
         setStatus('on')
         setMsg('네이티브 앱 알림이 활성화됐어요')
         return
@@ -228,6 +232,9 @@ export default function NotificationSettingsClient({
           )
           if (!res.ok) throw new Error('푸시 해제에 실패했어요')
         }
+        // ★직접 껐다는 표시. 이게 없으면 다음 홈 진입에서 자동 등록이 토큰을
+        //   다시 만들어 "껐는데 계속 온다"가 된다(2026-09-15 자동 등록 도입).
+        void markPushOptOut()
         setStatus('off')
         setMsg('알림을 껐어요')
       } catch (err) {

@@ -206,6 +206,96 @@ export async function registerAndSyncNativePush(): Promise<boolean> {
 }
 
 /**
+ * ★알림 자동 등록 (2026-09-15 사장님 제보: "앱 깔았는데 알림이 한 번도 안 울렸다").
+ *
+ * # 무슨 일이 있었나
+ * 토큰을 등록하는 `registerAndSyncNativePush` 를 부르는 곳이 **알림 설정 화면의
+ * 토글 ON 하나뿐**이었다. 앱을 깔고 로그인해도 아무도 그 화면에 가지 않았고,
+ * 그 결과 사용자 12명 전원의 토큰이 0 — 결제·배송·운영 브리핑이 3주간 전부
+ * `sent_count: 0` 으로 기록만 남고 어느 폰에도 닿지 않았다. 등록 API 주석엔
+ * "첫 실행 시 호출"이라 적혀 있었지만 **그 코드는 없었다**.
+ *
+ * # 지금
+ * 로그인 후 홈에 들어오면 한 번 시도한다(온보딩을 마친 직후 = 홈 첫 진입).
+ * · 이미 등록돼 있으면 서버 조회 1회로 끝난다(팝업 없음).
+ * · **사용자가 설정에서 껐으면 건드리지 않는다** — 토글 OFF 가 opt-out 플래그를
+ *   남기고 여기서는 그것부터 본다. 로그아웃은 opt-out 이 아니다(다음 사용자
+ *   보호용으로 토큰만 지우는 조치)라 재로그인하면 다시 등록한다.
+ * · iOS 권한 팝업은 딱 한 번이다. 이미 거부된 상태면 OS 가 팝업 없이 denied 를
+ *   돌려주고 우리는 조용히 물러난다 — 매 실행마다 물어봐도 사용자는 모른다.
+ * · 로그인 전(401)이면 시도 표시를 되돌려 로그인 뒤 홈에서 다시 잡게 한다.
+ */
+const PUSH_OPT_OUT_KEY = 'ft_push_opt_out'
+
+/** 사용자가 알림 설정에서 직접 껐다 — 자동 등록이 이걸 넘어서면 안 된다. */
+export async function markPushOptOut(): Promise<void> {
+  if (!isNativeApp()) return
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
+    await Preferences.set({ key: PUSH_OPT_OUT_KEY, value: '1' })
+  } catch {
+    /* 저장 실패 — 다음 홈 진입에서 한 번 더 물어보게 되는 정도 */
+  }
+}
+
+/** 사용자가 알림을 다시 켰다 — 자동 등록을 다시 허용. */
+export async function clearPushOptOut(): Promise<void> {
+  if (!isNativeApp()) return
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
+    await Preferences.remove({ key: PUSH_OPT_OUT_KEY })
+  } catch {
+    /* noop */
+  }
+}
+
+async function hasPushOptOut(): Promise<boolean> {
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
+    const v = await Preferences.get({ key: PUSH_OPT_OUT_KEY })
+    return v.value === '1'
+  } catch {
+    return false
+  }
+}
+
+// 이번 앱 실행에서 한 번만 — 홈을 오갈 때마다 서버를 두드리지 않는다.
+let autoRegisterTried = false
+
+export type AutoRegisterResult = 'registered' | 'already' | 'skipped' | 'failed'
+
+export async function autoRegisterNativePush(): Promise<AutoRegisterResult> {
+  if (!isNativeApp()) return 'skipped'
+  if (autoRegisterTried) return 'skipped'
+  autoRegisterTried = true
+
+  if (await hasPushOptOut()) return 'skipped'
+
+  const deviceId = await getDeviceId()
+  if (!deviceId) return 'skipped'
+
+  // 서버에 이 기기 행이 있으면 끝 — 권한 팝업도, POST 도 안 한다.
+  try {
+    const res = await fetch(
+      `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
+    )
+    if (res.status === 401) {
+      autoRegisterTried = false // 아직 로그인 전 — 로그인 뒤 홈에서 다시
+      return 'skipped'
+    }
+    if (res.ok) {
+      const j = (await res.json()) as { registered?: boolean }
+      if (j.registered) return 'already'
+    }
+  } catch {
+    /* 조회가 안 돼도 등록은 시도한다 — upsert 라 중복은 없다 */
+  }
+
+  const ok = await registerAndSyncNativePush()
+  return ok ? 'registered' : 'failed'
+}
+
+/**
  * 로그아웃 직전 네이티브 푸시 토큰 정리 (2026-08-08 네이티브 감사).
  *
  * 안 지우면 토큰 row 가 (이전 user_id 로) 남아 **로그아웃한 기기로 계속

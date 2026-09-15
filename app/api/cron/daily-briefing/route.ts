@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
@@ -261,6 +262,24 @@ async function runDailyBriefing(): Promise<Response> {
     // category 미지정 = 선호도·조용시간 게이트 우회(운영 알림).
     const res = await pushToUser(a.id, { title, body, url: '/admin' })
     if (res.ok) sent += res.sent
+  }
+
+  // ★관리자는 있는데 실제 발송이 0건 — 이것도 실패다(2026-09-15).
+  //   위의 "수신자 0명" 방어는 관리자 **판정**이 깨진 경우만 잡았다. 그 다음
+  //   단계, 관리자 계정에 푸시 토큰이 없어 보낼 기기가 없는 경우는 sent=0 인
+  //   채 초록으로 빠져나갔고, 그 상태로 2026-09-03 부터 13일간 매일 허공에
+  //   쐈다(사장님: "알림이 한 번도 안 울렸다"). 같은 병을 한 층 앞에서만 막은
+  //   것이다. 이제 0건이면 크론을 빨간불로 끝내고 Sentry 로 사장님 메일까지
+  //   보낸다 — 사장님이 알림을 켜기 전까지 매일 울린다. 그게 의도다.
+  if (sent === 0) {
+    Sentry.captureMessage(
+      `[daily-briefing] 관리자 ${targets.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다. 앱 → 마이페이지 → 알림 설정에서 켜야 한다.`,
+      'warning',
+    )
+    return NextResponse.json(
+      { ok: false, reason: 'no_push_targets', at: 'daily-briefing', admins: targets.length, sent: 0 },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json({

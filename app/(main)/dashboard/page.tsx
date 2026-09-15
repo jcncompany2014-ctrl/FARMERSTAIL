@@ -17,6 +17,7 @@ import {
 import { StreakRewards } from '@/components/v3'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
+import PushAutoRegister from '@/components/dashboard/PushAutoRegister'
 import {
   computeDailyStreak,
   kstDayKeyFromTs,
@@ -506,6 +507,8 @@ export default async function DashboardPage() {
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL + 강아지 아직 없을 때만.
           설문 퍼널로 온 유저는 이미 강아지가 등록돼 있어(설문=강아지 등록) '첫
           아이 등록' 튜토리얼이 중복·혼란 → 강아지 0마리일 때만 노출(2026-07-24). */}
+      {/* 앱이면 푸시 토큰 자동 등록 — 2026-09-15 전까지는 설정 화면에서 직접 켜야만 등록됐다 */}
+      <PushAutoRegister />
       {showOnboarding && dogs.length === 0 && <OnboardingTutorial />}
 
       {/* 1. Greeting hero — 54px display + signature */}
