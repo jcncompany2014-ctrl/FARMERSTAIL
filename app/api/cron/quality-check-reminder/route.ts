@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
@@ -127,6 +128,21 @@ async function runReminder(): Promise<Response> {
     } catch {
       failed += 1
     }
+  }
+
+  // ★보내려 했는데 한 건도 안 나감 = 실패 (2026-09-15, daily-briefing 과 같은 게이트).
+  //   위 "관리자 0명" 방어는 판정이 깨진 경우만 잡는다. 관리자는 있는데 그 계정에
+  //   푸시 토큰이 없어 0건인 경우는 초록으로 빠져나갔다 — 운영 브리핑이 그렇게
+  //   13일을 허공에 쐈다. 30일 dedup 으로 건너뛴 건 정당하므로 그 경우는 뺀다.
+  if (sent === 0 && skippedSpam === 0) {
+    Sentry.captureMessage(
+      `[quality-check-reminder] 관리자 ${admins.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다.`,
+      'warning',
+    )
+    return NextResponse.json(
+      { ok: false, reason: 'no_push_targets', at: 'quality-check-reminder', admins: admins.length, sent: 0, failed },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json({

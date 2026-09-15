@@ -3451,13 +3451,25 @@ test('규칙79: 운영 브리핑 크론은 실제 발송 0건을 실패로 끝�
    *
    * 잠그는 것: sent === 0 이면 ok:false + 500. 사장님 메일까지 가도록 Sentry 도.
    */
-  const src = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
-  const guard = src.indexOf('sent === 0')
-  assert.ok(guard > 0, 'daily-briefing 에 sent === 0 판정이 없다')
-  const after = src.slice(guard, guard + 900)
-  assert.match(after, /no_push_targets/, 'sent=0 이 실패 사유(no_push_targets)로 안 나간다')
-  assert.match(after, /status:\s*500/, 'sent=0 인데 200 으로 끝난다 — 크론이 초록으로 집계된다')
-  assert.match(after, /Sentry\.captureMessage/, 'sent=0 이 Sentry 로 안 나간다 — 사장님이 모른다')
+  // 관리자에게 푸시를 보내는 크론 전부 — admin_user_ids 로 수신자를 고르고 pushToUser 를 부르는 것.
+  // 2026-09-15 검수에서 quality-check-reminder 도 같은 구멍이 있었다(매월 1일이라 아직 안 터졌을 뿐).
+  const cronDir = join(ROOT, 'app', 'api', 'cron')
+  const adminPushCrons = readdirSync(cronDir).filter((d) => {
+    const f = join(cronDir, d, 'route.ts')
+    if (!existsSync(f)) return false
+    const s = stripComments(read(f))
+    return s.includes("rpc('admin_user_ids')") && s.includes('pushToUser(')
+  })
+  assert.ok(adminPushCrons.includes('daily-briefing'), '규칙의 탐지 조건이 daily-briefing 을 못 찾는다 — 조건을 갱신할 것')
+  for (const name of adminPushCrons) {
+    const src = stripComments(read(join(cronDir, name, 'route.ts')))
+    const guard = src.indexOf('sent === 0')
+    assert.ok(guard > 0, `${name}: sent === 0 판정이 없다 — 관리자 토큰이 없으면 초록으로 허공에 쏜다`)
+    const after = src.slice(guard, guard + 900)
+    assert.match(after, /no_push_targets/, `${name}: sent=0 이 실패 사유(no_push_targets)로 안 나간다`)
+    assert.match(after, /status:\s*500/, `${name}: sent=0 인데 200 으로 끝난다 — 크론이 초록으로 집계된다`)
+    assert.match(after, /Sentry\.captureMessage/, `${name}: sent=0 이 Sentry 로 안 나간다 — 사장님이 모른다`)
+  }
 })
 
 test('규칙80: 라이브 어드민 셸에는 고객 화면(/dashboard)으로 돌아가는 링크가 있어야 한다', () => {
