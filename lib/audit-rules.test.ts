@@ -3498,3 +3498,30 @@ test('규칙80: 라이브 어드민 셸에는 고객 화면(/dashboard)으로 �
     `라이브 어드민 셸(${shellRel})에 /dashboard 로 돌아가는 링크가 없다 — 앱에서 어드민에 들어오면 못 나온다`,
   )
 })
+
+test('규칙81: 가입 환영 메일은 홈 첫 진입에서 발화돼야 한다 — 템플릿만 있고 호출처 없던 것', () => {
+  /**
+   * # 왜 (2026-09-15 검수)
+   * notifyWelcome 템플릿은 있는데 부르는 코드가 없어 서비스 시작부터 한 통도
+   * 안 나갔다. 7월에 "/api/auth/welcome-email 을 부르는 client 가 없다"며
+   * API 를 지웠는데, 고쳐야 할 것은 호출처였다 — 푸시 자동 등록(규칙78)과
+   * 같은 모양. 프로필은 auth 트리거가 만들어 "가입 직후" 지점이 앱 코드에
+   * 없으므로 홈에서 잡는다.
+   *
+   * 잠그는 것: ① notifyWelcome 호출처가 lib/email 밖에 존재 ② 홈이
+   * sendWelcomeEmailOnce 를 부름 ③ 선점(is null 조건 UPDATE)이 발송보다 앞.
+   */
+  const callers = walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'lib')))
+    .filter((f) => !f.includes(join('lib', 'email')))
+    .filter((f) => stripComments(read(f)).includes('notifyWelcome('))
+  assert.ok(callers.length > 0, 'notifyWelcome 을 부르는 곳이 없다 — 환영 메일이 또 죽었다')
+
+  const home = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
+  assert.match(home, /sendWelcomeEmailOnce\(/, '홈이 환영 메일을 발화하지 않는다')
+
+  const w = stripComments(read(join(ROOT, 'lib', 'welcome-email.ts')))
+  const claim = w.indexOf(".is('welcome_email_sent_at', null)")
+  const send = w.indexOf('notifyWelcome(')
+  assert.ok(claim > 0 && send > 0 && claim < send,
+    '환영 메일이 선점(welcome_email_sent_at is null 조건 UPDATE) 없이 나간다 — 두 탭이면 두 통')
+})

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
+import { sendWelcomeEmailOnce } from '@/lib/welcome-email'
 import {
   GreetingSection,
   ActiveDogCard,
@@ -120,7 +122,7 @@ export default async function DashboardPage() {
     // 가입 후 첫 진입 튜토리얼 노출 여부 — onboarded_at IS NULL 이면 모달 띄움.
     supabase
       .from('profiles')
-      .select('onboarded_at')
+      .select('onboarded_at, welcome_email_sent_at')
       .eq('id', user.id)
       .maybeSingle(),
     // Phase D7.4 + D7.5 + P7 — 페르소나 + 맞춤도 계산용 dog meta.
@@ -174,6 +176,24 @@ export default async function DashboardPage() {
 
   const showOnboarding =
     onboardData != null && (onboardData as { onboarded_at: string | null }).onboarded_at === null
+
+  // ★가입 환영 메일 — 첫 홈 진입에서 한 통 (2026-09-15). 이 메일은 서비스
+  //   시작부터 한 통도 안 나갔다: 템플릿은 있는데 부르는 코드가 없었다.
+  //   after() 로 응답 뒤에 돌려 홈 렌더를 안 늦춘다. 선점·중복·실패 재시도는
+  //   sendWelcomeEmailOnce 가 맡는다. welcome_email_sent_at 이 이미 있으면
+  //   여기서 걸러져 서버 왕복도 없다.
+  const welcomePending =
+    onboardData != null &&
+    (onboardData as { welcome_email_sent_at: string | null }).welcome_email_sent_at === null
+  if (welcomePending) {
+    after(async () => {
+      try {
+        await sendWelcomeEmailOnce(user.id)
+      } catch (err) {
+        console.error('[dashboard] 환영 메일 발화 실패:', err)
+      }
+    })
+  }
 
   if (snapshotErr) {
     console.error('[dashboard] user_snapshot rpc failed', snapshotErr)

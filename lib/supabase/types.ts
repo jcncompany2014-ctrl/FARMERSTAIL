@@ -2241,6 +2241,7 @@ export type Database = {
           name: string | null
           notifications_last_seen_at: string | null
           onboarded_at: string | null
+          welcome_email_sent_at: string | null
           phone: string | null
           role: string | null
           stamp_count: number
@@ -2271,6 +2272,7 @@ export type Database = {
           name?: string | null
           notifications_last_seen_at?: string | null
           onboarded_at?: string | null
+          welcome_email_sent_at?: string | null
           phone?: string | null
           role?: string | null
           stamp_count?: number
@@ -2301,6 +2303,7 @@ export type Database = {
           name?: string | null
           notifications_last_seen_at?: string | null
           onboarded_at?: string | null
+          welcome_email_sent_at?: string | null
           phone?: string | null
           role?: string | null
           stamp_count?: number

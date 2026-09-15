@@ -265,7 +265,9 @@ export async function notifyWelcome(
   const { subject, html } = renderWelcome({
     recipientName: input.name ?? '보호자',
   })
-  await sendEmail({
+  // 결과를 돌려준다 — 호출자(lib/welcome-email)가 실패면 표시를 되돌려 재시도한다.
+  // 다른 notify* 는 다 돌려주는데 이것만 void 였다(2026-09-15 연결하며 맞춤).
+  return sendEmail({
     to: input.email,
     subject,
     html,
