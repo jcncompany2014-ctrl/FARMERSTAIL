@@ -44,6 +44,7 @@ import {
   PawPrint,
   Lightbulb,
   Gauge,
+  ArrowLeft,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -223,6 +224,21 @@ export default function AdminShellNext({
               {userEmail}
             </span>
           </div>
+          {/* ★"일반 화면으로" — 2026-09-04 셸 교체 때 빠뜨린 것(사장님 제보 2026-09-15:
+              "관리자 화면에서 나가기 버튼이 사라졌다"). 구 AdminShell 드로어 하단에
+              있던 **유일한 탈출구**다. 앱에는 주소창이 없어서, 사장님이 폰 앱으로
+              어드민에 들어오면 이 링크 말고는 고객 화면으로 돌아갈 길이 없다.
+              위 메뉴처럼 <a> 로 그린다 — 풀 이동이라 모바일 드로어가 저절로 닫힌다. */}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="일반 화면으로">
+                <a href="/dashboard">
+                  <ArrowLeft />
+                  <span>일반 화면으로</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>

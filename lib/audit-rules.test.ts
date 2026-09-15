@@ -3459,3 +3459,30 @@ test('규칙79: 운영 브리핑 크론은 실제 발송 0건을 실패로 끝�
   assert.match(after, /status:\s*500/, 'sent=0 인데 200 으로 끝난다 — 크론이 초록으로 집계된다')
   assert.match(after, /Sentry\.captureMessage/, 'sent=0 이 Sentry 로 안 나간다 — 사장님이 모른다')
 })
+
+test('규칙80: 라이브 어드민 셸에는 고객 화면(/dashboard)으로 돌아가는 링크가 있어야 한다', () => {
+  /**
+   * # 왜 (2026-09-15 사장님 제보: "관리자 화면에서 나가기 버튼이 사라졌다")
+   * 2026-09-04 어드민 개편에서 수제 AdminShell → shadcn AdminShellNext 로 셸을
+   * 갈아끼우면서, 구 셸 드로어 하단의 "← 일반 화면으로" 링크를 옮기지 않았다.
+   * 앱에는 주소창이 없다 — 폰 앱으로 어드민에 들어온 사장님은 그 링크 말고는
+   * 고객 화면으로 돌아갈 길이 없다. 39개 화면을 다 옮기고도 탈출구 하나를
+   * 빠뜨렸고, 열흘간 아무도 몰랐다.
+   *
+   * # 무엇을 잠그나
+   * layout 이 실제로 렌더하는 셸 파일을 따라가서 거기에 /dashboard 링크가 있는지
+   * 본다. 구 셸 파일에 남아 있는 링크는 세지 않는다 — 라이브가 아니니까.
+   */
+  const layout = read(join(ROOT, 'app', 'admin', 'layout.tsx'))
+  const m = layout.match(/from\s+'@\/components\/((?:admin|adminui)\/[\w-]*[Ss]hell[\w-]*)'/)
+  assert.ok(m, 'admin/layout.tsx 에서 셸 컴포넌트 import 를 못 찾았다 — 규칙의 경로 패턴을 갱신할 것')
+  const shellRel = m![1] ?? ''
+  const shellPath = join(ROOT, 'components', ...shellRel.split('/')) + '.tsx'
+  assert.ok(existsSync(shellPath), `셸 파일이 없다: ${shellPath}`)
+  const shell = stripComments(read(shellPath))
+  assert.match(
+    shell,
+    /href=["']\/dashboard["']/,
+    `라이브 어드민 셸(${shellRel})에 /dashboard 로 돌아가는 링크가 없다 — 앱에서 어드민에 들어오면 못 나온다`,
+  )
+})
