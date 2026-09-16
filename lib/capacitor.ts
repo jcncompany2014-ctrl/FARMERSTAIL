@@ -307,6 +307,10 @@ export async function autoRegisterNativePush(): Promise<AutoRegisterResult> {
  */
 async function cleanupNativePushOnLogout(): Promise<void> {
   if (!isNativeApp()) return
+  // ★로그아웃이 지운 토큰을 재로그인 홈에서 다시 만들 수 있게 이번 실행의
+  //   "이미 시도함" 표시를 푼다. 로그아웃→이메일 재로그인은 SPA 이동이라 모듈
+  //   상태가 살아남아, 앱을 완전히 끄기 전엔 토큰 0 인 채였다(2026-09-16 점검).
+  autoRegisterTried = false
   try {
     const deviceId = await getDeviceId()
     if (!deviceId) return

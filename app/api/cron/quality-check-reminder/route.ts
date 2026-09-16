@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { pushToUser } from '@/lib/push'
+import { countPushTargets, pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 
@@ -75,9 +75,10 @@ async function runReminder(): Promise<Response> {
     )
   }
 
-  // 30일 spam 차단
+  // 재발송 차단 창 — ★25일 (2026-09-16 점검). 30일이면 2월(28일) 다음 3/1 실행이
+  //   2/1 발송을 "최근 30일 안"으로 보고 건너뛰어 매년 3월 리마인더가 조용히 빠졌다.
   const now = Date.now()
-  const thirtyDaysAgo = new Date(now - 30 * 86_400_000).toISOString()
+  const dedupSince = new Date(now - 25 * 86_400_000).toISOString()
 
   // 현재 월·연도 (KST). 보고서 카피에 사용.
   const nowKst = new Date(now + 9 * 60 * 60 * 1000) // UTC + 9h
@@ -94,7 +95,7 @@ async function runReminder(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', a.id)
       .ilike('title', `%${TITLE_ANCHOR}%`)
-      .gt('sent_at', thirtyDaysAgo)
+      .gt('sent_at', dedupSince)
     // ★dedup 조회 실패를 "안 보냈음"으로 읽으면 30일 재발송 가드가 **열린다**
     //   (2026-08-05). 규칙39 는 `const { data }` 형태만 봐서 이 count 조회를
     //   구조적으로 못 잡았다 — 정작 가드가 여기 있는데.
@@ -135,12 +136,18 @@ async function runReminder(): Promise<Response> {
   //   푸시 토큰이 없어 0건인 경우는 초록으로 빠져나갔다 — 운영 브리핑이 그렇게
   //   13일을 허공에 쐈다. 30일 dedup 으로 건너뛴 건 정당하므로 그 경우는 뺀다.
   if (sent === 0 && skippedSpam === 0) {
+    // 토큰이 없어 못 보낸 것과, 토큰은 있는데 APNs/FCM 이 거부한 것은 처방이 다르다
+    // (2026-09-16 점검 — 전자는 "앱에서 알림 켜기", 후자는 키·환경 점검).
+    const devices = await countPushTargets(admins.map((a) => a.id))
+    const reason = devices > 0 ? 'push_delivery_failed' : 'no_push_targets'
     Sentry.captureMessage(
-      `[quality-check-reminder] 관리자 ${admins.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다.`,
+      devices > 0
+        ? `[quality-check-reminder] 관리자 ${admins.length}명·기기 ${devices}대인데 발송 0건 — APNs/FCM 전송 실패. Sentry 의 push.native.send_failed 이벤트를 볼 것.`
+        : `[quality-check-reminder] 관리자 ${admins.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다.`,
       'warning',
     )
     return NextResponse.json(
-      { ok: false, reason: 'no_push_targets', at: 'quality-check-reminder', admins: admins.length, sent: 0, failed },
+      { ok: false, reason, at: 'quality-check-reminder', admins: admins.length, devices, sent: 0, failed },
       { status: 500 },
     )
   }

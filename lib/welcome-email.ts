@@ -38,7 +38,15 @@ export async function sendWelcomeEmailOnce(userId: string): Promise<WelcomeResul
 
   const res = await notifyWelcome({ email: claimed.email, name: claimed.name })
   if (res.ok) return 'sent'
-  if (res.skipped) return 'skipped' // suppressed / not_configured — 다시 해도 같다
+  if (res.skipped) {
+    // suppressed(바운스 목록)는 다시 해도 같다 — 표시를 남긴다.
+    // not_configured(RESEND 키·발신자 누락)는 일시 상태다 — 표시를 되돌려 환경을
+    // 고친 뒤 다음 홈 진입에서 다시 시도한다(2026-09-16 점검).
+    if (res.reason === 'not_configured') {
+      await admin.from('profiles').update({ welcome_email_sent_at: null }).eq('id', userId)
+    }
+    return 'skipped'
+  }
 
   // 진짜 실패 — 되돌려서 다음 홈 진입에 재시도. 되돌리기가 실패하면 그때는
   // 영영 안 가지만, 그건 로그로 남기고 사람이 본다(조용히 두 통보다 낫다).

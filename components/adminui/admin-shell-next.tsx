@@ -232,7 +232,11 @@ export default function AdminShellNext({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="일반 화면으로">
-                <a href="/dashboard">
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- 풀 이동이 목적(드로어 닫힘·proxy 분기). 위 메뉴와 같은 이유 */}
+                <a href="/">
+                  {/* href="/" — 앱은 proxy 가 세션 유무로 /dashboard·/welcome 으로, 웹은
+                      홈으로 보낸다. /dashboard 직링크는 데스크톱 브라우저의 관리자를
+                      /app-required 설치 안내로 보냈다(2026-09-16 점검). */}
                   <ArrowLeft />
                   <span>일반 화면으로</span>
                 </a>

@@ -41,7 +41,7 @@ Sentry.init({
       return 1.0
     }
     // 가입/로그인 콜백 — 가입 깔때기 추적.
-    if (path === '/auth/callback' || path.startsWith('/api/auth/')) return 0.5
+    if (path === '/auth/callback' || path === '/auth/confirm') return 0.5
     // 헬스체크 / 트래킹 / web vitals — 빈도 높고 가치 낮음.
     if (
       path.startsWith('/api/health') ||

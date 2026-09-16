@@ -83,3 +83,6 @@ next-env.d.ts
 *.jks
 *.keystore
 keystore.properties
+
+# supabase CLI 임시 폴더
+supabase/.temp/

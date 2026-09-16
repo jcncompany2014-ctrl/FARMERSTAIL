@@ -1,3 +1,10 @@
+-- ★적용된 적 없음 · 적용 불필요 (2026-09-16 전수 점검에서 판정).
+--   프로덕션 pg_policies 실측: addresses/push_preferences/dog_reminders 의 UPDATE 정책은
+--   USING (auth.uid() = user_id) 만 있고 WITH CHECK 는 null 이다. 그러나 Postgres 문서
+--   (CREATE POLICY): "if no WITH CHECK expression is defined, then the USING expression
+--   will be used both to determine which rows are visible and which new rows will be
+--   allowed to be added" — 즉 USING 이 갱신 후 행에도 적용돼 user_id 를 타인으로 바꾸는
+--   UPDATE 는 이미 거부된다. 아래 SQL 은 기록으로만 남긴다.
 -- R90-A C1 (D7): RLS UPDATE policy 의 WITH CHECK 누락 보강.
 --
 -- # 문제

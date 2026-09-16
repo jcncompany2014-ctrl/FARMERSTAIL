@@ -50,7 +50,6 @@ export default async function PrivacyDashboardPage() {
       ['addresses', 'addresses'],
       ['orders', 'orders'],
       ['subscriptions', 'subscriptions'],
-      ['reviews', 'reviews'],
       ['point_ledger', 'point_ledger'],
       ['consent_log', 'consent_log'],
     ].map(async ([table, label]) => {

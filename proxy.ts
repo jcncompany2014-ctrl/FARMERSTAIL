@@ -103,14 +103,6 @@ const RULES: readonly Rule[] = [
     limit: 20,
     windowMs: 60_000,
   },
-  // 외부 API 호출 → Anthropic commentary — 비용/quota 보호 차원.
-  {
-    path: '/api/analysis/commentary',
-    methods: ['POST'],
-    bucket: 'analysis-commentary',
-    limit: 20,
-    windowMs: 60_000,
-  },
   // 배송 추적 조회 — GET이라 부담 적지만 크롤러가 긁으면 외부 API 비용.
   {
     path: '/api/tracking',
@@ -178,8 +170,6 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   // sub-route 중 web 으로 노출 가능한 건 /mypage/orders 뿐. 나머지는 app 전용.
   '/mypage/addresses',
   '/mypage/subscriptions',
-  '/mypage/reviews',
-  '/mypage/points',
   '/mypage/notifications',
   '/mypage/consent',
   // /mypage/delete 는 웹도 들어와야 한다 — 개인정보처리방침이 약속한 탈퇴

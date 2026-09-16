@@ -179,6 +179,15 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // ★외부 도메인은 SW 가 손대지 않는다 (2026-09-16 전수 점검).
+  //   위 "외부 도메인 요청은 캐시하지 않음" 주석과 달리 실제 검사는 supabase/toss
+  //   문자열뿐이라 gtag·clarity·kakao SDK 가 아래 script 분기로 들어가 **응답 상태를
+  //   보지 않고** opaque 로 캐시됐다. Clarity 가 400(Invalid project id)을 돌려주는데
+  //   그 400 이 캐시돼 다음 배포까지 계속 그 응답을 먹였다. 외부는 브라우저가 직접.
+  if (new URL(request.url).origin !== self.location.origin) {
+    return
+  }
+
   // 네비게이션 요청 (페이지 이동).
   if (request.mode === 'navigate') {
     // 인증 페이지는 캐시 대신 매번 네트워크 — audit #97 다중 사용자 노출 차단.
@@ -192,11 +201,14 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clone)
-            trimCache(CACHE_NAME, NAV_CACHE_MAX_ENTRIES)
-          })
+          // 실패 응답(4xx/5xx)은 캐시하지 않는다 — 오프라인 폴백이 에러 페이지가 된다.
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone)
+              trimCache(CACHE_NAME, NAV_CACHE_MAX_ENTRIES)
+            })
+          }
           return response
         })
         .catch(() => {
@@ -223,11 +235,14 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         const fetchPromise = fetch(request)
           .then((response) => {
-            const clone = response.clone()
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, clone)
-              trimCache(CACHE_NAME, ASSET_CACHE_MAX_ENTRIES)
-            })
+            // 404/500 을 캐시하면 다음 배포까지 깨진 자산이 고정된다 — ok 만.
+            if (response.ok) {
+              const clone = response.clone()
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, clone)
+                trimCache(CACHE_NAME, ASSET_CACHE_MAX_ENTRIES)
+              })
+            }
             return response
           })
           .catch(() => cached)

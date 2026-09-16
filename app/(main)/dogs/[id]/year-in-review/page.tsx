@@ -115,8 +115,10 @@ export default async function YearInReviewPage({
       .select('id', { count: 'exact', head: true })
       .eq('dog_id', dogId)
       .eq('user_id', user.id)
-      .gte('entry_date', sinceIso.slice(0, 10))
-      .lte('entry_date', untilIso.slice(0, 10)),
+      // ★dog_diary 엔 entry_date 가 없다(2026-09-16 실측: created_at 뿐). PostgREST 가
+      //   42703 으로 거절해 count=null → 연간 리뷰 '그림일기' 가 영구 0편이었다.
+      .gte('created_at', sinceIso)
+      .lte('created_at', untilIso),
   ])
 
   type WLog = { weight: number; measured_at: string }

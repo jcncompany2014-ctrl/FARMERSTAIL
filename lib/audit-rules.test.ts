@@ -3437,8 +3437,17 @@ test('규칙78: 앱 홈 진입은 푸시 토큰을 자동 등록해야 한다 �
     '자동 등록이 opt-out 확인 없이(또는 등록 뒤에) 토큰을 만든다 — 사용자가 끈 걸 뒤집는다')
 
   const settings = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'notifications', 'NotificationSettingsClient.tsx')))
-  assert.match(settings, /markPushOptOut\(\)/, '토글 OFF 가 opt-out 표시를 남기지 않는다')
-  assert.match(settings, /clearPushOptOut\(\)/, '토글 ON 이 opt-out 표시를 지우지 않는다')
+  // ★분기별로 본다(2026-09-16) — 파일 어디에든 두 호출이 있으면 통과하던 단언은
+  //   enable/disable 을 서로 바꿔 꽂아도 초록이었다.
+  const iEnable = settings.indexOf('async function enable(')
+  const iDisable = settings.indexOf('async function disable(')
+  assert.ok(iEnable > 0 && iDisable > iEnable, '알림 설정 화면에 enable()/disable() 이 이 순서로 없다 — 규칙의 분기 판정을 갱신할 것')
+  const enableBody = settings.slice(iEnable, iDisable)
+  const disableBody = settings.slice(iDisable)
+  assert.match(enableBody, /clearPushOptOut\(\)/, '토글 ON(enable) 이 opt-out 표시를 지우지 않는다')
+  assert.doesNotMatch(enableBody, /markPushOptOut\(\)/, '토글 ON(enable) 이 opt-out 표시를 남긴다 — 켰는데 다음 홈에서 자동 등록이 안 된다')
+  assert.match(disableBody, /markPushOptOut\(\)/, '토글 OFF(disable) 가 opt-out 표시를 남기지 않는다 — "껐는데 계속 온다"')
+  assert.doesNotMatch(disableBody, /clearPushOptOut\(\)/, '토글 OFF(disable) 가 opt-out 표시를 지운다')
 })
 
 test('규칙79: 운영 브리핑 크론은 실제 발송 0건을 실패로 끝내야 한다 — "수신자 0명" 방어만으론 부족', () => {
@@ -3494,7 +3503,9 @@ test('규칙80: 라이브 어드민 셸에는 고객 화면(/dashboard)으로 �
   const shell = stripComments(read(shellPath))
   assert.match(
     shell,
-    /href=["']\/dashboard["']/,
+    // href="/" 도 허용(2026-09-16): 앱은 proxy 가 세션 유무로 /dashboard·/welcome 으로,
+    // 웹은 홈으로 보낸다. /dashboard 직링크는 데스크톱 관리자를 /app-required 로 보냈다.
+    /href=["']\/(dashboard)?["']/,
     `라이브 어드민 셸(${shellRel})에 /dashboard 로 돌아가는 링크가 없다 — 앱에서 어드민에 들어오면 못 나온다`,
   )
 })
@@ -3524,4 +3535,33 @@ test('규칙81: 가입 환영 메일은 홈 첫 진입에서 발화돼야 한다
   const send = w.indexOf('notifyWelcome(')
   assert.ok(claim > 0 && send > 0 && claim < send,
     '환영 메일이 선점(welcome_email_sent_at is null 조건 UPDATE) 없이 나간다 — 두 탭이면 두 통')
+})
+
+test('규칙82: 서비스워커는 외부 도메인을 건드리지 않고, 실패 응답을 캐시하지 않는다', () => {
+  /**
+   * # 왜 (2026-09-16 전수 점검)
+   * sw.js 주석은 "외부 도메인 요청은 캐시하지 않음"이라 적혀 있었는데 실제 검사는
+   * supabase/toss 문자열뿐이었다. gtag·clarity·kakao SDK 가 script 분기로 들어가
+   * **응답 상태를 보지 않고** opaque 로 캐시됐고, Clarity 의 400(Invalid project id)
+   * 이 그대로 캐시돼 다음 배포까지 매 페이지 400 을 먹였다. 같은 경로로 우리 자산의
+   * 404/500 도 배포 전까지 고정된다.
+   *
+   * 잠그는 것: ① fetch 핸들러에 origin 가드 ② cache.put 마다 바로 앞에 response.ok 게이트.
+   */
+  // stripComments 는 sw.js 의 '/_next/static/*' 같은 문자열 속 `/*` 를 주석 시작으로 오인해
+  // 핸들러 본문을 통째로 지운다 — 원문으로 본다. 아래 정규식은 코드 토큰만 잡는다.
+  const sw = read(join(ROOT, 'public', 'sw.js'))
+  const fetchHandler = sw.slice(sw.indexOf("addEventListener('fetch'"))
+  assert.ok(fetchHandler.length > 100, 'sw.js 에 fetch 핸들러가 없다')
+  assert.match(
+    fetchHandler,
+    /new URL\(request\.url\)\.origin !== self\.location\.origin/,
+    'SW fetch 핸들러에 외부 도메인 패스스루(origin 가드)가 없다 — 외부 SDK 응답이 opaque 로 캐시된다',
+  )
+  const puts = [...fetchHandler.matchAll(/cache\.put\(/g)]
+  assert.ok(puts.length >= 2, `fetch 핸들러의 cache.put 이 ${puts.length}개 — 네비게이션·정적자원 두 분기가 있어야 한다`)
+  for (const m of puts) {
+    const before = fetchHandler.slice(Math.max(0, m.index - 260), m.index)
+    assert.match(before, /if \(response\.ok\)/, `cache.put 앞에 response.ok 게이트가 없다 (offset ${m.index}) — 4xx/5xx 가 배포 전까지 캐시된다`)
+  }
 })

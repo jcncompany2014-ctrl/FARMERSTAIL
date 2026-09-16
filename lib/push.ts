@@ -326,6 +326,15 @@ export async function pushToUser(
           nativeSent += 1
         } else if (result.unregistered) {
           deadNative.push(row.id)
+        } else {
+          // ★죽은 토큰이 아닌 실패(키 미설정·환경 불일치·네트워크)는 여기서만 보인다.
+          //   전엔 아무 데도 안 남겨 "토큰은 있는데 0건" 이 "토큰 없음" 으로 오진됐다
+          //   (2026-09-16 점검).
+          captureBusinessEvent('warning', 'push.native.send_failed', {
+            userId,
+            platform: row.platform,
+            errorCode: result.errorCode ?? 'unknown',
+          })
         }
       }),
     )
@@ -378,4 +387,20 @@ export async function pushToUser(
     sent: totalSent,
     dead: dead.length + deadNative.length,
   }
+}
+
+/**
+ * 사용자들에게 등록된 푸시 기기 수(네이티브 토큰 + 웹 구독). 크론의 "발송 0건"
+ * 진단용 — 0 이면 "앱에서 알림 켜기", >0 이면 전송 실패(키·환경) 로 처방이 갈린다.
+ * 조회 실패는 0 으로 접지 않고 -1 로 돌려 "모름"을 구분한다(2026-09-16).
+ */
+export async function countPushTargets(userIds: string[]): Promise<number> {
+  if (userIds.length === 0) return 0
+  const supabase = createAdminClient()
+  const [n, w] = await Promise.all([
+    supabase.from('native_push_tokens').select('*', { count: 'exact', head: true }).in('user_id', userIds),
+    supabase.from('push_subscriptions').select('*', { count: 'exact', head: true }).in('user_id', userIds),
+  ])
+  if (n.error || w.error) return -1
+  return (n.count ?? 0) + (w.count ?? 0)
 }

@@ -137,16 +137,22 @@ HAVING COUNT(*) > 1;
 ## 7. 마이그레이션 적용 / 롤백
 
 ### 신규 마이그레이션 적용
-```bash
-# 로컬에서 변경 사항 검증
-supabase db push --dry-run
 
-# 적용
-supabase db push
+> ⚠️ **`supabase db push` 를 프로덕션에 쓰지 않는다** (2026-09-16 점검).
+> 원격 `supabase_migrations.schema_migrations` 의 version 은 MCP `apply_migration` 이
+> 부여한 적용 시각(예: 20260915122002)이고, 로컬 파일명 타임스탬프(20260915000000)와
+> **하나도 일치하지 않는다**(193개 중 0개). CLI 는 로컬 193개를 전부 "미적용"으로 보고
+> 처음부터 다시 실행하려 든다 — 이미 드롭된 테이블을 되살리고 DML 을 다시 돌린다.
 
-# 적용 후 검증
-supabase db lint
-```
+1. `supabase/migrations/` 에 파일을 쓴다(기록·리뷰용 정본).
+2. 같은 SQL 을 Supabase MCP `apply_migration(name=파일명의 이름 부분)` 으로 프로덕션에 적용한다.
+3. 적용 직후 `execute_sql` 로 만든 객체(컬럼·함수·정책·인덱스)와 데이터 보정 건수를
+   실측한다 — 마이그레이션은 tsc 가 안 보는 미검증 코드다.
+4. `get_advisors(security)` 로 RLS·grant 경고가 새로 생기지 않았는지 본다.
+
+로컬/스테이징 DB 를 처음부터 만들 일이 생기면 `supabase db pull` 로 프로덕션 스키마
+스냅샷을 먼저 뜬다 — 원격에만 적용된 변경(push_campaigns·reweighs·kibble_* 등 8건)은
+로컬 파일이 없다.
 
 ### 롤백
 - Supabase 는 마이그레이션 down script 자동 생성 안 함.

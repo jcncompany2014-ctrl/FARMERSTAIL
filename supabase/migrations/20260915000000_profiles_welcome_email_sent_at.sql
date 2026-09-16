@@ -21,7 +21,10 @@ alter table public.profiles
 
 update public.profiles
    set welcome_email_sent_at = now()
- where welcome_email_sent_at is null;
+ where welcome_email_sent_at is null
+   -- 적용 시각(2026-09-15 12:20 UTC) 이전 가입자만. 어떤 경로로든 재실행돼도 그 뒤
+   -- 가입해 아직 홈에 안 들어온 회원의 null 을 덮어 환영 메일을 빼앗지 않는다.
+   and created_at < '2026-09-15 12:20:00+00';
 
 comment on column public.profiles.welcome_email_sent_at is
   '가입 환영 메일 발송 시각. null = 아직 안 보냄(첫 홈 진입에서 서버가 선점 후 발송). 기존 회원은 도입 시 now() 로 채움.';

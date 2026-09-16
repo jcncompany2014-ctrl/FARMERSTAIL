@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
-import { pushToUser } from '@/lib/push'
+import { countPushTargets, pushToUser } from '@/lib/push'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { weekdayOf, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
 import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
@@ -272,12 +272,18 @@ async function runDailyBriefing(): Promise<Response> {
   //   것이다. 이제 0건이면 크론을 빨간불로 끝내고 Sentry 로 사장님 메일까지
   //   보낸다 — 사장님이 알림을 켜기 전까지 매일 울린다. 그게 의도다.
   if (sent === 0) {
+    // 토큰이 없어 못 보낸 것과, 토큰은 있는데 APNs/FCM 이 거부한 것은 처방이 다르다
+    // (2026-09-16 점검 — 전자는 "앱에서 알림 켜기", 후자는 키·환경 점검).
+    const devices = await countPushTargets(targets.map((a) => a.id))
+    const reason = devices > 0 ? 'push_delivery_failed' : 'no_push_targets'
     Sentry.captureMessage(
-      `[daily-briefing] 관리자 ${targets.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다. 앱 → 마이페이지 → 알림 설정에서 켜야 한다.`,
+      devices > 0
+        ? `[daily-briefing] 관리자 ${targets.length}명·기기 ${devices}대인데 발송 0건 — APNs/FCM 전송 실패. Sentry 의 push.native.send_failed 이벤트를 볼 것.`
+        : `[daily-briefing] 관리자 ${targets.length}명에게 발송 0건 — 관리자 계정에 푸시 토큰이 없다. 앱 → 마이페이지 → 알림 설정에서 켜야 한다.`,
       'warning',
     )
     return NextResponse.json(
-      { ok: false, reason: 'no_push_targets', at: 'daily-briefing', admins: targets.length, sent: 0 },
+      { ok: false, reason, at: 'daily-briefing', admins: targets.length, devices, sent: 0 },
       { status: 500 },
     )
   }
