@@ -46,9 +46,10 @@ export async function GET(req: Request) {
     last_weighed: string | null
   }
 
-  // dogs + 각 dog 의 max(measured_at). subquery 로 단일 round-trip.
-  // audit #79: weight_reminder_targets RPC 가 generated types 에 없음 — types
-  // 미갱신 또는 optional RPC (fallback path 존재). cast.
+  // dogs + 각 dog 의 max(measured_at). RPC 한 번으로 끝낸다.
+  // ★이 RPC 는 2026-09-16 전에는 **DB 에 존재하지 않았다** — 매주 PGRST202 뒤 아래
+  //   N+1 폴백으로만 돌았다(20260916000100 에서 생성, service_role 만 실행). generated
+  //   types 에 없어 cast.
   const { data: rows, error } = await (
     supabase as unknown as {
       rpc: (
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
     max_rows: 200,
   })
 
-  // RPC 미구현 환경 — fallback inline query (느림, 200 dog 까진 OK).
+  // RPC 실패 시 폴백 — inline query (느림, 500 마리 상한). 정상 경로는 위 RPC.
   let targets: DogRow[] = []
   if (error || !rows) {
     /**

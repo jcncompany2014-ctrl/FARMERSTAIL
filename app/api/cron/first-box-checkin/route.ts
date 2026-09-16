@@ -74,6 +74,7 @@ async function runCheckinReminder(): Promise<Response> {
   let sent = 0
   let skipped = 0
 
+  let failed = 0
   for (const order of candidates) {
     // 사용자의 첫 dog 픽업 (단순화 — 1주문 = 대표 1마리)
     const { data: dog, error: dogErr } = (await adminTyped
@@ -139,10 +140,13 @@ async function runCheckinReminder(): Promise<Response> {
       //  돌려준다 — VAPID 키 미설정이면 한 건도 안 나가는데 지표는
       //  "sent: N" 초록이었다(규칙8 과 같은 실패 모양).
       if ((pushResult?.sent ?? 0) > 0) sent += 1
-    } catch {
-      skipped += 1
+    } catch (e) {
+      // ★예외는 '건너뜀'이 아니다(2026-09-16 점검) — skipped 로 세면 cron_health 가 초록이다.
+      failed += 1
+      console.error('[first-box-checkin] 발송 예외:', e instanceof Error ? e.message : e)
     }
   }
 
-  return NextResponse.json({ ok: true, sent, skipped, candidates: candidates.length })
+  // failed 는 cron-tracking 이 실패 카운트로 읽는 최상위 키 — 0 이 아니면 빨간불.
+  return NextResponse.json({ ok: true, sent, skipped, failed, candidates: candidates.length })
 }

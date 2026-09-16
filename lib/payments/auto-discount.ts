@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { tierMeta } from '@/lib/tiers'
 import {
   computeAutoDiscount,
@@ -83,7 +84,16 @@ export async function resolveAutoDiscount(input: {
     .select('tier')
     .eq('id', userId)
     .maybeSingle()
-  if (error) return fullCharge
+  if (error) {
+    // ★조용히 정가로 접으면 등급(나무 10%) 고객이 **모르는 채 더 낸다**(2026-09-16 점검).
+    //   청구는 막지 않되(다음날 재시도보다 오늘 정가가 낫다는 기존 판단 유지) 반드시
+    //   남긴다 — 운영자가 차액을 돌려줄 수 있어야 한다.
+    captureBusinessEvent('error', 'billing.auto_discount.profile_lookup_failed', {
+      userId,
+      dbError: error.message,
+    })
+    return fullCharge
+  }
 
   // tierMeta 는 모르는 값/없음이면 null — 등급 없음(스탬프 10개 미만)이 그대로 전달된다.
   const tier = tierMeta((prof as { tier?: string | null } | null)?.tier)?.key ?? null
@@ -103,8 +113,12 @@ export async function resolveAutoDiscount(input: {
     ).rpc('pending_promotion_rate', { p_user_id: userId })
     const n = Number(r)
     if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
-  } catch {
-    /* 없음으로 간주 */
+  } catch (e) {
+    // 없음으로 간주하되 남긴다 — 약속한 이벤트 할인이 조용히 사라지면 고객이 먼저 안다.
+    captureBusinessEvent('warning', 'billing.auto_discount.promotion_lookup_failed', {
+      userId,
+      error: e instanceof Error ? e.message : String(e),
+    })
   }
 
   const picked = pickBetterDiscount(
