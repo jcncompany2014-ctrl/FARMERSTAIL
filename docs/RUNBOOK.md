@@ -150,9 +150,9 @@ HAVING COUNT(*) > 1;
    실측한다 — 마이그레이션은 tsc 가 안 보는 미검증 코드다.
 4. `get_advisors(security)` 로 RLS·grant 경고가 새로 생기지 않았는지 본다.
 
-로컬/스테이징 DB 를 처음부터 만들 일이 생기면 `supabase db pull` 로 프로덕션 스키마
-스냅샷을 먼저 뜬다 — 원격에만 적용된 변경(push_campaigns·reweighs·kibble_* 등 8건)은
-로컬 파일이 없다.
+로컬/스테이징 DB 를 처음부터 만들 일이 생기면 `supabase/schema_baseline.sql`(2026-09-18
+프로덕션 실측 스냅샷)을 먼저 적용하고, 그 뒤 날짜의 마이그레이션 파일만 이어서 적용한다.
+자세한 절차·주의는 supabase/migrations/README.md.
 
 ### 롤백
 - Supabase 는 마이그레이션 down script 자동 생성 안 함.
