@@ -16,7 +16,7 @@
  * # 규칙
  * - 앱에서만 그린다(useIsAppContext). 웹은 절대 안 나온다 — 웹/앱 절대 분리.
  * - 몰입 화면(설문·체크인·승인 = AppChrome focusMode)에서는 숨긴다.
- * - 라벨 14px·터치 영역은 칸 전체(높이 --ft-tabbar-h). 발바닥은 살짝 솟은 원이지만
+ * - 라벨 16px(V3FontSize.md)·터치 영역은 칸 전체(높이 --ft-tabbar-h 64px). 발바닥은 살짝 솟은 원이지만
  *   눌리는 영역은 옆 칸과 같다.
  * - 기록 탭은 페이지 이동이 아니라 시트(건강·체중·일기·사진)를 연다. 강아지가
  *   없으면 등록 화면으로 보낸다.
@@ -162,7 +162,7 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
           className="max-w-md mx-auto grid"
           style={{
             gridTemplateColumns: '1fr 1fr 1.1fr 1fr 1fr',
-            height: 'var(--ft-tabbar-h, 60px)',
+            height: 'var(--ft-tabbar-h, 64px)',
           }}
         >
           {LEFT.map(renderLink)}
@@ -175,13 +175,15 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
             aria-haspopup="dialog"
             aria-expanded={recordActive}
             className="relative flex flex-col items-center justify-end ft-no-press"
-            style={{ color: recordActive ? 'var(--accent)' : V3.ink, paddingBottom: 6 }}
+            // 원(56px)이 위로 20px 솟고, 글자는 그 아래 칸 바닥에 — 에뮬레이터 실측으로
+            // 원이 글자 윗부분을 가리던 것(top -14) 을 띄웠다(2026-09-21).
+            style={{ color: recordActive ? 'var(--accent)' : V3.ink, paddingBottom: 7 }}
           >
             <span
               aria-hidden
               className="absolute flex items-center justify-center"
               style={{
-                top: -14,
+                top: -20,
                 width: PAW,
                 height: PAW,
                 borderRadius: 999,
