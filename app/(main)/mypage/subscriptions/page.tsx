@@ -132,6 +132,16 @@ export default async function AppSubscriptionsSummaryPage({
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
+  // ★하단 탭 "정기배송" 의 첫 화면(2026-09-21). 구독이 없는 강아지에게는 여기서
+  //   바로 시작 버튼을 준다 — 예전엔 "강아지 화면에서 시작할 수 있어요" 라고만
+  //   말해서 어르신은 그 화면을 못 찾았다. 분석(승인된 맞춤 식단)이 없으면
+  //   설문부터 — /plan 은 식단이 있어야 레시피를 고를 수 있다.
+  const [{ data: myDogs }, { data: formulaDogs }] = await Promise.all([
+    supabase.from('dogs').select('id, name').eq('user_id', user.id).order('created_at'),
+    supabase.from('dog_formulas').select('dog_id').eq('user_id', user.id),
+  ])
+  const dogsWithFormula = new Set((formulaDogs ?? []).map((f) => f.dog_id))
+
   /**
    * ★ 조회 실패를 "구독 없음"으로 그리지 않는다 (2026-07-30).
    *
@@ -453,13 +463,58 @@ export default async function AppSubscriptionsSummaryPage({
           <p className="text-[13px] font-bold" style={{ color: V3.ink }}>
             {rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요'}
           </p>
-          <p className="mt-1.5 text-[12px]" style={{ color: V3.inkMute }}>
+          <p className="mt-1.5 text-[13px]" style={{ color: V3.inkMute }}>
             {rows.length > 0
               ? '결제수단을 등록하면 첫 결제일이 정해져요.'
-              : '강아지 화면에서 정기배송을 시작할 수 있어요.'}
+              : '아래 버튼으로 바로 시작할 수 있어요.'}
           </p>
         </section>
       )}
+
+      {/* ── 구독 없는 강아지 — 큰 시작 버튼 (하단 탭 "정기배송" 의 핵심) ── */}
+      {(() => {
+        const liveDogIds = new Set(rows.map((r) => r.dog_id).filter(Boolean))
+        const startable = (myDogs ?? []).filter((d) => !liveDogIds.has(d.id))
+        if (startable.length === 0) return null
+        return (
+          <section className="mt-4 px-5 py-5" style={card}>
+            <p className="text-[17px] font-bold" style={{ color: V3.ink }}>
+              정기배송 시작하기
+            </p>
+            <p className="mt-1 text-[14px] leading-relaxed" style={{ color: V3.inkMute }}>
+              분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나
+              그만둘 수 있어요.
+            </p>
+            <div className="mt-3 flex flex-col gap-2">
+              {startable.map((d) => {
+                const ready = dogsWithFormula.has(d.id)
+                return (
+                  <Link
+                    key={d.id}
+                    href={ready ? `/dogs/${d.id}/plan` : `/dogs/${d.id}/survey`}
+                    className="flex items-center justify-between rounded-2xl px-5"
+                    style={{
+                      minHeight: 56,
+                      background: ready ? V3.accent : V3.paperDeep,
+                      color: ready ? V3.paper : V3.ink,
+                      border: ready ? 'none' : `1px solid ${V3.rule}`,
+                      fontSize: 16,
+                      fontWeight: 800,
+                    }}
+                  >
+                    <span>
+                      {ready
+                        ? `${petName(d.name)} 정기배송 시작하기`
+                        : `${petName(d.name)} 설문하고 시작하기`}
+                    </span>
+                    <ChevronRight size={22} strokeWidth={2.4} aria-hidden />
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })()}
 
       {/* ── 구독별 한 줄 — 관리는 강아지 화면에서 ── */}
       {rows.length > 0 && (

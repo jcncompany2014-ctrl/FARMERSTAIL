@@ -162,6 +162,8 @@
      sticky 서브내브(DogTabsNav 등)의 top 오프셋이 이 변수를 참조한다.
      safe-area 는 사용처에서 calc 로 더할 것. */
   --ft-header-h: 64px;
+  /* 하단 탭바 높이(safe-area 제외). AppChrome main 하단 여백·sticky CTA 가 참조. */
+  --ft-tabbar-h: 60px;
 
   /* 마커 하이라이트 **배경** 전용. paper 위 글자색으로 쓰면 1.69:1 로 안 보인다. */
   --yellow: #e6b942;
@@ -575,7 +577,7 @@ body[data-ft-chrome-mode="app"] {
   padding-bottom: env(safe-area-inset-bottom);
 }
 [data-ft-chrome="app"] .ft-sticky-cta-bottom {
-  bottom: calc(72px + env(safe-area-inset-bottom));
+  bottom: calc(var(--ft-tabbar-h) + 12px + env(safe-area-inset-bottom));
   padding-bottom: 0;
 }
 
@@ -1091,7 +1093,8 @@ html:not(:has([data-ft-chrome='app'])) {
    분석 sticky 요약바(top:0)와 상단에서 겹쳐 '빈 공간 + 탭 겹침'으로 깨졌다
    (사장님 리포트 2026-07-12). AppChrome 의 focusMode → data-focus 로 노출해
    CSS 로 확실히 숨김(DogTabsNav 하이드레이션 타이밍과 무관). */
-[data-ft-chrome='app'][data-focus] nav[aria-label='강아지 메뉴'] {
+[data-ft-chrome='app'][data-focus] nav[aria-label='강아지 메뉴'],
+[data-ft-chrome='app'][data-focus] nav[aria-label='주 메뉴'] {
   display: none;
 }
 @media (prefers-reduced-motion: no-preference) {

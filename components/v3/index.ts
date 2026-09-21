@@ -30,7 +30,6 @@ export { default as Cropper } from './Cropper'
 export { default as Slider } from './Slider'
 export { default as AllergyBanner } from './AllergyBanner'
 export { default as StreakRewards } from './StreakRewards'
-export { default as PawFab } from './PawFab'
 export {
   ConfirmProvider,
   useConfirm,

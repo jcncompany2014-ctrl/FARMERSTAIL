@@ -8,7 +8,9 @@
  *   개요  — /dogs/{id}                              (강아지 정보 / 다음 일정)
  *   기록  — /dogs/{id}/diary                        (사진·컨디션·체중 로그)
  *   분석  — /dogs/{id}/analysis                     (영양 분석 결과 + 추천 박스 일체)
- *   구독  — /dogs/{id}/subscription                 (이미 하는 구독 관리)
+ *
+ * 2026-09-21 — '구독' 탭은 앱 하단 탭(정기배송)으로 옮겼다(시니어 사용성 기획).
+ * 여기 남으면 같은 목적지가 두 군데라 헷갈린다. 4탭→3탭, 라벨 11→13px.
  *
  * 2026-06-19 (사장님 "분석→박스 점프 비효율" 지시) — '박스'(/formulas) 탭 폐지.
  * 추천 박스는 분석 결과(/analysis)에 BoxMixCard 로 이미 인라인 표시되므로 별도
@@ -25,7 +27,7 @@
 import { useSyncExternalStore, type ComponentType, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, BarChart3, Repeat } from 'lucide-react'
+import { Camera, BarChart3 } from 'lucide-react'
 import DogPawMark from '@/components/DogPawMark'
 
 type Tab = {
@@ -71,18 +73,6 @@ const TABS: readonly Tab[] = [
     label: '분석',
     Icon: BarChart3,
   },
-  {
-    // 구독 = '이미 하는 구독' 관리 (2026-07-13 사장님). 신청 플로우(plan/order/
-    // billing)는 여기 진입이 아니라 분석·플랜 CTA 로 — 단 그 흐름에서도 탭은
-    // '구독' 하이라이트 유지(order·plan startsWith 포함).
-    href: (id) => `/dogs/${id}/subscription`,
-    isActive: (path, id) =>
-      path.startsWith(`/dogs/${id}/subscription`) ||
-      path.startsWith(`/dogs/${id}/order`) ||
-      path.startsWith(`/dogs/${id}/plan`),
-    label: '구독',
-    Icon: Repeat,
-  },
 ] as const
 
 /**
@@ -127,24 +117,24 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
       {/* audit #47: 아이콘 18→20px, 라벨 10.5→11px, py-2→py-2.5, underline w-8→w-10
           — 시니어 사용자 / iOS HIG 권장 24px 에 한 단계 가까워지고 터치 row
           height 48px 이상 확보. AppChrome top h-14→h-[60px] 와 sticky top 동기화. */}
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-3">
         {TABS.map(({ href, isActive, label, Icon }) => {
           const active = isActive(pathname, dogId)
           return (
             <Link
               key={label}
               href={href(dogId)}
-              className="relative flex flex-col items-center justify-center py-2.5 transition active:scale-[0.97]"
+              className="relative flex flex-col items-center justify-center py-3 transition active:scale-[0.97]"
               aria-current={active ? 'page' : undefined}
             >
               <Icon
-                className={`w-5 h-5 transition ${
+                className={`w-6 h-6 transition ${
                   active ? 'text-text' : 'text-muted'
                 }`}
                 strokeWidth={active ? 2 : 1.5}
               />
               <span
-                className={`mt-1 text-[11px] font-bold tracking-tight ${
+                className={`mt-1 text-[13px] font-bold tracking-tight ${
                   active ? 'text-text' : 'text-muted'
                 }`}
               >

@@ -21,7 +21,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { PawFab } from '@/components/v3'
+import BottomTabBar from '@/components/app/BottomTabBar'
 
 // 홈 허브형(2026-06-17) + 구독전환(2026-06-27): 장바구니 탭·카트 아이콘·
 // 하단 탭바 전부 폐기. TABS 배열 폐기.
@@ -42,7 +42,8 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
  * (빈 문자열이면 ← 만, 제목 없음).
  */
 // 구독전환: /cart·/products 폐지(redirect). 탭 루트 = 홈·강아지·내정보만.
-const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage'])
+// 2026-09-21 하단 탭 복귀: 정기배송(/mypage/subscriptions)도 탭 루트 — ← 없이 기본 헤더.
+const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage', '/mypage/subscriptions'])
 
 /**
  * 앱을 켰을 때 처음 떨어지는 화면. public/manifest.json 의 `start_url` 과
@@ -70,7 +71,6 @@ const DEEP_TITLES: Record<string, string> = {
   '/mypage/orders': '주문 내역',
   // 마이페이지 메뉴에서 '주문 내역' 과 합쳐진 화면이라 제목도 같이 간다
   // (2026-07-30). 메뉴 라벨과 헤더가 다르면 잘못 들어온 것처럼 느껴진다.
-  '/mypage/subscriptions': '정기배송 · 주문 내역',
   '/account/subscriptions': '정기배송',
   '/mypage/addresses': '배송지 관리',
   '/mypage/membership': '멤버십',
@@ -178,9 +178,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const focusMode =
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
     (pathname.includes('/analysis') && fromSurvey)
-  // 강아지 상세(우리 아이) 화면 — /dogs/{uuid}... 진입 시 발바닥 FAB 숨김
-  // (사장님 2026-07-13). 목록 /dogs 는 해당 없음.
-  const onDogDetail = new RegExp(`^/dogs/${UUID_RE}(/|$)`).test(pathname)
 
   const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
@@ -811,10 +808,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         // 페이지의 자식이 뷰포트보다 넓어도 여기서 잘라 페이지 가로 팬/줌아웃을
         // 막는다. clip 은 scroll 컨테이너를 안 만들어 내부 sticky(설문 CTA 등)를
         // 안 깨뜨림. min-w-0 = flex/grid 자식이 컨텐츠로 뷰포트를 밀어내는 것 차단.
+        // 하단 탭(--ft-tabbar-h) 위로 마지막 컨텐츠가 올라오게 — 탭이 없는
+        // 몰입 화면에선 safe-area 만.
         className={`max-w-md mx-auto min-w-0 overflow-x-clip ${
           focusMode
             ? 'pb-[env(safe-area-inset-bottom)]'
-            : 'pb-[calc(40px+env(safe-area-inset-bottom))]'
+            : 'pb-[calc(var(--ft-tabbar-h,60px)+20px+env(safe-area-inset-bottom))]'
         }`}
       >
         {children}
@@ -824,12 +823,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             /legal/* 페이지 + 마이페이지 메뉴로 충분히 reachable. */}
       </main>
 
-      {/* 빠른 기입 — 하단 중앙 발바닥 FAB(홈 허브형에서 자주 기입 진입 대체).
-          활성 강아지 기준 라우팅, 몰입 화면(설문/체크인)에선 숨김. */}
-      <PawFab activeDogId={activeDog?.id ?? null} hidden={focusMode || onDogDetail} />
-
-      {/* 홈 허브형(2026-06-17): 하단 탭바 제거 — 내비 = 로고(→홈) +
-          헤더 좌측 계정 아이콘(→내정보) + 홈 카드/강아지 칩. 깊은 화면은 ← 뒤로. */}
+      {/* 하단 탭 5칸(홈·우리 아이·기록·정기배송·내 정보) — 2026-09-21 시니어
+          사용성 기획으로 복귀. 2026-06-17 에 뺐던 탭바를 되살린 것이고, 우하단
+          발바닥 FAB 는 가운데 "기록" 탭으로 흡수했다. 앱 전용·몰입 화면 숨김은
+          컴포넌트 안에서 처리. */}
+      <BottomTabBar activeDogId={activeDog?.id ?? null} hidden={focusMode} />
 
     </div>
   )

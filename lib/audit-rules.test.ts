@@ -3565,3 +3565,35 @@ test('규칙82: 서비스워커는 외부 도메인을 건드리지 않고, 실�
     assert.match(before, /if \(response\.ok\)/, `cache.put 앞에 response.ok 게이트가 없다 (offset ${m.index}) — 4xx/5xx 가 배포 전까지 캐시된다`)
   }
 })
+
+
+test('규칙83: 앱 하단 탭은 앱에서만·몰입 화면 밖에서만 그리고, 강아지 탭에 구독이 다시 들어오지 않는다', () => {
+  /**
+   * # 왜 (2026-09-21 시니어 사용성 기획 1단계)
+   * 6/17 에 뺐던 하단 탭을 되살렸다 — 어르신이 프로필 상단 탭이 눌리는 줄 모르고,
+   * 정기배송 카드는 두 화면 반 아래였다. 되살리면서 지켜야 할 세 가지:
+   *  ① 웹엔 절대 안 나온다(웹/앱 절대 분리) — useIsAppContext 로 가드.
+   *  ② 설문·체크인 등 몰입 화면에선 숨긴다 — AppChrome 이 focusMode 를 넘기고,
+   *     CSS 도 data-focus 로 이중 잠금(하이드레이션 타이밍 무관).
+   *  ③ 강아지 프로필 상단 탭에 '구독' 이 다시 들어오면 같은 목적지가 두 군데 —
+   *     하단 탭 하나로 둔다.
+   */
+  const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
+  assert.match(bar, /useIsAppContext\(\)/, '하단 탭이 앱 판정(useIsAppContext) 없이 그려진다 — 웹에 앱 탭이 뜬다')
+  assert.match(bar, /if \(hidden \|\| !isApp\) return null/, '하단 탭이 hidden/!isApp 에서 null 을 반환하지 않는다')
+  for (const label of ['홈', '우리 아이', '기록', '정기배송', '내 정보']) {
+    assert.ok(bar.includes(`'${label}'`) || bar.includes(`>${label}<`) || bar.includes(`${label}\n`), `하단 탭에 '${label}' 라벨이 없다`)
+  }
+
+  const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
+  assert.match(chrome, /<BottomTabBar[^>]*hidden=\{focusMode\}/, 'AppChrome 이 하단 탭에 focusMode 를 넘기지 않는다 — 설문 화면에 탭이 뜬다')
+  assert.doesNotMatch(chrome, /PawFab/, '우하단 발바닥 FAB 가 남아 있다 — 하단 탭 가운데 "기록" 으로 흡수했다')
+
+  const css = read(join(ROOT, 'app', 'globals.css'))
+  assert.match(css, /\[data-focus\] nav\[aria-label='주 메뉴'\]/, 'focus 모드 CSS 가 하단 탭(주 메뉴)을 안 숨긴다')
+  assert.match(css, /--ft-tabbar-h:\s*\d+px/, '--ft-tabbar-h 가 없다 — sticky CTA 가 탭에 가려진다')
+
+  const dogTabs = stripComments(read(join(ROOT, 'components', 'dogs', 'DogTabsNav.tsx')))
+  assert.doesNotMatch(dogTabs, /\/subscription`/, '강아지 상단 탭에 구독이 다시 들어왔다 — 하단 탭과 중복')
+  assert.match(dogTabs, /grid-cols-3/, '강아지 상단 탭이 3칸이 아니다')
+})
