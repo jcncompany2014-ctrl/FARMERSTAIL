@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronRight, AlertTriangle, Receipt } from 'lucide-react'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
-import { V3, V3Radius } from '@/lib/design/tokens'
+import { V3, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import {
   subscriptionState,
   isSubscriptionVisibleToUser,
@@ -478,10 +478,10 @@ export default async function AppSubscriptionsSummaryPage({
         if (startable.length === 0) return null
         return (
           <section className="mt-4 px-5 py-5" style={card}>
-            <p className="text-[17px] font-bold" style={{ color: V3.ink }}>
+            <p className="font-bold" style={{ fontSize: V3FontSize.md, color: V3.ink }}>
               정기배송 시작하기
             </p>
-            <p className="mt-1 text-[14px] leading-relaxed" style={{ color: V3.inkMute }}>
+            <p className="mt-1 leading-relaxed" style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
               분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나
               그만둘 수 있어요.
             </p>
@@ -492,13 +492,14 @@ export default async function AppSubscriptionsSummaryPage({
                   <Link
                     key={d.id}
                     href={ready ? `/dogs/${d.id}/plan` : `/dogs/${d.id}/survey`}
-                    className="flex items-center justify-between rounded-2xl px-5"
+                    className="flex items-center justify-between px-5"
                     style={{
+                      borderRadius: V3Radius.md,
                       minHeight: 56,
                       background: ready ? V3.accent : V3.paperDeep,
                       color: ready ? V3.paper : V3.ink,
                       border: ready ? 'none' : `1px solid ${V3.rule}`,
-                      fontSize: 16,
+                      fontSize: V3FontSize.md,
                       fontWeight: 800,
                     }}
                   >

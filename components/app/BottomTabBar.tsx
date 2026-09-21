@@ -26,7 +26,7 @@ import { useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { House, Dog, Truck, User, Activity, Scale, Pencil, Camera } from 'lucide-react'
-import { V3 } from '@/lib/design/tokens'
+import { V3, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import DogPawMark from '@/components/DogPawMark'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { useIsAppContext } from '@/lib/app-context-client'
@@ -136,7 +136,7 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
         style={linkStyle(active)}
       >
         <Icon size={24} strokeWidth={active ? 2.4 : 1.9} aria-hidden />
-        <span className="text-[14px] leading-none" style={{ fontWeight: active ? 800 : 700 }}>
+        <span className="leading-none" style={{ fontSize: V3FontSize.md, fontWeight: active ? 800 : 700 }}>
           {t.label}
         </span>
       </Link>
@@ -192,7 +192,7 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
             >
               <DogPawMark size={26} color={V3.paper} />
             </span>
-            <span className="text-[14px] leading-none" style={{ fontWeight: 800 }}>
+            <span className="leading-none" style={{ fontSize: V3FontSize.md, fontWeight: 800 }}>
               기록
             </span>
           </button>
@@ -211,8 +211,9 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
                 <button
                   type="button"
                   onClick={() => pick(a.key)}
-                  className="w-full flex items-center gap-4 rounded-2xl text-left"
+                  className="w-full flex items-center gap-4 text-left"
                   style={{
+                    borderRadius: V3Radius.md,
                     minHeight: 64,
                     padding: '12px 16px',
                     background: V3.paperDeep,
@@ -224,7 +225,7 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
                     style={{
                       width: 44,
                       height: 44,
-                      borderRadius: 14,
+                      borderRadius: V3Radius.md,
                       background: V3.paper,
                       color: V3.accentDeep,
                     }}
@@ -232,10 +233,10 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
                     <Icon size={24} strokeWidth={2.1} aria-hidden />
                   </span>
                   <span className="flex flex-col">
-                    <span className="text-[17px]" style={{ fontWeight: 800, color: V3.ink }}>
+                    <span style={{ fontSize: V3FontSize.md, fontWeight: 800, color: V3.ink }}>
                       {a.label}
                     </span>
-                    <span className="text-[14px]" style={{ color: V3.inkMute }}>
+                    <span style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
                       {a.hint}
                     </span>
                   </span>
