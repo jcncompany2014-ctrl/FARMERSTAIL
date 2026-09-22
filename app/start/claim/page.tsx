@@ -129,7 +129,7 @@ export default function StartClaimPage() {
         style={{ borderColor: 'var(--fd-coral)', borderTopColor: 'transparent' }}
         aria-hidden="true"
       />
-      <p className="text-[13px]" style={{ color: 'var(--fd-muted)' }}>
+      <p className="text-[15px]" style={{ color: 'var(--fd-muted)' }}>
         잠시만요, 준비하고 있어요…
       </p>
     </main>

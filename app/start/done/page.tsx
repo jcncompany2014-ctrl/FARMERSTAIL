@@ -146,7 +146,7 @@ export default async function StartDonePage({
                 }}
               >
                 <p
-                  className="text-[11px]"
+                  className="text-[13px]"
                   style={{
                     fontWeight: 800,
                     letterSpacing: '0.1em',
@@ -159,7 +159,7 @@ export default async function StartDonePage({
                 <p className="pt-2 text-[19px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>
                   {box.recipes}
                 </p>
-                <p className="pt-1.5 text-[13.5px]" style={{ color: 'var(--fd-muted)' }}>
+                <p className="pt-1.5 text-[15px]" style={{ color: 'var(--fd-muted)' }}>
                   {box.dailyGrams ? `하루 ${box.dailyGrams.toLocaleString()}g · ` : ''}
                   2주에 한 번 배송
                 </p>
@@ -169,7 +169,7 @@ export default async function StartDonePage({
                     style={{ borderTop: '1px solid var(--fd-line)' }}
                   >
                     <span
-                      className="text-[13px]"
+                      className="text-[15px]"
                       style={{ color: 'var(--fd-muted)', fontWeight: 700 }}
                     >
                       2주 박스 예상 금액
@@ -186,7 +186,7 @@ export default async function StartDonePage({
                     </span>
                   </div>
                 )}
-                <p className="pt-2 text-[12px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                <p className="pt-2 text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
                   다음 화면에서 화식 비율과 배송지를 확인하면 금액이 확정돼요.
                 </p>
               </div>
@@ -197,11 +197,11 @@ export default async function StartDonePage({
               className="mt-4 text-left"
               style={{ background: 'var(--fd-pine)', borderRadius: 12, padding: '20px 22px' }}
             >
-              <p className="text-[15.5px]" style={{ fontWeight: 800, color: 'var(--fd-gold)' }}>
+              <p className="text-[17px]" style={{ fontWeight: 800, color: 'var(--fd-gold)' }}>
                 지금 바로 결제되지 않아요
               </p>
               <p
-                className="pt-2 text-[13.5px]"
+                className="pt-2 text-[15px]"
                 style={{ color: 'rgba(255,255,255,0.92)', lineHeight: 1.65 }}
               >
                 다음 화면에서 결제수단을 등록하시는데, <b>그때 돈이 빠져나가지 않아요.</b>{' '}
@@ -212,7 +212,7 @@ export default async function StartDonePage({
             {/* ③ 다음 순서 */}
             <div className="mt-8">
               <p
-                className="text-[11px] text-center"
+                className="text-[13px] text-center"
                 style={{
                   fontWeight: 800,
                   letterSpacing: '0.1em',
@@ -245,13 +245,13 @@ export default async function StartDonePage({
                       </span>
                       <span className="flex-1">
                         <span
-                          className="block text-[14.5px]"
+                          className="block text-[16px]"
                           style={{ fontWeight: 800, color: 'var(--fd-pine)' }}
                         >
                           {s.t}
                         </span>
                         <span
-                          className="block pt-0.5 text-[12.5px]"
+                          className="block pt-0.5 text-[14px]"
                           style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}
                         >
                           {desc}
@@ -280,7 +280,7 @@ export default async function StartDonePage({
                     aria-hidden
                   />
                   <span
-                    className="text-[13px]"
+                    className="text-[15px]"
                     style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}
                   >
                     {t}
@@ -292,15 +292,15 @@ export default async function StartDonePage({
             <div className="pt-8 text-center">
               <Link
                 href={dogId ? `/account/subscribe/${dogId}` : '/account/dogs'}
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-[14px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
+                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-[16px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
                 style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
               >
                 배송지 입력하고 시작하기
               </Link>
-              <p className="pt-3 text-[12.5px]" style={{ color: 'var(--fd-muted)' }}>
+              <p className="pt-3 text-[14px]" style={{ color: 'var(--fd-muted)' }}>
                 38개 영양소 정밀 분석·일일 케어는 앱에서 이어져요.
               </p>
-              <p className="pt-5 text-[12.5px]" style={{ color: 'var(--fd-muted)' }}>
+              <p className="pt-5 text-[14px]" style={{ color: 'var(--fd-muted)' }}>
                 이미 앱이 있다면{' '}
                 <Link
                   href="/login"

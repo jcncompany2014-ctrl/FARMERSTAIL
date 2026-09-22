@@ -124,7 +124,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
   }
 
   // FD input 스타일 (signup baseInput 패턴 — 16px 로 iOS focus zoom 방지).
-  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
+  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[18px] focus:outline-none transition'
   const inputStyle = {
     // 컨트롤 경계는 line-strong — --fd-line 은 white 위 1.45:1 로 1.4.11 미달
     // (2026-08-17 접근성 감사, contrast.test FD 블록이 지킨다).
@@ -132,9 +132,9 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
     background: '#FFFFFF',
     color: 'var(--fd-pine)',
   }
-  const labelCls = 'block text-[11px] font-bold mb-1.5'
+  const labelCls = 'block text-[13px] font-bold mb-1.5'
   const chipBase =
-    'py-3 rounded-lg border text-[13px] font-bold transition flex items-center justify-center gap-1.5'
+    'py-3 rounded-lg border text-[15px] font-bold transition flex items-center justify-center gap-1.5'
   function chipStyle(active: boolean) {
     return active
       ? { background: 'var(--fd-coral)', color: '#fff', borderColor: 'var(--fd-coral)' }
@@ -203,7 +203,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
           onChange={(e) => setBirthDate(e.target.value)}
           className={`${inputCls} appearance-none`} style={inputStyle}
         />
-        <p className="mt-1.5 text-[11px]" style={{ color: 'var(--fd-muted)' }}>
+        <p className="mt-1.5 text-[13px]" style={{ color: 'var(--fd-muted)' }}>
           나이는 생일로 자동 계산돼요 · 정확히 모르면 대략도 괜찮아요
         </p>
       </div>
@@ -221,7 +221,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
       </div>
 
       {error && (
-        <div role="alert" className="flex items-center gap-2 text-[12.5px] font-semibold" style={{ color: 'var(--fd-coral-text)' }}>
+        <div role="alert" className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: 'var(--fd-coral-text)' }}>
           <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={2.2} />
           <span>{error}</span>
         </div>
@@ -229,7 +229,7 @@ export default function StartClient({ isApp = false }: { isApp?: boolean }) {
 
       <button
         type="button" onClick={handleNext}
-        className="w-full flex items-center justify-center gap-1.5 font-bold text-[14px] active:translate-y-[1px] transition-all"
+        className="w-full flex items-center justify-center gap-1.5 font-bold text-[16px] active:translate-y-[1px] transition-all"
         style={{ height: 54, borderRadius: 9999, background: 'var(--fd-coral)', color: '#fff' }}
       >
         다음 — 생활·건강 설문으로

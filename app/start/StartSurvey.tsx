@@ -485,9 +485,9 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
   }
 
   // FD 입력 스타일(signup baseInput 패턴 — 16px iOS zoom 방지).
-  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
+  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[18px] focus:outline-none transition'
   const inputStyle = { borderColor: 'var(--fd-line-strong)' as const, background: '#FFFFFF', color: 'var(--fd-pine)' }
-  const labelCls = 'block text-[11px] font-bold mb-1.5'
+  const labelCls = 'block text-[13px] font-bold mb-1.5'
 
   // ───────────────────────── 결과(티저 + 저장) ─────────────────────────
   if (showResult) {
@@ -495,8 +495,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     if (!teaser) {
       return (
         <div className="rounded-[12px] px-5 py-7 text-center" style={{ background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-          <p className="text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}>결과를 계산하지 못했어요. 강아지 기본 정보를 다시 확인해 주세요.</p>
-          <button type="button" onClick={back} className="mt-4 text-[12.5px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>이전으로</button>
+          <p className="text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}>결과를 계산하지 못했어요. 강아지 기본 정보를 다시 확인해 주세요.</p>
+          <button type="button" onClick={back} className="mt-4 text-[14px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>이전으로</button>
         </div>
       )
     }
@@ -604,7 +604,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               </p>
             </div>
             <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <Link href="/login" className="text-[12.5px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)' }}>
+              <Link href="/login" className="text-[14px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)' }}>
                 이메일 인증을 마쳤다면 로그인하기 →
               </Link>
             </div>
@@ -859,7 +859,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             )}
 
             <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <button type="button" onClick={back} className="text-[12.5px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={back} className="text-[14px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 ← 답변 다시 고르기
               </button>
             </div>

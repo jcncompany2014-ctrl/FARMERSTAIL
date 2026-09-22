@@ -150,7 +150,7 @@ export default function StartJoinPage() {
             가입 메일을 보냈어요
           </h1>
           <p
-            className="mt-3 text-[13.5px]"
+            className="mt-3 text-[15px]"
             style={{ color: 'var(--muted)', lineHeight: 1.7 }}
           >
             <b style={{ color: 'var(--ink)' }}>{email.trim()}</b> 로 보낸 인증
@@ -159,7 +159,7 @@ export default function StartJoinPage() {
           </p>
           <Link
             href="/login"
-            className="mt-7 block text-center font-bold text-[14px]"
+            className="mt-7 block text-center font-bold text-[16px]"
             style={{
               padding: '15px 24px',
               borderRadius: 9999,
@@ -175,13 +175,13 @@ export default function StartJoinPage() {
   }
 
   const inputCls =
-    'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
+    'w-full px-4 py-3 rounded-lg border text-[18px] focus:outline-none transition'
   const inputStyle = {
     borderColor: 'var(--rule)' as const,
     background: '#FFFFFF',
     color: 'var(--ink)',
   }
-  const labelCls = 'block text-[11px] font-bold mb-1.5'
+  const labelCls = 'block text-[13px] font-bold mb-1.5'
 
   return (
     <StartAppShell>
@@ -201,7 +201,7 @@ export default function StartJoinPage() {
           분석 이어가기
         </h1>
         <p
-          className="mt-2.5 text-[13.5px]"
+          className="mt-2.5 text-[15px]"
           style={{ color: 'var(--muted)', lineHeight: 1.65 }}
         >
           가입하면 우리 아이 맞춤 분석을 이어갈 수 있어요. 몇 가지 설문만 더
@@ -447,7 +447,7 @@ export default function StartJoinPage() {
             type="button"
             onClick={handleEmailSignup}
             disabled={!emailFormValid || saving}
-            className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all"
+            className="w-full font-bold text-[16px] active:translate-y-[1px] transition-all"
             style={{
               height: 54,
               borderRadius: 9999,

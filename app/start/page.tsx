@@ -84,7 +84,7 @@ export default async function StartPage() {
                   우리 아이부터 알려주세요
                 </Display>
                 <p
-                  className="pt-5 text-[15px] md:text-[18px]"
+                  className="pt-5 text-[17px] md:text-[18px]"
                   style={{ maxWidth: 560, lineHeight: 1.7, color: 'var(--fd-muted)' }}
                 >
                   가입은 나중에 해도 괜찮아요. 먼저 2분 설문으로 우리 아이에게
@@ -139,7 +139,7 @@ export default async function StartPage() {
                 </span>
               </div>
               <p
-                className="pt-3 pb-6 text-[13.5px] md:text-[15px]"
+                className="pt-3 pb-6 text-[15px] md:text-[17px]"
                 style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}
               >
                 먼저 우리 아이를 알려주세요. 입력하신 내용은 이 브라우저에 임시
@@ -205,7 +205,7 @@ export default async function StartPage() {
                       {n}
                     </span>
                     <h3
-                      className="pt-2 text-[16px] md:text-[18px]"
+                      className="pt-2 text-[18px] md:text-[18px]"
                       style={{
                         fontWeight: 800,
                         color: 'var(--fd-pine)',
@@ -215,7 +215,7 @@ export default async function StartPage() {
                       {t}
                     </h3>
                     <p
-                      className="pt-1.5 text-[13px] md:text-[14px]"
+                      className="pt-1.5 text-[15px] md:text-[16px]"
                       style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}
                     >
                       {d}
@@ -260,7 +260,7 @@ export default async function StartPage() {
         알려주세요
       </h1>
       <p
-        className="mt-2.5 text-[13.5px]"
+        className="mt-2.5 text-[15px]"
         style={{ color: 'var(--muted)', lineHeight: 1.65 }}
       >
         2분이면 돼요. 가입은 결과가 마음에 들 때 해도 괜찮아요.
