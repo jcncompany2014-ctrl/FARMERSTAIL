@@ -98,7 +98,6 @@ const RECORD_ACTIONS = [
 ] as const
 type RecordKey = (typeof RECORD_ACTIONS)[number]['key']
 
-const PAW = 56
 
 export default function BottomTabBar({ activeDogId, activeDogName, hidden }: BottomTabBarProps) {
   const pathname = usePathname()
@@ -175,34 +174,29 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
         >
           {LEFT.map(renderLink)}
 
-          {/* 가운데 — 발바닥 원 하나(글자 없음, 사장님 2026-09-22). 원의 중심을 바
-              윗선에 맞춰 절반이 위로 솟는다 — 흔한 '가운데 큰 버튼' 모양이라 글자 없이도
-              눌러본다. 눌리는 영역은 칸 전체(원 + 아래 빈 자리). */}
+          {/* 가운데 — 발바닥 원. 처음엔 바 위로 절반 솟게 했는데 사장님이 "혼자 둥둥 떠
+              있다" — 바 **안쪽**, 다른 아이콘들과 같은 높이에 앉힌다(2026-09-22).
+              글자는 없고(발바닥이 곧 이름), 눌리는 영역은 칸 전체. */}
           <button
             type="button"
             onClick={openRecord}
             aria-label="기록하기"
             aria-haspopup="dialog"
             aria-expanded={recordActive}
-            className="relative flex items-start justify-center ft-no-press"
+            className="flex items-center justify-center ft-no-press"
           >
             <span
               aria-hidden
-              className="absolute flex items-center justify-center transition-transform duration-150"
+              className="flex items-center justify-center transition-transform duration-150"
               style={{
-                top: -(PAW / 2),
-                width: PAW,
-                height: PAW,
+                width: 46,
+                height: 46,
                 borderRadius: 999,
                 background: recordActive ? 'var(--accent)' : V3.accentDeep,
-                boxShadow: recordActive
-                  ? '0 4px 12px rgba(22,20,15,0.22)'
-                  : '0 8px 18px -4px rgba(22,20,15,0.32)',
-                border: `3px solid ${V3.paper}`,
                 transform: recordActive ? 'scale(0.94)' : 'scale(1)',
               }}
             >
-              <DogPawMark size={26} color={V3.paper} />
+              <DogPawMark size={22} color={V3.paper} />
             </span>
           </button>
 
