@@ -169,7 +169,7 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
           className="max-w-md mx-auto grid"
           style={{
             gridTemplateColumns: 'repeat(5, 1fr)',
-            height: 'var(--ft-tabbar-h, 60px)',
+            height: 'var(--ft-tabbar-h, 64px)',
           }}
         >
           {LEFT.map(renderLink)}
@@ -189,14 +189,14 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
               aria-hidden
               className="flex items-center justify-center transition-transform duration-150"
               style={{
-                width: 46,
-                height: 46,
+                width: 56,
+                height: 56,
                 borderRadius: 999,
                 background: recordActive ? 'var(--accent)' : V3.accentDeep,
                 transform: recordActive ? 'scale(0.94)' : 'scale(1)',
               }}
             >
-              <DogPawMark size={22} color={V3.paper} />
+              <DogPawMark size={27} color={V3.paper} />
             </span>
           </button>
 
