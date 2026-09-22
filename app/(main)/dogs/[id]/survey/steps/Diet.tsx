@@ -1,6 +1,11 @@
-// audit #96: SurveyClient.tsx 분할 — diet step.
-// 주식 / 브랜드 / 간식 / 산책(리드) / 활동(조건부) / 화식경험.
-// 정돈(2026-07-12): 식욕·식이만족도 질문 삭제(칼로리·라인 경성 소비처 없음).
+// 설문 v4 — 식사·생활 화면들.
+//   필수: FoodScreen(주식) · SnackScreen(간식, 접힘: 간식 kcal) · FreshScreen(화식 경험)
+//   선택 묶음: OptFoodScreen(사료 이름·열량) · OptWalkScreen(산책, 둘째 줄: 실내 활동)
+//             · OptExerciseScreen(격한 운동, 둘째 줄: 주거·한랭)
+//
+// 2026-09-22 시니어 사용성 3단계: 옛 meal/life 두 스텝(각 3~5문항)을 화면당 하나로.
+// 식욕·식이만족도는 이미 삭제됨(2026-07-12, 계산 소비처 없음).
+import { useState } from 'react'
 import {
   Minus,
   Plus,
@@ -9,199 +14,138 @@ import {
   Activity,
   Heart,
 } from 'lucide-react'
+import { ScreenShell, OptionList, SecondLine, ChipRow } from './ScreenShell'
 
-type IndoorActivity = 'calm' | 'moderate' | 'active' | ''
-type HomeCookingExp = 'first' | 'occasional' | 'frequent' | ''
+export type IndoorActivity = 'calm' | 'moderate' | 'active' | ''
+export type HomeCookingExp = 'first' | 'occasional' | 'frequent' | ''
+export type Vigorous = '' | 'none' | 'self' | 'objective'
+export type Housing = '' | 'indoor' | 'indoor_outdoor' | 'outdoor'
 
-export type DietProps = {
-  /** 식사(meal) / 생활(life) 2스텝 분리 — 정돈 P2(2026-07-12). */
-  part: 'meal' | 'life'
-  foodType: string
-  setFoodType: (v: string) => void
-  currentBrand: string
-  setCurrentBrand: (v: string) => void
-  snackFreq: string
-  setSnackFreq: (v: string) => void
-  /** 칼로리 v2 2d — 하루 간식 kcal (선택, 아는 경우만). '' = 모름 → 빈도 추정. */
-  treatKcal: string
-  setTreatKcal: (v: string) => void
-  /** 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg (선택). '' = 모름 → 평균 350/100g. */
-  kibbleKcal: string
-  setKibbleKcal: (v: string) => void
-  walkMinutes: string
-  setWalkMinutes: (v: string) => void
-  indoorActivity: IndoorActivity
-  setIndoorActivity: (v: IndoorActivity) => void
-  // ── 칼로리 v2 2b — 활동 증거 게이트 · 주거 환경 ──
-  vigorous: '' | 'none' | 'self' | 'objective'
-  setVigorous: (v: '' | 'none' | 'self' | 'objective') => void
-  housing: '' | 'indoor' | 'indoor_outdoor' | 'outdoor'
-  setHousing: (v: '' | 'indoor' | 'indoor_outdoor' | 'outdoor') => void
-  coldOutdoor: '' | 'yes' | 'no'
-  setColdOutdoor: (v: '' | 'yes' | 'no') => void
-  homeCookingExp: HomeCookingExp
-  setHomeCookingExp: (v: HomeCookingExp) => void
+/** 아웃라인 아이콘 타일(주식·화식 경험) — 기존 자산·mask 로직 그대로. */
+function TileRow<V extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: ReadonlyArray<{ v: V; label: string; meta: string; img: string }>
+  value: V | ''
+  onChange: (v: V) => void
+}) {
+  return (
+    <div className="s-tilerow">
+      {options.map(({ v, label, meta, img }) => {
+        const active = value === v
+        return (
+          <button
+            key={v}
+            type="button"
+            className={'s-tile' + (active ? ' s-on' : '')}
+            aria-pressed={active}
+            onClick={() => onChange(v)}
+          >
+            <span className="s-ic">
+              <span
+                className="s-tile-ic"
+                aria-hidden
+                style={{
+                  WebkitMaskImage: `url(${img})`,
+                  maskImage: `url(${img})`,
+                  backgroundColor: active ? '#fff' : 'var(--fd-pine)',
+                }}
+              />
+            </span>
+            <span className="s-tile-lb">{label}</span>
+            <span className="s-meta">{meta}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
-export default function Diet({
-  part,
+const FOOD_OPTIONS = [
+  { v: '건식 사료', label: '건식 사료', meta: '알갱이 사료', img: '/survey/icons/diet-dry.png' },
+  { v: '습식/화식', label: '습식·화식', meta: '캔 · 직접 만든 밥', img: '/survey/icons/diet-wet.png' },
+  { v: '반반', label: '반반', meta: '섞어서 줘요', img: '/survey/icons/diet-half.png' },
+] as const
+
+export function FoodScreen({
   foodType,
   setFoodType,
-  currentBrand,
-  setCurrentBrand,
+}: {
+  foodType: string
+  setFoodType: (v: string) => void
+}) {
+  return (
+    <ScreenShell
+      kicker="식사"
+      title={
+        <>
+          지금은 주로
+          <br />
+          무엇을 먹나요?
+        </>
+      }
+      sub="현재 식사가 영양 계산의 기준이 돼요."
+    >
+      <TileRow options={FOOD_OPTIONS} value={foodType as (typeof FOOD_OPTIONS)[number]['v'] | ''} onChange={setFoodType} />
+    </ScreenShell>
+  )
+}
+
+const SNACK_OPTIONS = [
+  { v: '거의 안 줌', label: '거의 안 줘요', Icon: Minus },
+  { v: '가끔', label: '가끔 줘요', Icon: Plus },
+  { v: '매일', label: '매일 줘요', Icon: PlusCircle },
+] as const
+
+export function SnackScreen({
   snackFreq,
   setSnackFreq,
   treatKcal,
   setTreatKcal,
-  kibbleKcal,
-  setKibbleKcal,
-  walkMinutes,
-  setWalkMinutes,
-  indoorActivity,
-  setIndoorActivity,
-  vigorous,
-  setVigorous,
-  housing,
-  setHousing,
-  coldOutdoor,
-  setColdOutdoor,
-  homeCookingExp,
-  setHomeCookingExp,
-}: DietProps) {
-  // progressive disclosure — 산책을 나가는 경우에만 활동 상세(실내 활동·격한
-  // 운동)를 펼친다. '거의 안 가요'(walkMinutes '0')면 후속 질문 없이 끝.
-  const walksOut = walkMinutes.trim() !== '' && walkMinutes.trim() !== '0'
+}: {
+  snackFreq: string
+  setSnackFreq: (v: string) => void
+  /** 칼로리 v2 2d — 하루 간식 kcal (선택). '' = 모름 → 빈도 추정. */
+  treatKcal: string
+  setTreatKcal: (v: string) => void
+}) {
+  const [kcalOpen, setKcalOpen] = useState(treatKcal !== '')
+  const givesSnack = snackFreq === '가끔' || snackFreq === '매일'
   return (
-    <div className="s-page">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span className="s-kicker">
-          {part === 'meal' ? '식사 습관' : '하루 생활'}
-        </span>
-      </div>
-      {part === 'meal' ? (
+    <ScreenShell
+      kicker="식사"
+      title={
         <>
-          <h1 className="s-title">식사를<br />알려주세요</h1>
-          <p className="s-sub">현재 식이 패턴이 영양 권장량 계산의 기준이 돼요.</p>
+          간식은
+          <br />
+          얼마나 자주 주나요?
         </>
-      ) : (
-        <>
-          <h1 className="s-title">생활 패턴을<br />알려주세요</h1>
-          <p className="s-sub">활동량과 환경이 하루 필요 열량을 좌우해요.</p>
-        </>
-      )}
-
-      {part === 'meal' && (
-      <>
-      <div className="s-sect">
-        <div className="s-sect-lbl"><span className="s-label-text">주식 형태</span></div>
-        <div className="s-tilerow">
-          {[
-            { v: '건식 사료', label: '건식', meta: '사료/킵블', img: '/survey/icons/diet-dry.png' },
-            { v: '습식/화식', label: '습식·화식', meta: '캔/홈쿡', img: '/survey/icons/diet-wet.png' },
-            { v: '반반', label: '반반', meta: '혼합', img: '/survey/icons/diet-half.png' },
-          ].map(({ v, label, meta, img }) => {
-            const active = foodType === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-tile' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setFoodType(v)}
-              >
-                <span className="s-ic">
-                  <span
-                    className="s-tile-ic"
-                    aria-hidden
-                    style={{
-                      WebkitMaskImage: `url(${img})`,
-                      maskImage: `url(${img})`,
-                      backgroundColor: active ? '#fff' : 'var(--fd-pine)',
-                    }}
-                  />
-                </span>
-                <span className="s-tile-lb">{label}</span>
-                <span className="s-meta">{meta}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">현재 사용 중인 브랜드</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <input
-          type="text"
-          className="s-inp"
-          aria-label="현재 사용 중인 사료 브랜드"
-          value={currentBrand}
-          onChange={(e) => setCurrentBrand(e.target.value)}
-          placeholder="예: 로얄캐닌 미니어처닥스훈트"
-        />
-        {/* 칼로리 v2 5단계(M9b) — 건사료 라벨 kcal. 건식/반반 주식일 때만.
-            입력 시 mix 급여의 건사료 g 이 정확해지고(미입력=평균 350kcal/100g),
-            브랜드만 있고 kcal 모르면 kibble_requests 자가성장 로그 대상. */}
-        {(foodType === '건식 사료' || foodType === '반반') && (
-          <>
-            <p className="s-sub" style={{ fontSize: 16, margin: '10px 0 8px' }}>
-              사료 봉투 뒷면의 열량(대사에너지 ME) 표기를 아신다면 적어 주세요.
-              모르면 비워두셔도 돼요 — 평균값으로 계산해요.
-            </p>
+      }
+      sub="간식 열량은 하루 급여량에서 미리 빼 두어요."
+    >
+      <OptionList
+        options={SNACK_OPTIONS}
+        value={snackFreq as (typeof SNACK_OPTIONS)[number]['v'] | ''}
+        onChange={(v) => setSnackFreq(v ?? '')}
+        ariaLabel="간식 빈도"
+      />
+      {givesSnack &&
+        (!kcalOpen ? (
+          <button type="button" className="s-skipbtn" onClick={() => setKcalOpen(true)}>
+            <Plus size={16} strokeWidth={2} aria-hidden />
+            하루 간식 칼로리를 아신다면 알려주기 (선택)
+          </button>
+        ) : (
+          <SecondLine
+            label="하루 간식 칼로리"
+            hint="간식 포장 뒷면에 있어요. 모르면 비워 두셔도 돼요 — 평균으로 계산해요."
+          >
             <div className="s-input-suffix">
               <input
-                type="number" onWheel={(e) => e.currentTarget.blur()}
-                inputMode="numeric"
-                min={2000}
-                max={6000}
-                className="s-inp"
-                aria-label="건사료 열량 (kcal/kg)"
-                value={kibbleKcal}
-                onChange={(e) => setKibbleKcal(e.target.value)}
-                placeholder="예: 3500"
-              />
-              <span className="s-unit">kcal / kg</span>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="s-sect">
-        <div className="s-sect-lbl"><span className="s-label-text">간식 빈도</span></div>
-        <div className="s-chiprow">
-          {[
-            { v: '거의 안 줌', label: '거의 안 줌', Icon: Minus },
-            { v: '가끔', label: '가끔', Icon: Plus },
-            { v: '매일', label: '매일', Icon: PlusCircle },
-          ].map(({ v, label, Icon }) => {
-            const active = snackFreq === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setSnackFreq(v)}
-              >
-                <Icon size={13} strokeWidth={2} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-        {/* 칼로리 v2 2d — 간식 kcal 숫자(선택). 아는 만큼 정확히 차감(10% 캡),
-            초과분은 경고로 식별(헤비유저). 모름 = 빈도 기반 추정(가끔5%/매일10%). */}
-        {(snackFreq === '가끔' || snackFreq === '매일') && (
-          <>
-            <p className="s-sub" style={{ fontSize: 16, margin: '10px 0 8px' }}>
-              하루 간식 칼로리를 아신다면 적어 주세요. 포장 뒷면에 있어요 —
-              모르면 비워두셔도 돼요.
-            </p>
-            <div className="s-input-suffix">
-              <input
-                type="number" onWheel={(e) => e.currentTarget.blur()}
+                type="number"
+                onWheel={(e) => e.currentTarget.blur()}
                 inputMode="numeric"
                 min={0}
                 max={2000}
@@ -211,219 +155,242 @@ export default function Diet({
                 onChange={(e) => setTreatKcal(e.target.value)}
                 placeholder="예: 50"
               />
-              <span className="s-unit">kcal / 일</span>
+              <span className="s-unit">kcal / 하루</span>
             </div>
-          </>
-        )}
-      </div>
-      </>
+          </SecondLine>
+        ))}
+    </ScreenShell>
+  )
+}
+
+const FRESH_OPTIONS = [
+  { v: 'first', label: '처음이에요', meta: '한 번도 안 줘봤어요', img: '/survey/icons/fresh-first.png' },
+  { v: 'occasional', label: '가끔', meta: '한 달에 1~2번', img: '/survey/icons/fresh-sometimes.png' },
+  { v: 'frequent', label: '자주', meta: '일주일에 1번 이상', img: '/survey/icons/fresh-often.png' },
+] as const
+
+export function FreshScreen({
+  homeCookingExp,
+  setHomeCookingExp,
+}: {
+  homeCookingExp: HomeCookingExp
+  setHomeCookingExp: (v: HomeCookingExp) => void
+}) {
+  return (
+    <ScreenShell
+      kicker="식사"
+      title={
+        <>
+          직접 만든 밥(화식)을
+          <br />
+          준 적이 있나요?
+        </>
+      }
+      sub="처음이면 첫 박스를 더 부드럽게 시작해요."
+    >
+      <TileRow
+        options={FRESH_OPTIONS}
+        value={homeCookingExp}
+        onChange={(v) => setHomeCookingExp(v)}
+      />
+    </ScreenShell>
+  )
+}
+
+// ── 선택 묶음 ──────────────────────────────────────────────────────────────
+
+export function OptFoodScreen({
+  foodType,
+  currentBrand,
+  setCurrentBrand,
+  kibbleKcal,
+  setKibbleKcal,
+}: {
+  foodType: string
+  currentBrand: string
+  setCurrentBrand: (v: string) => void
+  /** 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg (선택). '' = 모름 → 평균 350/100g. */
+  kibbleKcal: string
+  setKibbleKcal: (v: string) => void
+}) {
+  const kibble = foodType === '건식 사료' || foodType === '반반'
+  return (
+    <ScreenShell
+      kicker="추가 질문"
+      optional
+      title={
+        <>
+          지금 먹는 사료 이름을
+          <br />
+          알려주세요
+        </>
+      }
+      sub="예: 로얄캐닌 미니 어덜트. 몰라도 괜찮아요."
+    >
+      <input
+        type="text"
+        className="s-inp"
+        aria-label="현재 사용 중인 사료 이름"
+        value={currentBrand}
+        onChange={(e) => setCurrentBrand(e.target.value)}
+        placeholder="사료 이름"
+      />
+      {kibble && (
+        <SecondLine
+          label="사료 봉투 뒷면의 열량"
+          hint="‘대사에너지’ 또는 ‘kcal/kg’ 옆 숫자예요. 모르면 비워 두세요 — 평균값으로 계산해요."
+        >
+          <div className="s-input-suffix">
+            <input
+              type="number"
+              onWheel={(e) => e.currentTarget.blur()}
+              inputMode="numeric"
+              min={2000}
+              max={6000}
+              className="s-inp"
+              aria-label="건사료 열량 (kcal/kg)"
+              value={kibbleKcal}
+              onChange={(e) => setKibbleKcal(e.target.value)}
+              placeholder="예: 3500"
+            />
+            <span className="s-unit">kcal / kg</span>
+          </div>
+        </SecondLine>
       )}
+    </ScreenShell>
+  )
+}
 
-      {part === 'life' && (
-      <>
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">하루 산책, 얼마나 나가요?</span>
-        </div>
-        <div className="s-chiprow">
-          {[
-            { v: '0', label: '거의 안 가요' },
-            { v: '30', label: '하루 1번' },
-            { v: '60', label: '하루 2번 이상' },
-          ].map(({ v, label }) => {
-            const active = walkMinutes === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => {
-                  const nv = active ? '' : v
-                  setWalkMinutes(nv)
-                  // '거의 안 가요'/해제 시 숨겨질 활동 상세를 비워 stale 방지.
-                  if (nv === '' || nv === '0') {
-                    setIndoorActivity('')
-                    setVigorous('')
-                  }
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+const WALK_OPTIONS = [
+  { v: '0', label: '거의 안 가요' },
+  { v: '30', label: '하루 1번' },
+  { v: '60', label: '하루 2번 이상' },
+] as const
 
+export function OptWalkScreen({
+  walkMinutes,
+  setWalkMinutes,
+  indoorActivity,
+  setIndoorActivity,
+}: {
+  walkMinutes: string
+  setWalkMinutes: (v: string) => void
+  indoorActivity: IndoorActivity
+  setIndoorActivity: (v: IndoorActivity) => void
+}) {
+  const walksOut = walkMinutes.trim() !== '' && walkMinutes.trim() !== '0'
+  return (
+    <ScreenShell
+      kicker="추가 질문"
+      optional
+      title={
+        <>
+          하루 산책은
+          <br />
+          얼마나 하나요?
+        </>
+      }
+      sub="활동량이 하루 필요 열량을 좌우해요."
+    >
+      <OptionList
+        options={WALK_OPTIONS}
+        value={walkMinutes as (typeof WALK_OPTIONS)[number]['v'] | ''}
+        allowClear
+        onChange={(v) => {
+          const nv = v ?? ''
+          setWalkMinutes(nv)
+          // '거의 안 가요'/해제 시 숨겨질 실내 활동을 비워 stale 방지.
+          if (nv === '' || nv === '0') setIndoorActivity('')
+        }}
+        ariaLabel="하루 산책"
+      />
       {walksOut && (
-      <>
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">산책 외 실내 활동</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <div className="s-chiprow">
-          {[
-            { v: 'calm', label: '차분', Icon: Pause },
-            { v: 'moderate', label: '보통', Icon: Activity },
-            { v: 'active', label: '활발', Icon: Heart },
-          ].map(({ v, label, Icon }) => {
-            const active = indoorActivity === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setIndoorActivity(v as IndoorActivity)}
-              >
-                <Icon size={13} strokeWidth={2} />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* 칼로리 v2 2b — 격한 운동 + 증거 수준. '기록·측정'만 +0.2 가산 게이트
-          통과(자가 신고는 +0.1 상한) — 자가보고 활동은 과대추정 경향. */}
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">격한 운동을 규칙적으로 하나요?</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-          달리기·등산·어질리티 등. 앱이나 웨어러블로 기록하면 &lsquo;기록·측정&rsquo;을
-          골라 주세요.
-        </p>
-        <div className="s-chiprow">
-          {[
-            { v: 'none', label: '안 해요' },
-            { v: 'self', label: '해요 (느낌상)' },
-            { v: 'objective', label: '해요 (기록·측정)' },
-          ].map(({ v, label }) => {
-            const active = vigorous === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() =>
-                  setVigorous(active ? '' : (v as 'none' | 'self' | 'objective'))
-                }
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      </>
+        <SecondLine label="산책 외 실내 활동은 어떤가요?">
+          <ChipRow
+            options={[
+              { v: 'calm', label: '차분해요', Icon: Pause },
+              { v: 'moderate', label: '보통이에요', Icon: Activity },
+              { v: 'active', label: '활발해요', Icon: Heart },
+            ]}
+            value={indoorActivity}
+            onChange={(v) => setIndoorActivity(v)}
+          />
+        </SecondLine>
       )}
+    </ScreenShell>
+  )
+}
 
-      {/* 칼로리 v2 2b — 주거 환경. 실외 + 한랭일 때만 +0.15 가산. */}
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">주로 어디서 지내요?</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <div className="s-chiprow">
-          {[
+const VIGOROUS_OPTIONS = [
+  { v: 'none', label: '안 해요' },
+  { v: 'self', label: '해요 (느낌상)' },
+  { v: 'objective', label: '해요 (앱·시계로 기록)' },
+] as const
+
+export function OptExerciseScreen({
+  vigorous,
+  setVigorous,
+  housing,
+  setHousing,
+  coldOutdoor,
+  setColdOutdoor,
+}: {
+  vigorous: Vigorous
+  setVigorous: (v: Vigorous) => void
+  housing: Housing
+  setHousing: (v: Housing) => void
+  coldOutdoor: '' | 'yes' | 'no'
+  setColdOutdoor: (v: '' | 'yes' | 'no') => void
+}) {
+  return (
+    <ScreenShell
+      kicker="추가 질문"
+      optional
+      title={
+        <>
+          달리기·등산처럼
+          <br />
+          격한 운동을 규칙적으로 하나요?
+        </>
+      }
+      sub="기록으로 확인되는 운동만 열량을 더 크게 올려요 — 느낌상은 살짝만."
+    >
+      <OptionList
+        options={VIGOROUS_OPTIONS}
+        value={vigorous}
+        allowClear
+        onChange={(v) => setVigorous((v ?? '') as Vigorous)}
+        ariaLabel="격한 운동"
+      />
+      <SecondLine label="주로 어디서 지내나요?">
+        <ChipRow
+          options={[
             { v: 'indoor', label: '실내' },
-            { v: 'indoor_outdoor', label: '실내+마당' },
+            { v: 'indoor_outdoor', label: '실내 + 마당' },
             { v: 'outdoor', label: '실외' },
-          ].map(({ v, label }) => {
-            const active = housing === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-chip' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() =>
-                  setHousing(
-                    active
-                      ? ''
-                      : (v as 'indoor' | 'indoor_outdoor' | 'outdoor'),
-                  )
-                }
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
+          ]}
+          value={housing}
+          onChange={(v) => {
+            setHousing(v)
+            if (v !== 'outdoor') setColdOutdoor('')
+          }}
+        />
         {housing === 'outdoor' && (
           <>
-            <p className="s-sub" style={{ fontSize: 16, margin: '10px 0 8px' }}>
-              겨울에도 주로 밖에서 지내요? (추위에 노출되면 필요 열량이 늘어요)
+            <p className="s-qhint" style={{ marginTop: 12 }}>
+              겨울에도 주로 밖에서 지내나요? 추위에 노출되면 필요 열량이 늘어요.
             </p>
-            <div className="s-chiprow">
-              {[
+            <ChipRow
+              options={[
                 { v: 'yes', label: '네' },
                 { v: 'no', label: '아니요' },
-              ].map(({ v, label }) => {
-                const active = coldOutdoor === v
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    className={'s-chip' + (active ? ' s-on' : '')}
-                    aria-pressed={active}
-                    onClick={() =>
-                      setColdOutdoor(active ? '' : (v as 'yes' | 'no'))
-                    }
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
+              ]}
+              value={coldOutdoor}
+              onChange={(v) => setColdOutdoor(v)}
+            />
           </>
         )}
-      </div>
-      </>
-      )}
-
-      {part === 'meal' && (
-      <div className="s-sect">
-        <div className="s-sect-lbl"><span className="s-label-text">화식 경험</span></div>
-        <div className="s-tilerow">
-          {[
-            { v: 'first', label: '처음', meta: '한 번도 안 줘봄', img: '/survey/icons/fresh-first.png' },
-            { v: 'occasional', label: '가끔', meta: '월 1-2회', img: '/survey/icons/fresh-sometimes.png' },
-            { v: 'frequent', label: '자주', meta: '주 1회 이상', img: '/survey/icons/fresh-often.png' },
-          ].map(({ v, label, meta, img }) => {
-            const active = homeCookingExp === v
-            return (
-              <button
-                key={v}
-                type="button"
-                className={'s-tile' + (active ? ' s-on' : '')}
-                aria-pressed={active}
-                onClick={() => setHomeCookingExp(v as HomeCookingExp)}
-              >
-                <span className="s-ic">
-                  <span
-                    className="s-tile-ic"
-                    aria-hidden
-                    style={{
-                      WebkitMaskImage: `url(${img})`,
-                      maskImage: `url(${img})`,
-                      backgroundColor: active ? '#fff' : 'var(--fd-pine)',
-                    }}
-                  />
-                </span>
-                <span className="s-tile-lb">{label}</span>
-                <span className="s-meta">{meta}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      )}
-    </div>
+      </SecondLine>
+    </ScreenShell>
   )
 }

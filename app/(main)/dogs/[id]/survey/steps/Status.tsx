@@ -1,39 +1,31 @@
-// audit #96: SurveyClient.tsx 분할 — chronic step (만성질환 / 처방식 / 약물).
-// 파일명은 명세 따라 Status.tsx — 실제 STEPS 키는 'chronic'.
+// 설문 v4 — 건강 화면들.
+//   필수: ChronicScreen — 진단 질환 있나요? (없어요/있어요 → 질환 칩 → 조건부 신장 단계·
+//         췌장염 상태 → 처방식 이름)
+//   선택 묶음: OptMedsScreen — 복용 약·보충제 (약 키워드 → 질환 자동 제안)
 //
-// 설문 정돈(2026-07-12, 사장님) — progressive disclosure. "진단받은 질환
-// 있나요? 없어요/있어요" 리드 게이트로, 건강한 개는 질환칩·IRIS·췌장염·
-// 처방식·약을 전부 안 보고 넘어간다. '있어요'일 때만 상세 펼침.
-import { useState } from 'react'
+// 파일명은 옛 명세 그대로 Status.tsx. 2026-09-22 시니어 사용성 3단계: 약은 선택
+// 묶음으로 분리(사장님 결정 — 선택 4 = 현재 사료·실내 활동·격한 운동·약).
+// "CKD IRIS" 같은 전문용어는 화면에서 뺐다(브랜드 보이스).
 import { Check, ShieldAlert } from 'lucide-react'
 import {
   CHRONIC_CONDITION_LABELS,
   type ChronicConditionKey,
 } from '@/lib/nutrition/guidelines'
 import { detectChronicFromMedications } from '@/lib/nutrition/drugs'
+import { ScreenShell, SecondLine, ChipRow } from './ScreenShell'
 
-type IrisStage = 1 | 2 | 3 | 4 | null
-type PancreatitisSeverity = 'moderate' | 'severe' | null
-
-export type StatusProps = {
-  chronicConditions: ChronicConditionKey[]
-  setChronicConditions: (v: ChronicConditionKey[]) => void
-  irisStage: IrisStage
-  setIrisStage: (v: IrisStage) => void
-  pancreatitisSeverity: PancreatitisSeverity
-  setPancreatitisSeverity: (v: PancreatitisSeverity) => void
-  prescriptionDiet: string
-  setPrescriptionDiet: (v: string) => void
-  medications: string
-  setMedications: (v: string) => void
-}
+export type IrisStage = 1 | 2 | 3 | 4 | null
+export type PancreatitisSeverity = 'moderate' | 'severe' | null
+export type HasChronic = '' | 'yes' | 'no'
 
 function toggleArr<T>(arr: T[], v: T, setter: (x: T[]) => void) {
   if (arr.includes(v)) setter(arr.filter((x) => x !== v))
   else setter([...arr, v])
 }
 
-export default function Status({
+export function ChronicScreen({
+  hasChronic,
+  setHasChronic,
   chronicConditions,
   setChronicConditions,
   irisStage,
@@ -42,38 +34,31 @@ export default function Status({
   setPancreatitisSeverity,
   prescriptionDiet,
   setPrescriptionDiet,
-  medications,
-  setMedications,
-}: StatusProps) {
-  // progressive disclosure 리드 게이트. 복귀(autosave) 시 이미 입력된 상세가
-  // 있으면 '있어요'로 시작 — 순수 UI 상태라 별도 저장 불필요.
-  const [hasChronic, setHasChronic] = useState<'yes' | 'no' | ''>(
-    chronicConditions.length > 0 ||
-      prescriptionDiet.trim() !== '' ||
-      medications.trim() !== ''
-      ? 'yes'
-      : '',
-  )
-
+}: {
+  hasChronic: HasChronic
+  setHasChronic: (v: HasChronic) => void
+  chronicConditions: ChronicConditionKey[]
+  setChronicConditions: (v: ChronicConditionKey[]) => void
+  irisStage: IrisStage
+  setIrisStage: (v: IrisStage) => void
+  pancreatitisSeverity: PancreatitisSeverity
+  setPancreatitisSeverity: (v: PancreatitisSeverity) => void
+  prescriptionDiet: string
+  setPrescriptionDiet: (v: string) => void
+}) {
   return (
-    <div className="s-page">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span className="s-kicker">
-          건강 <span className="s-dot">·</span> 만성질환
-        </span>
-        <span className="s-opt-badge">선택</span>
-      </div>
-      <h1 className="s-title">현재 진단받은<br />질환이 있나요?</h1>
-      <p className="s-sub">식이 관리가 중요한 질환은 분석에 꼭 반영돼요.</p>
-
-      {/* 리드 게이트 — '없어요'면 상세 전부 숨김(건강한 개는 여기서 끝),
-          '있어요'면 질환칩·단계·처방식·약 펼침. '없어요' 선택 시 이전에
-          입력한 상세를 모두 비워 stale 방지. */}
-      {/* 버튼 2개 — s-seg 기본 3칸을 2칸으로 덮어써 빈칸 없이 꽉 채움. */}
-      <div
-        className="s-seg"
-        style={{ marginTop: 4, gridTemplateColumns: '1fr 1fr' }}
-      >
+    <ScreenShell
+      kicker="건강"
+      title={
+        <>
+          동물병원에서 진단받은
+          <br />
+          질환이 있나요?
+        </>
+      }
+      sub="식이 관리가 중요한 질환은 분석에 꼭 반영돼요."
+    >
+      <div className="s-seg" style={{ gridTemplateColumns: '1fr 1fr' }}>
         <button
           type="button"
           aria-pressed={hasChronic === 'no'}
@@ -83,10 +68,9 @@ export default function Status({
             setIrisStage(null)
             setPancreatitisSeverity(null)
             setPrescriptionDiet('')
-            setMedications('')
           }}
         >
-          <Check size={16} strokeWidth={2} />
+          <Check size={18} strokeWidth={2} />
           없어요
         </button>
         <button
@@ -95,224 +79,161 @@ export default function Status({
           aria-pressed={hasChronic === 'yes'}
           onClick={() => setHasChronic('yes')}
         >
-          <ShieldAlert size={16} strokeWidth={2} />
+          <ShieldAlert size={18} strokeWidth={2} />
           있어요
         </button>
       </div>
 
       {hasChronic === 'yes' && (
-      <>
-      <div className="s-chiprow" style={{ marginTop: 12 }}>
-        {(Object.keys(CHRONIC_CONDITION_LABELS) as ChronicConditionKey[]).map((k) => {
-          const active = chronicConditions.includes(k)
-          return (
-            <button
-              key={k}
-              type="button"
-              className={'s-chip s-terra' + (active ? ' s-on' : '')}
-              aria-pressed={active}
-              onClick={() => {
-                // CKD 토글 off 시 irisStage 자동 reset (stale 입력 방지)
-                if (k === 'kidney' && chronicConditions.includes('kidney')) {
-                  setIrisStage(null)
-                }
-                // 췌장염 토글 off 시 중증도 reset (stale 입력 방지)
-                if (
-                  k === 'pancreatitis' &&
-                  chronicConditions.includes('pancreatitis')
-                ) {
-                  setPancreatitisSeverity(null)
-                }
-                toggleArr(chronicConditions, k, setChronicConditions)
-              }}
-            >
-              {active && <Check size={13} strokeWidth={2.4} color="#fff" />}
-              {CHRONIC_CONDITION_LABELS[k]}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* v1.3 — CKD 진단 시 IRIS stage. Stage 1-2 는 단백질 정상 처방,
-          Stage 3+ 는 단백질 제한. 미입력 시 보수적 (Stage 3+) 처방. */}
-      {chronicConditions.includes('kidney') && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">CKD IRIS 단계</span>
-            <span className="s-opt">선택</span>
-          </div>
-          <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-            IRIS = 만성 신장질환의 국제 표준 진단 단계 (1=초기, 4=말기).
-            수의사가 알려주지 않았으면 건너뛰세요 — 미입력 시 보수적
-            추천 (단백질 제한) 적용.
+        <>
+          <p className="s-qhint" style={{ marginTop: 14 }}>
+            해당하는 질환을 모두 눌러 주세요.
           </p>
           <div className="s-chiprow">
-            {([1, 2, 3, 4] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={
-                  's-chip s-terra' + (irisStage === s ? ' s-on' : '')
-                }
-                aria-pressed={irisStage === s}
-                onClick={() =>
-                  setIrisStage(irisStage === s ? null : s)
-                }
-              >
-                {irisStage === s && (
-                  <Check size={13} strokeWidth={2.4} color="#fff" />
-                )}
-                Stage {s}
-              </button>
-            ))}
+            {(Object.keys(CHRONIC_CONDITION_LABELS) as ChronicConditionKey[]).map((k) => {
+              const active = chronicConditions.includes(k)
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  className={'s-chip s-terra' + (active ? ' s-on' : '')}
+                  aria-pressed={active}
+                  onClick={() => {
+                    // 토글 off 시 하위 단계 입력 reset (stale 방지)
+                    if (k === 'kidney' && active) setIrisStage(null)
+                    if (k === 'pancreatitis' && active) setPancreatitisSeverity(null)
+                    toggleArr(chronicConditions, k, setChronicConditions)
+                  }}
+                >
+                  {active && <Check size={14} strokeWidth={2.4} color="#fff" />}
+                  {CHRONIC_CONDITION_LABELS[k]}
+                </button>
+              )
+            })}
           </div>
-        </div>
-      )}
 
-      {/* 췌장염 중증도 — 급성/중증은 화식(최저지방 ~19%DM)으로 관리 불가
-          (지방 <10% 필요) → 추천이 "수의 처방식 필요"로 게이트. 만성/경증은
-          저지방 닭 보조 가능. 미입력 시 만성(moderate) 기준. */}
-      {chronicConditions.includes('pancreatitis') && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">췌장염 단계</span>
-            <span className="s-opt">선택</span>
-          </div>
-          <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-            급성·중증(입원 또는 수의사 저지방 처방식 권고)은 화식으로 관리가
-            어려워 별도 안내가 나가요. 모르면 건너뛰세요 — 만성 기준 적용.
-          </p>
-          <div className="s-chiprow">
-            {[
-              { v: 'moderate' as const, label: '만성 · 관리 중' },
-              { v: 'severe' as const, label: '급성 · 중증' },
-            ].map(({ v, label }) => (
-              <button
-                key={v}
-                type="button"
-                className={
-                  's-chip s-terra' +
-                  (pancreatitisSeverity === v ? ' s-on' : '')
-                }
-                aria-pressed={pancreatitisSeverity === v}
-                onClick={() =>
-                  setPancreatitisSeverity(
-                    pancreatitisSeverity === v ? null : v,
-                  )
-                }
-              >
-                {pancreatitisSeverity === v && (
-                  <Check size={13} strokeWidth={2.4} color="#fff" />
-                )}
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">처방식</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <input
-          type="text"
-          className="s-inp"
-          aria-label="처방식 이름"
-          value={prescriptionDiet}
-          onChange={(e) => setPrescriptionDiet(e.target.value)}
-          placeholder="예: Royal Canin Renal RF14"
-        />
-      </div>
-
-      <div className="s-sect">
-        <div className="s-sect-lbl">
-          <span className="s-label-text">복용 중인 약 / 보충제</span>
-          <span className="s-opt">선택</span>
-        </div>
-        <textarea
-          className="s-inp"
-          rows={2}
-          aria-label="복용 중인 약 / 보충제"
-          value={medications}
-          onChange={(e) => setMedications(e.target.value)}
-          placeholder="예: 갑상선 호르몬, 글루코사민, 오메가-3"
-        />
-        {/* 약물 키워드 → 만성질환 자동 제안 (사용자 confirm 후 추가) */}
-        {(() => {
-          const matches = detectChronicFromMedications(medications)
-            .filter((m) => !chronicConditions.includes(m.condition))
-          if (matches.length === 0) return null
-          return (
-            <div
-              style={{
-                marginTop: 10,
-                padding: 10,
-                background: 'var(--bg-2)',
-                borderRadius: 10,
-                fontSize: 14,
-                color: 'var(--muted)',
-                lineHeight: 1.5,
-              }}
+          {/* CKD → IRIS 단계. Stage 1-2 단백질 정상, 3+ 제한. 미입력 = 보수적(3+). */}
+          {chronicConditions.includes('kidney') && (
+            <SecondLine
+              label="신장질환은 몇 단계인가요?"
+              hint="수의사가 알려준 단계(1=초기, 4=말기)예요. 모르면 비워 두세요 — 안전하게 단백질을 제한해 계산해요."
             >
-              <div style={{ marginBottom: 6 }}>
-                💡 입력한 약물에서 진단 가능성을 발견했어요. 해당하면 추가:
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {matches.map((m) => (
-                  <button
-                    key={m.condition}
-                    type="button"
-                    onClick={() =>
-                      setChronicConditions([...chronicConditions, m.condition])
-                    }
-                    style={{
-                      appearance: 'none',
-                      border: '1px solid var(--fd-coral)',
-                      background: '#fff',
-                      color: 'var(--fd-coral)',
-                      padding: '4px 10px',
-                      borderRadius: 99,
-                      fontSize: 16,
-                      fontWeight: 700,
-                      fontFamily: 'inherit',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {m.label}
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontFamily: 'var(--font-mono), monospace',
-                        marginLeft: 4,
-                        color: 'var(--muted)',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {m.keyword}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <ChipRow
+                tone="terra"
+                options={[
+                  { v: '1', label: '1단계' },
+                  { v: '2', label: '2단계' },
+                  { v: '3', label: '3단계' },
+                  { v: '4', label: '4단계' },
+                ]}
+                value={irisStage === null ? '' : (String(irisStage) as '1' | '2' | '3' | '4')}
+                onChange={(v) => setIrisStage(v === '' ? null : (Number(v) as 1 | 2 | 3 | 4))}
+              />
+            </SecondLine>
+          )}
+
+          {/* 췌장염 — 급성/중증은 화식 부적합 하드 게이트(firstBox). 미입력 = 만성. */}
+          {chronicConditions.includes('pancreatitis') && (
+            <SecondLine
+              label="췌장염은 어떤 상태인가요?"
+              hint="급성·중증(입원했거나 수의사가 저지방 처방식을 권한 경우)은 화식으로 관리가 어려워 따로 안내해요. 모르면 비워 두세요."
+            >
+              <ChipRow
+                tone="terra"
+                options={[
+                  { v: 'moderate', label: '만성 · 관리 중' },
+                  { v: 'severe', label: '급성 · 중증' },
+                ]}
+                value={pancreatitisSeverity ?? ''}
+                onChange={(v) => setPancreatitisSeverity(v === '' ? null : v)}
+              />
+            </SecondLine>
+          )}
+
+          <SecondLine label="처방식을 먹고 있다면 이름">
+            <input
+              type="text"
+              className="s-inp"
+              aria-label="처방식 이름"
+              value={prescriptionDiet}
+              onChange={(e) => setPrescriptionDiet(e.target.value)}
+              placeholder="예: 로얄캐닌 레날"
+            />
+          </SecondLine>
+
+          {chronicConditions.length > 0 && (
+            <div className="s-note">
+              <span className="s-ic-warn">
+                <ShieldAlert size={14} strokeWidth={2.2} color="#fff" />
+              </span>
+              <span>
+                분석 결과는 <strong>가이드라인 기반 권장</strong>이에요. 처방식·약 변경은
+                반드시 주치 수의사와 상담 후 진행해 주세요.
+              </span>
             </div>
-          )
-        })()}
-      </div>
-      </>
+          )}
+        </>
       )}
+    </ScreenShell>
+  )
+}
 
-      {chronicConditions.length > 0 && (
-        <div className="s-note">
-          <span className="s-ic-warn">
-            <ShieldAlert size={13} strokeWidth={2.2} color="#fff" />
-          </span>
-          <span>
-            분석 결과는 <strong>가이드라인 기반 권장</strong>이에요. 처방식·약물
-            변경은 반드시 주치 수의사와 상담 후 진행해 주세요.
-          </span>
+export function OptMedsScreen({
+  medications,
+  setMedications,
+  chronicConditions,
+  onAddCondition,
+}: {
+  medications: string
+  setMedications: (v: string) => void
+  chronicConditions: ChronicConditionKey[]
+  /** 약 키워드에서 제안된 질환 추가 — 질환 화면이 '없어요'였다면 '있어요'로 바뀌어야 한다(SurveyClient 가 처리). */
+  onAddCondition: (k: ChronicConditionKey) => void
+}) {
+  const matches = detectChronicFromMedications(medications).filter(
+    (m) => !chronicConditions.includes(m.condition),
+  )
+  return (
+    <ScreenShell
+      kicker="추가 질문"
+      optional
+      title={
+        <>
+          복용 중인 약이나
+          <br />
+          보충제가 있나요?
+        </>
+      }
+      sub="쉼표로 나눠 적어 주세요. 없으면 건너뛰어도 돼요."
+    >
+      <textarea
+        className="s-inp"
+        rows={3}
+        aria-label="복용 중인 약 / 보충제"
+        value={medications}
+        onChange={(e) => setMedications(e.target.value)}
+        placeholder="예: 갑상선 호르몬, 글루코사민, 오메가-3"
+      />
+      {matches.length > 0 && (
+        <div className="s-hint" style={{ marginTop: 12, display: 'block' }}>
+          <div style={{ marginBottom: 8 }}>
+            적어 주신 약으로 보아 아래 질환이 있을 수 있어요. 해당하면 눌러서 추가해
+            주세요.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {matches.map((m) => (
+              <button
+                key={m.condition}
+                type="button"
+                onClick={() => onAddCondition(m.condition)}
+                className="s-chip s-terra"
+              >
+                + {m.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
-    </div>
+    </ScreenShell>
   )
 }

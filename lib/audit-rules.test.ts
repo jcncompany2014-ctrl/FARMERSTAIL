@@ -3725,3 +3725,56 @@ test('규칙85: 앱 화면의 머리말(kicker·Mono·eyebrow)에 영어만 있�
   const g = stripComments(read(join(ROOT, 'app', 'globals.css')))
   assert.equal([...g.matchAll(/\[data-ft-chrome="app"\] \.kicker \{/g)].length, 1, 'globals.css 의 [data-ft-chrome="app"] .kicker 규칙이 하나가 아니다')
 })
+
+test('규칙86: 앱 설문은 화면당 질문 하나 — 글자 12px 이상·대문자 변환 없음·큰 버튼·흐름은 lib/survey/flow 가 정본', () => {
+  /**
+   * # 왜 (2026-09-22 시니어 사용성 3단계)
+   * 사장님 제보: 부모님 세대가 설문 글씨가 작고(선택 뱃지 9px·힌트 12.5px) 흐름이 어색하다
+   * (한 화면에 질문 3~5개). 결정: 화면당 질문 하나, 선택지는 큰 세로 버튼, 아래 큰 '다음' 하나.
+   * 이 규칙은 그 결정이 CSS·컴포넌트에서 조용히 되돌아가는 것을 막는다.
+   *   - survey.css 의 모든 font-size ≥ 12px (뱃지·단위 최소), 본문/버튼은 각 규칙에서 16/17.
+   *   - text-transform: uppercase 없음 (한글 머리말·태그).
+   *   - 큰 버튼: .s-optbtn / .s-next-full / .s-gate-* 는 min-height ≥ 56px.
+   *   - SurveyClient 는 화면 순서를 직접 갖지 않고 lib/survey/flow 를 쓴다(테스트된 순수 로직).
+   *   - "STEP 03 / 07" 같은 영문 카운터 문구가 다시 들어오지 않는다.
+   */
+  const cssPath = join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'survey.css')
+  const css = stripComments(read(cssPath))
+  const sizes = [...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map((m) => parseFloat(m[1] ?? '0'))
+  assert.ok(sizes.length > 20, 'survey.css 에서 font-size 를 못 읽었다')
+  const small = sizes.filter((v) => v < 12)
+  assert.deepEqual(small, [], `survey.css 에 12px 미만 글자: ${small.join(', ')}`)
+  assert.doesNotMatch(css, /text-transform:\s*uppercase/, 'survey.css 에 대문자 변환 — 한글 머리말이 벌어진다')
+  for (const sel of ['.s-optbtn', '.s-next-btn.s-next-full', '.s-gate-primary, .s-gate-secondary']) {
+    const i = css.indexOf(sel + ' {')
+    assert.ok(i >= 0, `survey.css 에 ${sel} 규칙이 없다`)
+    const block = css.slice(i, css.indexOf('}', i))
+    const mh = block.match(/min-height:\s*(\d+)px/)
+    assert.ok(mh && Number(mh[1]) >= 56, `${sel} 의 min-height 가 56px 미만(${mh?.[1] ?? '없음'}) — 어르신 터치 크기`)
+  }
+
+  const client = stripComments(
+    read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'SurveyClient.tsx')),
+  )
+  assert.match(client, /from '@\/lib\/survey\/flow'/, 'SurveyClient 가 lib/survey/flow 를 쓰지 않는다')
+  assert.doesNotMatch(client, /const STEPS\s*=/, 'SurveyClient 에 화면 순서 상수가 되살아났다 — flow.ts 가 정본')
+  assert.doesNotMatch(client, /STEP\s*\{/, '영문 STEP 카운터가 되살아났다')
+  assert.match(client, /<GateScreen/, '선택 묶음 관문(GateScreen)이 없다 — "건너뛰고 결과 보기" 구조')
+
+  // 화면 컴포넌트: 각 *Screen 은 ScreenShell(질문 하나) 하나만 그린다. 옛 default export
+  // (한 파일 = 한 스텝에 질문 여러 개) 로 돌아가지 않았는지.
+  const stepsDir = join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'steps')
+  for (const f of ['Body.tsx', 'Stool.tsx', 'Diet.tsx', 'Allergy.tsx', 'Status.tsx', 'Pregnancy.tsx', 'Preferences.tsx']) {
+    const src = stripComments(read(join(stepsDir, f)))
+    assert.doesNotMatch(src, /export default function/, `${f}: default export 스텝 컴포넌트가 되살아났다`)
+    const fns = [...src.matchAll(/export function (\w+Screen)\(/g)].map((m) => m[1])
+    assert.ok(fns.length >= 1, `${f}: *Screen 컴포넌트가 없다`)
+    for (const fn of fns) {
+      const start = src.indexOf(`export function ${fn}(`)
+      const next = src.slice(start + 1).search(/\nexport function /)
+      const body = next >= 0 ? src.slice(start, start + 1 + next) : src.slice(start)
+      const h1s = (body.match(/<ScreenShell/g) ?? []).length + (body.match(/<h1/g) ?? []).length
+      assert.equal(h1s, 1, `${f}/${fn}: 화면에 큰 질문(h1)이 ${h1s}개 — 화면당 질문 하나`)
+    }
+  }
+})

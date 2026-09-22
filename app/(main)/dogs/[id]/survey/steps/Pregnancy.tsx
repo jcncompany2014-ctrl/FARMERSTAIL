@@ -1,11 +1,13 @@
-// audit #96: SurveyClient.tsx 분할 — status step 의 임신/수유 sub-section (조건부).
-// 암컷 + 비중성화일 때만 임신/수유 선택 노출. puppy 경고 + 임신주차/산자수 +
-// <18mo puppy 의 예상 성견 체중 (대형견 Ca cap).
+// 설문 v4 — 조건부 화면 2개.
+//   PregnancyScreen  : 암컷 + 비중성화만 (수컷/중성화견에 켜져 MER ×2.5 폭주 차단).
+//                      임신 주차 / 산자 수는 둘째 줄(선택).
+//   AdultWeightScreen: 18개월 미만 자견만 — 예상 성견 체중 (대형견 Ca 상한, 건너뛰기 가능).
 import { Check, Baby, Heart, AlertCircle } from 'lucide-react'
+import { ScreenShell, OptionList, SecondLine } from './ScreenShell'
 
-type Pregnancy = 'none' | 'pregnant' | 'lactating' | ''
+export type PregnancyValue = 'none' | 'pregnant' | 'lactating' | ''
 
-type Dog = {
+export type SurveyDog = {
   id: string
   name: string
   weight: number
@@ -16,19 +18,11 @@ type Dog = {
   gender: 'male' | 'female' | null
 }
 
-export type PregnancyProps = {
-  dog: Dog
-  pregnancy: Pregnancy
-  setPregnancy: (v: Pregnancy) => void
-  pregnancyWeek: number | null
-  setPregnancyWeek: (v: number | null) => void
-  litterSize: number | null
-  setLitterSize: (v: number | null) => void
-  expectedAdultWeightKg: number | null
-  setExpectedAdultWeightKg: (v: number | null) => void
+function ageMonths(dog: SurveyDog): number {
+  return dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
 }
 
-export default function Pregnancy({
+export function PregnancyScreen({
   dog,
   pregnancy,
   setPregnancy,
@@ -36,168 +30,157 @@ export default function Pregnancy({
   setPregnancyWeek,
   litterSize,
   setLitterSize,
+}: {
+  dog: SurveyDog
+  pregnancy: PregnancyValue
+  setPregnancy: (v: PregnancyValue) => void
+  pregnancyWeek: number | null
+  setPregnancyWeek: (v: number | null) => void
+  litterSize: number | null
+  setLitterSize: (v: number | null) => void
+}) {
+  const isPuppy = ageMonths(dog) < 12
+  return (
+    <ScreenShell
+      kicker="건강"
+      title={
+        <>
+          지금 임신 중이거나
+          <br />
+          수유 중인가요?
+        </>
+      }
+      sub="임신·수유 중이면 필요한 열량이 크게 달라져요."
+    >
+      <OptionList
+        options={[
+          { v: 'none', label: '해당 없음', Icon: Check },
+          { v: 'pregnant', label: '임신 중', Icon: Baby },
+          { v: 'lactating', label: '수유 중', Icon: Heart },
+        ]}
+        value={pregnancy}
+        onChange={(v) => {
+          const next = (v ?? '') as PregnancyValue
+          setPregnancy(next)
+          if (next !== 'pregnant') setPregnancyWeek(null)
+          if (next !== 'lactating') setLitterSize(null)
+        }}
+        ariaLabel="임신 / 수유"
+      />
+
+      {pregnancy !== '' && pregnancy !== 'none' && isPuppy && (
+        <div
+          className="s-note"
+          style={{
+            background: 'color-mix(in srgb, var(--fd-gold) 14%, transparent)',
+            color: 'var(--fd-pine)',
+          }}
+        >
+          <span className="s-ic-warn" style={{ background: 'var(--fd-gold)' }}>
+            <AlertCircle size={14} strokeWidth={2.2} color="#7A5B1B" />
+          </span>
+          <span>12개월 미만 강아지의 임신·수유는 매우 드물어요. 한 번 더 확인해 주세요.</span>
+        </div>
+      )}
+
+      {pregnancy === 'pregnant' && (
+        <SecondLine
+          label="임신 몇 주차인가요?"
+          hint="6주차 이후 필요 열량이 본격적으로 늘어요. 모르면 비워 두세요."
+        >
+          <div className="s-input-suffix">
+            <input
+              type="number"
+              onWheel={(e) => e.currentTarget.blur()}
+              inputMode="numeric"
+              className="s-inp"
+              aria-label="임신 주차"
+              min={1}
+              max={9}
+              step={1}
+              value={pregnancyWeek ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                setPregnancyWeek(v === '' ? null : Math.max(1, Math.min(9, Number(v))))
+              }}
+              placeholder="1~9"
+            />
+            <span className="s-unit">주차</span>
+          </div>
+        </SecondLine>
+      )}
+
+      {pregnancy === 'lactating' && (
+        <SecondLine
+          label="새끼가 몇 마리인가요?"
+          hint="새끼 수에 따라 필요 열량이 달라져요. 모르면 비워 두세요."
+        >
+          <div className="s-input-suffix">
+            <input
+              type="number"
+              onWheel={(e) => e.currentTarget.blur()}
+              inputMode="numeric"
+              className="s-inp"
+              aria-label="산자 수 (출산한 새끼 마릿수)"
+              min={1}
+              max={15}
+              step={1}
+              value={litterSize ?? ''}
+              onChange={(e) => {
+                const v = e.target.value
+                setLitterSize(v === '' ? null : Math.max(1, Math.min(15, Number(v))))
+              }}
+              placeholder="1~15"
+            />
+            <span className="s-unit">마리</span>
+          </div>
+        </SecondLine>
+      )}
+    </ScreenShell>
+  )
+}
+
+export function AdultWeightScreen({
   expectedAdultWeightKg,
   setExpectedAdultWeightKg,
-}: PregnancyProps) {
+}: {
+  expectedAdultWeightKg: number | null
+  setExpectedAdultWeightKg: (v: number | null) => void
+}) {
   return (
-    <>
-      {/* 임신/수유는 암컷 + 비중성화 만 표시 (수컷/중성화견에 잘못 켜져
-         MER × 2.5 폭주 차단). dog.gender 미상 (legacy) 또는 female + non-
-         neutered 인 경우만 노출. */}
-      {(dog.gender === 'female' || dog.gender == null) && !dog.neutered && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">임신 / 수유 상태</span>
-          </div>
-          <div className="s-chiprow">
-            {[
-              { v: 'none', label: '해당 없음', Icon: Check },
-              { v: 'pregnant', label: '임신 중', Icon: Baby },
-              { v: 'lactating', label: '수유 중', Icon: Heart },
-            ].map(({ v, label, Icon }) => {
-              const active = pregnancy === v
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  className={'s-chip' + (active ? ' s-on' : '')}
-                  aria-pressed={active}
-                  onClick={() => {
-                    // pregnancy 변경 시 week/litter conditional state stale 방지
-                    const next = v as Pregnancy
-                    setPregnancy(next)
-                    if (next !== 'pregnant') setPregnancyWeek(null)
-                    if (next !== 'lactating') setLitterSize(null)
-                  }}
-                >
-                  <Icon size={13} strokeWidth={2} />
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* puppy + pregnancy 모순 경고 — 12개월 미만 puppy 의 임신은 매우 드묾 */}
-      {pregnancy !== '' &&
-        pregnancy !== 'none' &&
-        (dog.age_unit === 'years'
-          ? dog.age_value * 12 < 12
-          : dog.age_value < 12) && (
-          <div
-            className="s-note"
-            style={{
-              background: 'color-mix(in srgb, var(--fd-gold) 14%, transparent)',
-              color: 'var(--fd-pine)',
-            }}
-          >
-            {/* 골드 위 흰 아이콘 1.9:1 로 거의 안 보이던 것 → 다크 골드브라운
-                (s-tag.s-warn 텍스트 톤과 동일)으로 대비 확보(2026-07-23 점검). */}
-            <span className="s-ic-warn" style={{ background: 'var(--fd-gold)' }}>
-              <AlertCircle size={13} strokeWidth={2.2} color="#7A5B1B" />
-            </span>
-            <span>
-              12개월 미만 강아지의 임신·수유는 매우 드물어요. 한 번 더
-              확인해 주세요.
-            </span>
-          </div>
-        )}
-
-      {/* v1.3 — 임신 주차 (1-9). NRC 2006 ch.15 — 후기 (≥6주차) RER × 1.6-2.0 */}
-      {pregnancy === 'pregnant' && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">임신 주차</span>
-            <span className="s-opt">선택</span>
-          </div>
-          <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-            6주차 이후가 영양 요구량이 본격적으로 ↑. 미입력 시 보수적
-            multiplier (×1.5).
-          </p>
-          <input
-            type="number" onWheel={(e) => e.currentTarget.blur()}
-            inputMode="numeric"
-            enterKeyHint="next"
-            className="s-inp"
-            aria-label="임신 주차"
-            min={1}
-            max={9}
-            step={1}
-            value={pregnancyWeek ?? ''}
-            onChange={(e) => {
-              const v = e.target.value
-              setPregnancyWeek(v === '' ? null : Math.max(1, Math.min(9, Number(v))))
-            }}
-            placeholder="1-9"
-          />
-        </div>
-      )}
-
-      {/* v1.3 — 수유 산자수. NRC 2006 Table 15-3 — RER × (2.0+0.25n) */}
-      {pregnancy === 'lactating' && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">산자 수</span>
-            <span className="s-opt">선택</span>
-          </div>
-          <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-            수유 영양 요구량은 산자 수에 비례 (×2.0~4.0). 미입력 시 ×2.0.
-          </p>
-          <input
-            type="number" onWheel={(e) => e.currentTarget.blur()}
-            inputMode="numeric"
-            enterKeyHint="next"
-            className="s-inp"
-            aria-label="산자 수 (출산한 새끼 마릿수)"
-            min={1}
-            max={15}
-            step={1}
-            value={litterSize ?? ''}
-            onChange={(e) => {
-              const v = e.target.value
-              setLitterSize(v === '' ? null : Math.max(1, Math.min(15, Number(v))))
-            }}
-            placeholder="1-15"
-          />
-        </div>
-      )}
-
-      {/* v1.3 — 대형견 puppy Ca cap. <18mo puppy 만 노출. AAFCO 2024. */}
-      {(dog.age_unit === 'years'
-        ? dog.age_value * 12 < 18
-        : dog.age_value < 18) && (
-        <div className="s-sect">
-          <div className="s-sect-lbl">
-            <span className="s-label-text">예상 성견 체중 (kg)</span>
-            <span className="s-opt">선택</span>
-          </div>
-          <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
-            18개월 미만 강아지 — 25kg+ 대형견은 Ca 1.8% DM 상한
-            (AAFCO) 권고. 정확한 추천을 위해 입력해 주세요.
-          </p>
-          <input
-            type="number" onWheel={(e) => e.currentTarget.blur()}
-            inputMode="decimal"
-            enterKeyHint="done"
-            className="s-inp"
-            aria-label="예상 성견 체중 (kg)"
-            min={0.5}
-            max={100}
-            step={0.5}
-            value={expectedAdultWeightKg ?? ''}
-            onChange={(e) => {
-              const v = e.target.value
-              setExpectedAdultWeightKg(
-                v === ''
-                  ? null
-                  : Math.max(0.5, Math.min(100, Number(v))),
-              )
-            }}
-            placeholder="예: 30 (대형견)"
-          />
-        </div>
-      )}
-    </>
+    <ScreenShell
+      kicker="몸 상태"
+      optional
+      title={
+        <>
+          다 자라면
+          <br />
+          몇 kg쯤 될까요?
+        </>
+      }
+      sub="어린 강아지는 다 컸을 때 체중으로 뼈에 필요한 칼슘 양을 정해요. 모르면 건너뛰어도 돼요."
+    >
+      <div className="s-input-suffix">
+        <input
+          type="number"
+          onWheel={(e) => e.currentTarget.blur()}
+          inputMode="decimal"
+          className="s-inp"
+          aria-label="예상 성견 체중 (kg)"
+          min={0.5}
+          max={100}
+          step={0.5}
+          value={expectedAdultWeightKg ?? ''}
+          onChange={(e) => {
+            const v = e.target.value
+            setExpectedAdultWeightKg(
+              v === '' ? null : Math.max(0.5, Math.min(100, Number(v))),
+            )
+          }}
+          placeholder="예: 30"
+        />
+        <span className="s-unit">kg</span>
+      </div>
+    </ScreenShell>
   )
 }

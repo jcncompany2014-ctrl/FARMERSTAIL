@@ -25,17 +25,17 @@
 .s-stepwrap .s-step-no {
   /* FD eyebrow — 옛 mono kicker 제거. green sans, 0.14em / 800. */
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: 14px; letter-spacing: -0.01em;
   color: var(--fd-green); font-weight: 800;
 }
 .s-stepwrap .s-step-pct {
   /* 진행률 숫자 — coral 포인트, sans tabular (mono 키커 톤 제거) */
-  font-size: 11px; font-weight: 800; color: var(--fd-coral);
+  font-size: 14px; font-weight: 800; color: var(--fd-coral);
   font-family: var(--font-sans), "Pretendard", sans-serif;
   letter-spacing: -0.01em;
 }
 .s-progress {
-  height: 3px; background: var(--rule); border-radius: 99px;
+  height: 5px; background: var(--rule); border-radius: 99px;
   overflow: hidden; position: relative;
 }
 .s-progress > i {
@@ -90,7 +90,7 @@
   border-radius: 4px;
 }
 .s-page p.s-sub {
-  font-size: 14px; color: var(--fd-muted); line-height: 1.55;
+  font-size: 16px; color: var(--fd-muted); line-height: 1.55;
   margin: 0 0 16px; /* 헤더-첫 카드 사이 호흡 +4 (2026-07-23 2차) */
   text-wrap: pretty;
 }
@@ -116,9 +116,8 @@
 /* Optional badge */
 .s-opt-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9.5px; font-weight: 800; letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 3px 7px; border-radius: 99px;
+  font-size: 12px; font-weight: 800; letter-spacing: -0.01em;
+  padding: 3px 8px; border-radius: 99px;
   background: transparent; color: var(--fd-muted);
   border: 1px solid var(--fd-line);
   margin-left: 6px;
@@ -130,7 +129,7 @@
   display: inline-flex; align-items: center; gap: 5px;
   background: var(--fd-cream); color: var(--fd-pine);
   padding: 5px 9px; border-radius: 99px;
-  font-size: 10.5px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   letter-spacing: 0.01em;
 }
 .s-echo .s-e svg { width: 11px; height: 11px; color: var(--fd-green); }
@@ -149,10 +148,9 @@
 }
 .s-sect-lbl > .s-label-text { flex: 0 1 auto; }
 .s-sect-lbl .s-opt {
-  font-size: 9px; font-weight: 700; letter-spacing: .14em;
+  font-size: 12px; font-weight: 700; letter-spacing: -0.01em;
   color: var(--fd-muted);
-  padding: 2px 6px; border-radius: 99px; background: var(--fd-cream);
-  text-transform: uppercase;
+  padding: 2px 8px; border-radius: 99px; background: var(--fd-cream);
   flex: 0 0 auto;
   white-space: nowrap;
 }
@@ -178,14 +176,14 @@
   flex: 0 0 auto;
   width: 22px; height: 22px; border-radius: 99px;
   background: var(--bg-2); color: var(--fd-pine);
-  font-size: 11px; font-weight: 800;
+  font-size: 12px; font-weight: 800;
   font-variant-numeric: tabular-nums;
   display: inline-flex; align-items: center; justify-content: center;
   transition: background 220ms, color 220ms;
 }
 .s-qcard-done .s-qnum { background: var(--fd-green); color: #fff; }
 .s-qhint {
-  font-size: 12.5px; color: var(--fd-muted); line-height: 1.5;
+  font-size: 14px; color: var(--fd-muted); line-height: 1.5;
   /* 들여쓰기 제거(2026-07-23 2차) — 라벨·힌트만 들여쓰고 칩은 왼쪽 끝이라
      세로 정렬축이 지그재그였다. 번호칩은 라벨 행의 불릿으로만 두고
      힌트·칩은 카드 왼끝 한 축으로 통일. */
@@ -246,7 +244,7 @@
 .s-pickcard .s-num {
   /* 숫자 라벨 — tabular sans, FD muted */
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11.5px; color: var(--fd-muted); font-weight: 700;
+  font-size: 12px; color: var(--fd-muted); font-weight: 700;
   margin-bottom: 6px; letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -256,8 +254,8 @@
 }
 .s-pickcard .s-ideal {
   position: absolute; top: 8px; right: 8px;
-  font-size: 8.5px; font-weight: 800; letter-spacing: .12em;
-  color: var(--fd-green); text-transform: uppercase;
+  font-size: 12px; font-weight: 800; letter-spacing: .12em;
+  color: var(--fd-green);
 }
 .s-pickcard[aria-pressed="true"] .s-ideal { color: var(--fd-gold); }
 
@@ -307,7 +305,7 @@
   margin-bottom: 6px;
 }
 .s-warn-body {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--fd-pine);
 }
@@ -344,8 +342,7 @@
   opacity: 0.92;
 }
 .s-tag {
-  font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
-  text-transform: uppercase;
+  font-size: 12px; font-weight: 800; letter-spacing: -0.005em;
   padding: 3px 8px; border-radius: 6px;
   /* 한국어 두 글자 ("양호") 가 좁은 cell 안에서 세로 줄바꿈되는 문제 방지 */
   white-space: nowrap;
@@ -397,7 +394,7 @@
   flex: 0 0 auto; width: 22px;
   /* tabular sans (mono 키커 톤 제거) */
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 12.5px; font-weight: 700; color: var(--fd-muted);
+  font-size: 14px; font-weight: 700; color: var(--fd-muted);
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
@@ -433,8 +430,8 @@
   height: 48px;
 }
 .s-lb-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.s-lb-title { font-size: 15px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
-.s-lb-sub { font-size: 13px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
+.s-lb-title { font-size: 17px; font-weight: 800; color: var(--fd-pine); display: block; letter-spacing: -0.01em; }
+.s-lb-sub { font-size: 14px; color: var(--fd-muted); margin-top: 2px; line-height: 1.45; display: block; }
 
 /* Skip pill — 직관성 강화 (dashed border + active fill).
    이전: bg/border 없어 일반 텍스트로 보였고, active 도 색만 바뀜.
@@ -450,7 +447,7 @@
   min-height: 48px;
   background: transparent;
   color: var(--fd-muted);
-  font-weight: 700; font-size: 14px;
+  font-weight: 700; font-size: 16px;
   border: 1px dashed var(--fd-line);
   border-radius: 10px;
   font-family: inherit;
@@ -502,10 +499,9 @@
 }
 .s-skip-divider span {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: 13px;
   color: var(--fd-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: -0.01em;
   font-weight: 800;
 }
 
@@ -517,9 +513,9 @@
   background: var(--surface-card);
   box-shadow: inset 0 0 0 1px var(--fd-line);
   color: var(--fd-pine);
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 99px;
-  font-size: 14px; font-weight: 800;
+  font-size: 16px; font-weight: 800;
   display: inline-flex; align-items: center; gap: 6px;
   transition: all 160ms cubic-bezier(.2, .7, .2, 1);
   font-family: inherit;
@@ -533,7 +529,7 @@
   background: var(--fd-pine); color: #fff;
   box-shadow: inset 0 0 0 1px var(--fd-pine);
 }
-.s-chip svg { width: 14px; height: 14px; color: var(--fd-muted); }
+.s-chip svg { width: 16px; height: 16px; color: var(--fd-muted); }
 .s-chip.s-on svg { color: #fff; }
 .s-chip.s-terra.s-on {
   background: var(--fd-coral); color: #fff;
@@ -591,8 +587,8 @@
   -webkit-mask-size: contain; mask-size: contain;
 }
 .s-tile.s-on .s-ic { background: none; color: #fff; }
-.s-tile .s-tile-lb { font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; }
-.s-tile .s-meta { font-size: 12px; color: var(--fd-muted); margin-top: -2px; }
+.s-tile .s-tile-lb { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.s-tile .s-meta { font-size: 13px; color: var(--fd-muted); margin-top: -2px; }
 .s-tile.s-on .s-meta { color: #fff; opacity: .75; }
 
 /* Inputs */
@@ -623,7 +619,7 @@ input.s-inp[type="number"] {
 }
 .s-input-suffix { display: flex; align-items: center; gap: 8px; }
 .s-input-suffix .s-unit {
-  font-size: 12.5px; font-weight: 700; color: var(--fd-muted);
+  font-size: 15px; font-weight: 700; color: var(--fd-muted);
   letter-spacing: 0.02em;
 }
 
@@ -637,8 +633,8 @@ input.s-inp[type="number"] {
 .s-seg button {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
-  padding: 11px 8px; border-radius: 8px;
-  font-size: 14px; font-weight: 800; color: var(--fd-pine);
+  padding: 14px 8px; border-radius: 8px;
+  font-size: 16px; font-weight: 800; color: var(--fd-pine);
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   transition: all 180ms;
   font-family: inherit;
@@ -663,8 +659,8 @@ input.s-inp[type="number"] {
 .s-note {
   margin-top: 14px;
   border-radius: 10px;
-  padding: 11px 13px;
-  font-size: 13px; line-height: 1.5;
+  padding: 12px 14px;
+  font-size: 15px; line-height: 1.5;
   background: color-mix(in srgb, var(--fd-coral) 9%, transparent);
   color: var(--fd-pine);
   display: flex; align-items: flex-start; gap: 10px;
@@ -692,7 +688,7 @@ input.s-inp[type="number"] {
   appearance: none; border: 0; cursor: pointer;
   background: transparent;
   color: var(--fd-muted);
-  font-size: 12px; font-weight: 800;
+  font-size: 16px; font-weight: 800;
   padding: 12px 16px; border-radius: 99px;
   min-height: 44px;
   display: inline-flex; align-items: center; gap: 5px;
@@ -706,8 +702,8 @@ input.s-inp[type="number"] {
      FD Button 프리미티브 grammar: 평면 coral, hover=brightness, 그림자 0. */
   appearance: none; cursor: pointer;
   background: var(--fd-coral); color: #fff;
-  font-size: 13.5px; font-weight: 800;
-  padding: 14px 22px;
+  font-size: 17px; font-weight: 800;
+  padding: 16px 22px;
   border-radius: 99px;
   display: inline-flex; align-items: center; gap: 8px;
   border: 0;
@@ -724,9 +720,10 @@ input.s-inp[type="number"] {
   margin: 10px 22px 0;
   background: color-mix(in srgb, var(--fd-coral) 10%, var(--surface-card));
   color: var(--fd-coral-ink);
-  padding: 9px 12px;
+  padding: 11px 14px;
   border-radius: 10px;
-  font-size: 11.5px; font-weight: 700;
+  font-size: 14px; font-weight: 700;
+  line-height: 1.45;
   display: flex; align-items: center; gap: 7px;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fd-coral) 22%, transparent);
 }
@@ -792,7 +789,7 @@ input.s-inp[type="number"] {
 .s-loading-page .s-stages li {
   display: flex; align-items: center; gap: 10px;
   list-style: none;
-  font-size: 11.5px; color: var(--fd-muted);
+  font-size: 12px; color: var(--fd-muted);
   font-weight: 700;
 }
 .s-loading-page .s-stages li.s-done { color: var(--fd-pine); }
@@ -835,7 +832,7 @@ input.s-inp[type="number"] {
   font-variant-numeric: tabular-nums;
   font-size: 17px; font-weight: 800; letter-spacing: -0.02em;
 }
-.s-rate .s-rate-lb { font-size: 9.5px; opacity: .8; }
+.s-rate .s-rate-lb { font-size: 12px; opacity: .8; }
 
 /* =========================================================================
    FD card surface tweaks — 분석/로딩 step 같은 큰 카드 영역 톤 통일.
@@ -860,11 +857,10 @@ input.s-inp[type="number"] {
    기존 mono 0.3em stencil = 옛 editorial 톤이라 교체. */
 .s-mag-kicker {
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   color: var(--fd-green);
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 /* Loading orb glow pulse — 분석 진행 중 살아있는 인상.
@@ -960,3 +956,108 @@ input.s-inp[type="number"] {
 @media (prefers-reduced-motion: reduce) {
   .s-progress > i::after { animation: none; display: none; }
 }
+
+/* =========================================================================
+   설문 v4 — 화면당 질문 하나 (2026-09-22, 시니어 사용성 3단계)
+   ---------------------------------------------------------------------------
+   · 상단: [‹ 이전]  질문 3 / 11  [나가기]  + 굵은 진행 막대 (STEP 03 / 07 영문 표기 폐지)
+   · 선택지: 세로 큰 버튼 .s-optbtn (58px+ · 17px) — 칩은 둘째 줄 보조 질문에만
+   · 둘째 줄 .s-second: 본 질문과 점선으로 구분되는 보조 질문(살 잘 찌는 편 등)
+   · 하단: 전폭 '다음' 하나 (.s-next-full, 56px · 17px). 관문(.s-gate-*)은 두 갈래 큰 버튼
+   ========================================================================= */
+.s-top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.s-back {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 2px;
+  color: var(--fd-pine); font-weight: 800; font-size: 16px;
+  font-family: inherit; letter-spacing: -0.01em;
+  min-height: 44px; padding: 6px 10px 6px 4px; margin-left: -6px;
+  border-radius: 99px;
+}
+.s-back:disabled { opacity: 0; pointer-events: none; }
+.s-count {
+  font-size: 15px; font-weight: 800; color: var(--fd-pine);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+  text-align: center; flex: 1 1 auto;
+}
+.s-exit {
+  font-size: 15px; font-weight: 700; color: var(--fd-muted);
+  text-decoration: none; min-height: 44px; display: inline-flex; align-items: center;
+  padding: 6px 4px 6px 10px; margin-right: -4px;
+}
+.s-exit:hover { color: var(--fd-pine); }
+.s-kickrow { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+
+.s-optlist { display: flex; flex-direction: column; gap: 8px; }
+.s-optbtn {
+  appearance: none; -webkit-appearance: none; border: 0; cursor: pointer;
+  width: 100%; min-height: 58px; padding: 15px 16px;
+  border-radius: 12px; background: var(--surface-card);
+  box-shadow: inset 0 0 0 1px var(--fd-line);
+  color: var(--fd-pine); font-family: inherit; text-align: left;
+  display: flex; align-items: center; gap: 12px;
+  transition: all 160ms cubic-bezier(.2, .7, .2, 1);
+}
+.s-optbtn:hover { box-shadow: inset 0 0 0 1px var(--fd-green); }
+.s-optbtn:active { transform: scale(.99); }
+.s-optbtn[aria-pressed="true"] {
+  background: var(--fd-coral); color: #fff;
+  box-shadow: inset 0 0 0 1px var(--fd-coral);
+}
+.s-optbtn-ic {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 99px;
+  background: var(--fd-cream); color: var(--fd-pine);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.s-optbtn[aria-pressed="true"] .s-optbtn-ic { background: rgba(255,255,255,.2); color: #fff; }
+.s-optbtn-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.s-optbtn-lb { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.3; }
+.s-optbtn-sub { font-size: 14px; color: var(--fd-muted); line-height: 1.4; }
+.s-optbtn[aria-pressed="true"] .s-optbtn-sub { color: #fff; opacity: .8; }
+.s-optbtn-check {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 99px;
+  box-shadow: inset 0 0 0 1.5px var(--fd-line);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.s-optbtn[aria-pressed="true"] .s-optbtn-check { box-shadow: none; background: #fff; color: var(--fd-coral); }
+
+.s-second {
+  margin-top: 26px; padding-top: 18px;
+  border-top: 1px dashed var(--fd-line);
+}
+.s-second .s-sect-lbl { margin-bottom: 8px; }
+.s-second .s-qhint { margin-bottom: 12px; }
+
+.s-hint.s-result { margin-top: 16px; }
+
+.s-ctabar.s-ctabar-v4 { flex-direction: column; align-items: stretch; gap: 10px; padding-top: 14px; }
+.s-next-btn.s-next-full {
+  width: 100%; min-height: 56px; justify-content: center;
+  font-size: 17px; padding: 16px 22px;
+}
+
+.s-gate-topics { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+.s-gate-topics span {
+  font-size: 14px; font-weight: 700; color: var(--fd-pine);
+  background: var(--fd-cream); border-radius: 99px; padding: 6px 12px;
+}
+.s-gate-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.s-gate-primary, .s-gate-secondary {
+  appearance: none; cursor: pointer; font-family: inherit;
+  width: 100%; min-height: 58px; border-radius: 99px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 17px; font-weight: 800; letter-spacing: -0.01em;
+  transition: filter 160ms, transform 120ms;
+}
+.s-gate-primary { background: var(--fd-coral); color: #fff; border: 0; }
+.s-gate-primary:hover { filter: brightness(.94); }
+.s-gate-secondary {
+  background: var(--surface-card); color: var(--fd-pine);
+  border: 1.5px solid var(--fd-line);
+}
+.s-gate-secondary:hover { border-color: var(--fd-pine); }
+.s-gate-primary:active, .s-gate-secondary:active { transform: translateY(1px) scale(.99); }
+.s-gate-primary:disabled, .s-gate-secondary:disabled { opacity: .5; }

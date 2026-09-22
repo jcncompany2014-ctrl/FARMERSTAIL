@@ -3,13 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  AlertCircle,
-  ArrowRight,
-  ChevronLeft,
-  Check,
-  Loader2,
-} from 'lucide-react'
+import { AlertCircle, ArrowRight, ChevronLeft, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import { weightReliability } from '@/lib/personalization/reliability'
@@ -20,74 +14,90 @@ import {
   getConditionSupplements,
   type SurveyAnswers,
 } from '@/lib/nutrition'
-import {
-  type BcsKey,
-  type McsKey,
-  type ChronicConditionKey,
-} from '@/lib/nutrition/guidelines'
+import { type BcsKey, type ChronicConditionKey } from '@/lib/nutrition/guidelines'
 import { haptic } from '@/lib/haptic'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
-import Body, { type BodyAssessmentState } from './steps/Body'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
 import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
-import Stool from './steps/Stool'
-import Diet from './steps/Diet'
-import Allergy from './steps/Allergy'
-import Status from './steps/Status'
-import Pregnancy from './steps/Pregnancy'
-import Preferences, { type CareGoal } from './steps/Preferences'
+import {
+  buildScreens,
+  counterLabel,
+  isScreenKey,
+  isSkippable,
+  legacyStepToScreen,
+  progressPct,
+  screenError,
+  type FlowAnswers,
+  type OptionalChoice,
+  type ScreenKey,
+} from '@/lib/survey/flow'
+import {
+  RibsScreen,
+  WaistScreen,
+  AbdomenScreen,
+  WeightScreen,
+  type BodyAssessmentState,
+  type WeightMethod,
+  type WeightTrend,
+} from './steps/Body'
+import { StoolScreen, type BristolKey, type GiSensitivity } from './steps/Stool'
+import {
+  FoodScreen,
+  SnackScreen,
+  FreshScreen,
+  OptFoodScreen,
+  OptWalkScreen,
+  OptExerciseScreen,
+  type HomeCookingExp,
+  type Housing,
+  type IndoorActivity,
+  type Vigorous,
+} from './steps/Diet'
+import { AllergyScreen, type DlMode } from './steps/Allergy'
+import {
+  ChronicScreen,
+  OptMedsScreen,
+  type HasChronic,
+  type IrisStage,
+  type PancreatitisSeverity,
+} from './steps/Status'
+import {
+  PregnancyScreen,
+  AdultWeightScreen,
+  type PregnancyValue,
+  type SurveyDog,
+} from './steps/Pregnancy'
+import { GoalScreen, type CareGoal } from './steps/Preferences'
+import { GateScreen } from './steps/Gate'
 import LoadingStep from './steps/Loading'
 import './survey.css'
 
 /**
- * 설문 v3 — Claude Design 핸드오프 (2026-05-03) 적용 + personalization 7 필드.
+ * 설문 v4 — 화면당 질문 하나 (2026-09-22, 시니어 사용성 3단계).
  *
- *   1. body       : BCS 9-point + 6개월 체중 추세
- *     (muscle(MCS) 스텝은 2026-07-23 사장님 지시로 완전 제거 — 노령견 조건부
- *      노출도 폐지. mcs 상태/저장 배선은 하위호환으로 유지, 신규는 항상 null.)
- *   3. stool      : Bristol Stool 1~7 + 위장 민감도
- *   4. meal       : 주식 / 브랜드(+사료kcal) / 간식(+간식kcal) / 화식경험
- *   5. life       : 산책(리드) / 활동·격운동(조건부) / 주거(+한랭)
- *     (정돈 P2: 옛 diet 스텝을 식사/생활 2스텝으로 분리. 식욕·만족도 삭제됨.)
- *   5. allergy    : 알레르기 모드 + 항목 / 선호 단백질
- *   6. chronic    : 만성질환 + 처방식 / 약
- *   7. status     : 임신·수유 / 모질·피부 / 케어 목표 (★알고리즘 1순위)
- *   8. loading    : 분석 중 → 결과 페이지
+ * # 왜 바꿨나
+ * 사장님 제보(9/20): 부모님 세대가 "글씨가 작고 흐름이 어색하다". v3 는 한 화면에
+ * 질문 3~5개(체형 3문항 + 체중변화 + 살찌는편 + 잰방법…)가 쌓였고, '선택'·'건너뛰기'
+ * 표시가 9px 였다. v4 는 한 화면 = 질문 하나 + 큰 세로 버튼, 아래에 큰 '다음' 하나.
  *
- * Personalization 알고리즘 첫 박스 결정에 필요한 7 필드:
- *   weight_trend_6mo, gi_sensitivity, indoor_activity (선택)
- *   home_cooking_experience, current_diet_satisfaction, care_goal (필수)
- *   preferred_proteins (선택, 다중)
+ * # 구조 (lib/survey/flow.ts 가 정본 — 순수 함수·테스트 있음)
+ *   항상 11 · 조건부 0~2(임신·수유 / 예상 성견 체중) · 관문 1 · 선택 4(관문에서 답하기)
+ *   삭제: 식욕·털 상태(계산 미사용). 합침: 살 잘 찌는 편 → 체중 변화 둘째 줄,
+ *   사료 바꿀 때 무른 변 → 변 상태 둘째 줄. 접힘: 체중 잰 방법. 약 → 선택 묶음.
  *
- * audit #96 분할 — 각 step JSX 는 ./steps/*.tsx 로 이전. 본 파일은 상태 관리
- * (useState / autosave / 제출) 만 담당.
+ * # 보존한 것
+ * 상태 변수·localStorage 자동저장(7일)·제출(surveys + analyses insert · dogs 갱신 ·
+ * kibble_requests 로그)·체중↔체형 모순 경고·재진입 가드·언마운트 안전 타이머는
+ * v3 그대로다. 옛 초안의 currentStep 은 legacyStepToScreen 으로 이어받는다.
  */
 
-type Dog = {
-  id: string
-  name: string
-  weight: number
-  age_value: number
-  age_unit: 'years' | 'months'
-  neutered: boolean
-  activity_level: 'low' | 'medium' | 'high'
-  gender: 'male' | 'female' | null
-}
+type ScreenState = ScreenKey | 'loading'
 
-// 2026-07-14 사장님: 'budget'(권장가격/예산) step 폐기 — 설문에서 가격을 묻지
-// 않는다. status 가 마지막 입력 step → loading. (surveys.budget_tier 은 null 로
-// 저장, feeding-plan 은 null fallback 이라 무영향.)
-const STEPS = [
-  'body',
-  'stool',
-  'meal',
-  'life',
-  'allergy',
-  'chronic',
-  'status',
-  'loading',
-] as const
-type Step = (typeof STEPS)[number]
+// react-hooks/purity 회피 — 제출 핸들러 안의 Date.now() 를 React Compiler 가 "render 중
+// 호출"로 오판한다(이벤트 핸들러인데). autosignup-draft 와 같은 이유로 모듈 수준 함수.
+function nowMs(): number {
+  return Date.now()
+}
 
 export default function SurveyClient({
   dogId,
@@ -101,16 +111,14 @@ export default function SurveyClient({
   const supabase = createClient()
   const toast = useToast()
 
-  const [dog, setDog] = useState<Dog | null>(null)
-  const [currentStep, setCurrentStep] = useState<Step>('body')
+  const [dog, setDog] = useState<SurveyDog | null>(null)
+  const [screen, setScreen] = useState<ScreenState>('ribs')
 
-  // 설문 step 변경 시 자동 scroll-to-top + 짧은 진동 + 첫 h1 focus (a11y).
+  // 화면 전환 시 스크롤 맨 위 + 짧은 진동 + 첫 h1 focus (a11y).
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.scrollTo({ top: 0, behavior: 'smooth' })
     haptic('tick')
-    // a11y — 새 step 의 heading 으로 focus 이동 → screen reader 가 다음
-    // step 진입을 명확히 알림. 첫 paint 후 timing 안전하도록 rAF.
     requestAnimationFrame(() => {
       const h1 = document.querySelector<HTMLHeadingElement>('.s-page h1')
       if (h1) {
@@ -118,13 +126,11 @@ export default function SurveyClient({
         h1.focus({ preventScroll: true })
       }
     })
-  }, [currentStep])
+  }, [screen])
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // 1. body — 칼로리 v2 M2a: 체형 3분해(갈비뼈·허리·배) → deriveBCS 역산.
-  // bcs 는 파생값으로 유지(저장·검증·결과 파이프라인 하위호환 — 옛 초안의
-  // 직접선택 bcs 복원도 그대로 유효).
+  // 1~3. 몸 — 체형 3분해(갈비뼈·허리·배) → deriveBCS 역산. bcs 는 파생값으로 유지.
   const [bodyAssess, setBodyAssess] = useState<BodyAssessmentState>({
     ribs: '',
     waist: '',
@@ -142,83 +148,61 @@ export default function SurveyClient({
           abdomen: next.abdomen,
         }) as BcsKey,
       )
+    } else {
+      setBcs(null)
     }
   }
-  // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필
-  // 값 사용. 새로 고르면 dogs 갱신 + 측정일=오늘.
-  const [weightMethod, setWeightMethod] = useState<
-    'vet_scale' | 'home_digital' | 'hold' | 'eyeball' | 'unknown' | ''
-  >('')
+  // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필 값.
+  const [weightMethod, setWeightMethod] = useState<WeightMethod>('')
   // 칼로리 v2 2b — 사다리 감산·가산 신호 4종 ('' = 미응답 → 무보정).
   const [easyKeeper, setEasyKeeper] = useState<'' | 'yes' | 'no'>('')
-  const [vigorous, setVigorous] = useState<'' | 'none' | 'self' | 'objective'>('')
-  const [housing, setHousing] = useState<
-    '' | 'indoor' | 'indoor_outdoor' | 'outdoor'
-  >('')
+  const [vigorous, setVigorous] = useState<Vigorous>('')
+  const [housing, setHousing] = useState<Housing>('')
   const [coldOutdoor, setColdOutdoor] = useState<'' | 'yes' | 'no'>('')
-  // 2. muscle
-  const [mcs, setMcs] = useState<McsKey | null>(null)
-  // 3. stool
-  const [bristol, setBristol] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | null>(null)
-  // 4. diet
+  // 4. 체중 변화 (personalization)
+  const [weightTrend, setWeightTrend] = useState<WeightTrend>('')
+  // 5. 변
+  const [bristol, setBristol] = useState<BristolKey | null>(null)
+  const [stoolSkipped, setStoolSkipped] = useState(false)
+  const [giSensitivity, setGiSensitivity] = useState<GiSensitivity>('')
+  // 6~8. 식사
   const [foodType, setFoodType] = useState('')
   const [snackFreq, setSnackFreq] = useState('')
-  // 칼로리 v2 2d — 하루 간식 kcal (선택 숫자 입력. '' = 모름 → 빈도 추정).
   const [treatKcal, setTreatKcal] = useState('')
-  // 칼로리 v2 5단계 — 건사료 라벨 열량 kcal/kg ('' = 모름 → 평균 350/100g).
   const [kibbleKcal, setKibbleKcal] = useState('')
-  const [taste, setTaste] = useState<'strong' | 'normal' | 'picky' | 'reduced' | ''>('')
-  const [walkMinutes, setWalkMinutes] = useState('')
   const [currentBrand, setCurrentBrand] = useState('')
-  // 5. allergy
-  const [dlMode, setDlMode] = useState<'none' | 'unknown' | 'has' | ''>('')
+  const [homeCookingExp, setHomeCookingExp] = useState<HomeCookingExp>('')
+  const [walkMinutes, setWalkMinutes] = useState('')
+  const [indoorActivity, setIndoorActivity] = useState<IndoorActivity>('')
+  // 9. 알레르기
+  const [dlMode, setDlMode] = useState<DlMode>('')
   const [allergies, setAllergies] = useState<string[]>([])
-  // 6. chronic
+  const [preferredProteins, setPreferredProteins] = useState<string[]>([])
+  // 10. 질환
+  const [hasChronic, setHasChronic] = useState<HasChronic>('')
   const [chronicConditions, setChronicConditions] = useState<ChronicConditionKey[]>([])
   const [prescriptionDiet, setPrescriptionDiet] = useState('')
   const [medications, setMedications] = useState('')
-  // v1.3 임상 정밀화 — 만성질환 의존 conditional input.
-  // CKD 진단 시 IRIS stage (1-4) — 단백질 처방 분기 (Premium 0% 여부 결정).
-  const [irisStage, setIrisStage] = useState<1 | 2 | 3 | 4 | null>(null)
-  // 췌장염 중증도 — 급성/중증 → 화식 부적합 하드 게이트 (firstBox). 미입력 =
-  // 만성(moderate). diagnosedSeverity 로 answers JSONB 에 라이드.
-  const [pancreatitisSeverity, setPancreatitisSeverity] = useState<
-    'moderate' | 'severe' | null
-  >(null)
-  // 7. status
-  const [pregnancy, setPregnancy] = useState<'none' | 'pregnant' | 'lactating' | ''>('')
-  const [coat, setCoat] = useState<'healthy' | 'dull' | 'shedding' | 'itchy' | 'lesions' | ''>('')
-  // v1.3 — 임신 주차 (1-9) + 산자수. NRC 2006 ch.15 multiplier 분기.
+  const [irisStage, setIrisStage] = useState<IrisStage>(null)
+  const [pancreatitisSeverity, setPancreatitisSeverity] =
+    useState<PancreatitisSeverity>(null)
+  // 조건부 — 임신·수유 / 예상 성견 체중
+  const [pregnancy, setPregnancy] = useState<PregnancyValue>('')
   const [pregnancyWeek, setPregnancyWeek] = useState<number | null>(null)
   const [litterSize, setLitterSize] = useState<number | null>(null)
-  // v1.3 — 대형견 puppy Ca cap (AAFCO 2024). <18mo puppy 의 예상 성견 체중.
   const [expectedAdultWeightKg, setExpectedAdultWeightKg] = useState<number | null>(null)
-
-  // ── personalization v3 ──
-  const [weightTrend, setWeightTrend] =
-    useState<'stable' | 'gained' | 'lost' | 'unknown' | ''>('')
-  const [giSensitivity, setGiSensitivity] =
-    useState<'rare' | 'sometimes' | 'frequent' | 'always' | ''>('')
-  const [indoorActivity, setIndoorActivity] =
-    useState<'calm' | 'moderate' | 'active' | ''>('')
-  const [homeCookingExp, setHomeCookingExp] =
-    useState<'first' | 'occasional' | 'frequent' | ''>('')
-  const [dietSatisfaction, setDietSatisfaction] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
-  const [preferredProteins, setPreferredProteins] = useState<string[]>([])
+  // 11. 케어 목표 (★알고리즘 1순위)
   const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
-
-  // Tier S F1-1: 예산 4-옵션 (선택, 미응답 시 mix50 default)
+  // 관문 — 선택 묶음 답하기 / 건너뛰기
+  const [optChoice, setOptChoice] = useState<OptionalChoice>('')
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
 
-  // R37c (#3) — 설문 진행 중 (입력 일부 완료) 이탈 시 browser confirm.
-  // autosave 가 작동하지만 사용자에게 명시적 안내. 'loading' step 은 제외
-  // (submit 직후 router.push 가 unload 트리거 — 막으면 안 됨).
+  // 설문 진행 중 이탈 시 browser confirm. 'loading' 은 제외(submit 직후 router.push).
   useEffect(() => {
-    if (currentStep === 'loading') return
-    const hasAnyInput =
-      bcs !== null || mcs !== null || bristol !== null || foodType !== ''
+    if (screen === 'loading') return
+    const hasAnyInput = bodyAssess.ribs !== '' || bristol !== null || foodType !== ''
     if (!hasAnyInput) return
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault()
@@ -226,11 +210,8 @@ export default function SurveyClient({
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [currentStep, bcs, mcs, bristol, foodType])
+  }, [screen, bodyAssess.ribs, bristol, foodType])
 
-  // autosave 복원 한 번만 — 진입 시 localStorage 의 이전 진행 상태 복원.
-  // ref 사용 — React 19 'set-state-in-effect' 룰 회피 (effect 안에서 setState
-  // 직접 호출 금지). 복원은 mount 직후 1회 mutation 이라 ref 충분.
   const restoredRef = useRef(false)
 
   useEffect(() => {
@@ -244,7 +225,9 @@ export default function SurveyClient({
       }
       const { data, error } = await supabase
         .from('dogs')
-        .select('id, name, weight, age_value, age_unit, neutered, activity_level, gender, breed, weight_method, weight_measured_at')
+        .select(
+          'id, name, weight, age_value, age_unit, neutered, activity_level, gender, breed, weight_method, weight_measured_at',
+        )
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle()
@@ -252,20 +235,17 @@ export default function SurveyClient({
         router.push('/dogs')
         return
       }
-      // audit #79: generated dogs row nullable cast.
-      setDog(data as unknown as Dog)
+      setDog(data as unknown as SurveyDog)
       trackSurveyStarted(dogId)
     }
     void load()
   }, [dogId, router, supabase])
 
-  // ── Autosave (localStorage) ──────────────────────────────────────────
-  // 페이지 떠난 후 다시 들어와도 입력 복원. 7일 만료. dog 별 분리.
-  // 모바일에서 잠깐 다른 앱 → 돌아올 때 가장 큰 가치.
+  // ── Autosave (localStorage) — 7일, dog 별 분리 ────────────────────────
   const STORAGE_KEY = `farmerstail-survey:${dogId}`
 
-  // 1) 복원 — dog 로드 후 한 번만. ref 가드라 1회 mutation 안전 — React 19
-  // 'set-state-in-effect' 룰은 mount 직후 hydration 패턴엔 과보수.
+  // 복원 — dog 로드 후 한 번만(ref 가드). React 19 'set-state-in-effect' 룰은 mount 직후
+  // hydration 패턴엔 과보수라 이 effect 만 예외.
   /* eslint-disable react-hooks/set-state-in-effect -- mount 1회 ref 가드 복원 */
   useEffect(() => {
     if (!dog || restoredRef.current || typeof window === 'undefined') return
@@ -274,87 +254,68 @@ export default function SurveyClient({
     if (!raw) return
     try {
       const data = JSON.parse(raw) as Record<string, unknown> & { _ts?: number }
-      // 7일 지나면 만료
-      if (
-        typeof data._ts === 'number' &&
-        Date.now() - data._ts > 7 * 24 * 60 * 60 * 1000
-      ) {
+      if (typeof data._ts === 'number' && Date.now() - data._ts > 7 * 24 * 60 * 60 * 1000) {
         localStorage.removeItem(STORAGE_KEY)
         return
       }
-      // 핵심 state 만 복원 — undefined 아닌 값만 적용해 partial restore 안전.
       if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
       if (data.bodyAssess && typeof data.bodyAssess === 'object')
         setBodyAssess(data.bodyAssess as BodyAssessmentState)
-      if (typeof data.easyKeeper === 'string')
-        setEasyKeeper(data.easyKeeper as typeof easyKeeper)
-      if (typeof data.vigorous === 'string')
-        setVigorous(data.vigorous as typeof vigorous)
-      if (typeof data.housing === 'string')
-        setHousing(data.housing as typeof housing)
-      if (typeof data.coldOutdoor === 'string')
-        setColdOutdoor(data.coldOutdoor as typeof coldOutdoor)
-      if (typeof data.weightMethod === 'string')
-        setWeightMethod(data.weightMethod as typeof weightMethod)
-      if (data.mcs !== undefined) setMcs(data.mcs as McsKey | null)
-      if (data.bristol !== undefined)
-        setBristol(data.bristol as typeof bristol)
+      if (typeof data.easyKeeper === 'string') setEasyKeeper(data.easyKeeper as typeof easyKeeper)
+      if (typeof data.vigorous === 'string') setVigorous(data.vigorous as Vigorous)
+      if (typeof data.housing === 'string') setHousing(data.housing as Housing)
+      if (typeof data.coldOutdoor === 'string') setColdOutdoor(data.coldOutdoor as typeof coldOutdoor)
+      if (typeof data.weightMethod === 'string') setWeightMethod(data.weightMethod as WeightMethod)
+      if (data.bristol !== undefined) setBristol(data.bristol as BristolKey | null)
+      if (typeof data.stoolSkipped === 'boolean') setStoolSkipped(data.stoolSkipped)
       if (typeof data.foodType === 'string') setFoodType(data.foodType)
       if (typeof data.snackFreq === 'string') setSnackFreq(data.snackFreq)
       if (typeof data.treatKcal === 'string') setTreatKcal(data.treatKcal)
       if (typeof data.kibbleKcal === 'string') setKibbleKcal(data.kibbleKcal)
-      if (typeof data.taste === 'string') setTaste(data.taste as typeof taste)
       if (typeof data.walkMinutes === 'string') setWalkMinutes(data.walkMinutes)
       if (typeof data.currentBrand === 'string') setCurrentBrand(data.currentBrand)
-      if (typeof data.dlMode === 'string') setDlMode(data.dlMode as typeof dlMode)
+      if (typeof data.dlMode === 'string') setDlMode(data.dlMode as DlMode)
       if (Array.isArray(data.allergies)) setAllergies(data.allergies as string[])
-      if (Array.isArray(data.chronicConditions))
-        setChronicConditions(data.chronicConditions as ChronicConditionKey[])
-      if (typeof data.prescriptionDiet === 'string')
-        setPrescriptionDiet(data.prescriptionDiet)
+      const conds = Array.isArray(data.chronicConditions)
+        ? (data.chronicConditions as ChronicConditionKey[])
+        : []
+      if (Array.isArray(data.chronicConditions)) setChronicConditions(conds)
+      const presc = typeof data.prescriptionDiet === 'string' ? data.prescriptionDiet : ''
+      if (typeof data.prescriptionDiet === 'string') setPrescriptionDiet(presc)
       if (typeof data.medications === 'string') setMedications(data.medications)
-      if (data.irisStage !== undefined)
-        setIrisStage(data.irisStage as typeof irisStage)
+      if (data.hasChronic === 'yes' || data.hasChronic === 'no') {
+        setHasChronic(data.hasChronic)
+      } else if (conds.length > 0 || presc.trim() !== '') {
+        // v3 초안 호환 — 상세가 있으면 '있어요'로 시작.
+        setHasChronic('yes')
+      }
+      if (data.irisStage !== undefined) setIrisStage(data.irisStage as IrisStage)
       if (data.pancreatitisSeverity !== undefined)
-        setPancreatitisSeverity(
-          data.pancreatitisSeverity as typeof pancreatitisSeverity,
-        )
-      if (typeof data.pregnancy === 'string')
-        setPregnancy(data.pregnancy as typeof pregnancy)
-      if (typeof data.coat === 'string') setCoat(data.coat as typeof coat)
-      if (data.pregnancyWeek !== undefined)
-        setPregnancyWeek(data.pregnancyWeek as number | null)
-      if (data.litterSize !== undefined)
-        setLitterSize(data.litterSize as number | null)
+        setPancreatitisSeverity(data.pancreatitisSeverity as PancreatitisSeverity)
+      if (typeof data.pregnancy === 'string') setPregnancy(data.pregnancy as PregnancyValue)
+      if (data.pregnancyWeek !== undefined) setPregnancyWeek(data.pregnancyWeek as number | null)
+      if (data.litterSize !== undefined) setLitterSize(data.litterSize as number | null)
       if (data.expectedAdultWeightKg !== undefined)
         setExpectedAdultWeightKg(data.expectedAdultWeightKg as number | null)
-      if (typeof data.weightTrend === 'string')
-        setWeightTrend(data.weightTrend as typeof weightTrend)
-      if (typeof data.giSensitivity === 'string')
-        setGiSensitivity(data.giSensitivity as typeof giSensitivity)
-      if (typeof data.indoorActivity === 'string')
-        setIndoorActivity(data.indoorActivity as typeof indoorActivity)
-      if (typeof data.homeCookingExp === 'string')
-        setHomeCookingExp(data.homeCookingExp as typeof homeCookingExp)
-      if (data.dietSatisfaction !== undefined)
-        setDietSatisfaction(data.dietSatisfaction as typeof dietSatisfaction)
-      if (Array.isArray(data.preferredProteins))
-        setPreferredProteins(data.preferredProteins as string[])
-      if (typeof data.careGoal === 'string')
-        setCareGoal(data.careGoal as CareGoal | '')
-      // currentStep 복원 — 'loading' (제출 중간 종료) 은 'status' 로 fallback
-      // 해 사용자가 처음부터 다시 안 하도록. ('budget' 초안은 아래 STEPS
-      // 화이트리스트에서 자동 탈락 → 첫 step 으로.)
-      if (typeof data.currentStep === 'string') {
-        if (data.currentStep === 'loading') {
-          setCurrentStep('status')
-        } else if (data.currentStep === 'diet') {
-          // 정돈 P2 전 초안 호환 — 'diet' 스텝은 'meal'/'life' 로 분리됨.
-          setCurrentStep('meal')
-        } else if ((STEPS as readonly string[]).includes(data.currentStep)) {
-          setCurrentStep(data.currentStep as Step)
-        }
+      if (typeof data.weightTrend === 'string') setWeightTrend(data.weightTrend as WeightTrend)
+      if (typeof data.giSensitivity === 'string') setGiSensitivity(data.giSensitivity as GiSensitivity)
+      if (typeof data.indoorActivity === 'string') setIndoorActivity(data.indoorActivity as IndoorActivity)
+      if (typeof data.homeCookingExp === 'string') setHomeCookingExp(data.homeCookingExp as HomeCookingExp)
+      if (Array.isArray(data.preferredProteins)) setPreferredProteins(data.preferredProteins as string[])
+      if (typeof data.careGoal === 'string') setCareGoal(data.careGoal as CareGoal | '')
+      let choice: OptionalChoice = ''
+      if (data.optChoice === 'answer' || data.optChoice === 'skip') choice = data.optChoice
+      // 화면 복원 — v4 'screen' 우선, 없으면 v3 'currentStep' 을 이어받는다.
+      let restoredScreen: ScreenKey | null = null
+      if (isScreenKey(data.screen)) restoredScreen = data.screen
+      else if (typeof data.currentStep === 'string')
+        restoredScreen = legacyStepToScreen(data.currentStep)
+      if (restoredScreen) {
+        // 선택 화면에서 저장됐다면 관문 답은 '답하기'였다.
+        if (isSkippable(restoredScreen) && restoredScreen !== 'adultWeight') choice = 'answer'
+        setScreen(restoredScreen)
       }
+      setOptChoice(choice)
       toast.info('이전에 작성하던 내용을 불러왔어요')
     } catch {
       // corrupted — silently ignore
@@ -362,20 +323,11 @@ export default function SurveyClient({
   }, [dog, STORAGE_KEY, toast])
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // 2) 저장 — state 변경 시. loading step 중엔 저장 안 함 (이미 제출).
-  // audit #96: 이전엔 deps 한 변경마다 동기 JSON.stringify + localStorage.setItem
-  // 호출 (26개 deps) → 한 글자 칠 때마다 입력 지연. 500ms debounce 로 결정적 저장.
+  // 저장 — 500ms debounce. loading 중엔 저장 안 함(이미 제출).
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // R97-C (D7): budget→loading 단계의 2.8초 연출 타이머. ref 에 저장해서
-  // 언마운트 시 clear — 사용자가 loading 중 뒤로가기/탭전환으로 언마운트되면
-  // saveAndGoResult 가 언마운트 후 setState + 원치 않는 router.push + 중복
-  // surveys/analyses insert 를 일으켰음.
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // 설문 제출 재진입 가드 — 빠른 더블클릭/재시도로 surveys·analyses 가 중복
-  // insert 되는 것을 막는다 (saving state 는 비동기라 같은 tick 더블콜에 취약 → ref).
+  // 제출 재진입 가드 — 더블탭/재시도로 surveys·analyses 중복 insert 방지(ref).
   const submitGuardRef = useRef(false)
-  // 언마운트 후 navigation/타이머 발동 방지 — 저장은 즉시 하되, 결과로의
-  // 이동(타이머)은 컴포넌트가 살아있을 때만 예약한다.
   const mountedRef = useRef(true)
   useEffect(() => {
     return () => {
@@ -385,7 +337,7 @@ export default function SurveyClient({
   }, [])
   useEffect(() => {
     if (!dog || !restoredRef.current || typeof window === 'undefined') return
-    if (currentStep === 'loading') return
+    if (screen === 'loading') return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       try {
@@ -399,24 +351,23 @@ export default function SurveyClient({
             housing,
             coldOutdoor,
             weightMethod,
-            mcs,
             bristol,
+            stoolSkipped,
             foodType,
             snackFreq,
             treatKcal,
             kibbleKcal,
-            taste,
             walkMinutes,
             currentBrand,
             dlMode,
             allergies,
+            hasChronic,
             chronicConditions,
             prescriptionDiet,
             medications,
             irisStage,
             pancreatitisSeverity,
             pregnancy,
-            coat,
             pregnancyWeek,
             litterSize,
             expectedAdultWeightKg,
@@ -424,10 +375,10 @@ export default function SurveyClient({
             giSensitivity,
             indoorActivity,
             homeCookingExp,
-            dietSatisfaction,
             preferredProteins,
             careGoal,
-            currentStep,
+            optChoice,
+            screen,
             _ts: Date.now(),
           }),
         )
@@ -448,24 +399,23 @@ export default function SurveyClient({
     housing,
     coldOutdoor,
     weightMethod,
-    mcs,
     bristol,
+    stoolSkipped,
     foodType,
     snackFreq,
     treatKcal,
     kibbleKcal,
-    taste,
     walkMinutes,
     currentBrand,
     dlMode,
     allergies,
+    hasChronic,
     chronicConditions,
     prescriptionDiet,
     medications,
     irisStage,
     pancreatitisSeverity,
     pregnancy,
-    coat,
     pregnancyWeek,
     litterSize,
     expectedAdultWeightKg,
@@ -473,32 +423,27 @@ export default function SurveyClient({
     giSensitivity,
     indoorActivity,
     homeCookingExp,
-    dietSatisfaction,
     preferredProteins,
     careGoal,
-    currentStep,
+    optChoice,
+    screen,
   ])
 
   // loading stage 진행 — 4 stage rotating
   useEffect(() => {
-    if (currentStep !== 'loading') return
+    if (screen !== 'loading') return
     const t = setInterval(() => setLoadingStage((s) => Math.min(s + 1, 4)), 700)
     return () => clearInterval(t)
-  }, [currentStep])
+  }, [screen])
 
-  // (MCS 스텝 완전 제거 — 2026-07-23 사장님. 옛 노령견 7세+ 조건부 노출도 폐지.
-  //  ageInMonths/isSenior 는 bcsConflict lifeStage 판정에 계속 쓰인다.)
   const ageInMonths = dog
     ? dog.age_unit === 'years'
       ? dog.age_value * 12
       : dog.age_value
     : 0
   const isSenior = ageInMonths >= 84
-  const steps = STEPS
 
-  // 체중↔체형 모순 — "살이 빠졌는데 체형이 더 뚱뚱해질 수는 없잖아"(사장님
-  // 2026-07-14). 체형 3문항이 끝나 BCS 가 역산되는 순간 이전 분석과 비교해
-  // 그 자리에서 짚어준다. 막지는 않는다 — 경고만 하고 진행은 시킨다.
+  // 체중↔체형 모순 — 경고만 하고 진행은 시킨다(사장님 2026-07-14).
   const bcsConflict = detectBcsWeightConflict({
     dogName: dog?.name ?? '',
     prevBcs: previous?.bcs,
@@ -508,83 +453,108 @@ export default function SurveyClient({
     lifeStage: ageInMonths < 12 ? 'puppy' : isSenior ? 'senior' : 'adult',
   })
 
-  const stepIdx = steps.indexOf(currentStep)
-  const totalSteps = steps.length - 1
-  const progress = Math.min(100, Math.round((stepIdx / totalSteps) * 100))
+  // ── 화면 순서 (lib/survey/flow) ──
+  const screens = dog
+    ? buildScreens(
+        { gender: dog.gender, neutered: dog.neutered, ageMonths: ageInMonths },
+        optChoice,
+      )
+    : []
+  const rawIdx = screens.findIndex((s) => s.key === screen)
+  const idx = rawIdx >= 0 ? rawIdx : 0
+  const cur = screens[idx]
+  const isLoading = screen === 'loading'
+  const isLastScreen = idx === screens.length - 1
 
-  function validateStep(): boolean {
-    setErr('')
-    if (currentStep === 'body' && bcs === null) {
-      setErr('체형을 선택해 주세요')
-      return false
-    }
-    if (currentStep === 'meal') {
-      if (!foodType) {
-        setErr('주식 형태를 선택해 주세요')
-        return false
-      }
-      if (!snackFreq) {
-        setErr('간식 빈도를 선택해 주세요')
-        return false
-      }
-      if (!homeCookingExp) {
-        setErr('화식 경험 정도를 선택해 주세요')
-        return false
-      }
-    }
-    if (currentStep === 'allergy' && !dlMode) {
-      setErr('알레르기 여부를 선택해 주세요')
-      return false
-    }
-    if (currentStep === 'allergy' && dlMode === 'has' && allergies.length === 0) {
-      setErr('알레르기 재료를 하나 이상 선택해 주세요')
-      return false
-    }
-    if (currentStep === 'status' && !careGoal) {
-      setErr('가장 신경 쓰고 싶은 케어 목표를 선택해 주세요')
-      return false
-    }
-    return true
+  const flowAnswers: FlowAnswers = {
+    ribs: bodyAssess.ribs,
+    waist: bodyAssess.waist,
+    abdomen: bodyAssess.abdomen,
+    weightTrend,
+    bristol,
+    stoolSkipped,
+    foodType,
+    snackFreq,
+    homeCookingExp,
+    dlMode,
+    allergies,
+    hasChronic,
+    chronicConditions,
+    prescriptionDiet,
+    pregnancy,
+    careGoal,
+    optChoice,
   }
 
-  async function goNext() {
-    if (!validateStep()) return
-    const idx = steps.indexOf(currentStep)
-    // status 가 마지막 입력 step → loading (2026-07-14 budget step 폐기).
-    if (currentStep === 'status') {
-      setCurrentStep('loading')
-      setLoadingStage(0)
-      // P0(설문 유실 방지): 저장을 즉시 시작한다. 예전엔 2.8초 타이머 뒤에
-      // 저장했는데, 그 사이 사용자가 화면을 떠나면 unmount cleanup 이 타이머를
-      // 지워 저장이 영영 실행되지 않았다 → 설문·분석 통째 유실. 이제 저장은
-      // 바로 하고, "분석 중" 애니메이션 최소 노출은 saveAndGoResult 가 결과로
-      // 이동하기 직전에 확보한다 (저장이 끝난 뒤라 그 지연 중 이탈해도 안전).
-      void saveAndGoResult()
+  /** 선택 화면에 답이 있는지 — CTA 라벨('다음' vs '건너뛰기') 판정. */
+  function optionalAnswered(key: ScreenKey): boolean {
+    switch (key) {
+      case 'optFood':
+        return currentBrand.trim() !== '' || kibbleKcal.trim() !== ''
+      case 'optWalk':
+        return walkMinutes !== ''
+      case 'optExercise':
+        return vigorous !== '' || housing !== ''
+      case 'optMeds':
+        return medications.trim() !== ''
+      case 'adultWeight':
+        return expectedAdultWeightKg !== null
+      default:
+        return true
+    }
+  }
+
+  function startSubmit() {
+    setScreen('loading')
+    setLoadingStage(0)
+    // P0(설문 유실 방지): 저장을 즉시 시작. 애니메이션 최소 노출은 saveAndGoResult 가
+    // 결과로 이동하기 직전에 확보한다(저장이 끝난 뒤라 지연 중 이탈해도 안전).
+    void saveAndGoResult()
+  }
+
+  function goNext() {
+    if (!cur) return
+    const e = screenError(cur.key, flowAnswers)
+    setErr(e ?? '')
+    if (e) {
+      haptic('warn')
       return
     }
-    if (idx < steps.length - 1) setCurrentStep(steps[idx + 1]!)
+    if (isLastScreen) {
+      // 선택 묶음의 마지막(optMeds) → 제출. (관문은 자기 버튼으로 처리)
+      startSubmit()
+      return
+    }
+    setScreen(screens[idx + 1]!.key)
   }
 
   function goPrev() {
-    const idx = steps.indexOf(currentStep)
     if (idx > 0) {
       setErr('')
-      setCurrentStep(steps[idx - 1]!)
+      setScreen(screens[idx - 1]!.key)
     }
+  }
+
+  function chooseGate(choice: 'answer' | 'skip') {
+    setErr('')
+    setOptChoice(choice)
+    if (choice === 'skip') {
+      startSubmit()
+      return
+    }
+    setScreen('optFood')
   }
 
   async function saveAndGoResult() {
     if (!dog || submitGuardRef.current) return
     submitGuardRef.current = true
-    const startedAt = Date.now()
+    const startedAt = nowMs()
     setSaving(true)
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      // R97-C (D7): setSaving(false) 누락 시 세션 만료 사용자의 제출 버튼이
-      // 영구 disabled(saving=true) 로 굳음. login redirect 전 해제.
       setSaving(false)
       submitGuardRef.current = false
       router.push('/login')
@@ -601,7 +571,7 @@ export default function SurveyClient({
     const legacyHealthConcerns: string[] = []
     if (chronicConditions.includes('arthritis')) legacyHealthConcerns.push('관절')
     if (chronicConditions.includes('kidney')) legacyHealthConcerns.push('신장')
-    if (chronicConditions.includes('allergy_skin') || coat === 'lesions' || coat === 'itchy')
+    if (chronicConditions.includes('allergy_skin') || careGoal === 'skin_coat')
       legacyHealthConcerns.push('피부/털')
     if (chronicConditions.includes('ibd')) legacyHealthConcerns.push('소화')
     if (chronicConditions.includes('dental')) legacyHealthConcerns.push('치아')
@@ -618,11 +588,8 @@ export default function SurveyClient({
       healthConcerns: legacyHealthConcerns,
       foodType,
       snackFreq,
-      taste,
       bcsExact: bcs ?? undefined,
-      // 경고를 봤는데도 그대로 제출한 경우 — 분석에 플래그로 남긴다(막지 않음).
       bcsWeightConflict: bcsConflict?.kind,
-      // 3분해 원응답 — 기록·재분석용 (bcsExact 가 이 응답의 역산값).
       bodyAssessment:
         bodyAssess.ribs && bodyAssess.waist && bodyAssess.abdomen
           ? {
@@ -631,28 +598,23 @@ export default function SurveyClient({
               abdomen: bodyAssess.abdomen,
             }
           : undefined,
-      mcsScore: mcs ?? undefined,
       bristolScore: bristol ?? undefined,
       chronicConditions,
       currentMedications: meds,
       pregnancyStatus: pregnancy || undefined,
       pregnancyWeek: pregnancyWeek ?? null,
       litterSize: litterSize ?? null,
-      coatCondition: coat || undefined,
-      appetite: taste || undefined,
-      // walkMinutes 0-300 clamp (현실적 범위 — 산책 5시간 초과는 입력 오류).
+      // walkMinutes 0-300 clamp
       dailyWalkMinutes: walkMinutes
         ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
         : undefined,
-      // 칼로리 v2 2d — 간식 kcal (10% 캡 차감 + 초과 식별은 nutrition 에서).
       treatKcalPerDay: treatKcal
         ? Math.max(0, Math.min(2000, Number(treatKcal) || 0))
         : undefined,
-      // 칼로리 v2 5단계 — 건사료 라벨 kcal/kg → /100g 환산 (200~600 clamp).
+      // 건사료 라벨 kcal/kg → /100g 환산 (200~600 clamp).
       kibbleKcalPer100g: kibbleKcal
         ? Math.max(200, Math.min(600, (Number(kibbleKcal) || 0) / 10))
         : undefined,
-      // 칼로리 v2 2b — 사다리 신호 (미응답 = undefined → 무보정).
       isEasyKeeper: easyKeeper === '' ? undefined : easyKeeper === 'yes',
       vigorousExercise:
         vigorous === '' ? undefined : vigorous === 'self' ? 'self_report' : vigorous,
@@ -661,27 +623,22 @@ export default function SurveyClient({
       currentFoodBrand: currentBrand.trim() || undefined,
       careGoal: careGoal || undefined,
       homeCookingExperience: homeCookingExp || undefined,
-      currentDietSatisfaction: dietSatisfaction ?? undefined,
       weightTrend6mo: weightTrend || undefined,
       giSensitivity: giSensitivity || undefined,
       preferredProteins: preferredProteins as SurveyAnswers['preferredProteins'],
       indoorActivity: indoorActivity || undefined,
-      // 췌장염 중증도 → answers JSONB 라이드. compute route 가 firstBox
-      // diagnosedSeverity 로 주입 (급성/중증 → 화식 부적합 하드 게이트).
       diagnosedSeverity:
         pancreatitisSeverity && chronicConditions.includes('pancreatitis')
           ? { pancreatitis: pancreatitisSeverity }
           : undefined,
     }
 
-    // Tier S F1-1: budget_tier 컬럼이 migration 20260520+ 에서 추가됨.
-    // generated types 재생성 전이라 insert payload 자체를 cast 로 우회.
-    // 다음 typegen 후 cast 제거 가능.
     const surveyInsertPayload = {
       dog_id: dogId,
       user_id: user.id,
       answers,
-      mcs_score: mcs,
+      // muscle(MCS)·식욕·모질·식이만족도는 설문에서 빠졌다(2026-07-23 / 2026-09-22) — null.
+      mcs_score: null,
       bristol_stool_score: bristol,
       chronic_conditions: chronicConditions,
       current_medications: meds,
@@ -689,12 +646,12 @@ export default function SurveyClient({
       daily_walk_minutes: walkMinutes
         ? Math.max(0, Math.min(300, Number(walkMinutes) || 0))
         : null,
-      coat_condition: coat || null,
-      appetite: taste || null,
+      coat_condition: null,
+      appetite: null,
       pregnancy_status: pregnancy || null,
       care_goal: careGoal || null,
       home_cooking_experience: homeCookingExp || null,
-      current_diet_satisfaction: dietSatisfaction,
+      current_diet_satisfaction: null,
       weight_trend_6mo: weightTrend || null,
       gi_sensitivity: giSensitivity || null,
       preferred_proteins: preferredProteins,
@@ -702,14 +659,8 @@ export default function SurveyClient({
       iris_stage: chronicConditions.includes('kidney') ? irisStage : null,
       pregnancy_week: pregnancy === 'pregnant' ? pregnancyWeek : null,
       litter_size: pregnancy === 'lactating' ? litterSize : null,
-      expected_adult_weight_kg:
-        dog && (dog.age_unit === 'years'
-          ? dog.age_value * 12 < 18
-          : dog.age_value < 18)
-          ? expectedAdultWeightKg
-          : null,
-      // 2026-07-14: 설문에서 예산을 묻지 않음(budget step 폐기) → 항상 null.
-      // 컬럼은 유지(레거시 row 보존). feeding-plan 은 null fallback 이라 무영향.
+      expected_adult_weight_kg: ageInMonths < 18 ? expectedAdultWeightKg : null,
+      // 2026-07-14: 설문에서 예산을 묻지 않음 → 항상 null(컬럼 유지).
       budget_tier: null,
     }
 
@@ -733,8 +684,7 @@ export default function SurveyClient({
       toast.error('저장하지 못했어요')
       setErr('저장하지 못했어요')
       setSaving(false)
-      submitGuardRef.current = false // 재시도 허용
-      // 실패 시 loading 화면에 inline 재시도 + "이전 단계로" 탈출구 제공.
+      submitGuardRef.current = false
       return
     }
 
@@ -746,16 +696,13 @@ export default function SurveyClient({
         .eq('user_id', user.id)
     }
 
-    // 칼로리 v2 5단계(M9b) — 사료 DB 자가성장 로그: 건식/반반인데 브랜드만
-    // 알고 kcal 을 모르는 케이스 → kibble_requests (다음 매장 투어 쇼핑리스트).
-    // silent fail — 설문 완료 흐름을 막지 않는다.
+    // 사료 DB 자가성장 로그: 건식/반반인데 브랜드만 알고 kcal 모르는 케이스.
     if (
       (foodType === '건식 사료' || foodType === '반반') &&
       currentBrand.trim() &&
       !kibbleKcal
     ) {
       try {
-        // 신규 테이블 — generated types 미반영 → cast (reweighs 선례).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase as any).from('kibble_requests').insert({
           user_id: user.id,
@@ -766,23 +713,16 @@ export default function SurveyClient({
       }
     }
 
-    // [발명 모듈 D] 체중 측정 방법/일자 — 설문에서 새로 고른 값 우선 (측정일=
-    // 오늘, 현 체중 affirm), 없으면 dog 프로필. 새로 고르면 dogs 갱신해 이후
-    // 분석·신뢰도가 최신 도구를 반영.
+    // [발명 모듈 D] 체중 측정 방법/일자 — 설문에서 새로 고른 값 우선.
     const effWeightMethod =
-      weightMethod ||
-      (dog as { weight_method?: string | null }).weight_method
+      weightMethod || (dog as { weight_method?: string | null }).weight_method
     const effWeightMeasuredAt = weightMethod
       ? new Date().toISOString()
-      : (dog as { weight_measured_at?: string | null }).weight_measured_at ??
-        null
+      : (dog as { weight_measured_at?: string | null }).weight_measured_at ?? null
     if (weightMethod) {
       await (
         supabase.from('dogs') as unknown as {
-          update: (v: {
-            weight_method: string
-            weight_measured_at: string
-          }) => {
+          update: (v: { weight_method: string; weight_measured_at: string }) => {
             eq: (c: string, v: string) => {
               eq: (c: string, v: string) => Promise<unknown>
             }
@@ -805,15 +745,8 @@ export default function SurveyClient({
         neutered: dog.neutered,
         activityLevel: dog.activity_level,
         gender: dog.gender as 'male' | 'female' | null,
-        // [발명 모듈 D] 체중 신뢰도 → 비대칭 케어목표 안전 보정 입력.
-        weightReliability: weightReliability(
-          effWeightMethod,
-          effWeightMeasuredAt,
-        ),
-        // 칼로리 v2 2c — 자견 NRC 정확식(130) 입력. 설문이 수집만 하고
-        // 계산에 안 넘기던 것 연결 (large-breed puppy 임계 판정에도 사용).
+        weightReliability: weightReliability(effWeightMethod, effWeightMeasuredAt),
         expectedAdultWeight: expectedAdultWeightKg ?? null,
-        // 칼로리 v2 4단계 — 견종 플래그(비만경향·토이·단두종) 파생용.
         breed: (dog as { breed?: string | null }).breed ?? null,
       },
       answers,
@@ -825,17 +758,11 @@ export default function SurveyClient({
     const uniqueSupps = Array.from(new Set(supps))
 
     const nextDays = chronicConditions.length > 0 ? 60 : 90
-    // KST 기준 다음 리뷰일 — raw Date.now() UTC slice 는 KST 00~09시 제출 시
-    // 하루 이르게 저장되는 off-by-one (2026-07-03 감사 수정, page.tsx 와 동일 헬퍼).
     const nextReview = addDaysKst(todayKstIsoDate(), nextDays)
 
-    // factor_breakdown 은 신규 컬럼(generated types 미반영) → 빌더 cast
-    // (surveys insert 선례 패턴).
     const { error: analysisErr } = await (
       supabase.from('analyses') as unknown as {
-        insert: (
-          v: Record<string, unknown>,
-        ) => Promise<{ error: { message?: string } | null }>
+        insert: (v: Record<string, unknown>) => Promise<{ error: { message?: string } | null }>
       }
     ).insert({
       dog_id: dogId,
@@ -863,7 +790,6 @@ export default function SurveyClient({
       vet_consult_recommended: nu.vetConsult,
       next_review_date: nextReview,
       guideline_version: nu.guidelineVersion,
-      // 칼로리 v2 6단계 — 계수 사다리 (분석 페이지 "어떻게 계산했나요" 투명성).
       factor_breakdown: nu.factorBreakdown,
     })
 
@@ -871,11 +797,10 @@ export default function SurveyClient({
       toast.error('분석을 저장하지 못했어요')
       setErr('분석을 저장하지 못했어요')
       setSaving(false)
-      submitGuardRef.current = false // 재시도 허용
+      submitGuardRef.current = false
       return
     }
 
-    // autosave 삭제 — 설문 완료 후 다음 진입은 fresh start.
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(STORAGE_KEY)
@@ -884,24 +809,10 @@ export default function SurveyClient({
       }
     }
 
-    // 설문 완료 포인트 보상 제거 (2026-07-16 포인트 전면 폐기).
-    // 설문을 끝내면 포인트를 주던 자리인데 포인트 개념 자체가 없어졌다. 우리 혜택은
-    // 자동할인(기본 구독 15% + 나무 등급 10%)으로 통일 — 사은품 모으기 없이 알아서
-    // 깎아준다. 결과 화면의 'ft:survey-reward' 토스트도 함께 사라진다.
-    // (구 사다리 첫주문50%·등급별·생일은 2026-07-17 폐지 — 50%는 신규가입 이벤트限.)
-
-
     trackSurveyCompleted(dogId)
-    // 분석 애니메이션 최소 노출(약 2.4초) 확보 후 결과로 이동. 저장은 이미
-    // 끝났으므로 이 타이머는 navigation 만 담당 — 지연 중 이탈해도 데이터 보존.
-    // R36 — 설문→로딩→결과 흐름은 상단 메뉴 hide. ?fromSurvey=1 query 가
-    // AppChrome 의 focusMode 분기에 사용됨. 사용자가 추후 직접 진입
-    // (예: 이전 결과 다시 보기) 시는 query 없으니 정상 노출.
-    // 저장 도중 사용자가 이탈(언마운트)했다면 결과로 끌고가지 않는다 — 저장은
-    // 이미 끝났으니 데이터는 보존되고, 다음 /analysis 진입 시 정상 표시된다.
     if (!mountedRef.current) return
     if (loadingTimerRef.current) clearTimeout(loadingTimerRef.current)
-    const remaining = Math.max(0, 2400 - (Date.now() - startedAt))
+    const remaining = Math.max(0, 2400 - (nowMs() - startedAt))
     loadingTimerRef.current = setTimeout(() => {
       router.push(`/dogs/${dogId}/analysis?fromSurvey=1`)
       router.refresh()
@@ -910,33 +821,33 @@ export default function SurveyClient({
 
   if (!dog) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]" style={{ background: 'var(--bg)' }}>
-        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--fd-coral)' }} strokeWidth={1.6} />
+      <div
+        className="flex items-center justify-center min-h-[80vh]"
+        style={{ background: 'var(--bg)' }}
+      >
+        <Loader2
+          className="w-8 h-8 animate-spin"
+          style={{ color: 'var(--fd-coral)' }}
+          strokeWidth={1.6}
+        />
       </div>
     )
   }
 
-  // ── 이전 답변 요약 echo chips ──
-  const echoItems: string[] = []
-  if (stepIdx > 0 && bcs) echoItems.push(`체형 ${bcs}/9`)
-  // MCS echo 제거 — muscle 스텝 폐지(2026-07-23). 옛 draft 의 mcs 잔값 노출 방지.
-  if (stepIdx > 2 && bristol) echoItems.push(`변 #${bristol}`)
-  if (stepIdx > 3) {
-    if (foodType) echoItems.push(foodType)
-  }
-  if (stepIdx > 4) {
-    if (dlMode === 'none') echoItems.push('알레르기 없음')
-    if (dlMode === 'has' && allergies.length) echoItems.push(`알레르기 ${allergies.length}`)
-  }
-  if (stepIdx > 5 && chronicConditions.length) echoItems.push(`질환 ${chronicConditions.length}`)
+  const progress = isLoading ? 100 : progressPct(screens, idx)
+  const counter = isLoading ? '' : counterLabel(screens, idx)
 
-  const isLoading = currentStep === 'loading'
+  // CTA 라벨 — 선택 화면은 답이 없으면 '건너뛰기'가 곧 다음.
+  let ctaLabel = '다음'
+  if (cur && isSkippable(cur.key)) {
+    const answered = optionalAnswered(cur.key)
+    if (isLastScreen) ctaLabel = answered ? '결과 보기' : '건너뛰고 결과 보기'
+    else ctaLabel = answered ? '다음' : '건너뛰기'
+  }
+  const showCta = !isLoading && cur && cur.part !== 'gate'
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      {/* flex 컬럼 + 100dvh — 콘텐츠가 짧은 스텝에서도 CTA 바(.s-ctabar,
-          margin-top:auto)가 항상 화면 하단에 고정되게(사장님: 이전/다음 위치
-          스텝마다 동일해야 함). 긴 스텝은 sticky bottom 으로 스크롤 중 고정. */}
       <div
         className="max-w-md mx-auto"
         style={{
@@ -947,125 +858,94 @@ export default function SurveyClient({
         }}
       >
         {!isLoading && (
-          <>
-            {/* Step header — STEP nn / TT  +  progress with ticks */}
-            <div className="s-stepwrap">
-              <div className="s-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Link
-                    href={`/dogs/${dogId}`}
-                    aria-label="강아지 페이지로 돌아가기"
-                    style={{
-                      color: 'var(--muted)',
-                      display: 'inline-flex',
-                      // tap target Apple HIG 44px — visual 16px chevron 유지하면서
-                      // hit area 만 음수 마진으로 확장.
-                      padding: 8,
-                      margin: -8,
-                    }}
-                  >
-                    <ChevronLeft size={16} strokeWidth={2.2} />
-                  </Link>
-                  <span className="s-step-no">
-                    STEP {String(Math.min(stepIdx + 1, totalSteps)).padStart(2, '0')}
-                    {' / '}
-                    {String(totalSteps).padStart(2, '0')}
-                  </span>
-                </div>
-                <span className="s-step-pct">{progress}%</span>
-              </div>
-              <div
-                className="s-progress"
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`전체 ${totalSteps}단계 중 ${stepIdx + 1}단계, 진행률 ${progress}%`}
+          <div className="s-stepwrap">
+            <div className="s-top">
+              <button
+                type="button"
+                className="s-back"
+                onClick={goPrev}
+                disabled={idx === 0}
+                aria-label="이전 질문"
               >
-                <i style={{ width: `${progress}%` }} />
-                <div className="s-ticks">
-                  {Array.from({ length: totalSteps + 1 }).map((_, i) => (
-                    <span key={i} />
-                  ))}
-                </div>
-              </div>
+                <ChevronLeft size={22} strokeWidth={2.4} aria-hidden />
+                이전
+              </button>
+              <span className="s-count" aria-live="polite">
+                {counter}
+              </span>
+              <Link href={`/dogs/${dogId}`} className="s-exit">
+                나가기
+              </Link>
             </div>
-
-            {/* Echo chips — 이전 답변 요약 */}
-            {echoItems.length > 0 && (
-              <div style={{ padding: '12px 22px 0' }}>
-                <div className="s-echo">
-                  {echoItems.map((it, i) => (
-                    <span key={i} className="s-e">
-                      <Check size={11} strokeWidth={2.5} />
-                      {it}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+            <div
+              className="s-progress"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={counter || '진행률'}
+            >
+              <i style={{ width: `${progress}%` }} />
+            </div>
+          </div>
         )}
 
-        {/* Step content — 각 step 은 ./steps/*.tsx 에 분리 */}
-        {currentStep === 'body' && (
-          <Body
+        {/* ── 화면 (lib/survey/flow 순서) ── */}
+        {!isLoading && cur?.key === 'ribs' && (
+          <RibsScreen
             dogName={dog.name}
-            body={bodyAssess}
-            onBody={onBodyAssess}
+            value={bodyAssess.ribs}
+            onChange={(v) => onBodyAssess({ ribs: v })}
+          />
+        )}
+        {!isLoading && cur?.key === 'waist' && (
+          <WaistScreen value={bodyAssess.waist} onChange={(v) => onBodyAssess({ waist: v })} />
+        )}
+        {!isLoading && cur?.key === 'abdomen' && (
+          <AbdomenScreen
+            value={bodyAssess.abdomen}
+            onChange={(v) => onBodyAssess({ abdomen: v })}
             bcs={bcs}
-            weightTrend={weightTrend}
-            setWeightTrend={setWeightTrend}
-            weightMethod={weightMethod}
-            setWeightMethod={setWeightMethod}
-            easyKeeper={easyKeeper}
-            setEasyKeeper={setEasyKeeper}
             bcsConflict={bcsConflict}
           />
         )}
-
-
-        {currentStep === 'stool' && (
-          <Stool
+        {!isLoading && cur?.key === 'weight' && (
+          <WeightScreen
+            weightTrend={weightTrend}
+            setWeightTrend={setWeightTrend}
+            easyKeeper={easyKeeper}
+            setEasyKeeper={setEasyKeeper}
+            weightMethod={weightMethod}
+            setWeightMethod={setWeightMethod}
+          />
+        )}
+        {!isLoading && cur?.key === 'stool' && (
+          <StoolScreen
             dogName={dog.name}
             bristol={bristol}
             setBristol={setBristol}
+            skipped={stoolSkipped}
+            setSkipped={setStoolSkipped}
             giSensitivity={giSensitivity}
             setGiSensitivity={setGiSensitivity}
           />
         )}
-
-        {(currentStep === 'meal' || currentStep === 'life') && (
-          <Diet
-            key={currentStep}
-            part={currentStep === 'meal' ? 'meal' : 'life'}
-            foodType={foodType}
-            setFoodType={setFoodType}
-            currentBrand={currentBrand}
-            setCurrentBrand={setCurrentBrand}
+        {!isLoading && cur?.key === 'food' && (
+          <FoodScreen foodType={foodType} setFoodType={setFoodType} />
+        )}
+        {!isLoading && cur?.key === 'snack' && (
+          <SnackScreen
             snackFreq={snackFreq}
             setSnackFreq={setSnackFreq}
             treatKcal={treatKcal}
             setTreatKcal={setTreatKcal}
-            kibbleKcal={kibbleKcal}
-            setKibbleKcal={setKibbleKcal}
-            walkMinutes={walkMinutes}
-            setWalkMinutes={setWalkMinutes}
-            indoorActivity={indoorActivity}
-            setIndoorActivity={setIndoorActivity}
-            vigorous={vigorous}
-            setVigorous={setVigorous}
-            housing={housing}
-            setHousing={setHousing}
-            coldOutdoor={coldOutdoor}
-            setColdOutdoor={setColdOutdoor}
-            homeCookingExp={homeCookingExp}
-            setHomeCookingExp={setHomeCookingExp}
           />
         )}
-
-        {currentStep === 'allergy' && (
-          <Allergy
+        {!isLoading && cur?.key === 'fresh' && (
+          <FreshScreen homeCookingExp={homeCookingExp} setHomeCookingExp={setHomeCookingExp} />
+        )}
+        {!isLoading && cur?.key === 'allergy' && (
+          <AllergyScreen
             dlMode={dlMode}
             setDlMode={setDlMode}
             allergies={allergies}
@@ -1074,9 +954,10 @@ export default function SurveyClient({
             setPreferredProteins={setPreferredProteins}
           />
         )}
-
-        {currentStep === 'chronic' && (
-          <Status
+        {!isLoading && cur?.key === 'chronic' && (
+          <ChronicScreen
+            hasChronic={hasChronic}
+            setHasChronic={setHasChronic}
             chronicConditions={chronicConditions}
             setChronicConditions={setChronicConditions}
             irisStage={irisStage}
@@ -1085,45 +966,74 @@ export default function SurveyClient({
             setPancreatitisSeverity={setPancreatitisSeverity}
             prescriptionDiet={prescriptionDiet}
             setPrescriptionDiet={setPrescriptionDiet}
+          />
+        )}
+        {!isLoading && cur?.key === 'pregnancy' && (
+          <PregnancyScreen
+            dog={dog}
+            pregnancy={pregnancy}
+            setPregnancy={setPregnancy}
+            pregnancyWeek={pregnancyWeek}
+            setPregnancyWeek={setPregnancyWeek}
+            litterSize={litterSize}
+            setLitterSize={setLitterSize}
+          />
+        )}
+        {!isLoading && cur?.key === 'adultWeight' && (
+          <AdultWeightScreen
+            expectedAdultWeightKg={expectedAdultWeightKg}
+            setExpectedAdultWeightKg={setExpectedAdultWeightKg}
+          />
+        )}
+        {!isLoading && cur?.key === 'goal' && (
+          <GoalScreen careGoal={careGoal} setCareGoal={setCareGoal} />
+        )}
+        {!isLoading && cur?.key === 'gate' && (
+          <GateScreen
+            onAnswer={() => chooseGate('answer')}
+            onSkip={() => chooseGate('skip')}
+            saving={saving}
+          />
+        )}
+        {!isLoading && cur?.key === 'optFood' && (
+          <OptFoodScreen
+            foodType={foodType}
+            currentBrand={currentBrand}
+            setCurrentBrand={setCurrentBrand}
+            kibbleKcal={kibbleKcal}
+            setKibbleKcal={setKibbleKcal}
+          />
+        )}
+        {!isLoading && cur?.key === 'optWalk' && (
+          <OptWalkScreen
+            walkMinutes={walkMinutes}
+            setWalkMinutes={setWalkMinutes}
+            indoorActivity={indoorActivity}
+            setIndoorActivity={setIndoorActivity}
+          />
+        )}
+        {!isLoading && cur?.key === 'optExercise' && (
+          <OptExerciseScreen
+            vigorous={vigorous}
+            setVigorous={setVigorous}
+            housing={housing}
+            setHousing={setHousing}
+            coldOutdoor={coldOutdoor}
+            setColdOutdoor={setColdOutdoor}
+          />
+        )}
+        {!isLoading && cur?.key === 'optMeds' && (
+          <OptMedsScreen
             medications={medications}
             setMedications={setMedications}
+            chronicConditions={chronicConditions}
+            onAddCondition={(k) => {
+              if (!chronicConditions.includes(k)) setChronicConditions([...chronicConditions, k])
+              setHasChronic('yes')
+            }}
           />
         )}
 
-        {currentStep === 'status' && (
-          <div className="s-page">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-              <span className="s-kicker">
-                현재 상태
-              </span>
-            </div>
-            <h1 className="s-title">마지막 단계예요</h1>
-            <p className="s-sub">
-              임신·수유나 모질 상태가 있다면 칼로리·미량영양소 권장량이 달라져요.
-            </p>
-
-            <Pregnancy
-              dog={dog}
-              pregnancy={pregnancy}
-              setPregnancy={setPregnancy}
-              pregnancyWeek={pregnancyWeek}
-              setPregnancyWeek={setPregnancyWeek}
-              litterSize={litterSize}
-              setLitterSize={setLitterSize}
-              expectedAdultWeightKg={expectedAdultWeightKg}
-              setExpectedAdultWeightKg={setExpectedAdultWeightKg}
-            />
-
-            <Preferences
-              coat={coat}
-              setCoat={setCoat}
-              careGoal={careGoal}
-              setCareGoal={setCareGoal}
-            />
-          </div>
-        )}
-
-        {/* Loading */}
         {isLoading && (
           <LoadingStep
             dogName={dog.name}
@@ -1136,39 +1046,30 @@ export default function SurveyClient({
               void saveAndGoResult()
             }}
             onBack={() => {
-              // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 단계로 복귀.
+              // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 화면으로 복귀.
               setErr('')
-              setCurrentStep('status')
+              setScreen(optChoice === 'answer' ? 'optMeds' : 'gate')
             }}
           />
         )}
 
         {err && !isLoading && (
           <div className="s-errbar" role="alert" aria-live="polite">
-            <AlertCircle size={14} strokeWidth={2.2} />
+            <AlertCircle size={16} strokeWidth={2.2} aria-hidden />
             <span>{err}</span>
           </div>
         )}
 
-        {!isLoading && (
-          <div className="s-ctabar">
+        {showCta && (
+          <div className="s-ctabar s-ctabar-v4">
             <button
               type="button"
-              className="s-prev-btn"
-              onClick={goPrev}
-              disabled={stepIdx === 0}
-            >
-              <ChevronLeft size={14} strokeWidth={2.4} />
-              이전
-            </button>
-            <button
-              type="button"
-              className="s-next-btn"
+              className="s-next-btn s-next-full"
               onClick={goNext}
               disabled={saving}
             >
-              {currentStep === 'status' ? '결과 보기' : '다음'}
-              <ArrowRight size={14} strokeWidth={2.6} color="var(--bg)" />
+              {ctaLabel}
+              <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
             </button>
           </div>
         )}
