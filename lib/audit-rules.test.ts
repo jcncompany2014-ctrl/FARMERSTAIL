@@ -3599,3 +3599,29 @@ test('규칙83: 앱 하단 탭은 앱에서만·몰입 화면 밖에서만 그�
   assert.doesNotMatch(dogTabs, /\/subscription`/, '강아지 상단 탭에 구독이 다시 들어왔다 — 하단 탭과 중복')
   assert.match(dogTabs, /grid-cols-3/, '강아지 상단 탭이 3칸이 아니다')
 })
+
+
+test('규칙84: 하단 탭바 색은 Capacitor 네이티브 배경색(capacitor.config backgroundColor)과 같아야 한다', () => {
+  /**
+   * # 왜 (2026-09-22 사장님 아이폰 스크린샷)
+   * iOS 는 contentInset 'always' 라 상태바·홈바 safe-area 구간을 웹이 아니라 네이티브가
+   * capacitor.config 의 backgroundColor 로 칠한다. 탭바가 웹 종이색(#F7F5F0)이고 네이티브가
+   * #F5F0E6 이면 탭 줄 아래 홈바 구간이 다른 색 띠로 보인다 — "맨 아래로 내리면 저런 바가
+   * 왜 생기냐, 색도 다르다". 탭바는 --ft-native-bg 를 쓰고, 그 값은 capacitor.config 와 같다.
+   */
+  const cap = read(join(ROOT, 'capacitor.config.ts'))
+  const nativeColors = [...cap.matchAll(/backgroundColor:\s*['"](#[0-9a-fA-F]{6})['"]/g)].map((m) => (m[1] ?? '').toUpperCase())
+  assert.ok(nativeColors.length > 0, 'capacitor.config.ts 에 backgroundColor 가 없다')
+  assert.ok(new Set(nativeColors).size === 1, `capacitor.config.ts 의 backgroundColor 가 서로 다르다: ${[...new Set(nativeColors)].join(', ')}`)
+
+  const css = read(join(ROOT, 'app', 'globals.css'))
+  const m = css.match(/--ft-native-bg:\s*(#[0-9a-fA-F]{6})/)
+  assert.ok(m, 'globals.css 에 --ft-native-bg 가 없다')
+  const cssColor = (m?.[1] ?? '').toUpperCase()
+  const nativeColor = nativeColors[0] ?? ''
+  assert.equal(cssColor, nativeColor, `--ft-native-bg(${cssColor}) 와 capacitor backgroundColor(${nativeColor}) 가 다르다 — 홈바 구간에 색 띠가 생긴다`)
+
+  const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
+  assert.match(bar, /background:\s*'var\(--ft-native-bg\)'/, '하단 탭바 배경이 --ft-native-bg 가 아니다')
+  assert.doesNotMatch(bar, /backdropFilter/, '하단 탭바에 블러가 다시 들어왔다 — 반투명이면 safe-area 구간과 색이 갈린다')
+})

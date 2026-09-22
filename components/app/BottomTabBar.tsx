@@ -160,9 +160,12 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
         style={{
           bottom: 0,
           paddingBottom: 'env(safe-area-inset-bottom)',
-          background: 'color-mix(in srgb, var(--paper) 97%, transparent)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          // ★네이티브 배경색과 같은 불투명 색 (사장님 2026-09-22 아이폰 스크린샷: 탭 줄
+          //   아래 홈바 구간이 다른 색 띠로 보였다). 그 구간은 웹이 아니라 Capacitor 가
+          //   capacitor.config 의 backgroundColor(#F5F0E6)로 칠한다(contentInset 'always').
+          //   웹 종이색(#F7F5F0)과 2단계 달라 띠가 생겼다 — 탭바를 그 색으로 맞춰 바+홈바가
+          //   한 덩어리로 읽히게 한다. 두 값의 동기는 규칙84 가 잠근다.
+          background: 'var(--ft-native-bg)',
           borderTop: `1px solid ${V3.rule}`,
           boxShadow: '0 -4px 16px -14px rgba(22,20,15,0.30)',
         }}
