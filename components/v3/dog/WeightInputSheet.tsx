@@ -112,7 +112,7 @@ export default function WeightInputSheet({
           style={{
             margin: '12px 0 0',
             fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
+            fontSize: 16,
             color: V3.inkSoft,
             lineHeight: 1.55,
           }}
@@ -177,7 +177,7 @@ export default function WeightInputSheet({
             style={{
               fontFamily:
                 "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-              fontSize: 13.5,
+              fontSize: 16,
               // 13.5px 는 본문 기준(4.5:1) — accent 3.41 미달 → accentDeep.
               // 위 34px 히어로 제목의 accent 는 큰 글자(3:1) 기준이라 그대로 둔다.
               color: V3.accentDeep,
@@ -248,7 +248,7 @@ export default function WeightInputSheet({
                 padding: '12px 0',
                 fontFamily: 'var(--font-sans)',
                 fontWeight: V3FontWeight.bold,
-                fontSize: 13.5,
+                fontSize: 16,
                 color: V3.ink,
                 cursor: 'pointer',
               }}
@@ -265,7 +265,7 @@ export default function WeightInputSheet({
             role="alert"
             style={{
               margin: '0 0 10px',
-              fontSize: 12,
+              fontSize: 14,
               color: V3.sale,
               letterSpacing: '-0.01em',
               lineHeight: 1.4,
@@ -288,7 +288,7 @@ export default function WeightInputSheet({
             cursor: saving ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
             letterSpacing: '-0.005em',
           }}
         >

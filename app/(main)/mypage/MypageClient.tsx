@@ -126,7 +126,7 @@ export default function MypageClient({
             <div
               className="truncate"
               style={{
-                fontSize: 13,
+                fontSize: 16,
                 color: V3.inkMute,
                 marginTop: 4,
               }}
@@ -226,7 +226,7 @@ export default function MypageClient({
               <div className="flex-1 min-w-0">
                 <div
                   style={{
-                    fontSize: 10.5,
+                    fontSize: 12,
                     fontWeight: V3FontWeight.bold,
                     color: V3.ink,
                   }}
@@ -356,7 +356,7 @@ export default function MypageClient({
             border: `1px solid ${V3.rule}`,
             borderRadius: V3Radius.sm,
             fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
+            fontSize: 16,
             fontWeight: V3FontWeight.semibold,
             color: V3.inkMute,
           }}
@@ -387,7 +387,7 @@ export default function MypageClient({
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: V3FontWeight.bold,
               background: V3.paperHi,
               color: V3.inkMute,
@@ -405,7 +405,7 @@ export default function MypageClient({
             style={{
               padding: '10px 18px',
               borderRadius: V3Radius.sm,
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: V3FontWeight.bold,
               background: V3.ink,
               color: V3.paperHi,
@@ -424,7 +424,7 @@ export default function MypageClient({
         <Link
           href="/mypage/delete"
           style={{
-            fontSize: 10.5,
+            fontSize: 12,
             color: V3.inkMute,
             textDecoration: 'underline',
             textUnderlineOffset: 2,
@@ -458,7 +458,7 @@ function TierChip({
       style={{
         gap: 4,
         fontFamily: 'var(--font-sans)',
-        fontSize: 10.5,
+        fontSize: 12,
         fontWeight: V3FontWeight.black,
         padding: '4px 10px',
         borderRadius: V3Radius.pill,

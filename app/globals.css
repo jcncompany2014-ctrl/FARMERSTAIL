@@ -819,6 +819,36 @@ body[data-ft-chrome-mode="app"] {
    web 사용자 (data-ft-chrome 없음) 는 무영향 — 기존 editorial 톤 유지.
    ============================================================================= */
 
+/* =============================================================================
+   시니어 사용성 2단계 (2026-09-22): 앱 글자 기준 한 단계 상향.
+   앱 전용 파일 145개에 text-[10.5px] 162곳·text-[12px] 138곳·text-[13.5px] 67곳처럼
+   px 가 박혀 있어 파일마다 고치는 대신, 앱 스코프에서 같은 표로 올린다.
+     9~11 → 12(뱃지·단위)  ·  11.5~12.5 → 14(보조)  ·  13~15 → 16(본문)  ·  16 → 18(카드 제목)
+   V3FontSize 토큰도 같은 값이다(lib/design/tokens.ts). 웹(data-ft-chrome 없음)은 무영향.
+   새 코드는 토큰을 쓸 것 — 이 매핑은 옛 하드코딩을 받아주는 다리다.
+   ============================================================================= */
+[data-ft-chrome="app"] .text-\[9px\],
+[data-ft-chrome="app"] .text-\[9\.5px\],
+[data-ft-chrome="app"] .text-\[10px\],
+[data-ft-chrome="app"] .text-\[10\.5px\],
+[data-ft-chrome="app"] .text-\[11px\] {
+  font-size: 12px;
+}
+[data-ft-chrome="app"] .text-\[11\.5px\],
+[data-ft-chrome="app"] .text-\[12px\],
+[data-ft-chrome="app"] .text-\[12\.5px\] {
+  font-size: 14px;
+}
+[data-ft-chrome="app"] .text-\[13px\],
+[data-ft-chrome="app"] .text-\[13\.5px\],
+[data-ft-chrome="app"] .text-\[14px\],
+[data-ft-chrome="app"] .text-\[15px\] {
+  font-size: 16px;
+}
+[data-ft-chrome="app"] .text-\[16px\] {
+  font-size: 18px;
+}
+
 [data-ft-chrome="app"] .font-serif {
   font-family: var(--font-sans), 'Pretendard', sans-serif !important;
 }

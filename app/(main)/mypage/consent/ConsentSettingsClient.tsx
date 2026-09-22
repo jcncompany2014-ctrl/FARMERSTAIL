@@ -95,7 +95,7 @@ export default function ConsentSettingsClient({
         {!embedded && <span className="kicker mt-3 block">Consent</span>}
         <p
           className="mt-1.5 leading-relaxed"
-          style={{ fontSize: 13.5, color: 'var(--muted-strong)' }}
+          style={{ fontSize: 16, color: 'var(--muted-strong)' }}
         >
           혜택·이벤트 안내 수신 여부를 채널별로 관리할 수 있어요.
           <br />

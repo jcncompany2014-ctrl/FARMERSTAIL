@@ -209,10 +209,10 @@ export default function PlanClient({
   if (state.s === 'empty') {
     return (
       <div className="px-5 py-16 text-center">
-        <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+        <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
           아직 맞춤 결과가 없어요
         </p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '8px 0 16px' }}>
+        <p style={{ fontSize: 14, color: 'var(--muted)', margin: '8px 0 16px' }}>
           분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
         </p>
         <Link href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
@@ -327,7 +327,7 @@ function PlanView({
   return (
     <div style={{ padding: '14px 14px 96px', position: 'relative' }}>
       {/* 스텝 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: 'var(--muted)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
         <span style={{ color: 'var(--terracotta)' }}>① 레시피</span>
         <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
         <span>② 배송</span>
@@ -336,7 +336,7 @@ function PlanView({
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 12 }}>
-        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.2em', color: 'var(--terracotta)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', color: 'var(--terracotta)' }}>
           MADE FOR {dogName.toUpperCase()}
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
@@ -346,7 +346,7 @@ function PlanView({
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 11, flexWrap: 'wrap' }}>
         {['수의영양학', 'AAFCO·FEDIAF 충족', '사람도 먹는 등급'].map((t) => (
-          <span key={t} style={{ fontSize: 9.5, color: 'var(--moss, #4f6a48)', background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)', padding: '3px 8px', borderRadius: 99, fontWeight: 600 }}>
+          <span key={t} style={{ fontSize: 12, color: 'var(--moss, #4f6a48)', background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)', padding: '3px 8px', borderRadius: 99, fontWeight: 600 }}>
             {t}
           </span>
         ))}
@@ -354,10 +354,10 @@ function PlanView({
 
       {/* ── 위: 내 플랜 (추천 강조) ─────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 18, marginBottom: 9 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
           {petName(dogName)}의 플랜
         </span>
-        <span style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>
           {selected.size}가지 · 최대 {MAX_RECIPES}
         </span>
       </div>
@@ -379,7 +379,7 @@ function PlanView({
       {/* ── 아래: 다른 레시피로 바꾸기 ───────────────────────────── */}
       {others.length > 0 && (
         <>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginTop: 20, marginBottom: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 20, marginBottom: 8 }}>
             다른 레시피로 바꾸기
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -422,17 +422,17 @@ function PlanView({
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{RECIPE_TITLES[line] ?? meta.name}</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{RECIPE_TITLES[line] ?? meta.name}</span>
                       {isRec && !isBlocked && (
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--moss, #4f6a48)' }}>★ 추천</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--moss, #4f6a48)' }}>★ 추천</span>
                       )}
                     </div>
                     {isBlocked ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, color: 'var(--terracotta)', fontWeight: 700, marginTop: 2 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--terracotta)', fontWeight: 700, marginTop: 2 }}>
                         <AlertTriangle size={11} strokeWidth={2.2} />알레르기로 제외
                       </span>
                     ) : (
-                      <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {cardIngredients(line).slice(0, 4).join(', ')}…
                       </div>
                     )}
@@ -450,7 +450,7 @@ function PlanView({
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        fontSize: 12,
+                        fontSize: 14,
                         fontWeight: 700,
                         color: canAddMore ? 'var(--ink)' : 'var(--muted)',
                         background: 'transparent',
@@ -469,7 +469,7 @@ function PlanView({
             })}
           </div>
           {!canAddMore && (
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
               최대 {MAX_RECIPES}가지예요 · 바꾸려면 위에서 하나 빼주세요
             </div>
           )}
@@ -478,7 +478,7 @@ function PlanView({
 
       {/* 화식 비율 */}
       <div style={{ marginTop: 18, background: 'var(--surface-card-elevated, #fff)', border: '1px solid var(--rule)', borderRadius: 14, padding: 13 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>얼마나 화식으로 드릴까요?</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>얼마나 화식으로 드릴까요?</div>
         <div
           role="radiogroup"
           aria-label="화식 비율 선택"
@@ -508,13 +508,13 @@ function PlanView({
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
                     {t.label}
                   </span>
                   {'badge' in t && t.badge && (
                     <span
                       style={{
-                        fontSize: 9,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#fff',
                         background: 'var(--terracotta)',
@@ -528,7 +528,7 @@ function PlanView({
                   <span
                     style={{
                       marginLeft: 'auto',
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: 700,
                       color: on ? 'var(--terracotta)' : 'var(--muted)',
                       flexShrink: 0,
@@ -540,7 +540,7 @@ function PlanView({
                 <span
                   style={{
                     display: 'block',
-                    fontSize: 11.5,
+                    fontSize: 14,
                     color: on
                       ? 'color-mix(in srgb, var(--terracotta) 68%, var(--ink))'
                       : 'var(--muted)',
@@ -560,7 +560,7 @@ function PlanView({
                       borderTop:
                         '1px solid color-mix(in srgb, var(--terracotta) 15%, transparent)',
                       color: 'var(--muted)',
-                      fontSize: 10.5,
+                      fontSize: 12,
                       lineHeight: 1.5,
                     }}
                   >
@@ -590,7 +590,7 @@ function PlanView({
               marginTop: 12,
               paddingTop: 11,
               borderTop: '1px solid var(--rule)',
-              fontSize: 11.5,
+              fontSize: 14,
               color: 'var(--muted)',
               fontWeight: 600,
             }}
@@ -598,7 +598,7 @@ function PlanView({
             하루
             <strong
               style={{
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.01em',
@@ -615,22 +615,22 @@ function PlanView({
           비쳐 보이는 문제 방지). */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
             2주마다 배송 · 다음 결제 전 해지
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
             {cycleAnchor > cyclePay && (
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleAnchor.toLocaleString()}원</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleAnchor.toLocaleString()}원</span>
             )}
             <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
-              {cyclePay.toLocaleString()}원<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
+              {cyclePay.toLocaleString()}원<span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
             </span>
             {cycleAnchor > cyclePay && (
-              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>{offLabel}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>{offLabel}</span>
             )}
           </div>
         </div>
-        <Link href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <Link href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 16, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
           플랜 담기 <ArrowRight size={15} strokeWidth={2.4} color="#fff" />
         </Link>
       </div>
@@ -751,7 +751,7 @@ function RecipeDetail({
             decoding="async"
           />
         </span>
-        <p style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
           사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을
           소화가 편하도록 곱게 갈아서 담아 드려요.
         </p>
@@ -759,7 +759,7 @@ function RecipeDetail({
 
       {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
       {RECIPE_DESCRIPTIONS[line] && (
-        <p style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 16 }}>
+        <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 16 }}>
           {RECIPE_DESCRIPTIONS[line]}
         </p>
       )}
@@ -774,35 +774,35 @@ function RecipeDetail({
             background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--moss, #4f6a48)', marginBottom: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--moss, #4f6a48)', marginBottom: 4 }}>
             {petName(dogName)}에게 추천한 이유
           </div>
-          <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
             {whyClean}에 맞춰 {petName(dogName)}에게 추천했어요.
           </div>
         </div>
       )}
 
-      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
-      <p style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
+      <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
         {ings.join(', ')}
       </p>
 
-      <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>
-        등록성분 <span style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 500 }}>· 보장분석</span>
+      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>
+        등록성분 <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>· 보장분석</span>
       </div>
       <div style={{ border: '1px solid var(--rule)', borderRadius: 10, overflow: 'hidden' }}>
         {nut.map(([label, value], i) => (
           <div
             key={label}
-            style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 12.5 }}
+            style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 14 }}
           >
             <span style={{ color: 'var(--muted)' }}>{label}</span>
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{value}</span>
           </div>
         ))}
       </div>
-      <p style={{ fontSize: 10, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
         제조국가 한국 · AAFCO · FEDIAF · NRC 기준 완전·균형식.
       </p>
     </div>
@@ -837,7 +837,7 @@ function HeroCard({
   return (
     <div style={{ background: 'var(--surface-card-elevated, #fff)', border: '2px solid var(--terracotta)', borderRadius: 16, padding: 14, position: 'relative', overflow: 'hidden' }}>
       {isRec && (
-        <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 9.5, fontWeight: 700, color: '#fff', background: 'var(--moss, #4f6a48)', padding: '4px 12px', borderBottomLeftRadius: 12 }}>★ 추천</span>
+        <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--moss, #4f6a48)', padding: '4px 12px', borderBottomLeftRadius: 12 }}>★ 추천</span>
       )}
       <div style={{ display: 'flex', gap: 13, alignItems: 'center' }}>
         {/* 카드 원형 = 완성된 화식 그릇(4종 공용). 구분은 테두리 색(meta.color). */}
@@ -851,7 +851,7 @@ function HeroCard({
           />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
             {RECIPE_TITLES[line] ?? meta.name}
           </div>
         </div>
@@ -861,7 +861,7 @@ function HeroCard({
           이유가 뜨면 안 됨 → 맞춤 느낌 유지). */}
       {isRec ? (
         <div style={{ marginTop: 12, marginBottom: 2 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
+          <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
             <span
               style={{
                 display: 'inline-block',
@@ -896,7 +896,7 @@ function HeroCard({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
-              fontSize: 10.5,
+              fontSize: 12,
               fontWeight: 700,
               color: 'var(--muted)',
               background: 'var(--bg-2)',
@@ -909,7 +909,7 @@ function HeroCard({
           </span>
         </div>
       )}
-      <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
         {/* 카드는 발췌(메인+내장+토핑)라 '등'을 붙여 전체가 아님을 밝힌다
             (사장님 2026-08-25). 전체 목록은 '재료 전체' 시트에 있다. */}
         {ings.join(', ')} 등
@@ -918,17 +918,17 @@ function HeroCard({
         <button
           type="button"
           onClick={onDetail}
-          style={{ appearance: 'none', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, color: 'var(--terracotta)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1 }}
+          style={{ appearance: 'none', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: 'var(--terracotta)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1 }}
         >
           재료 전체 · 영양성분
           <ChevronRight size={13} strokeWidth={2.4} />
         </button>
         {removable ? (
-          <button type="button" onClick={onRemove} style={{ appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--muted)', background: 'transparent', border: '1px solid var(--rule)', padding: '6px 13px', borderRadius: 99 }}>
+          <button type="button" onClick={onRemove} style={{ appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--muted)', background: 'transparent', border: '1px solid var(--rule)', padding: '6px 13px', borderRadius: 99 }}>
             빼기
           </button>
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: 'var(--terracotta)', background: 'color-mix(in srgb, var(--terracotta) 9%, transparent)', padding: '6px 14px', borderRadius: 99 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--terracotta)', background: 'color-mix(in srgb, var(--terracotta) 9%, transparent)', padding: '6px 14px', borderRadius: 99 }}>
             <Check size={15} strokeWidth={2.4} />담김
           </span>
         )}
@@ -944,5 +944,5 @@ function miniCircle(bg: string): CSSProperties {
   return { width: 40, height: 40, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }
 }
 function ctaLink(): CSSProperties {
-  return { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 18px', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none' }
+  return { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 18px', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, fontSize: 16, fontWeight: 700, textDecoration: 'none' }
 }

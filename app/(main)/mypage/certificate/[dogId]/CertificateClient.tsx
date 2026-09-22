@@ -184,7 +184,7 @@ export default function CertificateClient({
             <div
               style={{
                 fontFamily: "'Archivo Black', Arial, sans-serif",
-                fontSize: 10.5,
+                fontSize: 12,
                 letterSpacing: '0.32em',
                 wordSpacing: '-0.12em',
                 color: 'var(--accent-deep)',
@@ -208,7 +208,7 @@ export default function CertificateClient({
             <div
               style={{
                 marginTop: 4,
-                fontSize: 10.5,
+                fontSize: 12,
                 color: 'var(--ink-mute)',
                 fontStyle: 'italic',
               }}
@@ -280,7 +280,7 @@ export default function CertificateClient({
               <div
                 style={{
                   marginTop: 2,
-                  fontSize: 12,
+                  fontSize: 14,
                   color: 'var(--ink-mute)',
                 }}
               >
@@ -298,7 +298,7 @@ export default function CertificateClient({
               borderTop: '1px solid #D7CFBC',
               borderBottom: '1px solid #D7CFBC',
               textAlign: 'center',
-              fontSize: 12,
+              fontSize: 14,
               lineHeight: 1.7,
               color: '#2A2118',
             }}
@@ -317,7 +317,7 @@ export default function CertificateClient({
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: 14,
-              fontSize: 10.5,
+              fontSize: 12,
               color: '#3A3128',
             }}
           >
@@ -349,7 +349,7 @@ export default function CertificateClient({
           >
             <div
               style={{
-                fontSize: 9.5,
+                fontSize: 12,
                 color: '#9C9282',
                 letterSpacing: '0.05em',
               }}
@@ -365,7 +365,7 @@ export default function CertificateClient({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 8,
+                fontSize: 12,
                 color: 'var(--accent-deep)',
                 fontWeight: 800,
                 lineHeight: 1.15,
@@ -453,7 +453,7 @@ function Row({
     <div>
       <div
         style={{
-          fontSize: 9,
+          fontSize: 12,
           color: '#9C9282',
           letterSpacing: '0.18em',
           wordSpacing: '-0.12em',
@@ -466,7 +466,7 @@ function Row({
       <div
         style={{
           marginTop: 2,
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: 700,
           color: 'var(--ink)',
           fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',

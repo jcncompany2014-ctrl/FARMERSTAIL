@@ -278,7 +278,7 @@ export default function DiaryClient({
             <h3
               className="font-sans mt-2"
               style={{
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',

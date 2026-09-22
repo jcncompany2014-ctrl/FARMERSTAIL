@@ -92,7 +92,7 @@ export default async function DogsPage() {
             <h3
               className="font-sans mt-2"
               style={{
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 800,
                 color: 'var(--ink)',
                 letterSpacing: '-0.02em',
@@ -143,7 +143,7 @@ export default async function DogsPage() {
                     <h3
                       className="font-sans truncate"
                       style={{
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: 800,
                         color: 'var(--ink)',
                         letterSpacing: '-0.02em',
@@ -155,7 +155,7 @@ export default async function DogsPage() {
                     <div
                       className="flex flex-wrap items-baseline gap-x-1.5 mt-1 font-mono tabular-nums"
                       style={{
-                        fontSize: 9.5,
+                        fontSize: 12,
                         fontWeight: 600,
                         letterSpacing: '0.04em',
                         color: 'var(--muted)',

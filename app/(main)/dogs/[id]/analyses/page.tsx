@@ -166,7 +166,7 @@ export default async function AnalysesTimelinePage({
               borderColor: 'color-mix(in srgb, var(--gold) 35%, transparent)',
             }}
           >
-            <span style={{ fontSize: 16 }}>🔄</span>
+            <span style={{ fontSize: 18 }}>🔄</span>
             <div className="flex-1">
               <p
                 className="text-[12px] font-bold leading-snug"

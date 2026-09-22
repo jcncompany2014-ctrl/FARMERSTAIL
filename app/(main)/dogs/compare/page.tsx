@@ -119,7 +119,7 @@ export default async function CompareDogsPage() {
                     key={d.id}
                     scope="col"
                     className="text-left p-2 font-bold text-text"
-                    style={{ fontSize: 13.5 }}
+                    style={{ fontSize: 16 }}
                   >
                     {d.name}
                   </th>

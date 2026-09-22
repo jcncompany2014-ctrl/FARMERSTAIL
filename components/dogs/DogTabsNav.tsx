@@ -29,7 +29,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Camera, BarChart3 } from 'lucide-react'
 import DogPawMark from '@/components/DogPawMark'
-import { V3FontSize } from '@/lib/design/tokens'
 
 type Tab = {
   href: (id: string) => string
@@ -138,7 +137,7 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
                 className={`mt-1 font-bold tracking-tight ${
                   active ? 'text-text' : 'text-muted'
                 }`}
-                style={{ fontSize: V3FontSize.base }}
+                style={{ fontSize: 14 }}
               >
                 {label}
               </span>

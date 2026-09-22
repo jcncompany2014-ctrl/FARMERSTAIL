@@ -625,7 +625,7 @@ export default function OrderClient({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 700,
           color: 'var(--muted)',
           marginBottom: 14,
@@ -699,12 +699,12 @@ export default function OrderClient({
                 <div
                   style={{ display: 'flex', flexDirection: 'column', gap: 3 }}
                 >
-                  <strong style={{ fontSize: 13.5, color: 'var(--ink)' }}>
+                  <strong style={{ fontSize: 16, color: 'var(--ink)' }}>
                     이 박스는 권장하지 않아요
                   </strong>
                   <span
                     style={{
-                      fontSize: 12,
+                      fontSize: 14,
                       lineHeight: 1.55,
                       color: 'var(--text)',
                     }}

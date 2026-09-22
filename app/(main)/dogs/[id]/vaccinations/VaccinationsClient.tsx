@@ -154,7 +154,7 @@ export default function VaccinationsClient({
                   <p
                     className="font-sans"
                     style={{
-                      fontSize: 13.5,
+                      fontSize: 16,
                       fontWeight: 700,
                       color: 'var(--ink)',
                     }}
@@ -206,7 +206,7 @@ export default function VaccinationsClient({
                     <p
                       className="font-sans"
                       style={{
-                        fontSize: 13.5,
+                        fontSize: 16,
                         fontWeight: 700,
                         color: 'var(--ink)',
                       }}
@@ -301,7 +301,7 @@ export default function VaccinationsClient({
           {err && (
             <p
               role="alert"
-              style={{ margin: '10px 0 0', fontSize: 12, color: V3.sale }}
+              style={{ margin: '10px 0 0', fontSize: 14, color: V3.sale }}
             >
               {err}
             </p>

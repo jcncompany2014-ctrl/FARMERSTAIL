@@ -96,7 +96,7 @@ export default function QuickMemoSheet({
         >
           {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 줄
         </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
+        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
           짧아도 좋아요 · 나중에 추억이 돼요
         </p>
 
@@ -115,7 +115,7 @@ export default function QuickMemoSheet({
             borderRadius: 4,
             padding: 12,
             fontFamily: 'var(--font-sans)',
-            fontSize: 13.5,
+            fontSize: 16,
             color: V3.ink,
             resize: 'none',
             outline: 'none',
@@ -130,7 +130,7 @@ export default function QuickMemoSheet({
             display: 'inline-block',
             marginTop: 14,
             fontFamily: 'var(--font-mono)',
-            fontSize: 11,
+            fontSize: 12,
             letterSpacing: '0.06em',
             color: V3.accentDeep,
             fontWeight: 600,
@@ -142,7 +142,7 @@ export default function QuickMemoSheet({
 
       <BottomSheet.Footer>
         {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 12, color: V3.sale }}>
+          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
             {err}
           </p>
         )}
@@ -160,7 +160,7 @@ export default function QuickMemoSheet({
             cursor: busy ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
             gap: 8,
           }}
         >

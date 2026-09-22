@@ -141,7 +141,7 @@ export default function QuickWalkSheet({
         >
           {dogName ? `${dogName} ` : ''}오늘 산책은 어땠나요?
         </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
+        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
           시간은 15분 단위 · 활동량은 선택
         </p>
 
@@ -149,7 +149,7 @@ export default function QuickWalkSheet({
         <div style={{ marginTop: 18 }}>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: V3FontWeight.bold,
               color: V3.inkSoft,
               marginBottom: 8,
@@ -224,7 +224,7 @@ export default function QuickWalkSheet({
         <div style={{ marginTop: 16 }}>
           <div
             style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: V3FontWeight.bold,
               color: V3.inkSoft,
               marginBottom: 8,
@@ -251,7 +251,7 @@ export default function QuickWalkSheet({
                     border: `1px solid ${active ? V3.ink : V3.rule}`,
                     fontFamily: 'var(--font-sans)',
                     fontWeight: V3FontWeight.bold,
-                    fontSize: 13.5,
+                    fontSize: 16,
                     letterSpacing: '-0.01em',
                     cursor: 'pointer',
                   }}
@@ -266,7 +266,7 @@ export default function QuickWalkSheet({
 
       <BottomSheet.Footer>
         {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 12, color: V3.sale }}>
+          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
             {err}
           </p>
         )}
@@ -284,7 +284,7 @@ export default function QuickWalkSheet({
             cursor: busy ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
             gap: 8,
           }}
         >

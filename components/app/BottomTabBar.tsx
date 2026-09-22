@@ -92,6 +92,9 @@ const RIGHT: LinkTab[] = [
   },
 ]
 
+// 탭바 라벨은 본문 토큰(16)을 따르지 않는다 — 사장님 "무겁다"(2026-09-22). 탭바 표준 12~13.
+const TAB_LABEL_PX = 13.5
+
 const RECORD_ACTIONS = [
   { key: 'health', label: '건강 · 식사', hint: '컨디션과 밥', Icon: Activity },
   { key: 'weight', label: '체중', hint: '오늘 잰 몸무게', Icon: Scale },
@@ -144,7 +147,7 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
         <Icon size={22} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
         <span
           className="leading-none"
-          style={{ fontSize: V3FontSize.base, fontWeight: active ? 700 : 600, letterSpacing: '-0.01em' }}
+          style={{ fontSize: TAB_LABEL_PX, fontWeight: active ? 700 : 600, letterSpacing: '-0.01em' }}
         >
           {t.label}
         </span>

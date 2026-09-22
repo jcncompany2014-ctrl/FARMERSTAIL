@@ -154,7 +154,7 @@ export default async function YearInReviewPage({
           <h1
             className="font-sans mt-3"
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.015em',
@@ -263,7 +263,7 @@ export default async function YearInReviewPage({
                 <p
                   className="font-sans leading-tight"
                   style={{
-                    fontSize: 13.5,
+                    fontSize: 16,
                     fontWeight: 700,
                     color: 'var(--ink)',
                     letterSpacing: '-0.01em',
@@ -305,7 +305,7 @@ export default async function YearInReviewPage({
           <p
             className="mt-2 font-sans leading-snug"
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: 700,
               color: 'var(--ink)',
               letterSpacing: '-0.01em',
@@ -370,7 +370,7 @@ function StatCard({
         <p
           className="font-sans mt-0.5"
           style={{
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: 800,
             color: 'var(--ink)',
             letterSpacing: '-0.015em',

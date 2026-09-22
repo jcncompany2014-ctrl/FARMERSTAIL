@@ -384,7 +384,7 @@ export default function CheckinClient({
                 borderRadius: 12,
                 background: 'var(--cream, #faf6ec)',
                 border: '1px solid var(--rule, rgba(22,20,15,0.1))',
-                fontSize: 13.5,
+                fontSize: 16,
                 lineHeight: 1.55,
                 color: 'var(--ink, #16140f)',
               }}
@@ -412,7 +412,7 @@ export default function CheckinClient({
               border: 'none',
               background: 'var(--terracotta, #c4623f)',
               color: '#fff',
-              fontSize: 13.5,
+              fontSize: 16,
               fontWeight: 800,
               cursor: 'pointer',
               fontFamily: 'inherit',
@@ -426,7 +426,7 @@ export default function CheckinClient({
             href={`/dogs/${dogId}`}
             style={{
               textAlign: 'center',
-              fontSize: 12.5,
+              fontSize: 14,
               fontWeight: 600,
               color: 'var(--muted, #706854)',
               textDecoration: 'none',

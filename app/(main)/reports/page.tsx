@@ -150,7 +150,7 @@ export default async function ReportsPage() {
                 <p
                   className="font-sans"
                   style={{
-                    fontSize: 13.5,
+                    fontSize: 16,
                     fontWeight: 700,
                     color: 'var(--ink)',
                   }}

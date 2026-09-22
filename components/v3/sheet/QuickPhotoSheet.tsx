@@ -172,7 +172,7 @@ export default function QuickPhotoSheet({
         >
           {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 컷
         </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 12.5, color: V3.inkMute }}>
+        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
           최대 {MAX}장 · 고르면 바로 저장돼요
         </p>
 
@@ -259,7 +259,7 @@ export default function QuickPhotoSheet({
             display: 'inline-block',
             marginTop: 16,
             fontFamily: 'var(--font-mono)',
-            fontSize: 11,
+            fontSize: 12,
             letterSpacing: '0.06em',
             color: V3.accentDeep,
             fontWeight: 600,
@@ -271,7 +271,7 @@ export default function QuickPhotoSheet({
 
       <BottomSheet.Footer>
         {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 12, color: V3.sale }}>
+          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
             {err}
           </p>
         )}
@@ -289,7 +289,7 @@ export default function QuickPhotoSheet({
             cursor: busy ? 'wait' : 'pointer',
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
             gap: 8,
           }}
         >

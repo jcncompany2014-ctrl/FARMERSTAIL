@@ -48,7 +48,7 @@ export default function RecordSegments({
                 flex: 1,
                 padding: '9px 8px',
                 borderRadius: 8,
-                fontSize: 13.5,
+                fontSize: 16,
                 fontWeight: on ? 700 : 600,
                 letterSpacing: '-0.01em',
                 textDecoration: 'none',

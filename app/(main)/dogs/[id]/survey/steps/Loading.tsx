@@ -35,7 +35,7 @@ export default function Loading({
       </h2>
       <p
         style={{
-          fontSize: 12,
+          fontSize: 14,
           color: 'var(--fd-muted)',
           lineHeight: 1.7,
           fontFamily: 'var(--font-sans), Pretendard, sans-serif',
@@ -107,7 +107,7 @@ export default function Loading({
             color: '#fff',
             padding: '13px 22px',
             borderRadius: 99,
-            fontSize: 13.5,
+            fontSize: 16,
             fontWeight: 800,
             cursor: 'pointer',
             fontFamily: 'inherit',
@@ -132,7 +132,7 @@ export default function Loading({
             background: 'transparent',
             color: 'var(--fd-muted)',
             padding: '8px 14px',
-            fontSize: 12.5,
+            fontSize: 14,
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'inherit',

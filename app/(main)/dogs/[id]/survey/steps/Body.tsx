@@ -318,7 +318,7 @@ export default function Body({
           <span className="s-label-text">살이 잘 찌는 편인가요?</span>
           <span className="s-opt">선택</span>
         </div>
-        <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
+        <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
           조금만 더 먹여도 금방 찌는 체질이면 급여량을 살짝 보수적으로 잡아요.
         </p>
         <div className="s-chiprow">
@@ -361,7 +361,7 @@ export default function Body({
               <span className="s-label-text">체중을 어떻게 쟀어요?</span>
               <span className="s-opt">선택</span>
             </div>
-            <p className="s-sub" style={{ fontSize: 13, marginBottom: 8 }}>
+            <p className="s-sub" style={{ fontSize: 16, marginBottom: 8 }}>
               측정 도구가 정확할수록 급여량을 더 정밀하게 계산해요.
             </p>
             <div className="s-chiprow">

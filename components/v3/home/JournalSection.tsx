@@ -106,7 +106,7 @@ export default function JournalSection({
             href={viewAllHref}
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 13.5,
+              fontSize: 16,
               color: V3.ink,
               fontWeight: 600,
             }}
@@ -155,7 +155,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.black,
-            fontSize: 16,
+            fontSize: 18,
             lineHeight: 1,
             marginTop: 2,
             letterSpacing: '-0.025em',
@@ -172,7 +172,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
                 background: TAG_BG[tagTone],
                 color: TAG_FG[tagTone],
                 fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-                fontSize: 9,
+                fontSize: 12,
                 fontWeight: 700,
                 padding: '2px 6px',
                 borderRadius: 2,
@@ -189,7 +189,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           style={{
             fontFamily: 'var(--font-sans)',
             fontWeight: V3FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
             color: V3.ink,
             marginTop: 6,
             letterSpacing: '-0.015em',
@@ -202,7 +202,7 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
           className="ft-clamp-2"
           style={{
             fontFamily: 'var(--font-sans)',
-            fontSize: 12,
+            fontSize: 14,
             color: V3.inkSoft,
             marginTop: 4,
             lineHeight: 1.4,

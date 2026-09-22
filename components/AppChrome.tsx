@@ -554,7 +554,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                   <span
                     style={{
                       fontFamily: 'var(--font-sans)',
-                      fontSize: 13.5,
+                      fontSize: 16,
                       fontWeight: 600,
                       color: 'var(--ink)',
                       letterSpacing: '-0.01em',
@@ -585,7 +585,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     <span
                       style={{
                         fontFamily: 'var(--font-sans)',
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: 600,
                         color: 'var(--ink)',
                         maxWidth: 110,
@@ -652,7 +652,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                             <span
                               style={{
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: isActive ? 700 : 500,
                                 color: 'var(--ink)',
                                 maxWidth: 140,
@@ -701,7 +701,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                         <span
                           style={{
                             fontFamily: 'var(--font-sans)',
-                            fontSize: 13.5,
+                            fontSize: 16,
                             fontWeight: 500,
                             color: 'var(--ink-mute)',
                             letterSpacing: '-0.01em',
@@ -745,7 +745,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                             <span
                               style={{
                                 fontFamily: 'var(--font-sans)',
-                                fontSize: 13.5,
+                                fontSize: 16,
                                 fontWeight: adminMode ? 700 : 500,
                                 color: adminMode ? 'var(--accent)' : 'var(--ink-mute)',
                                 letterSpacing: '-0.01em',

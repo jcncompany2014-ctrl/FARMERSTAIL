@@ -222,7 +222,7 @@ export default async function MembershipPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span style={{ fontSize: 16 }}>🐾</span>
+                      <span style={{ fontSize: 18 }}>🐾</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
