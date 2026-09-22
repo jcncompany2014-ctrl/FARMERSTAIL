@@ -827,7 +827,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           사용성 기획으로 복귀. 2026-06-17 에 뺐던 탭바를 되살린 것이고, 우하단
           발바닥 FAB 는 가운데 "기록" 탭으로 흡수했다. 앱 전용·몰입 화면 숨김은
           컴포넌트 안에서 처리. */}
-      <BottomTabBar activeDogId={activeDog?.id ?? null} hidden={focusMode} />
+      <BottomTabBar
+        activeDogId={activeDog?.id ?? null}
+        activeDogName={activeDog?.name ?? null}
+        hidden={focusMode}
+      />
 
     </div>
   )

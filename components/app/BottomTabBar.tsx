@@ -32,6 +32,7 @@ import { V3, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import DogPawMark from '@/components/DogPawMark'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { useIsAppContext } from '@/lib/app-context-client'
+import { petName } from '@/lib/korean'
 import QuickHealthSheet from '@/components/v3/sheet/QuickHealthSheet'
 import QuickWeightSheet from '@/components/v3/sheet/QuickWeightSheet'
 import QuickMemoSheet from '@/components/v3/sheet/QuickMemoSheet'
@@ -40,6 +41,8 @@ import QuickPhotoSheet from '@/components/v3/sheet/QuickPhotoSheet'
 interface BottomTabBarProps {
   /** 기록 시트의 대상 강아지. null 이면 기록 탭이 강아지 등록으로 보낸다. */
   activeDogId: string | null
+  /** 시트 제목에 쓰는 이름("푸린이의 오늘"). */
+  activeDogName?: string | null
   /** 몰입 화면(설문 등)에서 숨김. */
   hidden?: boolean
 }
@@ -88,16 +91,16 @@ const RIGHT: LinkTab[] = [
 ]
 
 const RECORD_ACTIONS = [
-  { key: 'health', label: '건강 · 식사', hint: '오늘 컨디션과 밥', Icon: Activity },
+  { key: 'health', label: '건강 · 식사', hint: '컨디션과 밥', Icon: Activity },
   { key: 'weight', label: '체중', hint: '오늘 잰 몸무게', Icon: Scale },
   { key: 'diary', label: '일기', hint: '한 줄 메모', Icon: Pencil },
   { key: 'photo', label: '사진', hint: '오늘의 한 장', Icon: Camera },
 ] as const
 type RecordKey = (typeof RECORD_ACTIONS)[number]['key']
 
-const PAW = 52
+const PAW = 56
 
-export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps) {
+export default function BottomTabBar({ activeDogId, activeDogName, hidden }: BottomTabBarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isApp = useIsAppContext()
@@ -172,38 +175,34 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
         >
           {LEFT.map(renderLink)}
 
-          {/* 가운데 — 발바닥 "기록". 원은 위로 살짝 솟지만 눌리는 영역은 칸 전체. */}
+          {/* 가운데 — 발바닥 원 하나(글자 없음, 사장님 2026-09-22). 원의 중심을 바
+              윗선에 맞춰 절반이 위로 솟는다 — 흔한 '가운데 큰 버튼' 모양이라 글자 없이도
+              눌러본다. 눌리는 영역은 칸 전체(원 + 아래 빈 자리). */}
           <button
             type="button"
             onClick={openRecord}
             aria-label="기록하기"
             aria-haspopup="dialog"
             aria-expanded={recordActive}
-            className="relative flex flex-col items-center justify-end ft-no-press"
-            // 원(56px)이 위로 20px 솟고, 글자는 그 아래 칸 바닥에 — 에뮬레이터 실측으로
-            // 원이 글자 윗부분을 가리던 것(top -14) 을 띄웠다(2026-09-21).
-            style={{ color: recordActive ? 'var(--accent)' : V3.ink, paddingBottom: 8 }}
+            className="relative flex items-start justify-center ft-no-press"
           >
             <span
               aria-hidden
-              className="absolute flex items-center justify-center"
+              className="absolute flex items-center justify-center transition-transform duration-150"
               style={{
-                top: -16,
+                top: -(PAW / 2),
                 width: PAW,
                 height: PAW,
                 borderRadius: 999,
-                background: V3.accentDeep,
-                boxShadow: '0 6px 16px rgba(22,20,15,0.26)',
-                border: `2.5px solid ${V3.paper}`,
+                background: recordActive ? 'var(--accent)' : V3.accentDeep,
+                boxShadow: recordActive
+                  ? '0 4px 12px rgba(22,20,15,0.22)'
+                  : '0 8px 18px -4px rgba(22,20,15,0.32)',
+                border: `3px solid ${V3.paper}`,
+                transform: recordActive ? 'scale(0.94)' : 'scale(1)',
               }}
             >
-              <DogPawMark size={24} color={V3.paper} />
-            </span>
-            <span
-              className="leading-none"
-              style={{ fontSize: V3FontSize.base, fontWeight: 700, letterSpacing: '-0.01em' }}
-            >
-              기록
+              <DogPawMark size={26} color={V3.paper} />
             </span>
           </button>
 
@@ -211,50 +210,62 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
         </div>
       </nav>
 
-      {/* 기록 메뉴 — 큰 글자 4줄. 고른 뒤 해당 시트가 열린다. */}
-      <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} title="무엇을 기록할까요?">
-        <ul className="flex flex-col gap-2 px-1 pb-2">
-          {RECORD_ACTIONS.map((a) => {
-            const Icon = a.Icon
-            return (
-              <li key={a.key}>
+      {/* 기록 메뉴 — 제목은 시트 기본 헤더(구분선) 대신 직접 그린다. 2×2 타일:
+          아이콘 원 + 이름 + 한 줄 설명. 여백은 v3 스케일(20/12/16). */}
+      <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} ariaLabel="기록하기">
+        <div className="px-5 pt-2" style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom))' }}>
+          <p
+            className="leading-snug"
+            style={{ fontSize: V3FontSize.lg, fontWeight: 800, color: V3.ink, letterSpacing: '-0.02em' }}
+          >
+            {activeDogName ? `${petName(activeDogName)}의 오늘` : '오늘 기록'}
+          </p>
+          <p className="mt-1" style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
+            무엇을 남길까요?
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {RECORD_ACTIONS.map((a) => {
+              const Icon = a.Icon
+              return (
                 <button
+                  key={a.key}
                   type="button"
                   onClick={() => pick(a.key)}
-                  className="w-full flex items-center gap-4 text-left"
+                  className="flex flex-col items-start text-left transition active:scale-[0.98]"
                   style={{
                     borderRadius: V3Radius.md,
-                    minHeight: 64,
-                    padding: '12px 16px',
+                    padding: 16,
                     background: V3.paperDeep,
                     border: `1px solid ${V3.rule}`,
+                    minHeight: 124,
                   }}
                 >
                   <span
-                    className="flex items-center justify-center shrink-0"
+                    className="flex items-center justify-center"
                     style={{
                       width: 44,
                       height: 44,
-                      borderRadius: V3Radius.md,
-                      background: V3.paper,
+                      borderRadius: 999,
+                      background: 'color-mix(in srgb, var(--accent) 14%, var(--paper))',
                       color: V3.accentDeep,
                     }}
                   >
-                    <Icon size={24} strokeWidth={2.1} aria-hidden />
+                    <Icon size={22} strokeWidth={2.1} aria-hidden />
                   </span>
-                  <span className="flex flex-col">
-                    <span style={{ fontSize: V3FontSize.md, fontWeight: 800, color: V3.ink }}>
-                      {a.label}
-                    </span>
-                    <span style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
-                      {a.hint}
-                    </span>
+                  <span
+                    className="mt-3 leading-snug"
+                    style={{ fontSize: V3FontSize.md, fontWeight: 800, color: V3.ink }}
+                  >
+                    {a.label}
+                  </span>
+                  <span className="mt-0.5" style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
+                    {a.hint}
                   </span>
                 </button>
-              </li>
-            )
-          })}
-        </ul>
+              )
+            })}
+          </div>
+        </div>
       </BottomSheet>
 
       {activeDogId && (

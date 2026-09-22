@@ -3581,9 +3581,11 @@ test('규칙83: 앱 하단 탭은 앱에서만·몰입 화면 밖에서만 그�
   const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
   assert.match(bar, /useIsAppContext\(\)/, '하단 탭이 앱 판정(useIsAppContext) 없이 그려진다 — 웹에 앱 탭이 뜬다')
   assert.match(bar, /if \(hidden \|\| !isApp\) return null/, '하단 탭이 hidden/!isApp 에서 null 을 반환하지 않는다')
-  for (const label of ['홈', '우리 아이', '기록', '정기배송', '내 정보']) {
-    assert.ok(bar.includes(`'${label}'`) || bar.includes(`>${label}<`) || bar.includes(`${label}\n`), `하단 탭에 '${label}' 라벨이 없다`)
+  for (const label of ['홈', '우리 아이', '정기배송', '내 정보']) {
+    assert.ok(bar.includes(`'${label}'`), `하단 탭에 '${label}' 라벨이 없다`)
   }
+  // 가운데 발바닥은 글자 없이 원만(사장님 2026-09-22) — 접근성 이름은 aria-label 로.
+  assert.match(bar, /aria-label="기록하기"/, '가운데 발바닥 버튼에 접근성 이름(기록하기)이 없다')
 
   const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
   assert.match(chrome, /<BottomTabBar[^>]*hidden=\{focusMode\}/, 'AppChrome 이 하단 탭에 focusMode 를 넘기지 않는다 — 설문 화면에 탭이 뜬다')
