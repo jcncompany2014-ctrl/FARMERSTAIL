@@ -3760,6 +3760,12 @@ test('규칙86: 앱 설문은 화면당 질문 하나 — 글자 12px 이상·�
   assert.doesNotMatch(client, /const STEPS\s*=/, 'SurveyClient 에 화면 순서 상수가 되살아났다 — flow.ts 가 정본')
   assert.doesNotMatch(client, /STEP\s*\{/, '영문 STEP 카운터가 되살아났다')
   assert.match(client, /<GateScreen/, '선택 묶음 관문(GateScreen)이 없다 — "건너뛰고 결과 보기" 구조')
+  // 관문에서 건너뛴 4개를 나중에 답하는 길 — 결과 화면 카드(?refine=1) ↔ 설문 page 시드 ↔ answers 플래그.
+  assert.match(client, /optionalSkipped:\s*optChoice === 'skip'/, 'answers.optionalSkipped 플래그가 빠졌다 — 결과 화면 카드가 영원히 안 뜬다')
+  const analysisView = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'analysis', 'AnalysisView.tsx')))
+  assert.match(analysisView, /survey\?refine=1/, '결과 화면에 "정확도 올리기"(?refine=1) 진입점이 없다')
+  const surveyPage = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'page.tsx')))
+  assert.match(surveyPage, /seedFromSurvey\(/, '설문 page 가 ?refine=1 시드(seedFromSurvey)를 넘기지 않는다')
 
   // 화면 컴포넌트: 각 *Screen 은 ScreenShell(질문 하나) 하나만 그린다. 옛 default export
   // (한 파일 = 한 스텝에 질문 여러 개) 로 돌아가지 않았는지.

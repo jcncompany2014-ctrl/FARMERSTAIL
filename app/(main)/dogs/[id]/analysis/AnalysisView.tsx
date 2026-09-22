@@ -34,12 +34,15 @@ import AnalysisEmptyState from './_components/AnalysisEmptyState'
 import AnalysisStickySummary from './_components/AnalysisStickySummary'
 import AnalysisArchiveBanner from './_components/AnalysisArchiveBanner'
 import AnalysisMagazineSection from './_components/AnalysisMagazineSection'
+import { optionalSkipped } from '@/lib/survey/refine'
 import AiCommentCard from '@/components/v3/AiCommentCard'
 import AnalysisCTASection from './_components/AnalysisCTASection'
 import VetShareButton from '@/components/VetShareButton'
 
 type Analysis = {
   id: string
+  /** 이 분석을 만든 설문 행 — 결과 화면 "정확도 올리기" 판정용(select('*') 라 런타임엔 있다). */
+  survey_id?: string | null
   mer: number
   rer: number
   factor: number
@@ -131,6 +134,8 @@ export default function AnalysisView({
   const [loading, setLoading] = useState(true)
   // 실패를 "결과 없음"으로 위장하지 않기 위한 상태(2026-08-05).
   const [loadError, setLoadError] = useState(false)
+  // 설문 v4 — 마지막 설문이 선택 묶음을 건너뛰었으면 "정확도 올리기" 카드(lib/survey/refine).
+  const [canRefine, setCanRefine] = useState(false)
   // 2026-05-21: Magazine BoxMixCard 를 실제 추천 알고리즘과 연동.
   // RecommendationBox 도 자체 fetch 중이라 중복 호출이지만 첫 박스 시점
   // formula 는 deterministic — 가벼운 작업이라 두 번 호출 허용.
@@ -225,6 +230,18 @@ export default function AnalysisView({
       // — UI 가 null fallback 이미 처리. cast 우회.
       setAnalysis(target as unknown as Analysis)
       setLoading(false)
+
+      // 이 분석을 만든 설문이 선택 묶음을 건너뛰었나 — 실패해도 카드만 안 뜬다(silent).
+      const surveyId = (target as { survey_id?: string | null }).survey_id
+      if (surveyId && !analysisId) {
+        const { data: sv, error: svErr } = await supabase
+          .from('surveys')
+          .select('answers')
+          .eq('id', surveyId)
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (!svErr && sv) setCanRefine(optionalSkipped(sv as { answers?: unknown }))
+      }
     }
     // R97-B (D7): load() 내부 auth/dogs/analyses fetch 중 throw (네트워크
     // 끊김 / Supabase 5xx / RLS 거부) 시 setLoading(false) 미도달 → 무한
@@ -502,6 +519,37 @@ export default function AnalysisView({
 
       {/* 가격 안심(PriceFramingCard, 한 끼 단가·카페 라떼 비교)은 2026-07-14
           사장님 지시로 삭제 — 가격은 플랜/배송 스텝에서만 다룬다. */}
+
+      {/* 설문 v4 — 관문에서 "건너뛰고 결과 보기"를 고른 경우: 선택 4개를 이어서 답하는
+          자리(사장님 9/21 "결과 화면에서 정확도 올리기"). ?refine=1 은 마지막 설문의 답을
+          그대로 들고 선택 묶음 첫 화면에서 시작한다(lib/survey/refine.ts). */}
+      {!isArchive && canRefine && (
+        <section className="px-5 mt-5">
+          <Link
+            href={`/dogs/${dogId}/survey?refine=1`}
+            className="block rounded border p-4 transition active:scale-[0.99]"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--accent) 45%, var(--rule))',
+              background: 'color-mix(in srgb, var(--accent) 7%, var(--paper))',
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] font-bold" style={{ color: 'var(--accent)' }}>
+                  정확도 올리기
+                </p>
+                <p className="text-[16px] font-bold text-ink mt-1 leading-snug">
+                  아직 답하지 않은 질문 4개가 있어요
+                </p>
+                <p className="text-[14px] text-muted mt-1 leading-relaxed">
+                  지금 먹는 사료 · 산책 · 운동·사는 곳 · 먹는 약. 1분이면 급여량이 더 정확해져요.
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 shrink-0" style={{ color: 'var(--accent)' }} strokeWidth={2.5} />
+            </div>
+          </Link>
+        </section>
+      )}
 
       <AnalysisCTASection
         dogId={dogId}

@@ -216,7 +216,7 @@ export default function StartJoinPage() {
 
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px" style={{ background: 'var(--rule)' }} />
-          <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 600 }}>
+          <span style={{ color: 'var(--muted)', fontSize: 14, fontWeight: 600 }}>
             또는 이메일로 가입
           </span>
           <div className="flex-1 h-px" style={{ background: 'var(--rule)' }} />
@@ -287,7 +287,7 @@ export default function StartJoinPage() {
                 role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--fd-coral-text)',
                 }}
@@ -320,7 +320,7 @@ export default function StartJoinPage() {
                 role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--fd-coral-text)',
                 }}
@@ -360,7 +360,7 @@ export default function StartJoinPage() {
                 role="alert"
                 className="mt-1 flex items-center gap-1"
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--fd-coral-text)',
                 }}
@@ -387,7 +387,7 @@ export default function StartJoinPage() {
                 style={{ accentColor: 'var(--fd-coral)' }}
               />
               <span
-                style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink)' }}
+                style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)' }}
               >
                 <b style={{ color: 'var(--fd-coral)' }}>[필수]</b> 만 14세
                 이상이며,{' '}
@@ -420,7 +420,7 @@ export default function StartJoinPage() {
                 style={{ accentColor: 'var(--muted)' }}
               />
               <span
-                style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}
+                style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}
               >
                 <span className="font-bold">[선택]</span> 혜택·이벤트 소식 수신에
                 동의합니다
@@ -433,7 +433,7 @@ export default function StartJoinPage() {
               role="alert"
               className="flex items-start gap-2"
               style={{
-                fontSize: 12.5,
+                fontSize: 14,
                 fontWeight: 600,
                 color: 'var(--fd-coral-text)',
               }}

@@ -46,7 +46,7 @@ export default function StartAppShell({
         </Link>
         <Link
           href="/login"
-          style={{ fontSize: 12, fontWeight: 700, color: 'var(--fd-muted)', textDecoration: 'none' }}
+          style={{ fontSize: 14, fontWeight: 700, color: 'var(--fd-muted)', textDecoration: 'none' }}
         >
           나가기
         </Link>

@@ -8,14 +8,19 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { weightFromRER } from '@/lib/v3-helpers/analysis-view'
+import { seedFromSurvey, type SurveyRowLike } from '@/lib/survey/refine'
 import SurveyClient from './SurveyClient'
 
 export default async function SurveyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ refine?: string }>
 }) {
   const { id } = await params
+  const sp = await searchParams
+  const refine = sp.refine === '1'
 
   const supabase = await createClient()
   const {
@@ -29,12 +34,34 @@ export default async function SurveyPage({
   // 체중 + 측정시각도 함께 (B1: 30일 락 우회용 "중요 정보 변경" 감지).
   const { data: dog } = await supabase
     .from('dogs')
-    .select('id, weight, weight_measured_at')
+    .select('id, weight, weight_measured_at, prescription_diet')
     .eq('id', id)
     .eq('user_id', user.id)
     .maybeSingle()
   if (!dog) {
     redirect('/dogs')
+  }
+
+  // "정확도 올리기"(?refine=1) — 마지막 설문의 답으로 시작해 선택 묶음만 묻는다.
+  // 마지막 설문이 없으면 일반 설문으로 떨어진다(시드 null).
+  let refineFrom = null
+  if (refine) {
+    const { data: lastSurvey, error: lastSurveyErr } = await supabase
+      .from('surveys')
+      .select(
+        'answers, iris_stage, current_medications, current_food_brand, daily_walk_minutes, indoor_activity, expected_adult_weight_kg, pregnancy_week, litter_size',
+      )
+      .eq('dog_id', id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (!lastSurveyErr && lastSurvey) {
+      refineFrom = seedFromSurvey({
+        ...(lastSurvey as unknown as SurveyRowLike),
+        prescription_diet: (dog as { prescription_diet?: string | null }).prescription_diet ?? null,
+      })
+    }
   }
 
   // 재분석 월 3회 한도 (2026-07-12 사장님 — 옛 30일 락 대체). 이번 (KST) 달에
@@ -145,5 +172,5 @@ export default async function SurveyPage({
       ? { bcs: lastAnalysis.bcs_score, weightKg: prevWeightKg }
       : null
 
-  return <SurveyClient dogId={id} previous={previous} />
+  return <SurveyClient dogId={id} previous={previous} refineFrom={refineFrom} />
 }

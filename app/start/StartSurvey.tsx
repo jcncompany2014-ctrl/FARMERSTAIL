@@ -278,7 +278,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       <div aria-hidden style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 8, background: 'var(--fd-cream)' }} />
                     )}
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.2, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</span>
+                  <span style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', lineHeight: 1.2, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</span>
                   {active && (
                     <span style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: 999, background: 'var(--fd-coral)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Check className="w-3 h-3" strokeWidth={3} color="#fff" />
@@ -321,8 +321,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   {/* 사진 ↔ 텍스트 세로 구분선 */}
                   <div aria-hidden style={{ width: 1, alignSelf: 'stretch', flexShrink: 0, background: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)', opacity: active ? 0.4 : 1 }} />
                   <div style={{ flex: 1, textAlign: 'left', paddingLeft: 2 }}>
-                    <div style={{ fontSize: 15.5, fontWeight: 800, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</div>
-                    {o.desc && <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 500, color: 'var(--fd-muted)', lineHeight: 1.35 }}>{o.desc}</div>}
+                    <div style={{ fontSize: 17, fontWeight: 800, color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)' }}>{o.label}</div>
+                    {o.desc && <div style={{ marginTop: 3, fontSize: 13, fontWeight: 500, color: 'var(--fd-muted)', lineHeight: 1.35 }}>{o.desc}</div>}
                   </div>
                   {/* 우측 선택 라디오 — 항상 노출 */}
                   <span aria-hidden style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 999, border: '1.5px solid', borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)', background: active ? 'var(--fd-coral)' : 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s' }}>
@@ -347,7 +347,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                 background: active ? 'var(--fd-cream)' : 'var(--fd-offwhite)',
                 color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
-                fontSize: 13.5, fontWeight: 700, transition: 'all .12s',
+                fontSize: 15, fontWeight: 700, transition: 'all .12s',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}
             >
@@ -374,7 +374,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                 background: active ? 'var(--fd-cream)' : '#FFFFFF',
                 color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
-                fontSize: 14, fontWeight: 700, transition: 'all .12s',
+                fontSize: 16, fontWeight: 700, transition: 'all .12s',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}
             >
@@ -507,9 +507,9 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
     const plan = computeStartPlan(draft)
     return (
       <div>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Result · 맞춤 분석</span>
+        <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--fd-green)' }}>맞춤 분석 결과</span>
         <h2 className="pt-3" style={{ fontSize: 24, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{petName(teaser.dogName)}의 맞춤 분석</h2>
-        <p className="pt-2" style={{ fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{teaser.bodyComment}</p>
+        <p className="pt-2" style={{ fontSize: 15, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{teaser.bodyComment}</p>
         {/* 결과 대표 이미지 자리 — **자산이 나올 때까지 비워 두지 않는다**(2026-08-02).
             여기 있던 PhotoSlot 은 src 가 없어서 고객에게 "맞춤 결과 대표 이미지
             (강아지·상품 누끼)" 라고 적힌 초록 빈 상자로 보였다. 그것도 하필
@@ -523,17 +523,17 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             { label: '하루 권장 급여량', val: teaser.feedG.toLocaleString(), unit: 'g' },
           ].map((m) => (
             <div key={m.label} className="rounded-[12px] px-4 py-5" style={{ background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fd-muted)' }}>{m.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fd-muted)' }}>{m.label}</div>
               <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 3 }}>
                 <span style={{ fontSize: 28, fontWeight: 900, color: 'var(--fd-pine)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{m.val}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fd-muted)' }}>{m.unit}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--fd-muted)' }}>{m.unit}</span>
               </div>
             </div>
           ))}
         </div>
         {nu && (
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--fd-muted)', textTransform: 'uppercase', marginBottom: 8 }}>권장 영양 구성</div>
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--fd-muted)', marginBottom: 8 }}>권장 영양 구성</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {/* ★최종감사 #15 (2026-07-29): Math.round 정확 %('단백질 32%')
                   노출 금지 — 항구 규칙(정확 영양소% 비노출). round 는 49.5→50
@@ -546,8 +546,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 { label: '탄수화물', text: `${Math.ceil(nu.carb.pct)}% 이하` },
               ].map((x) => (
                 <div key={x.label} className="rounded-[10px] px-2 py-3 text-center" style={{ background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--fd-pine)', fontVariantNumeric: 'tabular-nums' }}>{x.text}</div>
-                  <div style={{ fontSize: 11, color: 'var(--fd-muted)', fontWeight: 700, marginTop: 2 }}>{x.label}</div>
+                  <div style={{ fontSize: 17, fontWeight: 900, color: 'var(--fd-pine)', fontVariantNumeric: 'tabular-nums' }}>{x.text}</div>
+                  <div style={{ fontSize: 13, color: 'var(--fd-muted)', fontWeight: 700, marginTop: 2 }}>{x.label}</div>
                 </div>
               ))}
             </div>
@@ -557,8 +557,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             앱 쪽 상담 게이트와 같은 원칙 — 알레르기 성분을 추천하는 일이 없어야 한다. */}
         {teaser.proteins.length === 0 ? (
           <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--fd-pine)' }}>맞춤 상담이 필요해요</div>
-            <p style={{ marginTop: 5, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--fd-pine)' }}>맞춤 상담이 필요해요</div>
+            <p style={{ marginTop: 5, fontSize: 14, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
               입력하신 알레르기로 지금 판매 중인 레시피가 모두 제외됐어요.
               알레르기를 피하면서 잘 맞는 식단을 함께 찾아드릴게요.
             </p>
@@ -567,7 +567,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 href={business.kakaoChannelUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '9px 16px', background: '#FEE500', color: '#191600', borderRadius: 99, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '9px 16px', background: '#FEE500', color: '#191600', borderRadius: 99, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
               >
                 카카오톡으로 문의하기
               </a>
@@ -577,20 +577,20 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         <>
         <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <Check className="w-4 h-4 shrink-0" strokeWidth={2.5} color="var(--fd-green)" />
-          <span style={{ fontSize: 13.5, color: 'var(--fd-pine)', fontWeight: 700 }}>추천 단백질 <span style={{ color: 'var(--fd-coral-text)' }}>{teaser.proteins.join(' · ')}</span></span>
+          <span style={{ fontSize: 15, color: 'var(--fd-pine)', fontWeight: 700 }}>추천 단백질 <span style={{ color: 'var(--fd-coral-text)' }}>{teaser.proteins.join(' · ')}</span></span>
         </div>
         <div className="rounded-[12px] px-4 py-4" style={{ marginTop: 10, background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--fd-pine)' }}>추천 식단</div>
-          <p style={{ marginTop: 5, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--fd-pine)' }}>추천 식단</div>
+          <p style={{ marginTop: 5, fontSize: 14, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
             {petName(teaser.dogName)}에게는 <b style={{ color: 'var(--fd-pine)' }}>{teaser.proteins.join('·')} 기반 신선 화식</b>을 권장해요. 하루 권장량 {teaser.feedG.toLocaleString()}g을 1~2회로 나눠 급여하면 좋아요.
           </p>
           {nu?.vetConsult && (
-            <p style={{ marginTop: 6, fontSize: 11.5, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보를 보면 수의사 상담도 함께 권해 드려요.</p>
+            <p style={{ marginTop: 6, fontSize: 13, color: 'var(--fd-coral-text)', fontWeight: 600 }}>※ 입력하신 정보를 보면 수의사 상담도 함께 권해 드려요.</p>
           )}
         </div>
         </>
         )}
-        <p style={{ marginTop: 10, fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
+        <p style={{ marginTop: 10, fontSize: 13, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
           입력하신 정보로 계산한 참고용 추정치예요. 실제 급여량은 아이 상태에 따라 달라질 수 있어요.
         </p>
 
@@ -598,7 +598,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
           // ── 이메일 경로 완료(인증 메일 발송) ──
           <>
             <div className="rounded-[12px] px-5 py-5 text-center" style={{ marginTop: 18, background: 'var(--fd-pine)', color: 'var(--fd-offwhite)' }}>
-              <p style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(245,240,230,0.9)' }}>
+              <p style={{ fontSize: 15, lineHeight: 1.6, color: 'rgba(245,240,230,0.9)' }}>
                 <b>{email}</b>로 인증 메일을 보냈어요.
                 <br />메일 속 링크를 누른 뒤 로그인하면 정밀 분석을 앱에서 저장하고 볼 수 있어요.
               </p>
@@ -617,9 +617,9 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 동일 모델(잠정). 실결제는 토스 PG 통과 후. */}
             {plan && (
               <div style={{ marginTop: 18 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Your Plan · 맞춤 플랜</span>
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--fd-green)' }}>맞춤 플랜</span>
                 <h3 style={{ marginTop: 8, fontSize: 18, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{teaser.dogName} 맞춤 신선식 플랜</h3>
-                <p style={{ marginTop: 4, fontSize: 12.5, color: 'var(--fd-muted)' }}>
+                <p style={{ marginTop: 4, fontSize: 14, color: 'var(--fd-muted)' }}>
                   {plan.noSafeRecipe
                     ? `하루 약 ${plan.dailyKrw.toLocaleString()}원부터 · 맞춤 레시피는 상담으로 안내해 드려요`
                     : `추천 레시피 ${plan.recipes.length}종 · 하루 약 ${plan.dailyKrw.toLocaleString()}원부터`}
@@ -635,8 +635,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   <div className="rounded-[12px]" style={{ marginTop: 12, padding: '15px 16px', background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', gap: 10 }}>
                     <AlertCircle className="w-5 h-5 flex-shrink-0" strokeWidth={2.2} style={{ color: 'var(--fd-coral)' }} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-pine)' }}>맞춤 상담이 필요해요</div>
-                      <p style={{ marginTop: 4, fontSize: 12, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--fd-pine)' }}>맞춤 상담이 필요해요</div>
+                      <p style={{ marginTop: 4, fontSize: 14, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
                         선택하신 알레르기 정보로는 자동 추천이 어려워요. 가입하시면 단백질을 바꾼 맞춤 레시피를 함께 찾아드릴게요.
                       </p>
                     </div>
@@ -646,14 +646,14 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     {plan.recipes.map((r, i) => (
                       <div key={r.protein} className="rounded-[12px]" style={{ padding: '13px 15px', background: '#FFFFFF', boxShadow: i === 0 ? 'inset 0 0 0 1.5px var(--fd-coral)' : 'inset 0 0 0 1px var(--fd-line)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--fd-pine)' }}>{r.name}</span>
-                          {i === 0 && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'var(--fd-coral)', padding: '2px 7px', borderRadius: 999 }}>추천</span>}
-                          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fd-green)' }}>{r.concept}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--fd-pine)' }}>{r.name}</span>
+                          {i === 0 && <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', background: 'var(--fd-coral)', padding: '2px 7px', borderRadius: 999 }}>추천</span>}
+                          <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: 'var(--fd-green)' }}>{r.concept}</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => setOpenRecipe(r)}
-                          style={{ marginTop: 8, appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--fd-coral-text)' }}
+                          style={{ marginTop: 8, appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 14, fontWeight: 700, color: 'var(--fd-coral-text)' }}
                         >
                           자세히 보기
                           <ArrowRight className="w-3.5 h-3.5" strokeWidth={2.5} />
@@ -665,11 +665,11 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 {/* 가격 바 — 구독가 기준 잠정 단가(첫 주문 시 확정). 블랭킷 첫주문 50%
                     폐지(2026-07-17): 이벤트 할인은 이벤트 페이지 신규가입자에게만 적용. */}
                 <div className="rounded-[12px]" style={{ marginTop: 10, padding: '13px 16px', background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--fd-pine)' }}>하루</span>
-                  <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--fd-coral-text)' }}>약 {plan.dailyKrw.toLocaleString()}원부터</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fd-muted)' }}>구독가</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--fd-pine)' }}>하루</span>
+                  <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--fd-coral-text)' }}>약 {plan.dailyKrw.toLocaleString()}원부터</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-muted)' }}>구독가</span>
                 </div>
-                <p style={{ marginTop: 7, fontSize: 11, color: 'var(--fd-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+                <p style={{ marginTop: 7, fontSize: 13, color: 'var(--fd-muted)', textAlign: 'center', lineHeight: 1.5 }}>
                   배송 2주마다 · 가입 후 변경 가능. 예상가이며 첫 주문 시 확정돼요.
                 </p>
               </div>
@@ -686,8 +686,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
 
             {/* 다음 단계 — 앱 정밀 설문/분석표 유도 (웹=맛보기 → 앱=정밀 퍼널) */}
             <div className="rounded-[14px]" style={{ marginTop: 14, padding: '18px 18px', background: 'var(--fd-offwhite)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>Next · 가입하면</span>
-              <h3 style={{ marginTop: 7, fontSize: 16.5, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.35 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--fd-green)' }}>가입하면</span>
+              <h3 style={{ marginTop: 7, fontSize: 18, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.35 }}>
                 지금은 <b style={{ color: 'var(--fd-coral-text)' }}>2분 맛보기</b> 결과예요.
                 <br />앱에서 더 자세히 이어가요.
               </h3>
@@ -700,8 +700,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   <li key={t} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 9, alignItems: 'start' }}>
                     <Check className="w-4 h-4 shrink-0" strokeWidth={2.6} style={{ color: 'var(--fd-coral)', marginTop: 1 }} />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-pine)' }}>{t}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--fd-muted)', lineHeight: 1.5, marginTop: 1 }}>{d}</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--fd-pine)' }}>{t}</div>
+                      <div style={{ fontSize: 13, color: 'var(--fd-muted)', lineHeight: 1.5, marginTop: 1 }}>{d}</div>
                     </div>
                   </li>
                 ))}
@@ -709,10 +709,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
             </div>
 
             <div className="rounded-[12px] px-5 py-5" style={{ marginTop: 12, background: 'var(--fd-pine)' }}>
-              <p style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--fd-offwhite)', lineHeight: 1.45, textAlign: 'center' }}>
+              <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--fd-offwhite)', lineHeight: 1.45, textAlign: 'center' }}>
                 이 맞춤 플랜으로<br />시작해 보세요
               </p>
-              <p style={{ marginTop: 6, fontSize: 11.5, color: 'rgba(245,240,230,0.72)', lineHeight: 1.5, textAlign: 'center' }}>
+              <p style={{ marginTop: 6, fontSize: 13, color: 'rgba(245,240,230,0.72)', lineHeight: 1.5, textAlign: 'center' }}>
                 가입은 3초면 끝나요. 구독가로 바로 시작할 수 있어요.
               </p>
               <div style={{ marginTop: 14 }}>
@@ -734,7 +734,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     setShowEmailForm((s) => !s)
                   }}
                   aria-expanded={showEmailForm}
-                  style={{ appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: 'rgba(245,240,230,0.85)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                  style={{ appearance: 'none', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: 'rgba(245,240,230,0.85)', textDecoration: 'underline', textUnderlineOffset: 2 }}
                 >
                   {showEmailForm ? '이메일 가입 접기' : '카카오 대신 이메일로 가입할게요'}
                 </button>
@@ -758,7 +758,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setGuardianName(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: guardianName && guardianName.trim().length < 2 ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {guardianName && guardianName.trim().length < 2 && (
-                      <p id="su-guardian-name-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-guardian-name-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이름을 2자 이상 입력해 주세요
                       </p>
                     )}
@@ -772,7 +772,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setEmail(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: email && !emailValid(email) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {email && !emailValid(email) && (
-                      <p id="su-email-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-email-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이메일 주소 형식을 확인해 주세요
                       </p>
                     )}
@@ -784,7 +784,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {password && !passwordStrong(password) && (
-                      <p id="su-password-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />영문·숫자·특수문자를 포함해 8자 이상이어야 해요
                       </p>
                     )}
@@ -796,7 +796,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {passwordMismatch && (
-                      <p id="su-password-confirm-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-confirm-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />비밀번호가 일치하지 않아요
                       </p>
                     )}
@@ -807,7 +807,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       placeholder={`예: ${currentYear - 30}`} onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, ''))}
                       className={inputCls} style={{ ...inputStyle, borderColor: birthYear && !birthYearValid ? 'var(--sale)' : 'var(--fd-line-strong)', fontVariantNumeric: 'tabular-nums' }} />
                     {birthYear && !birthYearValid && (
-                      <p id="su-birth-year-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-birth-year-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />만 14세 이상만 가입할 수 있어요
                       </p>
                     )}
@@ -815,7 +815,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   <div className="rounded-lg px-4 py-3.5 space-y-2.5" style={{ background: 'var(--fd-cream)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}>
                     <label className="flex items-start gap-2 cursor-pointer">
                       <input type="checkbox" checked={agreeRequired} onChange={(e) => setAgreeRequired(e.target.checked)} className="mt-0.5 w-4 h-4" style={{ accentColor: 'var(--fd-pine)' }} />
-                      <span style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--fd-pine)' }}>
+                      <span style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--fd-pine)' }}>
                         <b style={{ color: 'var(--fd-coral)' }}>[필수]</b> 만 14세 이상이며,{' '}
                         <Link href="/legal/terms" target="_blank" className="underline underline-offset-2 font-bold" style={{ color: 'var(--fd-pine)' }}>이용약관</Link>·
                         <Link href="/legal/privacy" target="_blank" className="underline underline-offset-2 font-bold" style={{ color: 'var(--fd-pine)' }}>개인정보처리방침</Link>
@@ -824,7 +824,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     </label>
                     <label className="flex items-start gap-2 cursor-pointer">
                       <input type="checkbox" checked={agreeMarketing} onChange={(e) => setAgreeMarketing(e.target.checked)} className="mt-0.5 w-4 h-4" style={{ accentColor: 'var(--fd-muted)' }} />
-                      <span style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--fd-muted)' }}>
+                      <span style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--fd-muted)' }}>
                         <span className="font-bold">[선택]</span> 혜택·이벤트 소식 수신에 동의합니다
                       </span>
                     </label>
@@ -838,20 +838,20 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     passwordStrong(password) &&
                     password === confirmPassword &&
                     birthYearValid && (
-                      <p role="alert" className="flex items-center gap-1" style={{ fontSize: 12, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p role="alert" className="flex items-center gap-1" style={{ fontSize: 14, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />위의 필수 동의에 체크하면 가입할 수 있어요
                       </p>
                     )}
 
                   {signupError && (
-                    <div role="alert" className="flex items-start gap-2" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                    <div role="alert" className="flex items-start gap-2" style={{ fontSize: 14, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.5} />
                       <span>{signupError}</span>
                     </div>
                   )}
 
                   <button type="button" onClick={handleEmailSignup} disabled={!emailFormValid || saving}
-                    style={{ appearance: 'none', border: 'none', background: 'var(--fd-coral)', color: '#fff', padding: '13px 22px', borderRadius: 99, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: emailFormValid && !saving ? 1 : 0.5, transition: 'opacity .15s' }}>
+                    style={{ appearance: 'none', border: 'none', background: 'var(--fd-coral)', color: '#fff', padding: '15px 22px', minHeight: 54, borderRadius: 99, fontSize: 17, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: emailFormValid && !saving ? 1 : 0.5, transition: 'opacity .15s' }}>
                     {saving ? '가입 중...' : '이메일로 가입하고 저장'}
                   </button>
                 </div>
@@ -875,12 +875,12 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
       {/* 진행바 */}
       <div style={{ marginBottom: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--fd-green)' }}>
             {cur.label}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--fd-muted)', fontVariantNumeric: 'tabular-nums' }}>{idx + 1} / {STEPS.length}</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--fd-pine)', fontVariantNumeric: 'tabular-nums' }}>질문 {idx + 1} / {STEPS.length}</span>
         </div>
-        <div style={{ height: 3, borderRadius: 99, background: 'var(--fd-line)' }}>
+        <div style={{ height: 5, borderRadius: 99, background: 'var(--fd-line)' }}>
           <div style={{ height: '100%', borderRadius: 99, background: 'var(--fd-coral)', width: `${pct}%`, transition: 'width .25s' }} />
         </div>
       </div>
@@ -908,7 +908,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
           {cur.questions.map((q) => (
             <div key={q.key}>
               <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.01em', lineHeight: 1.3 }}>{q.title}</h2>
-              {q.sub && <p style={{ marginTop: 6, fontSize: 12.5, color: 'var(--fd-muted)', lineHeight: 1.55 }}>{q.sub}</p>}
+              {q.sub && <p style={{ marginTop: 6, fontSize: 14, color: 'var(--fd-muted)', lineHeight: 1.55 }}>{q.sub}</p>}
               <div style={{ marginTop: 12 }}>{renderQuestion(q, false)}</div>
             </div>
           ))}
@@ -917,7 +917,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
         <>
           {/* 질문 */}
           <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{cur.title(dogName)}</h2>
-          {cur.sub && <p style={{ marginTop: 8, fontSize: 13.5, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{cur.sub}</p>}
+          {cur.sub && <p style={{ marginTop: 8, fontSize: 15, color: 'var(--fd-muted)', lineHeight: 1.6 }}>{cur.sub}</p>}
 
           {/* 옵션 영역 — 시각 스텝은 공간 채움, 텍스트 스텝(관심사)은 자연 높이로 compact. */}
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginTop: 16 }}>
@@ -930,12 +930,12 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
       <div style={{ display: 'flex', gap: 10, paddingTop: 18 }}>
         {idx > 0 && (
           <button type="button" onClick={back}
-            style={{ appearance: 'none', border: '1px solid var(--fd-line)', background: 'transparent', color: 'var(--fd-pine)', padding: '13px 20px', borderRadius: 99, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ appearance: 'none', border: '1.5px solid var(--fd-line)', background: 'transparent', color: 'var(--fd-pine)', padding: '15px 22px', minHeight: 56, borderRadius: 99, fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             이전
           </button>
         )}
         <button type="button" onClick={goNext} disabled={!canNext}
-          style={{ appearance: 'none', border: 'none', background: 'var(--fd-coral)', color: '#fff', padding: '13px 22px', borderRadius: 99, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: canNext ? 1 : 0.5, transition: 'opacity .15s' }}>
+          style={{ appearance: 'none', border: 'none', background: 'var(--fd-coral)', color: '#fff', padding: '15px 22px', minHeight: 56, borderRadius: 99, fontSize: 17, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: canNext ? 1 : 0.5, transition: 'opacity .15s' }}>
           {last ? '결과 보기' : '다음'}
           {!last && <ArrowRight className="w-4 h-4" strokeWidth={2.5} />}
         </button>

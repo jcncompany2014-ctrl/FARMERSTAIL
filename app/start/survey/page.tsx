@@ -65,10 +65,13 @@ export default function StartSurveyPage() {
         <Link
           href="/"
           style={{
-            fontSize: 12,
+            fontSize: 15,
             fontWeight: 700,
             color: 'var(--fd-muted)',
             textDecoration: 'none',
+            minHeight: 44,
+            display: 'inline-flex',
+            alignItems: 'center',
           }}
         >
           나가기

@@ -8,6 +8,7 @@ import { planHref } from '@/lib/funnel-cta'
 import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
+import { bowlImageForProtein } from '@/lib/personalization/packageImage'
 
 /**
  * /start — FD식 무료 맞춤분석 퍼널 진입 (트랙B B1b).
@@ -42,12 +43,14 @@ export const metadata: Metadata = {
   },
 }
 
-// [n, 제목, 설명, 라벨(alt), 이미지 src] — 이미지는 2026-07-03 AI 생성(힉스필드,
-// 실촬영 교체 대상). 브리프 그대로: 강아지·신선재료·완성 그릇.
+// [n, 제목, 설명, 라벨(alt), 이미지 src] — 01·02 는 2026-07-03 AI 생성(힉스필드,
+// 실촬영 교체 대상). 03 은 **우리 화식 그릇 사진**(사장님 실촬영 기반 /bowl/chicken.webp,
+// 2026-09-22 사장님 "이 부분에 우리 화식 사진 써" — 옛 /start-step-bowl.jpg 는 일반
+// 스톡 톤의 AI 그릇이었다). 정본 경로는 lib/personalization/packageImage.ts.
 const FLOW: [string, string, string, string, string][] = [
   ['01', '강아지 기본', '이름·체중·생일 등 기본 정보를 알려주세요.', '강아지 사진', '/start-step-dog.jpg'],
   ['02', '생활·건강 설문', '체형·소화·식습관·건강 상태를 차근차근 여쭤봐요.', '신선한 재료들', '/start-step-ingredients.jpg'],
-  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '완성된 신선식 한 그릇', '/start-step-bowl.jpg'],
+  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '파머스테일 치킨 레시피 화식 한 그릇', bowlImageForProtein('chicken') ?? '/bowl/fresh.webp'],
 ]
 
 export default async function StartPage() {
@@ -130,7 +133,7 @@ export default async function StartPage() {
                 </div>
                 <span
                   className="tnum"
-                  style={{ fontSize: 11, fontWeight: 700, color: 'var(--fd-muted)', fontVariantNumeric: 'lining-nums tabular-nums' }}
+                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--fd-muted)', fontVariantNumeric: 'lining-nums tabular-nums' }}
                 >
                   1 / 3
                 </span>
@@ -193,7 +196,7 @@ export default async function StartPage() {
                       className="tnum"
                       style={{
                         color: 'var(--fd-coral)',
-                        fontSize: 15,
+                        fontSize: 17,
                         fontWeight: 800,
                         letterSpacing: '-0.02em',
                         fontVariantNumeric: 'lining-nums tabular-nums',
@@ -281,7 +284,7 @@ export default async function StartPage() {
         <span
           className="tnum"
           style={{
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 700,
             color: 'var(--muted)',
             fontVariantNumeric: 'lining-nums tabular-nums',

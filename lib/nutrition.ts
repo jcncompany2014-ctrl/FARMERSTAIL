@@ -133,6 +133,13 @@ export type SurveyAnswers = {
    * surveys.answers JSONB 로 라이드해 compute route 가 알고리즘에 주입.
    */
   diagnosedSeverity?: Record<string, 'mild' | 'moderate' | 'severe'>
+  /**
+   * 설문 v4(2026-09-22) — 관문에서 선택 묶음(사료·산책·운동·약)을 통째로 건너뛰었나.
+   * 결과 화면의 "정확도 올리기" 카드 노출 조건(lib/survey/refine.ts). 계산 미사용.
+   */
+  optionalSkipped?: boolean
+  /** 설문 화면 버전 — v3(스텝형) 행과 구분. 계산 미사용. */
+  surveyVersion?: number
 }
 
 export type DogInfo = {

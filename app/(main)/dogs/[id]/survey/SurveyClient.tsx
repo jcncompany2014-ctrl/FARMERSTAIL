@@ -70,6 +70,7 @@ import {
 import { GoalScreen, type CareGoal } from './steps/Preferences'
 import { GateScreen } from './steps/Gate'
 import LoadingStep from './steps/Loading'
+import type { RefineSeed } from '@/lib/survey/refine'
 import './survey.css'
 
 /**
@@ -102,17 +103,26 @@ function nowMs(): number {
 export default function SurveyClient({
   dogId,
   previous,
+  refineFrom = null,
 }: {
   dogId: string
   /** 직전 분석 스냅샷 — 체중↔체형 모순 검증의 비교 기준. 첫 설문이면 null. */
   previous?: { bcs: number; weightKg: number } | null
+  /**
+   * "정확도 올리기"(?refine=1) — 마지막 설문의 답으로 상태를 채우고 **선택 묶음 첫
+   * 화면**에서 시작한다. 이미 답한 11개는 다시 묻지 않는다. localStorage 초안은
+   * 무시한다(이전에 쓰다 만 초안이 튀어나오면 더 헷갈린다). lib/survey/refine.ts.
+   */
+  refineFrom?: RefineSeed | null
 }) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+  const refineMode = refineFrom !== null
+  const seed = refineFrom
 
   const [dog, setDog] = useState<SurveyDog | null>(null)
-  const [screen, setScreen] = useState<ScreenState>('ribs')
+  const [screen, setScreen] = useState<ScreenState>(refineMode ? 'optFood' : 'ribs')
 
   // 화면 전환 시 스크롤 맨 위 + 짧은 진동 + 첫 h1 focus (a11y).
   useEffect(() => {
@@ -131,12 +141,10 @@ export default function SurveyClient({
   const [saving, setSaving] = useState(false)
 
   // 1~3. 몸 — 체형 3분해(갈비뼈·허리·배) → deriveBCS 역산. bcs 는 파생값으로 유지.
-  const [bodyAssess, setBodyAssess] = useState<BodyAssessmentState>({
-    ribs: '',
-    waist: '',
-    abdomen: '',
-  })
-  const [bcs, setBcs] = useState<BcsKey | null>(null)
+  const [bodyAssess, setBodyAssess] = useState<BodyAssessmentState>(
+    seed?.bodyAssess ?? { ribs: '', waist: '', abdomen: '' },
+  )
+  const [bcs, setBcs] = useState<BcsKey | null>((seed?.bcs as BcsKey | null) ?? null)
   const onBodyAssess = (patch: Partial<BodyAssessmentState>) => {
     const next = { ...bodyAssess, ...patch }
     setBodyAssess(next)
@@ -155,46 +163,50 @@ export default function SurveyClient({
   // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필 값.
   const [weightMethod, setWeightMethod] = useState<WeightMethod>('')
   // 칼로리 v2 2b — 사다리 감산·가산 신호 4종 ('' = 미응답 → 무보정).
-  const [easyKeeper, setEasyKeeper] = useState<'' | 'yes' | 'no'>('')
-  const [vigorous, setVigorous] = useState<Vigorous>('')
-  const [housing, setHousing] = useState<Housing>('')
-  const [coldOutdoor, setColdOutdoor] = useState<'' | 'yes' | 'no'>('')
+  const [easyKeeper, setEasyKeeper] = useState<'' | 'yes' | 'no'>(seed?.easyKeeper ?? '')
+  const [vigorous, setVigorous] = useState<Vigorous>(seed?.vigorous ?? '')
+  const [housing, setHousing] = useState<Housing>(seed?.housing ?? '')
+  const [coldOutdoor, setColdOutdoor] = useState<'' | 'yes' | 'no'>(seed?.coldOutdoor ?? '')
   // 4. 체중 변화 (personalization)
-  const [weightTrend, setWeightTrend] = useState<WeightTrend>('')
+  const [weightTrend, setWeightTrend] = useState<WeightTrend>(seed?.weightTrend ?? '')
   // 5. 변
-  const [bristol, setBristol] = useState<BristolKey | null>(null)
-  const [stoolSkipped, setStoolSkipped] = useState(false)
-  const [giSensitivity, setGiSensitivity] = useState<GiSensitivity>('')
+  const [bristol, setBristol] = useState<BristolKey | null>(seed?.bristol ?? null)
+  const [stoolSkipped, setStoolSkipped] = useState(seed?.stoolSkipped ?? false)
+  const [giSensitivity, setGiSensitivity] = useState<GiSensitivity>(seed?.giSensitivity ?? '')
   // 6~8. 식사
-  const [foodType, setFoodType] = useState('')
-  const [snackFreq, setSnackFreq] = useState('')
-  const [treatKcal, setTreatKcal] = useState('')
-  const [kibbleKcal, setKibbleKcal] = useState('')
-  const [currentBrand, setCurrentBrand] = useState('')
-  const [homeCookingExp, setHomeCookingExp] = useState<HomeCookingExp>('')
-  const [walkMinutes, setWalkMinutes] = useState('')
-  const [indoorActivity, setIndoorActivity] = useState<IndoorActivity>('')
+  const [foodType, setFoodType] = useState(seed?.foodType ?? '')
+  const [snackFreq, setSnackFreq] = useState(seed?.snackFreq ?? '')
+  const [treatKcal, setTreatKcal] = useState(seed?.treatKcal ?? '')
+  const [kibbleKcal, setKibbleKcal] = useState(seed?.kibbleKcal ?? '')
+  const [currentBrand, setCurrentBrand] = useState(seed?.currentBrand ?? '')
+  const [homeCookingExp, setHomeCookingExp] = useState<HomeCookingExp>(seed?.homeCookingExp ?? '')
+  const [walkMinutes, setWalkMinutes] = useState(seed?.walkMinutes ?? '')
+  const [indoorActivity, setIndoorActivity] = useState<IndoorActivity>(seed?.indoorActivity ?? '')
   // 9. 알레르기
-  const [dlMode, setDlMode] = useState<DlMode>('')
-  const [allergies, setAllergies] = useState<string[]>([])
-  const [preferredProteins, setPreferredProteins] = useState<string[]>([])
+  const [dlMode, setDlMode] = useState<DlMode>(seed?.dlMode ?? '')
+  const [allergies, setAllergies] = useState<string[]>(seed?.allergies ?? [])
+  const [preferredProteins, setPreferredProteins] = useState<string[]>(seed?.preferredProteins ?? [])
   // 10. 질환
-  const [hasChronic, setHasChronic] = useState<HasChronic>('')
-  const [chronicConditions, setChronicConditions] = useState<ChronicConditionKey[]>([])
-  const [prescriptionDiet, setPrescriptionDiet] = useState('')
-  const [medications, setMedications] = useState('')
-  const [irisStage, setIrisStage] = useState<IrisStage>(null)
+  const [hasChronic, setHasChronic] = useState<HasChronic>(seed?.hasChronic ?? '')
+  const [chronicConditions, setChronicConditions] = useState<ChronicConditionKey[]>(
+    (seed?.chronicConditions as ChronicConditionKey[] | undefined) ?? [],
+  )
+  const [prescriptionDiet, setPrescriptionDiet] = useState(seed?.prescriptionDiet ?? '')
+  const [medications, setMedications] = useState(seed?.medications ?? '')
+  const [irisStage, setIrisStage] = useState<IrisStage>(seed?.irisStage ?? null)
   const [pancreatitisSeverity, setPancreatitisSeverity] =
-    useState<PancreatitisSeverity>(null)
+    useState<PancreatitisSeverity>(seed?.pancreatitisSeverity ?? null)
   // 조건부 — 임신·수유 / 예상 성견 체중
-  const [pregnancy, setPregnancy] = useState<PregnancyValue>('')
-  const [pregnancyWeek, setPregnancyWeek] = useState<number | null>(null)
-  const [litterSize, setLitterSize] = useState<number | null>(null)
-  const [expectedAdultWeightKg, setExpectedAdultWeightKg] = useState<number | null>(null)
+  const [pregnancy, setPregnancy] = useState<PregnancyValue>(seed?.pregnancy ?? '')
+  const [pregnancyWeek, setPregnancyWeek] = useState<number | null>(seed?.pregnancyWeek ?? null)
+  const [litterSize, setLitterSize] = useState<number | null>(seed?.litterSize ?? null)
+  const [expectedAdultWeightKg, setExpectedAdultWeightKg] = useState<number | null>(
+    seed?.expectedAdultWeightKg ?? null,
+  )
   // 11. 케어 목표 (★알고리즘 1순위)
-  const [careGoal, setCareGoal] = useState<CareGoal | ''>('')
+  const [careGoal, setCareGoal] = useState<CareGoal | ''>((seed?.careGoal as CareGoal | '') ?? '')
   // 관문 — 선택 묶음 답하기 / 건너뛰기
-  const [optChoice, setOptChoice] = useState<OptionalChoice>('')
+  const [optChoice, setOptChoice] = useState<OptionalChoice>(refineMode ? 'answer' : '')
 
   // loading 단계 stage 인디케이터
   const [loadingStage, setLoadingStage] = useState(0)
@@ -212,7 +224,8 @@ export default function SurveyClient({
     return () => window.removeEventListener('beforeunload', handler)
   }, [screen, bodyAssess.ribs, bristol, foodType])
 
-  const restoredRef = useRef(false)
+  // refine 모드는 서버 시드가 정본 — localStorage 초안 복원을 건너뛴다(저장은 그대로).
+  const restoredRef = useRef(refineMode)
 
   useEffect(() => {
     async function load() {
@@ -528,8 +541,9 @@ export default function SurveyClient({
     setScreen(screens[idx + 1]!.key)
   }
 
+  const firstIdx = refineMode ? Math.max(0, screens.findIndex((s) => s.key === 'optFood')) : 0
   function goPrev() {
-    if (idx > 0) {
+    if (idx > firstIdx) {
       setErr('')
       setScreen(screens[idx - 1]!.key)
     }
@@ -631,6 +645,9 @@ export default function SurveyClient({
         pancreatitisSeverity && chronicConditions.includes('pancreatitis')
           ? { pancreatitis: pancreatitisSeverity }
           : undefined,
+      // v4 — 관문에서 선택 묶음을 통째로 건너뛰었나(결과 화면 "정확도 올리기" 조건).
+      optionalSkipped: optChoice === 'skip',
+      surveyVersion: 4,
     }
 
     const surveyInsertPayload = {
@@ -864,7 +881,7 @@ export default function SurveyClient({
                 type="button"
                 className="s-back"
                 onClick={goPrev}
-                disabled={idx === 0}
+                disabled={idx <= firstIdx}
                 aria-label="이전 질문"
               >
                 <ChevronLeft size={22} strokeWidth={2.4} aria-hidden />
@@ -873,7 +890,7 @@ export default function SurveyClient({
               <span className="s-count" aria-live="polite">
                 {counter}
               </span>
-              <Link href={`/dogs/${dogId}`} className="s-exit">
+              <Link href={refineMode ? `/dogs/${dogId}/analysis` : `/dogs/${dogId}`} className="s-exit">
                 나가기
               </Link>
             </div>
