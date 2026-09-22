@@ -134,11 +134,11 @@ export default function MyDogsSection({
                     left: 14,
                     background: V3.accent,
                     color: V3.paperHi,
-                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+                    fontFamily: 'var(--font-sans), Pretendard, sans-serif',
                     fontSize: V3FontSize.xxs,
                     fontWeight: 700,
-                    padding: '3px 7px',
-                    letterSpacing: 1,
+                    padding: '3px 8px',
+                    letterSpacing: 0,
                     borderRadius: 2,
                   }}
                   aria-hidden
