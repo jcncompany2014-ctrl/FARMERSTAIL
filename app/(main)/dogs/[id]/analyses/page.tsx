@@ -147,7 +147,7 @@ export default async function AnalysesTimelinePage({
     <div className="pb-10">
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
-        <span className="kicker mt-3 block">Analysis History</span>
+        <span className="kicker mt-3 block">분석 기록</span>
         <h1 className="font-sans mt-1.5" style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
           분석 히스토리
         </h1>
@@ -232,7 +232,7 @@ export default async function AnalysesTimelinePage({
               aria-hidden
               style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
             />
-            <span className="kicker">History</span>
+            <span className="kicker">지난 분석</span>
           </div>
           <ol className="relative space-y-3">
             {/* 세로 타임라인 축 */}
@@ -265,8 +265,8 @@ export default async function AnalysesTimelinePage({
                           {formatDate(a.created_at)}
                         </span>
                         {isLatest && (
-                          <span className="inline-block px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[9px] font-black tracking-wider">
-                            LATEST
+                          <span className="inline-block px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[9px] font-black">
+                            최신
                           </span>
                         )}
                       </div>
@@ -393,10 +393,10 @@ function LatestAnalysisHero({
               style={{ color: 'var(--gold)' }}
             />
             <span
-              className="text-[10.5px] font-bold uppercase"
-              style={{ color: 'var(--gold)', letterSpacing: '0.16em' }}
+              className="text-[10.5px] font-bold"
+              style={{ color: 'var(--gold)', letterSpacing: '-0.01em' }}
             >
-              Latest
+              최신 분석
             </span>
           </div>
           <span

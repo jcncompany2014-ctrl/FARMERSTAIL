@@ -66,7 +66,7 @@ export default async function CompareDogsPage() {
     <div className="pb-10">
       <div className="px-5 pt-6 pb-2">
         <div className="mt-3">
-          <span className="kicker inline-block">Compare</span>
+          <span className="kicker inline-block">비교</span>
           <h1
             className="font-sans mt-1.5"
             style={{

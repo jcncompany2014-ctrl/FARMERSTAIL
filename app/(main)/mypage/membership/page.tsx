@@ -98,7 +98,7 @@ export default async function MembershipPage() {
             aria-hidden
             style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
           />
-          <span className="kicker">Stamp</span>
+          <span className="kicker">도장판</span>
         </div>
         <StampCard stampCount={stampCount} tier={profile?.tier} variant="app" />
       </section>
@@ -110,7 +110,7 @@ export default async function MembershipPage() {
             aria-hidden
             style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
           />
-          <span className="kicker">My Benefits</span>
+          <span className="kicker">내 혜택</span>
         </div>
         {/* 등급이 없으면(스탬프 10개 미만) 혜택 목록 대신 유도 — 사장님 확정
             2026-07-16. 빈 목록을 보여주느니 "채우면 시작된다"고 말하는 게 낫다. */}
@@ -168,7 +168,7 @@ export default async function MembershipPage() {
             aria-hidden
             style={{ width: 16, height: 1.5, background: 'var(--terracotta)' }}
           />
-          <span className="kicker">All Tiers</span>
+          <span className="kicker">전체 등급</span>
         </div>
         <div className="space-y-2">
           {TIERS.map((t) => (
@@ -189,7 +189,7 @@ export default async function MembershipPage() {
                 background: 'var(--terracotta)',
               }}
             />
-            <span className="kicker">Certificate</span>
+            <span className="kicker">인증서</span>
           </div>
           <div
             className="rounded px-5 py-5"
@@ -333,7 +333,7 @@ function TierRow({
                   color: 'white',
                 }}
               >
-                NOW
+                현재
               </span>
             )}
           </div>

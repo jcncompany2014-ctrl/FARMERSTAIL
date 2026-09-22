@@ -293,7 +293,7 @@ export default function RemindersClient({
     <div className={embedded ? undefined : 'pb-10'}>
       {!embedded && (
         <section className="px-5 pt-6 pb-2">
-          <span className="kicker mt-3 block">Care Reminders</span>
+          <span className="kicker mt-3 block">케어 알림</span>
           <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             리마인더
           </h1>

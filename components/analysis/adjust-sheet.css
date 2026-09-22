@@ -59,9 +59,9 @@
 }
 .adj-titles { min-width: 0; }
 .adj-kicker {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 9.5px; letter-spacing: .22em; color: var(--terracotta);
-  font-weight: 600; text-transform: uppercase;
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 13px; letter-spacing: -0.01em; color: var(--terracotta);
+  font-weight: 700;
   margin-bottom: 4px;
 }
 .adj-head h2 {

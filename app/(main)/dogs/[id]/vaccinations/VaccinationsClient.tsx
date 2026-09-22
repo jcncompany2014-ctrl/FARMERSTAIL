@@ -143,7 +143,7 @@ export default function VaccinationsClient({
 
       {upcoming.length > 0 && (
         <section className="px-5 mt-4">
-          <h2 className="kicker mb-2">Upcoming</h2>
+          <h2 className="kicker mb-2">다가오는 접종</h2>
           <div className="space-y-2">
             {upcoming.map((r) => (
               <div

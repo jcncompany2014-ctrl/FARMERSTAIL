@@ -221,8 +221,8 @@ export default async function VetReportPage({ params }: { params: Params }) {
         <header className="border-b-2 border-ink pb-3 mb-5">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10.5px] font-bold uppercase tracking-widest text-muted">
-                Veterinary Pre-Consult Report
+              <p className="text-[10.5px] font-bold tracking-tight text-muted">
+                동물병원 상담용 리포트
               </p>
               <h2 className="text-xl font-black text-ink mt-1 tracking-tight leading-snug">
                 수의사 진료 보고서
@@ -300,7 +300,7 @@ export default async function VetReportPage({ params }: { params: Params }) {
               hint="1=정상 · 4=심한 손실"
             />
             <Field
-              label="Bristol Stool"
+              label="변 상태 점수"
               value={
                 answers.bristolScore != null
                   ? `${answers.bristolScore} / 7`

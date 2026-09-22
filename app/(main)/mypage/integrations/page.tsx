@@ -62,10 +62,10 @@ export default async function IntegrationsPage({
           반복하지 않고 맥락 한 줄(eyebrow + 설명)만 슬림하게 둔다. */}
       <header className="px-5 pt-4 pb-6">
         <span
-          className="inline-block font-mono text-[10.5px] font-semibold uppercase"
-          style={{ letterSpacing: '0.16em', wordSpacing: '-0.12em', color: 'var(--terracotta)' }}
+          className="inline-block text-[10.5px] font-bold"
+          style={{ letterSpacing: '-0.01em', color: 'var(--terracotta)' }}
         >
-          Integrations
+          연동
         </span>
         <p
           className="mt-1.5 text-[13.5px] leading-relaxed"

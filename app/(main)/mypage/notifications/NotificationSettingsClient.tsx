@@ -290,7 +290,7 @@ export default function NotificationSettingsClient({
     <div className={embedded ? undefined : 'pb-10'}>
       {!embedded && (
         <section className="px-5 pt-4 pb-2">
-          <span className="kicker mt-3 block">Notifications</span>
+          <span className="kicker mt-3 block">알림 설정</span>
           <p className="text-[13.5px] text-muted mt-1.5 leading-relaxed">
             배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
           </p>
@@ -456,7 +456,7 @@ export default function NotificationSettingsClient({
       {/* 등록된 기기 */}
       <section className="px-5 mt-3">
         <div className="mb-2">
-          <span className="kicker kicker-muted">Devices</span>
+          <span className="kicker kicker-muted">기기</span>
         </div>
         {subs.length === 0 ? (
           <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">

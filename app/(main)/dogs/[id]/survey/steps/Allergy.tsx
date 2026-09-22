@@ -67,7 +67,7 @@ export default function Allergy({
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span className="s-kicker">ALLERGIES</span>
+        <span className="s-kicker">알레르기</span>
       </div>
       <h1 className="s-title">피해야 할<br />재료가 있나요?</h1>
       <p className="s-sub">알레르기 + 선호 단백질을 함께 알려주시면 정확도가 올라가요.</p>

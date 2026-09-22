@@ -112,7 +112,7 @@ export default function AddressesClient({
               </Badge>
             ) : (
               <Mono color="inkMute" size="xxs" weight={600}>
-                Saved
+                저장됨
               </Mono>
             )}
             {a.label && (

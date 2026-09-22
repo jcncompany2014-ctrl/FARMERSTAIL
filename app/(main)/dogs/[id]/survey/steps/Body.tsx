@@ -150,9 +150,7 @@ export default function Body({
   return (
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <span className="s-kicker">
-          BODY <span className="s-dot">·</span> WSAVA
-        </span>
+        <span className="s-kicker">몸 상태</span>
       </div>
       <h1 className="s-title">
         {petName(dogName)}의 체형을<br />같이 살펴봐요

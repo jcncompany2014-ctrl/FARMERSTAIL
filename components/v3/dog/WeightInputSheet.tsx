@@ -134,7 +134,7 @@ export default function WeightInputSheet({
 
         {/* 큰 숫자 입력 */}
         <Mono color="inkMute" size="xs" weight={500} style={{ display: 'inline-block', marginBottom: 10 }}>
-          오늘의 체중 (KG)
+          오늘의 체중 (kg)
         </Mono>
         <div
           aria-hidden
@@ -190,7 +190,7 @@ export default function WeightInputSheet({
               textTransform: 'uppercase',
             }}
           >
-            KG
+            kg
           </span>
         </div>
         {/* 값은 스텝퍼로만 바뀌므로, 위 큰 숫자(aria-hidden 장식) 대신 이 live

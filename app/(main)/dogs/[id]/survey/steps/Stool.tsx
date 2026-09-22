@@ -57,7 +57,7 @@ export default function Stool({
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <span className="s-kicker">
-          STOOL <span className="s-dot">·</span> 변 상태
+          변 상태
         </span>
         <span className="s-opt-badge">선택</span>
       </div>

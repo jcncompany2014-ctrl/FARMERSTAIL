@@ -237,7 +237,7 @@ export default function AdjustSheet({
         {/* head */}
         <div className="adj-head">
           <div className="adj-titles">
-            <div className="adj-kicker">RECIPE</div>
+            <div className="adj-kicker">레시피</div>
             <h2>레시피 고르기</h2>
             <div className="adj-sub">
               {/* 친근형(petName)으로 감싸 받침 유무와 무관히 조사 정확 —

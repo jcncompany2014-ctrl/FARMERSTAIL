@@ -1094,7 +1094,7 @@ export default function SurveyClient({
           <div className="s-page">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <span className="s-kicker">
-                STATUS <span className="s-dot">·</span> 현재 상태
+                현재 상태
               </span>
             </div>
             <h1 className="s-title">마지막 단계예요</h1>

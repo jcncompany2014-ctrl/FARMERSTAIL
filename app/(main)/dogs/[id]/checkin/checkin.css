@@ -25,11 +25,12 @@
 
 /* Hero */
 .ck-hero { margin-bottom: 24px; }
+/* 2026-09-22: mono 대문자(WEEK 2) → 한글 산세리프(2주차). 시니어 사용성 2단계. */
 .ck-kicker {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 9.5px; letter-spacing: .22em;
-  text-transform: uppercase; color: var(--terracotta);
-  font-weight: 600;
+  font-family: var(--font-sans), 'Pretendard', sans-serif;
+  font-size: 13px; letter-spacing: -0.01em;
+  color: var(--terracotta);
+  font-weight: 700;
   margin-bottom: 10px;
   display: flex; align-items: center; gap: 10px;
 }
@@ -38,7 +39,7 @@
   color: var(--ink);
   padding: 3px 8px;
   border-radius: 99px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .ck-hero h1 {
   font-family: var(--font-sans), 'Pretendard', sans-serif;

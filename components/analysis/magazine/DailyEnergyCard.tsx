@@ -52,14 +52,14 @@ export function DailyEnergyCard({
       <ReportCard p={p}>
         <div
           style={{
-            fontFamily: 'var(--font-stencil, "Stardos Stencil", serif)',
-            fontSize: 10,
-            letterSpacing: '0.3em',
+            fontFamily: 'var(--font-sans), Pretendard, sans-serif',
+            fontSize: 13,
+            letterSpacing: '-0.01em',
             color: p.muted,
             fontWeight: 700,
           }}
         >
-          DAILY ENERGY · MER
+          하루 필요 에너지
         </div>
         <div style={{ fontSize: 12.5, color: p.muted, marginTop: 2 }}>
           {petName(dogName)}가 하루 체중 유지에 필요한 에너지

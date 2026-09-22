@@ -66,7 +66,7 @@ export function BoxMixCard({
       <ReportCard p={p}>
         <SectionHeader
           p={p}
-          eyebrow="RECOMMENDED"
+          eyebrow="맞춤 식단"
           title={`${petName(dogName)}의 추천 레시피`}
           tail={loading ? '레시피 구성 중' : `화식 ${items.length}종 레시피`}
         />

@@ -75,7 +75,7 @@ export default function Diet({
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <span className="s-kicker">
-          {part === 'meal' ? 'EATING HABITS' : 'DAILY LIFE'}
+          {part === 'meal' ? '식사 습관' : '하루 생활'}
         </span>
       </div>
       {part === 'meal' ? (

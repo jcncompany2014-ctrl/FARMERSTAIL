@@ -25,7 +25,7 @@ export default function Loading({
       <div className="s-orb">
         <DogPawMark size={38} />
       </div>
-      <span className="s-kicker">ANALYZING</span>
+      <span className="s-kicker">분석 중</span>
       <h2
         className="s-title"
         // R34e: line-height 1.25 명시 — 두 줄 호흡 (홈/카탈로그/카트 heading 통일).
@@ -42,9 +42,9 @@ export default function Loading({
           letterSpacing: 0.04,
         }}
       >
-        NRC · AAFCO
+        국제 영양 기준에 맞춰
         <br />
-        FEDIAF · WSAVA
+        계산하고 있어요
       </p>
       <ul className="s-stages">
         {[

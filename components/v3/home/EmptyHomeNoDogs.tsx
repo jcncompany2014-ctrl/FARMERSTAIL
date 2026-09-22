@@ -72,7 +72,7 @@ export default function EmptyHomeNoDogs({
         </span>
         {/* GreetingSection 0마리 메타가 'WELCOME'이라 키커 중복 → 액션 지향으로. */}
         <Mono color="accent" size="xs" weight={600} style={{ marginTop: 18 }}>
-          Get Started
+          시작하기
         </Mono>
         <h2
           style={{

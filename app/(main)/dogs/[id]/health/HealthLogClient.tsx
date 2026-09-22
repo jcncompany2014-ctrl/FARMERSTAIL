@@ -228,7 +228,7 @@ export default function HealthLogClient({
       </div>
       {/* 헤더 */}
       <section className="px-5 pt-6 pb-2">
-        <span className="kicker mt-3 block">Health Journal</span>
+        <span className="kicker mt-3 block">건강 일지</span>
         <h1 className="font-sans mt-1.5" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
           건강 일지
         </h1>

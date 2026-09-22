@@ -109,7 +109,7 @@ export default function CertificateClient({
       {/* 상단 — 인쇄 시 숨김 */}
       <section className="px-5 pt-6 pb-3 print:hidden">
         <div className="mt-3">
-          <span className="kicker">Certificate</span>
+          <span className="kicker">인증서</span>
           <h1
             className="font-sans mt-1.5"
             style={{

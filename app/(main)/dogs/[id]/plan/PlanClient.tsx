@@ -336,8 +336,8 @@ function PlanView({
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.2em', color: 'var(--terracotta)' }}>
-          MADE FOR {dogName.toUpperCase()}
+        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--terracotta)' }}>
+          {petName(dogName)}를 위한 맞춤 식단
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
           이 레시피를 추천해요

@@ -369,7 +369,7 @@ export default function DiaryClient({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="kicker">New</span>
+              <span className="kicker">새 글</span>
               <button
                 type="button"
                 onClick={() => !submitting && setShowNew(false)}

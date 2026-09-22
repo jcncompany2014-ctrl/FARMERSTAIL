@@ -84,9 +84,9 @@ export function SectionHeader({ p, eyebrow, title, tail }: SectionHeaderProps) {
     <div>
       <div
         style={{
-          fontFamily: 'var(--font-stencil, "Stardos Stencil", serif)',
-          fontSize: 9.5,
-          letterSpacing: '0.3em',
+          fontFamily: 'var(--font-sans), Pretendard, sans-serif',
+          fontSize: 13,
+          letterSpacing: '-0.01em',
           color: p.muted,
           fontWeight: 700,
         }}

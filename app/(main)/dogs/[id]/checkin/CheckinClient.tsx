@@ -444,7 +444,7 @@ export default function CheckinClient({
     <div className="ck-page">
       <header className="ck-hero">
         <div className="ck-kicker">
-          {checkpoint === 'week_2' ? 'WEEK 2 · 적응 체크' : 'WEEK 4 · 종합 평가'}
+          {checkpoint === 'week_2' ? '2주차 · 적응 체크' : '4주차 · 종합 평가'}
           <span className="ck-cycle">{cycleNumber}번째 박스</span>
         </div>
         <h1>

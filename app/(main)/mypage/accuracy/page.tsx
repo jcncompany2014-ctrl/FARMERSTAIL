@@ -143,7 +143,7 @@ export default async function AccuracyPage() {
     <div style={{ paddingBottom: 32 }}>
       <section style={{ padding: '18px 20px 4px' }}>
         <Mono color="accent" size="xs" weight={600}>
-          Accuracy
+          정확도
         </Mono>
         <p
           style={{

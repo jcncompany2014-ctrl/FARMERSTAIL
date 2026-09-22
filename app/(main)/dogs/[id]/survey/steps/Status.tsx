@@ -59,7 +59,7 @@ export default function Status({
     <div className="s-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
         <span className="s-kicker">
-          HEALTH <span className="s-dot">·</span> 만성질환
+          건강 <span className="s-dot">·</span> 만성질환
         </span>
         <span className="s-opt-badge">선택</span>
       </div>

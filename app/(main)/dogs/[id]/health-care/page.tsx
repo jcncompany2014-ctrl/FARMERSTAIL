@@ -55,7 +55,7 @@ export default async function HealthCarePage({
   return (
     <>
       <section className="px-5 pt-6 pb-1">
-        <span className="kicker mt-3 block">Health Care</span>
+        <span className="kicker mt-3 block">건강 관리</span>
         <h1
           className="font-sans mt-1.5"
           style={{

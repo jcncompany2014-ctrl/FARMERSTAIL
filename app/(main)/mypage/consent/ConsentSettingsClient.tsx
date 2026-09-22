@@ -92,7 +92,7 @@ export default function ConsentSettingsClient({
   return (
     <div className={embedded ? undefined : 'pb-10'}>
       <section className={embedded ? 'px-5 pt-4 pb-2' : 'px-5 pt-4 pb-2'}>
-        {!embedded && <span className="kicker mt-3 block">Consent</span>}
+        {!embedded && <span className="kicker mt-3 block">동의 설정</span>}
         <p
           className="mt-1.5 leading-relaxed"
           style={{ fontSize: 16, color: 'var(--muted-strong)' }}

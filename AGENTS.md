@@ -294,18 +294,28 @@ R14 (2026-05-23) 에서 정리된 표준 스케일. 새 코드는 이 외 값을
 
 ## Typography scale (`V3FontSize`)
 
+> **2026-09-22 시니어 사용성 2단계에서 한 단계씩 올렸다** (9/10.5/12/13.5/16 → 12/12/14/16/18).
+> 부모님 세대 사용자가 "글씨가 너무 작다". 옛 하드코딩 `text-[Npx]` 는 `app/globals.css` 의
+> `[data-ft-chrome="app"]` 스코프 매핑이 같은 표로 올려 준다(9~11→12 · 11.5~12.5→14 ·
+> 13~15→16 · 16→18). 새 코드는 토큰을 쓴다. **예외:** 하단 탭바 라벨 13.5 · 강아지 상단 탭 14
+> (탭은 본문이 아니다 — 사장님 "무겁다").
+
 | Token | px | 용도 |
 |---|---|---|
-| xxs | 9 | 페이지네이션 카운터 |
-| xs | 10.5 | mono kicker, badge |
-| sm | 12 | 보조 본문, subtitle |
-| base | 13.5 | 본문 (한국어 가독성 하한) |
-| md | 16 | 카드 제목, 강조 본문 |
+| xxs | 12 | 뱃지·단위 (최소) |
+| xs | 12 | kicker, badge |
+| sm | 14 | 보조 본문, subtitle |
+| base | 16 | 본문 |
+| md | 18 | 카드 제목, 강조 본문 |
 | lg | 22 | section heading (h2) |
 | xl | 32 | 페이지 헤더 (h1 small) |
 | xxl | 54 | hero display |
 
-**그 외 px 금지.** 13/14/15 같은 임의 값은 V3FontSize 의 base/md 로 정리.
+**그 외 px 금지.** 13/15/17 같은 임의 값은 V3FontSize 의 sm/base/md 로 정리.
+
+**머리말(kicker)은 한글·산세리프·13px·굵게·자간 -0.01em.** 영어 대문자 kicker(NOW FEATURING,
+DOG PROFILE, BODY · WSAVA …)는 전부 한글로 바꿨다 — 규칙85 가 잠근다. `Mono` 컴포넌트는 자식에
+한글이 있으면 스스로 산세리프로 바꾼다.
 
 ## Letter spacing
 
@@ -314,7 +324,8 @@ R14 (2026-05-23) 에서 정리된 표준 스케일. 새 코드는 이 외 값을
 | hero display (xxl) | -0.025em |
 | heading (h1/h2) | -0.02em |
 | body (md/base) | -0.015em / -0.01em |
-| mono kicker | 0.16em |
+| mono kicker (영문·숫자 전용) | 0.16em |
+| 한글 kicker | -0.01em |
 
 ## Line height
 

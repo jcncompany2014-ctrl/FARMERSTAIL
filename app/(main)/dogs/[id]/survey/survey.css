@@ -102,12 +102,13 @@
 }
 
 /* Kicker — FD eyebrow (green sans, 0.14em / 800). */
+/* 2026-09-22 시니어 사용성 2단계: 영어 대문자 머리말(BODY · WSAVA 등)을 한글로 바꾸면서
+   uppercase·자간 0.14em 을 뗐다 — 한글에 넓은 자간은 "벌어진 글자"로 보인다. */
 .s-kicker {
   font-family: var(--font-sans), "Pretendard", sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--fd-green);
 }
 .s-kicker .s-dot { color: var(--fd-line); margin: 0 .35em; }

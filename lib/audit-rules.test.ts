@@ -3627,42 +3627,101 @@ test('규칙84: 하단 탭바 색은 Capacitor 네이티브 배경색(capacitor.
 })
 
 
-test('규칙85: 주요 앱 화면의 머리말(kicker·Mono)에 영어만 있는 문구가 없어야 한다', () => {
+test('규칙85: 앱 화면의 머리말(kicker·Mono·eyebrow)에 영어만 있는 문구가 없어야 한다', () => {
   /**
    * # 왜 (2026-09-22 시니어 사용성 2단계)
-   * "NOW FEATURING · DOG PROFILE · SUBSCRIPTION · FAMILY · 2 · M T W T F S S" — 장식으로
+   * "NOW FEATURING · DOG PROFILE · SUBSCRIPTION · BODY · WSAVA · MADE FOR · WEEK 2" — 장식으로
    * 넣은 영어 대문자 머리말이 부모님 세대에겐 "뭔가 못 읽는 게 있다"는 불안이 됐다.
-   * 홈·강아지 목록·프로필·정기배송·마이페이지의 kicker 와 Mono 자식은 한글(또는
-   * 숫자·기호)이어야 한다. 전 화면으로 넓히는 중 — 목록에 파일을 추가해 잠근다.
+   * 앱 화면의 kicker(.kicker/.s-kicker/.ck-kicker/.adj-kicker)·Mono 자식·eyebrow 는
+   * 한글(또는 숫자·기호)이어야 한다. 그리고 그 클래스들의 CSS 에 uppercase·모노 자간이
+   * 남아 있으면 한글이 "우 리 아 이"처럼 벌어진다(프로필에서 실제 발생) — 같이 잠근다.
    */
   const targets = [
     'components/v3/home/GreetingSection.tsx',
     'components/v3/home/ActiveDogCard.tsx',
     'components/v3/home/MyDogsSection.tsx',
     'components/v3/home/ThisWeekSection.tsx',
+    'components/v3/home/EmptyHomeNoDogs.tsx',
+    'components/v3/dog/WeightInputSheet.tsx',
+    'components/analysis/AdjustSheet.tsx',
+    'components/analysis/magazine/BoxMixCard.tsx',
+    'components/analysis/magazine/DailyEnergyCard.tsx',
     'app/(main)/dashboard/page.tsx',
+    'app/(main)/chat/page.tsx',
+    'app/(main)/reports/page.tsx',
+    'app/(main)/notifications/AlertsClient.tsx',
     'app/(main)/dogs/page.tsx',
+    'app/(main)/dogs/compare/page.tsx',
     'app/(main)/dogs/[id]/DogDetailClient.tsx',
     'app/(main)/dogs/[id]/_components/SubscriptionCard.tsx',
     'app/(main)/dogs/[id]/_components/CurrentFormulaCard.tsx',
+    'app/(main)/dogs/[id]/analyses/page.tsx',
+    'app/(main)/dogs/[id]/diary/DiaryClient.tsx',
+    'app/(main)/dogs/[id]/edit/EditDogClient.tsx',
+    'app/(main)/dogs/[id]/health-care/page.tsx',
+    'app/(main)/dogs/[id]/health/HealthLogClient.tsx',
+    'app/(main)/dogs/[id]/reminders/RemindersClient.tsx',
+    'app/(main)/dogs/[id]/vaccinations/VaccinationsClient.tsx',
+    'app/(main)/dogs/[id]/vet-report/page.tsx',
+    'app/(main)/dogs/[id]/plan/PlanClient.tsx',
+    'app/(main)/dogs/[id]/checkin/CheckinClient.tsx',
+    'app/(main)/dogs/[id]/survey/SurveyClient.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Allergy.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Body.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Diet.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Loading.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Status.tsx',
+    'app/(main)/dogs/[id]/survey/steps/Stool.tsx',
     'app/(main)/mypage/MypageClient.tsx',
     'app/(main)/mypage/subscriptions/page.tsx',
+    'app/(main)/mypage/accuracy/page.tsx',
+    'app/(main)/mypage/addresses/AddressesClient.tsx',
+    'app/(main)/mypage/certificate/[dogId]/CertificateClient.tsx',
+    'app/(main)/mypage/consent/ConsentSettingsClient.tsx',
+    'app/(main)/mypage/integrations/page.tsx',
+    'app/(main)/mypage/membership/page.tsx',
+    'app/(main)/mypage/notifications/NotificationSettingsClient.tsx',
+    'app/(main)/mypage/notifications/PreferencesPanel.tsx',
+    'app/(main)/mypage/privacy/page.tsx',
   ]
   const englishOnly = /^[A-Za-z][A-Za-z &·.\-]*$/
   for (const rel of targets) {
     const src = stripComments(read(join(ROOT, ...rel.split('/'))))
     const hits: string[] = []
-    for (const m of src.matchAll(/className="kicker[^"]*"[^>]*>\s*([^<{]+?)\s*</g)) {
+    for (const m of src.matchAll(/className="(?:s-|ck-|adj-)?kicker[^"]*"[^>]*>\s*([^<{]+?)\s*</g)) {
       if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
     }
     for (const m of src.matchAll(/<Mono[^>]*>\s*([^<{]+?)\s*<\/Mono>/g)) {
       if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
     }
-    for (const m of src.matchAll(/kicker="([^"]+)"/g)) {
+    for (const m of src.matchAll(/\b(?:kicker|eyebrow)="([^"]+)"/g)) {
       if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
     }
     assert.deepEqual(hits, [], `${rel}: 영어만 있는 머리말 — ${hits.join(' / ')}`)
   }
   const dash = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
   assert.doesNotMatch(dash, /\['S', 'M', 'T', 'W', 'T', 'F', 'S'\]/, '홈 주간 달력 요일이 영문 약자다')
+
+  // 한글 머리말 클래스의 CSS — uppercase·모노·넓은 자간이 다시 들어오면 한글이 벌어진다.
+  const cssTargets: Array<[string, RegExp]> = [
+    ['app/globals.css', /\[data-ft-chrome="app"\] \.kicker \{([^}]*)\}/g],
+    ['app/(main)/dogs/[id]/survey/survey.css', /\.s-kicker \{([^}]*)\}/g],
+    ['app/(main)/dogs/[id]/checkin/checkin.css', /\.ck-kicker \{([^}]*)\}/g],
+    ['components/analysis/adjust-sheet.css', /\.adj-kicker \{([^}]*)\}/g],
+  ]
+  for (const [rel, re] of cssTargets) {
+    const css = stripComments(read(join(ROOT, ...rel.split('/'))))
+    const blocks = [...css.matchAll(re)].map((m) => m[1] ?? '')
+    assert.ok(blocks.length >= 1, `${rel}: kicker 규칙이 없다`)
+    for (const b of blocks) {
+      assert.doesNotMatch(b, /text-transform:\s*uppercase/, `${rel}: 한글 머리말에 uppercase`)
+      assert.doesNotMatch(b, /font-mono|Plex Mono|JetBrains Mono/, `${rel}: 한글 머리말에 모노 폰트`)
+      const ls = b.match(/letter-spacing:\s*(-?[\d.]+)(em|px)?/)
+      assert.ok(ls, `${rel}: 한글 머리말 규칙에 letter-spacing 이 없다`)
+      assert.ok(parseFloat(ls![1]!) <= 0.02, `${rel}: 한글 머리말 자간이 넓다(${ls![0]})`)
+    }
+  }
+  // 앱 스코프 .kicker 는 하나만 — 두 개면 뒤의 것이 앞을 덮어써서 프로필 "우 리 아 이"가 재발한다.
+  const g = stripComments(read(join(ROOT, 'app', 'globals.css')))
+  assert.equal([...g.matchAll(/\[data-ft-chrome="app"\] \.kicker \{/g)].length, 1, 'globals.css 의 [data-ft-chrome="app"] .kicker 규칙이 하나가 아니다')
 })

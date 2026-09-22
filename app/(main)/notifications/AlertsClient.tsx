@@ -44,7 +44,7 @@ export default function AlertsClient({
   return (
     <div className="pb-10">
       <section className="px-5 pt-6 pb-1">
-        <span className="kicker mt-3 block">Alerts</span>
+        <span className="kicker mt-3 block">알림</span>
         <h1
           className="font-sans mt-1.5"
           style={{
