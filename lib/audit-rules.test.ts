@@ -3625,3 +3625,44 @@ test('규칙84: 하단 탭바 색은 Capacitor 네이티브 배경색(capacitor.
   assert.match(bar, /background:\s*'var\(--ft-native-bg\)'/, '하단 탭바 배경이 --ft-native-bg 가 아니다')
   assert.doesNotMatch(bar, /backdropFilter/, '하단 탭바에 블러가 다시 들어왔다 — 반투명이면 safe-area 구간과 색이 갈린다')
 })
+
+
+test('규칙85: 주요 앱 화면의 머리말(kicker·Mono)에 영어만 있는 문구가 없어야 한다', () => {
+  /**
+   * # 왜 (2026-09-22 시니어 사용성 2단계)
+   * "NOW FEATURING · DOG PROFILE · SUBSCRIPTION · FAMILY · 2 · M T W T F S S" — 장식으로
+   * 넣은 영어 대문자 머리말이 부모님 세대에겐 "뭔가 못 읽는 게 있다"는 불안이 됐다.
+   * 홈·강아지 목록·프로필·정기배송·마이페이지의 kicker 와 Mono 자식은 한글(또는
+   * 숫자·기호)이어야 한다. 전 화면으로 넓히는 중 — 목록에 파일을 추가해 잠근다.
+   */
+  const targets = [
+    'components/v3/home/GreetingSection.tsx',
+    'components/v3/home/ActiveDogCard.tsx',
+    'components/v3/home/MyDogsSection.tsx',
+    'components/v3/home/ThisWeekSection.tsx',
+    'app/(main)/dashboard/page.tsx',
+    'app/(main)/dogs/page.tsx',
+    'app/(main)/dogs/[id]/DogDetailClient.tsx',
+    'app/(main)/dogs/[id]/_components/SubscriptionCard.tsx',
+    'app/(main)/dogs/[id]/_components/CurrentFormulaCard.tsx',
+    'app/(main)/mypage/MypageClient.tsx',
+    'app/(main)/mypage/subscriptions/page.tsx',
+  ]
+  const englishOnly = /^[A-Za-z][A-Za-z &·.\-]*$/
+  for (const rel of targets) {
+    const src = stripComments(read(join(ROOT, ...rel.split('/'))))
+    const hits: string[] = []
+    for (const m of src.matchAll(/className="kicker[^"]*"[^>]*>\s*([^<{]+?)\s*</g)) {
+      if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
+    }
+    for (const m of src.matchAll(/<Mono[^>]*>\s*([^<{]+?)\s*<\/Mono>/g)) {
+      if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
+    }
+    for (const m of src.matchAll(/kicker="([^"]+)"/g)) {
+      if (englishOnly.test(m[1]!.trim())) hits.push(m[1]!.trim())
+    }
+    assert.deepEqual(hits, [], `${rel}: 영어만 있는 머리말 — ${hits.join(' / ')}`)
+  }
+  const dash = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
+  assert.doesNotMatch(dash, /\['S', 'M', 'T', 'W', 'T', 'F', 'S'\]/, '홈 주간 달력 요일이 영문 약자다')
+})

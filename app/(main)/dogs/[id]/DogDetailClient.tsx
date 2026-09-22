@@ -296,7 +296,7 @@ export default function DogDetailClient({
               <DogPawMark className="w-10 h-10 text-muted" />
             )}
           </div>
-          <span className="kicker mb-2 inline-block">Dog Profile</span>
+          <span className="kicker mb-2 inline-block">우리 아이</span>
           <h1 className="font-sans" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15, wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
             {dog.name}
           </h1>
@@ -406,7 +406,7 @@ export default function DogDetailClient({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
-              <span className="kicker">Weight Log</span>
+              <span className="kicker">체중 기록</span>
             </div>
             <button
               onClick={() => setShowWeightModal(true)}
@@ -497,7 +497,7 @@ export default function DogDetailClient({
           >
             <div className="flex items-center gap-2 mb-1">
               <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
-              <span className="kicker">New Weight Log</span>
+              <span className="kicker">새 체중 기록</span>
             </div>
             <h3
               id="weight-modal-title"
@@ -786,7 +786,7 @@ export default function DogDetailClient({
               </div>
             </div>
             <div className="text-center mb-1">
-              <span className="kicker">Welcome</span>
+              <span className="kicker">환영해요</span>
             </div>
             <h3
               id="welcome-sheet-title"
@@ -867,7 +867,7 @@ function InfoRow({
   return (
     // UI audit A-3: dt 라벨 column min-w-[88px] 통일 + tracking 0.22 → 0.18 (한국어 가독성)
     <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0 gap-3">
-      <span className="text-[10.5px] font-semibold text-muted uppercase tracking-[0.18em] min-w-[88px] shrink-0">
+      <span className="text-[10.5px] font-semibold text-muted tracking-tight min-w-[88px] shrink-0">
         {label}
       </span>
       {valueNode ?? (

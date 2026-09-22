@@ -143,7 +143,7 @@ export default function MyDogsSection({
                   }}
                   aria-hidden
                 >
-                  ACTIVE
+                  선택됨
                 </span>
               )}
               {/* 2026-05-22: 130h 직사각 → 1:1 정사각형 (aspect-square) */}

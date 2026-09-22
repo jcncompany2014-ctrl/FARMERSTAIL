@@ -35,12 +35,6 @@ interface GreetingSectionProps {
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
 
-const TIME_LABEL: Record<TimeOfDay, string> = {
-  morning: 'good morning',
-  afternoon: 'good afternoon',
-  evening: 'good evening',
-  night: 'good night',
-}
 
 /**
  * 시간대별 헤딩 5종 — day-of-year mod 5 로 rotation.
@@ -121,7 +115,14 @@ export default function GreetingSection({
   const variants = HEADINGS_BY_TIME[tod]
   const idx = forceVariant ?? dayOfYear() % variants.length
   const headingText = variants[idx] ?? variants[0]!
-  const kickerLabel = `Hello · ${TIME_LABEL[tod]}`
+  // ★영어 "Hello · good afternoon" → 오늘 날짜(2026-09-22 시니어 사용성). 헤딩이 이미
+  //   시간대 인사를 하니 머리말은 정보(날짜·요일)를 준다. KST 고정.
+  const kickerLabel = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(new Date())
 
   return (
     <section
@@ -185,7 +186,7 @@ export default function GreetingSection({
       >
         <Signature
           name={withHonorific(userName)}
-          metaKicker={familyCount > 0 ? `FAMILY · ${familyCount}` : 'WELCOME'}
+          metaKicker={familyCount > 0 ? `가족 ${familyCount}명` : '환영해요'}
           align="right"
           size={15}
           barHeight={28}

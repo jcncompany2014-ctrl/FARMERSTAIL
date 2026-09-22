@@ -76,7 +76,7 @@ export default function ActiveDogCard({
         style={{ padding: '14px 16px 4px' }}
       >
         <Mono color="accent" size="xs" weight={600}>
-          Now featuring
+          지금 보고 있는 아이
         </Mono>
         <span
           className="inline-flex items-center"

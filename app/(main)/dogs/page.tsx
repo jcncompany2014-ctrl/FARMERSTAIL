@@ -88,7 +88,7 @@ export default async function DogsPage() {
             >
               <DogPawMark className="w-6 h-6 text-terracotta" />
             </div>
-            <span className="kicker">First Dog · 첫 아이</span>
+            <span className="kicker">첫 아이</span>
             <h3
               className="font-sans mt-2"
               style={{

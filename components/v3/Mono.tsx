@@ -47,17 +47,23 @@ export default function Mono({
 }: MonoProps) {
   const resolvedColor =
     color in V3 ? V3[color as keyof typeof V3] : (color as string)
-
+  // ★한글 머리말(2026-09-22 시니어 사용성 2단계): 영어 kicker 를 한글로 바꾸면서
+  //   모노 폰트·uppercase·넓은 자간은 한글에서 "이상하게 벌어진 글자"가 된다.
+  //   문자열 자식에 한글이 있으면 산세리프 굵게, 자간 0 으로 — 호출처는 그대로.
+  const text = Array.isArray(children) ? children.join('') : typeof children === 'string' ? children : ''
+  const korean = /[가-힣]/.test(text)
   return (
     <Tag
       className={className}
       style={{
-        fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
+        fontFamily: korean
+          ? 'var(--font-sans), Pretendard, sans-serif'
+          : "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
         fontSize: V3FontSize[size],
-        fontWeight: weight,
-        letterSpacing,
-        wordSpacing,
-        textTransform: upper ? 'uppercase' : 'none',
+        fontWeight: korean ? Math.max(weight, 600) : weight,
+        letterSpacing: korean ? '-0.01em' : letterSpacing,
+        wordSpacing: korean ? 0 : wordSpacing,
+        textTransform: upper && !korean ? 'uppercase' : 'none',
         color: resolvedColor,
         ...style,
       }}

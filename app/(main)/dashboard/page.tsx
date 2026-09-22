@@ -468,7 +468,8 @@ export default async function DashboardPage() {
   function makeWeekDays(nowMs: number): WeekDay[] {
     const days: WeekDay[] = []
     const kstNow = nowMs + 9 * 3600 * 1000
-    const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    // 요일은 한글로 — 영문 약자(M/T/W)는 어르신이 못 읽는다(2026-09-22).
+    const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
     for (let offset = 6; offset >= 0; offset--) {
       // KST 로 시프트한 epoch 를 UTC 로 읽어 KST 달력 날짜를 얻는다(KST 는 DST 없음).
       const d = new Date(kstNow - offset * 86_400_000)

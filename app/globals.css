@@ -1492,6 +1492,14 @@ i,
   text-transform: uppercase;
   color: var(--terracotta);
 }
+/* 앱(한글 머리말) — 2026-09-22 시니어 사용성 2단계. 영어 대문자 kicker 를 한글로
+   바꾸면서 모노 자간 0.22em·uppercase 는 한글에서 어색하다. 앱 스코프만. */
+[data-ft-chrome="app"] .kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
 /* 앱 컨텍스트 안에서는 v3 mono 톤으로 override — 핸드오프 스펙. */
 [data-ft-chrome="app"] .kicker {
   font-family: var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace;

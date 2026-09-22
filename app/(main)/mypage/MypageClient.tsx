@@ -186,7 +186,7 @@ export default function MypageClient({
             <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
               <Sprout size={14} color={V3.accentDeep} strokeWidth={2} />
               <Mono color={V3.accentDeep} size="xxs" weight={600}>
-                Membership
+                멤버십
               </Mono>
             </div>
             <div className="flex items-baseline" style={{ gap: 7 }}>
@@ -271,7 +271,7 @@ export default function MypageClient({
           >
             <StatCell
               href="/mypage/orders"
-              kicker="Orders"
+              kicker="주문"
               value={orderCount}
               unit="건"
               tone="ink"
@@ -279,7 +279,7 @@ export default function MypageClient({
             />
             <StatCell
               href="/mypage/subscriptions"
-              kicker="Subs"
+              kicker="정기배송"
               value={subCount}
               unit="건"
               tone="sage"
@@ -291,7 +291,7 @@ export default function MypageClient({
       {/* ──────────────────────────────────────────────────────────────
           Menu groups — kicker + paperHi 카드 + ink rule
           ────────────────────────────────────────────────────────────── */}
-      <MenuGroup kicker="Orders · 주문 & 배송" topPad={28}>
+      <MenuGroup kicker="주문 · 배송" topPad={28}>
         {/* '주문 내역' + '정기배송 관리' 를 한 줄로 합쳤다(사장님 2026-07-30).
             목적지는 정기배송 화면 — 거기서 다음 결제·진행 중 구독을 보여주고
             맨 아래 '결제·주문 내역' 줄로 /mypage/orders 로 넘어간다. 두 줄이
@@ -305,12 +305,12 @@ export default function MypageClient({
         {/* 배송지 관리는 프로필(/account/profile)로 편입(2026-07-16). */}
       </MenuGroup>
 
-      <MenuGroup kicker="Benefits · 혜택" topPad={20}>
+      <MenuGroup kicker="혜택" topPad={20}>
         <MenuItem href="/reports" Icon={TrendingUp} label="건강 리포트" />
         <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" last />
       </MenuGroup>
 
-      <MenuGroup kicker="Settings · 설정" topPad={20}>
+      <MenuGroup kicker="설정" topPad={20}>
         {/* 분석 맞춤도 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
             페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" /> */}
@@ -318,7 +318,7 @@ export default function MypageClient({
         <MenuItem href="/notifications" Icon={Bell} label="알림" last />
       </MenuGroup>
 
-      <MenuGroup kicker="Help · 도움말" topPad={20}>
+      <MenuGroup kicker="도움말" topPad={20}>
         {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
             페이지(/chat)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
         <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" /> */}
