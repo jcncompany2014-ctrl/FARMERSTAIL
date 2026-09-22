@@ -163,7 +163,7 @@
      safe-area 는 사용처에서 calc 로 더할 것. */
   --ft-header-h: 64px;
   /* 하단 탭바 높이(safe-area 제외). AppChrome main 하단 여백·sticky CTA 가 참조. */
-  --ft-tabbar-h: 64px;
+  --ft-tabbar-h: 60px;
 
   /* 마커 하이라이트 **배경** 전용. paper 위 글자색으로 쓰면 1.69:1 로 안 보인다. */
   --yellow: #e6b942;

@@ -16,7 +16,9 @@
  * # 규칙
  * - 앱에서만 그린다(useIsAppContext). 웹은 절대 안 나온다 — 웹/앱 절대 분리.
  * - 몰입 화면(설문·체크인·승인 = AppChrome focusMode)에서는 숨긴다.
- * - 라벨 16px(V3FontSize.md)·터치 영역은 칸 전체(높이 --ft-tabbar-h 64px). 발바닥은 살짝 솟은 원이지만
+ * - 라벨 13.5px(V3FontSize.base, 탭바 표준은 12~13)·터치 영역은 칸 전체(높이 60px).
+ *   16px 굵은체로 했다가 사장님이 "무겁고 이상하다" — 탭바는 아이콘+짧은 라벨로 읽히는
+ *   곳이라 본문 기준을 그대로 적용하면 안 된다(2026-09-22). 발바닥은 살짝 솟은 원이지만
  *   눌리는 영역은 옆 칸과 같다.
  * - 기록 탭은 페이지 이동이 아니라 시트(건강·체중·일기·사진)를 연다. 강아지가
  *   없으면 등록 화면으로 보낸다.
@@ -93,7 +95,7 @@ const RECORD_ACTIONS = [
 ] as const
 type RecordKey = (typeof RECORD_ACTIONS)[number]['key']
 
-const PAW = 56
+const PAW = 52
 
 export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps) {
   const pathname = usePathname()
@@ -132,11 +134,14 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
         key={t.key}
         href={t.href}
         aria-current={active ? 'page' : undefined}
-        className="flex flex-col items-center justify-center gap-1 ft-no-press"
-        style={linkStyle(active)}
+        className="flex flex-col items-center justify-center ft-no-press"
+        style={{ ...linkStyle(active), gap: 5, paddingTop: 6, paddingBottom: 8 }}
       >
-        <Icon size={24} strokeWidth={active ? 2.4 : 1.9} aria-hidden />
-        <span className="leading-none" style={{ fontSize: V3FontSize.md, fontWeight: active ? 800 : 700 }}>
+        <Icon size={22} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
+        <span
+          className="leading-none"
+          style={{ fontSize: V3FontSize.base, fontWeight: active ? 700 : 600, letterSpacing: '-0.01em' }}
+        >
           {t.label}
         </span>
       </Link>
@@ -151,18 +156,18 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
         style={{
           bottom: 0,
           paddingBottom: 'env(safe-area-inset-bottom)',
-          background: 'color-mix(in srgb, var(--paper) 94%, transparent)',
-          backdropFilter: 'blur(14px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+          background: 'color-mix(in srgb, var(--paper) 97%, transparent)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           borderTop: `1px solid ${V3.rule}`,
-          boxShadow: '0 -8px 22px -16px rgba(22,20,15,0.35)',
+          boxShadow: '0 -4px 16px -14px rgba(22,20,15,0.30)',
         }}
       >
         <div
           className="max-w-md mx-auto grid"
           style={{
-            gridTemplateColumns: '1fr 1fr 1.1fr 1fr 1fr',
-            height: 'var(--ft-tabbar-h, 64px)',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            height: 'var(--ft-tabbar-h, 60px)',
           }}
         >
           {LEFT.map(renderLink)}
@@ -177,24 +182,27 @@ export default function BottomTabBar({ activeDogId, hidden }: BottomTabBarProps)
             className="relative flex flex-col items-center justify-end ft-no-press"
             // 원(56px)이 위로 20px 솟고, 글자는 그 아래 칸 바닥에 — 에뮬레이터 실측으로
             // 원이 글자 윗부분을 가리던 것(top -14) 을 띄웠다(2026-09-21).
-            style={{ color: recordActive ? 'var(--accent)' : V3.ink, paddingBottom: 7 }}
+            style={{ color: recordActive ? 'var(--accent)' : V3.ink, paddingBottom: 8 }}
           >
             <span
               aria-hidden
               className="absolute flex items-center justify-center"
               style={{
-                top: -20,
+                top: -16,
                 width: PAW,
                 height: PAW,
                 borderRadius: 999,
                 background: V3.accentDeep,
-                boxShadow: '0 8px 20px rgba(22,20,15,0.30)',
-                border: `3px solid ${V3.paper}`,
+                boxShadow: '0 6px 16px rgba(22,20,15,0.26)',
+                border: `2.5px solid ${V3.paper}`,
               }}
             >
-              <DogPawMark size={26} color={V3.paper} />
+              <DogPawMark size={24} color={V3.paper} />
             </span>
-            <span className="leading-none" style={{ fontSize: V3FontSize.md, fontWeight: 800 }}>
+            <span
+              className="leading-none"
+              style={{ fontSize: V3FontSize.base, fontWeight: 700, letterSpacing: '-0.01em' }}
+            >
               기록
             </span>
           </button>
