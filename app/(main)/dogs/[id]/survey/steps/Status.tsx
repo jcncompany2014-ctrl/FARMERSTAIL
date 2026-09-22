@@ -18,6 +18,15 @@ export type IrisStage = 1 | 2 | 3 | 4 | null
 export type PancreatitisSeverity = 'moderate' | 'severe' | null
 export type HasChronic = '' | 'yes' | 'no'
 
+/**
+ * 질환 칩 라벨 — 정본(CHRONIC_CONDITION_LABELS)의 영어 약어 괄호는 뺀다:
+ * "염증성 장질환 (IBD)" → "염증성 장질환". 수의사용 리포트에는 약어가 유용하지만
+ * 설문을 채우는 보호자(부모님 세대)에겐 "못 읽는 것"이 된다(2026-09-22).
+ */
+export function plainConditionLabel(label: string): string {
+  return label.replace(/\s*\([A-Za-z'’\s]+\)\s*$/, '').trim()
+}
+
 function toggleArr<T>(arr: T[], v: T, setter: (x: T[]) => void) {
   if (arr.includes(v)) setter(arr.filter((x) => x !== v))
   else setter([...arr, v])
@@ -106,7 +115,7 @@ export function ChronicScreen({
                   }}
                 >
                   {active && <Check size={14} strokeWidth={2.4} color="#fff" />}
-                  {CHRONIC_CONDITION_LABELS[k]}
+                  {plainConditionLabel(CHRONIC_CONDITION_LABELS[k])}
                 </button>
               )
             })}
