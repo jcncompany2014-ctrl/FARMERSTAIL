@@ -8,7 +8,6 @@ import { planHref } from '@/lib/funnel-cta'
 import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
-import { bowlImageForProtein } from '@/lib/personalization/packageImage'
 
 /**
  * /start — FD식 무료 맞춤분석 퍼널 진입 (트랙B B1b).
@@ -43,14 +42,14 @@ export const metadata: Metadata = {
   },
 }
 
-// [n, 제목, 설명, 라벨(alt), 이미지 src] — 01·02 는 2026-07-03 AI 생성(힉스필드,
-// 실촬영 교체 대상). 03 은 **우리 화식 그릇 사진**(사장님 실촬영 기반 /bowl/chicken.webp,
-// 2026-09-22 사장님 "이 부분에 우리 화식 사진 써" — 옛 /start-step-bowl.jpg 는 일반
-// 스톡 톤의 AI 그릇이었다). 정본 경로는 lib/personalization/packageImage.ts.
-const FLOW: [string, string, string, string, string][] = [
-  ['01', '강아지 기본', '이름·체중·생일 등 기본 정보를 알려주세요.', '강아지 사진', '/start-step-dog.jpg'],
-  ['02', '생활·건강 설문', '체형·소화·식습관·건강 상태를 차근차근 여쭤봐요.', '신선한 재료들', '/start-step-ingredients.jpg'],
-  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.', '파머스테일 치킨 레시피 화식 한 그릇', bowlImageForProtein('chicken') ?? '/bowl/fresh.webp'],
+// [n, 제목, 설명] — 단계 카드. 사진은 2026-09-22 사장님 지시로 전부 뺐다("여기에 들어가는
+// 사진 일단 다 빼자"): 01·02 는 AI 생성(힉스필드 2026-07-03)이라 실촬영 전까지 보류,
+// 03 은 우리 화식 그릇으로 바꿨다가 셋의 톤이 안 맞아 같이 뺌. 실촬영 3장이 생기면
+// PhotoSlot(ratio 3/2) 로 되살린다.
+const FLOW: [string, string, string][] = [
+  ['01', '강아지 기본', '이름·체중·생일 등 기본 정보를 알려주세요.'],
+  ['02', '생활·건강 설문', '체형·소화·식습관·건강 상태를 차근차근 여쭤봐요.'],
+  ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.'],
 ]
 
 export default async function StartPage() {
@@ -173,7 +172,7 @@ export default async function StartPage() {
               </Display>
             </Reveal>
             <ul className="pt-6 grid gap-4 md:grid-cols-3">
-              {FLOW.map(([n, t, d, ill, img], i) => (
+              {FLOW.map(([n, t, d], i) => (
                 <Reveal key={n} delay={i * 80}>
                   <li
                     className="rounded-[12px] h-full px-5 py-6"
@@ -182,16 +181,6 @@ export default async function StartPage() {
                       boxShadow: 'inset 0 0 0 1px var(--fd-line)',
                     }}
                   >
-                    {/* 📸 단계별 사진 — AI 생성(힉스필드 2026-07-03) */}
-                    <PhotoSlot
-                      label={ill}
-                      src={img}
-                      alt={ill}
-                      ratio="3 / 2"
-                      tone={i === 2 ? 'coral' : i === 1 ? 'green' : 'cream'}
-                      rounded={10}
-                      className="w-full mb-4"
-                    />
                     <span
                       className="tnum"
                       style={{
