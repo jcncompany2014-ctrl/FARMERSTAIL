@@ -100,7 +100,7 @@ export function BoxMixCard({
                 <div
                   style={{
                     fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                    fontSize: 9.5,
+                    fontSize: 12,
                     letterSpacing: '0.16em',
                     textTransform: 'uppercase',
                     color: p.muted,
@@ -118,7 +118,7 @@ export function BoxMixCard({
                         display: 'flex',
                         alignItems: 'center',
                         gap: 8,
-                        fontSize: 11.5,
+                        fontSize: 14,
                         lineHeight: 1.45,
                       }}
                     >
@@ -290,13 +290,13 @@ function BoxRow({
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: p.ink }}>{item.ko}</div>
-        <div style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>{item.sub}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: p.ink }}>{item.ko}</div>
+        <div style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>{item.sub}</div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div
           style={{
-            fontSize: 9,
+            fontSize: 12,
             color: p.muted,
             fontWeight: 600,
             letterSpacing: '0.1em',
@@ -304,7 +304,7 @@ function BoxRow({
         >
           하루
         </div>
-        <div style={{ fontSize: 12, color: p.ink, fontWeight: 700, marginTop: 1 }}>
+        <div style={{ fontSize: 14, color: p.ink, fontWeight: 700, marginTop: 1 }}>
           {Math.round(item.g)}g · {Math.round(item.kcal)}kcal
         </div>
       </div>

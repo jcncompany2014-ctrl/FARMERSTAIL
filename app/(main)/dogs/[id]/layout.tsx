@@ -1,7 +1,8 @@
 import DogTabsNav from '@/components/dogs/DogTabsNav'
 
 /**
- * 강아지 detail layout — 모든 sub-route 에 4개 탭 nav (개요/기록/분석/구독)
+ * 강아지 detail layout — 모든 sub-route 에 3개 탭 nav (개요/기록/분석 — 구독 탭은
+ * 2026-09-21 하단 '정기배송' 탭으로 옮김)
  * 자동 적용. params.id 를 client component 에 전달 — usePathname 으로 active
  * 탭 결정.
  *

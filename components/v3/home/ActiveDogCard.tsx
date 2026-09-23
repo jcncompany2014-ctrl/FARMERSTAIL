@@ -184,7 +184,7 @@ export default function ActiveDogCard({
               {m.key}
             </Mono>
             <div
-              className="flex items-baseline"
+              className="flex flex-wrap items-baseline"
               style={{ marginTop: 6, gap: 4, minWidth: 0 }}
             >
               <span

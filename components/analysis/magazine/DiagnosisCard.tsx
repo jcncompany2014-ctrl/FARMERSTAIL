@@ -111,12 +111,12 @@ export function DiagnosisCard({
           }}
         >
           <ShieldCheck size={14} color={p.accentOlive} strokeWidth={2.2} />
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: p.accentOlive }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: p.accentOlive }}>
             {guidelineLabel}
           </div>
           <div style={{ flex: 1 }} />
           {versionLabel && (
-            <div style={{ fontSize: 10.5, color: p.muted, fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: p.muted, fontWeight: 600 }}>
               {versionLabel}
             </div>
           )}
@@ -143,7 +143,7 @@ function DiagChip({
         borderRadius: 999,
         background: bg,
         color: fg,
-        fontSize: 11.5,
+        fontSize: 14,
         fontWeight: 600,
         letterSpacing: '0.01em',
         display: 'flex',

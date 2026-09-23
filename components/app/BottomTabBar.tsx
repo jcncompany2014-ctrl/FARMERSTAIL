@@ -70,7 +70,10 @@ const LEFT: LinkTab[] = [
     label: '우리 아이',
     href: '/dogs',
     Icon: Dog,
-    isActive: (p) => p === '/dogs' || p.startsWith('/dogs/'),
+    // 강아지별 정기배송 관리(/dogs/:id/subscription)는 '정기배송' 탭 소관.
+    isActive: (p) =>
+      (p === '/dogs' || p.startsWith('/dogs/') || p.startsWith('/account/dogs')) &&
+      !/^\/dogs\/[^/]+\/subscription/.test(p),
   },
 ]
 
@@ -81,14 +84,25 @@ const RIGHT: LinkTab[] = [
     href: '/mypage/subscriptions',
     Icon: Truck,
     isActive: (p) =>
-      p.startsWith('/mypage/subscriptions') || p.startsWith('/account/subscriptions'),
+      p.startsWith('/mypage/subscriptions') ||
+      p.startsWith('/account/subscriptions') ||
+      /^\/dogs\/[^/]+\/subscription/.test(p),
   },
   {
     key: 'me',
     label: '내 정보',
     href: '/mypage',
     Icon: User,
-    isActive: (p) => p.startsWith('/mypage') && !p.startsWith('/mypage/subscriptions'),
+    // 내 정보 메뉴에서 들어가는 화면들(/reports·/notifications·/chat, /account 하위)도 이 탭.
+    // 2026-09-23 점검: 알림 설정(/notifications)에 들어가면 탭이 전부 꺼지던 것.
+    isActive: (p) =>
+      (p.startsWith('/mypage') && !p.startsWith('/mypage/subscriptions')) ||
+      p.startsWith('/reports') ||
+      p.startsWith('/notifications') ||
+      p.startsWith('/chat') ||
+      (p.startsWith('/account') &&
+        !p.startsWith('/account/subscriptions') &&
+        !p.startsWith('/account/dogs')),
   },
 ]
 

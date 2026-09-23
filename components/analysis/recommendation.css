@@ -1,3 +1,5 @@
+/* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
+   CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
 /* =========================================================================
    RecommendationBox — analysis 페이지 Magazine 레이아웃 안의
    "정기배송 + 비율조정 + 왜 이 비율" 블록 전용 스타일.
@@ -13,7 +15,7 @@
 /* Sub label */
 .fb-sub-lbl {
   display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   letter-spacing: .22em; text-transform: uppercase;
   color: var(--muted); margin: 0 0 10px;
 }
@@ -24,7 +26,7 @@
   display: inline-flex; align-items: center;
   margin-left: 8px;
   background: var(--terracotta); color: #fff;
-  font-size: 9px; font-weight: 700; letter-spacing: .04em;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
   padding: 2px 6px; border-radius: 99px;
   text-transform: none;
 }
@@ -43,7 +45,7 @@
 }
 .fb-reason-from {
   display: flex; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--muted); font-weight: 600;
+  font-size: 12px; color: var(--muted); font-weight: 600;
   min-width: 0;
 }
 .fb-reason-from span {
@@ -52,7 +54,7 @@
 .fb-reason-arrow { display: flex; align-items: center; flex: 0 0 auto; }
 .fb-reason-to {
   display: flex; align-items: center; gap: 5px; justify-content: flex-end;
-  font-size: 11.5px; color: var(--ink); font-weight: 700;
+  font-size: 12px; color: var(--ink); font-weight: 700;
   min-width: 0;
 }
 .fb-reason-to span {
@@ -91,12 +93,12 @@
 .fb-tier-head { display: flex; align-items: center; gap: 7px; }
 .fb-tier-name { font-size: 14px; font-weight: 700; color: var(--ink); }
 .fb-tier-badge {
-  font-size: 9px; font-weight: 700; color: #fff;
+  font-size: 12px; font-weight: 700; color: #fff;
   background: var(--terracotta);
   padding: 2px 7px; border-radius: 99px;
 }
 .fb-tier-copy {
-  font-size: 11.5px; color: var(--muted);
+  font-size: 12px; color: var(--muted);
   margin-top: 3px; line-height: 1.5;
 }
 .fb-tier[data-sel='true'] .fb-tier-copy {
@@ -106,7 +108,7 @@
   display: flex; gap: 6px;
   margin-top: 9px; padding-top: 9px;
   border-top: 1px solid color-mix(in srgb, var(--terracotta) 15%, transparent);
-  color: var(--muted); font-size: 10.5px; line-height: 1.5;
+  color: var(--muted); font-size: 12px; line-height: 1.5;
 }
 
 /* 컴팩트 화식 티어 — 결과지 전용(빠르게 훑는 화면). 자세한 카드형은 플랜
@@ -130,18 +132,18 @@
   background: color-mix(in srgb, var(--terracotta) 5%, transparent);
   padding: 9px 4px;
 }
-.fb-tierc-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
-.fb-tierc-sub { font-size: 9.5px; font-weight: 600; color: var(--muted); }
+.fb-tierc-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+.fb-tierc-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
 .fb-tierc[data-sel='true'] .fb-tierc-sub { color: var(--terracotta); }
 .fb-tierc-badge {
   position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
-  font-size: 8.5px; font-weight: 700; color: #fff;
+  font-size: 12px; font-weight: 700; color: #fff;
   background: var(--terracotta);
   padding: 2px 7px; border-radius: 99px; white-space: nowrap;
 }
 .fb-tierc-desc {
   margin-top: 10px;
-  font-size: 11.5px; color: var(--muted); line-height: 1.5;
+  font-size: 12px; color: var(--muted); line-height: 1.5;
   text-align: center;
 }
 
@@ -152,7 +154,7 @@
   color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--rule);
   padding: 10px 14px; border-radius: 99px;
-  font-size: 12px; font-weight: 700; letter-spacing: .02em;
+  font-size: 14px; font-weight: 700; letter-spacing: .02em;
   font-family: inherit;
   display: inline-flex; align-items: center; gap: 5px;
   transition: background 180ms;
@@ -176,5 +178,5 @@
   box-shadow: inset 0 0 0 1px var(--rule);
   padding: 18px 22px;
   display: flex; align-items: center; gap: 10px;
-  font-size: 12px; color: var(--text);
+  font-size: 14px; color: var(--text);
 }

@@ -3588,7 +3588,7 @@ test('규칙83: 앱 하단 탭은 앱에서만·몰입 화면 밖에서만 그�
   assert.match(bar, /aria-label="기록하기"/, '가운데 발바닥 버튼에 접근성 이름(기록하기)이 없다')
 
   const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
-  assert.match(chrome, /<BottomTabBar[^>]*hidden=\{focusMode\}/, 'AppChrome 이 하단 탭에 focusMode 를 넘기지 않는다 — 설문 화면에 탭이 뜬다')
+  assert.match(chrome, /hidden=\{(focusMode|tabBarHidden)\}/, 'AppChrome 이 하단 탭에 focusMode/tabBarHidden 을 넘기지 않는다 — 설문 화면에 탭이 뜬다')
   assert.doesNotMatch(chrome, /PawFab/, '우하단 발바닥 FAB 가 남아 있다 — 하단 탭 가운데 "기록" 으로 흡수했다')
 
   const css = read(join(ROOT, 'app', 'globals.css'))
@@ -3803,4 +3803,37 @@ test('규칙87: 온보딩 여정 카드의 "체중 기록하기"는 프로필 �
   const usage = detail.slice(i, detail.indexOf('/>', i))
   assert.match(usage, /onAction=/, '프로필이 GracePeriodBanner 에 onAction 을 넘기지 않는다 — 체중 기록하기가 다시 죽는다')
   assert.match(usage, /setShowWeightModal\(true\)/, 'onAction 이 체중 모달을 열지 않는다')
+})
+
+test('규칙88: 결제 퍼널(/plan·/order)은 하단 탭을 숨기고, 하단 고정 요소는 --ft-tabbar-h 로 탭 위에 선다', () => {
+  /**
+   * # 왜 (2026-09-23 에뮬레이터 실측)
+   * 2026-09-21 하단 탭을 되살리자 플랜 화면의 "플랜 담기" 바와 주문 화면의 "결제" 바
+   * (둘 다 position:fixed; bottom:0; z-40)가 탭 아래 깔려 버튼이 통째로 가려졌다 —
+   * 첫 결제에서 돈이 새는 자리가 이틀간 그대로였다. 결제 퍼널은 탭 없이(헤더만),
+   * 그 밖의 하단 고정 요소(토스트·채팅 입력창)는 숫자 대신 --ft-tabbar-h 로 탭 위에 선다.
+   */
+  const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
+  assert.match(chrome, /const CHECKOUT_RE = \/\\\/dogs\\\/\[\^\/\]\+\\\/\(plan\|order\)/, 'AppChrome 에 결제 퍼널 판별(CHECKOUT_RE)이 없다')
+  assert.match(chrome, /const tabBarHidden = focusMode \|\| CHECKOUT_RE\.test\(pathname\)/, '탭바 숨김이 결제 퍼널을 포함하지 않는다')
+  assert.match(chrome, /hidden=\{tabBarHidden\}/, 'BottomTabBar 에 tabBarHidden 을 넘기지 않는다 — 플랜 담기/결제 버튼이 탭에 가려진다')
+  assert.match(chrome, /tabBarHidden\s*\?\s*'pb-\[env\(safe-area-inset-bottom\)\]'/, 'main 하단 패딩이 탭바 숨김과 같이 움직이지 않는다')
+
+  const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
+  assert.match(bar, /\/subscription\/\.test\(p\)/, '강아지별 정기배송(/dogs/:id/subscription)이 정기배송 탭으로 잡히지 않는다')
+  assert.match(bar, /p\.startsWith\('\/notifications'\)/, '알림 설정 화면에서 내 정보 탭이 꺼진다')
+
+  const toast = stripComments(read(join(ROOT, 'components', 'ui', 'Toast.tsx')))
+  assert.match(toast, /var\(--ft-tabbar-h/, '토스트 오프셋이 탭바 변수를 쓰지 않는다')
+  for (const rel of ['app/(main)/chat/ChatClient.tsx', 'app/(main)/mypage/cs/CsThreadClient.tsx']) {
+    const src = stripComments(read(join(ROOT, ...rel.split('/'))))
+    assert.doesNotMatch(src, /bottom-\[calc\(\d+px\+env/, `${rel}: 하단 고정 입력창이 숫자 오프셋을 쓴다 — --ft-tabbar-h 로`)
+  }
+
+  const proxy = read(join(ROOT, 'proxy.ts'))
+  const block = /APP_ONLY_PREFIXES[^=]*=\s*\[([\s\S]*?)\n\]/.exec(proxy)
+  const appOnly = [...(block?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]!)
+  for (const p of ['/chat', '/reports', '/notifications', '/mypage/membership']) {
+    assert.ok(appOnly.includes(p), `proxy APP_ONLY_PREFIXES 에 ${p} 가 없다 — (main) 앱 화면이 웹에 새어 나온다`)
+  }
 })

@@ -93,6 +93,7 @@ export default function AnalysisView({
   dogId,
   analysisId,
   surveyBlocked,
+  refineBlocked = false,
 }: {
   dogId: string
   /** When set, load this specific historical analysis instead of the latest. */
@@ -102,6 +103,8 @@ export default function AnalysisView({
    * useEffect 에서 1회 toast 표시 후 URL 정리.
    */
   surveyBlocked?: boolean
+  /** "정확도 올리기"(?refine=1)가 월 한도에 막혀 돌아온 경우 — 카드를 숨기고 문구를 바꾼다. */
+  refineBlocked?: boolean
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -116,7 +119,9 @@ export default function AnalysisView({
     if (blockedToastShownRef.current) return
     blockedToastShownRef.current = true
     toast.info(
-      '이번 달 재분석 3회를 모두 사용했어요. 다음 달에 다시 할 수 있어요. 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 바로 다시 분석할 수 있어요.',
+      refineBlocked
+        ? '추가 답변도 재분석으로 계산돼요. 이번 달 재분석 3회를 모두 써서 다음 달에 이어서 답할 수 있어요. 체중이나 건강 정보가 바뀌었다면 바로 다시 분석할 수 있어요.'
+        : '이번 달 재분석 3회를 모두 사용했어요. 다음 달에 다시 할 수 있어요. 체중이나 건강 정보가 바뀌었다면, 정보를 고친 뒤 바로 다시 분석할 수 있어요.',
     )
     // URL 정리
     if (typeof window !== 'undefined') {
@@ -523,7 +528,7 @@ export default function AnalysisView({
       {/* 설문 v4 — 관문에서 "건너뛰고 결과 보기"를 고른 경우: 선택 4개를 이어서 답하는
           자리(사장님 9/21 "결과 화면에서 정확도 올리기"). ?refine=1 은 마지막 설문의 답을
           그대로 들고 선택 묶음 첫 화면에서 시작한다(lib/survey/refine.ts). */}
-      {!isArchive && canRefine && (
+      {!isArchive && canRefine && !refineBlocked && (
         <section className="px-5 mt-5">
           <Link
             href={`/dogs/${dogId}/survey?refine=1`}

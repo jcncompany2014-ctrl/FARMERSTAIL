@@ -251,8 +251,9 @@ function ToastViewport(props: {
       <div
         className={cn(
           'fixed z-[60] left-1/2 -translate-x-1/2',
-          // 모바일: 하단 탭바 위(env(safe-area) + 탭바 높이 대략 68px 여유)
-          'bottom-[calc(72px+env(safe-area-inset-bottom,0))]',
+          // 모바일: 하단 탭바(--ft-tabbar-h) 바로 위. 숫자를 박아두면 탭바 높이가 바뀔 때
+          // 조용히 겹친다(2026-09-23 점검 — 72px 리터럴이 탭바 68 과 따로 놀고 있었다).
+          'bottom-[calc(var(--ft-tabbar-h,68px)+8px+env(safe-area-inset-bottom,0))]',
           // 데스크톱 폰 프레임: 프레임 폭 안에서 중앙에 맞게 max-w.
           'w-full max-w-[420px] px-4',
           'pointer-events-none'

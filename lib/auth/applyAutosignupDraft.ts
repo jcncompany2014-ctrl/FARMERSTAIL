@@ -14,11 +14,7 @@ import { calculateNutrition, getSupplements } from '@/lib/nutrition'
 import { draftToNutritionInput } from '@/lib/start-teaser'
 import { isDogDraftComplete, type AutosignupDraft } from '@/lib/autosignup-draft'
 import { translateDraftAllergies } from '@/lib/start-allergy-labels'
-
-// 라이트 건강 관심사 키 → saveAndGoResult legacyHealthConcerns 한글 라벨(보충제 매핑).
-const HEALTH_KR: Record<string, string> = {
-  joint: '관절', skin: '피부/털', digest: '소화', dental: '치아', weight: '체중',
-}
+import { HEALTH_KR } from '@/lib/start-teaser'
 
 /**
  * 초안 → 계정 이관. 전체 성공 시 dogId, 실패/불완전 시 null.

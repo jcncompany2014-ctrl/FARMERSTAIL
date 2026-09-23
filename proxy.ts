@@ -172,6 +172,18 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   '/mypage/subscriptions',
   '/mypage/notifications',
   '/mypage/consent',
+  // 2026-09-23 점검: (main) 그룹(AppChrome 강제)인데 목록에 없어 웹 브라우저에서
+  // 앱 폰 프레임 껍데기가 그대로 떴다(탭바는 안 뜨지만 하단 88px 빈 공간·앱 헤더).
+  // 웹 대응 화면이 없는 순수 앱 화면들 — /app-required 가 정직한 목적지.
+  '/mypage/cs',
+  '/mypage/membership',
+  '/mypage/accuracy',
+  '/mypage/integrations',
+  '/mypage/privacy',
+  '/mypage/certificate',
+  '/chat',
+  '/reports',
+  '/notifications',
   // /mypage/delete 는 웹도 들어와야 한다 — 개인정보처리방침이 약속한 탈퇴
   //   경로다(2026-07-31). 앱 전용으로 두면 웹 방문자가 앱 설치 벽을 맞는다.
   //
@@ -460,6 +472,13 @@ export const config = {
     //    알았다. 규칙 30 이 이제 두 목록의 일치를 지킨다.)
     '/tools',
     '/tools/:path*',
+    // 2026-09-23: (main) 앱 화면인데 APP_ONLY_PREFIXES 에도 matcher 에도 없던 경로 — 둘 다 넣는다(규칙30).
+    '/chat',
+    '/chat/:path*',
+    '/reports',
+    '/reports/:path*',
+    '/notifications',
+    '/notifications/:path*',
   ],
 }
 

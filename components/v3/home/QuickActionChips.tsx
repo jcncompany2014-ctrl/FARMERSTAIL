@@ -132,11 +132,11 @@ export default function QuickActionChips({
             {a.label}
           </Mono>
           <span
-            className="ft-nowrap flex items-center"
+            className="flex flex-wrap items-center"
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: V3FontWeight.bold,
-              fontSize: V3FontSize.base,
+              fontSize: V3FontSize.sm,
               color: isDone ? V3.sage : V3.ink,
               marginTop: 2,
               gap: 3,

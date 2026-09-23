@@ -3,12 +3,12 @@
 /**
  * QuickWeightSheet — 체중 1탭 빠른 기록.
  *
- * 무거운 페이지 이동 없이, 어디서든(대시보드 체중 카드 · PawFab 체중 발가락)
+ * 무거운 페이지 이동 없이, 어디서든(대시보드 체중 카드 · 하단 탭 가운데 기록 버튼)
  * dogId 만 넘기면 그 자리에서 바텀시트로 체중 입력. 기존 WeightInputSheet(96px
  * 숫자 UI)를 그대로 재사용하고, **저장 로직만 자체 보유**(weight_logs insert +
  * dogs.weight 마스터 갱신 → 분석·대시보드 반영). 호출자는 open/onClose 만 관리.
  *
- * dogName/initialKg 를 모르는 호출자(PawFab 등)는 생략 → 열릴 때 dogs 에서 조회.
+ * dogName/initialKg 를 모르는 호출자(BottomTabBar 등)는 생략 → 열릴 때 dogs 에서 조회.
  *
  * **앱(PWA) 전용.**
  */

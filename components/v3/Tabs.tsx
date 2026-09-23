@@ -73,16 +73,20 @@ export default function Tabs({
     )
     tabs?.[next]?.focus()
   }
+  // 5칸 이상(알림 필터: 전체·안 읽음·주문·건강·광고)은 360px 폭에서 14px 라벨+숫자 뱃지가
+  // 한 칸(~63px)에 안 들어가 줄이 접힌다 — 글자를 줄이는 대신 가로 스크롤(2026-09-23 점검).
+  const scrollable = options.length >= 5
   return (
     <div
       role="tablist"
-      className={`grid overflow-hidden ${className ?? ''}`}
+      className={`${scrollable ? 'flex overflow-x-auto' : 'grid overflow-hidden'} ${className ?? ''}`}
       style={{
-        gridTemplateColumns: `repeat(${options.length}, 1fr)`,
+        gridTemplateColumns: scrollable ? undefined : `repeat(${options.length}, 1fr)`,
         gap: 1,
         background: V3.rule,
         borderRadius: V3Radius.sm,
         border: `1px solid ${V3.rule}`,
+        scrollbarWidth: scrollable ? 'none' : undefined,
       }}
     >
       {options.map((opt, idx) => {
@@ -98,7 +102,9 @@ export default function Tabs({
             onKeyDown={(e) => handleKey(e, idx)}
             className="transition"
             style={{
-              padding: '10px 0',
+              padding: scrollable ? '10px 14px' : '10px 0',
+              flex: scrollable ? '0 0 auto' : undefined,
+              whiteSpace: 'nowrap',
               fontSize: V3FontSize.sm,
               fontWeight: V3FontWeight.bold,
               background: active ? V3.ink : V3.paperHi,

@@ -51,7 +51,7 @@ export function HeroSection({
         <div
           style={{
             textAlign: 'center',
-            fontSize: 11.5,
+            fontSize: 14,
             color: p.brand,
             fontWeight: 700,
             letterSpacing: '0.22em',
@@ -100,7 +100,7 @@ export function HeroSection({
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: p.muted,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 700,
                   letterSpacing: '-0.01em',
                 }}

@@ -412,7 +412,7 @@ export default function ChatClient({
       </section>
 
       {/* 입력 폼 — 항상 하단 */}
-      <section className="px-5 mt-4 sticky bottom-[calc(88px+env(safe-area-inset-bottom))] z-10">
+      <section className="px-5 mt-4 sticky bottom-[calc(var(--ft-tabbar-h,68px)+16px+env(safe-area-inset-bottom))] z-10">
         <div className="bg-bg-3 rounded border border-rule px-4 py-3 shadow-sm">
           <textarea
             value={input}

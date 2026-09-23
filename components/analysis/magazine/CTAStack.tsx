@@ -98,7 +98,7 @@ function SecondaryBtn({
     >
       {icon}
       <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{label}</div>
-      <div style={{ fontSize: 10.5, color: p.muted, fontWeight: 500 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: p.muted, fontWeight: 500 }}>{sub}</div>
     </Link>
   )
 }

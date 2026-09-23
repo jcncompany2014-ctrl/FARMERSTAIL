@@ -282,7 +282,7 @@ export default async function AnalysesTimelinePage({
                           <Flame className="w-2.5 h-2.5" strokeWidth={2.5} />
                           MER
                         </div>
-                        <div className="text-[13.5px] font-black text-terracotta mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-terracotta mt-0.5 leading-tight flex flex-wrap items-baseline gap-x-0.5">
                           {a.mer.toLocaleString()}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             kcal
@@ -295,7 +295,7 @@ export default async function AnalysesTimelinePage({
                           <Scale className="w-2.5 h-2.5" strokeWidth={2.5} />
                           체중
                         </div>
-                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-tight flex flex-wrap items-baseline gap-x-0.5">
                           {kgNumber(weight)}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             kg
@@ -307,7 +307,7 @@ export default async function AnalysesTimelinePage({
                         <div className="text-[9px] font-bold text-muted uppercase tracking-wider">
                           체형
                         </div>
-                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-none">
+                        <div className="text-[13.5px] font-black text-text mt-0.5 leading-tight flex flex-wrap items-baseline gap-x-0.5">
                           {a.bcs_score}
                           <span className="text-[9px] text-muted font-sans ml-0.5">
                             /9
@@ -550,12 +550,14 @@ function HeroStat({
       style={divider ? { borderLeft: '1px solid var(--ink-rule)' } : undefined}
     >
       <div
-        className="text-[9px] font-bold uppercase"
-        style={{ color: 'var(--ink-fg-faint)', letterSpacing: '0.14em' }}
+        className="text-[9px] font-bold"
+        style={{ color: 'var(--ink-fg-faint)', letterSpacing: '-0.01em' }}
       >
         {kicker}
       </div>
-      <div className="font-sans tabular-nums leading-none mt-1.5">
+      {/* 글자 기준 상향(12/14/16) 뒤 3칸 그리드에서 "1,234 kcal" 이 한 줄에 안 들어간다 —
+          단위가 다음 줄로 내려가도 겹치지 않게 flex-wrap + 보통 행간(2026-09-23 점검). */}
+      <div className="font-sans tabular-nums leading-tight mt-1.5 flex flex-wrap items-baseline gap-x-1">
         <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.015em' }}>
           {value}
         </span>

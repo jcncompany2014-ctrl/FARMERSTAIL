@@ -17,6 +17,7 @@ export default async function AnalysisPage({
   const { id } = await params
   const sp = await searchParams
   // survey 페이지의 월 3회 한도 가드로 redirect 된 경우 안내 토스트 트리거.
-  const surveyBlocked = sp.from === 'survey_blocked'
-  return <AnalysisView dogId={id} surveyBlocked={surveyBlocked} />
+  const surveyBlocked = sp.from === 'survey_blocked' || sp.from === 'refine_blocked'
+  const refineBlocked = sp.from === 'refine_blocked'
+  return <AnalysisView dogId={id} surveyBlocked={surveyBlocked} refineBlocked={refineBlocked} />
 }

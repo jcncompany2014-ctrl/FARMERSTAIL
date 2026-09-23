@@ -61,7 +61,7 @@ export function DailyEnergyCard({
         >
           하루 필요 에너지
         </div>
-        <div style={{ fontSize: 12.5, color: p.muted, marginTop: 2 }}>
+        <div style={{ fontSize: 14, color: p.muted, marginTop: 2 }}>
           {petName(dogName)}가 하루 체중 유지에 필요한 에너지
         </div>
 
@@ -87,7 +87,7 @@ export function DailyEnergyCard({
               display: 'flex',
               justifyContent: 'space-between',
               marginTop: 6,
-              fontSize: 11,
+              fontSize: 12,
               color: p.muted,
               fontWeight: 600,
             }}
@@ -112,7 +112,7 @@ export function DailyEnergyCard({
           <div>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 12,
                 color: p.muted,
                 fontWeight: 600,
                 letterSpacing: '0.08em',
@@ -122,7 +122,7 @@ export function DailyEnergyCard({
             </div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: 700,
                 color: p.ink,
                 marginTop: 2,
@@ -138,7 +138,7 @@ export function DailyEnergyCard({
               padding: '4px 10px',
               background: `${p.accentOlive}1f`,
               borderRadius: 999,
-              fontSize: 10.5,
+              fontSize: 12,
               fontWeight: 700,
               color: p.accentOlive,
               letterSpacing: '0.08em',
@@ -161,7 +161,7 @@ export function DailyEnergyCard({
           >
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: 12,
                 color: p.muted,
                 fontWeight: 600,
                 letterSpacing: '0.08em',
@@ -178,7 +178,7 @@ export function DailyEnergyCard({
                     justifyContent: 'space-between',
                     alignItems: 'baseline',
                     gap: 12,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: 600,
                   }}
                 >
@@ -212,7 +212,7 @@ export function DailyEnergyCard({
         <p
           style={{
             marginTop: 10,
-            fontSize: 11,
+            fontSize: 12,
             lineHeight: 1.55,
             color: p.muted,
           }}

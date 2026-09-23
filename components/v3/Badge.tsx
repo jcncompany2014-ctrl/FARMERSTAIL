@@ -32,7 +32,7 @@
  *   - 폰트: Mono (kicker 톤) + uppercase + letter-spacing 0.08em
  *   - radius: shape='square' → 2px (V3.xs), 'pill' → 999
  *   - padding: sm → 2/6, md → 3/8
- *   - 작은 글자 (9.5~11px) 라 weight 700 권장
+ *   - 작은 글자 (12~13px) 라 weight 700 권장
  */
 
 import type { ReactNode } from 'react'
@@ -141,7 +141,8 @@ export default function Badge({
 }: BadgeProps) {
   const colors = TONE[tone]
   const padding = size === 'sm' ? '2px 7px' : '3px 9px'
-  const fontSize = size === 'sm' ? 9.5 : 11
+  // 2026-09-22 글자 기준 상향(최소 12) — 인라인이라 app 스코프 매핑을 못 받는다.
+  const fontSize = size === 'sm' ? 12 : 13
   const borderRadius = shape === 'pill' ? V3Radius.pill : V3Radius.xs
 
   const background = filled ? TONE_FILL[tone] : colors.bg

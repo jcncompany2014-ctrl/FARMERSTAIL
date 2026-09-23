@@ -417,7 +417,7 @@ export default function SubscriptionsWebClient({
               className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: '1px solid var(--fd-line)', background: 'var(--fd-offwhite)' }}
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
                 <span
                   aria-hidden
                   className="w-1.5 h-1.5 rounded-full shrink-0"

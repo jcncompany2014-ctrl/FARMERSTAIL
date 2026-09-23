@@ -7,7 +7,7 @@
  * 해당하는 것만 탭(미선택은 저장 안 됨), 최소 1개. health_logs 에 그대로 저장
  * (기존 폼과 동일 컬럼·값) → 기록 호환. 더 적고 싶으면 "자세히"로 풀 폼 이동.
  *
- * **앱(PWA) 전용.** 호출자(PawFab)가 dogId 전달 + open/onClose 제어.
+ * **앱(PWA) 전용.** 호출자(BottomTabBar 기록 탭)가 dogId 전달 + open/onClose 제어.
  */
 
 import { useId, useRef, useState } from 'react'

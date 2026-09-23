@@ -34,6 +34,14 @@ import BottomTabBar from '@/components/app/BottomTabBar'
 const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
 
 /**
+ * 결제 퍼널(레시피 고르기 /plan → 주문·결제 /order)은 자체 **하단 고정 바**(플랜 담기 /
+ * 결제)를 쓴다. 2026-09-21 하단 탭이 돌아오면서 그 바가 탭 아래 깔려 "플랜 담기·결제"
+ * 버튼이 통째로 가려졌다(2026-09-23 에뮬레이터 실측 — 첫 결제에서 돈이 새는 자리).
+ * 헤더(← 뒤로)는 남기고 탭만 숨긴다. 규칙88.
+ */
+const CHECKOUT_RE = /\/dogs\/[^/]+\/(plan|order)(\/|$)/
+
+/**
  * R-feel: 화면별 헤더.
  * 탭 루트(홈/강아지/내정보)는 로고+강아지 칩 기본 헤더.
  * 그 외 "깊은 화면"은 ← 뒤로 + 화면 제목 으로 — '앱 같다'의 핵심.
@@ -65,6 +73,9 @@ const DEEP_TITLES: Record<string, string> = {
   '/dogs/:id/analysis': '영양 분석',
   '/dogs/:id/reminders': '건강 관리',
   '/dogs/:id/order': '주문하기',
+  '/dogs/:id/plan': '레시피 고르기',
+  // 구독 탭이 상단에서 빠지고(2026-09-21) 하단 '정기배송' 탭이 대신한다 — 제목도 맞춘다.
+  '/dogs/:id/subscription': '정기배송',
   '/dogs/:id/year-in-review': '연말 결산',
   '/faq': '자주 묻는 질문',
   '/help': '고객센터',
@@ -178,6 +189,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const focusMode =
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
     (pathname.includes('/analysis') && fromSurvey)
+  // 탭바만 숨기는 화면(결제 퍼널) — 헤더는 그대로.
+  const tabBarHidden = focusMode || CHECKOUT_RE.test(pathname)
 
   const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
@@ -811,9 +824,9 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         // 하단 탭(--ft-tabbar-h) 위로 마지막 컨텐츠가 올라오게 — 탭이 없는
         // 몰입 화면에선 safe-area 만.
         className={`max-w-md mx-auto min-w-0 overflow-x-clip ${
-          focusMode
+          tabBarHidden
             ? 'pb-[env(safe-area-inset-bottom)]'
-            : 'pb-[calc(var(--ft-tabbar-h,60px)+20px+env(safe-area-inset-bottom))]'
+            : 'pb-[calc(var(--ft-tabbar-h,68px)+20px+env(safe-area-inset-bottom))]'
         }`}
       >
         {children}
@@ -830,7 +843,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       <BottomTabBar
         activeDogId={activeDog?.id ?? null}
         activeDogName={activeDog?.name ?? null}
-        hidden={focusMode}
+        hidden={tabBarHidden}
       />
 
     </div>

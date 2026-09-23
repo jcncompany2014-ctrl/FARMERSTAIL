@@ -105,7 +105,7 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
       </section>
 
       {/* 입력 form — sticky bottom */}
-      <section className="sticky bottom-[calc(88px+env(safe-area-inset-bottom))] z-10 px-5 mt-4">
+      <section className="sticky bottom-[calc(var(--ft-tabbar-h,68px)+16px+env(safe-area-inset-bottom))] z-10 px-5 mt-4">
         <div className="bg-bg-3 rounded border border-rule px-4 py-3 shadow-sm">
           <textarea
             value={input}

@@ -105,7 +105,7 @@ export function SectionHeader({ p, eyebrow, title, tail }: SectionHeaderProps) {
         {title}
       </div>
       {tail && (
-        <div style={{ fontSize: 11, color: p.muted, marginTop: 2 }}>{tail}</div>
+        <div style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>{tail}</div>
       )}
     </div>
   )

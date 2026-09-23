@@ -351,6 +351,10 @@ export default function SurveyClient({
   useEffect(() => {
     if (!dog || !restoredRef.current || typeof window === 'undefined') return
     if (screen === 'loading') return
+    // refine 모드는 저장하지 않는다 — 시드는 서버(마지막 설문)가 정본이고, 공용 초안 키에
+    // 남기면 다음 일반 설문이 그 초안을 복원해 11개 질문을 건너뛴 채 선택 화면에서 시작한다
+    // (2026-09-23 점검). 나가면 다음 ?refine=1 진입 때 다시 시드된다.
+    if (refineMode) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       try {

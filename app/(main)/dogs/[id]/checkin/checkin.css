@@ -1,3 +1,5 @@
+/* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
+   CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
 /* =========================================================================
    Checkin form — 자체 placeholder 디자인 (클로드 디자인 핸드오프 받으면 교체)
    ========================================================================= */
@@ -14,7 +16,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   letter-spacing: 0.04em;
@@ -39,7 +41,7 @@
   color: var(--ink);
   padding: 3px 8px;
   border-radius: 99px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .ck-hero h1 {
   font-family: var(--font-sans), 'Pretendard', sans-serif;
@@ -101,7 +103,7 @@
   background: var(--bg-2);
   color: var(--ink);
   border-radius: 99px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: background 120ms;
@@ -131,7 +133,7 @@
 }
 .ck-progress-lbl {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 600;
   letter-spacing: .04em;
@@ -148,7 +150,7 @@
   border-radius: 12px;
   padding: 14px 16px;
   margin-bottom: 24px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--text);
 }
@@ -165,7 +167,7 @@
   min-height: 40px;
   padding: 8px 16px;
   border-radius: 99px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   margin-left: auto;
   white-space: nowrap;
@@ -182,7 +184,7 @@
 .ck-section[disabled] button { pointer-events: none; }
 .ck-sect-lbl {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   /* R26: 0.22 → 0.16em (V3LetterSpacing.kicker) */
   letter-spacing: 0.16em;
   font-weight: 700;
@@ -193,7 +195,7 @@
   display: block;
 }
 .ck-sect-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
   margin: 0 0 12px;
   line-height: 1.5;
@@ -232,16 +234,16 @@
 }
 .ck-stool-num {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.6;
 }
 .ck-stool-lbl {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 700;
 }
 .ck-stool-hint {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -287,7 +289,7 @@
   font-weight: 700;
 }
 .ck-five-btn .lbl {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   font-weight: 600;
   opacity: 0.85;
@@ -300,7 +302,7 @@
   cursor: pointer;
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   margin-top: 10px;
   padding: 8px 0;
@@ -330,7 +332,7 @@
 .ck-textarea::placeholder { color: var(--ink-faint); }
 .ck-charcount {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   text-align: right;
   margin-top: 4px;
@@ -346,7 +348,7 @@
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 24px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.5;
 }
@@ -358,7 +360,7 @@
   color: var(--accent-deep);
   padding: 10px 12px;
   border-radius: 12px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -405,7 +407,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: 14px;
   color: var(--muted);
   padding: 60px 0;
   justify-content: center;

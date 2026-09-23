@@ -56,7 +56,12 @@ export default async function SurveyPage({
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (!lastSurveyErr && lastSurvey) {
+    // v4(화면당 질문 하나) 설문만 이어 답할 수 있다 — 웹 라이트 설문(체형 5지선다·bcsExact
+    // 없음)이나 v3 행을 시드하면 체형이 '이상적'으로 뭉개진 채 재분석된다(2026-09-23 점검).
+    const isV4 =
+      !!lastSurvey &&
+      (lastSurvey.answers as { surveyVersion?: unknown } | null)?.surveyVersion === 4
+    if (!lastSurveyErr && lastSurvey && isV4) {
       refineFrom = seedFromSurvey({
         ...(lastSurvey as unknown as SurveyRowLike),
         prescription_diet: (dog as { prescription_diet?: string | null }).prescription_diet ?? null,
@@ -155,7 +160,8 @@ export default async function SurveyPage({
 
       if (!materialChange) {
         // 이번 달 3회 소진 → 최신 분석 페이지로 안내(토스트는 그 페이지).
-        redirect(`/dogs/${id}/analysis?from=survey_blocked`)
+        // 추가 답변(refine)도 재분석이라 같은 한도 — 결과 화면이 카드를 숨기고 다른 문구로 안내.
+        redirect(`/dogs/${id}/analysis?from=${refine ? 'refine_blocked' : 'survey_blocked'}`)
       }
       // 중요 정보 변경 감지 → 통과(재분석 진행).
     }

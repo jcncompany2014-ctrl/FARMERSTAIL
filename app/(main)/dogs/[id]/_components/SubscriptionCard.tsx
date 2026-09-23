@@ -151,7 +151,7 @@ export default function SubscriptionCard({
                       >
                         {meta.label}
                       </span>
-                      <span className="text-[12px] font-bold text-text truncate">
+                      <span className="text-[12px] font-bold text-text leading-snug">
                         {recipe || freshTierLabel(s.fresh_ratio)}
                       </span>
                     </div>

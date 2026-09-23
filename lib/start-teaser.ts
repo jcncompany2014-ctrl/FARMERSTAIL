@@ -10,6 +10,11 @@
 import { calculateNutrition, type DogInfo, type SurveyAnswers } from './nutrition.ts'
 import { loadAutosignupDraft, type AutosignupDraft } from './autosignup-draft.ts'
 
+/** 웹 라이트 설문 관심사 키 → lib/nutrition 이 읽는 한글 라벨(legacy healthConcerns). */
+export const HEALTH_KR: Record<string, string> = {
+  joint: '관절', skin: '피부/털', digest: '소화', dental: '치아', weight: '체중',
+}
+
 export type StartTeaser = {
   dogName: string
   /** 체형 한 줄 코멘트(질병 단정 아님). */
@@ -71,6 +76,11 @@ export function draftToNutritionInput(
   // '없어요'(none) 센티넬 제외.
   const allergies = (Array.isArray(a.allergy) ? a.allergy : []).filter((x) => x !== 'none')
   const health = (Array.isArray(a.health) ? a.health : []).filter((x) => x !== 'none')
+  // ★2026-09-23 점검: healthConcerns 를 영문 키('skin','joint'…) 그대로 넣고 있었다.
+  //   lib/nutrition 은 한글 라벨('피부/털','관절'…)로만 매칭해서 웹 설문 출신은 관심사
+  //   보정(지방+3·섬유+2·오메가3 등)을 한 번도 못 받았다. 알레르기는 같은 문제를 이미
+  //   고쳤는데(translateDraftAllergies) 관심사는 빠져 있었다. 저장·티저 둘 다 한글로.
+  const healthConcerns = health.map((h) => HEALTH_KR[h] ?? h)
   const appetite =
     a.taste === 'good' ? 'strong' : a.taste === 'picky' ? 'picky' : a.taste === 'normal' ? 'normal' : undefined
 
@@ -87,7 +97,7 @@ export function draftToNutritionInput(
   const answers: SurveyAnswers = {
     bodyCondition: body as SurveyAnswers['bodyCondition'],
     allergies,
-    healthConcerns: health,
+    healthConcerns,
     foodType: typeof a.food === 'string' ? a.food : undefined,
     appetite: appetite as SurveyAnswers['appetite'],
   }

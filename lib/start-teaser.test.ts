@@ -9,7 +9,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { computeStartTeaser } from './start-teaser.ts'
+import { computeStartTeaser, draftToNutritionInput, HEALTH_KR } from './start-teaser.ts'
 import type { AutosignupDraft } from './autosignup-draft.ts'
 
 const baseDog: AutosignupDraft['dog'] = {
@@ -60,4 +60,18 @@ describe('computeStartTeaser', () => {
   it('draft 없음(null) → null', () => {
     assert.equal(computeStartTeaser(null), null)
   })
+})
+
+it('웹 관심사(영문 키)는 영양 계산이 읽는 한글 라벨로 answers.healthConcerns 에 들어간다 (2026-09-23)', () => {
+  const m = draftToNutritionInput({
+    v: 1,
+    ts: 0,
+    dog: { name: '코코', weight: '4', ageValue: '3', ageUnit: 'years', neutered: true, gender: 'male' },
+    answers: { health: ['skin', 'joint', 'none'] },
+  })
+  assert.ok(m)
+  assert.deepEqual(m!.answers.healthConcerns, ['피부/털', '관절'])
+  // 티저·보충제 쪽이 쓰는 원본 키는 그대로
+  assert.deepEqual(m!.health, ['skin', 'joint'])
+  assert.equal(HEALTH_KR.weight, '체중')
 })

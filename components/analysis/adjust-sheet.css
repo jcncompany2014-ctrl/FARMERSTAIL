@@ -1,3 +1,5 @@
+/* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
+   CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
 /* =========================================================================
    AdjustSheet — Claude Design 핸드오프 #3 (sheet) 적용 컴포넌트 CSS
    ---------------------------------------------------------------------------
@@ -72,7 +74,7 @@
   white-space: nowrap;
 }
 .adj-sub {
-  font-size: 11.5px; color: var(--muted);
+  font-size: 12px; color: var(--muted);
   letter-spacing: .01em;
 }
 .adj-sub strong { color: var(--ink); font-weight: 700; }
@@ -123,7 +125,7 @@
 }
 .adj-live-nutri-label {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 9px; letter-spacing: .14em;
+  font-size: 12px; letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
@@ -142,7 +144,7 @@
 }
 .adj-live-nutri-grid small {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 600;
   letter-spacing: .04em;
@@ -168,7 +170,7 @@
 }
 .adj-live-warn-row {
   display: flex; align-items: center; gap: 6px;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--ink);
   flex-wrap: wrap;
 }
@@ -180,7 +182,7 @@
 .adj-live-warn-actual {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--ink);
   background: #fff;
   padding: 2px 6px;
@@ -188,7 +190,7 @@
   flex-shrink: 0;
 }
 .adj-live-warn-target {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   font-style: italic;
 }
@@ -200,13 +202,13 @@
 }
 .adj-sect-lbl .l {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px; letter-spacing: .18em; color: var(--ink);
+  font-size: 12px; letter-spacing: .18em; color: var(--ink);
   font-weight: 600; text-transform: uppercase;
   display: flex; align-items: center; gap: 6px;
 }
 .adj-sect-lbl .r {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted); font-weight: 500;
+  font-size: 12px; color: var(--muted); font-weight: 500;
 }
 .adj-sect-lbl .r b { color: var(--ink); font-weight: 600; }
 
@@ -245,8 +247,8 @@
   justify-content: center;
   text-align: center;
 }
-.adj-slot.empty span { font-size: 12px; font-weight: 700; }
-.adj-slot.empty small { font-size: 10px; opacity: .8; }
+.adj-slot.empty span { font-size: 14px; font-weight: 700; }
+.adj-slot.empty small { font-size: 12px; opacity: .8; }
 .adj-slot-pct {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: 20px; font-weight: 600;
@@ -259,7 +261,7 @@
 }
 .adj-slot-amt {
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted); letter-spacing: .02em;
+  font-size: 12px; color: var(--muted); letter-spacing: .02em;
 }
 
 /* ── 레시피 고르기 그리드 ─────────────────────────────────────────────── */
@@ -303,12 +305,12 @@
   flex-shrink: 0;
 }
 .adj-pick-sub {
-  font-size: 10.5px; line-height: 1.45; color: var(--muted);
+  font-size: 12px; line-height: 1.45; color: var(--muted);
 }
 .adj-pick-rec {
   position: absolute; top: 8px; right: 8px;
   padding: 2px 6px; border-radius: 99px;
-  font-size: 9px; font-weight: 800; letter-spacing: .04em;
+  font-size: 12px; font-weight: 800; letter-spacing: .04em;
   background: rgba(60, 114, 94, .1);
   color: #3C725E;
 }
@@ -337,7 +339,7 @@
 }
 .adj-pick-hint {
   margin: 8px 2px 10px;
-  font-size: 10.5px; line-height: 1.5; color: var(--muted);
+  font-size: 12px; line-height: 1.5; color: var(--muted);
 }
 
 /* 단일 단백질 안내 — 왜 한 가지를 권하는지. 경고가 아니라 설명이라
@@ -347,7 +349,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--bg-2);
-  font-size: 10.5px; line-height: 1.6; color: var(--muted);
+  font-size: 12px; line-height: 1.6; color: var(--muted);
 }
 .adj-single-note strong { color: var(--ink); font-weight: 700; }
 .adj-single-note.is-good {
@@ -366,7 +368,7 @@
   box-shadow: 0 1px 2px rgba(46, 31, 20, .04);
 }
 .adj-strategy .l {
-  font-size: 11px; color: var(--muted); letter-spacing: .04em;
+  font-size: 12px; color: var(--muted); letter-spacing: .04em;
   margin-bottom: 8px;
   font-family: var(--font-mono), 'JetBrains Mono', monospace;
   text-transform: uppercase;
@@ -380,7 +382,7 @@
 .adj-seg button {
   appearance: none; border: 0; cursor: pointer; background: transparent;
   flex: 1; padding: 8px 10px;
-  font-size: 12px; font-weight: 600; color: var(--muted);
+  font-size: 14px; font-weight: 600; color: var(--muted);
   border-radius: 99px;
   transition: color 200ms;
   position: relative;
@@ -405,7 +407,7 @@
   border: 1px solid rgba(60, 114, 94, .18);
   border-radius: 12px;
   display: flex; gap: 10px; align-items: flex-start;
-  font-size: 11.5px; color: var(--text);
+  font-size: 12px; color: var(--text);
   line-height: 1.55;
 }
 .adj-footer-note .ic {
@@ -420,7 +422,7 @@
   background: #FFF5F2;
   color: #b83a2e;
   border-radius: 10px;
-  font-size: 11.5px; font-weight: 600;
+  font-size: 12px; font-weight: 600;
   display: flex; align-items: center; gap: 7px;
   box-shadow: inset 0 0 0 1px rgba(184, 58, 46, .18);
 }
