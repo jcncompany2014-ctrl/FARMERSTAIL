@@ -1780,8 +1780,19 @@ test('규칙40 — 다크 테마를 켜는 경로가 없다(사장님이 없앤 
    * 다크를 정말 되살릴 땐 이 테스트를 함께 지우면 된다(그게 리뷰 지점이다).
    */
   const offenders: string[] = []
+  // ★walk() 는 .ts/.tsx 만 모은다 — CSS 는 따로 걷는다(2026-09-23 카나리아에서 드러남:
+  //   CSS 분기를 넣고도 빨간불이 안 났다. "if 안 단언은 썩는다").
+  const walkCss = (dir: string, out: string[] = []): string[] => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules' || name === '.next' || name === '.git' || name === '.claude') continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walkCss(p, out)
+      else if (/\.css$/.test(name)) out.push(p)
+    }
+    return out
+  }
   for (const dir of ['app', 'components', 'lib']) {
-    for (const file of walk(join(ROOT, dir))) {
+    for (const file of [...walk(join(ROOT, dir)), ...walkCss(join(ROOT, dir))]) {
       if (file.includes('.test.')) continue
       const isCss = /\.css$/.test(file)
       if (!isCss && !/\.tsx?$/.test(file)) continue

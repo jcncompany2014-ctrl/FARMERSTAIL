@@ -175,7 +175,7 @@ export default function StartJoinPage() {
   }
 
   const inputCls =
-    'w-full px-4 py-3 rounded-lg border text-[18px] focus:outline-none transition'
+    'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
   const inputStyle = {
     borderColor: 'var(--rule)' as const,
     background: '#FFFFFF',

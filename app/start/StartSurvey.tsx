@@ -370,7 +370,8 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
               onClick={() => toggle(q.key, q.multi, o.v)}
               style={{
                 appearance: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                padding: '14px 14px', borderRadius: 12, border: '1.5px solid',
+                // 좌우 10 — 16px 라벨 + 선택 체크 아이콘이 360px 폰 2열(내부 127px)에서 줄바꿈되던 것(2026-09-23).
+                padding: '14px 10px', borderRadius: 12, border: '1.5px solid',
                 borderColor: active ? 'var(--fd-coral)' : 'var(--fd-line-strong)',
                 background: active ? 'var(--fd-cream)' : '#FFFFFF',
                 color: active ? 'var(--fd-coral-text)' : 'var(--fd-pine)',
@@ -485,7 +486,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
   }
 
   // FD 입력 스타일(signup baseInput 패턴 — 16px iOS zoom 방지).
-  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[18px] focus:outline-none transition'
+  const inputCls = 'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
   const inputStyle = { borderColor: 'var(--fd-line-strong)' as const, background: '#FFFFFF', color: 'var(--fd-pine)' }
   const labelCls = 'block text-[13px] font-bold mb-1.5'
 
@@ -758,7 +759,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setGuardianName(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: guardianName && guardianName.trim().length < 2 ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {guardianName && guardianName.trim().length < 2 && (
-                      <p id="su-guardian-name-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-guardian-name-err" role="alert" className="mt-1 flex items-start gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이름을 2자 이상 입력해 주세요
                       </p>
                     )}
@@ -772,7 +773,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setEmail(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: email && !emailValid(email) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {email && !emailValid(email) && (
-                      <p id="su-email-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-email-err" role="alert" className="mt-1 flex items-start gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />이메일 주소 형식을 확인해 주세요
                       </p>
                     )}
@@ -784,7 +785,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: password && !passwordStrong(password) ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {password && !passwordStrong(password) && (
-                      <p id="su-password-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-err" role="alert" className="mt-1 flex items-start gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />영문·숫자·특수문자를 포함해 8자 이상이어야 해요
                       </p>
                     )}
@@ -796,7 +797,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       onChange={(e) => setConfirmPassword(e.target.value)} className={inputCls}
                       style={{ ...inputStyle, borderColor: passwordMismatch ? 'var(--sale)' : 'var(--fd-line-strong)' }} />
                     {passwordMismatch && (
-                      <p id="su-password-confirm-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-password-confirm-err" role="alert" className="mt-1 flex items-start gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />비밀번호가 일치하지 않아요
                       </p>
                     )}
@@ -807,7 +808,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                       placeholder={`예: ${currentYear - 30}`} onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, ''))}
                       className={inputCls} style={{ ...inputStyle, borderColor: birthYear && !birthYearValid ? 'var(--sale)' : 'var(--fd-line-strong)', fontVariantNumeric: 'tabular-nums' }} />
                     {birthYear && !birthYearValid && (
-                      <p id="su-birth-year-err" role="alert" className="mt-1 flex items-center gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p id="su-birth-year-err" role="alert" className="mt-1 flex items-start gap-1" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3 h-3" strokeWidth={2.5} />만 14세 이상만 가입할 수 있어요
                       </p>
                     )}
@@ -838,7 +839,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                     passwordStrong(password) &&
                     password === confirmPassword &&
                     birthYearValid && (
-                      <p role="alert" className="flex items-center gap-1" style={{ fontSize: 14, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
+                      <p role="alert" className="flex items-start gap-1" style={{ fontSize: 14, fontWeight: 600, color: 'var(--fd-coral-text)' }}>
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />위의 필수 동의에 체크하면 가입할 수 있어요
                       </p>
                     )}
