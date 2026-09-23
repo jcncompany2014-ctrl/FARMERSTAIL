@@ -10,9 +10,9 @@
      · coral pill / coral fill 선택 (과한 글로우 제거)
 
    presentation only — 구조·클래스·layout(grid/flex/gap/padding)·@keyframes·
-   미디어쿼리(reduced-motion, 다크모드 토큰 swap)는 전부 그대로.
+   미디어쿼리(reduced-motion)는 전부 그대로. (다크모드는 2026-08-05 앱 전체에서 폐지 — 이 파일에 다크 쿼리 없음.)
    SurveyClient.tsx · steps/*.tsx 가 의존하는 .s-* 셀렉터 집합 완전 보존.
-   카드 surface 는 다크모드 자동 swap 되는 legacy 토큰(--surface-card/--bg-2/
+   카드 surface 는 legacy 토큰(--surface-card/--bg-2/
    --bg/--rule)을 유지하되, 보더는 FD hairline(--fd-line)으로, 잉크/악센트/
    eyebrow 는 실재하는 --fd-* 토큰으로만 치환. (없는 --fd-* 토큰 생성 금지.)
 
@@ -220,7 +220,7 @@
 .s-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .s-pickcard {
   appearance: none; -webkit-appearance: none; border: 0;
-  /* FD 흰 카드 — 다크모드 자동 swap 되는 surface-card 유지 */
+  /* FD 흰 카드 — surface-card 토큰 유지 */
   background: var(--surface-card); padding: 14px 10px 12px;
   /* FD 카드 radius 10 */
   border-radius: 10px; text-align: center;
@@ -984,6 +984,9 @@ input.s-inp[type="number"] {
   text-align: center; flex: 1 1 auto;
 }
 .s-exit {
+  /* 링크→버튼(2026-09-23: 나가기도 확인 시트를 거친다). 버튼 기본 모양 제거. */
+  appearance: none; -webkit-appearance: none; background: transparent; border: 0; cursor: pointer;
+  font-family: inherit;
   font-size: 15px; font-weight: 700; color: var(--fd-muted);
   text-decoration: none; min-height: 44px; display: inline-flex; align-items: center;
   padding: 6px 4px 6px 10px; margin-right: -4px;

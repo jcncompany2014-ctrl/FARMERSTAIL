@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { AlertCircle, ArrowRight, ChevronLeft, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
@@ -16,6 +15,8 @@ import {
 } from '@/lib/nutrition'
 import { type BcsKey, type ChronicConditionKey } from '@/lib/nutrition/guidelines'
 import { haptic } from '@/lib/haptic'
+import { NATIVE_BACK_EVENT } from '@/lib/native-back'
+import { useConfirm } from '@/components/v3/useConfirm'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
 import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
@@ -118,6 +119,7 @@ export default function SurveyClient({
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
+  const confirm = useConfirm()
   const refineMode = refineFrom !== null
   const seed = refineFrom
 
@@ -444,6 +446,7 @@ export default function SurveyClient({
     careGoal,
     optChoice,
     screen,
+    refineMode,
   ])
 
   // loading stage 진행 — 4 stage rotating
@@ -562,6 +565,42 @@ export default function SurveyClient({
     }
     setScreen('optFood')
   }
+
+  // ── 나가기 · 하드웨어 뒤로가기 (2026-09-23 점검) ──
+  // 화면 11개가 브라우저 히스토리 한 칸이라, 안드로이드 뒤로가기를 그냥 두면 이전
+  // 질문이 아니라 **설문 밖**으로 나가고(설문이 첫 화면이면 앱 종료), refine 모드는 답도
+  // 사라진다. 바텀시트가 쓰는 NATIVE_BACK_EVENT 를 같은 방식으로 가로챈다:
+  //   질문 2 이상 → 이전 질문 · 첫 질문 → "나갈까요?" 확인 시트 · 시트가 떠 있으면 시트가 먼저.
+  const exitHref = refineMode ? `/dogs/${dogId}/analysis` : `/dogs/${dogId}`
+  const hasAnyAnswer =
+    bodyAssess.ribs !== '' || bristol !== null || foodType !== '' || careGoal !== ''
+  async function exitSurvey() {
+    if (isLoading) return
+    if (hasAnyAnswer || refineMode) {
+      const ok = await confirm({
+        title: refineMode ? '추가 답변을 그만둘까요?' : '설문을 나갈까요?',
+        body: refineMode
+          ? '지금까지 적은 추가 답변은 저장되지 않아요.'
+          : '지금까지 답한 내용은 저장돼 있어요. 다시 들어오면 이어서 할 수 있어요.',
+        confirmLabel: '나가기',
+        cancelLabel: '계속하기',
+      })
+      if (!ok) return
+    }
+    router.push(exitHref)
+  }
+  useEffect(() => {
+    const handler = (event: Event) => {
+      // 열린 시트(확인창 포함)가 있으면 그쪽이 닫힌다 — 여기서는 손대지 않는다.
+      if (document.querySelector('dialog[open]')) return
+      event.preventDefault()
+      if (isLoading) return
+      if (idx > firstIdx) goPrev()
+      else void exitSurvey()
+    }
+    window.addEventListener(NATIVE_BACK_EVENT, handler)
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, handler)
+  })
 
   async function saveAndGoResult() {
     if (!dog || submitGuardRef.current) return
@@ -894,9 +933,9 @@ export default function SurveyClient({
               <span className="s-count" aria-live="polite">
                 {counter}
               </span>
-              <Link href={refineMode ? `/dogs/${dogId}/analysis` : `/dogs/${dogId}`} className="s-exit">
+              <button type="button" className="s-exit" onClick={() => void exitSurvey()}>
                 나가기
-              </Link>
+              </button>
             </div>
             <div
               className="s-progress"

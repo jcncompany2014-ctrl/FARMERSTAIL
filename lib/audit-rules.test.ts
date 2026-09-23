@@ -1782,9 +1782,18 @@ test('규칙40 — 다크 테마를 켜는 경로가 없다(사장님이 없앤 
   const offenders: string[] = []
   for (const dir of ['app', 'components', 'lib']) {
     for (const file of walk(join(ROOT, dir))) {
-      if (!/\.tsx?$/.test(file) || file.includes('.test.')) continue
+      if (file.includes('.test.')) continue
+      const isCss = /\.css$/.test(file)
+      if (!isCss && !/\.tsx?$/.test(file)) continue
       const rel = file.replace(ROOT, '').split(sep).join('/')
       const src = stripComments(read(file))
+      if (isCss) {
+        // ★2026-09-23 점검: 다크를 켜는 가장 쉬운 길은 globals.css 에 주석 처리돼 남아 있는
+        //   `@media (prefers-color-scheme: dark)` 를 되살리는 것인데, 이 규칙이 .tsx 만 봐서
+        //   그 경우 초록불이 유지됐다. 주석을 벗긴 순간 빨간불이 나야 한다.
+        if (/prefers-color-scheme:\s*dark/.test(src)) offenders.push(`${rel} (다크 미디어쿼리가 살아 있다)`)
+        continue
+      }
       if (/setAttribute\(\s*['"]data-theme['"]/.test(src)) {
         offenders.push(`${rel} (data-theme 을 박는다)`)
       }
@@ -3815,9 +3824,13 @@ test('규칙88: 결제 퍼널(/plan·/order)은 하단 탭을 숨기고, 하단 
    */
   const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
   assert.match(chrome, /const CHECKOUT_RE = \/\\\/dogs\\\/\[\^\/\]\+\\\/\(plan\|order\)/, 'AppChrome 에 결제 퍼널 판별(CHECKOUT_RE)이 없다')
-  assert.match(chrome, /const tabBarHidden = focusMode \|\| CHECKOUT_RE\.test\(pathname\)/, '탭바 숨김이 결제 퍼널을 포함하지 않는다')
+  assert.match(chrome, /const checkout = CHECKOUT_RE\.test\(pathname\)/, '결제 퍼널 판정(checkout)이 없다')
+  assert.match(chrome, /const tabBarHidden = focusMode \|\| checkout/, '탭바 숨김이 결제 퍼널을 포함하지 않는다')
   assert.match(chrome, /hidden=\{tabBarHidden\}/, 'BottomTabBar 에 tabBarHidden 을 넘기지 않는다 — 플랜 담기/결제 버튼이 탭에 가려진다')
-  assert.match(chrome, /tabBarHidden\s*\?\s*'pb-\[env\(safe-area-inset-bottom\)\]'/, 'main 하단 패딩이 탭바 숨김과 같이 움직이지 않는다')
+  assert.match(chrome, /focusMode\s*\?\s*'pb-\[env\(safe-area-inset-bottom\)\]'/, 'main 하단 패딩이 몰입 화면과 같이 움직이지 않는다')
+  // 결제 퍼널은 탭 대신 결제 바가 떠 있다 — 여백 0 이면 마지막 줄이 바 밑에 가려진다(9/23 실측).
+  assert.match(chrome, /checkout\s*\?\s*'pb-\[calc\(var\(--ft-paybar-h/, '결제 퍼널 본문 여백이 결제 바 높이(--ft-paybar-h)를 쓰지 않는다')
+  assert.match(read(join(ROOT, 'app', 'globals.css')), /--ft-paybar-h:\s*\d+px/, 'globals.css 에 --ft-paybar-h 가 없다')
 
   const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
   assert.match(bar, /\/subscription\/\.test\(p\)/, '강아지별 정기배송(/dogs/:id/subscription)이 정기배송 탭으로 잡히지 않는다')

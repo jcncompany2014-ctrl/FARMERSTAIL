@@ -164,6 +164,8 @@
   --ft-header-h: 64px;
   /* 하단 탭바 높이(safe-area 제외). AppChrome main 하단 여백·sticky CTA 가 참조. */
   --ft-tabbar-h: 68px;
+  /* 결제 퍼널(플랜 담기/결제) 하단 고정 바 높이 — AppChrome 이 본문 아래 여백으로 쓴다(규칙88). */
+  --ft-paybar-h: 80px;
   /* 네이티브(Capacitor) 가 상태바·홈바 safe-area 구간을 칠하는 색 = capacitor.config.ts
      backgroundColor. 하단 탭바가 이 색을 써서 홈바 구간과 한 덩어리로 보인다(2026-09-22).
      값을 바꾸면 capacitor.config.ts 도 같이 — 규칙84 가 두 값을 같게 잠근다. */

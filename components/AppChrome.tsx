@@ -190,7 +190,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     FOCUS_PATHS.some((p) => pathname.includes(p)) ||
     (pathname.includes('/analysis') && fromSurvey)
   // 탭바만 숨기는 화면(결제 퍼널) — 헤더는 그대로.
-  const tabBarHidden = focusMode || CHECKOUT_RE.test(pathname)
+  const checkout = CHECKOUT_RE.test(pathname)
+  const tabBarHidden = focusMode || checkout
 
   const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
@@ -823,10 +824,15 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         // 안 깨뜨림. min-w-0 = flex/grid 자식이 컨텐츠로 뷰포트를 밀어내는 것 차단.
         // 하단 탭(--ft-tabbar-h) 위로 마지막 컨텐츠가 올라오게 — 탭이 없는
         // 몰입 화면에선 safe-area 만.
+        // 결제 퍼널은 탭 대신 자기 결제 바(플랜 담기/결제, ~74px)가 하단에 떠 있다 —
+        // 탭 여백을 0으로 하면 마지막 줄이 그 바 밑에 가려진다(2026-09-23 에뮬레이터
+        // 실측: 주문 화면 "정기배송가" 줄 59px 가려짐). 바 높이 변수(--ft-paybar-h)만큼 준다.
         className={`max-w-md mx-auto min-w-0 overflow-x-clip ${
-          tabBarHidden
+          focusMode
             ? 'pb-[env(safe-area-inset-bottom)]'
-            : 'pb-[calc(var(--ft-tabbar-h,68px)+20px+env(safe-area-inset-bottom))]'
+            : checkout
+              ? 'pb-[calc(var(--ft-paybar-h,80px)+16px+env(safe-area-inset-bottom))]'
+              : 'pb-[calc(var(--ft-tabbar-h,68px)+20px+env(safe-area-inset-bottom))]'
         }`}
       >
         {children}
