@@ -3784,3 +3784,23 @@ test('규칙86: 앱 설문은 화면당 질문 하나 — 글자 12px 이상·�
     }
   }
 })
+
+test('규칙87: 온보딩 여정 카드의 "체중 기록하기"는 프로필 안에서 그 자리 동작이어야 한다 (자기 자신 링크 금지)', () => {
+  /**
+   * # 왜 (2026-09-23 사장님 제보 — 땅콩이 프로필)
+   * GracePeriodBanner 는 2026-07-24 홈 → 프로필 개요 최상단으로 옮겨졌는데, 3주차 CTA 의
+   * 목적지 `/dogs/{id}` 는 홈 시절 그대로였다. 프로필에서 누르면 자기 자신으로 가는
+   * 링크라 아무 일도 안 일어났다 — "눌렀는데 반응이 없다"는 어르신에게 앱이 고장난 것과 같다.
+   * 카드는 action 을 표시하고, 프로필은 onAction 으로 그 자리의 체중 모달을 연다.
+   */
+  const banner = stripComments(read(join(ROOT, 'components', 'dashboard', 'GracePeriodBanner.tsx')))
+  assert.match(banner, /label:\s*'체중 기록하기'[^\n]*action:\s*'weight'/, '3주차 CTA 에 action: weight 표시가 없다')
+  assert.match(banner, /onAction\?:/, 'GracePeriodBanner 에 onAction prop 이 없다')
+  assert.match(banner, /onClick=\{\(\) => onAction\(/, '카드가 onAction 을 호출하는 버튼을 그리지 않는다')
+  const detail = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'DogDetailClient.tsx')))
+  const i = detail.indexOf('<GracePeriodBanner')
+  assert.ok(i >= 0, 'DogDetailClient 에 GracePeriodBanner 가 없다')
+  const usage = detail.slice(i, detail.indexOf('/>', i))
+  assert.match(usage, /onAction=/, '프로필이 GracePeriodBanner 에 onAction 을 넘기지 않는다 — 체중 기록하기가 다시 죽는다')
+  assert.match(usage, /setShowWeightModal\(true\)/, 'onAction 이 체중 모달을 열지 않는다')
+})

@@ -312,6 +312,11 @@ export default function DogDetailClient({
         phase={gracePhase}
         dogName={petName(dog.name)}
         dogId={dog.id}
+        // 3주차 "체중 기록하기" — 이 페이지 안의 카드라 링크(/dogs/{id})는 자기 자신이었다.
+        // 그 자리에서 체중 입력 모달을 연다(사장님 제보 2026-09-23, 규칙87).
+        onAction={(a) => {
+          if (a === 'weight') setShowWeightModal(true)
+        }}
       />
 
       {/* Info card */}
