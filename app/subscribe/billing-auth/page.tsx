@@ -1,6 +1,7 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
 import { userFacingError } from '@/lib/error-message'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { openBillingWindow } from '@/lib/payments/open-billing-window'
@@ -237,6 +238,9 @@ function BillingAuthInner() {
 
   /** 지금 창을 여는 중인 수단. 두 번 눌러 창이 두 번 열리는 것도 이걸로 막는다. */
   const [launchingId, setLaunchingId] = useState<BillingMethodId | null>(null)
+  // 토스 창에서 뒤로(스와이프·하드웨어) 돌아오면 캐시된 이 화면이 "여는 중이에요..."에 멈춰
+  // 버튼을 다시 못 누른다 — 로그인 버튼과 같은 처리(2026-09-24 출시 전 점검).
+  useResetLoadingOnRestore(useCallback(() => setLaunchingId(null), []))
   const [error, setError] = useState<string | null>(
     isInvalidEntry ? '잘못된 접근이에요' : null,
   )

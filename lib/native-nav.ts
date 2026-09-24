@@ -144,3 +144,26 @@ export function shouldHandleLaunchUrl(url: string, store: LaunchUrlStore | null 
   }
   return true
 }
+
+/**
+ * 카카오 채널 링크(`https://pf.kakao.com/_xxxx` 또는 `/_xxxx/chat`) → 카카오톡 앱 딥링크.
+ * 해당 없으면 null.
+ *
+ * # 왜 (2026-09-24 출시 전 점검)
+ * 앱에서 "카카오톡으로 문의"를 누르면 pf.kakao.com 이 **앱 WebView 안에** 열렸다
+ * (allowNavigation 에 *.kakao.com — 카카오 로그인용). 그 페이지의 카카오톡 전환 버튼은
+ * `intent:` 링크라 안드로이드 앱에선 무반응이었고, iOS 는 카카오톡이 열려도 앱이 카카오 웹
+ * 페이지에 남았다. 앱에선 카카오톡 채널 채팅을 바로 연다(NativeShellBridge 가 클릭을 가로챔).
+ */
+export function kakaoChannelAppUrl(href: string): string | null {
+  let u: URL
+  try {
+    u = new URL(href)
+  } catch {
+    return null
+  }
+  if (u.protocol !== 'https:' || u.hostname.toLowerCase() !== 'pf.kakao.com') return null
+  const m = u.pathname.match(/^\/(_[A-Za-z0-9]+)(?:\/chat)?\/?$/)
+  if (!m) return null
+  return `kakaoplus://plusfriend/chat/${m[1]}`
+}

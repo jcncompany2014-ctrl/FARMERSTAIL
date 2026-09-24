@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isNativeApp } from '@/lib/capacitor'
 import {
+  kakaoChannelAppUrl,
   nativeApiUrl,
   nativeTargetPath,
   shouldHandleLaunchUrl,
@@ -89,6 +90,31 @@ export default function NativeShellBridge() {
       // 미심쩍으면 아무 데도 안 간다 — 홈으로 튕기지 않는다. 엉뚱한 화면을
       // 여는 것보다 보던 화면에 그대로 두는 쪽이 낫다.
     }
+
+    // 카카오 채널 링크(pf.kakao.com) → 카카오톡 앱 채널 채팅으로 (2026-09-24 출시 전 점검).
+    // 앱 WebView 안에서 채널 웹페이지가 열리면 안드로이드는 카카오톡 전환이 무반응이었다.
+    // 1.5초 안에 앱이 백그라운드로 가지 않으면(카카오톡 미설치) 예전처럼 웹 채팅 페이지를 연다.
+    const onKakaoChannelClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const anchor = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!anchor) return
+      const deep = kakaoChannelAppUrl(anchor.href)
+      if (!deep) return
+      e.preventDefault()
+      const webUrl = anchor.href
+      let leftApp = false
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') leftApp = true
+      }
+      document.addEventListener('visibilitychange', onVisibility)
+      window.location.href = deep
+      window.setTimeout(() => {
+        document.removeEventListener('visibilitychange', onVisibility)
+        if (!leftApp && document.visibilityState === 'visible') window.location.assign(webUrl)
+      }, 1500)
+    }
+    document.addEventListener('click', onKakaoChannelClick, true)
+    removers.push(() => document.removeEventListener('click', onKakaoChannelClick, true))
 
     void (async () => {
       try {

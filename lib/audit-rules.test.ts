@@ -4058,6 +4058,42 @@ test('규칙96: 청구가 쓰는 할인 사유 값은 전부 orders CHECK 에 �
   assert.deepEqual(noLabel, [], `고객 화면 할인 이름이 없는 사유 — 영수증에 내부 코드가 찍힌다: ${noLabel.join(',')}`)
 })
 
+test('규칙97: 앱 네이티브 흐름 — intent: 링크 처리 · 모달/결제 화면 하드웨어 뒤로가기 · 결제창 복귀 로딩 해제 · 안드로이드 알림 채널', () => {
+  /**
+   * # 왜 (2026-09-24 출시 전 점검, 에뮬레이터 실측)
+   * - 안드로이드는 `intent://` 링크를 받을 앱이 없어 항상 무반응 → 카카오 웹 로그인의 "카카오톡으로
+   *   로그인"·카드사 앱 전환이 죽어 있었다(9/10 실고객 카카오 4회 무응답). MainActivity 가 직접 푼다.
+   * - div 모달 11곳이 하드웨어 뒤로가기를 안 받아 작성 중 일기가 날아가고 홈 튜토리얼에서 앱이 꺼졌다.
+   * - 카드 등록 완료/실패 화면에서 뒤로 가면 토스 창·등록 화면으로 돌아가 이중 등록을 부른다.
+   * - 토스 창에서 스와이프로 돌아오면 등록·결제 버튼이 "진행 중"에 굳었다.
+   * - 서버는 FCM channel_id 'default' 로 보내는데 그 채널을 만드는 코드가 없었다(헤드업 안 뜸).
+   */
+  const main = read(join(ROOT, 'android', 'app', 'src', 'main', 'java', 'com', 'farmerstail', 'app', 'MainActivity.java'))
+  assert.match(main, /"intent"\.equalsIgnoreCase\(url\.getScheme\(\)\)/, 'MainActivity 가 intent: 링크를 처리하지 않는다 — 안드로이드에서 무반응')
+  assert.match(main, /Intent\.parseUri\([^)]*Intent\.URI_INTENT_SCHEME\)/, 'intent: 를 Intent.parseUri 로 풀지 않는다')
+  assert.match(main, /setComponent\(null\)[\s\S]{0,80}setSelector\(null\)/, 'intent: 를 열 때 컴포넌트·셀렉터를 지우지 않는다(보안)')
+
+  const modal = stripComments(read(join(ROOT, 'lib', 'ui', 'useModalA11y.ts')))
+  assert.match(modal, /addEventListener\(NATIVE_BACK_EVENT/, 'useModalA11y 가 하드웨어 뒤로가기를 받지 않는다 — div 모달이 뒤로가기로 안 닫힌다')
+  for (const rel of ['app/subscribe/billing-success/page.tsx', 'app/subscribe/billing-fail/page.tsx']) {
+    assert.match(stripComments(read(join(ROOT, ...rel.split('/')))), /addEventListener\(NATIVE_BACK_EVENT/, `${rel}: 뒤로가기가 토스 창으로 되돌아간다`)
+  }
+  for (const rel of ['app/subscribe/billing-auth/page.tsx', 'app/(main)/dogs/[id]/order/OrderClient.tsx']) {
+    assert.match(stripComments(read(join(ROOT, ...rel.split('/')))), /useResetLoadingOnRestore\(/, `${rel}: 결제창에서 돌아오면 버튼이 진행 중에 굳는다`)
+  }
+
+  const nativePush = stripComments(read(join(ROOT, 'lib', 'push', 'native.ts')))
+  const channel = nativePush.match(/channel_id:\s*'([^']+)'/)
+  assert.ok(channel, 'FCM channel_id 를 못 찾았다(카나리아)')
+  const cap = stripComments(read(join(ROOT, 'lib', 'capacitor.ts')))
+  assert.match(cap, new RegExp(`createChannel\\(\\{\\s*id:\\s*'${channel![1]}'`), `서버가 쓰는 채널 '${channel![1]}' 을 앱이 만들지 않는다 — 알림이 폴백 채널로 떨어진다`)
+  const auto = cap.slice(cap.indexOf('export async function autoRegisterNativePush'))
+  assert.match(auto.slice(0, 600), /ensureAndroidNotificationChannel\(\)/, '이미 등록된 기기에서도 채널을 보장하지 않는다 — 기존 사용자는 채널이 영영 안 생긴다')
+
+  const bridge = stripComments(read(join(ROOT, 'components', 'NativeShellBridge.tsx')))
+  assert.match(bridge, /kakaoChannelAppUrl\(/, '앱에서 카카오 채널 링크가 WebView 안에 열린다 — 카카오톡으로 넘어가지 못한다')
+})
+
 test('규칙95: 돈 경로의 DB 쓰기는 결과(error)를 본다 — 맨 await 로 update/insert 금지', () => {
   /**
    * # 왜 (2026-09-24 출시 전 점검)

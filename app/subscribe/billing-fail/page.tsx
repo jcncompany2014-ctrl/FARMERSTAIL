@@ -2,7 +2,8 @@
 
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { billingFailMessage } from '@/lib/payments/billing-fail-message'
 import * as Sentry from '@sentry/nextjs'
@@ -27,6 +28,16 @@ function BillingFailInner() {
   // 벽을 맞는다(실패 화면에서 벽으로 이어지는 최악의 조합).
   const isApp = useIsAppContext()
   const params = useSearchParams()
+  const router = useRouter()
+  // 안드로이드 뒤로가기 — 토스 창으로 되돌아가지 않고 정기배송 화면으로(2026-09-24 점검).
+  useEffect(() => {
+    const onBack = (event: Event) => {
+      event.preventDefault()
+      router.replace(billingReturnHref(isApp))
+    }
+    window.addEventListener(NATIVE_BACK_EVENT, onBack)
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, onBack)
+  }, [router, isApp])
   const code = params.get('code')
   const message = params.get('message')
   const subscriptionId = params.get('subscriptionId')

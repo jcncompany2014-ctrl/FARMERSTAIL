@@ -29,6 +29,7 @@
  */
 import { useEffect } from 'react'
 import type { RefObject } from 'react'
+import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -104,6 +105,21 @@ export function useModalA11y({
       }
     }
   }, [open, containerRef, initialFocusRef])
+
+  // 6) 안드로이드 하드웨어 뒤로가기 = Esc 와 같은 "닫기" (2026-09-24 출시 전 점검).
+  //    이 훅을 쓰는 div 모달 11곳(일기 작성·체중·삭제 확인·금액 변경 동의·온보딩 튜토리얼 등)이
+  //    뒤로가기를 안 받아서, 작성 중 일기가 화면째 날아가거나 홈 튜토리얼에서 앱이 종료됐다.
+  //    열려 있는 동안 NativeShellBridge 의 뒤로가기를 가로챈다(preventDefault → 화면 이동 없음).
+  //    Esc 를 막아 둔 모달(결제 진행 중 등)은 닫지도, 화면을 벗어나지도 않는다.
+  useEffect(() => {
+    if (!open) return
+    const onNativeBack = (event: Event) => {
+      event.preventDefault()
+      if (!preventEscape) onClose()
+    }
+    window.addEventListener(NATIVE_BACK_EVENT, onNativeBack)
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, onNativeBack)
+  }, [open, onClose, preventEscape])
 
   // 4) Esc + 5) Tab focus trap
   useEffect(() => {

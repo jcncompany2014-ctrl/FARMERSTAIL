@@ -4,6 +4,7 @@
 // redirect. page.tsx (server) 가 dog ownership + formula + profile + products
 // 를 server prefetch 후 prop drill. 빈 spinner 800ms+ 제거.
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
 import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -233,6 +234,8 @@ export default function OrderClient({
   const toast = useToast()
 
   const [submitting, setSubmitting] = useState(false)
+  // 결제창으로 이동한 뒤 뒤로 돌아오면(캐시 복원) 결제 버튼이 진행 중 상태로 굳는다 — 풀어 준다(2026-09-24).
+  useResetLoadingOnRestore(useCallback(() => setSubmitting(false), []))
   const [err, setErr] = useState('')
   /**
    * 배송지와 함께 고르는 결제수단. 기본은 **카드** — 어떤 고객이든 쓸 수 있는

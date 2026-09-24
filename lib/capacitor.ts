@@ -44,6 +44,33 @@ export function getPlatform(): Platform {
 }
 
 /**
+ * 안드로이드 알림 채널 'default' 를 만든다 (2026-09-24 출시 전 점검).
+ *
+ * 서버(lib/push/native.ts)는 FCM 에 channel_id:'default' 로 보내는데 이 채널을 만드는 코드가
+ * 없었다 → 안드로이드는 "기타" 폴백 채널로 떨어뜨려 알림이 화면 위에 뜨지 않고 알림창에만
+ * 조용히 쌓였다(결제 실패·배송 안내를 놓친다). importance 4 = HIGH(헤드업).
+ * 권한 팝업을 띄우지 않는 호출이라 **이미 등록된 기기에서도 앱을 열 때마다** 부른다 —
+ * 등록 경로에만 두면 기존 사용자는 영영 채널이 안 생긴다. 이미 있으면 OS 가 무시한다
+ * (사용자가 바꾼 설정 유지). iOS 엔 채널 개념이 없어 건너뛴다.
+ */
+export async function ensureAndroidNotificationChannel(): Promise<void> {
+  if (!isNativeApp() || getPlatform() !== 'android') return
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications')
+    await PushNotifications.createChannel({
+      id: 'default',
+      name: '파머스테일 알림',
+      description: '주문·배송·결제·건강 알림',
+      importance: 4,
+      visibility: 1,
+      vibration: true,
+    })
+  } catch {
+    /* 채널 생성 실패 — 폴백 채널로라도 도착한다 */
+  }
+}
+
+/**
  * 네이티브 푸시 알림 권한 요청 + 토큰 등록.
  * 웹에서는 호출 X (별도 web push subscribe 플로우 사용).
  *
@@ -68,6 +95,7 @@ export async function registerNativePush(): Promise<
     if (perm.receive !== 'granted') {
       return { ok: false, reason: 'denied' }
     }
+    await ensureAndroidNotificationChannel()
     return new Promise((resolve) => {
       /**
        * ⏱ 시간 제한이 **반드시** 있어야 한다 (2026-08-26 추가).
@@ -268,6 +296,9 @@ export async function autoRegisterNativePush(): Promise<AutoRegisterResult> {
   if (!isNativeApp()) return 'skipped'
   if (autoRegisterTried) return 'skipped'
   autoRegisterTried = true
+
+  // 등록 여부와 무관하게 채널은 매 실행 보장(이미 등록된 기기 포함).
+  await ensureAndroidNotificationChannel()
 
   if (await hasPushOptOut()) return 'skipped'
 

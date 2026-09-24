@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { LAUNCH_URL_HANDLED_KEY, nativeApiUrl, nativeTargetPath, shouldHandleLaunchUrl } from './native-nav.ts'
+import { LAUNCH_URL_HANDLED_KEY, kakaoChannelAppUrl, nativeApiUrl, nativeTargetPath, shouldHandleLaunchUrl } from './native-nav.ts'
 
 /**
  * `appUrlOpen` 은 기기의 아무 앱이나 인텐트로 쏠 수 있다 — 이 표가 그
@@ -159,4 +159,12 @@ test('shouldHandleLaunchUrl: 저장소가 없거나 던지면 예전 동작(처�
   const throwing = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
   assert.equal(shouldHandleLaunchUrl('https://www.farmerstail.kr/dogs', throwing), true)
   assert.equal(shouldHandleLaunchUrl('', memStore()), false)
+})
+
+test('kakaoChannelAppUrl: 카카오 채널 링크만 카카오톡 채팅 딥링크로, 그 외는 null', () => {
+  assert.equal(kakaoChannelAppUrl('https://pf.kakao.com/_qbJqX/chat'), 'kakaoplus://plusfriend/chat/_qbJqX')
+  assert.equal(kakaoChannelAppUrl('https://pf.kakao.com/_qbJqX'), 'kakaoplus://plusfriend/chat/_qbJqX')
+  for (const h of ['http://pf.kakao.com/_qbJqX/chat', 'https://pf.kakao.com.evil.com/_qbJqX', 'https://accounts.kakao.com/login', 'https://pf.kakao.com/_qbJqX/post/1', 'not a url']) {
+    assert.equal(kakaoChannelAppUrl(h), null, h)
+  }
 })

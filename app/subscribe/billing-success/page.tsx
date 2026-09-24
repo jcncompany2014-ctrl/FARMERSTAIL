@@ -20,6 +20,7 @@ import {
   billingReturnHref,
 } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
+import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 
 /**
  * /subscribe/billing-success
@@ -112,6 +113,16 @@ function BillingSuccessInner() {
   const [status, setStatus] = useState<Status>(
     isInvalidEntry ? 'failed' : 'exchanging',
   )
+  // 안드로이드 뒤로가기 — 여기서 뒤로 가면 토스 창·등록 화면으로 돌아가 "또 등록해야 하나" 헷갈리고
+  // 두 번 등록하게 된다(2026-09-24 점검). 등록 확인 중엔 화면을 지키고, 끝나면 정기배송 화면으로 교체.
+  useEffect(() => {
+    const onBack = (event: Event) => {
+      event.preventDefault()
+      if (status !== 'exchanging') router.replace(subsHref)
+    }
+    window.addEventListener(NATIVE_BACK_EVENT, onBack)
+    return () => window.removeEventListener(NATIVE_BACK_EVENT, onBack)
+  }, [status, router, subsHref])
   const [card, setCard] = useState<{ brand: string | null; last4: string | null } | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(
     isInvalidEntry ? '잘못된 접근이에요' : null,
