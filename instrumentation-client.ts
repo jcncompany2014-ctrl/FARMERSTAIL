@@ -28,7 +28,8 @@ if (typeof window !== 'undefined') {
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV,
+  // 미리보기(preview) 배포도 NODE_ENV=production 이라 운영 오류와 섞였다 — Vercel 환경명을 쓴다(2026-09-24).
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.NODE_ENV,
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
   // 커밋 SHA로 release 태깅 — Vercel이 NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA로
   // 공개 접근 가능한 형태로 inline 해준다 (빌드 타임). 클라이언트에서 환경

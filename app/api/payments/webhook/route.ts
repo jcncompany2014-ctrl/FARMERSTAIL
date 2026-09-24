@@ -83,6 +83,12 @@ export async function POST(req: Request) {
     // Toss API itself returned an error — don't trust the webhook.
     // Return 500 so Toss retries; if it's a permanent 4xx the retry
     // budget will bleed out but at least we don't corrupt state.
+    // 재시도가 다 소진되면 토스 콘솔 환불이 DB 에 영영 안 들어온다 — 사장님이 알아야 한다(2026-09-24).
+    captureBusinessEvent('error', 'payment.webhook.toss_lookup_failed', {
+      orderId,
+      status: lookup.status,
+      tossCode: lookup.error?.code ?? null,
+    })
     return NextResponse.json(
       { ok: false, reason: 'toss_lookup_failed', tossError: lookup.error },
       { status: 500 }
@@ -133,6 +139,7 @@ export async function POST(req: Request) {
   //   여기는 아직 멱등 기록 전이라 5xx 로 재시도를 요청하면 그만이다.
   if (orderErr) {
     console.error('[webhook] 주문 조회 실패 — 재시도 요청:', orderErr.message)
+    captureBusinessEvent('error', 'payment.webhook.order_lookup_failed', { orderId, dbError: orderErr.message })
     return NextResponse.json(
       { ok: false, reason: 'order_lookup_failed' },
       { status: 500 },

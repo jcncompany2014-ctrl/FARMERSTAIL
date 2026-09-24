@@ -12,7 +12,8 @@ import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV,
+  // 미리보기(preview) 배포도 NODE_ENV=production 이라 운영 오류와 섞였다 — Vercel 환경명을 쓴다(2026-09-24).
+  environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
   enabled: !!(process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN),
   // 라우트별 차등 sampling — 결제 / Anthropic 같은 비즈니스 핵심은 100%,
   // tracking / health 같은 잡음 라우트는 1% 로 비용 절감.

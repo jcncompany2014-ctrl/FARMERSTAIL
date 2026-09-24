@@ -139,7 +139,7 @@
     },
     {
       "path": "/api/cron/daily-briefing",
-      "schedule": "0 0 * * *"
+      "schedule": "40 0 * * *"
     },
     {
       "path": "/api/cron/quarterly-report",

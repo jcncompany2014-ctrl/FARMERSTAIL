@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
+import * as Sentry from '@sentry/nextjs'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -170,6 +171,13 @@ function BillingSuccessInner() {
         if (!res.ok || !data.ok) {
           setStatus('failed')
           setErrorMsg(data.message ?? '등록에 실패했어요')
+          // 고객 화면에만 뜨고 끝나던 실패 — 어떤 코드로 막혔는지 사장님이 봐야 고친다(2026-09-24).
+          if (data.code !== 'ALREADY_REGISTERED') {
+            Sentry.captureMessage('billing success exchange failed', {
+              level: 'error',
+              tags: { step: 'billing_success', httpStatus: String(res.status), code: data.code ?? 'none' },
+            })
+          }
           // 401 은 '다시 시도'가 구조적으로 안 통한다 — billing-auth 에는 인증
           // 검사가 없어 토스 창이 다시 뜨고, 돌아와서 또 401 이다(무한 왕복).
           setFailKind(
@@ -241,6 +249,10 @@ function BillingSuccessInner() {
         // 타임아웃과 연결 실패를 가른다 — 고객이 할 일이 다르다.
         // 타임아웃은 서버에서 등록이 끝났을 수도 있어 "다시 시도"가 위험하다.
         const timedOut = e instanceof DOMException && e.name === 'TimeoutError'
+        Sentry.captureMessage('billing success request failed', {
+          level: 'error',
+          tags: { step: 'billing_success', kind: timedOut ? 'timeout' : 'network' },
+        })
         setErrorMsg(
           timedOut
             ? '등록 확인이 늦어지고 있어요. 정기배송 화면에서 결제수단이 등록됐는지 확인해 주세요.'

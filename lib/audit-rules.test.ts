@@ -721,8 +721,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:93',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동, 둘 다 같은 집계임을 재확인함)",
+      at: 'app/api/cron/daily-briefing/route.ts:94',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동, 셋 다 같은 집계임을 재확인함)",
     },
   ]
 
@@ -3949,4 +3949,75 @@ test('규칙91: 콜드 스타트 링크(getLaunchUrl)는 shouldHandleLaunchUrl �
     const src = stripComments(read(f))
     assert.match(src, /shouldHandleLaunchUrl\(/, `${f}: getLaunchUrl 결과를 shouldHandleLaunchUrl 없이 쓴다 — 새로고침마다 처음 링크로 끌려간다`)
   }
+})
+
+test('규칙92: 인증 전 로그인은 원인을 알리고, 인증 메일을 다시 받을 수 있다', () => {
+  /**
+   * # 왜 (2026-09-24 출시 전 점검)
+   * 로그인 화면이 email_not_confirmed 를 "이메일 또는 비밀번호가 올바르지 않아요"로 보여 줬고,
+   * 재발송 수단이 제품 어디에도 없었다. 9/10 실제 고객이 3분간 9번 막히다 '비밀번호 찾기'로
+   * 우회했다(인증 로그). 로그인 화면과 가입 직후 "메일 보냈어요" 두 화면에 재발송을 잠근다.
+   */
+  const login = stripComments(read(join(ROOT, 'app', '(auth)', 'login', 'page.tsx')))
+  assert.match(login, /isEmailNotConfirmed\(error\)/, '로그인 화면이 인증 전 오류를 따로 가르지 않는다 — 비밀번호 오류로 보인다')
+  assert.match(login, /<ResendConfirmationButton/, '로그인 화면에 인증 메일 재발송이 없다')
+  for (const rel of ['app/start/join/page.tsx', 'app/start/StartSurvey.tsx']) {
+    const src = stripComments(read(join(ROOT, ...rel.split('/'))))
+    assert.match(src, /<ResendConfirmationButton/, `${rel}: "메일 보냈어요" 화면에 재발송이 없다`)
+  }
+  const btn = stripComments(read(join(ROOT, 'components', 'auth', 'ResendConfirmationButton.tsx')))
+  assert.match(btn, /auth\.resend\(\{ type: 'signup'/, '재발송 버튼이 가입 인증 메일을 다시 보내지 않는다')
+})
+
+test('규칙93: 설문·체크인·첫 박스 기록 INSERT 는 강아지 권한을 보고, 이메일 변경은 알림 주소로 동기화된다', () => {
+  /**
+   * # 왜 (2026-09-24 보안 점검)
+   * surveys·dog_checkins·feeding_outcomes 의 INSERT 정책이 user_id 만 봐서 남의 강아지에 설문을
+   * 넣을 수 있었다 — 그 설문이 다음 박스 처방·알레르기 게이트에 쓰인다. 마이그레이션 파일에서
+   * 각 표의 **마지막** INSERT 정책 정의가 has_dog_role 을 포함하는지 본다(원격 DB 는 MCP 로 적용).
+   * 그리고 auth.users 이메일 변경 → profiles.email 트리거가 있어야 한다(모든 발송이 profiles.email).
+   */
+  const dir = join(ROOT, 'supabase', 'migrations')
+  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
+  assert.ok(files.length > 50, `마이그레이션 ${files.length}개뿐 — 경로가 깨졌다(카나리아)`)
+  for (const table of ['surveys', 'dog_checkins', 'feeding_outcomes']) {
+    let last: string | null = null
+    for (const f of files) {
+      const sql = read(join(dir, f)).replace(/--[^\n]*/g, '')
+      const re = new RegExp(String.raw`create policy[^;]*?on (?:public\.)?` + table + String.raw`\s+for insert[^;]*;`, 'gi')
+      for (const m of sql.match(re) ?? []) last = `${f}: ${m}`
+    }
+    assert.ok(last, `${table}: INSERT 정책 정의를 마이그레이션에서 못 찾았다(카나리아)`)
+    assert.match(last!, /has_dog_role\(\s*dog_id/i, `${table}: 마지막 INSERT 정책이 강아지 권한을 안 본다 — ${last!.slice(0, 160)}`)
+  }
+  const all = files.map((f) => read(join(dir, f)).replace(/--[^\n]*/g, '')).join('\n')
+  assert.match(all, /after update of email on auth\.users[\s\S]{0,120}sync_profile_email_from_auth/i, '이메일 변경 → profiles.email 동기화 트리거가 없다 — 알림이 옛 주소로 간다')
+})
+
+test('규칙94: AI 호출 경로는 사용자별 하루 한도를 걸고 Anthropic 원문 오류를 고객에게 주지 않는다 · 문의 자동답장은 입력을 인용하지 않는다 · 웹 푸시는 푸시 서비스 주소에만', () => {
+  /**
+   * # 왜 (2026-09-24 보안 점검)
+   * - AI: 쿨다운이 고객이 지울 수 있는 analyses 값으로만 판정돼 한 명이 무한히 AI 를 부를 수
+   *   있었고, 실패 시 Anthropic 영문 원문이 고객 화면으로 나갔다.
+   * - 문의: 로그인 없이 아무 주소로, 입력한 이름·내용을 인용한 메일을 보낼 수 있었다(피싱 중계).
+   * - 푸시: 임의 URL 을 구독 주소로 넣으면 서버가 그 호스트로 요청했다(SSRF).
+   */
+  // 관리자 전용 경로(app/api/admin — 블로그 초안 등)는 고객이 부를 수 없어 제외.
+  const aiRoutes = walk(join(ROOT, 'app', 'api'))
+    .filter((f) => !/[\\/]app[\\/]api[\\/]admin[\\/]/.test(f))
+    .filter((f) => /api\.anthropic\.com\/v1\/messages/.test(read(f)))
+  assert.ok(aiRoutes.length >= 3, `Anthropic 을 부르는 라우트를 ${aiRoutes.length}개밖에 못 찾았다(카나리아)`)
+  for (const f of aiRoutes) {
+    const src = stripComments(read(f))
+    assert.match(src, /checkAiUserDailyLimit\(/, `${f}: 사용자별 하루 AI 한도가 없다`)
+    assert.doesNotMatch(src, /message:\s*(?:data|err)\.error\?\.message/, `${f}: Anthropic 원문 오류를 고객에게 돌려준다`)
+  }
+  const contact = stripComments(read(join(ROOT, 'app', 'api', 'contact', 'route.ts')))
+  const userMail = contact.slice(contact.indexOf('function renderUserEmail'))
+  assert.ok(userMail.length > 100, 'renderUserEmail 을 못 찾았다(카나리아)')
+  assert.doesNotMatch(userMail, /escapeHtml\((?:name|message)\)/, '문의 자동답장이 입력한 이름·내용을 인용한다 — 아무 주소로 피싱 문구를 보낼 수 있다')
+  const schemas = stripComments(read(join(ROOT, 'lib', 'api', 'schemas.ts')))
+  assert.match(schemas, /refine\(isAllowedPushEndpoint/, '웹 푸시 구독 스키마가 푸시 서비스 주소를 검사하지 않는다')
+  const push = stripComments(read(join(ROOT, 'lib', 'push.ts')))
+  assert.match(push, /if \(!isAllowedPushEndpoint\(row\.endpoint\)\)/, '발송 직전 푸시 주소 검사가 없다 — DB 직접 삽입으로 우회된다')
 })

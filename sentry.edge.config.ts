@@ -11,7 +11,8 @@ import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV,
+  // 미리보기(preview) 배포도 NODE_ENV=production 이라 운영 오류와 섞였다 — Vercel 환경명을 쓴다(2026-09-24).
+  environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
   enabled: !!(process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN),
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
   // 커밋 SHA로 release 태깅 (symbolication / 에러-커밋 링크용).

@@ -134,6 +134,14 @@ export async function POST(req: Request) {
         { status: 409 },
       )
     }
+    // 키 설정 오류·토스 장애면 **모든 고객**의 카드 등록이 막힌다 — 고객 화면만 보여주고
+    // 끝나면 사장님은 문의로만 안다(2026-09-24 점검). 거절 사유 코드와 함께 알린다.
+    captureBusinessEvent('error', 'billing.issue.failed', {
+      userId: user.id,
+      subscriptionId,
+      method,
+      tossCode: result.error?.code ?? null,
+    })
     return NextResponse.json(
       {
         code: result.error?.code ?? 'BILLING_ISSUE_FAILED',
@@ -200,6 +208,11 @@ export async function POST(req: Request) {
   //   `const x = await …; x.data` 패턴을 구조적으로 못 잡았다.
   if (wasInRenewal.error) {
     console.error('[billing-issue] 구독 상태 조회 실패:', wasInRenewal.error.message)
+    captureBusinessEvent('error', 'billing.issue.lookup_failed', {
+      userId: user.id,
+      subscriptionId,
+      dbError: wasInRenewal.error.message,
+    })
     return NextResponse.json(
       {
         ok: false,

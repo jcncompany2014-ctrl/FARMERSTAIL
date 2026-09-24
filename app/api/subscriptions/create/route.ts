@@ -134,6 +134,7 @@ export async function POST(req: Request) {
     .eq('user_id', user.id)
     .maybeSingle()
   if (dogErr) {
+    captureBusinessEvent('error', 'subscription.create.dog_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: dogErr.message })
     return NextResponse.json({ code: 'DB_ERROR' }, { status: 500 })
   }
   if (!dogRow) {
@@ -149,6 +150,7 @@ export async function POST(req: Request) {
     .eq('cycle_number', 1)
     .maybeSingle()
   if (formulaErr) {
+    captureBusinessEvent('error', 'subscription.create.formula_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: formulaErr.message })
     return NextResponse.json({ code: 'DB_ERROR' }, { status: 500 })
   }
   if (!formulaRow) {
@@ -220,6 +222,7 @@ export async function POST(req: Request) {
       .maybeSingle()
     if (surveyErr) {
       // 규칙1 — 알레르기를 확인 못 하면 통과시키지 않는다(안전 우선).
+      captureBusinessEvent('error', 'subscription.create.survey_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: surveyErr.message })
       return NextResponse.json(
         { code: 'LOOKUP_FAILED', message: '설문 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
         { status: 503 },
@@ -258,6 +261,7 @@ export async function POST(req: Request) {
     .in('slug', allSlugs)
     .eq('is_active', true)
   if (prodErr) {
+    captureBusinessEvent('error', 'subscription.create.products_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: prodErr.message })
     return NextResponse.json({ code: 'DB_ERROR' }, { status: 500 })
   }
   const products: Record<string, ItemProduct> = {}

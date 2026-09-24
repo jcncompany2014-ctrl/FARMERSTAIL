@@ -143,7 +143,7 @@ export async function POST(req: Request) {
   // accounting team can trace which orders belonged to a deleted
   // account without exposing the original email.
   const anonEmail = `deleted-${user.id}@deleted.local`
-  await admin
+  const { error: profileAnonErr } = await admin
     .from('profiles')
     .update({
       email: anonEmail,
@@ -168,6 +168,18 @@ export async function POST(req: Request) {
       deleted_at: new Date().toISOString(),
     })
     .eq('id', user.id)
+  // 첫 단계라 여기서 멈추면 아무것도 바뀌지 않는다 — 개인정보가 남은 채 "탈퇴됨"이 되는 것보다
+  // 재시도를 요청하는 편이 맞다(2026-09-24 점검: 이 결과를 보지 않고 있었다).
+  if (profileAnonErr) {
+    captureBusinessEvent('error', 'account.delete.profile_anonymize_failed', {
+      userId: user.id,
+      dbError: profileAnonErr.message,
+    })
+    return NextResponse.json(
+      { code: 'DELETE_FAILED', message: '탈퇴를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+      { status: 500 },
+    )
+  }
 
   /**
    * ★ 구독 해지·카드 토큰 삭제를 **가장 먼저** 한다 (2026-07-30 순서 변경).
@@ -330,10 +342,10 @@ export async function POST(req: Request) {
   // PIPA §21 즉시 파기 (수집 목적 달성). recipient_phone/zip/address/address_detail
   // 익명화 + recipient_name "탈퇴회원" 으로 set. 회계 audit 필요 column (총액/
   // 결제수단/결제일/refunded_amount 등) 은 보존.
-  await (admin as unknown as {
+  const ordersAnon = (await (admin as unknown as {
     from: (t: string) => {
       update: (r: Record<string, unknown>) => {
-        eq: (c: string, v: string) => Promise<unknown>
+        eq: (c: string, v: string) => Promise<{ error: { message: string } | null }>
       }
     }
   })
@@ -348,7 +360,15 @@ export async function POST(req: Request) {
       // cash_receipt_number 도 PII (전화번호) 라 익명화.
       cash_receipt_number: null,
     })
-    .eq('user_id', user.id)
+    .eq('user_id', user.id))
+  // 여기서 실패하면 주문의 이름·전화·주소가 남는다(개인정보 즉시 파기 의무) — 되돌릴 수 없는
+  // 단계 뒤라 멈추지 않고 사장님께 알린다(2026-09-24 점검).
+  if (ordersAnon?.error) {
+    captureBusinessEvent('error', 'account.delete.orders_anonymize_failed', {
+      userId: user.id,
+      dbError: ordersAnon.error.message,
+    })
+  }
 
   // Audit row — sha256(email) only, so "did the same person sign up
   // again?" is detectable without keeping the plaintext email.
@@ -387,10 +407,15 @@ export async function POST(req: Request) {
     // account half-deleted. Return 500 and let ops clean up. In
     // practice this should never fire if the service role key is
     // valid.
+    // 원문 오류는 고객에게 보이지 않고 사장님께(개인정보는 이미 익명화됐다 — 로그인만 남은 상태).
+    captureBusinessEvent('error', 'account.delete.auth_delete_failed', {
+      userId: user.id,
+      authError: authErr.message.slice(0, 200),
+    })
     return NextResponse.json(
       {
         code: 'AUTH_DELETE_FAILED',
-        message: `탈퇴 처리 중 일부 오류: ${authErr.message}`,
+        message: '탈퇴 처리를 끝내지 못했어요. 고객센터로 알려 주시면 바로 마무리해 드릴게요.',
       },
       { status: 500 }
     )

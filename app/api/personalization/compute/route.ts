@@ -220,6 +220,7 @@ export async function POST(req: Request) {
   //   AdjustSheet 로 저장한 user_adjusted 조정을 소실시킨다. '모름'은 재시도 신호.
   if (existingErr) {
     console.error('[personalization/compute] 처방 조회 실패:', existingErr.message)
+    captureBusinessEvent('error', 'personalization.compute.formula_lookup_failed', { dogId, dbError: existingErr.message })
     return NextResponse.json(
       { code: 'LOOKUP_FAILED', message: '식단 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
       { status: 503 },
@@ -241,6 +242,7 @@ export async function POST(req: Request) {
     //   오판해 옛 알레르기 게이팅이 그대로 배송된다(규칙1). '모름'은 재시도 신호.
     if (latestAnaErr) {
       console.error('[personalization/compute] 분석 조회 실패:', latestAnaErr.message)
+      captureBusinessEvent('error', 'personalization.compute.analysis_lookup_failed', { dogId, dbError: latestAnaErr.message })
       return NextResponse.json(
         { code: 'LOOKUP_FAILED', message: '식단 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
         { status: 503 },
@@ -609,7 +611,13 @@ export async function POST(req: Request) {
       appetite: answers.appetite,
       activeSlugs,
     })
-  } catch {
+  } catch (e) {
+    // 폴백(옛 케어목표 레시피)은 안전하지만, 새 엔진이 던지면 **모든 강아지**가 조용히 옛 로직으로
+    // 간다 — 사장님이 알아야 한다(2026-09-24 점검).
+    captureBusinessEvent('error', 'personalization.compute.v3_threw', {
+      dogId,
+      error: e instanceof Error ? e.message.slice(0, 200) : 'unknown',
+    })
     v3 = null
   }
 
@@ -755,6 +763,7 @@ export async function POST(req: Request) {
     // audit #69: 원본 DB message 클라이언트 노출 제거 — 서버 로그만(2026-06-20).
     // 조용히 ok 를 반환하면 안 된다 — 화면과 테이블이 갈라지는 바로 그 버그다.
     console.error('[personalization/compute] upsert error:', insErr.message)
+    captureBusinessEvent('error', 'personalization.compute.upsert_failed', { dogId, dbError: insErr.message })
     return NextResponse.json(
       { code: 'DB_ERROR', message: '분석을 저장하지 못했어요' },
       { status: 500 },

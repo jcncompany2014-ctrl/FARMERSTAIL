@@ -50,7 +50,8 @@ export const dynamic = 'force-dynamic'
  * (앱은 www.farmerstail.kr 을 감싸므로 admin 경로도 앱 안에서 동작한다.)
  *
  * # 스케줄
- * vercel.json cron `0 0 * * *` (UTC 00:00 = KST 09:00).
+ * vercel.json cron `40 0 * * *` (UTC 00:40 = KST 09:40) — 청구 크론(UTC 00:10) **뒤**라 그날 결제 실패가
+ * 바로 들어간다(2026-09-24: 예전 09:00 은 청구 전이라 실패가 하루 늦게 알려졌다).
  */
 export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
@@ -118,7 +119,7 @@ async function runDailyBriefing(): Promise<Response> {
       .eq('sender', 'user')
       .is('read_at', null),
     // ★최종감사 #11 (2026-07-29): 이 카운트가 정작 발송일 아침에 틀렸다.
-    //   ① 화요일 09시 브리핑은 04시 청구 크론이 성공분의 next_delivery_date 를
+    //   ① 화요일 아침 브리핑은 그 전 청구 크론이 성공분의 next_delivery_date 를
     //      이미 +14 로 밀어낸 **뒤**라, '오늘 발송' = 청구 실패분만 세어졌다
     //      (구독 5명인 화요일에 "처리할 일 없어요 ☀️"). 성공 청구는
     //      subscription_charges(scheduled_for=오늘, succeeded)로 센다 —

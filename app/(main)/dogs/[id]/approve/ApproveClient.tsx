@@ -90,7 +90,7 @@ export default function ApproveClient({
       <div className="ap-page">
         <div className="ap-empty">
           <p>
-            {cycleNumber}번째 박스의 동의 대기 건을 찾을 수 없어요.
+            {cycleNumber > 0 ? `${cycleNumber}번째 박스의 ` : ''}동의 대기 건을 찾을 수 없어요.
             <br />
             이미 응답했거나 5일이 지나 자동 취소됐을 수 있어요.
           </p>

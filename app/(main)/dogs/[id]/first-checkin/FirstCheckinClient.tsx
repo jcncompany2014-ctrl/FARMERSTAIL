@@ -117,7 +117,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId }: Props) {
 
   return (
     <div className="px-5 pt-10 pb-20 max-w-md mx-auto">
-      <span className="kicker">First Box · 7일차 체크인</span>
+      <span className="kicker">첫 박스 · 7일차 체크인</span>
       <h1
         className="font-sans mt-2"
         style={{
