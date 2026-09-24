@@ -983,12 +983,23 @@ async function runSubscriptionCharge(): Promise<Response> {
             discountReason === 'trial_cheap'
               ? { cheap_remaining: before - 1 }
               : { half_remaining: before - 1 }
-          const { error: decErr } = await supabase
+          const { data: decRows, error: decErr } = await supabase
             .from('subscription_trials')
             .update(patch)
             .eq('user_id', sub.user_id)
             .eq(col, before) // 낙관적 잠금 — 동시 차감이면 불일치로 0행
-          if (decErr) {
+            .select('user_id')
+          // ★0행은 성공이 아니다(2026-09-24 점검, AGENTS 규칙1) — 동시 실행·관리자 재도장으로
+          //   잠금이 어긋나면 차감이 안 된 채 넘어가 체험가 박스가 조용히 한 번 더 나간다.
+          if (!decErr && (decRows?.length ?? 0) === 0) {
+            captureBusinessEvent('error', 'subscription.charge.trial_decrement_conflict', {
+              subscriptionId: sub.id,
+              userId: sub.user_id,
+              col,
+              before,
+              note: '체험단 회차 차감 0행(잠금 불일치) — 다음 회차 체험가 재적용 위험. admin 확인.',
+            })
+          } else if (decErr) {
             captureBusinessEvent('error', 'subscription.charge.trial_decrement_failed', {
               subscriptionId: sub.id,
               userId: sub.user_id,
@@ -1004,10 +1015,19 @@ async function runSubscriptionCharge(): Promise<Response> {
               discountReason === 'trial_cheap'
                 ? '체험 기간이 끝나 다음 박스부터는 반값으로 결제돼요. 결제 전에 앱에서 금액을 확인할 수 있어요.'
                 : '체험 혜택이 모두 끝나 다음 박스부터는 정상가로 결제돼요. 언제든 정기배송 탭에서 조정할 수 있어요.'
+            // ★예외를 삼킨다(2026-09-24 점검): 이 지점은 **토스가 이미 돈을 가져간 뒤**다. 푸시가
+            //   던지면(예: VAPID 키 형식 오류) 아래 주문 paid·구독 갱신·원장 기록이 전부 건너뛰어져,
+            //   청구 행이 pending 으로 남고 다음 날 같은 키로 재청구·재차감이 반복된다.
             await pushToUser(sub.user_id, {
               title: '다음 박스 가격 안내',
               body,
               url: '/mypage/subscriptions',
+            }).catch((e: unknown) => {
+              captureBusinessEvent('error', 'subscription.charge.trial_notice_push_failed', {
+                subscriptionId: sub.id,
+                userId: sub.user_id,
+                error: e instanceof Error ? e.message.slice(0, 200) : 'unknown',
+              })
             })
           }
         }

@@ -19,6 +19,7 @@ import {
   paymentMethodLabel,
 } from '@/lib/payments/toss'
 import { carrierLabel } from '@/lib/tracking'
+import { discountReasonLabel } from '@/lib/commerce/discount-reason'
 
 export const dynamic = 'force-dynamic'
 
@@ -546,9 +547,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             {(order.discount_amount ?? 0) > 0 && (
               <div className="flex justify-between">
                 <dt className="text-muted">
-                  {order.discount_reason
-                    ? `할인 (${order.discount_reason})`
-                    : '할인'}
+                  {discountReasonLabel(order.discount_reason)}
                 </dt>
                 <dd className="text-moss font-bold tabular-nums">
                   −{(order.discount_amount ?? 0).toLocaleString()}원

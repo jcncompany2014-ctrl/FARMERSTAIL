@@ -4022,6 +4022,42 @@ test('규칙94: AI 호출 경로는 사용자별 하루 한도를 걸고 Anthrop
   assert.match(push, /if \(!isAllowedPushEndpoint\(row\.endpoint\)\)/, '발송 직전 푸시 주소 검사가 없다 — DB 직접 삽입으로 우회된다')
 })
 
+test('규칙96: 청구가 쓰는 할인 사유 값은 전부 orders CHECK 에 있고, 고객 화면용 한글 이름이 있다', () => {
+  /**
+   * # 왜 (2026-09-24 출시 전 점검)
+   * 체험단(f358b347)이 discount_reason 에 'trial_cheap'·'trial_half' 를 쓰기 시작했는데 orders 의
+   * CHECK 는 ('tier','promotion','none') 뿐이었다 → 체험단 청구가 주문 insert 에서 전부 실패
+   * (돈은 안 나가고 박스도 안 나감, 매일 반복). 코드의 사유 값 · DB 허용값 · 화면 이름 셋을 잠근다.
+   */
+  const discountSrc = stripComments(read(join(ROOT, 'lib', 'discount.ts')))
+  const autoSrc = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
+  const typeLine = discountSrc.match(/export type DiscountReason\s*=\s*([^\n]+)/)
+  assert.ok(typeLine, 'DiscountReason 타입을 못 찾았다(카나리아)')
+  const used = new Set<string>([...typeLine![1]!.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!))
+  for (const m of autoSrc.matchAll(/reason:\s*[^\n]*/g)) {
+    // `trial.phase === 'cheap' ? ...` 의 비교값은 사유가 아니다 — 비교 대상 문자열을 먼저 지운다.
+    const assigned = m[0].replace(/[!=]==\s*'[a-z_]+'/g, '')
+    for (const v of assigned.matchAll(/'([a-z_]+)'/g)) used.add(v[1]!)
+  }
+  assert.ok(used.has('trial_cheap') && used.has('tier'), `사유 값 추출이 깨졌다(카나리아): ${[...used].join(',')}`)
+
+  const dir = join(ROOT, 'supabase', 'migrations')
+  let lastDef: string | null = null
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
+    const sql = read(join(dir, f)).replace(/--[^\n]*/g, '')
+    const m = sql.match(/add constraint orders_discount_reason_check[\s\S]*?;/i)
+    if (m) lastDef = m[0]
+  }
+  assert.ok(lastDef, 'orders_discount_reason_check 정의를 마이그레이션에서 못 찾았다(카나리아)')
+  const allowed = new Set([...lastDef!.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!))
+  const missing = [...used].filter((v) => !allowed.has(v))
+  assert.deepEqual(missing, [], `DB CHECK 가 허용하지 않는 할인 사유를 청구가 쓴다 → 주문 insert 실패: ${missing.join(',')}`)
+
+  const labelSrc = read(join(ROOT, 'lib', 'commerce', 'discount-reason.ts'))
+  const noLabel = [...used].filter((v) => v !== 'none' && !new RegExp(`\\b${v}:`).test(labelSrc))
+  assert.deepEqual(noLabel, [], `고객 화면 할인 이름이 없는 사유 — 영수증에 내부 코드가 찍힌다: ${noLabel.join(',')}`)
+})
+
 test('규칙95: 돈 경로의 DB 쓰기는 결과(error)를 본다 — 맨 await 로 update/insert 금지', () => {
   /**
    * # 왜 (2026-09-24 출시 전 점검)

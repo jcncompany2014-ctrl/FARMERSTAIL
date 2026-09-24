@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { business } from '@/lib/business'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import ReceiptAutoPrint from './ReceiptAutoPrint'
+import { discountReasonLabel } from '@/lib/commerce/discount-reason'
 
 export const dynamic = 'force-dynamic'
 
@@ -382,7 +383,7 @@ export default async function ReceiptPage({
           />
           {discount > 0 && (
             <SummaryRow
-              label={o.discount_reason ? `할인 (${o.discount_reason})` : '할인'}
+              label={discountReasonLabel(o.discount_reason)}
               value={`-${discount.toLocaleString()}원`}
             />
           )}
