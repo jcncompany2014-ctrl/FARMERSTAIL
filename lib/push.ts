@@ -1,6 +1,7 @@
 import webpush from 'web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { isAllowedPushEndpoint } from '@/lib/push-endpoint'
 
 /**
  * Web Push helper.
@@ -254,6 +255,12 @@ export async function pushToUser(
   if (webConfigured) {
     await Promise.all(
       rows.map(async (row) => {
+        // 푸시 서비스가 아닌 주소(고객이 DB 에 직접 넣은 값 등)엔 보내지 않고 지운다 —
+        // 우리 서버를 임의 호스트로 향하게 하는 SSRF 방지(lib/push-endpoint, 2026-09-24).
+        if (!isAllowedPushEndpoint(row.endpoint)) {
+          dead.push(row.id)
+          return
+        }
         try {
           await webpush.sendNotification(
             {

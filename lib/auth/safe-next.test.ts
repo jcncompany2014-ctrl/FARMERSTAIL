@@ -47,6 +47,28 @@ describe('safeNextPath — 돌아갈 경로 검증', () => {
     }
   })
 
+  it('★제어문자 변형 차단 — URL 파서가 탭·줄바꿈을 지워 //evil.com 이 되던 것(2026-09-24)', () => {
+    // 전제 확인: 이 변형들은 실제로 외부 출처로 해석된다(검사가 없으면 새는 값들)
+    for (const p of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com']) {
+      assert.equal(new URL(p, 'https://www.farmerstail.kr/login').origin, 'https://evil.com', JSON.stringify(p))
+    }
+    for (const p of ['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\t\\evil.com', '/ /evil.com', '/\u0000/evil.com', '/dogs\u007f']) {
+      assert.equal(safeNextPath(p), null, JSON.stringify(p))
+    }
+  })
+
+  it('★인코딩·대소문자로 /api 로 풀리는 경로 차단', () => {
+    assert.equal(safeNextPath('/%61pi/account/delete'), null)
+    assert.equal(safeNextPath('/API/account/delete'), null)
+    assert.equal(safeNextPath('/%E0%A4%A'), null, '깨진 인코딩은 거부')
+  })
+
+  it('정상 경로의 퍼센트 인코딩·쿼리는 그대로 통과', () => {
+    assert.equal(safeNextPath('/dogs/1/survey?refine=1'), '/dogs/1/survey?refine=1')
+    assert.equal(safeNextPath('/start?p=%EC%8B%A0%EA%B7%9C'), '/start?p=%EC%8B%A0%EA%B7%9C')
+    assert.equal(safeNextPath('/apiary'), null, '/api 접두는 보수적으로 막는다(기존 동작 유지)')
+  })
+
   it('없는 값은 null (기본 목적지로 폴백)', () => {
     assert.equal(safeNextPath(null), null)
     assert.equal(safeNextPath(undefined), null)

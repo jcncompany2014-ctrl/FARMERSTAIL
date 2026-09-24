@@ -22,6 +22,8 @@ import {
 } from '@/lib/autosignup-draft'
 import { trackSignUp } from '@/lib/analytics'
 import { safeNextPath } from '@/lib/auth/safe-next'
+import { isEmailNotConfirmed } from '@/lib/auth/resend-confirmation'
+import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
 
 /**
  * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
@@ -106,6 +108,8 @@ function LoginInner() {
   // Form-submission errors only — URL-driven errors are a derived value
   // below so we don't need a setState-in-effect round trip.
   const [formError, setFormError] = useState('')
+  // 인증 전 계정으로 로그인 시도한 이메일 — 재발송 버튼의 대상.
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
 
   // Derived from the URL. Deriving avoids the react-hooks/set-state-in-effect
   // lint rule and eliminates the flash where the banner renders empty, then
@@ -134,6 +138,14 @@ function LoginInner() {
 
     if (error) {
       setLoading(false)
+      // 인증 전 계정은 비밀번호가 맞아도 막힌다 — "비밀번호가 틀렸다"로 보이면
+      // 고객이 헤맨다(2026-09-10 실제 고객 9회 연속). 원인과 재발송을 보여준다.
+      if (isEmailNotConfirmed(error)) {
+        setUnconfirmedEmail(email.trim())
+        setFormError('아직 이메일 인증 전이에요. 가입할 때 받은 메일의 인증 링크를 눌러 주세요. 메일이 안 보이면 아래에서 다시 받을 수 있어요.')
+        return
+      }
+      setUnconfirmedEmail('')
       setFormError('이메일 또는 비밀번호가 올바르지 않아요')
       return
     }
@@ -515,6 +527,9 @@ function LoginInner() {
             >
               {error}
             </div>
+          )}
+          {unconfirmedEmail && formError && (
+            <ResendConfirmationButton email={unconfirmedEmail} className="text-center text-[12.5px]" />
           )}
 
           {/* 브랜드 기본 CTA = 코랄(사장님 2026-06-17 "초록 별로" → 사이트 표준

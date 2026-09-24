@@ -17,6 +17,7 @@
  */
 import { z } from 'zod'
 import { isKoreanMobile, PHONE_ERROR } from '../phone.ts'
+import { isAllowedPushEndpoint } from '../push-endpoint.ts'
 
 // ──────────────────────────────────────────────────────────────────────────
 // Common primitives
@@ -79,7 +80,12 @@ export const zOrderCancel = z.object({
  * pushManager.subscribe().toJSON() 이 반환하는 모양 그대로 받는다.
  */
 export const zPushSubscribe = z.object({
-  endpoint: z.string().url().max(500),
+  // 푸시 서비스 호스트만(lib/push-endpoint — SSRF 방지, 2026-09-24).
+  endpoint: z
+    .string()
+    .url()
+    .max(500)
+    .refine(isAllowedPushEndpoint, { message: '지원하지 않는 푸시 주소예요' }),
   expirationTime: z.number().nullable().optional(),
   keys: z.object({
     p256dh: z.string().min(20).max(500),

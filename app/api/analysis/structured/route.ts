@@ -12,8 +12,10 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import {
   checkAnthropicDailyCap,
+  checkAiUserDailyLimit,
   recordAnthropicUsage,
 } from '@/lib/anthropic-usage'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const runtime = 'nodejs'
@@ -158,6 +160,15 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'RATE_LIMITED', message: '잠시 후 다시 시도해 주세요' },
       { status: 429, headers: rl.headers },
+    )
+  }
+  // 사용자별 하루 한도 — 쿨다운은 고객이 지울 수 있는 analyses 값으로 판정하므로(칸 비우기·
+  // 행 삭제로 풀린다) 사용자 ID 로 한 번 더 센다(2026-09-24 보안 점검).
+  const userRl = await checkAiUserDailyLimit(supabase, user.id, 'analysis-structured')
+  if (!userRl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '오늘은 더 이상 요청할 수 없어요. 내일 다시 시도해 주세요' },
+      { status: 429, headers: userRl.headers },
     )
   }
   const cap = await checkAnthropicDailyCap(ROUTE)
@@ -347,11 +358,14 @@ export async function POST(req: Request) {
     usage = data.usage
     stopReason = data.stop_reason ?? null
     if (!res.ok) {
+      // 키 만료·크레딧 소진·모델 폐기면 **모든 고객**의 AI 코멘트가 멈춘다 — 사장님이 알아야 한다.
+      // 고객에겐 Anthropic 영문 원문 대신 한글 안내만(2026-09-24).
+      captureBusinessEvent('error', 'anthropic.analysis_structured.failed', {
+        status: res.status,
+        type: data.error?.type ?? 'unknown',
+      })
       return NextResponse.json(
-        {
-          code: data.error?.type ?? 'ANTHROPIC_ERROR',
-          message: data.error?.message ?? 'AI 응답을 받지 못했어요',
-        },
+        { code: 'ANTHROPIC_ERROR', message: 'AI 코멘트를 지금 만들지 못했어요. 잠시 후 다시 시도해 주세요' },
         { status: 502 },
       )
     }
@@ -368,11 +382,11 @@ export async function POST(req: Request) {
       )
     }
   } catch (e) {
+    captureBusinessEvent('error', 'anthropic.analysis_structured.fetch_failed', {
+      error: e instanceof Error ? e.name : 'unknown',
+    })
     return NextResponse.json(
-      {
-        code: 'FETCH_FAILED',
-        message: e instanceof Error ? e.message : '알 수 없는 오류',
-      },
+      { code: 'FETCH_FAILED', message: 'AI 코멘트를 지금 만들지 못했어요. 잠시 후 다시 시도해 주세요' },
       { status: 502 },
     )
   }

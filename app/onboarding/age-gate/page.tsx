@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { trackSignUp } from '@/lib/analytics'
+import { safeNextPath } from '@/lib/auth/safe-next'
 
 /**
  * /onboarding/age-gate
@@ -108,8 +109,8 @@ function AgeGateInner() {
     trackSignUp(provider === 'apple' ? 'apple' : provider === 'email' ? 'email' : 'kakao')
 
     // 성공 → next 로
-    const safe =
-      next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
+    // 정본 검사(lib/auth/safe-next) — 예전 자체 검사는 `/\evil.com`·탭 변형을 못 막았다.
+    const safe = safeNextPath(next) ?? '/dashboard'
     router.replace(safe)
   }
 

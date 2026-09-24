@@ -4,6 +4,7 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseMedicalRecord } from '@/lib/vision/parseMedicalRecord'
 import {
   checkAnthropicDailyCap,
+  checkAiUserDailyLimit,
   recordAnthropicUsage,
 } from '@/lib/anthropic-usage'
 
@@ -74,6 +75,15 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 },
+    )
+  }
+
+  // 사용자별 하루 AI 한도 — IP·인스턴스와 무관하게 DB 로 센다(2026-09-24 보안 점검).
+  const userRl = await checkAiUserDailyLimit(supabase, user.id, 'health-ocr')
+  if (!userRl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '오늘은 더 이상 요청할 수 없어요. 내일 다시 시도해 주세요' },
+      { status: 429, headers: userRl.headers },
     )
   }
 

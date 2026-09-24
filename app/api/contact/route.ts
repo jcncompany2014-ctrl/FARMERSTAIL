@@ -127,8 +127,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
-  // 2) 사용자 확인 메일 — admin 메일 성공한 경우에만
-  const userHtml = renderUserEmail({ name, categoryLabel, message })
+  // 2) 사용자 확인 메일 — admin 메일 성공한 경우에만.
+  //    ★입력값(이름·내용)을 인용하지 않는다(2026-09-24 보안 점검). 이 폼은 로그인 없이 **아무 주소**로
+  //    보낼 수 있어서, 이름·내용을 그대로 실으면 "결제 실패, 여기서 카드 재등록" 같은 글을 우리 도메인
+  //    메일로 남에게 보낼 수 있었다(피싱 중계). 고정 문구 + 카테고리(선택지)만 보낸다. 사장님은 관리자
+  //    메일에서 원문을 본다.
+  const userHtml = renderUserEmail({ categoryLabel })
   const userResult = await sendEmail({
     to: email,
     subject: '[파머스테일] 문의가 접수됐어요',
@@ -183,20 +187,16 @@ function renderAdminEmail({
 }
 
 function renderUserEmail({
-  name,
   categoryLabel,
-  message,
 }: {
-  name: string
   categoryLabel: string
-  message: string
 }): string {
   return `<!DOCTYPE html>
 <html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;word-break:keep-all;overflow-wrap:break-word;">
   <table style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #E6DDC8;">
     <tr><td style="padding:28px 28px 24px;">
       <div style="font-size:11px;letter-spacing:0.18em;color:#B5533A;text-transform:uppercase;font-weight:700;">파머스테일 · 문의 접수</div>
-      <h1 style="font-size:22px;font-weight:800;color:#1E1A14;margin:10px 0 6px;letter-spacing:-0.02em;">${escapeHtml(name)} 님, 메시지 잘 받았어요.</h1>
+      <h1 style="font-size:22px;font-weight:800;color:#1E1A14;margin:10px 0 6px;letter-spacing:-0.02em;">문의가 잘 접수됐어요.</h1>
       <p style="font-size:13.5px;line-height:1.7;color:#2C2A26;margin:14px 0 0;">
         평일 영업일 24시간 이내, 가능하면 더 빨리 답변드릴게요. 만약 응답이
         늦어진다면 <a href="mailto:${escapeHtml(business.email)}" style="color:#B5533A;text-decoration:none;font-weight:600;">${escapeHtml(business.email)}</a> 로 다시 한 번 연락 주세요.
@@ -207,7 +207,6 @@ function renderUserEmail({
         <table style="width:100%;font-size:12.5px;line-height:1.6;border-collapse:collapse;">
           <tr><td style="padding:4px 0;color:#7A7A7A;width:80px;">카테고리</td><td style="padding:4px 0;color:#1E1A14;font-weight:600;">${escapeHtml(categoryLabel)}</td></tr>
         </table>
-        <div style="margin-top:10px;padding:12px 14px;background:#FAF6EE;border-radius:6px;font-size:13px;line-height:1.7;color:#2C2A26;white-space:pre-wrap;">${escapeHtml(message)}</div>
       </div>
 
       <p style="margin-top:24px;font-size:11px;line-height:1.6;color:#7A7A7A;">

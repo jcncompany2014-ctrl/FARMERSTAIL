@@ -30,6 +30,8 @@
 import { env } from '@/lib/env'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { rateLimitDB, type RateLimitResult } from '@/lib/rate-limit'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Anthropic 응답의 usage 필드 — input_tokens / output_tokens 만 사용.
@@ -156,4 +158,35 @@ export async function recordAnthropicUsage(
   } catch {
     /* swallow — 기록 실패가 정상 AI 응답을 막아서는 안 됨 */
   }
+}
+
+/**
+ * 사용자별 하루 AI 호출 한도 (2026-09-24 보안 점검).
+ *
+ * # 왜
+ * 기존 가드는 IP 당 분당 제한(인스턴스별 메모리)과 전역 일일 캡(env 미설정 시 꺼짐)뿐이었다.
+ * 분석 코멘트의 14일 쿨다운은 analyses 행의 값으로 판정하는데, 고객은 자기 분석 행의
+ * 그 칸을 지우거나 행을 삭제할 수 있어(권한 조회로 확인) 쿨다운이 풀린다. 로그인한 한 명이
+ * IP 를 바꿔 가며 무한히 AI 를 부를 수 있었다. 사용자 ID 로 DB 카운터를 걸면 인스턴스·IP
+ * 와 무관하게 센다. 한도는 정상 사용의 몇 배로 넉넉히 — 막는 대상은 반복 호출뿐이다.
+ */
+export const AI_USER_DAILY_LIMIT = {
+  'analysis-structured': 5,
+  'health-ocr': 20,
+  chatbot: 80,
+} as const
+export type AiUserLimitBucket = keyof typeof AI_USER_DAILY_LIMIT
+
+export async function checkAiUserDailyLimit(
+  supabase: SupabaseClient,
+  userId: string,
+  bucket: AiUserLimitBucket,
+): Promise<RateLimitResult> {
+  return rateLimitDB({
+    supabase,
+    bucket: `ai-user-${bucket}`,
+    key: userId,
+    limit: AI_USER_DAILY_LIMIT[bucket],
+    windowMs: 86_400_000,
+  })
 }

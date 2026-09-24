@@ -41,6 +41,7 @@ import { business } from '@/lib/business'
 import { calculateNutrition } from '@/lib/nutrition'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
+import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
 import { PhotoSlot } from '@/components/web/fd/ui'
 import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
 
@@ -603,6 +604,10 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                 <b>{email}</b>로 인증 메일을 보냈어요.
                 <br />메일 속 링크를 누른 뒤 로그인하면 정밀 분석을 앱에서 저장하고 볼 수 있어요.
               </p>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <p style={{ fontSize: 13, color: 'var(--fd-muted)', lineHeight: 1.55 }}>메일이 안 보이면 스팸함도 확인해 주세요.</p>
+              <ResendConfirmationButton email={email} className="text-[14px]" />
             </div>
             <div style={{ textAlign: 'center', marginTop: 16 }}>
               <Link href="/login" className="text-[14px] font-bold underline underline-offset-2" style={{ color: 'var(--fd-muted)' }}>

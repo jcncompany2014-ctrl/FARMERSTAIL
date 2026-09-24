@@ -16,11 +16,35 @@
  *  · `/api/...`   — 인증 직후 GET 으로 부작용 엔드포인트를 태우는 것(R101-B).
  *  · 절대 URL     — `/` 로 시작하지 않으면 전부 거부.
  */
+/** 해석 기준으로만 쓰는 가짜 출처 — 결과의 출처가 이것과 다르면 외부로 새는 경로다. */
+const PROBE_ORIGIN = 'https://probe.invalid'
+
 export function safeNextPath(raw: string | null | undefined): string | null {
   if (!raw) return null
   if (!raw.startsWith('/')) return null
   if (raw.startsWith('//')) return null
   if (raw.startsWith('/\\')) return null
   if (raw.startsWith('/api')) return null
+  // ★제어문자·공백 차단 (2026-09-24 보안 점검). URL 파서는 탭·줄바꿈을 **지운 뒤**
+  //   해석한다 — 탭이 낀 `/<TAB>/evil.com`(주소창엔 `/%09/evil.com`)은 위 검사를 전부
+  //   통과하지만 브라우저·Next 라우터는 `//evil.com` 으로 읽어 로그인 직후 외부 사이트로
+  //   보낸다(Node 로 재현). 정상 경로엔 제어문자·생 공백이 올 일이 없다(쿼리는 인코딩됨).
+  if (/[\u0000- \u007f]/.test(raw)) return null
+  // 최종 방어: 실제 URL 파서로 해석해 출처가 바뀌면(외부로 새면) 거부 — 문자열 검사가
+  // 놓친 변형은 파서 자신이 판정한다. 인코딩으로 /api 로 풀리는 경로(`/%61pi`)도 막는다.
+  let resolved: URL
+  try {
+    resolved = new URL(raw, PROBE_ORIGIN)
+  } catch {
+    return null
+  }
+  if (resolved.origin !== PROBE_ORIGIN) return null
+  let decodedPath: string
+  try {
+    decodedPath = decodeURIComponent(resolved.pathname)
+  } catch {
+    return null
+  }
+  if (decodedPath.toLowerCase().startsWith('/api')) return null
   return raw
 }

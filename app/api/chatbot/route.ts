@@ -7,7 +7,8 @@ import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
 } from '@/lib/chatbot-system-prompt'
-import { checkAnthropicDailyCap } from '@/lib/anthropic-usage'
+import { checkAnthropicDailyCap, checkAiUserDailyLimit } from '@/lib/anthropic-usage'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,6 +75,15 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 },
+    )
+  }
+
+  // 사용자별 하루 AI 한도 — IP·인스턴스와 무관하게 DB 로 센다(2026-09-24 보안 점검).
+  const userRl = await checkAiUserDailyLimit(supabase, user.id, 'chatbot')
+  if (!userRl.ok) {
+    return NextResponse.json(
+      { code: 'RATE_LIMITED', message: '오늘은 더 이상 요청할 수 없어요. 내일 다시 시도해 주세요' },
+      { status: 429, headers: userRl.headers },
     )
   }
 
@@ -159,11 +169,13 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const err = (await res.json().catch(() => ({}))) as AnthropicResponse
+      // 고객에겐 Anthropic 영문 원문 대신 한글 안내, 사장님에겐 Sentry(2026-09-24).
+      captureBusinessEvent('error', 'anthropic.chatbot.failed', {
+        status: res.status,
+        type: err.error?.type ?? 'unknown',
+      })
       return NextResponse.json(
-        {
-          code: err.error?.type ?? 'AI_ERROR',
-          message: err.error?.message ?? 'AI 응답 실패',
-        },
+        { code: 'AI_ERROR', message: '지금은 답변을 드리지 못했어요. 잠시 후 다시 시도해 주세요' },
         { status: 502 },
       )
     }
@@ -199,11 +211,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ reply })
   } catch (err) {
+    captureBusinessEvent('error', 'anthropic.chatbot.fetch_failed', {
+      error: err instanceof Error ? err.name : 'unknown',
+    })
     return NextResponse.json(
-      {
-        code: 'NETWORK_ERROR',
-        message: err instanceof Error ? err.message : 'unknown',
-      },
+      { code: 'NETWORK_ERROR', message: '지금은 답변을 드리지 못했어요. 잠시 후 다시 시도해 주세요' },
       { status: 502 },
     )
   }

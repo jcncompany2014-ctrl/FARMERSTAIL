@@ -23,6 +23,7 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
 import { createClient } from '@/lib/supabase/client'
 import { saveAutosignupDraft } from '@/lib/autosignup-draft'
+import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
 
 const emailValid = (e: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
@@ -157,6 +158,10 @@ export default function StartJoinPage() {
             링크를 눌러 가입을 완료해 주세요. 인증 후 로그인하면 우리 아이 맞춤
             설문으로 바로 이어져요.
           </p>
+          <p className="mt-2 text-[14px]" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
+            메일이 안 보이면 스팸함도 확인해 주세요.
+          </p>
+          <ResendConfirmationButton email={email} color="var(--muted)" className="mt-2 text-[14px]" />
           <Link
             href="/login"
             className="mt-7 block text-center font-bold text-[16px]"
