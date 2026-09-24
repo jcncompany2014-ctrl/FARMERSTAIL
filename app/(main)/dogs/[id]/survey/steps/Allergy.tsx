@@ -1,4 +1,6 @@
 // 설문 v4 — 알레르기 화면 (유무 → 재료 칩, 둘째 줄: 잘 먹는 고기).
+// 잘 먹는 고기에 연어는 없다 — 판매 계획이 없어 고객이 골라도 쓸 데가 없고 근거 문구에 '연어'만 남는다(사장님 2026-09-24).
+// 알레르기 쪽 '연어·생선'은 유지 — 연어유가 레시피 원료라 차단 판정에 쓴다.
 import { Check, HelpCircle, AlertTriangle } from 'lucide-react'
 import { ScreenShell, SecondLine } from './ScreenShell'
 
@@ -22,7 +24,6 @@ const PROTEIN_OPTIONS: Array<{ v: string; label: string }> = [
   { v: 'chicken', label: '닭/칠면조' },
   { v: 'duck', label: '오리' },
   { v: 'beef', label: '소고기' },
-  { v: 'salmon', label: '연어/생선' },
   { v: 'pork', label: '돼지고기' },
   { v: 'lamb', label: '양고기' },
 ]
@@ -35,7 +36,6 @@ const PROTEIN_ALLERGENS: Record<string, string[]> = {
   chicken: ['닭·칠면조'],
   duck: ['오리'],
   beef: ['소고기', '양고기'],
-  salmon: ['연어·생선', '흰살생선'],
   pork: ['돼지고기'],
   lamb: ['양고기'],
 }

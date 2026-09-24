@@ -3922,6 +3922,9 @@ test('규칙90: 처방 근거 문구(reasoning) 에 영문 라인명·라인 비
     // 라인 비율 표기: "X% → Y%", "≥30%", "라인 N%", "메인 N%" 류. 칼로리·영양소 %(간식 5%, 지방 ≤14% DM)는 허용.
     const pct = reasonLines.filter((l) => /%\s*→|→\s*\$\{[^}]*\}%|≥\s*\d+%|라인 \$\{|메인 \$\{[^}]*\}%|\d+%\s*(→|위주|\(단일)/.test(l))
     assert.deepEqual(pct, [], `${rel}: 근거 문구에 라인 비율%가 남아 있다 — ${pct.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
+    // 설문 키를 그대로 붙이는 것도 금지 — "선호 단백질: beef, salmon, pork, lamb" 가 trigger 로 새어 나갔다(사장님 "SALMON 이 왜 이렇게 보여").
+    const rawKeys = reasonLines.filter((l) => /preferredProteins\.join|allergies\.join\(/.test(l))
+    assert.deepEqual(rawKeys, [], `${rel}: 설문 키 배열을 그대로 문구에 붙인다 — 한글 이름으로: ${rawKeys.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
     // 영문 표시명(FOOD_LINE_META[x].name / meta.name)을 고객 문구 템플릿에 쓰지 않는다 — nameKo 만.
     const name = reasonLines.filter((l) => /\.name\}/.test(l))
     assert.deepEqual(name, [], `${rel}: 근거 문구 템플릿이 영문 name 을 쓴다 — nameKo 로: ${name.map((l) => l.trim().slice(0, 80)).join(' | ')}`)

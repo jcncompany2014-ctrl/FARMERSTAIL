@@ -8,13 +8,16 @@ import { formatKstDateTime } from '@/lib/datetime-kst'
 import { createClient } from '@/lib/supabase/client'
 import type { FoodLineRow, ChronicRow, BreedRow } from './page'
 import NumberInput from '@/components/admin/NumberInput'
+import { FOOD_LINE_META } from '@/lib/personalization/lines'
 
+// 라인 → 레시피 이름은 skuModel.LEGACY_LINE_TO_PROTEIN 정본(basic=오리 · weight=치킨)을 FOOD_LINE_META 로 읽는다.
+// 전엔 'Basic · 닭', 'Weight · 오리'로 손으로 적어 두 라인이 뒤바뀐 채 표시됐다(2026-09-24 발견).
 const LINE_LABELS: Record<FoodLineRow['line'], string> = {
-  basic: 'Basic · 닭 균형식',
-  weight: 'Weight · 오리 체중관리',
-  skin: 'Skin · 연어 피부털',
-  premium: 'Premium · 소 활력근육',
-  joint: 'Joint · 돼지 관절시니어',
+  basic: `${FOOD_LINE_META.basic.nameKo} · 균형식`,
+  weight: `${FOOD_LINE_META.weight.nameKo} · 체중 관리`,
+  skin: `${FOOD_LINE_META.skin.nameKo} · 피부·털 (보류 · 판매 전, 박스엔 안 나감)`,
+  premium: `${FOOD_LINE_META.premium.nameKo} · 활력·근육`,
+  joint: `${FOOD_LINE_META.joint.nameKo} · 관절·시니어`,
 }
 
 export default function AlgorithmConfigClient({

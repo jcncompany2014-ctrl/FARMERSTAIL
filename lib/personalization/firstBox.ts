@@ -1687,7 +1687,7 @@ function applyPreferredProteinBonus(
     // 만큼 깎을 수 있어 정확히 "+X%" 가 아닐 수 있음. chip 텍스트에 그
     // 사실을 명시 (audit C-5). 정확한 final ratio 는 stacked bar 에서 확인.
     reasoning.push({
-      trigger: `선호 단백질: ${input.preferredProteins.join(', ')}`,
+      trigger: `잘 먹는 고기: ${preferredKo(input.preferredProteins)}`,
       action: '잘 먹는 고기 레시피에 조금 더 힘을 실었어요',
       chipLabel: '선호 단백질 가산',
       priority: 7,
@@ -1745,7 +1745,7 @@ function pickPreferredFirstBoxLine(
   })
   const winner = candidates[0]!
   reasoning.push({
-    trigger: `선호 단백질: ${input.preferredProteins.join(', ')}`,
+    trigger: `잘 먹는 고기: ${preferredKo(input.preferredProteins)}`,
     action: `첫 박스는 선호하신 ${FOOD_LINE_META[winner.line].nameKo} 레시피로 시작해요. 적응을 본 뒤 다음 박스부터 추천 비율을 반영해요.`,
     chipLabel: `첫 박스 · 선호 ${FOOD_LINE_META[winner.line].nameKo}`,
     priority: 7,
@@ -1784,6 +1784,12 @@ function decideTransition(input: AlgorithmInput): TransitionStrategy {
  * 비율은 trace·v3 picks 에 남아 있고(어드민 '계산 과정'), 문구엔 이름만 남긴다.
  * (고객 문구 규칙: 비율%·영문 레시피명 금지 — feedback_customer_copy_voice)
  */
+/** 설문 '잘 먹는 고기' 키 → 한글. 안 파는 단백질(연어·양)도 고객이 고른 그대로 한글로만 보여 준다. */
+const PROTEIN_KO: Record<string, string> = { chicken: '치킨', duck: '오리', beef: '한우', pork: '흑돼지', salmon: '연어', lamb: '양고기' }
+function preferredKo(ps: string[]): string {
+  return ps.map((p) => PROTEIN_KO[p] ?? p).join(', ')
+}
+
 function formatBaseLines(ratios: Record<FoodLine, Ratio>): string {
   return ALL_LINES.filter((l) => ratios[l] > 0)
     .sort((a, b) => ratios[b] - ratios[a])

@@ -17,7 +17,8 @@ import { decideNextBox } from './nextBox.ts'
 import { gateAvailability } from './skuMap.ts'
 import type { AlgorithmInput, Checkin, Formula, Reasoning } from './types.ts'
 
-const ENGLISH_LINE = /\b(Weight|Joint|Skin|Premium|Basic|Chicken|Duck|Pork|Beef|Salmon)\b/
+// 영문 라인명(대문자) + 설문 키(소문자 — "선호 단백질: beef, salmon, pork, lamb" 처럼 trigger 에 그대로 새던 것).
+const ENGLISH_LINE = /\b(Weight|Joint|Skin|Premium|Basic|Chicken|Duck|Pork|Beef|Salmon|chicken|duck|pork|beef|salmon|lamb)\b/
 /** 라인 비율 표기 — 치환 전 실제로 있던 모양들. */
 const LINE_PCT = /\d+%\s*→|→\s*\d+%|라인 \d+%|메인 \d+%|≥\s*\d+%|[+-]\d+%|↑\d+%|\d+%\s*\(단일|\d+% 위주|\d+% \/ |Weight\/Joint 0%/
 /** % 가 남아 있어도 되는 문맥 — 칼로리·영양소·급여 일정. */

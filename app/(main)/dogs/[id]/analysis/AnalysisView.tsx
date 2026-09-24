@@ -355,7 +355,7 @@ export default function AnalysisView({
   const magMerMax = magMerCi.high
   // 5종 박스 — 실제 추천 알고리즘 (formula.lineRatios) 결과로 동적 생성.
   // formula fetch 실패 시 FOOD_LINE_META 기반 균등 분포 default.
-  // FOOD_LINE_META 매핑: basic=닭 / weight=오리 / skin=연어 / premium=소 / joint=돼지.
+  // FOOD_LINE_META 매핑(정본 skuModel.LEGACY_LINE_TO_PROTEIN): basic=오리 / weight=닭 / skin=연어(보류) / premium=소 / joint=돼지.
   const MAG_LINE_SUB: Record<string, string> = {
     basic: '단일 단백원 · 소화 부담 낮음',
     weight: '저칼로리 · 단호박 · 통통한 체형에',

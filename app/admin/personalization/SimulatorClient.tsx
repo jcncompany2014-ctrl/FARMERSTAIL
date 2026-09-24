@@ -54,7 +54,8 @@ const CHRONIC_OPTIONS = [
   'stones',
 ]
 
-const PROTEIN_OPTIONS = ['chicken', 'duck', 'salmon', 'beef', 'pork', 'lamb']
+// 설문 선택지와 동일(연어 없음 — 2026-09-24).
+const PROTEIN_OPTIONS = ['chicken', 'duck', 'beef', 'pork', 'lamb']
 
 function defaultInput(): AlgorithmInput {
   return {
@@ -476,7 +477,7 @@ export default function SimulatorClient() {
                     width: `${ratio * 100}%`,
                     background: FOOD_LINE_META[line].color,
                   }}
-                  title={`${FOOD_LINE_META[line].name} ${Math.round(ratio * 100)}%`}
+                  title={`${FOOD_LINE_META[line].nameKo} ${Math.round(ratio * 100)}%`}
                 />
               ))}
             </div>
@@ -491,7 +492,7 @@ export default function SimulatorClient() {
                     style={{ background: FOOD_LINE_META[line].color }}
                   />
                   <span className="flex-1 font-bold">
-                    {FOOD_LINE_META[line].name}
+                    {FOOD_LINE_META[line].nameKo}
                   </span>
                   <span className="font-black">{Math.round(ratio * 100)}%</span>
                 </li>
@@ -514,7 +515,7 @@ export default function SimulatorClient() {
                     width: `${result.lineRatios[line] * 100}%`,
                     background: FOOD_LINE_META[line].color,
                   }}
-                  title={`${FOOD_LINE_META[line].name} ${(result.lineRatios[line] * 100).toFixed(0)}%`}
+                  title={`${FOOD_LINE_META[line].nameKo} ${(result.lineRatios[line] * 100).toFixed(0)}%`}
                 />
               ))}
             </div>
@@ -533,7 +534,7 @@ export default function SimulatorClient() {
                       style={{ background: FOOD_LINE_META[line].color }}
                     />
                     <span className="flex-1 font-mono">
-                      {FOOD_LINE_META[line].name}
+                      {FOOD_LINE_META[line].nameKo}{line === 'skin' ? ' (보류 · 판매 전)' : ''}
                     </span>
                     <span className="font-black">{pct}%</span>
                   </li>
