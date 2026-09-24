@@ -3886,4 +3886,14 @@ test('규칙89: 어드민 "설문 기록"(/admin/surveys) — 두 내비에 등�
   const detail = stripComments(read(join(ROOT, 'app', 'admin', 'surveys', '[id]', 'page.tsx')))
   assert.match(detail, /isAdmin\(/, '설문 상세가 관리자 판정 없이 열린다')
   assert.match(detail, /describeSurvey\(/, '상세에 답변 한글 변환이 빠졌다')
+
+  // 2026-09-24 사장님(같은 날 두 번째 제보): 땅콩 카드가 "치킨 70% · 흑돼지 30%" — "우리 30% 는 없다".
+  // 원인은 엔진 초안(formula.v3.layerA.picks)을 그대로 그린 것. 실제 저장 박스(lineRatios)는
+  // 치킨 100% 였고 고객 화면은 전부 snapBoxLines(lineRatios) 를 본다. 어드민도 같은 함수를 써야
+  // 사장님과 고객이 같은 박스를 본다 — 초안 비율이 표시 박스로 흘러드는 코드를 잠근다.
+  const labels = stripComments(read(join(ROOT, 'lib', 'survey', 'labels.ts')))
+  assert.match(labels, /from '\.\.\/personalization\/boxComposition\.ts'/, '어드민 박스 표시가 고객 카드와 같은 스냅 규칙(boxComposition.snapBoxLines)을 안 쓴다')
+  assert.match(labels, /snapBoxLines\(ratios\)/, '표시 박스가 lineRatios 를 snapBoxLines 로 스냅하지 않는다')
+  assert.doesNotMatch(labels, /picks\.push\(\{[^}]*\bratio,/, '엔진 초안(layerA.picks)의 비율이 그대로 표시 박스에 들어간다 — 70/30 이 사장님 화면에 뜬다')
+  assert.doesNotMatch(labels, /ratio >= 0\.3/, '박스 스냅 임계를 따로 구현했다 — boxComposition.SECOND_LINE_MIN 하나만 정본')
 })

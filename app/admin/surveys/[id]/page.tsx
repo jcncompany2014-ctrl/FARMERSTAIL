@@ -226,9 +226,14 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
                 {box.waitlist.length > 0 && (
                   <div className="mt-2 text-[12px] text-muted-foreground">준비 중인 보완: {box.waitlist.join(' · ')}</div>
                 )}
-                {box.trace.length > 0 && (
+                {(box.trace.length > 0 || box.engineDraft) && (
                   <details className="mt-3">
                     <summary className="cursor-pointer text-[12px] font-bold text-muted-foreground">계산 과정 {box.trace.length}단계</summary>
+                    {box.engineDraft && (
+                      <p className="mt-1.5 text-[12px] text-muted-foreground">
+                        엔진 초안은 {box.engineDraft} 였고, 규칙(보호자가 고른 잘 먹는 고기 · 알레르기 · 첫 박스는 한 가지)을 거쳐 위 박스로 확정됐어요. 초안 비율은 배송·고객 화면에 쓰이지 않아요.
+                      </p>
+                    )}
                     <ol className="mt-1.5 space-y-1 pl-4 list-decimal text-[12px] text-foreground">
                       {box.trace.map((t, i) => <li key={i}>{t}</li>)}
                     </ol>

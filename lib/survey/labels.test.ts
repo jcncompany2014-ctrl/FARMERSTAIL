@@ -101,7 +101,7 @@ test('분석 → 계수 사다리·리스크 한글', () => {
   assert.equal(describeAnalysis(null), null)
 })
 
-test('추천 박스 — v3 picks 가 있으면 그대로, 없으면 lineRatios 를 50:50/100 으로 스냅', () => {
+test('추천 박스 — 표시 박스는 lineRatios(정본) 를 고객 카드와 같은 규칙으로 스냅, 엔진 초안 비율은 안 쓴다', () => {
   const withPicks = describeBox({
     formula: { v3: { layerA: { picks: [{ nameKr: '치킨', protein: 'chicken', ratio: 1, kcalPer100g: 130, claims: [{ text: '단백질이 진함' }] }], trace: [{ step: '주 SKU', detail: '치킨' }], needsConsultation: false }, layerB: { waitlistConcerns: ['joint'] } }, lineRatios: { weight: 1 } },
     reasoning: [{ chipLabel: '첫 박스는 한 가지로', action: '치킨 단독 100%', trigger: '첫 박스' }],
@@ -110,14 +110,39 @@ test('추천 박스 — v3 picks 가 있으면 그대로, 없으면 lineRatios �
   assert.ok(withPicks)
   assert.deepEqual(withPicks!.picks.map((p) => [p.name, p.ratio]), [['치킨', 1]])
   assert.deepEqual(withPicks!.picks[0]!.claims, ['단백질이 진함'])
+  assert.equal(withPicks!.picks[0]!.kcalPer100g, 130)
+  assert.equal(withPicks!.engineDraft, null)
   assert.deepEqual(withPicks!.chips, ['첫 박스는 한 가지로'])
   assert.deepEqual(withPicks!.trace, ['주 SKU: 치킨'])
   assert.deepEqual(withPicks!.waitlist, ['joint'])
   assert.equal(withPicks!.dailyGrams, 402)
 
+  // 2026-09-24 사장님 제보: 땅콩(12kg) 카드가 "치킨 70% · 흑돼지 30%" — 우리 박스에 30% 는 없다.
+  // 실제 저장 박스(lineRatios)는 치킨 100% 였고, 엔진 초안(v3 picks)을 그대로 그린 게 원인.
+  const draft7030 = describeBox({
+    formula: {
+      v3: { layerA: { picks: [{ nameKr: '치킨', protein: 'chicken', ratio: 0.7, kcalPer100g: 130, claims: [{ text: '단백질이 진함' }] }, { nameKr: '흑돼지', protein: 'pork', ratio: 0.3, kcalPer100g: 125, claims: [] }] } },
+      lineRatios: { skin: 0, basic: 0, joint: 0, weight: 1, premium: 0 },
+    },
+    reasoning: [{ chipLabel: '첫 박스는 한 가지로', action: '치킨 단독 100%', trigger: '첫 박스' }],
+  })
+  assert.deepEqual(draft7030!.picks.map((p) => [p.name, p.ratio]), [['치킨', 1]])
+  assert.equal(draft7030!.picks[0]!.kcalPer100g, 130, '초안의 kcal·근거 문구는 같은 레시피에 붙여 준다')
+  assert.equal(draft7030!.engineDraft, '치킨 70% · 흑돼지 30%')
+
+  // lineRatios 가 아예 없는 행(깨진/옛 데이터)이라도 초안을 같은 규칙으로 스냅 — 70/30 은 절대 안 나온다.
+  const draftOnly = describeBox({ formula: { v3: { layerA: { picks: [{ protein: 'chicken', ratio: 0.7 }, { protein: 'pork', ratio: 0.3 }] } } } })
+  assert.deepEqual(draftOnly!.picks.map((p) => [p.name, p.ratio]), [['치킨', 0.5], ['흑돼지', 0.5]])
+
+  // 옛 처방(v3 없음): 2종이면 50:50, 2번째가 20% 미만이면 1종 100% — boxComposition.SECOND_LINE_MIN 과 동일.
   const legacy = describeBox({ formula: { lineRatios: { basic: 0.5, premium: 0.4, joint: 0.1 } }, reasoning: [] })
   assert.deepEqual(legacy!.picks.map((p) => [p.name, p.ratio]), [['오리', 0.5], ['한우', 0.5]])
-  const single = describeBox({ formula: { lineRatios: { weight: 0.8, joint: 0.2 } } })
+  const single = describeBox({ formula: { lineRatios: { weight: 0.85, joint: 0.15 } } })
   assert.deepEqual(single!.picks.map((p) => [p.name, p.ratio]), [['치킨', 1]])
+
+  // 불변식: 어떤 입력이든 표시 비율은 100% 아니면 50% 뿐.
+  for (const b of [withPicks, draft7030, draftOnly, legacy, single]) {
+    for (const p of b!.picks) assert.ok(p.ratio === 1 || p.ratio === 0.5, `${p.name} ${p.ratio}`)
+  }
   assert.equal(describeBox(null), null)
 })

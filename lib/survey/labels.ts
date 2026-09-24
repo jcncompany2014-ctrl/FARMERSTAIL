@@ -12,6 +12,8 @@
  * 선택지 문구와 같게 둔다 — 고객이 누른 글자 그대로 사장님이 본다.
  */
 import { CHRONIC_CONDITION_LABELS } from '../nutrition/guidelines.ts'
+import { snapBoxLines } from '../personalization/boxComposition.ts'
+import type { FoodLine } from '../personalization/types.ts'
 
 export type LabelTone = 'warn' | 'good' | 'muted'
 export type LabelItem = { label: string; value: string; tone?: LabelTone }
@@ -286,6 +288,8 @@ export function describeAnalysis(a: AnalysisLike | null | undefined): AnalysisSu
 // ── 추천 박스 (dog_formulas) ─────────────────────────────────────────────────
 /** 라인 → 단백질. 정본은 lib/personalization/skuModel.ts LEGACY_LINE_TO_PROTEIN (표시용 복제). */
 const LINE_TO_PROTEIN: Record<string, string> = { basic: 'duck', weight: 'chicken', skin: 'salmon', premium: 'beef', joint: 'pork' }
+const PROTEIN_TO_LINE: Record<string, FoodLine> = { duck: 'basic', chicken: 'weight', salmon: 'skin', beef: 'premium', pork: 'joint' }
+const LINES: FoodLine[] = ['basic', 'weight', 'skin', 'premium', 'joint']
 const RECIPE_KR: Record<string, string> = { chicken: '치킨', duck: '오리', beef: '한우', pork: '흑돼지', salmon: '연어' }
 
 export type FormulaRowLike = {
@@ -301,7 +305,13 @@ export type FormulaRowLike = {
 }
 
 export type BoxSummary = {
+  /** 실제 배송·고객 화면과 같은 최종 박스 — 항상 1종 100% 또는 2종 50:50. */
   picks: Array<{ name: string; protein: string; ratio: number; kcalPer100g: number | null; claims: string[] }>
+  /**
+   * 엔진 초안(v3 layerA.picks)이 최종 박스와 다를 때만 "치킨 70% · 흑돼지 30%" 식 한 줄.
+   * 배송·표시엔 안 쓰인다 — 사장님이 "왜 이렇게 됐나"를 볼 때만 접힌 곳에 보여준다.
+   */
+  engineDraft: string | null
   dailyKcal: number | null
   dailyGrams: number | null
   chips: string[]
@@ -322,35 +332,64 @@ export function describeBox(row: FormulaRowLike | null | undefined): BoxSummary 
   const v3 = rec(f.v3)
   const layerA = rec(v3.layerA)
   const layerB = rec(v3.layerB)
-  const picks: BoxSummary['picks'] = []
+
+  // 엔진 초안 (v3 layerA.picks). 70/30 같은 임의 비율이 들어 있다 — 2026-09-24 사장님:
+  // "추천 박스가 이런 식으로 나오면 안 된다, 우리 30% 는 없다". 초안은 표시 박스로 쓰지
+  // 않고, 같은 레시피의 kcal·근거 문구를 붙이는 데만 쓴다.
+  type Draft = { protein: string; name: string; ratio: number; kcalPer100g: number | null; claims: string[] }
+  const draft: Draft[] = []
   if (Array.isArray(layerA.picks)) {
     for (const p of layerA.picks) {
       const r = rec(p)
       const protein = str(r.protein) ?? ''
       const ratio = num(r.ratio) ?? 0
-      picks.push({
-        name: str(r.nameKr) ?? RECIPE_KR[protein] ?? protein,
+      if (!protein || ratio <= 0) continue
+      draft.push({
         protein,
+        name: str(r.nameKr) ?? RECIPE_KR[protein] ?? protein,
         ratio,
         kcalPer100g: num(r.kcalPer100g),
         claims: Array.isArray(r.claims) ? r.claims.map((c) => str(rec(c).text)).filter((x): x is string => !!x) : [],
       })
     }
   }
-  if (picks.length === 0) {
-    // v3 layer 가 없는 옛 처방 — lineRatios 에서 상위 2개(50:50) 또는 1개(100%).
-    const lr = rec(f.lineRatios)
-    const nonZero = Object.entries(lr)
-      .map(([line, r]) => ({ line, ratio: num(r) ?? 0 }))
-      .filter((x) => x.ratio > 0)
-      .sort((a, b) => b.ratio - a.ratio)
-    const top = nonZero.slice(0, 2)
-    const snapped = top.length >= 2 && top[1]!.ratio >= 0.3 ? top.map((t) => ({ ...t, ratio: 0.5 })) : top.slice(0, 1).map((t) => ({ ...t, ratio: 1 }))
-    for (const t of snapped) {
-      const protein = LINE_TO_PROTEIN[t.line] ?? t.line
-      picks.push({ name: RECIPE_KR[protein] ?? protein, protein, ratio: t.ratio, kcalPer100g: null, claims: [] })
+
+  // 최종 박스 = formula.lineRatios. compute 가 임상 룰·가용성·첫 박스 단일화까지 끝내고
+  // 저장한 정본이고, 고객 분석 카드·플랜·주문이 전부 이걸 snapBoxLines 로 스냅해 본다.
+  // 어드민도 같은 함수로 스냅해야 사장님과 고객이 같은 박스를 본다.
+  const ratios: Record<FoodLine, number> = { basic: 0, weight: 0, skin: 0, premium: 0, joint: 0 }
+  const lr = rec(f.lineRatios)
+  let hasLineRatios = false
+  for (const line of LINES) {
+    const v = num(lr[line]) ?? 0
+    if (v > 0) {
+      ratios[line] = v
+      hasLineRatios = true
     }
   }
+  if (!hasLineRatios) {
+    // lineRatios 가 없는 행(깨진/옛 데이터) — 초안을 라인으로 옮겨 **같은 규칙**으로 스냅.
+    for (const d of draft) {
+      const line = PROTEIN_TO_LINE[d.protein]
+      if (line) ratios[line] += d.ratio
+    }
+  }
+  const picks: BoxSummary['picks'] = snapBoxLines(ratios).map(({ line, ratio }) => {
+    const protein = LINE_TO_PROTEIN[line] ?? line
+    const d = draft.find((x) => x.protein === protein)
+    return {
+      name: d?.name ?? RECIPE_KR[protein] ?? protein,
+      protein,
+      ratio,
+      kcalPer100g: d?.kcalPer100g ?? null,
+      claims: d?.claims ?? [],
+    }
+  })
+  const sameAsFinal =
+    draft.length === picks.length &&
+    draft.every((d) => picks.some((p) => p.protein === d.protein && Math.abs(p.ratio - d.ratio) < 1e-9))
+  const engineDraft = draft.length > 0 && !sameAsFinal ? draft.map((d) => `${d.name} ${Math.round(d.ratio * 100)}%`).join(' · ') : null
+
   const reasons: BoxSummary['reasons'] = []
   if (Array.isArray(row.reasoning)) {
     for (const r of row.reasoning) {
@@ -366,6 +405,7 @@ export function describeBox(row: FormulaRowLike | null | undefined): BoxSummary 
   const waitlist = strs(layerB.waitlistConcerns)
   return {
     picks,
+    engineDraft,
     dailyKcal: row.daily_kcal ?? num(layerA.dailyKcal),
     dailyGrams: row.daily_grams ?? num(layerA.dailyGrams),
     chips: reasons.map((r) => r.chip),
