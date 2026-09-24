@@ -48,6 +48,32 @@ function ratioSum(r: Record<string, number>): number {
   return Object.values(r).reduce((s, v) => s + v, 0)
 }
 
+describe('베이스 근거 문구 — 한글 레시피 이름만, 초안 비율·영문명 금지 (사장님 2026-09-24 "우리 30% 는 없다")', () => {
+  // 이 action 은 고객 재제안 화면(ApproveClient '왜 이렇게 제안했어요')과 어드민 설문 기록에
+  // 그대로 나간다. 전엔 "Chicken 70% / Pork 30%" 처럼 엔진 초안 비율을 찍어 존재하지 않는
+  // 박스(30%)를 보여줬다. 실제 박스는 1종 100% / 2종 50:50 뿐이다.
+  const ENGLISH = /Chicken|Duck|Pork|Beef|Salmon/
+  it('v3 시드(70/30)로 시작해도 문구엔 이름만 — "치킨 · 흑돼지"', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      baseRatiosOverride: { basic: 0, weight: 0.7, skin: 0, premium: 0, joint: 0.3 },
+    })
+    const base = f.reasoning.find((r) => r.ruleId?.startsWith('goal-'))
+    assert.ok(base, '베이스 근거 chip 발화')
+    assert.equal(base!.action, '베이스 레시피: 치킨 · 흑돼지 (근거 기반 단백질 선택)')
+    assert.doesNotMatch(base!.action, /%/)
+    assert.doesNotMatch(base!.action, ENGLISH)
+  })
+  it('케어 목표 폴백(시드 없음)도 같은 규칙', () => {
+    const f = decideFirstBox({ ...baseInput(), careGoal: 'weight_management' })
+    const base = f.reasoning.find((r) => r.ruleId === 'goal-weight_management')
+    assert.ok(base)
+    assert.match(base!.action, /^베이스 레시피: /)
+    assert.doesNotMatch(base!.action, /%/)
+    assert.doesNotMatch(base!.action, ENGLISH)
+  })
+})
+
 describe('decideFirstBox — 간식 칼로리 차감 (treat-calorie-offset)', () => {
   it('treatReductionPct 0.1 (매일) → dailyKcal 10% 감소 + chip 발화', () => {
     const f = decideFirstBox({

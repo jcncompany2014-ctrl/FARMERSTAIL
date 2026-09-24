@@ -302,7 +302,7 @@ function applyCareGoal(
   const recipe = CARE_GOAL_RECIPES[goal]
   reasoning.push({
     trigger: recipe.trigger,
-    action: `초기 비율: ${formatRatios(recipe.ratios)}`,
+    action: `베이스 레시피: ${formatBaseLines(recipe.ratios)}`,
     chipLabel: recipe.chipLabel,
     priority: 1,
     ruleId: `goal-${goal}`,
@@ -341,7 +341,7 @@ function applyV3Base(
     // (사장님 2026-08-25). 버전은 dog_formulas.algorithm_version 에 남아 있고
     // 어드민·이력 화면이 그걸 본다.
     trigger: '맞춤 추천 베이스',
-    action: `초기 비율: ${formatRatios(ratios)} (근거 기반 단백질 선택)`,
+    action: `베이스 레시피: ${formatBaseLines(ratios)} (근거 기반 단백질 선택)`,
     chipLabel: '맞춤 베이스',
     priority: 1,
     ruleId: `goal-${goal}`,
@@ -1778,11 +1778,22 @@ function decideTransition(input: AlgorithmInput): TransitionStrategy {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// 디버그용 포매터
+// 베이스 근거 문구 포매터
 // ──────────────────────────────────────────────────────────────────────────
 
-function formatRatios(ratios: Record<FoodLine, Ratio>): string {
+/**
+ * 베이스 라인을 **한글 레시피 이름만** 비율 내림차순으로 (예: "치킨 · 흑돼지").
+ *
+ * 전엔 `Chicken 70% / Pork 30%` 처럼 영문 이름 + 임의 비율을 찍었다. 이 문구는
+ * reasoning.action 으로 저장돼 고객 재제안 화면(ApproveClient)과 어드민 설문 기록에
+ * 그대로 나간다. 그런데 그 비율은 임상 룰·첫 박스 단일화 전의 **엔진 초안**이라
+ * 실제 박스(1종 100% / 2종 50:50)와 다르다 — 사장님 2026-09-24: "우리 30% 는 없다".
+ * 비율은 trace·v3 picks 에 남아 있고(어드민 '계산 과정'), 문구엔 이름만 남긴다.
+ * (고객 문구 규칙: 비율%·영문 레시피명 금지 — feedback_customer_copy_voice)
+ */
+function formatBaseLines(ratios: Record<FoodLine, Ratio>): string {
   return ALL_LINES.filter((l) => ratios[l] > 0)
-    .map((l) => `${FOOD_LINE_META[l].name} ${Math.round(ratios[l] * 100)}%`)
-    .join(' / ')
+    .sort((a, b) => ratios[b] - ratios[a])
+    .map((l) => FOOD_LINE_META[l].nameKo)
+    .join(' · ')
 }
