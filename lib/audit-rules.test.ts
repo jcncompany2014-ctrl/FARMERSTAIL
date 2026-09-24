@@ -3897,3 +3897,33 @@ test('규칙89: 어드민 "설문 기록"(/admin/surveys) — 두 내비에 등�
   assert.doesNotMatch(labels, /picks\.push\(\{[^}]*\bratio,/, '엔진 초안(layerA.picks)의 비율이 그대로 표시 박스에 들어간다 — 70/30 이 사장님 화면에 뜬다')
   assert.doesNotMatch(labels, /ratio >= 0\.3/, '박스 스냅 임계를 따로 구현했다 — boxComposition.SECOND_LINE_MIN 하나만 정본')
 })
+
+test('규칙90: 처방 근거 문구(reasoning) 에 영문 라인명·라인 비율% 금지 — 고객 재제안 화면에 그대로 나간다', () => {
+  /**
+   * # 왜 (2026-09-24 사장님 "우리 30% 는 없다")
+   * reasoning.action/chipLabel/trigger 는 고객 재제안 화면(ApproveClient '왜 이렇게 제안했어요')과
+   * 어드민 설문 기록에 그대로 렌더된다. "Weight 40% → 50%"·"Chicken 70% / Pork 30%" 같은 문구는
+   * 임상 룰의 **내부 라인 비율**이라 실제 박스(1종 100% / 2종 50:50)와 맞지 않고, 영문 라인명은
+   * 고객 문구 규칙(한글·비율% 금지)에 어긋난다. 이름은 nameKo, 비율은 방향("올렸어요")만.
+   * 실행 스윕은 lib/personalization/reasonCopy.test.ts — 여긴 템플릿 소스를 직접 잠근다.
+   */
+  const ENGLISH_LINE = /\b(Weight|Joint|Skin|Premium|Basic|Chicken|Duck|Pork|Beef|Salmon)\b/
+  // 줄 단위 검사 — 따옴표 짝 맞추기는 `Hill\'s` 같은 아포스트로피에 흔들린다(처음 시도에서 3건씩 번갈아 잡힘).
+  // 근거 문구는 ① `action:`/`chipLabel:`/`trigger:` 줄, ② 따옴표로 시작하는 이어지는 문자열 줄에만 있다.
+  const REASON_LINE = /^\s*(action|chipLabel|trigger):|^\s*['"`]/
+  // 2026-09-24 실측: firstBox 223줄 · nextBox 36줄 · skuMap 8줄. 크게 줄면 추출이 깨진 것.
+  const MIN_LINES: Record<string, number> = { 'lib/personalization/firstBox.ts': 150, 'lib/personalization/nextBox.ts': 25, 'lib/personalization/skuMap.ts': 5 }
+  for (const rel of Object.keys(MIN_LINES)) {
+    const lines = stripComments(read(join(ROOT, ...rel.split('/')))).split(/\r?\n/)
+    const reasonLines = lines.filter((l) => REASON_LINE.test(l))
+    assert.ok(reasonLines.length >= MIN_LINES[rel]!, `${rel}: 근거 문구 줄이 ${reasonLines.length}개뿐 — 검사 대상 추출이 깨졌다(카나리아)`)
+    const english = reasonLines.filter((l) => ENGLISH_LINE.test(l))
+    assert.deepEqual(english, [], `${rel}: 근거 문구에 영문 라인/레시피명 — ${english.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
+    // 라인 비율 표기: "X% → Y%", "≥30%", "라인 N%", "메인 N%" 류. 칼로리·영양소 %(간식 5%, 지방 ≤14% DM)는 허용.
+    const pct = reasonLines.filter((l) => /%\s*→|→\s*\$\{[^}]*\}%|≥\s*\d+%|라인 \$\{|메인 \$\{[^}]*\}%|\d+%\s*(→|위주|\(단일)/.test(l))
+    assert.deepEqual(pct, [], `${rel}: 근거 문구에 라인 비율%가 남아 있다 — ${pct.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
+    // 영문 표시명(FOOD_LINE_META[x].name / meta.name)을 고객 문구 템플릿에 쓰지 않는다 — nameKo 만.
+    const name = reasonLines.filter((l) => /\.name\}/.test(l))
+    assert.deepEqual(name, [], `${rel}: 근거 문구 템플릿이 영문 name 을 쓴다 — nameKo 로: ${name.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
+  }
+})

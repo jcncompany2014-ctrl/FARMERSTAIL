@@ -161,7 +161,7 @@ function recomputeBlockedLines(
       // 새 알레르기는 우선순위 0 (가장 중요).
       reasoning.push({
         trigger: `${conflict} 알레르기 (재설문 반영)`,
-        action: `${meta.name} 라인 0% 유지/차단`,
+        action: `${meta.nameKo} 레시피는 계속 제외해요`,
         chipLabel: `${conflict} 차단`,
         priority: 0,
         ruleId: `next-allergy-${line}`,
@@ -207,7 +207,7 @@ function applyWeek2StoolSignal(
     const weight = ratios.weight + skinShift + premShift
     reasoning.push({
       trigger: `2주차 변 #${week2.stoolScore} (무름)`,
-      action: `Skin/Premium 비중 -5%, Weight +${((skinShift + premShift) * 100).toFixed(0)}%`,
+      action: '변이 무른 편이라 지방이 적은 체중 관리 레시피(치킨) 쪽으로 조금 옮겼어요',
       chipLabel: '2주차 무름 → 지방 ↓',
       priority: 4,
       ruleId: 'next-week2-stool-soft',
@@ -291,7 +291,7 @@ function applyWeek4StoolSignal(
     collapsed[mainLine] = 1
     reasoning.push({
       trigger: '2주+4주 변 무름 지속',
-      action: `${FOOD_LINE_META[mainLine].name} 100% (단일 단백질로 위장 reset)`,
+      action: `${FOOD_LINE_META[mainLine].nameKo} 레시피 한 가지로 잠시 돌아가요 (위장을 쉬게 해요)`,
       chipLabel: '지속 무름 → 단일 단백질',
       priority: 3,
       ruleId: 'next-stool-persistent-collapse',
@@ -305,7 +305,7 @@ function applyWeek4StoolSignal(
     const weight = ratios.weight + skinShift
     reasoning.push({
       trigger: `4주차 변 #${week4.stoolScore} (무름)`,
-      action: `Skin -5%, Weight +5%`,
+      action: '지방이 적은 체중 관리 레시피(치킨) 쪽으로 조금 옮겼어요',
       chipLabel: '4주차 무름 → 지방 ↓',
       priority: 4,
       ruleId: 'next-week4-stool-soft',
@@ -341,8 +341,8 @@ function applyCoatSignal(
       }
       reasoning.push({
         trigger: `4주차 털 ${week4.coatScore}/5 (윤기 부족)`,
-        action: `Skin ${(ratios.skin * 100).toFixed(0)}% → ${(target * 100).toFixed(0)}% (오메가-3 ↑)`,
-        chipLabel: '털 윤기↓ → Skin ↑',
+        action: '피부·털 보강 쪽 비중을 올렸어요 (오메가-3 ↑)',
+        chipLabel: '털 윤기↓ → 피부·털 보강 ↑',
         priority: 5,
         ruleId: 'next-coat-low',
       })
@@ -385,7 +385,7 @@ function applyAppetiteSignal(
   const taken = Math.min(delta, ratios[donor])
   reasoning.push({
     trigger: `4주차 식욕 ${week4.appetiteScore}/5`,
-    action: `기호성 우선 — ${FOOD_LINE_META[prefLine].name} ↑${(taken * 100).toFixed(0)}%`,
+    action: `잘 먹는 ${FOOD_LINE_META[prefLine].nameKo} 레시피 비중을 올렸어요`,
     chipLabel: '식욕 ↓ → 선호 ↑',
     priority: 6,
     ruleId: 'next-appetite-low',

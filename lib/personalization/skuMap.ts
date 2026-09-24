@@ -144,9 +144,9 @@ export function gateAvailability(
       }
       lines[target] += moved
       opts.reasoning?.push({
-        trigger: `${FOOD_LINE_META[line].name} 라인 준비중`,
-        action: `${FOOD_LINE_META[line].name} ${Math.round(moved * 100)}% → ${FOOD_LINE_META[target].name} 로 이동. 해당 제품 출시 시 자동 반영.`,
-        chipLabel: `${FOOD_LINE_META[line].name} → ${FOOD_LINE_META[target].name}`,
+        trigger: `${FOOD_LINE_META[line].nameKo} 레시피 준비중`,
+        action: `${FOOD_LINE_META[line].nameKo} 레시피는 준비 중이라 ${FOOD_LINE_META[target].nameKo}로 담았어요. 출시되면 자동으로 반영돼요.`,
+        chipLabel: `${FOOD_LINE_META[line].nameKo} → ${FOOD_LINE_META[target].nameKo}`,
         priority: 1,
         ruleId: `gate-line-${line}`,
       })
@@ -162,7 +162,7 @@ export function gateAvailability(
             r.ruleId === 'chronic-cognitive-decline'
           ) {
             r.action +=
-              ' ※ 연어 라인 준비중이라 현재는 오리로 대체돼요. 오리는 화식 중 오메가-3가 가장 높지만 연어보다는 낮아, 피부·인지 케어가 목적이면 EPA/DHA(피쉬오일) 보조를 권장해요. 연어 라인 출시 시 자동 반영.'
+              ' ※ 연어 레시피는 준비 중이라 지금은 오리로 담겨요. 오리는 화식 중 오메가-3가 가장 높지만 연어보다는 낮아, 피부·인지 케어가 목적이면 EPA/DHA(피쉬오일) 보조를 권장해요. 연어 레시피 출시 시 자동 반영.'
           }
         }
       }
@@ -177,7 +177,7 @@ export function gateAvailability(
         opts.reasoning?.push({
           trigger: `${t === 'vegetable' ? '야채' : '단백질'} 토퍼 준비중`,
           action:
-            '토퍼 0% (제품 미오픈) — 메인 화식이 칼로리 100% 충족. 출시 시 자동 추가.',
+            '토퍼는 아직 준비 중이라 뺐어요 — 메인 화식만으로 하루 칼로리를 채워요. 출시되면 자동으로 더해요.',
           chipLabel: `${t === 'vegetable' ? '야채' : '단백질'} 토퍼 준비중`,
           priority: 7,
           ruleId: `gate-topper-${t}`,
