@@ -2834,6 +2834,39 @@ export type Database = {
           },
         ]
       }
+      subscription_trials: {
+        Row: {
+          cheap_price: number
+          cheap_remaining: number
+          created_at: string
+          created_by: string | null
+          half_rate: number
+          half_remaining: number
+          note: string
+          user_id: string
+        }
+        Insert: {
+          cheap_price?: number
+          cheap_remaining?: number
+          created_at?: string
+          created_by?: string | null
+          half_rate?: number
+          half_remaining?: number
+          note?: string
+          user_id: string
+        }
+        Update: {
+          cheap_price?: number
+          cheap_remaining?: number
+          created_at?: string
+          created_by?: string | null
+          half_rate?: number
+          half_remaining?: number
+          note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           address: string

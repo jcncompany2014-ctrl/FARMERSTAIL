@@ -933,6 +933,62 @@ async function runSubscriptionCharge(): Promise<Response> {
         }
       }
 
+      // ★체험단 회차 차감 — 프로모션 소진과 같은 원칙: **결제 성공 후에만**
+      //   (결제감사 #3). 차감 실패는 고객에게 유리한 방향(100원 한 번 더)이지만
+      //   무음이면 안 되므로 이벤트로 남긴다. 구간이 0 이 되는 결제에서는
+      //   다음 박스 가격 예고 푸시(전환 고지 의무 — TRIAL_PROGRAM v2 D4)를 보낸다.
+      if (discountReason === 'trial_cheap' || discountReason === 'trial_half') {
+        const col = discountReason === 'trial_cheap' ? 'cheap_remaining' : 'half_remaining'
+        const { data: trialRow, error: trialErr } = await supabase
+          .from('subscription_trials')
+          .select('cheap_remaining, half_remaining')
+          .eq('user_id', sub.user_id)
+          .maybeSingle()
+        const before = (trialRow as Record<string, number> | null)?.[col] ?? 0
+        if (trialErr || before <= 0) {
+          captureBusinessEvent('error', 'subscription.charge.trial_decrement_failed', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            col,
+            before,
+            dbError: trialErr ? String(trialErr.message) : 'row_or_count_missing',
+            note: '체험단 회차 차감 불가 — admin 수동 보정 필요.',
+          })
+        } else {
+          const patch =
+            discountReason === 'trial_cheap'
+              ? { cheap_remaining: before - 1 }
+              : { half_remaining: before - 1 }
+          const { error: decErr } = await supabase
+            .from('subscription_trials')
+            .update(patch)
+            .eq('user_id', sub.user_id)
+            .eq(col, before) // 낙관적 잠금 — 동시 차감이면 불일치로 0행
+          if (decErr) {
+            captureBusinessEvent('error', 'subscription.charge.trial_decrement_failed', {
+              subscriptionId: sub.id,
+              userId: sub.user_id,
+              col,
+              before,
+              dbError: String(decErr.message ?? 'unknown'),
+              note: '체험단 회차 차감 실패 — 다음 회차 체험가 재적용 위험(고객 유리). admin 보정.',
+            })
+          } else if (before - 1 === 0) {
+            // 이 구간 마지막 결제 — 다음 박스(2주 뒤)부터 가격이 바뀐다.
+            // 2주 전 예고라 "7일 전 고지"보다 이르고, 거래 통지이므로 nudge 아님.
+            const body =
+              discountReason === 'trial_cheap'
+                ? '체험 기간이 끝나 다음 박스부터는 반값으로 결제돼요. 결제 전에 앱에서 금액을 확인할 수 있어요.'
+                : '체험 혜택이 모두 끝나 다음 박스부터는 정상가로 결제돼요. 언제든 정기배송 탭에서 조정할 수 있어요.'
+            await pushToUser(sub.user_id, {
+              title: '다음 박스 가격 안내',
+              body,
+              url: '/mypage/subscriptions',
+            })
+          }
+        }
+      }
+
       // 2-d) 성공 → orders / charge / subscription 업데이트.
       // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
       // 카드 재등록 받은 후 정상화 케이스 포함).

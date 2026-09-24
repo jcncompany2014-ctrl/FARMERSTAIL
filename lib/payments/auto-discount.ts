@@ -7,6 +7,8 @@ import {
   type DiscountReason,
 } from '@/lib/discount'
 import { pickBetterDiscount } from '@/lib/promotions'
+import { trialPricing } from '@/lib/payments/trial'
+import { getTrialState } from '@/lib/payments/trial-state'
 
 /**
  * 자동 할인 계산 — **청구와 화면이 같은 함수를 쓴다.**
@@ -47,7 +49,7 @@ import { pickBetterDiscount } from '@/lib/promotions'
  */
 
 export type AutoDiscount = {
-  reason: DiscountReason | 'promotion'
+  reason: DiscountReason | 'promotion' | 'trial_cheap' | 'trial_half'
   /** 할인 금액(원). */
   discountAmount: number
   /** 실제 청구액 = subtotal − discountAmount. */
@@ -70,6 +72,19 @@ export async function resolveAutoDiscount(input: {
     chargeAmount: subtotal,
     promoClaimed: false,
     label: null,
+  }
+
+  // 체험단이면 그것만 쓴다 — 등급·프로모션과 절대 겹치지 않고, 프로모션 claim 은
+  // 남겨 둔다(체험 뒤 첫 정상 결제에 쓸 수 있게). docs/TRIAL_PROGRAM_2026_10.md v2.
+  const trial = trialPricing(await getTrialState(userId), subtotal)
+  if (trial) {
+    return {
+      reason: trial.phase === 'cheap' ? 'trial_cheap' : 'trial_half',
+      discountAmount: trial.discountAmount,
+      chargeAmount: trial.chargeAmount,
+      promoClaimed: false,
+      label: trial.label,
+    }
   }
 
   let supabase: ReturnType<typeof createAdminClient>

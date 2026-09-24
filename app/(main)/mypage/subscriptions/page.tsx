@@ -14,6 +14,7 @@ import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
+import { getTrialState } from '@/lib/payments/trial-state'
 import { weekdayKo } from '@/lib/shipping-schedule'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
@@ -255,11 +256,14 @@ export default async function AppSubscriptionsSummaryPage({
    * **구독별로** 계산해서 더한다. 청구도 구독 1건씩 따로 하므로, 합계에 할인을
    * 한 번 적용하면 원 단위 반올림이 어긋난다.
    */
-  const discounts = await Promise.all(
-    dueNext.map((s) =>
-      resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 }),
+  const [discounts, trial] = await Promise.all([
+    Promise.all(
+      dueNext.map((s) =>
+        resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 }),
+      ),
     ),
-  )
+    getTrialState(user.id),
+  ])
   const nextDiscount = discounts.reduce((sum, d) => sum + d.discountAmount, 0)
   const nextAmount = discounts.reduce((sum, d) => sum + d.chargeAmount, 0)
   // 같은 사용자라 할인 사유는 하나다. 이름은 첫 항목에서 가져온다.
@@ -413,6 +417,28 @@ export default async function AppSubscriptionsSummaryPage({
             </Link>
           )
         })}
+
+      {/* ── 체험단 진행 카드 (2026-09-24, TRIAL_PROGRAM v2) ──
+          도장 있는 계정에만 보인다. 다음 가격이 미리 보여야 "몰래 비싸짐"이
+          없다 — 전환 고지(D4)의 화면 반쪽. 숫자 근거는 청구와 같은 판정
+          (trialPricing)이라 갈라질 수 없다. */}
+      {trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0) && (
+        <section className="px-5 py-4" style={card}>
+          <p className="text-[11px] font-bold" style={{ color: V3.inkMute }}>
+            체험단 진행 중
+          </p>
+          <p className="mt-1 text-[16px] font-bold" style={{ color: V3.ink }}>
+            {trial.cheap_remaining > 0
+              ? `지금은 100원 구간 — ${trial.cheap_remaining}번 남았어요`
+              : `지금은 반값 구간 — ${trial.half_remaining}번 남았어요`}
+          </p>
+          <p className="mt-1 text-[12.5px]" style={{ color: V3.inkMute, lineHeight: 1.55 }}>
+            {trial.cheap_remaining > 0
+              ? `100원 박스가 끝나면 두 달간 내 구독가의 반값으로, 그다음부터 정상가로 이어져요. 바뀌기 전에 미리 알려드릴게요.`
+              : `반값 박스가 끝나면 정상가로 이어져요. 바뀌기 전에 미리 알려드릴게요.`}
+          </p>
+        </section>
+      )}
 
       {/* ── 주인공: 결제 정보 ──
           'NEXT PAYMENT' 킥커·구분선·설명 문단을 걷어냈다(사장님 2026-07-30
