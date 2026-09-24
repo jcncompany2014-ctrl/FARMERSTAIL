@@ -3930,3 +3930,23 @@ test('규칙90: 처방 근거 문구(reasoning) 에 영문 라인명·라인 비
     assert.deepEqual(name, [], `${rel}: 근거 문구 템플릿이 영문 name 을 쓴다 — nameKo 로: ${name.map((l) => l.trim().slice(0, 80)).join(' | ')}`)
   }
 })
+
+test('규칙91: 콜드 스타트 링크(getLaunchUrl)는 shouldHandleLaunchUrl 로 한 번만 처리한다', () => {
+  /**
+   * # 왜 (2026-09-24 에뮬레이터 실측)
+   * 안드로이드 getLaunchUrl() 은 프로세스가 사는 동안 같은 값을 돌려주고, 이걸 읽는
+   * NativeShellBridge 는 문서를 새로 불러올 때마다 다시 마운트된다. 가드 없이 go() 하면
+   * 링크로 앱을 연 사용자가 새로고침·'다시 시도'·카카오 로그인 복귀·토스 카드 등록 복귀
+   * (결제키 저장 화면)마다 처음 링크로 끌려간다. getLaunchUrl 을 부르는 모든 곳이
+   * 같은 가드를 거치게 잠근다.
+   */
+  const callers = walk(join(ROOT, 'components'))
+    .concat(walk(join(ROOT, 'app')), walk(join(ROOT, 'lib')))
+    .filter((f) => !/\.test\.tsx?$/.test(f))
+    .filter((f) => /getLaunchUrl\s*\(/.test(stripComments(read(f))))
+  assert.ok(callers.length >= 1, 'getLaunchUrl 호출처를 못 찾았다 — 검사 대상 추출이 깨졌다(카나리아)')
+  for (const f of callers) {
+    const src = stripComments(read(f))
+    assert.match(src, /shouldHandleLaunchUrl\(/, `${f}: getLaunchUrl 결과를 shouldHandleLaunchUrl 없이 쓴다 — 새로고침마다 처음 링크로 끌려간다`)
+  }
+})

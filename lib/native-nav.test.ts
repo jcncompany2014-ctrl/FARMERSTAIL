@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nativeApiUrl, nativeTargetPath } from './native-nav.ts'
+import { LAUNCH_URL_HANDLED_KEY, nativeApiUrl, nativeTargetPath, shouldHandleLaunchUrl } from './native-nav.ts'
 
 /**
  * `appUrlOpen` 은 기기의 아무 앱이나 인텐트로 쏠 수 있다 — 이 표가 그
@@ -132,4 +132,31 @@ test('nativeApiUrl: 남의 호스트·비 https·상대 경로는 전부 거부'
   ]) {
     assert.equal(nativeApiUrl(bad), null, `${JSON.stringify(bad)} 는 막아야 한다`)
   }
+})
+
+/** sessionStorage 흉내 — 새로 만들면 "앱을 새로 켠 것", 같은 객체를 다시 쓰면 "같은 실행 안의 새 문서". */
+function memStore() {
+  const m = new Map<string, string>()
+  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m }
+}
+
+test('shouldHandleLaunchUrl: 같은 실행에서 콜드 스타트 링크는 한 번만 — 새로고침·결제 복귀마다 끌려가던 것', () => {
+  const s = memStore()
+  const link = 'https://www.farmerstail.kr/mypage/subscriptions'
+  assert.equal(shouldHandleLaunchUrl(link, s), true, '첫 문서: 처리')
+  // 같은 실행 안에서 문서를 새로 불러옴(새로고침·토스 카드 등록 복귀·카카오 로그인 복귀) — getLaunchUrl 은 같은 값을 준다
+  assert.equal(shouldHandleLaunchUrl(link, s), false, '두 번째 문서: 무시')
+  assert.equal(shouldHandleLaunchUrl(link, s), false, '세 번째도 무시')
+  assert.equal(s.m.get(LAUNCH_URL_HANDLED_KEY), link)
+  // 앱이 살아 있는 채 다른 링크로 다시 열림 → 그 링크는 한 번 처리
+  assert.equal(shouldHandleLaunchUrl('https://www.farmerstail.kr/dogs', s), true)
+  // 앱을 완전히 껐다 켬(새 WebView = 빈 저장소) → 같은 링크라도 다시 처리
+  assert.equal(shouldHandleLaunchUrl(link, memStore()), true)
+})
+
+test('shouldHandleLaunchUrl: 저장소가 없거나 던지면 예전 동작(처리), 빈 URL 은 무시', () => {
+  assert.equal(shouldHandleLaunchUrl('https://www.farmerstail.kr/dogs', null), true)
+  const throwing = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
+  assert.equal(shouldHandleLaunchUrl('https://www.farmerstail.kr/dogs', throwing), true)
+  assert.equal(shouldHandleLaunchUrl('', memStore()), false)
 })

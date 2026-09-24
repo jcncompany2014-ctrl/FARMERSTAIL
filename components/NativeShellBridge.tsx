@@ -3,8 +3,22 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isNativeApp } from '@/lib/capacitor'
-import { nativeApiUrl, nativeTargetPath } from '@/lib/native-nav'
+import {
+  nativeApiUrl,
+  nativeTargetPath,
+  shouldHandleLaunchUrl,
+  type LaunchUrlStore,
+} from '@/lib/native-nav'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
+
+/** sessionStorage 접근 자체가 던질 수 있어(차단된 저장소) 감싼다. */
+function launchStore(): LaunchUrlStore | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    return null
+  }
+}
 
 /**
  * 네이티브 셸 ↔ 웹 앱 연결다리 (2026-08-20 — Play Store 출시 준비).
@@ -62,7 +76,7 @@ export default function NativeShellBridge() {
         router.push(path)
         return
       }
-      // 우리 호스트의 /api/* 링크(메일의 뉴스레터 확인·수신거부)는 SPA 경로가
+      // 우리 호스트의 /api 하위 링크(메일의 뉴스레터 확인·수신거부)는 SPA 경로가
       // 아니라 **서버가 실행해야 하는 URL** 이다. 안드로이드 intent-filter 가
       // 경로 구분 없이 앱을 열어버리므로, 여기서 전체 내비게이션으로 그대로
       // 실행한다 — 안 하면 링크가 조용히 죽는다(수신거부 불이행). 판정 경계는
@@ -82,8 +96,13 @@ export default function NativeShellBridge() {
 
         // 콜드 스타트 — 앱이 꺼진 상태에서 링크를 누르면 `appUrlOpen` 은 이미
         // 지나간 뒤라 오지 않는다. 시작 URL 을 따로 읽어야 한다.
+        // ★단 한 번만(2026-09-24): getLaunchUrl 은 프로세스가 사는 동안 같은 값을
+        //   돌려주고 이 컴포넌트는 문서를 새로 불러올 때마다 다시 마운트된다 —
+        //   안 막으면 토스 카드 등록 복귀·새로고침마다 처음 링크로 끌려간다.
         const launch = await App.getLaunchUrl().catch(() => undefined)
-        if (!cancelled && launch?.url) go(launch.url)
+        if (!cancelled && launch?.url && shouldHandleLaunchUrl(launch.url, launchStore())) {
+          go(launch.url)
+        }
 
         track(await App.addListener('appUrlOpen', (event) => go(event.url)))
 

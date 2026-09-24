@@ -102,3 +102,45 @@ export function nativeApiUrl(raw: unknown): string | null {
   if (!parsed.pathname.startsWith('/api/')) return null
   return parsed.toString()
 }
+
+/** sessionStorage 키 — 이미 처리한 콜드 스타트 링크. */
+export const LAUNCH_URL_HANDLED_KEY = 'ft_launch_url_handled'
+
+/** sessionStorage 와 같은 최소 모양(테스트에서 가짜로 갈아끼운다). */
+export type LaunchUrlStore = {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+}
+
+/**
+ * 콜드 스타트 링크(`App.getLaunchUrl()`)를 **이 앱 실행에서 한 번만** 처리하게 한다.
+ * 처리해야 하면 true(그리고 처리했다고 적어 둔다), 이미 처리했으면 false.
+ *
+ * # 왜 (2026-09-24 에뮬레이터 실측)
+ * 안드로이드 Capacitor 의 `getLaunchUrl()` 은 앱을 연 인텐트의 URL 을 **프로세스가
+ * 사는 동안 계속** 돌려준다. 이 값을 읽는 NativeShellBridge 는 루트 레이아웃에
+ * 있어서 **문서를 새로 불러올 때마다** 다시 마운트된다. 그래서 메일·카톡 링크로
+ * 앱을 처음 연 사용자는 그 뒤 새로고침, '다시 시도' 버튼, 카카오 로그인 복귀,
+ * **토스 카드 등록 후 복귀(/subscribe/billing-success — 결제키를 저장하는 화면)**
+ * 때마다 처음 링크로 끌려갔다. 에뮬레이터에서 한참 전의 링크(/admin/surveys)로
+ * 모든 이동이 되돌아가는 것을 기기 로그로 확인했다.
+ *
+ * # 왜 sessionStorage 인가
+ * 전체 문서 이동(외부 결제창을 갔다 오는 것 포함)에도 같은 탭·같은 출처면 남고,
+ * 앱을 완전히 껐다 켜면(새 WebView) 비워진다 — "이 실행에서 한 번"과 정확히 같다.
+ * 값을 URL 로 비교하므로, 앱이 살아 있는 채로 다른 링크로 다시 열리면 그건 새 링크로
+ * 한 번 처리된다(그쪽은 보통 `appUrlOpen` 으로 오지만 이중으로 막아도 해가 없다).
+ * 저장소를 못 쓰면(예외) 예전 동작(처리함)으로 둔다 — 링크를 아예 무시하는 것보다
+ * 낫고, 앱 WebView 에서 sessionStorage 가 막히는 경우는 없다.
+ */
+export function shouldHandleLaunchUrl(url: string, store: LaunchUrlStore | null | undefined): boolean {
+  if (!url) return false
+  if (!store) return true
+  try {
+    if (store.getItem(LAUNCH_URL_HANDLED_KEY) === url) return false
+    store.setItem(LAUNCH_URL_HANDLED_KEY, url)
+  } catch {
+    /* 저장소 불가 — 예전 동작 */
+  }
+  return true
+}
