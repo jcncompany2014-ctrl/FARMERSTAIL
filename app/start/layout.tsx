@@ -6,10 +6,18 @@
  * 이중 래핑하는 것을 막는다 — /partners·/brand·/science 와 동일한 웹 마케팅
  * 라우트 규칙.
  */
+import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
+
 export default function StartLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  // 인앱 브라우저(인스타 DM·프로필 링크로 진입) 안내 — /start 전 구간 공통.
+  return (
+    <>
+      <InAppBrowserNotice />
+      {children}
+    </>
+  )
 }

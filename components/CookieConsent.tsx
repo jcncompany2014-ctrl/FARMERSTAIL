@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Cookie, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useIsAppContext } from '@/lib/app-context-client'
@@ -87,6 +88,7 @@ export default function CookieConsent() {
   const [analytics, setAnalytics] = useState(true)
   const [marketing, setMarketing] = useState(true)
   const isApp = useIsAppContext()
+  const pathname = usePathname()
   // Hydration mismatch 방지 — server 는 항상 banner 렌더 (consent=null), client 는
   // localStorage 에 따라 다를 수 있음. has-mounted 패턴으로 server 단계에선 절대
   // 렌더 안 함 → SSR/첫 hydration 100% 일치.
@@ -107,6 +109,10 @@ export default function CookieConsent() {
 
   // SSR / 첫 hydration tick 까지는 NULL 반환 — 서버/클라이언트 100% 일치.
   if (!mounted) return null
+  // /link(인스타 프로필용 원장짜리)는 배너 제외 — 동의 없음 = 분석 거부 유지라
+  // 법적으로 안전하고(Consent Mode 기본 denied), 자사몰로 넘어오는 첫 화면
+  // (/start)에서 정상 노출된다. (사장님 2026-09-24)
+  if (pathname === '/link') return null
   // 이미 결정했으면 렌더링 생략. 앱이면 배너 자체를 안 보여줌.
   if (consent !== null) return null
   if (isApp) return null
