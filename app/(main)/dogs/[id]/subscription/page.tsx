@@ -9,6 +9,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogSubscriptionClient, { type DogSub } from './DogSubscriptionClient'
+import { getTrialState } from '@/lib/payments/trial-state'
 
 export default async function DogSubscriptionPage({
   params,
@@ -88,6 +89,7 @@ export default async function DogSubscriptionPage({
       initialSubs={(subsData ?? []) as unknown as DogSub[]}
       dogName={dogName}
       startHref={startHref}
+      trial={await getTrialState(user.id)}
     />
   )
 }

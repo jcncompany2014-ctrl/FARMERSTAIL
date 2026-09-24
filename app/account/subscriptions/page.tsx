@@ -8,6 +8,7 @@ import { isAppContextServer } from '@/lib/app-context'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
+import { getTrialState } from '@/lib/payments/trial-state'
 import { subscriptionState } from '@/lib/subscription-state'
 import type { Subscription } from './types'
 import { recipeName, friendlyChangeReason } from '@/lib/personalization/format'
@@ -283,6 +284,7 @@ export default async function AccountSubscriptionsPage({
           )}
 
           <SubscriptionsWebClient
+            trial={await getTrialState(user.id)}
             initialSubs={initialSubs}
             focusSubId={sp.focus ?? null}
             priceProposal={priceProposal}

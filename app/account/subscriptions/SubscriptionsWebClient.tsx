@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { trialPricing, type TrialState } from '@/lib/payments/trial'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -52,6 +53,8 @@ import PriceChangeConsentModal, {
 } from './PriceChangeConsentModal'
 
 type Props = {
+  /** 체험단 가격표 — 금액 표시가 체험가로 바뀐다(청구와 같은 판정) */
+  trial?: TrialState | null
   initialSubs: Subscription[]
   focusSubId: string | null
   priceProposal: PriceChangeProposal | null
@@ -89,6 +92,7 @@ export default function SubscriptionsWebClient({
   focusSubId,
   priceProposal,
   isApp,
+  trial = null,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -554,7 +558,18 @@ export default function SubscriptionsWebClient({
                 </b>
               </span>
               <span className="text-[13px] font-extrabold" style={{ color: 'var(--fd-pine)' }}>
-                {formatKRW(sub.total_amount)}
+                {(() => {
+                  const tp = trialPricing(trial, sub.total_amount)
+                  if (!tp) return formatKRW(sub.total_amount)
+                  return (
+                    <>
+                      <span style={{ textDecoration: 'line-through', opacity: 0.5, fontWeight: 500, marginRight: 6 }}>
+                        {formatKRW(sub.total_amount)}
+                      </span>
+                      {formatKRW(tp.chargeAmount)}
+                    </>
+                  )
+                })()}
               </span>
             </div>
 

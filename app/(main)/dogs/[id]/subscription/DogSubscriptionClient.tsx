@@ -34,6 +34,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { trialPricing, type TrialState } from '@/lib/payments/trial'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import Link from 'next/link'
 import {
@@ -98,10 +99,13 @@ export default function DogSubscriptionClient({
   initialSubs,
   dogName,
   startHref,
+  trial = null,
 }: {
   initialSubs: DogSub[]
   dogName: string
   startHref: string
+  /** 체험단 가격표 — 있으면 금액 표시가 체험가로 바뀐다 (청구와 같은 판정) */
+  trial?: TrialState | null
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -229,6 +233,7 @@ export default function DogSubscriptionClient({
     <div className="sub-page">
       {live.map((sub) => (
         <SubCard
+          trial={trial}
           key={sub.id}
           sub={sub}
           name={name}
@@ -321,6 +326,7 @@ export default function DogSubscriptionClient({
 function SubCard({
   sub,
   name,
+  trial,
   busy,
   onCard,
   onSkip,
@@ -331,6 +337,7 @@ function SubCard({
 }: {
   sub: DogSub
   name: string
+  trial: TrialState | null
   busy: boolean
   onCard: () => void
   onSkip: () => void
@@ -389,10 +396,25 @@ function SubCard({
           옛 구조는 배지와 금액을 좌우로 벌려놓고 그 아래 안내 상자 + label:값
           4행이 있었다 — 정보는 같은데 부피만 두 배였다(사장님 2026-07-30). */}
       <span className={'sub-state is-' + meta.tone}>{meta.label}</span>
-      <span className="sub-amount">
-        {sub.total_amount.toLocaleString('ko-KR')}
-        <span className="sub-won">원</span>
-      </span>
+      {/* 체험단이면 실제 청구될 체험가로 — 청구·요약 화면과 같은 판정(trialPricing).
+          원래 금액을 숨기지 않고 취소선으로 함께 보여준다(2026-09-24 출시점검 제보). */}
+      {(() => {
+        const tp = trialPricing(trial, sub.total_amount)
+        return (
+          <span className="sub-amount">
+            {tp && (
+              <span
+                className="sub-won"
+                style={{ textDecoration: 'line-through', opacity: 0.55, marginRight: 6 }}
+              >
+                {sub.total_amount.toLocaleString('ko-KR')}원
+              </span>
+            )}
+            {(tp ? tp.chargeAmount : sub.total_amount).toLocaleString('ko-KR')}
+            <span className="sub-won">원</span>
+          </span>
+        )
+      })()}
       <p className="sub-when">{when}</p>
 
       {/* 결제 실패만 경고로 남긴다 — 상자가 아니라 한 줄. */}

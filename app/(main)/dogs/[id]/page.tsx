@@ -5,6 +5,7 @@
 // 이전: client useEffect 에서 5+ supabase 호출 → spinner ~800ms.
 // 이후: server-side parallel fetch + 즉시 페인트. 인증/소유 redirect 도 서버.
 import { redirect } from 'next/navigation'
+import { getTrialState } from '@/lib/payments/trial-state'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
@@ -217,6 +218,7 @@ export default async function DogDetailPage({
 
   return (
     <DogDetailClient
+      trial={await getTrialState(user.id)}
       dog={dog}
       initialWeightLogs={initialWeightLogs}
       currentFormula={currentFormula}

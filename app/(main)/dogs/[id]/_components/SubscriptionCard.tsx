@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { trialPricing, type TrialState } from '@/lib/payments/trial'
 import {
   Repeat,
   CalendarDays,
@@ -47,11 +48,14 @@ export default function SubscriptionCard({
   dogName,
   dogId,
   hasFormula,
+  trial = null,
 }: {
   subscriptions: ActiveSubscription[]
   dogName: string
   dogId: string
   hasFormula: boolean
+  /** 체험단 가격표 — 있으면 금액이 체험가로 표시된다(청구와 같은 판정) */
+  trial?: TrialState | null
 }) {
   if (subscriptions.length === 0 && !hasFormula) return null
 
@@ -156,7 +160,7 @@ export default function SubscriptionCard({
                       </span>
                     </div>
                     <span className="shrink-0 text-[12px] font-bold text-text font-mono whitespace-nowrap tabular-nums">
-                      {s.total_amount.toLocaleString()}원/2주
+                      {(trialPricing(trial, s.total_amount)?.chargeAmount ?? s.total_amount).toLocaleString()}원/2주
                     </span>
                   </div>
                   {/* 레시피를 위에 이름으로 보여줬으면, 화식 비율 티어는 보조로 한 줄 더. */}

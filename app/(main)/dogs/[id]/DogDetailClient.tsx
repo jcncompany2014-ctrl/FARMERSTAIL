@@ -5,6 +5,7 @@
 // 여기엔 weight modal, delete modal, welcome sheet, 가족/공유/사진 요청 같은
 // useState/onClick/useEffect 만 남김.
 import { useEffect, useState, useRef } from 'react'
+import type { TrialState } from '@/lib/payments/trial'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -68,6 +69,8 @@ type Props = {
    * 첫 설문 전이거나 현재 구독 중이 아닌 강아지. [[project-ai-comment-cost]]
    */
   aiComment: { analysisId: string; cached: AiAnalysisJson | null } | null
+  /** 체험단 가격표 — SubscriptionCard 금액 표시용 (청구와 같은 판정) */
+  trial?: TrialState | null
   /** 첫 4주 온보딩 여정 phase(유저 가입일 기준). 개요 최상단 배너용. */
   gracePhase: OnboardingPhase
 }
@@ -82,6 +85,7 @@ export default function DogDetailClient({
   insight,
   aiComment,
   gracePhase,
+  trial = null,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -398,6 +402,7 @@ export default function DogDetailClient({
           빈 배열로 그리면 구독자에게 '정기배송 시작' CTA 가 뜬다. */}
       {!subsQueryFailed && (
       <SubscriptionCard
+        trial={trial}
         subscriptions={subscriptions}
         dogName={dog.name}
         dogId={dogId}

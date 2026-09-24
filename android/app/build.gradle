@@ -58,8 +58,11 @@ android {
         //                     것을 원색 보존+배경만 제거로 교체.
         //    11 (2026-08-23): 진짜 원인 종결 — cap:assets 가 adaptive 레이어를
         //                     절반 해상도(192px)로 뽑던 버그. 수제 생성(규칙61)으로 432px.
-        versionCode 11
-        versionName "1.0.10"
+        //    12 (2026-09-24): intent:·market:·앱 전용 스킴 링크 처리(MainActivity) — 카카오
+        //                     웹 로그인의 "카카오톡으로 로그인"·카드사 앱 전환이 무반응이던 것.
+        //                     에뮬레이터 실측(미설치→스토어, 대체주소→앱 안, 충돌 0). 아직 미업로드.
+        versionCode 12
+        versionName "1.0.11"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
