@@ -4021,3 +4021,38 @@ test('규칙94: AI 호출 경로는 사용자별 하루 한도를 걸고 Anthrop
   const push = stripComments(read(join(ROOT, 'lib', 'push.ts')))
   assert.match(push, /if \(!isAllowedPushEndpoint\(row\.endpoint\)\)/, '발송 직전 푸시 주소 검사가 없다 — DB 직접 삽입으로 우회된다')
 })
+
+test('규칙95: 돈 경로의 DB 쓰기는 결과(error)를 본다 — 맨 await 로 update/insert 금지', () => {
+  /**
+   * # 왜 (2026-09-24 출시 전 점검)
+   * 규칙32·39 는 `const { data } =` 형태만 잡아서, `await supabase.from(x).update(...)` 처럼 결과를
+   * 통째로 버리는 쓰기는 빠져나갔다. 실제로: 카드 거절 시 구독 행 갱신(재시도·정지·멱등키)을 안 봐서
+   * 실패해도 크론이 초록이었고, 결제 확인의 환불 대기열 insert 는 try/catch 로 감쌌지만 insert 는
+   * throw 하지 않아 "돈은 나갔는데 대기열도 알림도 없는" 경로였다. 돈 경로 파일에 한해 잠근다.
+   */
+  const MONEY = [
+    'app/api/cron/subscription-charge/route.ts',
+    'app/api/cron/refund-retry/route.ts',
+    'app/api/payments/webhook/route.ts',
+    'app/api/payments/confirm/route.ts',
+    'app/api/payments/billing-issue/route.ts',
+    'app/api/orders/[id]/cancel/route.ts',
+    'app/api/subscriptions/create/route.ts',
+  ]
+  const offenders: string[] = []
+  for (const rel of MONEY) {
+    const lines = stripComments(read(join(ROOT, ...rel.split('/')))).split('\n')
+    lines.forEach((l, i) => {
+      if (!/^\s*await \(?\s*(supabase|admin|untyped|ordersAdmin)\b/.test(l)) return
+      const stmt = lines.slice(i, i + 6).join(' ')
+      if (/\.(update|insert|upsert|delete)\(/.test(stmt)) offenders.push(`${rel}:${i + 1} ${l.trim().slice(0, 60)}`)
+    })
+    // Promise.all 로 쓰기를 묶고 결과를 버리는 형태도 같다.
+    lines.forEach((l, i) => {
+      if (/^\s*await Promise\.all\(\[/.test(l) && /\.(update|insert|upsert)\(/.test(lines.slice(i, i + 25).join(' '))) {
+        offenders.push(`${rel}:${i + 1} await Promise.all([...쓰기]) — 결과를 변수로 받아 error 를 볼 것`)
+      }
+    })
+  }
+  assert.deepEqual(offenders, [], `결과를 버리는 돈 경로 쓰기:\n${offenders.join('\n')}`)
+})

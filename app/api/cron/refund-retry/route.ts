@@ -346,9 +346,15 @@ async function settleRefunded(
     })
   }
 
-  // 마지막에 큐를 닫는다.
-  await admin
+  // 마지막에 큐를 닫는다. 못 닫으면 다음 실행이 이미 끝난 환불을 또 시도한다 — 알린다(2026-09-24).
+  const { error: closeErr } = await admin
     .from('payment_refund_queue')
     .update({ status: 'succeeded', attempts, last_error: lastError })
     .eq('id', row.id)
+  if (closeErr) {
+    captureBusinessEvent('error', 'refund.retry.queue_close_failed', {
+      queueId: row.id,
+      dbError: closeErr.message,
+    })
+  }
 }

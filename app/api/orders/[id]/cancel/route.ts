@@ -326,13 +326,19 @@ export async function POST(
     line_total: number
   }>
   if (itemsArr.length > 0) {
-    await admin
+    const { error: itemsCancelErr } = await admin
       .from('order_items')
       .update({ cancelled_at: nowIso })
       .in(
         'id',
         itemsArr.map((it) => it.id),
       )
+    if (itemsCancelErr) {
+      captureBusinessEvent('error', 'order.cancel.items_cancel_write_failed', {
+        orderId: order.id,
+        dbError: itemsCancelErr.message,
+      })
+    }
     // refunded_amount = line_total 일괄 업데이트
     /**
      * ★재고 복원은 **예약이 있었던 주문만** (2026-08-08 동시성 감사).
@@ -347,10 +353,17 @@ export async function POST(
     const reservedStock =
       (order as { subscription_id?: string | null }).subscription_id == null
     for (const it of itemsArr) {
-      await admin
+      const { error: itemRefundErr } = await admin
         .from('order_items')
         .update({ refunded_amount: it.line_total })
         .eq('id', it.id)
+      if (itemRefundErr) {
+        captureBusinessEvent('error', 'order.cancel.item_refund_write_failed', {
+          orderId: order.id,
+          itemId: it.id,
+          dbError: itemRefundErr.message,
+        })
+      }
       if (!reservedStock) continue
       // stock 복원
       await admin.rpc('restore_stock', {
@@ -361,7 +374,8 @@ export async function POST(
   }
   // 환불 audit row — paid 상태였던 주문만 (pending 취소는 환불 0).
   if (refundAmount > 0) {
-    await admin.from('refunds').insert({
+    // 돈은 이미 돌려줬다 — 기록이 빠지면 어드민 환불 화면·원장에서 사라진다. 알린다(2026-09-24).
+    const { error: refundRowErr } = await admin.from('refunds').insert({
       order_id: order.id,
       user_id: user.id,
       amount: refundAmount,
@@ -371,6 +385,13 @@ export async function POST(
       order_item_ids: null, // 전체 취소
       is_partial: false,
     })
+    if (refundRowErr) {
+      captureBusinessEvent('error', 'order.cancel.refund_row_failed', {
+        orderId: order.id,
+        amount: refundAmount,
+        dbError: refundRowErr.message,
+      })
+    }
   }
 
   // 3~5) 포인트 환급/회수 제거 (2026-07-16 포인트 전면 폐기).

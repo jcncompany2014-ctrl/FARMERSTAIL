@@ -606,7 +606,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     //   둘을 합쳐 두면 DB 가 잠깐 흔들린 것뿐인데 고객은 "배송지를 등록해
     //   주세요" 를 읽고, 사장님 경보도 주소 문제로 뜬다. 고칠 곳을 못 찾는다.
     if (ship === 'lookup-failed') {
-      await supabase
+      const { error: markErr } = await supabase
         .from('subscription_charges')
         .update({
           status: 'failed',
@@ -615,6 +615,14 @@ async function runSubscriptionCharge(): Promise<Response> {
             '일시적인 오류로 이번 결제를 진행하지 못했어요. 곧 다시 시도할게요.',
         })
         .eq('id', chargeRow!.id)
+      // 청구 행을 failed 로 못 바꾸면 pending 으로 남아 다음 실행·브리핑이 틀린다 — 알린다(2026-09-24).
+      if (markErr) {
+        captureBusinessEvent('error', 'subscription.charge.mark_failed_write_failed', {
+          subscriptionId: sub.id,
+          code: 'ADDRESS_LOOKUP_FAILED',
+          dbError: markErr.message,
+        })
+      }
       // error 로 올린다 — 고객 잘못이 아니라 우리 쪽 장애이고, 재시도 대상이다.
       captureBusinessEvent('error', 'subscription.address_lookup_failed', {
         subscriptionId: sub.id,
@@ -624,7 +632,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       continue
     }
     if (!ship) {
-      await supabase
+      const { error: markErr } = await supabase
         .from('subscription_charges')
         .update({
           status: 'failed',
@@ -633,6 +641,14 @@ async function runSubscriptionCharge(): Promise<Response> {
             '배송지가 등록되지 않아 결제를 진행할 수 없어요. 마이페이지에서 기본 배송지를 추가해 주세요.',
         })
         .eq('id', chargeRow!.id)
+      // 청구 행을 failed 로 못 바꾸면 pending 으로 남아 다음 실행·브리핑이 틀린다 — 알린다(2026-09-24).
+      if (markErr) {
+        captureBusinessEvent('error', 'subscription.charge.mark_failed_write_failed', {
+          subscriptionId: sub.id,
+          code: 'NO_SHIPPING_ADDRESS',
+          dbError: markErr.message,
+        })
+      }
       // 운영자 알림 — 정기구독이 무한 정지되는 것을 막기 위해.
       captureBusinessEvent('warning', 'subscription.no_shipping_address', {
         subscriptionId: sub.id,
@@ -702,7 +718,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       .single()
 
     if (orderErr || !orderRow) {
-      await supabase
+      const { error: markErr } = await supabase
         .from('subscription_charges')
         .update({
           status: 'failed',
@@ -711,6 +727,14 @@ async function runSubscriptionCharge(): Promise<Response> {
           completed_at: new Date().toISOString(),
         })
         .eq('id', chargeRow!.id)
+      // 청구 행을 failed 로 못 바꾸면 pending 으로 남아 다음 실행·브리핑이 틀린다 — 알린다(2026-09-24).
+      if (markErr) {
+        captureBusinessEvent('error', 'subscription.charge.mark_failed_write_failed', {
+          subscriptionId: sub.id,
+          code: 'ORDER_INSERT_FAILED',
+          dbError: markErr.message,
+        })
+      }
       failed += 1
       continue
     }
@@ -1144,7 +1168,7 @@ async function runSubscriptionCharge(): Promise<Response> {
         } else {
           // 즉시 환불 실패 → payment_status='paid' 로 두고(위에서 큐 적재),
           //   refund-retry 크론이 이어받아 settleRefunded 로 정합화한다.
-          await supabase
+          const { error: paidErr } = await supabase
             .from('orders')
             .update({
               payment_status: 'paid',
@@ -1152,6 +1176,14 @@ async function runSubscriptionCharge(): Promise<Response> {
               paid_at: successIso,
             })
             .eq('id', orderRow.id)
+          // 돈은 나갔는데 주문이 pending 으로 남으면 환불 재시도·원장이 어긋난다 — 알린다(2026-09-24).
+          if (paidErr) {
+            captureBusinessEvent('error', 'subscription.charge.paid_write_failed', {
+              subscriptionId: sub.id,
+              orderId: orderRow.id,
+              dbError: paidErr.message,
+            })
+          }
         }
         skipped += 1
         continue
@@ -1349,11 +1381,11 @@ async function runSubscriptionCharge(): Promise<Response> {
       const untyped = supabase as unknown as {
         from: (t: string) => {
           update: (r: Record<string, unknown>) => {
-            eq: (c: string, v: string) => Promise<unknown>
+            eq: (c: string, v: string) => Promise<{ error: { message: string } | null }>
           }
         }
       }
-      await Promise.all([
+      const failureWrites = await Promise.all([
         untyped
           .from('orders')
           .update({
@@ -1374,6 +1406,18 @@ async function runSubscriptionCharge(): Promise<Response> {
           .eq('id', chargeRow!.id),
         untyped.from('subscriptions').update(subUpdate).eq('id', sub.id),
       ])
+      // ★결과를 본다(2026-09-24 점검). 구독 행 갱신이 실패하면 재시도 일정·정지·카드 재등록 표시·
+      //   멱등키 앵커가 저장되지 않아 매일 같은 실패가 반복되는데, 크론은 declined 로 세서 초록이었다.
+      const failedTables = (['orders', 'subscription_charges', 'subscriptions'] as const).filter(
+        (_, i) => failureWrites[i]?.error,
+      )
+      if (failedTables.length > 0) {
+        captureBusinessEvent('error', 'subscription.charge.failure_write_failed', {
+          subscriptionId: sub.id,
+          tables: failedTables.join(','),
+          dbError: failureWrites.find((w) => w?.error)?.error?.message ?? 'unknown',
+        })
+      }
 
       // 매출 영향 이벤트 — Sentry breadcrumb 분류 가능하게 errorClass 같이 기록.
       captureBusinessEvent(

@@ -353,8 +353,10 @@ export async function POST(req: Request) {
           const admin = createAdminClient()
           // payment_refund_queue 는 migration 20260516000003 에서 추가됨.
           // types.ts 재생성 전이라 cast — 다음 generate 후 cast 제거.
+          // ★insert 는 throw 하지 않고 { error } 를 돌려준다 — 예전엔 아래 catch 가 절대 안 걸려,
+          //   돈은 나갔는데 환불 대기열도 비고 알림도 없는 경로였다(2026-09-24, AGENTS 규칙1).
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (admin.from('payment_refund_queue' as any) as any).insert({
+          const { error: queueErr } = await (admin.from('payment_refund_queue' as any) as any).insert({
             order_id: order.id,
             payment_key: paymentKey,
             amount: amount,
@@ -362,8 +364,14 @@ export async function POST(req: Request) {
             attempts: 1,
             last_error: cancelResult.error.message,
           })
-        } catch {
-          /* queue 도 실패하면 Sentry 만 — 운영자 수동 처리 */
+          if (queueErr) throw new Error(queueErr.message)
+        } catch (e) {
+          // 대기열도 실패 — 운영자가 토스 콘솔에서 수동 환불해야 한다. 반드시 알린다.
+          captureBusinessEvent('error', 'order.confirm.refund_queue_failed', {
+            orderId: order.id,
+            amount,
+            error: e instanceof Error ? e.message.slice(0, 200) : 'unknown',
+          })
         }
       }
     }

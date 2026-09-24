@@ -393,13 +393,20 @@ export async function POST(req: Request) {
     .insert(subscriptionItemRows(sub.id, billable))
   if (itemErr) {
     // 구독만 남고 품목이 비면 발송할 것을 모른다 → 즉시 취소(옛 클라이언트와 같은 처리).
-    await admin
+    const { error: cancelSubErr } = await admin
       .from('subscriptions')
       .update({
         status: 'cancelled',
         last_failed_charge_reason: 'item-insert-failed',
       })
       .eq('id', sub.id)
+    // 취소마저 실패하면 품목 없는 active 구독이 남아 청구될 수 있다 — 따로 알린다.
+    if (cancelSubErr) {
+      captureBusinessEvent('error', 'subscription.create.orphan_cancel_failed', {
+        subscriptionId: sub.id,
+        dbError: cancelSubErr.message,
+      })
+    }
     captureBusinessEvent('error', 'subscription.create.items_failed', {
       userId: user.id,
       subscriptionId: sub.id,
