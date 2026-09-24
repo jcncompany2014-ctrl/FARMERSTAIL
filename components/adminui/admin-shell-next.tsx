@@ -45,6 +45,7 @@ import {
   Lightbulb,
   Gauge,
   ArrowLeft,
+  ListChecks,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -96,6 +97,7 @@ const NAV_GROUPS = [
     label: '고객',
     items: [
       { href: '/admin/users', label: '고객', icon: Users },
+      { href: '/admin/surveys', label: '설문 기록', icon: ListChecks },
       { href: '/admin/cs-inbox', label: 'CS 인박스', icon: Inbox },
       { href: '/admin/push-campaigns', label: '푸시 캠페인', icon: BellRing },
       { href: '/admin/push-stats', label: '푸시 지표', icon: BarChart3 },

@@ -22,6 +22,7 @@ import {
   Brain,
   FlaskConical,
   type LucideIcon,
+  ListChecks,
 } from 'lucide-react'
 
 /**
@@ -79,6 +80,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/personalization/picking-list', icon: ChefHat, label: '박스 패킹' },
       { href: '/admin/personalization', icon: ClipboardCheck, label: '레시피 승인' },
       { href: '/admin/users', icon: Users, label: '고객' },
+      { href: '/admin/surveys', icon: ListChecks, label: '설문 기록' },
       { href: '/admin/refunds', icon: Undo2, label: '환불 관리' },
     ],
   },

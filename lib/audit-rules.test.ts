@@ -3861,3 +3861,29 @@ test('규칙88: 결제 퍼널(/plan·/order)은 하단 탭을 숨기고, 하단 
     assert.ok(appOnly.includes(p), `proxy APP_ONLY_PREFIXES 에 ${p} 가 없다 — (main) 앱 화면이 웹에 새어 나온다`)
   }
 })
+
+test('규칙89: 어드민 "설문 기록"(/admin/surveys) — 두 내비에 등록, 목록·상세 페이지 존재, 모든 조회가 error 를 꺼낸다', () => {
+  /**
+   * # 왜 (2026-09-24 사장님)
+   * 고객이 "이게 맞는지 모르겠다"며 분석 캡처를 보냈는데 어드민엔 그 고객이 설문에 뭐라고
+   * 답했는지 볼 화면이 없었다(DB 를 직접 열어야 했다). 이 화면은 캡처 대응·체험단 운영의
+   * 기본 창이라, 내비에서 빠지거나 조회 실패를 "설문 없음"으로 위장하면 다시 눈먼 상태가 된다.
+   */
+  const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
+  const nav = stripComments(read(join(ROOT, 'components', 'admin', 'AdminNav.tsx')))
+  assert.match(shell, /href:\s*'\/admin\/surveys'/, '데스크톱 어드민 내비에 설문 기록이 없다')
+  assert.match(nav, /href:\s*'\/admin\/surveys'/, '모바일 어드민 내비에 설문 기록이 없다')
+  for (const rel of ['app/admin/surveys/page.tsx', 'app/admin/surveys/[id]/page.tsx', 'app/admin/surveys/_data.ts', 'lib/survey/labels.ts']) {
+    assert.ok(existsSync(join(ROOT, ...rel.split('/'))), `${rel} 가 없다`)
+  }
+  const data = stripComments(read(join(ROOT, 'app', 'admin', 'surveys', '_data.ts')))
+  // 규칙1: `{ data } = await` 처럼 error 를 버리는 조회가 없어야 한다.
+  assert.doesNotMatch(data, /const \{ data \} = await/, '설문 기록 조회가 error 를 버린다 — 실패가 "설문 없음"으로 위장된다')
+  assert.match(data, /if \(res\.error\) return \{ ok: false/, '보조 조회(강아지·보호자·분석·처방·구독) 실패를 화면에 알리지 않는다')
+  const list = stripComments(read(join(ROOT, 'app', 'admin', 'surveys', 'page.tsx')))
+  assert.match(list, /isAdmin\(/, '설문 기록 목록이 관리자 판정 없이 열린다')
+  assert.match(list, /describeBox\(/, '목록에 추천 박스가 빠졌다 — 사장님 요구("추천 박스까지")')
+  const detail = stripComments(read(join(ROOT, 'app', 'admin', 'surveys', '[id]', 'page.tsx')))
+  assert.match(detail, /isAdmin\(/, '설문 상세가 관리자 판정 없이 열린다')
+  assert.match(detail, /describeSurvey\(/, '상세에 답변 한글 변환이 빠졌다')
+})
