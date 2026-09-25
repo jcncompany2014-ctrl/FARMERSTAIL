@@ -285,3 +285,64 @@ export function renderSubscriptionChargeFailed(input: {
 
   return { subject, html }
 }
+
+/**
+ * 체험단 가격 전환 예고 — 구간 마지막 체험가 결제 직후 발송.
+ *
+ * 전상법 2025-02 개정(정기결제 대금 증액 시 사전 동의·고지)의 고지 채널.
+ * 푸시 한 통뿐이던 것을 메일로 이중화(2026-09-25 4차 점검) — 웹 가입자·OS
+ * 알림 꺼짐이면 푸시 도달이 0건이라 고지가 통째로 증발했다.
+ * 금액은 resolveAutoDiscount 가 돌려준 다음 결제 금액만 쓴다(화면·청구와
+ * 같은 함수 = 같은 숫자, TRIAL_PROGRAM v2 불변식).
+ *
+ * # 멱등
+ * idempotencyKey = `trial-notice:{userId}:{nextPhase}` — 구간 전환은 체험당
+ * 한 번뿐이라 (사용자, 구간)으로 충분하다. 크론 재시도에도 1통.
+ */
+export function renderTrialPriceChange(input: {
+  recipientName: string
+  /** 'half' = 100원 구간 종료(다음 박스=반값) · 'full' = 반값 구간 종료(다음 박스=정상가). */
+  nextPhase: 'half' | 'full'
+  /** 다음 결제(=발송)일 'YYYY-MM-DD'. */
+  nextChargeDate: string
+  /** 다음 결제 금액(원) — resolveAutoDiscount.chargeAmount. */
+  nextAmount: number
+}): { subject: string; html: string } {
+  const dateLabel = formatKoDate(input.nextChargeDate)
+  const won = `${input.nextAmount.toLocaleString()}원`
+  const heading =
+    input.nextPhase === 'half' ? '체험 기간이 끝났어요' : '체험 혜택이 모두 끝났어요'
+  const subject = `[파머스테일] 다음 박스부터 ${won}으로 결제돼요`
+  const lead =
+    input.nextPhase === 'half'
+      ? `${withHonorific(input.recipientName)}, 체험 기간의 100원 박스가 모두 끝났어요. 다음 박스부터는 반값 혜택가로 이어져요.`
+      : `${withHonorific(input.recipientName)}, 준비해 드린 체험 혜택이 모두 끝났어요. 다음 박스부터는 원래 가격으로 이어져요.`
+
+  const body = `
+    <p style="margin:0 0 14px 0;">${escape(lead)}</p>
+    ${block.callout(
+      'terracotta',
+      `<strong>${escape(dateLabel)} 아침에 ${won}이 결제돼요</strong>` +
+        `<br/>등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
+    )}
+    <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
+      금액·구성 확인과 잠시 멈춤·해지는
+      <a href="${SITE_URL}/account/subscriptions" style="color:#7A7A7A;">정기배송 관리</a>
+      에서 가능해요. 궁금한 점은 이 메일에 답장 주세요.
+    </p>
+  `
+
+  const html = renderLayout({
+    kicker: 'Subscription · 정기배송',
+    heading,
+    icon: '🐾',
+    preview: `${dateLabel}부터 ${won}`,
+    body,
+    cta: {
+      label: '정기배송 관리하기',
+      href: `${SITE_URL}/account/subscriptions`,
+    },
+  })
+
+  return { subject, html }
+}

@@ -27,6 +27,7 @@ import {
 import {
   renderSubscriptionReminder,
   renderSubscriptionChargeFailed,
+  renderTrialPriceChange,
   type SubscriptionReminderItem,
 } from './templates/subscription.ts'
 import {
@@ -366,6 +367,39 @@ export async function notifySubscriptionChargeFailed(input: {
     html,
     tag: 'subscription-charge-failed',
     idempotencyKey: `sub-charge-failed:${input.subscriptionId}:${input.scheduledFor}`,
+  })
+}
+
+/**
+ * 체험단 가격 전환 예고 메일. 청구 크론이 구간 마지막 체험가 결제 직후 호출.
+ * 푸시와 이중화 — 어느 한 채널이라도 도달하면 고지 성립(2026-09-25 4차 점검).
+ */
+export async function notifyTrialPriceChange(
+  supabase: AnySupabase,
+  input: {
+    userId: string
+    nextPhase: 'half' | 'full'
+    /** 다음 결제(=발송)일 'YYYY-MM-DD'. */
+    nextChargeDate: string
+    nextAmount: number
+  },
+) {
+  const recipient = await resolveRecipient(supabase, input.userId, null)
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
+  const { subject, html } = renderTrialPriceChange({
+    recipientName: recipient.name,
+    nextPhase: input.nextPhase,
+    nextChargeDate: input.nextChargeDate,
+    nextAmount: input.nextAmount,
+  })
+  return sendEmail({
+    to: recipient.email,
+    subject,
+    html,
+    tag: 'trial-price-change',
+    idempotencyKey: `trial-notice:${input.userId}:${input.nextPhase}`,
   })
 }
 

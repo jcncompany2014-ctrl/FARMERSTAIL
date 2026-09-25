@@ -14,7 +14,7 @@ import {
   isOutcomeUnknownCode,
   MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
-import { notifySubscriptionChargeFailed, notifyOrderPlaced } from '@/lib/email'
+import { notifySubscriptionChargeFailed, notifyOrderPlaced, notifyTrialPriceChange } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { traceBusiness, captureBusinessEvent } from '@/lib/sentry/trace'
 import { trackCron } from '@/lib/cron-tracking'
@@ -1020,25 +1020,61 @@ async function runSubscriptionCharge(): Promise<Response> {
             })
           } else if (before - 1 === 0) {
             // 이 구간 마지막 결제 — 다음 박스(2주 뒤)부터 가격이 바뀐다.
-            // 2주 전 예고라 "7일 전 고지"보다 이르고, 거래 통지이므로 nudge 아님.
-            const body =
-              discountReason === 'trial_cheap'
-                ? '체험 기간이 끝나 다음 박스부터는 반값으로 결제돼요. 결제 전에 앱에서 금액을 확인할 수 있어요.'
-                : '체험 혜택이 모두 끝나 다음 박스부터는 정상가로 결제돼요. 언제든 정기배송 탭에서 조정할 수 있어요.'
-            // ★예외를 삼킨다(2026-09-24 점검): 이 지점은 **토스가 이미 돈을 가져간 뒤**다. 푸시가
-            //   던지면(예: VAPID 키 형식 오류) 아래 주문 paid·구독 갱신·원장 기록이 전부 건너뛰어져,
+            // 전상법 2025-02 개정(정기결제 대금 증액 사전 동의·고지)의 고지 지점:
+            // 가입 시 3단 가격표 전체 동의(D4) 위에 2주 전 개별 고지를 얹는다.
+            // 푸시 한 통이던 것을 메일과 이중화(2026-09-25 4차 점검) — 웹 가입자·
+            // OS 알림 꺼짐이면 푸시 도달이 0건인데 sent 를 안 봐서 고지가 증발했다.
+            // ★예외를 삼킨다(2026-09-24 점검): 이 지점은 **토스가 이미 돈을 가져간 뒤**다.
+            //   여기서 던지면 아래 주문 paid·구독 갱신·원장 기록이 전부 건너뛰어져,
             //   청구 행이 pending 으로 남고 다음 날 같은 키로 재청구·재차감이 반복된다.
-            await pushToUser(sub.user_id, {
-              title: '다음 박스 가격 안내',
-              body,
-              url: '/mypage/subscriptions',
-            }).catch((e: unknown) => {
-              captureBusinessEvent('error', 'subscription.charge.trial_notice_push_failed', {
+            try {
+              const nextPhase = discountReason === 'trial_cheap' ? ('half' as const) : ('full' as const)
+              // 차감 직후라 resolveAutoDiscount 가 **다음 구간** 가격을 그대로 돌려준다
+              // (조회 전용 — pending_promotion_rate 는 rate 조회일 뿐 claim 이 아니다).
+              // 화면·청구와 같은 함수 = 같은 숫자(TRIAL_PROGRAM v2 불변식).
+              const nextPricing = await resolveAutoDiscount({
+                userId: sub.user_id,
+                subtotal: sub.total_amount,
+              })
+              const nextChargeDate = nextDeliveryDate(sub.next_delivery_date, today)
+              const won = `${nextPricing.chargeAmount.toLocaleString()}원`
+              const [mm, dd] = nextChargeDate.split('-').slice(1)
+              const dateLabel = `${Number(mm)}월 ${Number(dd)}일`
+              const body =
+                nextPhase === 'half'
+                  ? `체험 기간의 100원 박스가 끝났어요. 다음 박스(${dateLabel})부터는 반값 혜택가 ${won}으로 결제돼요. 결제 전에 메일로 다시 안내드려요.`
+                  : `체험 혜택이 모두 끝났어요. 다음 박스(${dateLabel})부터는 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
+              const pushRes = await pushToUser(
+                sub.user_id,
+                { title: '다음 박스 가격 안내', body, url: '/mypage/subscriptions' },
+                { category: 'order' },
+              ).catch(() => ({ ok: false as const, sent: 0, dead: 0 }))
+              const mailRes = await notifyTrialPriceChange(supabase, {
+                userId: sub.user_id,
+                nextPhase,
+                nextChargeDate,
+                nextAmount: nextPricing.chargeAmount,
+              }).catch(() => ({ ok: false as const }))
+              // 한 채널이라도 나갔으면 고지 성립. 둘 다 0 이면 사람이 알아야 한다 —
+              // 가격이 바뀌는데 아무도 모르는 채 다음 청구가 나가는 것이 최악.
+              if (pushRes.sent === 0 && mailRes.ok !== true) {
+                captureBusinessEvent('error', 'subscription.charge.trial_notice_unreached', {
+                  subscriptionId: sub.id,
+                  userId: sub.user_id,
+                  nextPhase,
+                  pushReason: 'reason' in pushRes ? String(pushRes.reason ?? '') : '',
+                  mailReason:
+                    'reason' in mailRes ? String((mailRes as { reason?: unknown }).reason ?? '') : '',
+                  note: '체험 가격 전환 예고가 푸시·메일 어느 채널로도 도달하지 못함 — 수동 안내 필요.',
+                })
+              }
+            } catch (e: unknown) {
+              captureBusinessEvent('error', 'subscription.charge.trial_notice_failed', {
                 subscriptionId: sub.id,
                 userId: sub.user_id,
                 error: e instanceof Error ? e.message.slice(0, 200) : 'unknown',
               })
-            })
+            }
           }
         }
       }

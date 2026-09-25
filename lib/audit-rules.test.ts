@@ -1349,7 +1349,7 @@ test('규칙 30 — 앱 전용 라우트는 proxy matcher 에도 들어 있어�
 })
 
 
-test('규칙 31 — 고객 문구에 "언제든 해지/일시정지" 과약속 금지', () => {
+test('규칙 31 — 고객 문구에 "언제든 해지/일시정지/조정" 과약속 금지', () => {
   /**
    * 사장님 2026-07-23 지시: "언제든 (해지/일시정지/조정) 할 수 있어요" 는 쓰지
    * 않는다. 마감을 명시하라("다음 결제 전까지"처럼). 사장님 말: "예전에 안
@@ -1373,7 +1373,10 @@ test('규칙 31 — 고객 문구에 "언제든 해지/일시정지" 과약속 �
   //   초록인데 문구는 남아 있는 상태. 사이에 말이 끼어도 잡도록 창을 준다.
   //   줄바꿈도 넘어야 한다 — JSX 는 문장을 아무 데서나 접는다. 실제로
   //   "언제든지 정기배송을\n 해지할 수 있습니다"(환불 정책)가 \n 때문에 빠져나갔다.
-  const BANNED_RE = /언제든지?[\s\S]{0,28}?(해지|일시정지)/
+  // ★'조정'도 잡는다(2026-09-25 4차 점검). 사장님 지시 원문이 "해지/일시정지/조정"
+  //   인데 정규식엔 앞 둘만 있어서, 체험단 전환 예고 푸시의 "언제든 정기배송 탭에서
+  //   조정할 수 있어요"가 초록인 채로 나갔다.
+  const BANNED_RE = /언제든지?[\s\S]{0,28}?(해지|일시정지|조정)/
   // 뉴스레터·수신동의의 "언제든 구독 해지"는 **정당하다** — 광고성 정보 수신거부는
   // 실제로 언제든 가능해야 하고(정보통신망법), 여기서 막을 대상이 아니다.
   // 금지 대상은 **정기배송(제품 구독)** 쪽 과약속이다.
@@ -4419,4 +4422,35 @@ test('규칙108: iOS 앱 — 카카오가 있는 가입 화면엔 애플도 · �
   // ④ iOS 는 사진첩 쓰기 권한 문구가 없으면 저장 순간 앱이 종료된다.
   const plist = read(join(ROOT, 'ios', 'App', 'App', 'Info.plist'))
   assert.ok(plist.includes('<key>NSPhotoLibraryAddUsageDescription</key>'), 'Info.plist 에 NSPhotoLibraryAddUsageDescription 이 없다')
+})
+
+test('규칙 100 — 체험단 가격 전환 예고는 푸시+메일 이중화·금액 명시', () => {
+  /**
+   * 2026-09-25 4차 점검: 전환 예고가 푸시 한 통뿐이었다 — 웹 가입자·OS 알림
+   * 꺼짐이면 도달 0건(push_subscriptions 웹푸시 0행 실측)인데 sent 도 안 봤고,
+   * 본문엔 금액 없이 "반값/정상가"라는 말만 있었다(전상법 2025-02 정기결제
+   * 증액 고지 취지 미달). 세 가지를 소스에 박는다:
+   *   (a) 메일 병행(notifyTrialPriceChange) — 멱등키 trial-notice:{user}:{phase}
+   *   (b) 예고 금액은 resolveAutoDiscount 숫자(화면·청구와 같은 함수)
+   *   (c) 두 채널 다 실패하면 businessEvent 로 사람에게 — 조용한 무고지 금지
+   */
+  const src = stripComments(
+    read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')),
+  )
+  assert.match(src, /notifyTrialPriceChange\(/, '전환 예고 메일 병행이 사라졌다')
+  assert.match(
+    src,
+    /trial_notice_unreached/,
+    '푸시·메일 둘 다 실패 시 businessEvent 감시가 사라졌다',
+  )
+  assert.match(
+    src,
+    /'다음 박스 가격 안내'[\s\S]{0,600}category: 'order'/,
+    "전환 예고 푸시에 category: 'order' 가 없다 — 거래 통지는 push_preferences 의 order 플래그를 태운다",
+  )
+  assert.match(
+    src,
+    /nextPricing\.chargeAmount\.toLocaleString/,
+    '예고 본문의 금액(resolveAutoDiscount 숫자)이 사라졌다 — "반값/정상가" 말만으로는 고지가 아니다',
+  )
 })
