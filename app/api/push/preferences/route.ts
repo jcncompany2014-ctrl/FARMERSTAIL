@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { notifyConsentResult } from '@/lib/email'
 import { createClient } from '@/lib/supabase/server'
 import { MARKETING_POLICY_VERSION } from '@/lib/consent'
 import { dbError } from '@/lib/api/errors'
@@ -154,6 +155,17 @@ export async function PATCH(req: Request) {
     // 대신 조용히 넘기지 않는다 — 증적이 빠진 사실 자체가 문제다.
     if (consentErr) {
       console.error('[push/preferences] 광고 수신 동의 증적 기록 실패:', consentErr.message)
+    }
+    // ★처리결과 통지 (정보통신망법 §50⑦, 2026-09-25) — 앱 푸시 광고를 켜도 꺼도 14일 안에
+    //   알려야 한다. 예전엔 기록만 남기고 고객에게는 아무것도 안 보냈다.
+    if (user.email) {
+      await notifyConsentResult({
+        email: user.email,
+        channels: ['push'],
+        granted: body.notify_marketing,
+      }).catch(() => {
+        /* 통지 실패가 설정 저장을 되돌리지 않는다 */
+      })
     }
   }
 

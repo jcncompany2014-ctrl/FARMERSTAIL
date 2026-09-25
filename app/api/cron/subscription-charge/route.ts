@@ -11,6 +11,7 @@ import {
   shouldAdvanceChargeKey,
   isDefinitiveDecline,
   nextRetryAtAfter,
+  isOutcomeUnknownCode,
   MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed, notifyOrderPlaced } from '@/lib/email'
@@ -20,6 +21,7 @@ import { trackCron } from '@/lib/cron-tracking'
 // 할인 계산은 lib/payments/auto-discount 하나 — 화면 미리보기가 같은 함수를
 // 쓴다(2026-07-30). 크론에만 있던 탓에 화면 금액이 실제 청구액과 달랐다.
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
+import { discountReasonLabel } from '@/lib/commerce/discount-reason'
 import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
 import {
   priceForFormula,
@@ -1306,6 +1308,12 @@ async function runSubscriptionCharge(): Promise<Response> {
           totalAmount: chargeAmount,
           shippingFee: 0, // 배송비는 구독료에 포함(별도 청구 없음)
           paymentMethod: '카드',
+          // 금액 내역 — 품목 합(할인 전)과 결제 금액이 안 맞던 것(2026-09-25).
+          subtotal: trustedSubtotal,
+          discount:
+            discountAmount > 0
+              ? { amount: discountAmount, label: discountReasonLabel(discountReason) }
+              : null,
         }).catch((e) => ({
           ok: false as const,
           skipped: false as const,
@@ -1398,7 +1406,9 @@ async function runSubscriptionCharge(): Promise<Response> {
         failed_charge_count: nextFailedCount,
         last_failed_charge_at: nowIso2,
         last_failed_charge_code: errorCode,
-        last_failed_charge_reason: result.error?.message ?? reasonShort,
+        // ★고객 정기배송 화면이 이 칸을 그대로 보여 준다 — 한국어 요약만(2026-09-25).
+        //   토스·네트워크 원문(영어)은 subscription_charges.error_message 에 남는다.
+        last_failed_charge_reason: reasonShort,
         next_retry_at: nextRetryAt,
       }
       // ★멱등키 앵커는 **돈이 안 나간 게 보장된 실패에서만** 오른다
@@ -1425,7 +1435,8 @@ async function runSubscriptionCharge(): Promise<Response> {
           .update({
             payment_status: 'failed',
             order_status: 'cancelled',
-            cancel_reason: result.error?.message ?? '결제 실패',
+            // 고객 주문 상세에 '사유 · …' 로 보인다 — 원문 대신 한국어 요약(2026-09-25).
+            cancel_reason: `결제 실패 · ${reasonShort}`,
             cancelled_at: nowIso2,
           })
           .eq('id', orderRow!.id),
@@ -1482,18 +1493,26 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 푸시 알림 — order 카테고리 (push_preferences + quiet hours 자동 검사).
       // 이메일과 별개로 push ON 사용자에게도 닿게. permanent / transient /
       // unknown 별로 톤 다르게.
+      // ★결과를 모르는 실패(네트워크·타임아웃)는 "실패"라고 말하지 않는다 (2026-09-25).
+      //   카드가 실제로 긁혔을 수 있고, 다음 날 같은 멱등키로 원결과가 확정된다.
+      const outcomeUnknown =
+        !shouldMarkRenewal && !shouldPause && isOutcomeUnknownCode(errorCode)
       const pushTitle = shouldMarkRenewal
         ? '카드 정보를 다시 등록해 주세요 💳'
         : shouldPause
           ? '정기배송이 일시중단됐어요'
-          : errorClass === 'transient'
-            ? '결제가 잠시 실패 — 내일 다시 시도할게요'
-            : '정기배송 결제 실패'
+          : outcomeUnknown
+            ? '결제 결과를 확인하고 있어요'
+            : errorClass === 'transient'
+              ? '결제가 잠시 실패 — 내일 다시 시도할게요'
+              : '정기배송 결제 실패'
       const pushBody = shouldMarkRenewal
         ? `${reasonShort} · 마이페이지에서 새 카드 등록`
         : shouldPause
           ? '연속 3회 실패. 마이페이지에서 카드 확인'
-          : reasonShort
+          : outcomeUnknown
+            ? '카드사 응답이 늦어요. 내일 아침 다시 확인하고, 두 번 결제되지는 않아요.'
+            : reasonShort
       // R83-6: 이전엔 `.catch(() => {})` + `void (async () => ...)` 로 fire-and-forget.
       // Vercel function 은 handler return 시 background promise 를 절단하므로 push/email
       // 이 실제로 발송 안 될 가능성 존재. cron 은 사용자 응답 latency 압박 없음 →
@@ -1559,10 +1578,12 @@ async function runSubscriptionCharge(): Promise<Response> {
             amount: chargeAmount,
             attemptCount: nextFailedCount,
             paused: shouldPause,
-            reason: result.error?.message ?? reasonShort,
+            // 고객에겐 한국어 요약만 — 토스·네트워크 원문(영어)은 last_failed_charge_reason 에만 남긴다.
+            reason: reasonShort,
             scheduledFor: today,
             errorClass,
             nextRetryAt,
+            outcomeUnknown,
           })
         }
       } catch {

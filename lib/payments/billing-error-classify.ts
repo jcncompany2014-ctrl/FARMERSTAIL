@@ -50,6 +50,16 @@ export function classifyBillingError(code: string | null | undefined): BillingEr
  * 사용자에게 보여줄 한국어 짧은 사유. cron / 마이페이지 callout 에서 사용.
  * Toss 의 한국어 메시지가 길거나 영어로 올 수도 있어 일관된 톤으로 변환.
  */
+/**
+ * 결과를 **모르는** 실패인가 — 네트워크·타임아웃 (2026-09-25 출시 전 점검 4차).
+ * 카드가 실제로 긁혔을 수도 있다(다음 날 같은 멱등키로 원결제 결과를 돌려받는다).
+ * 고객에게 "결제 실패"라고 말하면 안 된다 — 다음 날 "결제 완료"가 와서 혼란만 생긴다.
+ */
+export function isOutcomeUnknownCode(code: string | null | undefined): boolean {
+  const c = code?.trim().toUpperCase() ?? ''
+  return c.includes('NETWORK') || c.includes('TIMEOUT')
+}
+
 export function describeBillingError(
   code: string | null | undefined,
 ): { short: string; classOf: BillingErrorClass } {

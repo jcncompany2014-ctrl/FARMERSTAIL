@@ -7,6 +7,7 @@ import {
   shouldAdvanceChargeKey,
   RETRY_COOLDOWN_MS,
   nextRetryAtAfter,
+  isOutcomeUnknownCode,
 } from './billing-error-classify.ts'
 
 /**
@@ -292,4 +293,17 @@ describe('chargeKeySuffix — 멱등키 앵커', () => {
     })
   })
 
+})
+
+describe('isOutcomeUnknownCode — 결과를 모르는 실패는 "결제 실패"라고 말하지 않는다 (2026-09-25)', () => {
+  it('네트워크·타임아웃은 결과 불명', () => {
+    for (const c of ['NETWORK_ERROR', 'TIMEOUT', 'PAY_PROCESS_TIMEOUT', 'network_error']) {
+      assert.equal(isOutcomeUnknownCode(c), true, c)
+    }
+  })
+  it('확정 거절·카드 문제는 결과가 분명하다', () => {
+    for (const c of ['INSUFFICIENT_BALANCE', 'EXCEED_MAX_DAILY_PAYMENT_COUNT', 'EXPIRED_CARD', 'REJECT_CARD_COMPANY', null, '']) {
+      assert.equal(isOutcomeUnknownCode(c), false, String(c))
+    }
+  })
 })

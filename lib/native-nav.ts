@@ -146,6 +146,23 @@ export function shouldHandleLaunchUrl(url: string, store: LaunchUrlStore | null 
 }
 
 /**
+ * 실행 중에 `appUrlOpen` 으로 처리한 링크를 '처리함'으로 기록한다 (2026-09-25 출시 전 점검 4차).
+ *
+ * iOS 의 getLaunchUrl 은 콜드 스타트 링크만이 아니라 **마지막으로 앱을 연 URL**
+ * (ApplicationDelegateProxy.lastURL — 앱이 켜진 상태에서 연 링크·유니버설 링크도 덮어씀)을
+ * 돌려준다. 그래서 메일 링크로 앱을 연 뒤 카드 등록 복귀·새로고침 같은 전체 로드가 오면
+ * 그 링크가 다시 적용돼 결제 완료 화면에서 끌려 나갔다. 처리한 링크를 같은 키에 적어 둔다.
+ */
+export function markLaunchUrlHandled(url: string, store: LaunchUrlStore | null | undefined): void {
+  if (!url || !store) return
+  try {
+    store.setItem(LAUNCH_URL_HANDLED_KEY, url)
+  } catch {
+    /* 저장소 불가 — 예전 동작 */
+  }
+}
+
+/**
  * 카카오 채널 링크(`https://pf.kakao.com/_xxxx` 또는 `/_xxxx/chat`) → 카카오톡 앱 딥링크.
  * 해당 없으면 null.
  *

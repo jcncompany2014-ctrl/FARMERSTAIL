@@ -66,8 +66,8 @@ export interface BcsConflict {
   currentBcs: number
 }
 
-/** BCS 점수 → 보호자가 알아듣는 말. */
-function bcsWord(bcs: number): string {
+/** BCS 점수 → 보호자가 알아듣는 말. 고객 메일·화면은 'BCS 6/9' 대신 이걸 쓴다(규칙44). */
+export function bcsWord(bcs: number): string {
   if (bcs <= 3) return '마른 편'
   if (bcs <= 5) return '이상적인 편'
   if (bcs <= 6) return '살짝 통통한 편'

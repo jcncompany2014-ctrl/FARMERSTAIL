@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { notifyUnsubscribeAck } from '@/lib/email'
+import { notifyConsentResult, notifyUnsubscribeAck } from '@/lib/email'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 
@@ -21,9 +21,15 @@ export const dynamic = 'force-dynamic'
  *   - email 은 server 가 user.email 로 직접 조회 — client 가 임의 이메일 못 넘김
  */
 
-const zUnsubAck = z.object({
-  channel: z.enum(['email', 'sms', 'newsletter']),
-})
+// ★동의(granted=true)도 받는다 (2026-09-25 출시 전 점검 4차) — §50⑦ 은 동의·거부 모두
+//   14일 내 처리결과 통지를 요구한다. 예전 호출(channel 하나·거부)은 그대로 동작한다.
+const zUnsubAck = z
+  .object({
+    channel: z.enum(['email', 'sms', 'newsletter', 'push']).optional(),
+    channels: z.array(z.enum(['email', 'sms', 'push'])).min(1).max(3).optional(),
+    granted: z.boolean().optional(),
+  })
+  .refine((v) => Boolean(v.channel || v.channels), { message: 'channel 이 필요해요' })
 
 export async function POST(req: Request) {
   const rl = rateLimit({
@@ -56,10 +62,16 @@ export async function POST(req: Request) {
   // 발송 best-effort. 실패해도 사용자 토글 자체엔 영향 없게 fire-and-forget.
   // 단 응답엔 발송 결과 명시 — 운영 모니터링.
   try {
-    const result = await notifyUnsubscribeAck({
-      email: user.email,
-      channel: parsed.data.channel,
-    })
+    const { channel, channels, granted } = parsed.data
+    // 뉴스레터 거부는 기존 안내 메일을 그대로 쓴다.
+    const result =
+      channel === 'newsletter'
+        ? await notifyUnsubscribeAck({ email: user.email, channel })
+        : await notifyConsentResult({
+            email: user.email,
+            channels: channels ?? [channel as 'email' | 'sms' | 'push'],
+            granted: granted === true,
+          })
     return NextResponse.json({ ok: true, sent: !!result })
   } catch (err) {
     return NextResponse.json({

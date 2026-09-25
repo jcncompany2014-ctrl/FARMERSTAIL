@@ -65,6 +65,9 @@ export const CYCLE_COVER_DAYS = BOXES_PER_CYCLE * DELIVERY_INTERVAL_DAYS
 /** 승인 대기 기간 (일). 지나면 자동으로 이전 비율 유지(= 금액도 유지). */
 export const APPROVAL_WINDOW_DAYS = 5
 
+/** 금액이 바뀌는 제안(동의 모달)의 응답 기한 (일) — 사장님 2026-07-23. approval-timeout 크론과 같은 값. */
+export const PRICE_CHANGE_WINDOW_DAYS = 3
+
 /** 재제안 만기인가 — 이 처방이 적용된 뒤 나간 박스 수로 판정. */
 export function isCycleDue(boxesShipped: number): boolean {
   return boxesShipped >= BOXES_PER_CYCLE

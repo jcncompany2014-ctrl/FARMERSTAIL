@@ -19,12 +19,14 @@ import { petName } from '@/lib/korean'
 import { diffFormulas } from '@/lib/personalization/diff'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { pushToUser } from '@/lib/push'
-import { notifyPersonalizationCycle } from '@/lib/email'
+import { notifyPersonalizationApprovalNeeded, notifyPersonalizationCycle } from '@/lib/email'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { priceForFormula, type BoxProduct } from '@/lib/personalization/boxPricing'
 import {
+  APPROVAL_WINDOW_DAYS,
   CYCLE_COVER_DAYS,
   MIN_DAYS_BEFORE_DUE,
+  PRICE_CHANGE_WINDOW_DAYS,
   isCycleDue,
 } from '@/lib/personalization/cycle'
 import { getAutomationSettings } from '@/lib/automation-settings'
@@ -938,7 +940,9 @@ export async function GET(req: Request) {
       // 메일을 보내지 않는다 — 푸시가 "확인 필요"를 이미 전달.
       // 알레르기 누출 건도 메일 제외 — notifyPersonalizationCycle 은 "다음 박스"
       // 안내 템플릿이라 방금 보낸 "상담이 필요해요" 푸시와 정면으로 모순된다.
-      if (!(requiresApproval && diff.priceChanged) && !shippedAllergenLeak)
+      // ★2026-09-25: 승인이 필요한 제안은 전용 메일로(기한·금액·무응답 시 유지) — 예전엔
+      //   금액 변경은 메일 없음(웹 구독자는 모름), 금액 무변경 승인은 "준비됐어요"(사실과 다름).
+      if (!shippedAllergenLeak)
         await (async () => {
         try {
           const { data: profile, error: profileErr } = await supabase
@@ -952,9 +956,33 @@ export async function GET(req: Request) {
             return
           }
           if (!profile?.email) return
+          // 이름이 비면 ', 안녕하세요.' 가 됐다 — 다른 메일과 같이 '보호자'.
+          const recipientName = profile.name?.trim() || '보호자'
+          if (requiresApproval) {
+            const priceChange = diff.priceChanged && price ? price : null
+            await notifyPersonalizationApprovalNeeded({
+              email: profile.email,
+              recipientName,
+              dogName: dogTyped.name,
+              dogId: cur.dog_id,
+              cycleNumber: next.cycleNumber,
+              recipeLabel: recipeName(next),
+              days: priceChange ? PRICE_CHANGE_WINDOW_DAYS : APPROVAL_WINDOW_DAYS,
+              priceFrom: priceChange?.prevTotal ?? null,
+              priceTo: priceChange?.nextTotal ?? null,
+              forced: diff.forced,
+              // 금액 동의는 웹 정기배송 화면(동의 모달)에서도 된다. 금액 무변경 승인은
+              // 앱 화면뿐이라 앱으로 안내(유니버설 링크가 앱을 연다).
+              ctaPath: priceChange
+                ? '/account/subscriptions'
+                : `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`,
+              ctaLabel: priceChange ? '확인하기' : '앱에서 확인하기',
+            })
+            return
+          }
           await notifyPersonalizationCycle({
             email: profile.email,
-            recipientName: profile.name ?? '',
+            recipientName,
             dogName: dogTyped.name,
             dogId: cur.dog_id,
             cycleNumber: next.cycleNumber,

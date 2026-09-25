@@ -70,9 +70,8 @@ export default async function AdminPushCampaignsPage() {
           <div className="mt-3 p-3 rounded-xl bg-secondary border border-border">
             <p className="text-[11px] text-foreground leading-relaxed">
               ⚠️ 광고성 알림 — 법(정보통신망법 §50④)에 따라 제목 앞에
-              <strong> [광고]</strong> 가 자동으로 붙어요. 알림 설정에서
-              마케팅을 끈 분이나 밤 시간대(22:00~08:00)인 분은 자동으로
-              빠집니다. 한 번에 최대 5,000명까지 보낼 수 있어요.
+              <strong> (광고)</strong> 와 수신거부 안내가 자동으로 붙고, 저녁 9시~오전 8시에는 보낼 수 없어요. 알림 설정에서
+              마케팅을 끈 분은 자동으로 빠집니다. 한 번에 최대 5,000명까지 보낼 수 있어요.
             </p>
           </div>
         </section>

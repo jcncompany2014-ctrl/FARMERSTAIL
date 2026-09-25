@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { LAUNCH_URL_HANDLED_KEY, kakaoChannelAppUrl, nativeApiUrl, nativeTargetPath, shouldHandleLaunchUrl } from './native-nav.ts'
+import { LAUNCH_URL_HANDLED_KEY, kakaoChannelAppUrl, markLaunchUrlHandled, nativeApiUrl, nativeTargetPath, shouldHandleLaunchUrl } from './native-nav.ts'
 
 /**
  * `appUrlOpen` 은 기기의 아무 앱이나 인텐트로 쏠 수 있다 — 이 표가 그
@@ -167,4 +167,21 @@ test('kakaoChannelAppUrl: 카카오 채널 링크만 카카오톡 채팅 딥링�
   for (const h of ['http://pf.kakao.com/_qbJqX/chat', 'https://pf.kakao.com.evil.com/_qbJqX', 'https://accounts.kakao.com/login', 'https://pf.kakao.com/_qbJqX/post/1', 'not a url']) {
     assert.equal(kakaoChannelAppUrl(h), null, h)
   }
+})
+
+test('★iOS: 실행 중 appUrlOpen 으로 처리한 링크는 다음 문서의 getLaunchUrl 에서 다시 적용되지 않는다 (2026-09-25)', () => {
+  const mem = new Map<string, string>()
+  const s = {
+    getItem: (k: string) => mem.get(k) ?? null,
+    setItem: (k: string, v: string) => void mem.set(k, v),
+  }
+  const emailLink = 'https://www.farmerstail.kr/mypage/subscriptions'
+  // 앱이 켜진 상태에서 메일 링크를 눌러 appUrlOpen 으로 처리
+  markLaunchUrlHandled(emailLink, s)
+  // 카드 등록 복귀(전체 로드) — iOS getLaunchUrl 이 같은 링크(lastURL)를 돌려준다
+  assert.equal(shouldHandleLaunchUrl(emailLink, s), false, '다시 끌려가면 안 된다')
+  // 그 뒤 새로 연 다른 링크는 처리된다
+  assert.equal(shouldHandleLaunchUrl('https://www.farmerstail.kr/dashboard', s), true)
+  // 저장소가 없어도 던지지 않는다
+  markLaunchUrlHandled(emailLink, null)
 })

@@ -130,6 +130,21 @@ export async function applySignupProfile(
   }
   if (consentInserts.length > 0) {
     await Promise.allSettled(consentInserts)
+    // ★가입 때 받은 광고 수신 동의도 처리결과를 알린다 (정보통신망법 §50⑦, 2026-09-25).
+    //   예전엔 거부만 알려서 가입 동의 고객은 통지를 한 통도 못 받았다. 한 통에 채널을 묶는다.
+    //   로그인 직후 화면 이동이 있어 keepalive 로 보낸다.
+    const channels = [
+      ...(d.agreeMarketingEmail ? ['email'] : []),
+      ...(d.agreeMarketingSms ? ['sms'] : []),
+    ]
+    void fetch('/api/consent/unsubscribe-ack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channels, granted: true }),
+      keepalive: true,
+    }).catch(() => {
+      /* 통지 실패가 가입을 막지 않는다 */
+    })
   }
 
   return {

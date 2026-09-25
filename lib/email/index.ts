@@ -30,12 +30,18 @@ import {
   type SubscriptionReminderItem,
 } from './templates/subscription.ts'
 import {
+  renderConsentResult,
   renderNewsletterConfirm,
   renderUnsubscribeAck,
+  type ConsentChannel,
 } from './templates/newsletter.ts'
 import { renderNewsletterWelcome } from './templates/newsletter-welcome.ts'
 import { renderNewsletterVol01 } from './templates/newsletter-vol-01.ts'
-import { renderPersonalizationCycle } from './templates/personalization-cycle.ts'
+import {
+  renderPersonalizationApprovalNeeded,
+  renderPersonalizationCycle,
+  renderPersonalizationKeptPrevious,
+} from './templates/personalization-cycle.ts'
 import { renderQuarterlyReport } from './templates/quarterly-report.ts'
 import { paymentMethodLabel } from '../payments/toss.ts'
 
@@ -86,6 +92,9 @@ export async function notifyOrderPlaced(
     totalAmount: number
     shippingFee: number
     paymentMethod: string | null
+    /** 정기결제: 할인 전 금액·할인 — 있으면 금액 내역을 세 줄로(2026-09-25). */
+    subtotal?: number | null
+    discount?: { amount: number; label: string } | null
   },
 ) {
   /**
@@ -112,6 +121,8 @@ export async function notifyOrderPlaced(
     shippingFee: input.shippingFee,
     paymentMethodLabel: paymentMethodLabel(input.paymentMethod),
     items,
+    subtotal: input.subtotal ?? null,
+    discount: input.discount ?? null,
   })
   return sendEmail({
     to: recipient.email,
@@ -138,7 +149,10 @@ export async function notifyVirtualAccountWaiting(
   },
 ) {
   const recipient = await resolveRecipient(supabase, input.userId, input.recipientName)
-  if (!recipient) return
+  // 결과를 돌려준다(2026-09-25) — 예전엔 undefined 라 호출부의 실패 판정이 늘 참이었다.
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
   const items = await loadOrderItems(supabase, input.orderId)
   const { subject, html } = renderVirtualAccountWaiting({
     recipientName: recipient.name,
@@ -151,7 +165,7 @@ export async function notifyVirtualAccountWaiting(
     accountHolder: input.accountHolder,
     dueDate: input.dueDate,
   })
-  await sendEmail({
+  return sendEmail({
     to: recipient.email,
     subject,
     html,
@@ -174,7 +188,10 @@ export async function notifyOrderShipped(
   },
 ) {
   const recipient = await resolveRecipient(supabase, input.userId, input.recipientName)
-  if (!recipient) return
+  // 결과를 돌려준다(2026-09-25) — 예전엔 undefined 라 호출부의 실패 판정이 늘 참이었다.
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
   const items = await loadOrderItems(supabase, input.orderId)
   const { subject, html } = renderOrderShipped({
     recipientName: recipient.name,
@@ -185,7 +202,7 @@ export async function notifyOrderShipped(
     carrier: input.carrier,
     trackingNumber: input.trackingNumber,
   })
-  await sendEmail({
+  return sendEmail({
     to: recipient.email,
     subject,
     html,
@@ -206,7 +223,10 @@ export async function notifyOrderDelivered(
   },
 ) {
   const recipient = await resolveRecipient(supabase, input.userId, input.recipientName)
-  if (!recipient) return
+  // 결과를 돌려준다(2026-09-25) — 예전엔 undefined 라 호출부의 실패 판정이 늘 참이었다.
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
   const items = await loadOrderItems(supabase, input.orderId)
   const { subject, html } = renderOrderDelivered({
     recipientName: recipient.name,
@@ -215,7 +235,7 @@ export async function notifyOrderDelivered(
     totalAmount: input.totalAmount,
     items,
   })
-  await sendEmail({
+  return sendEmail({
     to: recipient.email,
     subject,
     html,
@@ -238,7 +258,10 @@ export async function notifyOrderCancelled(
   },
 ) {
   const recipient = await resolveRecipient(supabase, input.userId, input.recipientName)
-  if (!recipient) return
+  // 결과를 돌려준다(2026-09-25) — 예전엔 undefined 라 호출부의 실패 판정이 늘 참이었다.
+  if (!recipient) {
+    return { ok: false as const, skipped: true as const, reason: 'no_recipient' as const }
+  }
   const items = await loadOrderItems(supabase, input.orderId)
   const { subject, html } = renderOrderCancelled({
     recipientName: recipient.name,
@@ -249,7 +272,7 @@ export async function notifyOrderCancelled(
     reason: input.reason,
     refundAmount: input.refundAmount,
   })
-  await sendEmail({
+  return sendEmail({
     to: recipient.email,
     subject,
     html,
@@ -324,8 +347,10 @@ export async function notifySubscriptionChargeFailed(input: {
   scheduledFor: string // YYYY-MM-DD
   errorClass?: 'permanent' | 'transient' | 'unknown'
   nextRetryAt?: string | null
+  outcomeUnknown?: boolean
 }) {
   const { subject, html } = renderSubscriptionChargeFailed({
+    outcomeUnknown: input.outcomeUnknown ?? false,
     recipientName: input.name ?? '보호자',
     productLabel: input.productLabel,
     amount: input.amount,
@@ -549,6 +574,76 @@ export async function notifyUnsubscribeAck(input: {
     tag: 'unsubscribe-ack',
     // 같은 (이메일, 채널) 페어로 24h 내 중복 발송 방지.
     idempotencyKey: `unsubscribe-ack:${input.email}:${input.channel}`,
+  })
+}
+
+/**
+ * 광고성 정보 수신 동의·거부 처리결과 통지 (정보통신망법 §50⑦, 2026-09-25).
+ * 동의도 거부도 14일 안에 알려야 한다 — 예전엔 거부만 보냈다.
+ */
+export async function notifyConsentResult(input: {
+  email: string
+  channels: ConsentChannel[]
+  granted: boolean
+  at?: string
+}) {
+  const at = input.at ?? new Date().toISOString()
+  const { subject, html } = renderConsentResult({
+    channels: input.channels,
+    granted: input.granted,
+    at,
+  })
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'consent-result',
+    // 같은 (이메일·채널·결과) 를 같은 날 두 번 보내지 않는다 — 토글을 여러 번 눌러도 1통.
+    idempotencyKey: `consent-result:${input.email}:${[...input.channels].sort().join('+')}:${input.granted ? 'on' : 'off'}:${at.slice(0, 10)}`,
+  })
+}
+
+/** 승인·동의가 필요한 다음 박스 제안 메일 (2026-09-25). */
+export async function notifyPersonalizationApprovalNeeded(input: {
+  email: string
+  recipientName: string
+  dogName: string
+  dogId: string
+  cycleNumber: number
+  recipeLabel: string
+  days: number
+  priceFrom: number | null
+  priceTo: number | null
+  forced: boolean
+  ctaPath: string
+  ctaLabel: string
+}) {
+  const { subject, html } = renderPersonalizationApprovalNeeded(input)
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'personalization-approval',
+    idempotencyKey: `personalization-approval:${input.dogId}:${input.cycleNumber}`,
+  })
+}
+
+/** 응답 기한 경과 → 지금 레시피 유지 결과 메일 (2026-09-25). */
+export async function notifyPersonalizationKeptPrevious(input: {
+  email: string
+  recipientName: string
+  dogName: string
+  dogId: string
+  cycleNumber: number
+  days: number
+}) {
+  const { subject, html } = renderPersonalizationKeptPrevious(input)
+  return sendEmail({
+    to: input.email,
+    subject,
+    html,
+    tag: 'personalization-kept',
+    idempotencyKey: `personalization-kept:${input.dogId}:${input.cycleNumber}`,
   })
 }
 

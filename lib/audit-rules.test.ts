@@ -4282,3 +4282,141 @@ test('규칙103: DB 함수 — 수의사 공유는 익명으로 읽고 dogs 에 
     .filter((f) => /payment_status\s*=\s*'paid'/.test(read(join(migDir, f)).replace(/--[^\n]*/g, '')))
   assert.deepEqual(offenders, [], `새 마이그레이션이 결제됨을 'paid' 하나로 판정 — PAID_STATUSES(paid·partially_refunded)를 쓸 것: ${offenders.join(', ')}`)
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-25 출시 전 점검 4차 (탐색 3: iOS 앱 / 법적 고지 대 실제 / 알림·메일 전수) — 규칙104~108
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙104: 고객 화면 설명은 박스에 없는 성분을 넣었다고 말하지 않는다 (유산균·글루코사민·코코넛오일 등)', () => {
+  /**
+   * 분석 화면 '꼭 확인하세요' 설명(risk-flags desc)이 "유산균도 함께 넣었어요", "글루코사민·오메가-3를
+   * 더했어요", "코코넛오일을 더했어요"라고 했는데 판매 레시피 4종 어디에도 그 원료가 없다(DB 실측).
+   * 실제 고객이 봤다. 표시광고법 거짓 표시 + 보호자가 따로 먹이던 보조제를 끊을 위험.
+   * 보조제는 '수의사와 상의' 권유로만 쓴다(firstBox reasoning 의 '… 보조 권장' 은 권유라 허용).
+   */
+  const body = stripComments(read(join(ROOT, 'lib', 'nutrition', 'risk-flags.ts')))
+  const NOT_IN_BOX = /유산균|프로바이오틱|글루코사민|콘드로이틴|초록입홍합|코코넛|MCT/
+  const offenders = body
+    .split('\n')
+    .filter((l) => /^\s*(desc|label):/.test(l) && NOT_IN_BOX.test(l))
+    .map((l) => l.trim().slice(0, 80))
+  assert.deepEqual(offenders, [], `박스에 없는 성분을 고객 설명에 쓴다:\n${offenders.join('\n')}`)
+})
+
+test('규칙105: 광고 푸시는 발송 관문에서 야간(21~08시) 차단 · 제목 (광고) · 본문 수신거부 방법 — 기록 본문은 원문', () => {
+  const push = stripComments(read(join(ROOT, 'lib', 'push.ts')))
+  assert.ok(
+    /category === 'marketing' && !isMarketingSendHour\(currentKstHour\(\)\)/.test(push),
+    'pushToUser 가 광고 푸시 야간 차단을 안 한다(어드민 캠페인이 밤에 나갔다)',
+  )
+  assert.ok(push.includes('stampMarketingPayload(payload)'), '광고 표기 정본(stampMarketingPayload)을 안 쓴다')
+  assert.ok(!/`\[광고\] \$\{/.test(push), "옛 '[광고]' 표기를 직접 붙인다 — 법정 표기는 '(광고)'")
+  assert.ok(
+    /from\('push_log'\)\.insert\(\{[\s\S]{0,300}body: payload\.body/.test(push),
+    'push_log 에 수신거부 줄이 붙은 본문을 저장한다 — 본문으로 중복을 거르는 크론의 재발송 가드가 풀린다',
+  )
+  const pm = read(join(ROOT, 'lib', 'push-marketing.ts'))
+  assert.ok(pm.includes("AD_LABEL = '(광고)'") && pm.includes('수신거부'), 'push-marketing 정본 표기가 바뀌었다')
+  const camp = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'push-campaigns', 'route.ts')))
+  assert.ok(camp.includes('isMarketingSendHour(currentKstHour())'), '어드민 캠페인이 야간 발송을 막지 않는다')
+})
+
+test('규칙106: 광고 수신 동의도 거부도 처리결과를 알린다 (정보통신망법 §50⑦ — 14일 내)', () => {
+  /** 예전엔 거부(철회)만 통지했고 가입 동의·마이페이지 켜기·앱 푸시 켜기는 아무것도 안 보냈다. */
+  const route = stripComments(read(join(ROOT, 'app', 'api', 'consent', 'unsubscribe-ack', 'route.ts')))
+  assert.ok(route.includes('notifyConsentResult('), '통지 라우트가 동의 결과를 안 보낸다')
+  for (const rel of [
+    ['app', '(main)', 'mypage', 'consent', 'ConsentSettingsClient.tsx'],
+    ['app', 'account', 'notifications', 'ConsentWebClient.tsx'],
+  ]) {
+    const b = stripComments(read(join(ROOT, ...rel)))
+    assert.ok(/JSON\.stringify\(\{ channel, granted: next \}\)/.test(b), `${rel.join('/')}: 켜기(동의)도 통지해야 한다`)
+    assert.ok(!/if \(!next\) \{\s*void fetch\('\/api\/consent\/unsubscribe-ack'/.test(b), `${rel.join('/')}: 거부일 때만 통지한다`)
+  }
+  const signup = stripComments(read(join(ROOT, 'lib', 'auth', 'applySignupProfile.ts')))
+  assert.ok(/unsubscribe-ack[\s\S]{0,200}granted: true/.test(signup), '가입 때 받은 광고 동의를 통지하지 않는다')
+  const prefs = stripComments(read(join(ROOT, 'app', 'api', 'push', 'preferences', 'route.ts')))
+  assert.ok(prefs.includes('notifyConsentResult('), '앱 푸시 광고 동의 변경을 통지하지 않는다')
+  const welcome = stripComments(read(join(ROOT, 'lib', 'email', 'templates', 'orders.ts')))
+  const w = welcome.slice(welcome.indexOf('export function renderWelcome'))
+  assert.ok(!/할인/.test(w.slice(0, w.indexOf('renderLayout('))), '가입 환영 메일(모든 가입자, 거래 안내)에 할인 권유가 있다 — 광고성')
+})
+
+test('규칙107: 고객 알림·메일은 사실대로, 끝까지 — await · 결과 반환 · 금액 내역 · 첫 박스만 · 승인 대기는 확인 요청', () => {
+  // ① 서버리스 라우트의 고객 통지는 await (규칙73·101 을 app/api 전체로). 화살표 반환(=> 다음 줄)은 호출부가 await.
+  const bare: string[] = []
+  for (const f of walk(join(ROOT, 'app', 'api'))) {
+    const lines = stripComments(read(f)).split('\n')
+    lines.forEach((l, i) => {
+      if (!/^\s*(pushToUser|notify[A-Z]\w*)\(/.test(l)) return
+      let k = i - 1
+      while (k >= 0 && lines[k]!.trim() === '') k--
+      const prev = (lines[k] ?? '').trim()
+      if (/=>$|\($|return$/.test(prev)) return
+      bare.push(`${rel(f)}:${i + 1} ${l.trim().slice(0, 50)}`)
+    })
+  }
+  assert.deepEqual(bare, [], `await 없는 고객 통지(응답 뒤 잘린다):\n${bare.join('\n')}`)
+
+  // ② 주문 메일 함수는 결과를 돌려준다 — undefined 면 호출부 실패 판정이 늘 참이었다.
+  const email = read(join(ROOT, 'lib', 'email', 'index.ts'))
+  for (const fn of ['notifyOrderShipped', 'notifyOrderDelivered', 'notifyOrderCancelled', 'notifyVirtualAccountWaiting']) {
+    const at = email.indexOf(`export async function ${fn}(`)
+    const seg = email.slice(at, email.indexOf('export async function', at + 10))
+    assert.ok(seg.includes('return sendEmail('), `${fn} 가 결과를 반환하지 않는다`)
+    assert.ok(seg.includes("reason: 'no_recipient'"), `${fn} 가 수신자 없음을 조용히 끝낸다`)
+  }
+
+  // ③ 취소 메일은 결제된 금액이 있을 때만 환불을 약속한다.
+  const orders = read(join(ROOT, 'lib', 'email', 'templates', 'orders.ts'))
+  assert.ok(orders.includes('결제된 금액이 없어'), '미결제 주문 취소에도 "환불돼요"를 약속한다')
+  // ④ 정기결제 주문 메일은 상품 금액·할인·총액 내역을 싣는다(품목 합 ≠ 결제 금액이던 것).
+  const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(/subtotal: trustedSubtotal,[\s\S]{0,200}discountReasonLabel\(discountReason\)/.test(charge), '주문 메일에 금액 내역을 안 넘긴다')
+  // ⑤ 실패 메일 사유는 한국어 요약 — 토스·네트워크 원문(영어)을 고객에게 보내지 않는다.
+  // 고객에게 보이는 칸(메일 사유·정기배송 화면 last_failed_charge_reason·주문 cancel_reason)에 원문 금지.
+  assert.ok(!/(^|\s)(reason|last_failed_charge_reason|cancel_reason): result\.error\?\.message/m.test(charge), '고객에게 보이는 결제 실패 사유에 원문 오류를 넣는다')
+  assert.ok(charge.includes('isOutcomeUnknownCode('), '결과를 모르는 실패(타임아웃)를 "실패"로 알린다')
+  // ⑥ 첫 박스 체크인은 구독의 첫 결제 주문에만.
+  const fb = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'first-box-checkin', 'route.ts')))
+  assert.ok(/\.lt\('created_at', order\.created_at\)/.test(fb), '첫 박스가 아니어도 "첫 박스 한 주" 푸시가 간다')
+  // ⑦ 승인 대기 제안은 확인 요청 메일(금액 변경 포함) — "준비됐어요"로 보내지 않는다.
+  const prog = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'personalization-progression', 'route.ts')))
+  assert.ok(prog.includes('notifyPersonalizationApprovalNeeded('), '승인·동의 필요 제안을 메일로 알리지 않는다(웹 구독자는 모른다)')
+  assert.ok(!/!\(requiresApproval && diff\.priceChanged\) && !shippedAllergenLeak/.test(prog), '금액 변경 제안 메일을 빼는 옛 조건이 남아 있다')
+  const cyc = read(join(ROOT, 'lib', 'email', 'templates', 'personalization-cycle.ts'))
+  assert.ok(!/\$\{input\.cycleNumber\}번째/.test(cyc), '회차 번호를 박스 번호로 부른다(회차 1 = 박스 3)')
+  // ⑧ 분기 리포트에 'BCS 6/9' 원문을 내보내지 않는다.
+  const q = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'quarterly-report', 'route.ts')))
+  assert.ok(!/bcsLabel: r\.bcs_label/.test(q), "분기 리포트 메일에 'BCS 6/9' 원문이 나간다")
+  // ⑨ 사전고지 푸시 중복 거르기는 구독 단위(같은 날 둘째 강아지 금액이 빠지던 것).
+  const rem = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-reminders', 'route.ts')))
+  assert.ok(/\.eq\('url', `\/mypage\/subscriptions\?focus=\$\{sub\.id\}`\)/.test(rem), '사전고지 푸시 dedup 이 구독 단위가 아니다')
+})
+
+test('규칙108: iOS 앱 — 카카오가 있는 가입 화면엔 애플도 · 실행 중 연 링크 재적용 금지 · 거짓 "저장했어요" 금지 · 사진 저장 권한 문구', () => {
+  // ① 가이드라인 4.8 — KakaoLoginButton 을 렌더하는 파일은 AppleLoginButton 도 렌더한다.
+  const missing: string[] = []
+  for (const f of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    if (!f.endsWith('.tsx')) continue
+    const b = read(f)
+    if (b.includes('<KakaoLoginButton') && !b.includes('<AppleLoginButton')) missing.push(rel(f))
+  }
+  assert.deepEqual(missing, [], `카카오만 있고 애플이 없는 가입·로그인 화면(4.8 거절 사유):\n${missing.join('\n')}`)
+  // ② appUrlOpen 으로 처리한 링크를 기록한다 — iOS getLaunchUrl 은 '마지막으로 앱을 연 URL'.
+  const bridge = stripComments(read(join(ROOT, 'components', 'NativeShellBridge.tsx')))
+  assert.ok(/addListener\('appUrlOpen'[\s\S]{0,200}markLaunchUrlHandled\(/.test(bridge), '실행 중 연 링크가 다음 전체 로드에서 다시 적용된다')
+  // ③ 이미지 저장은 결과로 말한다 — 앱에서 <a download> 는 무반응인데 "저장했어요"가 떴다.
+  for (const relp of [
+    ['app', '(main)', 'reports', 'ReportExportButton.tsx'],
+    ['app', '(main)', 'mypage', 'certificate', '[dogId]', 'CertificateClient.tsx'],
+  ]) {
+    const b = stripComments(read(join(ROOT, ...relp)))
+    assert.ok(b.includes('saveCanvasImage('), `${relp.join('/')}: 앱에서도 동작하는 저장 정본을 안 쓴다`)
+  }
+  const cert = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'certificate', '[dogId]', 'CertificateClient.tsx')))
+  assert.ok(/result === 'downloaded'\) toast\.success\('이미지를 저장했어요'\)/.test(cert), '저장 결과와 무관하게 "저장했어요"를 띄운다')
+  // ④ iOS 는 사진첩 쓰기 권한 문구가 없으면 저장 순간 앱이 종료된다.
+  const plist = read(join(ROOT, 'ios', 'App', 'App', 'Info.plist'))
+  assert.ok(plist.includes('<key>NSPhotoLibraryAddUsageDescription</key>'), 'Info.plist 에 NSPhotoLibraryAddUsageDescription 이 없다')
+})

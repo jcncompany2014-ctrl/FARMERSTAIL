@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { bcsWord } from '@/lib/bcs-consistency'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
@@ -70,7 +71,7 @@ async function runReport(): Promise<Response> {
   const { data: analyses, error: analysesErr } = await admin
     .from('analyses')
     .select(
-      'dog_id, user_id, created_at, protein_pct, fat_pct, mer, feed_g, bcs_label, dogs(name, weight)',
+      'dog_id, user_id, created_at, protein_pct, fat_pct, mer, feed_g, bcs_label, bcs_score, dogs(name, weight)',
     )
     .order('created_at', { ascending: false })
     .limit(8000)
@@ -84,6 +85,7 @@ async function runReport(): Promise<Response> {
     mer: number | null
     feed_g: number | null
     bcs_label: string | null
+    bcs_score: number | null
     dogs?:
       | { name: string | null; weight: number | null }
       | Array<{ name: string | null; weight: number | null }>
@@ -154,7 +156,9 @@ async function runReport(): Promise<Response> {
         quarterKey,
         quarterLabel,
         weightKg: dog?.weight ?? null,
-        bcsLabel: r.bcs_label,
+        // ★'BCS 6/9' 원문을 고객 메일에 내보내지 않는다(2026-09-25, 고객 문구 보이스) —
+        //   점수가 있으면 보호자 말로, 없으면 표시하지 않는다.
+        bcsLabel: typeof r.bcs_score === 'number' ? bcsWord(r.bcs_score) : null,
         feedG: r.feed_g,
         merKcal: r.mer,
         proteinPct: r.protein_pct,

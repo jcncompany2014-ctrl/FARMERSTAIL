@@ -73,18 +73,17 @@ export default function ConsentSettingsClient({
       return
     }
 
-    // 정보통신망법 §50⑤ — 마케팅 수신거부 처리결과 통보 의무.
-    // 토글 off 시 ack 이메일 발송. fire-and-forget, 실패해도 토글 자체는
-    // RPC 로 이미 저장됐으니 사용자에게 영향 없음.
-    if (!next) {
-      void fetch('/api/consent/unsubscribe-ack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel }),
-      }).catch(() => {
-        /* swallow */
-      })
-    }
+    // 정보통신망법 §50⑦ — 광고 수신 동의·거부 처리결과 통보 의무.
+    // fire-and-forget — 실패해도 토글 자체는 RPC 로 이미 저장됐다.
+    // ★동의(켜기)도 처리결과를 알린다 — §50⑦ 은 동의·거부 모두 14일 내 통지(2026-09-25).
+    void fetch('/api/consent/unsubscribe-ack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, granted: next }),
+      keepalive: true,
+    }).catch(() => {
+      /* swallow */
+    })
 
     setSaving(null)
   }

@@ -174,25 +174,35 @@ export function renderSubscriptionChargeFailed(input: {
   errorClass?: 'permanent' | 'transient' | 'unknown'
   /** transient 시 다음 재시도 ISO timestamp — "내일 새벽" 톤으로 표시. */
   nextRetryAt?: string | null
+  /**
+   * 결과를 모르는 실패(네트워크·타임아웃, 2026-09-25) — 카드가 실제로 긁혔을 수 있다.
+   * "실패"라고 말하지 않고 "확인 중"으로 안내한다.
+   */
+  outcomeUnknown?: boolean
 }): { subject: string; html: string } {
   const isPermanent = input.errorClass === 'permanent'
   const isTransient = input.errorClass === 'transient'
+  const isUnknownOutcome = !isPermanent && !input.paused && input.outcomeUnknown === true
 
   const subject = isPermanent
     ? '[파머스테일] 카드 정보를 다시 등록해 주세요'
     : input.paused
       ? '[파머스테일] 정기배송이 일시중단됐어요'
-      : isTransient
-        ? '[파머스테일] 결제가 일시 실패 — 내일 다시 시도할게요'
-        : '[파머스테일] 정기배송 결제가 실패했어요'
+      : isUnknownOutcome
+        ? '[파머스테일] 결제 결과를 확인하고 있어요'
+        : isTransient
+          ? '[파머스테일] 결제가 일시 실패 — 내일 다시 시도할게요'
+          : '[파머스테일] 정기배송 결제가 실패했어요'
 
   const heading = isPermanent
     ? '카드 정보를 다시 등록해 주세요'
     : input.paused
       ? '정기배송이 일시중단됐어요'
-      : isTransient
-        ? '결제가 일시적으로 실패했어요'
-        : '결제를 처리하지 못했어요'
+      : isUnknownOutcome
+        ? '결제 결과를 확인하고 있어요'
+        : isTransient
+          ? '결제가 일시적으로 실패했어요'
+          : '결제를 처리하지 못했어요'
 
   const reasonLine = input.reason
     ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">사유: ${escape(input.reason)}</p>`
@@ -209,6 +219,16 @@ export function renderSubscriptionChargeFailed(input: {
       </p>
       <p style="margin:0 0 14px 0;">
         새 카드를 등록하시면 자동으로 다시 정기배송이 진행돼요.
+      </p>
+    `
+  } else if (isUnknownOutcome) {
+    mainBody = `
+      <p style="margin:0 0 14px 0;">
+        <strong>${escape(input.productLabel)}</strong> 의 정기배송 결제 요청에 카드사 응답이
+        늦어져 결과를 확인하고 있어요.
+      </p>
+      <p style="margin:0 0 14px 0;">
+        내일 아침 다시 확인해 결과를 알려드릴게요. 같은 박스가 두 번 결제되지는 않아요.
       </p>
     `
   } else if (isTransient) {

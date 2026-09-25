@@ -192,6 +192,9 @@ export async function GET(req: Request) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', sub.user_id)
       .eq('title', pushTitle)
+      // ★구독 단위로 거른다(2026-09-25) — 제목은 D-N 뿐이라 같은 날 두 번째 구독(둘째 강아지)의
+      //   금액 사전고지가 '이미 보냄'으로 빠졌다. url 에 구독 id 가 들어 있다.
+      .eq('url', `/mypage/subscriptions?focus=${sub.id}`)
       .gt('sent_at', new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString())
     if (dedupErr) {
       console.error('[cron/subscription-reminders] push dedup 조회 실패, 건너뜀', {

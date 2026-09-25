@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { isNativeApp } from '@/lib/capacitor'
 import {
   kakaoChannelAppUrl,
+  markLaunchUrlHandled,
   nativeApiUrl,
   nativeTargetPath,
   shouldHandleLaunchUrl,
@@ -130,7 +131,14 @@ export default function NativeShellBridge() {
           go(launch.url)
         }
 
-        track(await App.addListener('appUrlOpen', (event) => go(event.url)))
+        track(
+          await App.addListener('appUrlOpen', (event) => {
+            // ★iOS 의 getLaunchUrl 은 '마지막으로 앱을 연 URL' 이다 — 여기서 처리한 링크를
+            //   기록해 두지 않으면 다음 전체 로드(카드 등록 복귀·새로고침)에서 다시 끌려간다.
+            markLaunchUrlHandled(event.url, launchStore())
+            go(event.url)
+          }),
+        )
 
         track(
           await App.addListener('backButton', ({ canGoBack }) => {

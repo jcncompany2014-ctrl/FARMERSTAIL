@@ -33,6 +33,10 @@ export type RiskFlagInfo = {
  * 새 flag 추가 시 nutrition.ts / firstBox.ts / guidelines.ts 의 riskFlags
  * push 와 동시에 여기에 등록.
  */
+// ★고객에게 보이는 설명에 **박스에 없는 성분**을 '넣었어요·더했어요'라고 쓰지 않는다
+//   (2026-09-25 출시 전 점검 4차). 유산균·글루코사민·코코넛오일은 판매 레시피 4종 어디에도
+//   없는데 분석 화면이 넣었다고 말했다 — 실제 고객이 봤다(표시광고법 거짓 표시·보조제 중단 위험).
+//   성분은 products.ingredients 에 있는 것만. 보조제는 '수의사와 상의' 권유로만. 규칙104.
 export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   REFEEDING_RISK: {
     label: '응급 · 심하게 마른 상태',
@@ -96,7 +100,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   LOW_FAT_REQUIRED: {
     label: '췌장 케어 · 저지방',
     term: '췌장염',
-    desc: '췌장 부담을 줄이려고 지방을 크게 낮췄어요. 장 건강을 돕는 유산균도 함께 넣었어요.',
+    desc: '췌장 부담을 줄이려고 지방을 크게 낮췄어요. 췌장은 상태에 따라 관리가 달라서 수의사와 꼭 확인하세요.',
     severity: 'high',
   },
   HEPATIC_SUPPORT: {
@@ -107,7 +111,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   },
   JOINT_SUPPORT: {
     label: '관절 케어',
-    desc: '관절에 좋은 영양(글루코사민·오메가-3)을 더했어요. 체중을 줄이면 관절 부담이 크게 줄어요.',
+    desc: '체중을 줄이면 관절 부담이 크게 줄어요. 모든 레시피에 오메가-3(연어유)가 들어 있고, 관절 보조제는 수의사와 상의해 주세요.',
     severity: 'info',
   },
   HYPOTHYROID_WEIGHT: {
@@ -136,7 +140,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   COGNITIVE_SUPPORT: {
     label: '노령 인지 케어',
     term: '인지기능 저하 · CDS',
-    desc: '뇌 건강에 좋은 영양(오메가·코코넛오일)과 항산화 성분을 더했어요.',
+    desc: '오메가-3(연어유)와 채소가 들어간 레시피예요. 밤에 헤매거나 낯설어하면 수의사와 상의해 주세요.',
     severity: 'info',
   },
   WEIGHT_LOSS_DIET: {
@@ -153,7 +157,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   SINGLE_PROTEIN_REQUIRED: {
     label: '예민한 장 · 한 가지 단백질',
     term: '염증성 장질환 · IBD',
-    desc: '한 종류 단백질과 부드러운 식이섬유로 장을 편하게 해요. 유산균도 함께요.',
+    desc: '한 종류 단백질과 부드러운 식이섬유로 장을 편하게 해요.',
     severity: 'high',
   },
   TRACHEAL_WEIGHT: {
@@ -165,7 +169,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   IVDD_WEIGHT: {
     label: '디스크 케어 · 체중 관리',
     term: '추간판 질환 · IVDD',
-    desc: '체중이 디스크를 눌러요. 관절에 좋은 영양을 더했고, 점프·계단은 피해주세요.',
+    desc: '체중이 디스크를 눌러요. 천천히 감량하고, 점프·계단은 피해주세요.',
     severity: 'high',
   },
   LOW_OXALATE_DIET: {
@@ -217,7 +221,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   },
   LOOSE_STOOL: {
     label: '무른 변',
-    desc: '부드러운 식이섬유와 유산균을 더했어요. 천천히 바꿔주세요.',
+    desc: '고구마·단호박처럼 부드러운 식이섬유가 든 레시피예요. 새 음식은 천천히 바꿔주세요.',
     severity: 'info',
   },
   DIARRHEA: {

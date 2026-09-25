@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { isMarketingSendHour } from '@/lib/push-marketing'
+import { currentKstHour } from '@/lib/datetime-kst'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -60,6 +62,20 @@ export async function POST(req: Request) {
 
   const { title, body, url, segment } = parsed.data
 
+  // ★야간(21~08시) 광고 발송 금지 — 보내기 전에 막고 이유를 말한다 (2026-09-25).
+  //   lib/push.ts 도 같은 규칙으로 0건 처리하지만, 그러면 캠페인이 '0명 발송'으로만
+  //   남아 사장님은 왜 안 갔는지 모른다.
+  if (!isMarketingSendHour(currentKstHour())) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: 'MARKETING_NIGHT_BLOCKED',
+        message: '광고 푸시는 오전 8시부터 저녁 9시 전까지만 보낼 수 있어요 (정보통신망법 야간 제한).',
+      },
+      { status: 400 },
+    )
+  }
+
   // url 동일 origin path 만 허용 — 외부 link 차단.
   const safeUrl = url && url.startsWith('/') ? url : undefined
   if (url && !safeUrl) {
@@ -117,7 +133,7 @@ export async function POST(req: Request) {
 
   // 3) fan-out — 동시 5건씩 chunk. quiet hours / preference gating 안 함
   //    (admin 의도된 marketing 발송이지만, push.ts 가 marketing category 일 때
-  //    "[광고]" prefix 자동 + push_preferences.notify_marketing 게이트 적용).
+  //    "(광고)" 접두·수신거부 줄 자동 + push_preferences.notify_marketing 게이트 적용).
   let sent = 0
   let failed = 0
   const CHUNK = 5

@@ -2,6 +2,8 @@ import webpush from 'web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { isAllowedPushEndpoint } from '@/lib/push-endpoint'
+import { isMarketingSendHour, stampMarketingPayload } from '@/lib/push-marketing'
+import { currentKstHour } from '@/lib/datetime-kst'
 
 /**
  * Web Push helper.
@@ -145,6 +147,13 @@ export async function pushToUser(
     return { ok: false, sent: 0, dead: 0, reason: 'ADMIN_CLIENT_UNAVAILABLE' }
   }
 
+  // ★광고 푸시 야간 차단 — **발송 관문에서** 건다 (2026-09-25 출시 전 점검 4차).
+  //   21~08시 광고는 별도 동의가 필요한데(정보통신망법 §50③) 우리는 받지 않는다.
+  //   예전엔 push-lifecycle 크론만 막아서 어드민 캠페인은 밤에도 나갔다.
+  if (opts?.category === 'marketing' && !isMarketingSendHour(currentKstHour())) {
+    return { ok: true, sent: 0, dead: 0, reason: 'MARKETING_NIGHT_BLOCKED' }
+  }
+
   // 카테고리 게이트 — 선호 행이 없으면 기본값으로 대체.
   if (opts?.category) {
     const { data: pref, error: prefErr } = await supabase
@@ -233,19 +242,11 @@ export async function pushToUser(
   // 토큰만 있는 사용자(= 앱스토어로 설치한 iOS/Android 사용자 대부분)에게는
   // 단 한 건도 안 나갔다. 웹 0건은 정상 상태이고 종료 조건이 아니다.
 
-  // 정보통신망법 §50④ — 광고성 정보 발송 시 매체에 (광고) 표기 의무.
+  // 정보통신망법 §50④ — 광고성 정보는 시작 부분에 (광고), 그리고 수신거부 방법.
   // 푸시는 모바일 알림센터/잠금화면에 노출되므로 광고 매체로 분류.
-  // category 'marketing' 일 때만 title 에 "[광고]" 자동 prefix.
-  // (이미 prefix 가 붙어 있으면 중복 추가하지 않음.)
+  // 표기 정본은 lib/push-marketing(2026-09-25: `[광고]` → 법정 `(광고)`, 수신거부 줄 추가).
   const stampedPayload: PushPayload =
-    opts?.category === 'marketing'
-      ? {
-          ...payload,
-          title: payload.title.startsWith('[광고]')
-            ? payload.title
-            : `[광고] ${payload.title}`,
-        }
-      : payload
+    opts?.category === 'marketing' ? stampMarketingPayload(payload) : payload
   const body = JSON.stringify(stampedPayload)
   const dead: string[] = []
   let sent = 0
@@ -374,7 +375,9 @@ export async function pushToUser(
   const { error: logErr } = await supabase.from('push_log').insert({
     user_id: userId,
     title: stampedPayload.title,
-    body: stampedPayload.body ?? '',
+    // ★본문은 **원문**으로 남긴다 — 광고 수신거부 줄을 붙여 저장하면 본문으로 중복을
+    //   거르는 크론(onboarding-funnel `.eq('body', body)`)의 재발송 가드가 풀린다.
+    body: payload.body ?? '',
     url: stampedPayload.url ?? null,
     category: opts?.category ?? null,
     nudge: opts?.nudge ?? false,

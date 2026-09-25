@@ -6,7 +6,7 @@ import { trackCron } from '@/lib/cron-tracking'
 import { petName, iGa } from '@/lib/korean'
 
 export const runtime = 'nodejs'
-/** 제목 고정부 = dedup 앵커(2026-08-05). 마케팅 푸시라 `[광고]` 가 앞에 붙는다. */
+/** 제목 고정부 = dedup 앵커(2026-08-05). 마케팅 푸시라 `(광고)` 가 앞에 붙는다. */
 const ROTATION_TITLE_ANCHOR = '번째 박스예요'
 
 export const dynamic = 'force-dynamic'

@@ -100,7 +100,7 @@ export async function POST(req: Request) {
     }
     // double opt-in confirm 메일 — fire-and-forget. 발송 실패해도 사용자에게는
     // "확인 메일을 보냈어요" 라고 응답해 spam check 우회 차단.
-    notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+    await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
       /* swallow */
     })
     return NextResponse.json({
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
   // status='confirmed' 로 전환. 정보통신망법 §50 명시 동의 절차 준수.
   // 메일 발송 실패해도 row 는 남기고 사용자 응답엔 정상 — 재시도는 사용자가
   // 다시 구독 신청하면 토큰 갱신 + 재발송.
-  notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+  await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
     /* swallow — Resend 미설정 / 일시 오류 시 다음 신청에 재발송 */
   })
 

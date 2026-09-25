@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import { Award, Printer, Download, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { isNativeApp } from '@/lib/capacitor'
+import { saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
 import { petName, withHonorific } from '@/lib/korean'
 
 type Dog = {
@@ -58,6 +60,11 @@ export default function CertificateClient({
     : '-'
 
   function handlePrint() {
+    // 앱(WebView)에선 인쇄 창이 뜨지 않는다 — 무반응 대신 안내한다(2026-09-25).
+    if (isNativeApp()) {
+      toast.info('앱에서는 인쇄가 안 돼요. 이미지 저장을 이용해 주세요')
+      return
+    }
     window.print()
   }
 
@@ -71,14 +78,11 @@ export default function CertificateClient({
         backgroundColor: '#F5F0E6',
         scale: 2, // 고해상도 — 인쇄 / 공유 품질
       })
-      const dataUrl = canvas.toDataURL('image/png')
-      const a = document.createElement('a')
-      a.href = dataUrl
-      a.download = `farmerstail-${dog.name}-${serial}.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      toast.success('이미지를 저장했어요')
+      // ★저장이 실제로 된 경우에만 성공이라고 말한다 (2026-09-25). 앱에서는 예전
+      //   <a download> 가 아무 일도 안 했는데 "이미지를 저장했어요" 가 떴다.
+      const result = await saveCanvasImage(canvas, `farmerstail-${dog.name}-${serial}.png`)
+      if (result === 'downloaded') toast.success('이미지를 저장했어요')
+      else if (result === 'unsupported') toast.info(SAVE_IMAGE_UNSUPPORTED_MESSAGE)
     } catch (err) {
       console.error('certificate download failed', err)
       toast.error('이미지를 저장하지 못했어요. 인쇄 메뉴를 사용해 주세요')

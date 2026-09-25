@@ -41,6 +41,7 @@ import { business } from '@/lib/business'
 import { calculateNutrition } from '@/lib/nutrition'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
+import AppleLoginButton from '@/components/AppleLoginButton'
 import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
 import { PhotoSlot } from '@/components/web/fd/ui'
 import FdRecipeSheet from '@/components/web/fd/FdRecipeSheet'
@@ -731,6 +732,13 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   //   "결과 화면이 전환을 못 시킨다"는 오판을 만드는 구멍.
                   onBeforeRedirect={() => trackStartSignupOpened('kakao')}
                 />
+                {/* ★애플 로그인 — 카카오와 같은 자리에 (2026-09-25 출시 전 점검 4차).
+                    앱 신규 가입은 이 화면으로만 들어오는데 카카오만 있었다 — iOS 심사
+                    가이드라인 4.8(서드파티 로그인이면 Sign in with Apple 동등 제공) 위반.
+                    버튼은 애플 기기에서만 스스로 보인다. */}
+                <div style={{ marginTop: 8 }}>
+                  <AppleLoginButton variant="signup" next="/start/claim" />
+                </div>
               </div>
               <div style={{ textAlign: 'center', marginTop: 12 }}>
                 <button

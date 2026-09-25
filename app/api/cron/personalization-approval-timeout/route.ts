@@ -194,6 +194,30 @@ export async function GET(req: Request) {
       } catch {
         // push 실패는 cron 흐름에 영향 X.
       }
+
+      // 4) ★메일로도 결과를 알린다 (2026-09-25 출시 전 점검 4차) — 푸시만 가서 웹 구독자는
+      //    제안이 있었다는 것도, 그대로 유지된다는 것도 몰랐다. 실패는 흐름을 막지 않는다.
+      try {
+        const [{ data: prof, error: profErr }, { data: dogRow }] = await Promise.all([
+          supabase.from('profiles').select('email, name').eq('id', row.user_id).maybeSingle(),
+          supabase.from('dogs').select('name').eq('id', row.dog_id).maybeSingle(),
+        ])
+        // 조회 실패를 '메일 없음'으로 접지 않는다(규칙1) — 흔적을 남긴다. 강아지 이름은 없으면 '우리 아이'.
+        if (profErr) console.error('[approval-timeout] 수신자 조회 실패 — 결과 메일 생략:', profErr.message)
+        if (prof?.email) {
+          const { notifyPersonalizationKeptPrevious } = await import('@/lib/email')
+          await notifyPersonalizationKeptPrevious({
+            email: prof.email,
+            recipientName: prof.name?.trim() || '보호자',
+            dogName: dogRow?.name ?? '우리 아이',
+            dogId: row.dog_id,
+            cycleNumber: row.cycle_number,
+            days: isModal ? 3 : 5,
+          })
+        }
+      } catch {
+        // 메일 실패는 cron 흐름에 영향 X.
+      }
     } catch (e) {
       console.error('[approval-timeout] row failed', row.id, e)
       failed += 1

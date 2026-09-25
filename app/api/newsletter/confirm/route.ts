@@ -83,7 +83,7 @@ export async function GET(req: Request) {
   // 3) 환영 메일 — fire-and-forget. confirm 성공 후 1회만. Resend 미설정 시
   //    조용히 no-op 처리되므로 로컬/스테이징에서도 안전. 발송 실패가 confirm
   //    응답을 막아선 안 됨.
-  notifyNewsletterWelcome({
+  await notifyNewsletterWelcome({
     email: row.email,
     unsubscribeToken: row.unsubscribe_token,
   }).catch(() => {

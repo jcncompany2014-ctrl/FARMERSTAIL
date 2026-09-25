@@ -47,16 +47,24 @@ async function runCheckinReminder(): Promise<Response> {
 
   const { data: candidates, error } = (await adminTyped
     .from('orders')
-    .select('id, user_id, delivered_at')
+    .select('id, user_id, delivered_at, subscription_id, created_at')
     // ★부분환불(일부 품절 환불) 첫 박스도 배송은 됐다 — 체크인은 가야 한다.
     .in('payment_status', PAID_STATUSES)
+    // ★정기배송 박스만 — '첫 박스'인지 판정하려면 구독이 있어야 한다(2026-09-25).
+    .not('subscription_id', 'is', null)
     .gte('delivered_at', eightDaysAgo.toISOString())
     .lt('delivered_at', sevenDaysAgo.toISOString())
     // R97-A (D7): 배치 캡 — 다른 cron 처럼 .limit 추가. 세일 후 배송 폭증
     // 시 후보가 수백~수천이면 후보당 dogs+feeding_outcomes 2쿼리 N+1 으로
     // maxDuration(120s) 압박. 200 초과분은 다음 run (윈도우 7~8일이라 여유).
     .limit(200)) as {
-    data: Array<{ id: string; user_id: string; delivered_at: string }> | null
+    data: Array<{
+      id: string
+      user_id: string
+      delivered_at: string
+      subscription_id: string
+      created_at: string
+    }> | null
     error: { message: string } | null
   }
 
@@ -76,12 +84,50 @@ async function runCheckinReminder(): Promise<Response> {
 
   let failed = 0
   for (const order of candidates) {
-    // 사용자의 첫 dog 픽업 (단순화 — 1주문 = 대표 1마리)
+    /**
+     * ★정말 '첫 박스'인가 (2026-09-25 출시 전 점검 4차).
+     * 예전엔 7~8일 전 배송된 결제 주문 **전부**가 후보였고, 체크인에 답하지 않은
+     * 고객에게 박스마다 "첫 박스 한 주가 지났네요"가 갔다(실측 9/24 발송, 미응답).
+     * 같은 구독에 이보다 먼저 결제된 주문이 있으면 첫 박스가 아니다.
+     */
+    const { count: earlier, error: earlierErr } = (await adminTyped
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('subscription_id', order.subscription_id)
+      .in('payment_status', PAID_STATUSES)
+      .lt('created_at', order.created_at)) as {
+      count: number | null
+      error: { message: string } | null
+    }
+    // 모르면 안 보낸다 — 두 번째 박스에 '첫 박스' 질문이 가는 것보다 하루 늦는 게 낫다.
+    if (earlierErr) {
+      console.error('[first-box-checkin] 이전 주문 조회 실패, 건너뜀:', earlierErr.message)
+      skipped += 1
+      continue
+    }
+    if ((earlier ?? 0) > 0) {
+      skipped += 1
+      continue
+    }
+
+    // ★그 구독의 강아지 — 예전엔 사용자의 아무 강아지 한 마리(순서 없음)였다.
+    const { data: subRow, error: subErr } = (await adminTyped
+      .from('subscriptions')
+      .select('dog_id')
+      .eq('id', order.subscription_id)
+      .maybeSingle()) as {
+      data: { dog_id: string | null } | null
+      error: { message: string } | null
+    }
+    if (subErr || !subRow?.dog_id) {
+      if (subErr) console.error('[first-box-checkin] 구독 조회 실패, 건너뜀:', subErr.message)
+      skipped += 1
+      continue
+    }
     const { data: dog, error: dogErr } = (await adminTyped
       .from('dogs')
       .select('id, name')
-      .eq('user_id', order.user_id)
-      .limit(1)
+      .eq('id', subRow.dog_id)
       .maybeSingle()) as {
       data: { id: string; name: string } | null
       error: { message: string } | null

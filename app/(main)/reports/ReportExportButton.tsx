@@ -10,13 +10,17 @@
 
 import { useState } from 'react'
 import { Download } from 'lucide-react'
+import { saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
 
 export default function ReportExportButton({ monthLabel }: { monthLabel: string }) {
   const [exporting, setExporting] = useState(false)
+  // 앱에서 저장이 안 될 때·실패했을 때 — 예전엔 아무 반응이 없었다(2026-09-25).
+  const [notice, setNotice] = useState<string | null>(null)
 
   async function handleExport() {
     if (exporting) return
     setExporting(true)
+    setNotice(null)
     try {
       const node = document.querySelector<HTMLElement>('.ft-report-capture')
       if (!node) throw new Error('capture-target-missing')
@@ -26,26 +30,18 @@ export default function ReportExportButton({ monthLabel }: { monthLabel: string 
         scale: 2,
         useCORS: true,
       })
-      const blob = await new Promise<Blob | null>((res) =>
-        canvas.toBlob((b) => res(b), 'image/png', 0.95),
-      )
-      if (!blob) throw new Error('blob-failed')
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `farmerstail-report-${monthLabel}.png`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      const result = await saveCanvasImage(canvas, `farmerstail-report-${monthLabel}.png`)
+      if (result === 'unsupported') setNotice(SAVE_IMAGE_UNSUPPORTED_MESSAGE)
     } catch (e) {
       console.error('report export', e)
+      setNotice('이미지를 만들지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setExporting(false)
     }
   }
 
   return (
+    <>
     <button
       type="button"
       onClick={handleExport}
@@ -55,5 +51,11 @@ export default function ReportExportButton({ monthLabel }: { monthLabel: string 
       <Download className="w-3.5 h-3.5" strokeWidth={2.5} />
       {exporting ? '내보내는 중…' : '이미지로 저장'}
     </button>
+    {notice && (
+      <p role="status" className="mt-2 text-[12px] text-muted">
+        {notice}
+      </p>
+    )}
+    </>
   )
 }

@@ -162,7 +162,7 @@ export default function CampaignBuilder() {
           onChange={(e) => setBody(e.target.value.slice(0, 240))}
           maxLength={240}
           rows={4}
-          placeholder="알림 본문 — 자동으로 [광고] 접두어가 붙어요"
+          placeholder="알림 본문 — 제목에 (광고), 본문 끝에 수신거부 안내가 자동으로 붙어요"
           className="w-full px-3 py-2.5 rounded-lg border border-border bg-card text-[13px] focus:outline-none focus:border-primary transition resize-none"
         />
       </div>
@@ -191,7 +191,7 @@ export default function CampaignBuilder() {
                 Preview · 사용자가 보게 될 모습
               </p>
               <p className="text-[12.5px] font-bold text-foreground mt-0.5">
-                {title ? `[광고] ${title}` : '(제목)'}
+                {title ? `(광고) ${title}` : '(제목)'}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-3">
                 {body || '(본문)'}

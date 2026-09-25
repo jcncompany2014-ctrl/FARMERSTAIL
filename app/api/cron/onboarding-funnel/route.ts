@@ -56,7 +56,7 @@ const FUNNEL_WINDOW_DAYS = 7
 
 /**
  * 단계별 메시지 — **발송과 dedup 조회가 공유하는 단일 출처.**
- * body 로 단계를 식별한다(title 은 marketing 이라 '[광고]' prefix 가 붙고 2단계는
+ * body 로 단계를 식별한다(title 은 marketing 이라 '(광고)' prefix 가 붙고 2단계는
  * 강아지 이름이 들어가 가변 — push_log 에 저장된 값과 안 맞는다).
  */
 const STAGE1 = {

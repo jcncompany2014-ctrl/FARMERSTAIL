@@ -399,8 +399,10 @@ export async function POST(
   //    사라졌다(구독 결제로는 애초에 적립되지도 않았다). 결제 취소·재고 복원·환불은
   //    위에서 이미 처리된다.
 
-  // 6) 이메일 안내 — fire-and-forget. 취소 플로우가 메일 때문에 늦어지지 않도록.
-  notifyOrderCancelled(supabase, {
+  // 6) 이메일 안내 — ★await (2026-09-25, 규칙73 형제). fire-and-forget 이면 응답 뒤
+  //    인스턴스가 멈출 때 '주문이 취소됐어요·환불 금액' 메일이 흔적 없이 사라진다
+  //    (전자상거래법 §13 통지). 실패해도 취소는 이미 끝났으므로 결과만 삼킨다.
+  await notifyOrderCancelled(supabase, {
     orderId: order.id,
     userId: user.id,
     orderNumber: order.order_number,

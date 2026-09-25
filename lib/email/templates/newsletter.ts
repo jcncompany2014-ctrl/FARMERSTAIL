@@ -98,3 +98,71 @@ export function renderUnsubscribeAck(input: {
 
   return { subject, html }
 }
+
+export type ConsentChannel = 'email' | 'sms' | 'push'
+
+const CONSENT_CHANNEL_LABEL: Record<ConsentChannel, string> = {
+  email: '이메일',
+  sms: '문자·알림톡',
+  push: '앱 푸시',
+}
+
+/**
+ * 광고성 정보 수신 **동의·거부 처리결과** 통지 (2026-09-25 출시 전 점검 4차).
+ *
+ * 정보통신망법 §50⑦·시행령 §62의2 — 수신동의·수신거부·철회 의사를 받으면 14일 안에
+ * 전송자 명칭 · 처리 일시 · 처리 결과를 알려야 한다. 예전엔 **거부(철회)만** 알렸고
+ * 동의(가입 체크·마이페이지 켜기·앱 푸시 켜기)는 아무것도 안 보냈다.
+ * 이 메일은 법정 통지라 광고가 아니다(할인·권유 문구를 넣지 않는다).
+ */
+export function renderConsentResult(input: {
+  channels: ConsentChannel[]
+  granted: boolean
+  /** 처리 시각(ISO). */
+  at: string
+}): { subject: string; html: string } {
+  const labels = input.channels.map((c) => CONSENT_CHANNEL_LABEL[c]).join('·')
+  const result = input.granted ? '수신 동의' : '수신 거부'
+  const subject = `[파머스테일] 혜택·이벤트 소식 ${result} 처리 결과 안내`
+  const heading = `${labels} ${result}가 처리됐어요`
+  const at = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(input.at))
+
+  const body = `
+    <p style="margin:0 0 14px 0;">
+      요청하신 혜택·이벤트 소식(광고성 정보) ${escape(result)} 처리 결과를 알려드려요.
+    </p>
+    ${block.dl([
+      block.row('보내는 곳', '파머스테일'),
+      block.row('받는 방법', escape(labels)),
+      block.row('처리 일시', escape(at)),
+      block.row('처리 결과', escape(result)),
+    ])}
+    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
+      ${
+        input.granted
+          ? '원하지 않으시면 앱 마이페이지 &gt; 알림 설정(웹은 계정 &gt; 알림 설정)에서 끌 수 있어요.'
+          : '주문·배송·결제처럼 서비스 이용에 꼭 필요한 안내는 계속 보내드려요. 다시 받고 싶으시면 알림 설정에서 켤 수 있어요.'
+      }
+    </p>
+  `
+
+  const html = renderLayout({
+    preview: heading,
+    kicker: '수신 동의 처리 결과',
+    heading,
+    body,
+    cta: {
+      label: '알림 설정 보기',
+      href: `${SITE_URL}/account/notifications`,
+    },
+  })
+  return { subject, html }
+}

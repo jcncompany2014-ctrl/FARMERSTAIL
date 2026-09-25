@@ -29,15 +29,36 @@ export function renderOrderConfirmation(
   input: OrderEmailBase & {
     shippingFee: number
     paymentMethodLabel: string
+    /**
+     * 정기결제 주문 (2026-09-25 출시 전 점검 4차) — 품목 금액은 팩 단가 × 수량(할인 전)이라
+     * 합이 총 결제 금액과 안 맞았다(체험단 100원·나무 10%·이벤트 할인, 반올림 60원 차).
+     * 상품 금액·할인·총 결제 금액 세 줄로 보여 주고, 품목 줄엔 금액을 넣지 않는다.
+     */
+    subtotal?: number | null
+    discount?: { amount: number; label: string } | null
   },
 ): { subject: string; html: string } {
   const subject = `[파머스테일] 주문이 접수됐어요 · ${input.orderNumber}`
+  const hasBreakdown = typeof input.subtotal === 'number'
   const itemsRows = input.items.map((it) =>
-    block.orderItem(it.product_name, it.quantity, it.line_total),
+    hasBreakdown
+      ? block.deliveryItem(it.product_name, it.quantity)
+      : block.orderItem(it.product_name, it.quantity, it.line_total),
   )
   const summaryRows = [
     block.row('주문번호', `<span style="font-family:monospace;">${escape(input.orderNumber)}</span>`),
     block.row('결제 수단', escape(input.paymentMethodLabel)),
+    ...(hasBreakdown
+      ? [block.row('상품 금액', `${input.subtotal!.toLocaleString()}원`)]
+      : []),
+    ...(input.discount && input.discount.amount > 0
+      ? [
+          block.row(
+            escape(input.discount.label),
+            `−${input.discount.amount.toLocaleString()}원`,
+          ),
+        ]
+      : []),
     block.row(
       '배송비',
       input.shippingFee === 0 ? '무료' : `${input.shippingFee.toLocaleString()}원`,
@@ -220,8 +241,13 @@ export function renderOrderCancelled(
 
   const body = `
     <p style="margin:0 0 14px 0;">
-      ${escape(withHonorific(input.recipientName))}의 주문이 취소됐어요. 결제 금액은 3~5 영업일 안에
-      원 결제 수단으로 환불돼요.
+      ${escape(withHonorific(input.recipientName))}의 주문이 취소됐어요. ${
+        // ★결제된 금액이 있을 때만 환불을 약속한다 (2026-09-25) — 미결제 주문 정리 취소에도
+        //   "3~5 영업일 안에 환불돼요"가 나가 고객이 카드 내역을 뒤졌다.
+        input.refundAmount && input.refundAmount > 0
+          ? '결제 금액은 3~5 영업일 안에 원 결제 수단으로 환불돼요.'
+          : '결제된 금액이 없어 따로 환불할 금액은 없어요.'
+      }
     </p>
     ${block.dl(rows)}
   `
@@ -253,10 +279,11 @@ export function renderWelcome(input: {
       아직 안 해보셨다면, <strong style="color:#B5533A;">2분 설문</strong>으로 우리 아이에게
       맞는 화식부터 확인해 보세요. 체형·건강에 맞춰 하루 급여량까지 계산해 드려요.
     </p>
-    <p style="margin:0 0 14px 0;font-size:11.5px;color:#7A7A7A;line-height:1.6;">
-      구독하면 정기배송 할인이 기본으로 들어가요. 다음 결제 전까지 해지할 수 있어요.
-    </p>
   `
+  // ★할인 권유 문장은 넣지 않는다 (2026-09-25 출시 전 점검 4차). 이 메일은 광고 수신
+  //   동의와 무관하게 모든 가입자에게 '거래 안내'로 가는데, "구독하면 할인" 은 광고성
+  //   정보다(정보통신망법 §50① 사전 동의·④ (광고) 표시). 뉴스레터 환영 메일은 같은
+  //   이유로 이미 (광고) 처리를 했다.
   const html = renderLayout({
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',

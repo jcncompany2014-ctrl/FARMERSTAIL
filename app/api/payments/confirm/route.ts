@@ -463,7 +463,7 @@ export async function POST(req: Request) {
   // 7) 웹푸시 알림 — 실제 결제가 끝난 경우에만 "완료" 메시지를 보냄.
   //    가상계좌는 입금 전이니 별도의 "입금 대기" 안내는 주문 상세에서 처리.
   if (isActuallyPaid) {
-    pushToUser(
+    await pushToUser(
       user.id,
       {
         title: '결제가 완료됐어요 🐾',
@@ -478,9 +478,9 @@ export async function POST(req: Request) {
   }
 
   // 8) 이메일 알림 — DONE 이면 주문 접수 메일, WAITING_FOR_DEPOSIT 이면 입금 안내.
-  //    fire-and-forget. 메일 실패가 주문 응답을 늦추지 않도록 await 하지 않음.
+  //    ★await (2026-09-25, 규칙73 형제) — 응답 뒤 인스턴스가 멈추면 계약내용 확인 메일이 사라진다.
   if (isActuallyPaid) {
-    notifyOrderPlaced(supabase, {
+    await notifyOrderPlaced(supabase, {
       orderId: order.id,
       userId: user.id,
       orderNumber: order.order_number,
@@ -492,7 +492,7 @@ export async function POST(req: Request) {
       /* 메일은 베스트 에포트 */
     })
   } else if (isWaitingDeposit && va?.accountNumber) {
-    notifyVirtualAccountWaiting(supabase, {
+    await notifyVirtualAccountWaiting(supabase, {
       orderId: order.id,
       userId: user.id,
       orderNumber: order.order_number,
