@@ -53,6 +53,38 @@
   transform: scale(1.045);
 }
 
+/* 도장 로고 — 브랜드가 도장(스탬프)이니 진입도 '쿵' 찍히게. */
+.stampIn {
+  opacity: 0;
+  animation: stampIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s forwards;
+}
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.75) rotate(-7deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.94) rotate(1.5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* 접힘 아래 섹션 — 스크롤 진입에 맞춰 등장(Chromium). 미지원 브라우저
+   (iOS WebKit·인스타 iOS 인앱)는 기존 진입 스태거가 그대로 동작한다. */
+@supports (animation-timeline: view()) {
+  .revealOnScroll {
+    animation-delay: 0s !important;
+    animation-timeline: view();
+    animation-range: entry 0% entry 38%;
+    animation-fill-mode: both;
+  }
+}
+
 /* 사진 가로 스트립 — 스크롤바 숨김(모바일 앱 감성). */
 .scrollRow {
   scrollbar-width: none;
@@ -62,7 +94,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fadeUp {
+  .fadeUp,
+  .stampIn {
     animation: none;
     opacity: 1;
   }

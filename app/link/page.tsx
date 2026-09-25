@@ -64,21 +64,23 @@ export default function LinkInBioPage() {
 
       <div className="mx-auto max-w-[430px] px-5 pb-16 text-center">
         {/* ── 프로필 — 커버에 살짝 겹치는 로고 ─────────────────────── */}
-        <header className={`-mt-11 ${s.fadeUp} ${s.d1}`}>
+        <header className="-mt-11">
           <Image
             src="/logo-stamp.png"
             alt="파머스테일"
             width={84}
             height={84}
             priority
-            className="mx-auto rounded-full shadow-[0_4px_18px_rgba(0,0,0,0.14)] ring-4 ring-[#FAF9F5]"
+            className={`${s.stampIn} mx-auto rounded-full shadow-[0_4px_18px_rgba(0,0,0,0.14)] ring-4 ring-[#FAF9F5]`}
           />
-          <h1 className="mt-3.5 font-serif text-[23px] font-extrabold tracking-[-0.02em] text-[#1E1A14]">
-            파머스테일
-          </h1>
-          <p className="mt-1 text-[13.5px] leading-relaxed text-[#6B6353]">
-            사료 대신, 진짜 음식 한 끼 🐾
-          </p>
+          <div className={`${s.fadeUp} ${s.d1}`}>
+            <h1 className="mt-3.5 font-serif text-[23px] font-extrabold tracking-[-0.02em] text-[#1E1A14]">
+              파머스테일
+            </h1>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-[#6B6353]">
+              사료 대신, 진짜 음식 한 끼 🐾
+            </p>
+          </div>
         </header>
 
         {/* ── 빠른 이동 버튼 ───────────────────────────────────────── */}
@@ -115,7 +117,7 @@ export default function LinkInBioPage() {
 
         {/* ── 알려드려요 — 번호 공지줄 + 큰 타이포 배너 ─────────────── */}
         {BIO_EVENT_CARDS.length > 0 && (
-          <section className={`mt-11 ${s.fadeUp} ${s.d3}`}>
+          <section className={`mt-11 ${s.fadeUp} ${s.d3} ${s.revealOnScroll}`}>
             <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
               파머스테일이 알려드려요 📣
             </h2>
@@ -153,6 +155,13 @@ export default function LinkInBioPage() {
                         <div
                           aria-hidden="true"
                           className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
+                        />
+                      )}
+                      {c.variant === 'paper' && (
+                        /* 왼쪽 텍스트 자리만 살짝 하얗게 — 잉크 글자 가독. */
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/20 to-transparent"
                         />
                       )}
                       <span
@@ -200,7 +209,7 @@ export default function LinkInBioPage() {
 
         {/* ── 사진 스트립 — 파머스테일의 하루 ──────────────────────── */}
         {BIO_MOMENTS.length > 0 && (
-          <section className={`mt-11 ${s.fadeUp} ${s.d4}`}>
+          <section className={`mt-11 ${s.fadeUp} ${s.d4} ${s.revealOnScroll}`}>
             <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
               파머스테일의 하루
             </h2>
@@ -227,7 +236,7 @@ export default function LinkInBioPage() {
 
         {/* ── 파머스테일 앱 — 브랜드 밴드 ──────────────────────────── */}
         <section
-          className={`mt-11 rounded-3xl bg-[#1E1A14] px-6 pb-6 pt-7 ${s.fadeUp} ${s.d5}`}
+          className={`mt-11 rounded-3xl bg-[#1E1A14] px-6 pb-6 pt-7 ${s.fadeUp} ${s.d5} ${s.revealOnScroll}`}
         >
           <h2 className="font-serif text-[19px] font-extrabold tracking-[-0.02em] text-[#FAF9F5]">
             파머스테일 앱
@@ -259,7 +268,7 @@ export default function LinkInBioPage() {
 
         {/* ── 카카오톡 문의 ────────────────────────────────────────── */}
         {business.kakaoChannelUrl && (
-          <section className={`mt-8 ${s.fadeUp} ${s.d5}`}>
+          <section className={`mt-8 ${s.fadeUp} ${s.d5} ${s.revealOnScroll}`}>
             <a
               href={business.kakaoChannelUrl}
               target="_blank"
@@ -276,7 +285,7 @@ export default function LinkInBioPage() {
         )}
 
         {/* ── 푸터 ─────────────────────────────────────────────────── */}
-        <footer className={`mt-12 ${s.fadeUp} ${s.d6}`}>
+        <footer className={`mt-12 ${s.fadeUp} ${s.d6} ${s.revealOnScroll}`}>
           <a
             href={INSTAGRAM_URL}
             target="_blank"
