@@ -32,6 +32,18 @@ export type ShipBlockInput = {
    * 없으면 발송하지 않는다는 이 파일의 원칙이 charged 경로에서만 깨져 있었다.
    */
   skippedNotCharged: boolean
+  /**
+   * ★예정일이 지난(발송일 이전 날짜) 구독인데 결제된 주문이 없다 (2026-09-25 3차 점검).
+   * 청구가 실패해 재시도 중인 건이다. 화면 배지는 빨간 '청구 지연'이었는데 이 판정에
+   * 빠져 있어 **라벨이 인쇄되고 조리 합계에 들어갔다** — 결제 전 발송.
+   */
+  overdueNotCharged: boolean
+  /**
+   * ★발송일 청구 시각(KST 09:10)이 지났는데 결제된 주문이 없다 (2026-09-25 3차 점검).
+   * 청구 크론이 통째로 실패(키 오류 등)했거나 건너뛴 구독이다. 예전엔 "발송일 아침
+   * 청구 예정" 으로 떨어져 발송 가능으로 판정됐다 — 청구 전 발송.
+   */
+  notChargedAfterRun: boolean
 }
 
 export type ShipBlockReason =
@@ -39,6 +51,8 @@ export type ShipBlockReason =
   | 'charge_failed_today'
   | 'paused_before_charge'
   | 'skipped_not_charged'
+  | 'overdue_not_charged'
+  | 'not_charged_after_run'
   | null
 
 /**
@@ -51,6 +65,8 @@ export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
   if (input.chargeFailedToday) return 'charge_failed_today'
   if (input.pausedBeforeCharge) return 'paused_before_charge'
   if (input.skippedNotCharged) return 'skipped_not_charged'
+  if (input.overdueNotCharged) return 'overdue_not_charged'
+  if (input.notChargedAfterRun) return 'not_charged_after_run'
   return null
 }
 
@@ -68,4 +84,20 @@ export const SHIP_BLOCK_LABEL: Record<
   charge_failed_today: '청구실패(발송금지)',
   paused_before_charge: '미결제-고객정지(발송금지)',
   skipped_not_charged: '고객미룸-미청구(발송금지)',
+  overdue_not_charged: '청구지연-미결제(발송금지)',
+  not_charged_after_run: '청구시각지남-미청구(발송금지)',
+}
+
+/** 발송일 아침 청구 크론 시각(KST). vercel.json `10 0 * * *` = 00:10 UTC = 09:10 KST. */
+export const CHARGE_RUN_KST_MINUTES = 9 * 60 + 10
+
+/**
+ * 발송일(shipDate, KST yyyy-mm-dd)의 청구 시각이 지났는가.
+ * 지났으면 "청구 예정"은 더 이상 사실이 아니다 — 결제 증거가 없으면 청구가 안 된 것이다.
+ */
+export function chargeRunPassed(shipDate: string, now: Date): boolean {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  const today = kst.toISOString().slice(0, 10)
+  if (today !== shipDate) return today > shipDate
+  return kst.getUTCHours() * 60 + kst.getUTCMinutes() >= CHARGE_RUN_KST_MINUTES
 }

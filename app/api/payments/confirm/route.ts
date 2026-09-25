@@ -302,23 +302,31 @@ export async function POST(req: Request) {
       cancelReason: '주문 상태 race — 결제 후 만료 감지',
     })
     if (!cancelResult.ok) {
+      // ★insert 는 throw 하지 않는다 — 결과를 본다 (2026-09-25 3차 점검, 규칙95 확장이 찾음).
+      //   예전 try/catch 는 아무것도 못 잡아서, 토스 환불도 실패하고 대기열 기록도 실패하면
+      //   '돈은 나갔는데 되돌릴 기록이 없는' 상태가 흔적 없이 남았다.
+      let queueFailure: string | null = null
       try {
         const admin = createAdminClient()
-        await (admin as unknown as {
-          from: (t: string) => {
-            insert: (r: Record<string, unknown>) => Promise<unknown>
-          }
+        const { error: queueErr } = await admin.from('payment_refund_queue').insert({
+          order_id: order.id,
+          payment_key: paymentKey,
+          amount: payment.totalAmount,
+          reason: 'race_already_terminal',
+          last_error: cancelResult.error.message,
         })
-          .from('payment_refund_queue')
-          .insert({
-            order_id: order.id,
-            payment_key: paymentKey,
-            amount: payment.totalAmount,
-            reason: 'race_already_terminal',
-            last_error: cancelResult.error.message,
-          })
-      } catch {
-        /* queue insert 도 실패 — Sentry 로 이미 잡힘 */
+        if (queueErr) queueFailure = queueErr.message
+      } catch (e) {
+        queueFailure = e instanceof Error ? e.message : String(e)
+      }
+      if (queueFailure) {
+        captureBusinessEvent('error', 'order.payment.race_refund_unqueued', {
+          orderId,
+          paymentKey,
+          amount: payment.totalAmount,
+          dbError: queueFailure,
+          note: '토스 환불 실패 + 환불 대기열 기록 실패 — 토스 대시보드에서 수동 환불 필요',
+        })
       }
     }
     // 포인트/쿠폰 복구 제거 (2026-07-16 포인트 전면 폐기 · 쿠폰은 자동할인으로 대체).

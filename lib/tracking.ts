@@ -171,6 +171,43 @@ export function stateLabel(s: TrackingResult['state']): string {
 }
 
 /**
+ * tracker.delivery 인증 헤더 (2026-09-25 출시 전 점검 3차).
+ *
+ * 이 API 는 **더 이상 공개가 아니다** — 키 없이 부르면 HTTP 200 에
+ * `{"errors":[{"message":"Authorization header is missing.","extensions":{"code":"FORBIDDEN"}}]}`
+ * 가 온다(실측). 그래서 자동 배송완료(tracking-poll)가 한 번도 동작할 수 없었고,
+ * 고객 배송조회 화면엔 그 영어 문장이 그대로 떴다. 키는 console.tracker.delivery
+ * 에서 발급한다. 무료 키는 21일마다 만료되므로 만료도 아래 isTrackerAuthError 로
+ * 잡혀 크론이 빨갛게 떠야 한다.
+ */
+export function trackerAuthHeader(
+  clientId: string | undefined,
+  clientSecret: string | undefined,
+): string | null {
+  const id = clientId?.trim()
+  const secret = clientSecret?.trim()
+  if (!id || !secret) return null
+  return `TRACKQL-API-KEY ${id}:${secret}`
+}
+
+/**
+ * 상류 GraphQL 오류가 **우리 쪽 인증 문제**인가 — 키 없음·틀림·만료.
+ * 이건 "송장을 못 찾음"이 아니다. 고객 탓으로 말하면 안 되고, 크론은 실패로 올려야 한다.
+ */
+export function isTrackerAuthError(
+  errors:
+    | ReadonlyArray<{ message?: string | null; extensions?: { code?: string | null } | null }>
+    | null
+    | undefined,
+): boolean {
+  return (errors ?? []).some((e) => {
+    const code = e.extensions?.code?.toUpperCase()
+    if (code === 'FORBIDDEN' || code === 'UNAUTHENTICATED') return true
+    return /authori[sz]ation|api[- ]?key|credential/i.test(e.message ?? '')
+  })
+}
+
+/**
  * tracker.delivery 가 주는 status.code → 내부 state 버킷.
  * 대소문자 섞여 올 수 있어 toUpperCase 로 정규화.
  */

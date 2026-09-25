@@ -116,24 +116,29 @@ export async function resolveAutoDiscount(input: {
 
   // 아직 안 쓴 프로모션이 있나. 조회 실패는 '없음'으로 — 프로모션이 없어서 정가를
   // 내는 건 회복 가능하지만, 있지도 않은 할인을 주면 마진이 샌다.
+  //
+  // ★error 를 꺼낸다 (2026-09-25 3차 점검). 예전엔 `{ data }` 만 받고 try/catch 로
+  //   감쌌는데, supabase rpc 는 실패해도 throw 하지 않는다 — catch 는 한 번도 안
+  //   돌았고, 이벤트 링크로 가입한 고객이 첫 박스를 **아무 신호 없이** 정가로 냈다.
+  //   청구는 막지 않되(정가로 긁고 사람이 차액을 돌려준다 — 위 profile 조회와 같은 판단)
+  //   반드시 error 로 남긴다.
   let promoRate = 0
-  try {
-    const { data: r } = await (
-      supabase as unknown as {
-        rpc: (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ data: unknown }>
-      }
-    ).rpc('pending_promotion_rate', { p_user_id: userId })
+  const { data: r, error: promoErr } = await (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>
+    }
+  ).rpc('pending_promotion_rate', { p_user_id: userId })
+  if (promoErr) {
+    captureBusinessEvent('error', 'billing.auto_discount.promotion_lookup_failed', {
+      userId,
+      dbError: promoErr.message,
+    })
+  } else {
     const n = Number(r)
     if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
-  } catch (e) {
-    // 없음으로 간주하되 남긴다 — 약속한 이벤트 할인이 조용히 사라지면 고객이 먼저 안다.
-    captureBusinessEvent('warning', 'billing.auto_discount.promotion_lookup_failed', {
-      userId,
-      error: e instanceof Error ? e.message : String(e),
-    })
   }
 
   const picked = pickBetterDiscount(

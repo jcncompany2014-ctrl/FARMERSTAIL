@@ -721,8 +721,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:94',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동, 셋 다 같은 집계임을 재확인함)",
+      at: 'app/api/cron/daily-briefing/route.ts:96',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동 · 2026-09-25 구조분해 두 줄(환불 최종실패·크론 실패) 추가로 96 이동, 넷 다 같은 집계임을 재확인함)",
     },
   ]
 
@@ -4110,13 +4110,30 @@ test('규칙95: 돈 경로의 DB 쓰기는 결과(error)를 본다 — 맨 await
     'app/api/payments/billing-issue/route.ts',
     'app/api/orders/[id]/cancel/route.ts',
     'app/api/subscriptions/create/route.ts',
+    // 2026-09-25 3차 점검 — 관리자 부분환불(환불 원장·재고 복원)도 돈 경로다.
+    'app/api/admin/orders/[id]/partial-cancel/route.ts',
   ]
   const offenders: string[] = []
+  // ★문장 끝까지 본다(2026-09-25). 예전 창(6줄)은 다중행 타입 캐스트 뒤의 `.update(` 를
+  //   못 봤고(청구 성공 행 갱신), 식별자 목록에 `adminTyped` 가 없어 환불 재시도 큐 갱신
+  //   4곳이 통째로 빠졌다. 들여쓰기가 더 깊거나 `.`·`)`·`}` 로 시작하는 줄을 같은 문장으로 친다.
+  const indentOf = (l: string) => l.length - l.trimStart().length
   for (const rel of MONEY) {
     const lines = stripComments(read(join(ROOT, ...rel.split('/')))).split('\n')
     lines.forEach((l, i) => {
-      if (!/^\s*await \(?\s*(supabase|admin|untyped|ordersAdmin)\b/.test(l)) return
-      const stmt = lines.slice(i, i + 6).join(' ')
+      if (!/^\s*await \(?\s*(supabase|admin|adminTyped|untyped|ordersAdmin)\b/.test(l)) return
+      const base = indentOf(l)
+      let j = i + 1
+      while (j < lines.length) {
+        const t = lines[j]!.trimStart()
+        if (t === '') break
+        if (indentOf(lines[j]!) > base || /^[.)}\]]/.test(t)) {
+          j++
+          continue
+        }
+        break
+      }
+      const stmt = lines.slice(i, j).join(' ')
       if (/\.(update|insert|upsert|delete)\(/.test(stmt)) offenders.push(`${rel}:${i + 1} ${l.trim().slice(0, 60)}`)
     })
     // Promise.all 로 쓰기를 묶고 결과를 버리는 형태도 같다.
@@ -4127,4 +4144,141 @@ test('규칙95: 돈 경로의 DB 쓰기는 결과(error)를 본다 — 맨 await
     })
   }
   assert.deepEqual(offenders, [], `결과를 버리는 돈 경로 쓰기:\n${offenders.join('\n')}`)
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-25 출시 전 점검 3차 (탐색 3: 고객 여정 · 발송·운영 · 라이브 DB) — 규칙98~103
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙98: 배송조회(tracker.delivery)는 키를 싣고, 인증 실패를 초록으로 삼키지 않으며, 상류 영어 문장을 고객에게 보이지 않는다', () => {
+  /**
+   * tracker.delivery 가 키 필수로 바뀌어 모든 조회가 "Authorization header is missing." 을
+   * 받았다(실측). 크론은 그 오류를 '아직 조회 안 됨'으로 건너뛰고 200 을 돌려줘 자동
+   * 배송완료가 한 번도 안 됐는데 초록이었고, 고객 배송조회 화면엔 그 영어 문장이 떴다.
+   */
+  const poll = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'tracking-poll', 'route.ts')))
+  const pub = stripComments(read(join(ROOT, 'app', 'api', 'tracking', 'route.ts')))
+  for (const [name, body] of [['tracking-poll', poll], ['api/tracking', pub]] as const) {
+    assert.ok(body.includes('trackerAuthHeader('), `${name}: 인증 헤더를 만들지 않는다`)
+    assert.ok(/Authorization:\s*authHeader/.test(body), `${name}: fetch 에 Authorization 을 싣지 않는다`)
+    assert.ok(body.includes('isTrackerAuthError('), `${name}: 인증 실패를 '송장 없음'과 구분하지 않는다`)
+  }
+  assert.ok(
+    /TRACKER_NOT_CONFIGURED[\s\S]*?status:\s*500/.test(poll) && /TRACKER_AUTH_REJECTED[\s\S]*?status:\s*500/.test(poll),
+    'tracking-poll: 키 없음·키 거절을 5xx(=cron_health error)로 올려야 한다',
+  )
+  assert.ok(!/json\.errors\[0\]\?\.message\s*\?\?/.test(pub), 'api/tracking: 상류 오류 원문을 고객 메시지로 넘긴다')
+  const env = read(join(ROOT, 'lib', 'env.ts'))
+  for (const k of ['DELIVERY_TRACKER_CLIENT_ID', 'DELIVERY_TRACKER_CLIENT_SECRET']) {
+    assert.ok((env.split(k).length - 1) >= 2, `lib/env.ts: ${k} 가 스키마·런타임 맵 양쪽에 있어야 한다`)
+  }
+})
+
+test('규칙99: 박스 라벨 주소 = 청구 주소(단일 함수) · 결제 증거 없는 박스는 라벨·조리에서 빠진다', () => {
+  /**
+   * 피킹 리스트 라벨이 subscriptions.address(가입 때 굳은 값)를 찍어, 이사한 고객은
+   * 청구·주문은 새 주소, 박스는 옛 주소로 나갔다. 또 '청구 지연'(빨간 배지)과
+   * '청구 시각이 지났는데 미청구'는 발송 금지 판정에서 빠져 라벨이 인쇄됐다.
+   * 신청서 주소는 마지막 대안 — 기본 배송지·프로필이 비면 결제가 매일 건너뛰어졌다.
+   */
+  const pick = stripComments(
+    read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')),
+  )
+  assert.ok(pick.includes('pickShippingTarget('), '피킹 리스트가 청구와 같은 배송지 함수를 안 쓴다')
+  assert.ok(!/recipientName:\s*sub\.recipient_name/.test(pick), '라벨 수령인을 가입 스냅샷에서 읽는다')
+  assert.ok(!/\[sub\.address,\s*sub\.address_detail\]/.test(pick), '라벨 주소를 가입 스냅샷에서 읽는다')
+  for (const k of ['overdueNotCharged:', 'notChargedAfterRun:', 'chargeRunPassed(']) {
+    assert.ok(pick.includes(k), `피킹 리스트에 ${k} 판정이 없다 — 결제 전 박스가 라벨·조리에 들어간다`)
+  }
+  const block = stripComments(read(join(ROOT, 'lib', 'admin', 'ship-block.ts')))
+  for (const k of ["'overdue_not_charged'", "'not_charged_after_run'"]) {
+    assert.ok(block.includes(k), `ship-block 에 ${k} 사유가 없다`)
+  }
+  const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(charge.includes('pickShippingTarget('), '청구 크론이 배송지 정본 함수를 안 쓴다')
+  assert.ok(
+    /resolveShippingTarget\(supabase,\s*sub\.user_id,\s*sub\)/.test(charge),
+    '청구 크론이 신청서 주소(마지막 대안)를 넘기지 않는다 — 저장 체크를 끈 신규 고객이 매일 건너뛰어진다',
+  )
+})
+
+test('규칙100: 운영 브리핑·대시보드 — 실패한 자동작업을 보고, 발송일엔 청구 성공분만 박스로 세고, 환불 대기는 환불 큐에서 센다', () => {
+  /**
+   * 화요일 청구 크론이 500 이어도 09:40 브리핑은 "오늘 발송 5박스"라고 했다 — 워치독은 기록
+   * '존재'만 봤고, 박스 수는 청구 실패분(날짜가 안 밀린 구독)까지 더했다. 환불 대기는 아무도
+   * 'pending' 으로 쓰지 않는 refunds 를 세어 영원히 0 이었다(막힌 환불은 payment_refund_queue).
+   */
+  const brief = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
+  assert.ok(/from\('cron_health'\)[\s\S]{0,120}\.eq\('status',\s*'error'\)/.test(brief), '브리핑이 실패한 자동작업(cron_health error)을 안 본다')
+  assert.ok(!/n\(todayBoxes\)\s*\+/.test(brief), '발송일 박스 수에 청구 안 된 구독을 더한다')
+  assert.ok(!/from\('refunds'\)[\s\S]{0,120}'pending'/.test(brief), "브리핑이 refunds.status='pending'(항상 0)을 센다")
+  assert.ok(brief.includes("from('payment_refund_queue')"), '브리핑이 환불 큐를 안 센다')
+  const dash = stripComments(read(join(ROOT, 'app', 'admin', 'page.tsx')))
+  assert.ok(!/from\('refunds'\)[\s\S]{0,120}'pending'/.test(dash), "대시보드가 refunds.status='pending'(항상 0)을 센다")
+})
+
+test('규칙101: 고객에게 가는 금액·시각·통지는 실제와 같다 — 사전고지 금액 · 재시도 시각 · 관리자 발송 알림 await · 프로모션 조회 오류', () => {
+  // ① 정기결제 사전고지는 청구와 같은 함수(resolveAutoDiscount)로 금액을 만든다.
+  const rem = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-reminders', 'route.ts')))
+  assert.ok(rem.includes('resolveAutoDiscount('), '사전고지가 청구 금액 함수를 안 쓴다 — 체험단·등급 할인 전 금액을 알린다')
+  assert.ok(!/chargeAmount:\s*sub\.total_amount/.test(rem), '사전고지 메일에 할인 전 금액을 넣는다')
+  assert.ok(!/sub\.total_amount\.toLocaleString\(\)/.test(rem), '사전고지 푸시에 할인 전 금액을 넣는다')
+  // ② '내일 다시 시도'가 정말 내일이도록 — 실패+24h 는 몇 초 차로 이틀 뒤가 됐다.
+  const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(!/Date\.now\(\)\s*\+\s*RETRY_COOLDOWN_MS/.test(charge), '재시도 시각을 실패+24h 로 잡는다(다음 날 크론이 못 집는다)')
+  assert.ok(charge.includes('nextRetryAtAfter('), '재시도 시각 정본(nextRetryAtAfter)을 안 쓴다')
+  // ③ 관리자 발송·배송완료·송장 변경 알림은 await (규칙73 형제 — 응답 뒤 잘린다).
+  for (const f of ['status', 'tracking']) {
+    const body = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'orders', '[id]', f, 'route.ts')))
+    const bare = body.split('\n').filter((l) => /^\s*(pushToUser|notifyOrder\w+)\(/.test(l))
+    assert.deepEqual(bare, [], `admin/orders/[id]/${f}: await 없는 고객 통지 — ${bare.join(' | ')}`)
+  }
+  // ④ 프로모션 조회는 error 를 꺼낸다 — rpc 는 throw 하지 않아 try/catch 가 한 번도 안 돌았다.
+  const disc = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
+  assert.ok(/error:\s*promoErr[\s\S]{0,400}rpc\('pending_promotion_rate'/.test(disc), 'pending_promotion_rate 의 error 를 안 꺼낸다')
+})
+
+test('규칙102: 구독 중인 강아지의 적용 중 처방은 재설문 재계산이 안전 사유 없이 덮지 않는다', () => {
+  /**
+   * compute 가 stale cycle 1 을 무조건 덮어, 구독자가 재설문하면 피킹 리스트는 새 레시피를
+   * 포장하고 청구는 옛 금액·옛 품목이었다(동의 없음). adjust 라우트는 이미 막고 있었다.
+   * 판정 정본: lib/personalization/subscribed-recompute (새 알레르기 충돌·상담 필요만 덮는다).
+   */
+  const body = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'compute', 'route.ts')))
+  const decideAt = body.indexOf('subscribedRecomputeDecision(')
+  const upsertAt = body.indexOf(".from('dog_formulas').upsert(")
+  assert.ok(decideAt > 0, 'compute 가 구독 중 재계산 판정을 안 한다')
+  assert.ok(upsertAt > 0 && decideAt < upsertAt, '구독 판정이 cycle 1 upsert 보다 먼저 와야 한다')
+  assert.ok(/subscribedLocked:\s*true/.test(body), '덮지 않을 때 화면에 알리는 신호(subscribedLocked)가 없다')
+})
+
+test('규칙103: DB 함수 — 수의사 공유는 익명으로 읽고 dogs 에 없는 컬럼을 고르지 않는다 · 이벤트 할인은 첫 주문만 · 새 SQL 의 결제됨은 부분환불 포함', () => {
+  const vet = stripComments(read(join(ROOT, 'app', 'vet', '[token]', 'page.tsx')))
+  assert.ok(!vet.includes("from '@/lib/supabase/server'"), '수의사 공유 페이지가 로그인 쿠키 클라이언트를 쓴다(로그인한 사람이 열면 트리거에 막힘)')
+  assert.ok(/\{\s*data,\s*error\s*\}\s*=\s*await supabase\.rpc\('fetch_vet_share'/.test(vet), 'fetch_vet_share 의 error 를 안 꺼낸다')
+
+  const migDir = join(ROOT, 'supabase', 'migrations')
+  const files = readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort()
+  const latestDef = (fn: string): { file: string; sql: string } | null => {
+    for (let i = files.length - 1; i >= 0; i--) {
+      const sql = read(join(migDir, files[i]!))
+      const at = sql.search(new RegExp(`FUNCTION\\s+public\\.${fn}\\s*\\(`, 'i'))
+      if (at >= 0) return { file: files[i]!, sql: sql.slice(at, sql.indexOf('$function$;', at) + 1 || undefined) }
+    }
+    return null
+  }
+  const vetFn = latestDef('fetch_vet_share')
+  assert.ok(vetFn, 'fetch_vet_share 정의를 못 찾음')
+  const dogsSelect = vetFn!.sql.match(/SELECT([\s\S]*?)INTO v_dog FROM public\.dogs/i)?.[1] ?? ''
+  assert.ok(dogsSelect.length > 0, `${vetFn!.file}: dogs SELECT 를 못 찾음`)
+  assert.ok(!/chronic_conditions/.test(dogsSelect), `${vetFn!.file}: dogs 에 없는 chronic_conditions 를 고른다(모든 링크가 42703 으로 죽었다)`)
+
+  const claim = latestDef('claim_promotion')
+  assert.ok(claim && claim.sql.includes("'not_first_order'"), '최신 claim_promotion 에 첫 주문 제한이 없다 — 기존 구독자가 신규가입 이벤트 할인을 받는다')
+
+  const offenders = files
+    .filter((f) => f >= '20260925')
+    // 주석(--)은 뺀다 — 설명에 옛 판정을 인용하면 걸리는 함정(규칙17 과 같은 뿌리).
+    .filter((f) => /payment_status\s*=\s*'paid'/.test(read(join(migDir, f)).replace(/--[^\n]*/g, '')))
+  assert.deepEqual(offenders, [], `새 마이그레이션이 결제됨을 'paid' 하나로 판정 — PAID_STATUSES(paid·partially_refunded)를 쓸 것: ${offenders.join(', ')}`)
 })

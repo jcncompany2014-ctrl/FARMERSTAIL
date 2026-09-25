@@ -7,7 +7,8 @@ import {
   ClipboardList,
   AlertTriangle,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import VetSharePrintButton from './VetSharePrintButton'
 import { sensitivityAnalysis, type DogState } from '@/lib/counterfactual'
 import { TrendingUp } from 'lucide-react'
@@ -47,8 +48,22 @@ export default async function VetSharePage({
 }) {
   const { token } = await params
 
-  const supabase = await createClient()
-  const { data } = await supabase.rpc('fetch_vet_share', { p_token: token })
+  // ★로그인 쿠키를 싣지 않는 **익명** 클라이언트 (2026-09-25 출시 전 점검 3차).
+  //   이 페이지는 원래 익명 진입용인데 쿠키 클라이언트를 써서, 로그인한 사람(보호자가
+  //   자기 링크를 확인해 볼 때)이 열면 auth.uid() 가 채워져 열람 횟수 갱신이
+  //   prevent_vet_share_token_tampering 트리거에 막혀 RPC 전체가 실패했다.
+  //   수의사는 로그인하지 않으므로 익명이 정본이다.
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+  const { data, error } = await supabase.rpc('fetch_vet_share', { p_token: token })
+  // 오류를 '링크 문제'로만 보여 주면 사장님은 모른다 — 실제로 모든 링크가 컬럼 오류로
+  // 죽어 있었는데 흔적이 없었다(규칙1).
+  if (error) {
+    captureBusinessEvent('error', 'vet_share.fetch_failed', { dbError: error.message })
+  }
 
   type RpcResult =
     | {

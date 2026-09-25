@@ -77,10 +77,12 @@ async function runDailyBriefing(): Promise<Response> {
     cardRenewal,
     failedCharge,
     refundsPending,
+    refundsStuck,
     stockOut,
     unreadCs,
     todayBoxes,
     chargedToday,
+    cronErrors,
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -104,10 +106,18 @@ async function runDailyBriefing(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'failed')
       .gte('attempted_at', oneDayAgo),
+    // ★환불 대기는 payment_refund_queue 가 정본이다 (2026-09-25 3차 점검).
+    //   예전엔 refunds.status='pending' 을 셌는데, refunds 는 성공한 환불만 적는
+    //   원장이라(쓰는 곳 둘 다 'succeeded') 이 숫자는 **항상 0** 이었다. 실제로
+    //   막힌 환불(고객 돈이 묶인 것)은 여기 안 나왔다.
     supabase
-      .from('refunds')
+      .from('payment_refund_queue')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending'),
+    supabase
+      .from('payment_refund_queue')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'permanently_failed'),
     supabase
       .from('products')
       .select('id', { count: 'exact', head: true })
@@ -139,6 +149,15 @@ async function runDailyBriefing(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('scheduled_for', today)
       .eq('status', 'succeeded'),
+    // ★24시간 안에 **실패로 끝난** 자동작업 (2026-09-25 3차 점검). 워치독(아래)은
+    //   '기록이 있나'만 봐서 실패 기록도 '돌았음'으로 쳤다 — 화요일 청구 크론이 500
+    //   이어도 이 브리핑은 조용했다. 실패 메일(ops-digest)은 08:00 이라 그다음 날이다.
+    supabase
+      .from('cron_health')
+      .select('path')
+      .eq('status', 'error')
+      .gte('executed_at', oneDayAgo)
+      .limit(500),
   ])
 
   // ★조회 실패를 0건으로 접지 않는다(2026-08-05 병렬 감사).
@@ -149,8 +168,7 @@ async function runDailyBriefing(): Promise<Response> {
   //   못 센 항목이 있으면 브리핑 맨 위에 그렇게 적는다 — 사람은 "0"과
   //   "못 셌음"을 구분해야 판단할 수 있다.
   const countFailures: string[] = []
-  const n = (r: { count: number | null }) => r.count ?? 0
-  const nOf = (label: string, r: { count: number | null; error?: unknown }) => {
+  const nOf =(label: string, r: { count: number | null; error?: unknown }) => {
     const err = (r as { error?: { message?: string } | null }).error
     if (err) countFailures.push(`${label}: ${err.message ?? '조회 실패'}`)
     return r.count ?? 0
@@ -197,12 +215,38 @@ async function runDailyBriefing(): Promise<Response> {
     )
   }
 
+  // 실패로 끝난 자동작업 — 결제·발송이 멈춘 것일 수 있어 맨 위.
+  if (cronErrors.error) {
+    countFailures.push(`자동작업 실패 기록: ${cronErrors.error.message}`)
+  } else {
+    const failedPaths = [
+      ...new Set(((cronErrors.data ?? []) as Array<{ path: string }>).map((r) => r.path)),
+    ]
+    if (failedPaths.length > 0) {
+      items.unshift(
+        `🚨 실패한 자동작업 ${failedPaths.length}개: ${failedPaths
+          .slice(0, 4)
+          .map((c) => cronLabel(c))
+          .join(', ')}${failedPaths.length > 4 ? ' 외' : ''}`,
+      )
+    }
+  }
+
   // 발송 관련이 제일 위 — 화요일 아침엔 이게 오늘의 일이다.
-  const boxes = n(todayBoxes) + (isShipDay ? n(chargedToday) : 0)
-  if (boxes > 0) {
-    items.push(
-      isShipDay ? `📦 오늘 발송 ${boxes}박스` : `📦 다음 발송 ${boxes}박스`,
-    )
+  // ★발송일엔 **청구 성공분만** 박스로 센다 (2026-09-25 3차 점검). 09:10 청구 뒤에도
+  //   오늘 날짜에 남은 구독은 청구가 실패·건너뛴 것이다 — 예전엔 그걸 더해 "오늘 발송
+  //   5박스"라고 했고, 피킹 리스트도 같은 건을 보내게 했다. 남은 건은 따로 경고한다.
+  //   두 카운트 모두 nOf — 조회 실패를 0박스로 접지 않는다(규칙1).
+  if (isShipDay) {
+    const charged = nOf('오늘 청구 성공', chargedToday)
+    if (charged > 0) items.push(`📦 오늘 발송 ${charged}박스`)
+    const uncharged = nOf('오늘 미청구', todayBoxes)
+    if (uncharged > 0) {
+      items.push(`⛔ 오늘 청구 안 된 ${uncharged}건 — 보내지 마세요(피킹 리스트 확인)`)
+    }
+  } else {
+    const upcoming = nOf('다음 발송', todayBoxes)
+    if (upcoming > 0) items.push(`📦 다음 발송 ${upcoming}박스`)
   }
   const cUnshipped = nOf('미발송', unshipped)
   if (cUnshipped > 0) items.push(`🚚 미발송 ${cUnshipped}건`)
@@ -214,6 +258,8 @@ async function runDailyBriefing(): Promise<Response> {
   if (cRenewal > 0) items.push(`🔁 카드 재등록 대기 ${cRenewal}건`)
   const cRefund = nOf('환불 대기', refundsPending)
   if (cRefund > 0) items.push(`↩️ 환불 대기 ${cRefund}건`)
+  const cRefundStuck = nOf('환불 최종 실패', refundsStuck)
+  if (cRefundStuck > 0) items.push(`🚨 환불 최종 실패 ${cRefundStuck}건 — 수동 환불 필요`)
   const cCs = nOf('답장 대기', unreadCs)
   if (cCs > 0) items.push(`✉️ 답장 대기 ${cCs}건`)
   const cStock = nOf('품절', stockOut)

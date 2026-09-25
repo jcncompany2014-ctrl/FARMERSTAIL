@@ -7,6 +7,7 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
 import { isPlausibleMer } from '@/lib/personalization/merSanity'
+import { subscribedRecomputeDecision } from '@/lib/personalization/subscribed-recompute'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   dailyGramsFromMix,
@@ -712,6 +713,81 @@ export async function POST(req: Request) {
     foodLineMetaOverride,
   )
   formula.dailyGrams = dailyGramsByMix
+
+  // 5.7) ★구독 중인 강아지의 **적용 중** 처방은 안전 사유가 아니면 덮지 않는다
+  //   (2026-09-25 출시 전 점검 3차 — lib/personalization/subscribed-recompute 주석).
+  //   여기 왔는데 existing 이 있으면 stale 재계산 경로다. 피킹 리스트는 dog_formulas 를
+  //   포장하므로, 덮으면 청구(옛 금액·옛 품목)와 박스(새 레시피)가 동의 없이 갈린다.
+  if (existing) {
+    const { data: liveSub, error: liveSubErr } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('dog_id', dogId)
+      .in('status', ['active', 'paused'])
+      .limit(1)
+      .maybeSingle()
+    // 모르면 덮지 않는다 — '구독 없음'으로 읽으면 바로 그 불일치를 만든다(규칙1).
+    if (liveSubErr) {
+      captureBusinessEvent('error', 'personalization.compute.subscription_lookup_failed', {
+        dogId,
+        dbError: liveSubErr.message,
+      })
+      return NextResponse.json(
+        { code: 'LOOKUP_FAILED', message: '식단 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+        { status: 503 },
+      )
+    }
+    const stored = existing.formula as {
+      lineRatios?: Formula['lineRatios']
+      toppers?: Formula['toppers']
+      v3?: RecommendationResult
+      needsConsultation?: boolean
+      consultationReason?: string | null
+    }
+    const decision = subscribedRecomputeDecision({
+      hasLiveSubscription: Boolean(liveSub),
+      appliedLineRatios: stored.lineRatios ?? {},
+      newAllergies: input.allergies,
+      newNeedsConsultation: needsConsultation,
+    })
+    if (!decision.overwrite) {
+      // 지금 청구·포장되는 처방을 그대로 돌려준다 — 화면·박스·금액이 한 가지를 말한다.
+      // 바뀐 답변은 다음 재제안(박스 3개마다)에서 금액 동의와 함께 반영된다.
+      captureBusinessEvent('info', 'personalization.compute.subscribed_recompute_deferred', {
+        dogId,
+        subscriptionId: liveSub?.id ?? '',
+      })
+      const applied: Formula = {
+        lineRatios: stored.lineRatios as Formula['lineRatios'],
+        toppers: stored.toppers as Formula['toppers'],
+        reasoning: existing.reasoning as Formula['reasoning'],
+        transitionStrategy: existing.transition_strategy as Formula['transitionStrategy'],
+        dailyKcal: existing.daily_kcal,
+        dailyGrams: existing.daily_grams,
+        cycleNumber: existing.cycle_number,
+        algorithmVersion: existing.algorithm_version,
+        userAdjusted: existing.user_adjusted,
+      }
+      return NextResponse.json({
+        ok: true,
+        formula: applied,
+        v3: stored.v3 ?? null,
+        needsConsultation: stored.needsConsultation ?? false,
+        consultationReason: stored.consultationReason ?? null,
+        cached: true,
+        subscribedLocked: true,
+      })
+    }
+    if (liveSub) {
+      // 안전 사유로 구독 중 박스 구성이 바뀐다 — 청구 금액·품목은 그대로라 사람이 맞춰야 한다.
+      captureBusinessEvent('error', 'personalization.compute.subscribed_formula_overwritten', {
+        dogId,
+        subscriptionId: liveSub.id,
+        reason: decision.reason,
+        note: '구독 중 박스 구성이 안전 사유로 바뀌었다 — total_amount·subscription_items 는 옛 값. 금액 확인·고객 안내 필요',
+      })
+    }
+  }
 
   // 6) Persist — UNIQUE (dog_id, cycle_number) 충돌 시 race condition (다른 탭).
   //    select 한 번 더 해서 그쪽 결과 반환. 사용자 입장 idempotent.

@@ -12,7 +12,9 @@ import type { Formula } from '@/lib/personalization/types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { addDaysKst, todayKstIsoDate, kstDateOf } from '@/lib/datetime-kst'
-import { isShippable } from '@/lib/admin/ship-block'
+import { chargeRunPassed, isShippable } from '@/lib/admin/ship-block'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
 import { weekdayOf, weekdayKo, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
 import {
   AdminHeader,
@@ -210,11 +212,16 @@ export default async function PickingListPage({
    * 안 보여준다 — 없는 링크를 만들어 막다른 길을 주는 것보다 낫다.
    */
   const subIds = subs.map((s) => s.id)
-  const orderBySubId = new Map<string, { id: string; orderNumber: string }>()
+  const orderBySubId = new Map<
+    string,
+    { id: string; orderNumber: string; shipTo: ShippingTarget | null }
+  >()
   if (subIds.length > 0) {
     const { data: orderRows, error: ordersErr } = await supabase
       .from('orders')
-      .select('id, order_number, subscription_id, created_at')
+      .select(
+        'id, order_number, subscription_id, created_at, recipient_name, recipient_phone, zip, address, address_detail',
+      )
       .in('subscription_id', subIds)
       .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing')
@@ -227,15 +234,120 @@ export default async function PickingListPage({
       id: string
       order_number: string
       subscription_id: string | null
+      recipient_name: string | null
+      recipient_phone: string | null
+      zip: string | null
+      address: string | null
+      address_detail: string | null
     }>) {
       if (o.subscription_id && !orderBySubId.has(o.subscription_id)) {
         orderBySubId.set(o.subscription_id, {
           id: o.id,
           orderNumber: o.order_number,
+          // 결제된 주문의 주소 = 청구 크론이 그 시점에 정해 적은 **배송지 확정값**.
+          shipTo: pickShippingTarget([
+            {
+              name: o.recipient_name,
+              phone: o.recipient_phone,
+              zip: o.zip,
+              address: o.address,
+              addressDetail: o.address_detail,
+            },
+          ]),
         })
       }
     }
   }
+
+  /**
+   * ★라벨 주소 = 청구와 같은 규칙 (2026-09-25 출시 전 점검 3차).
+   *
+   * 예전엔 subscriptions.address(가입 때 굳은 값)를 찍었다. 그런데 청구 크론은
+   * 기본 배송지 → 프로필 순서로 주소를 정해 주문에 적는다 — 이사한 고객은
+   * **청구·주문은 새 주소, 박스 라벨은 옛 주소**가 됐다(신선식품이 옛집으로).
+   * 결제된 주문이 있으면 그 주소, 아직 청구 전이면 청구 크론과 같은 함수
+   * (lib/commerce/shipping-target)로 지금 기준 주소를 정한다.
+   * addresses 는 본인만 읽는 RLS 라 관리자 쿠키로는 0행 — 이 페이지는 위에서
+   * isAdmin 을 통과한 뒤라 service_role 로 읽는다.
+   */
+  const needCurrent = [
+    ...new Set(subs.filter((s) => !orderBySubId.has(s.id)).map((s) => s.user_id)),
+  ]
+  type AddrPick = {
+    user_id: string
+    recipient_name: string | null
+    phone: string | null
+    zip: string | null
+    address: string | null
+    address_detail: string | null
+  }
+  type ProfPick = {
+    id: string
+    name: string | null
+    phone: string | null
+    zip: string | null
+    address: string | null
+    address_detail: string | null
+  }
+  const defaultAddrByUser = new Map<string, AddrPick>()
+  const profileByUser = new Map<string, ProfPick>()
+  if (needCurrent.length > 0) {
+    const admin = createAdminClient()
+    const [{ data: addrRows, error: addrErr }, { data: profRows, error: profErr }] =
+      await Promise.all([
+        admin
+          .from('addresses')
+          .select('user_id, recipient_name, phone, zip, address, address_detail')
+          .in('user_id', needCurrent)
+          .eq('is_default', true),
+        admin
+          .from('profiles')
+          .select('id, name, phone, zip, address, address_detail')
+          .in('id', needCurrent),
+      ])
+    // 조회 실패를 '주소 없음'으로 접으면 라벨이 엉뚱한 주소로 찍힌다 — 목록 자체를 멈춘다.
+    const lookupErr = addrErr ?? profErr
+    if (lookupErr) {
+      throw new Error(`배송지 조회 실패 — 라벨 주소를 신뢰할 수 없어요: ${lookupErr.message}`)
+    }
+    for (const a of (addrRows ?? []) as AddrPick[]) defaultAddrByUser.set(a.user_id, a)
+    for (const p of (profRows ?? []) as ProfPick[]) profileByUser.set(p.id, p)
+  }
+  const shipToOf = (
+    sub: SubRow,
+  ): { target: ShippingTarget | null; source: 'order' | 'current' } => {
+    const ord = orderBySubId.get(sub.id)
+    if (ord) return { target: ord.shipTo, source: 'order' }
+    const a = defaultAddrByUser.get(sub.user_id)
+    const p = profileByUser.get(sub.user_id)
+    return {
+      source: 'current',
+      target: pickShippingTarget([
+        a && {
+          name: a.recipient_name,
+          phone: a.phone,
+          zip: a.zip,
+          address: a.address,
+          addressDetail: a.address_detail,
+        },
+        p && {
+          name: p.name,
+          phone: p.phone,
+          zip: p.zip,
+          address: p.address,
+          addressDetail: p.address_detail,
+        },
+        {
+          name: sub.recipient_name,
+          phone: sub.recipient_phone,
+          zip: sub.zip,
+          address: sub.address,
+          addressDetail: sub.address_detail,
+        },
+      ]),
+    }
+  }
+  const afterChargeRun = chargeRunPassed(shipDate, new Date())
 
   // 2) 강아지 이름 + 최신 승인 처방 + 제품(정본 계산용) 병렬 로드.
   const allSlugs = [
@@ -397,15 +509,18 @@ export default async function PickingListPage({
         }))
     }
 
+    const { target: shipTo, source: addressSource } = shipToOf(sub)
+    const hasPaidOrder = orderBySubId.has(sub.id)
     return {
       subId: sub.id,
       dogName,
-      recipientName: sub.recipient_name ?? '(수령인 미등록)',
-      phone: sub.recipient_phone ?? '',
-      zip: sub.zip ?? '',
+      recipientName: shipTo?.name ?? '(수령인 미등록)',
+      phone: shipTo?.phone ?? '',
+      zip: shipTo?.zip ?? '',
       addressLine:
-        [sub.address, sub.address_detail].filter(Boolean).join(' ') ||
+        [shipTo?.address, shipTo?.addressDetail].filter(Boolean).join(' ') ||
         '(주소 미등록)',
+      addressSource,
       memo: sub.delivery_memo ?? '',
       freshRatio: freshRatio ?? 0,
       freshLabel: freshTierLabel(sub.fresh_ratio),
@@ -449,6 +564,19 @@ export default async function PickingListPage({
         !orderBySubId.has(sub.id),
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
+      // ★결제 증거 없이 예정일이 지난 건 — 재시도 중. 라벨·조리 합계에서 뺀다(2026-09-25).
+      overdueNotCharged:
+        sub.next_delivery_date != null &&
+        sub.next_delivery_date < shipDate &&
+        !hasPaidOrder,
+      // ★발송일 09:10(청구 시각)이 지났는데 결제 주문이 없다 — 청구 크론 실패·건너뜀.
+      //   예전엔 "발송일 아침 청구 예정" 으로 떨어져 발송 가능이었다(2026-09-25).
+      notChargedAfterRun:
+        afterChargeRun &&
+        sub.status === 'active' &&
+        sub.next_delivery_date != null &&
+        sub.next_delivery_date <= shipDate &&
+        !hasPaidOrder,
       /**
        * ★오늘 청구가 실패했다 (2026-08-12 3라운드 감사).
        * 실패는 next_delivery_date 를 안 밀기 때문에 charged=false·overdue=false 가
@@ -506,6 +634,8 @@ export default async function PickingListPage({
       r.chargeFailedToday ||
       r.pausedBeforeCharge ||
       r.skippedNotCharged ||
+      r.overdueNotCharged ||
+      r.notChargedAfterRun ||
       r.pausedAfterCharge ||
       r.dateMovedAfterCharge ||
       r.missing.length > 0,
@@ -666,6 +796,10 @@ export default async function PickingListPage({
                   <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
                 ) : r.skippedNotCharged ? (
                   <Badge tone="red">고객이 미룸 — 미청구, 보내지 마세요</Badge>
+                ) : r.overdueNotCharged ? (
+                  <Badge tone="red">청구 지연 — 결제 전, 보내지 마세요</Badge>
+                ) : r.notChargedAfterRun ? (
+                  <Badge tone="red">청구 시각 지남 — 미청구, 보내지 마세요</Badge>
                 ) : r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (

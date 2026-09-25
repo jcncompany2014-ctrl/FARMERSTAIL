@@ -150,14 +150,11 @@ async function runRefundRetry(): Promise<Response> {
       orderRow?.payment_status === 'paid' &&
       row.reason !== 'cancelled_mid_charge'
     ) {
-      await adminTyped
-        .from('payment_refund_queue')
-        .update({
-          status: 'succeeded',
-          attempts,
-          last_error: 'order_recovered_paid',
-        })
-        .eq('id', row.id)
+      await checkedQueueUpdate(adminTyped, row.id, {
+        status: 'succeeded',
+        attempts,
+        last_error: 'order_recovered_paid',
+      })
       succeeded += 1
       continue
     }
@@ -209,14 +206,11 @@ async function runRefundRetry(): Promise<Response> {
      * MAX_ATTEMPTS 를 기다리지 않는 이유: 같은 요청을 5번 더 보내도 같은 답이 온다.
      */
     if (errCode === 'NOT_CANCELABLE_PAYMENT' || errCode === 'NOT_FOUND_PAYMENT') {
-      await adminTyped
-        .from('payment_refund_queue')
-        .update({
-          status: 'permanently_failed',
-          attempts,
-          last_error: sanitizeLogText(`${errCode}: ${result.error.message}`),
-        })
-        .eq('id', row.id)
+      await checkedQueueUpdate(adminTyped, row.id, {
+        status: 'permanently_failed',
+        attempts,
+        last_error: sanitizeLogText(`${errCode}: ${result.error.message}`),
+      })
       captureBusinessEvent('error', 'refund_queue.needs_manual_check', {
         orderId: row.order_id,
         paymentKey: row.payment_key,
@@ -246,14 +240,11 @@ async function runRefundRetry(): Promise<Response> {
 
     // 실패 — backoff 또는 permanently_failed.
     if (attempts >= MAX_ATTEMPTS) {
-      await adminTyped
-        .from('payment_refund_queue')
-        .update({
-          status: 'permanently_failed',
-          attempts,
-          last_error: sanitizeLogText(result.error.message),
-        })
-        .eq('id', row.id)
+      await checkedQueueUpdate(adminTyped, row.id, {
+        status: 'permanently_failed',
+        attempts,
+        last_error: sanitizeLogText(result.error.message),
+      })
       captureBusinessEvent('error', 'refund_queue.permanent_failure', {
         orderId: row.order_id,
         paymentKey: row.payment_key,
@@ -273,14 +264,11 @@ async function runRefundRetry(): Promise<Response> {
     // exponential backoff. attempts 가 1-indexed (방금 한 시도 횟수).
     const backoffIdx = Math.min(attempts - 1, BACKOFF_MS.length - 1)
     const nextRetryAt = new Date(Date.now() + BACKOFF_MS[backoffIdx]!).toISOString()
-    await adminTyped
-      .from('payment_refund_queue')
-      .update({
-        attempts,
-        last_error: sanitizeLogText(result.error.message),
-        next_retry_at: nextRetryAt,
-      })
-      .eq('id', row.id)
+    await checkedQueueUpdate(adminTyped, row.id, {
+      attempts,
+      last_error: sanitizeLogText(result.error.message),
+      next_retry_at: nextRetryAt,
+    })
     retried += 1
   }
 
@@ -292,6 +280,24 @@ async function runRefundRetry(): Promise<Response> {
     retried,
     failed,
   })
+}
+
+/**
+ * 큐 행 갱신 — **결과를 본다** (2026-09-25 3차 점검, 규칙95 사각지대).
+ * `adminTyped` 라는 이름 때문에 규칙95 정규식(`admin`)이 못 봤다. 특히 backoff 갱신이
+ * 실패하면 attempts 가 안 올라 **영원히 permanently_failed 로 안 넘어간다**
+ * (매 시간 같은 환불을 다시 시도하고 사람에게는 끝내 안 알린다).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkedQueueUpdate(admin: any, queueId: string, patch: Record<string, unknown>) {
+  const { error } = await admin.from('payment_refund_queue').update(patch).eq('id', queueId)
+  if (error) {
+    captureBusinessEvent('error', 'refund_queue.update_failed', {
+      queueId,
+      status: String(patch.status ?? 'backoff'),
+      dbError: String(error.message ?? error),
+    })
+  }
 }
 
 /**

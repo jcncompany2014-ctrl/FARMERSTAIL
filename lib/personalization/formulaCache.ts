@@ -28,6 +28,11 @@ export type ComputeResponse =
       /** 안전 게이트 — 판매 레시피가 전부 알레르기면 true (상담 라우팅). */
       needsConsultation?: boolean
       consultationReason?: string | null
+      /**
+       * 구독 중이라 재설문으로 적용 중 레시피를 바꾸지 않았다(2026-09-25) — 화면은
+       * "다음 제안 때 반영" 안내를 붙인다. lib/personalization/subscribed-recompute.
+       */
+      subscribedLocked?: boolean
     }
   | { ok?: false; code?: string; message?: string }
 

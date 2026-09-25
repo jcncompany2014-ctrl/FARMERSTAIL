@@ -6,6 +6,7 @@ import {
   chargeKeySuffix,
   shouldAdvanceChargeKey,
   RETRY_COOLDOWN_MS,
+  nextRetryAtAfter,
 } from './billing-error-classify.ts'
 
 /**
@@ -179,6 +180,33 @@ describe('describeBillingError — 한국어 사유', () => {
 describe('RETRY_COOLDOWN_MS', () => {
   it('24 시간 (transient retry 간격)', () => {
     assert.equal(RETRY_COOLDOWN_MS, 24 * 60 * 60 * 1000)
+  })
+})
+
+describe('nextRetryAtAfter — "내일 다시 시도"가 정말 내일이다 (2026-09-25)', () => {
+  // 크론은 매일 00:10:02 UTC 에 돈다(실측). 그 실행의 nowIso 가 next_retry_at 보다
+  // 커야 재시도 대상이 된다.
+  const nextRunNowIso = (d: string) => new Date(`${d}T00:10:02Z`).getTime()
+
+  it('★정상 흐름: 09:10 KST 실패 → 다음 날 크론이 집는다 (예전 +24h 는 이틀 뒤였다)', () => {
+    const failedAt = new Date('2026-09-29T00:10:07Z') // 크론 시작 5초 뒤 실패
+    const retry = nextRetryAtAfter(failedAt)
+    assert.equal(retry.toISOString(), '2026-09-30T00:05:00.000Z')
+    assert.ok(retry.getTime() <= nextRunNowIso('2026-09-30'), '다음 날 실행에 포함')
+    // 예전 방식의 결함을 기록 — 실패 + 24h 는 다음 날 nowIso 보다 늦다.
+    assert.ok(failedAt.getTime() + RETRY_COOLDOWN_MS > nextRunNowIso('2026-09-30'))
+  })
+
+  it('같은 날 다시 긁지 않는다 — 최소 20시간 간격', () => {
+    const failedAt = new Date('2026-09-29T00:10:07Z')
+    const retry = nextRetryAtAfter(failedAt)
+    assert.ok(retry.getTime() - failedAt.getTime() >= 20 * 60 * 60 * 1000 - 5 * 60 * 1000)
+  })
+
+  it('크론 밖 시각의 실패(수동 실행 등)도 다음 정기 실행 직전으로 맞춘다', () => {
+    // 15:00 UTC 실패 → 다음 날 00:10 은 9h 뒤라 너무 가깝다 → 그다음 날
+    const retry = nextRetryAtAfter(new Date('2026-09-29T15:00:00Z'))
+    assert.equal(retry.toISOString(), '2026-10-01T00:05:00.000Z')
   })
 })
 

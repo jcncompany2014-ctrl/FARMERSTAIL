@@ -148,6 +148,8 @@ export default function AnalysisView({
   // formula fetch 진행중 플래그 — 박스가 '가짜 placeholder → 진짜'로 튀는 대신
   // 로딩 스켈레톤을 보이게. 실패(settled+null)면 하드코드 fallback 유지.
   const [formulaLoading, setFormulaLoading] = useState(true)
+  // 구독 중 재설문 — 적용 중 레시피를 지켰다는 신호(2026-09-25). 안내 한 줄을 붙인다.
+  const [subscribedLocked, setSubscribedLocked] = useState(false)
   // Legacy commentary fetch 는 StructuredAnalysis v2 가 대체. 상태 변수는 제거.
 
   // 설문 완료 응원 포인트 toast — survey/page.tsx 가 sessionStorage 에
@@ -278,6 +280,7 @@ export default function AnalysisView({
         const { httpOk, body: json } = await fetchComputedFormula(dogId, 1)
         if (cancelled || !httpOk || json.ok !== true) return
         setFormula(json.formula)
+        setSubscribedLocked(json.subscribedLocked === true)
       } catch {
         /* silent — Magazine BoxMix 는 fallback hardcode 로 표시 */
       } finally {
@@ -528,6 +531,24 @@ export default function AnalysisView({
       {/* 설문 v4 — 관문에서 "건너뛰고 결과 보기"를 고른 경우: 선택 4개를 이어서 답하는
           자리(사장님 9/21 "결과 화면에서 정확도 올리기"). ?refine=1 은 마지막 설문의 답을
           그대로 들고 선택 묶음 첫 화면에서 시작한다(lib/survey/refine.ts). */}
+      {/* ★구독 중 재설문 안내 (2026-09-25 출시 전 점검 3차). 바뀐 답변으로 지금 받는
+          박스를 몰래 바꾸지 않는다 — 다음 레시피 제안에서 금액 동의와 함께 반영된다. */}
+      {!isArchive && subscribedLocked && (
+        <section className="px-5 mt-5">
+          <div
+            className="rounded border p-4"
+            style={{ borderColor: 'var(--rule)', background: 'var(--paper)' }}
+          >
+            <p className="text-[16px] font-bold text-ink leading-snug">
+              정기배송 레시피는 그대로예요
+            </p>
+            <p className="text-[14px] text-muted mt-1 leading-relaxed">
+              바뀐 답변은 다음 레시피 제안 때 반영돼요. 금액이 달라지면 먼저 여쭤볼게요.
+            </p>
+          </div>
+        </section>
+      )}
+
       {!isArchive && canRefine && !refineBlocked && (
         <section className="px-5 mt-5">
           <Link

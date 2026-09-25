@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
@@ -127,6 +128,19 @@ export async function GET(req: Request) {
   for (const { sub, days } of dueSubs) {
     const profile = profileById.get(sub.user_id)
 
+    /**
+     * ★사전고지 금액 = 실제 청구 금액 (2026-09-25 출시 전 점검 3차).
+     * 예전엔 total_amount(할인 전)를 "결제될 금액"으로 알렸다. 청구 크론은
+     * resolveAutoDiscount 로 체험단(100원·반값)·나무 10%·이벤트 할인을 적용해 긁으므로,
+     * 체험단 고객은 "85,700원이 결제돼요"를 받고 체험이 끝난 줄 알았다. 정기결제
+     * 사전고지는 실제 금액이어야 한다 — 청구와 **같은 함수**로 계산한다.
+     */
+    const chargeAmount =
+      typeof sub.total_amount === 'number' && sub.total_amount > 0
+        ? (await resolveAutoDiscount({ userId: sub.user_id, subtotal: sub.total_amount }))
+            .chargeAmount
+        : sub.total_amount
+
     // 이메일 발송 (수신자 프로필에 email 있으면).
     if (profile?.email) {
       try {
@@ -140,7 +154,7 @@ export async function GET(req: Request) {
           })),
           nextDeliveryDate: sub.next_delivery_date,
           daysBefore: days,
-          chargeAmount: sub.total_amount,
+          chargeAmount,
         })
         if (result.ok) sent++
         else errors++
@@ -195,8 +209,8 @@ export async function GET(req: Request) {
             // 정기결제 사전고지 — 푸시로만 받는 고객도 금액·결제 사실을 알아야
             // 한다(2026-09-01 감사: 이전엔 품목명 한 줄뿐이었다).
             body:
-              typeof sub.total_amount === 'number' && sub.total_amount > 0
-                ? `${itemCountLabel} · 발송일 아침 ${sub.total_amount.toLocaleString()}원 결제 예정`
+              typeof chargeAmount === 'number' && chargeAmount > 0
+                ? `${itemCountLabel} · 발송일 아침 ${chargeAmount.toLocaleString()}원 결제 예정`
                 : itemCountLabel,
             // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
             // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.

@@ -6,8 +6,8 @@
  *   - permanent  → 카드/billingKey 자체가 문제. retry 의미 없음.
  *                  → 즉시 paused + requires_billing_key_renewal=true.
  *                  → 사용자에게 "카드 재등록" 메일.
- *   - transient  → 한도초과 / 잔액부족 / 네트워크. 24h 후 retry.
- *                  → next_retry_at 만 +24h, count 증가 안 함.
+ *   - transient  → 한도초과 / 잔액부족 / 네트워크. 다음 날 크론에서 retry.
+ *                  → next_retry_at = nextRetryAtAfter(다음 날 09:05 KST), count 증가 안 함.
  *   - unknown    → 분류 못한 에러. 기존 3-strike 정책 유지.
  *
  * # 출처
@@ -109,6 +109,38 @@ const TRANSIENT_CODES = new Set<string>([
 
 /** retry 쿨다운 (transient 분류 시 next_retry_at 에 더할 시간). */
 export const RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000
+
+/** 청구 크론 시각 — vercel.json `10 0 * * *` (00:10 UTC = 09:10 KST). */
+const CHARGE_RUN_UTC_MINUTES = 10
+/** 크론 시작 시각(nowIso) 보다 확실히 앞서도록 잡는 여유. */
+const RETRY_LEAD_MS = 5 * 60 * 1000
+/** 같은 날 두 번 긁지 않도록 보장하는 최소 간격. */
+const RETRY_MIN_GAP_MS = 20 * 60 * 60 * 1000
+
+/**
+ * transient 실패 뒤 **다음 재시도 가능 시각** (2026-09-25 출시 전 점검 3차).
+ *
+ * # 왜 `실패 시각 + 24h` 가 아닌가
+ * 크론은 매일 **같은 초**(00:10:02 UTC 실측)에 돌고, 그 실행의 기준 시각(nowIso)은
+ * 시작 때 한 번 잡힌다. 실패 시각은 시작보다 몇 초 뒤이므로 `실패 + 24h` 는 다음 날
+ * nowIso 보다 **몇 초 늦다** → 다음 날 실행에서 빠지고 **이틀 뒤**에야 재시도됐다.
+ * 고객에게는 "내일 다시 시도할게요"라고 알리는데 실제로는 모레였다(잔액을 채운 고객이
+ * 하루를 더 기다림).
+ *
+ * # 그래서
+ * "실패 후 20시간 이상 지난 **첫 크론 실행** 5분 전"으로 잡는다. 정상 흐름(09:10 실패)
+ * 이면 다음 날 09:05 KST — 다음 날 크론이 반드시 집고, 화면의 "재시도 예정" 시각도
+ * 실제 재시도와 5분 차이다.
+ */
+export function nextRetryAtAfter(failedAt: Date): Date {
+  const d = new Date(
+    Date.UTC(failedAt.getUTCFullYear(), failedAt.getUTCMonth(), failedAt.getUTCDate(), 0, CHARGE_RUN_UTC_MINUTES),
+  )
+  while (d.getTime() - failedAt.getTime() < RETRY_MIN_GAP_MS) {
+    d.setUTCDate(d.getUTCDate() + 1)
+  }
+  return new Date(d.getTime() - RETRY_LEAD_MS)
+}
 
 /**
  * "토스가 **확실히 거절**했다"(= 돈이 절대 안 나갔다)고 단정할 수 있는 코드

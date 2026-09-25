@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
@@ -282,7 +283,7 @@ export async function POST(
   // admin 환불(유일한 admin 환불 경로)은 빠져 /admin/refunds 환불 목록·환불액
   // 통계에서 조용히 누락됐다. refunded_by=admin 으로 구분. fail 은 환불 자체를
   // 막지 않음(원장은 payment_events 가 1차 진실).
-  await admin.from('refunds').insert({
+  const { error: refundRowErr } = await admin.from('refunds').insert({
     order_id: order.id,
     user_id: order.user_id,
     amount: cancelAmount,
@@ -292,6 +293,14 @@ export async function POST(
     order_item_ids: null,
     is_partial: !isFullyRefunded,
   })
+  // 환불 자체는 이미 토스에서 끝났다 — 막지 않되, 원장 누락은 알린다(2026-09-25, 규칙95).
+  if (refundRowErr) {
+    captureBusinessEvent('error', 'admin.partial_cancel.refund_row_failed', {
+      orderId: order.id,
+      amount: cancelAmount,
+      dbError: refundRowErr.message,
+    })
+  }
 
   // R93 (D7): 전액 환불 완료 시 재고 복구 — cancel route 와 동일 패턴.
   // 이전엔 admin 전액 환불 후 재고가 차감된 채 방치 → 품절 오인 + 판매 손실.
@@ -319,10 +328,18 @@ export async function POST(
       (order as { subscription_id?: string | null }).subscription_id == null
     for (const it of restoreArr) {
       if (!reservedStock) break
-      await admin.rpc('restore_stock', {
+      const { error: restoreErr } = await admin.rpc('restore_stock', {
         p_product_id: it.product_id,
         p_qty: it.quantity,
       })
+      if (restoreErr) {
+        captureBusinessEvent('error', 'admin.partial_cancel.restore_stock_failed', {
+          orderId: order.id,
+          productId: it.product_id,
+          qty: it.quantity,
+          dbError: restoreErr.message,
+        })
+      }
     }
   }
 

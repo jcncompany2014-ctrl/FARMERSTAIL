@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { ipFromRequest, rateLimit } from '@/lib/rate-limit'
+import { env } from '@/lib/env'
 import {
   carrierMeta,
+  isTrackerAuthError,
   mapTrackerStatusCode,
+  trackerAuthHeader,
   type TrackingResult,
   type TrackingEvent,
 } from '@/lib/tracking'
@@ -11,7 +14,8 @@ import {
  * GET /api/tracking?carrier=&trackingNumber= — 배송 조회 프록시.
  *
  * # 인증이 없다 (의도)
- * 송장 조회는 로그인 전에도 필요할 수 있고, 상류(tracker.delivery)도 공개 API 다.
+ * 송장 조회는 로그인 전에도 필요할 수 있다. (상류 tracker.delivery 는 2026-09 부터
+ * **키가 필수**다 — 키는 서버 env 에만 있고 여기서 붙인다. lib/tracking trackerAuthHeader)
  * 대신 **두 가지를 지킨다**:
  *
  *  1. **개인정보를 받아오지 않는다.** 상류는 sender·recipient 이름을 주지만 우리는
@@ -26,7 +30,7 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Public GraphQL endpoint — no API key required, CORS-permissive from server.
+// tracker.delivery GraphQL — 2026-09 부터 API 키 필수(Authorization: TRACKQL-API-KEY id:secret).
 const DELIVERY_TRACKER_ENDPOINT = 'https://apis.tracker.delivery/graphql'
 
 const QUERY = `
@@ -62,8 +66,14 @@ type DeliveryTrackerResponse = {
       events: DeliveryTrackerEvent[]
     } | null
   }
-  errors?: Array<{ message: string }>
+  errors?: Array<{ message: string; extensions?: { code?: string | null } | null }>
 }
+
+/** 우리 쪽 조회 수단이 없을 때(키 없음·만료) — 고객 탓이 아니므로 택배사 사이트로 안내한다. */
+const LOOKUP_UNAVAILABLE = {
+  code: 'LOOKUP_UNAVAILABLE',
+  message: '지금은 여기서 배송 조회가 안 돼요. 아래 택배사 조회로 확인해 주세요.',
+} as const
 
 function normalizeEvent(e: DeliveryTrackerEvent): TrackingEvent {
   return {
@@ -119,10 +129,19 @@ export async function GET(req: Request) {
     )
   }
 
+  const authHeader = trackerAuthHeader(
+    env.DELIVERY_TRACKER_CLIENT_ID,
+    env.DELIVERY_TRACKER_CLIENT_SECRET,
+  )
+  if (!authHeader) {
+    console.error('[tracking] 배송조회 키 미설정 — DELIVERY_TRACKER_CLIENT_ID/SECRET')
+    return NextResponse.json(LOOKUP_UNAVAILABLE, { status: 503 })
+  }
+
   try {
     const res = await fetch(DELIVERY_TRACKER_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
       body: JSON.stringify({
         query: QUERY,
         variables: {
@@ -153,12 +172,16 @@ export async function GET(req: Request) {
     const json = (await res.json()) as DeliveryTrackerResponse
 
     if (json.errors && json.errors.length) {
+      // 상류 원문(영어)을 고객에게 그대로 넘기지 않는다 — 실제로 "Authorization header
+      // is missing." 이 배송조회 화면에 떴다(2026-09-25). 진단은 서버 로그로.
+      console.error('[tracking] 상류 오류', json.errors[0]?.message)
+      if (isTrackerAuthError(json.errors)) {
+        return NextResponse.json(LOOKUP_UNAVAILABLE, { status: 503 })
+      }
       return NextResponse.json(
         {
           code: 'TRACKING_NOT_FOUND',
-          message:
-            json.errors[0]?.message ??
-            '송장을 찾을 수 없어요. 송장번호를 확인해 주세요.',
+          message: '송장을 찾을 수 없어요. 송장번호를 확인해 주세요.',
         },
         { status: 404 }
       )

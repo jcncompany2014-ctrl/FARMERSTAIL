@@ -60,7 +60,16 @@ export type PickingRow = {
    * 발송금지로 판정한다 — 날짜만으론 청구분과 구분이 안 돼 무료 박스가 나갔다.
    */
   skippedNotCharged: boolean
-  /** 실패 코드(INSUFFICIENT_FUNDS 등) — 사장님이 원인을 바로 보게. */
+  /** ★예정일 지남 + 결제 주문 없음(재시도 중) — 발송금지 (2026-09-25). */
+  overdueNotCharged: boolean
+  /** ★발송일 청구 시각(09:10) 지남 + 결제 주문 없음 — 발송금지 (2026-09-25). */
+  notChargedAfterRun: boolean
+  /**
+   * 주소 출처 — 'order' = 결제된 주문에 적힌 주소(청구 시점 확정값),
+   * 'current' = 아직 청구 전이라 지금 기준(기본 배송지→프로필→신청서)으로 정한 주소.
+   * 라벨·CSV 는 subscriptions.address(가입 때 굳은 값)를 쓰지 않는다(2026-09-25).
+   */
+  addressSource: 'order' | 'current'
   failedCode: string | null
   /** 청구 후 고객이 배송일을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기 주문 역추적으로 포함됨. */
   dateMovedAfterCharge: boolean

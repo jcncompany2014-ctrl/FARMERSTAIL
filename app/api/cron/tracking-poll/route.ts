@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
-import { carrierMeta, mapTrackerStatusCode } from '@/lib/tracking'
+import {
+  carrierMeta,
+  isTrackerAuthError,
+  mapTrackerStatusCode,
+  trackerAuthHeader,
+} from '@/lib/tracking'
+import { env } from '@/lib/env'
 import { pushToUser } from '@/lib/push'
 import { notifyOrderDelivered } from '@/lib/email'
 import { trackCron } from '@/lib/cron-tracking'
@@ -66,7 +72,7 @@ type DTLastEvent = {
 
 type DTResponse = {
   data?: { track?: { lastEvent: DTLastEvent | null } | null }
-  errors?: Array<{ message: string }>
+  errors?: Array<{ message: string; extensions?: { code?: string | null } | null }>
 }
 
 export async function GET(req: Request) {
@@ -113,6 +119,27 @@ async function runTrackingPoll(): Promise<Response> {
   }
 
   const targets = (orders ?? []) as OrderRow[]
+
+  // ★키가 없으면 조회 자체가 불가능하다(2026-09-25 — tracker.delivery 가 키 필수로 바뀜).
+  //   예전엔 인증 오류 응답을 '아직 조회 안 됨'처럼 건너뛰고 200 을 돌려줘서, 배송 중
+  //   주문이 영원히 배송완료가 안 되는데 크론은 초록이었다. 배송 중 주문이 있을 때만
+  //   실패로 올린다(없으면 할 일이 없는 것이 맞다).
+  const authHeader = trackerAuthHeader(
+    env.DELIVERY_TRACKER_CLIENT_ID,
+    env.DELIVERY_TRACKER_CLIENT_SECRET,
+  )
+  if (targets.length > 0 && !authHeader) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'TRACKER_NOT_CONFIGURED',
+        message: `배송조회 키(DELIVERY_TRACKER_CLIENT_ID/SECRET)가 없어 자동 배송완료를 못 해요 — 배송 중 ${targets.length}건`,
+        pending: targets.length,
+      },
+      { status: 500 },
+    )
+  }
+  let authRejected = false
   let delivered = 0
   let polled = 0
   let errors = 0
@@ -133,7 +160,10 @@ async function runTrackingPoll(): Promise<Response> {
     try {
       const res = await fetch(DELIVERY_TRACKER_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
         body: JSON.stringify({
           query: QUERY,
           variables: {
@@ -149,7 +179,15 @@ async function runTrackingPoll(): Promise<Response> {
         continue
       }
       const json = (await res.json()) as DTResponse
-      if (json.errors && json.errors.length) continue
+      if (json.errors && json.errors.length) {
+        // 키 거절(만료·오입력)은 이 주문 문제가 아니다 — 나머지도 전부 같은 답이 오므로
+        // 멈추고 실패로 올린다. 무료 키는 21일마다 만료된다.
+        if (isTrackerAuthError(json.errors)) {
+          authRejected = true
+          break
+        }
+        continue // 발송 직후 아직 택배사에 안 잡힌 송장 — 다음 회차에 다시
+      }
       lastEvent = json.data?.track?.lastEvent ?? null
     } catch {
       errors += 1
@@ -216,6 +254,20 @@ async function runTrackingPoll(): Promise<Response> {
 
     delivered += 1
     await new Promise((r) => setTimeout(r, 200))
+  }
+
+  if (authRejected) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'TRACKER_AUTH_REJECTED',
+        message:
+          '배송조회 키가 거절됐어요(만료·오입력) — console.tracker.delivery 에서 재발급해 Vercel 환경변수를 바꿔 주세요',
+        polled,
+        delivered,
+      },
+      { status: 500 },
+    )
   }
 
   // ★저장 실패는 5xx 로 알린다 — trackCron 이 5xx 를 error 로 기록하고

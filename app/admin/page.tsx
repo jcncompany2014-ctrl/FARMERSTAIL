@@ -284,11 +284,13 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'failed')
       .gte('attempted_at', oneDayAgo),
-    // 환불 pending (refunds 테이블에 행이 있는 케이스)
+    // 환불 대기 — payment_refund_queue 가 정본(2026-09-25 3차 점검). refunds 는 성공한
+    // 환불만 적는 원장이라 status='pending' 이 영원히 0 이었다. 막힌 환불(재시도 중 +
+    // 최종 실패)을 센다 — 둘 다 고객 돈이 아직 안 돌아간 상태다.
     supabase
-      .from('refunds')
+      .from('payment_refund_queue')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .in('status', ['pending', 'permanently_failed']),
     // 재고 0 상품 (is_active=true)
     supabase
       .from('products')

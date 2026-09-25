@@ -288,7 +288,11 @@ export async function POST(
               reason ? ` · ${reason}` : ''
             }`
 
-    pushToUser(
+    // ★await 한다 (2026-09-25 3차 점검, 규칙73 형제). 예전엔 fire-and-forget 이라
+    //   응답을 돌려준 뒤 서버리스 인스턴스가 멈추면 '배송이 시작됐어요 · 송장번호'
+    //   푸시·메일이 흔적 없이 사라졌다 — 고객이 송장번호를 받는 유일한 경로다.
+    //   실패해도 상태 변경은 이미 끝났으므로 응답은 성공 그대로(베스트 에포트).
+    await pushToUser(
       order.user_id,
       {
         title,
@@ -301,9 +305,9 @@ export async function POST(
       /* 푸시는 베스트 에포트 */
     })
 
-    // 같은 이벤트에 대한 이메일 알림. fire-and-forget.
+    // 같은 이벤트에 대한 이메일 알림 — 위와 같은 이유로 await.
     if (orderStatus === 'shipping') {
-      notifyOrderShipped(supabase, {
+      await notifyOrderShipped(supabase, {
         orderId: order.id,
         userId: order.user_id,
         orderNumber: order.order_number,
@@ -313,7 +317,7 @@ export async function POST(
         trackingNumber: shipTracking,
       }).catch(() => {})
     } else if (orderStatus === 'delivered') {
-      notifyOrderDelivered(supabase, {
+      await notifyOrderDelivered(supabase, {
         orderId: order.id,
         userId: order.user_id,
         orderNumber: order.order_number,
@@ -321,7 +325,7 @@ export async function POST(
         totalAmount: order.total_amount,
       }).catch(() => {})
     } else if (orderStatus === 'cancelled') {
-      notifyOrderCancelled(supabase, {
+      await notifyOrderCancelled(supabase, {
         orderId: order.id,
         userId: order.user_id,
         orderNumber: order.order_number,

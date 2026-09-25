@@ -10,7 +10,7 @@ import {
   chargeKeySuffix,
   shouldAdvanceChargeKey,
   isDefinitiveDecline,
-  RETRY_COOLDOWN_MS,
+  nextRetryAtAfter,
   MAX_FAILED_CHARGES,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed, notifyOrderPlaced } from '@/lib/email'
@@ -20,6 +20,7 @@ import { trackCron } from '@/lib/cron-tracking'
 // 할인 계산은 lib/payments/auto-discount 하나 — 화면 미리보기가 같은 함수를
 // 쓴다(2026-07-30). 크론에만 있던 탓에 화면 금액이 실제 청구액과 달랐다.
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
+import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
 import {
   priceForFormula,
   type BoxProduct,
@@ -105,7 +106,13 @@ type SubscriptionRow = {
   //   address_detail 컬럼이 없다"고 적었는데 **넷 다 있고 앞의 셋은 NOT NULL** 이다.
   //   여기서 안 뽑는 건 컬럼이 없어서가 아니라, 그 값이 가입 시점에 굳은 뒤
   //   갱신되지 않아 배송지 진실이 아니기 때문이다(resolveShippingTarget 주석 참조).
+  //   ★2026-09-25: 그래도 **마지막 대안**으로는 쓴다 — 기본 배송지·프로필이 둘 다
+  //   비면(신청 화면에서 저장 체크를 끈 신규 고객) 결제가 매일 건너뛰어졌다.
+  recipient_name: string | null
   recipient_phone: string | null
+  zip: string | null
+  address: string | null
+  address_detail: string | null
   interval_weeks: number
   coverage_weeks: number | null
   dog_id: string | null
@@ -120,14 +127,6 @@ type SubscriptionRow = {
    * unknown 에서 키가 갈아타고 카드 재등록에서 되돌아갔다).
    */
   charge_key_seq: number | null
-}
-
-type ShippingTarget = {
-  name: string
-  phone: string
-  zip: string
-  address: string
-  addressDetail: string | null
 }
 
 /**
@@ -149,9 +148,12 @@ type ShippingTarget = {
  * 갱신하는 경로가 저장소에 하나도 없기 때문이다(grep 확인). 스냅샷을 쓰도록
  * 바꾸면 이사한 고객이 옛 주소에 영원히 묶인다 — 지금보다 나쁘다.
  *
- * ⚠️ 따라서 `subscriptions.address` 계열은 **가입 시점의 화석**이다. 어드민
- * 피킹·배송 화면을 포함해 어디서도 배송지 진실로 읽으면 안 된다. 배송지 진실은
- * 이 함수가 만들어 orders 에 적는 값이다.
+ * ⚠️ 따라서 `subscriptions.address` 계열은 **가입 시점의 화석**이다. 기본 배송지·
+ * 프로필보다 앞세우면 안 된다. 배송지 진실은 이 함수가 만들어 orders 에 적는 값이고,
+ * 우선순위 정본은 lib/commerce/shipping-target.ts(피킹 리스트도 같은 함수를 쓴다).
+ * ★2026-09-25: 1)·2)가 모두 비면 3) 구독 신청서 주소를 쓴다 — 전엔 null 이라
+ *   신청 화면에서 "다음에도 이 주소" 체크를 끈 신규 고객이 매일 NO_SHIPPING_ADDRESS
+ *   로 건너뛰어져 박스도 결제도 없이 멈췄다.
  * 정말로 스냅샷을 쓰려면 먼저 "구독 배송지 변경" 경로부터 만들어야 한다.
  */
 /**
@@ -162,6 +164,7 @@ type ShippingTarget = {
 async function resolveShippingTarget(
   supabase: ReturnType<typeof createAdminClient>,
   userId: string,
+  subscriptionForm: SubscriptionRow,
 ): Promise<ShippingTarget | null | 'lookup-failed'> {
   const { data: addr, error: addrErr } = await supabase
     .from('addresses')
@@ -176,16 +179,6 @@ async function resolveShippingTarget(
   //   경보도 no_shipping_address 라 엉뚱한 곳을 보게 된다. 박스는 걸러진다.
   if (addrErr) return 'lookup-failed'
 
-  if (addr && addr.zip && addr.address && addr.recipient_name && addr.phone) {
-    return {
-      name: addr.recipient_name,
-      phone: addr.phone,
-      zip: addr.zip,
-      address: addr.address,
-      addressDetail: addr.address_detail ?? null,
-    }
-  }
-
   // fallback to profiles
   const { data: prof, error: profErr } = await supabase
     .from('profiles')
@@ -194,17 +187,29 @@ async function resolveShippingTarget(
     .maybeSingle()
   if (profErr) return 'lookup-failed'
 
-  if (prof && prof.zip && prof.address && prof.name && prof.phone) {
-    return {
+  return pickShippingTarget([
+    addr && {
+      name: addr.recipient_name,
+      phone: addr.phone,
+      zip: addr.zip,
+      address: addr.address,
+      addressDetail: addr.address_detail,
+    },
+    prof && {
       name: prof.name,
       phone: prof.phone,
       zip: prof.zip,
       address: prof.address,
-      addressDetail: prof.address_detail ?? null,
-    }
-  }
-
-  return null
+      addressDetail: prof.address_detail,
+    },
+    {
+      name: subscriptionForm.recipient_name,
+      phone: subscriptionForm.recipient_phone,
+      zip: subscriptionForm.zip,
+      address: subscriptionForm.address,
+      addressDetail: subscriptionForm.address_detail,
+    },
+  ])
 }
 
 /**
@@ -390,7 +395,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     .select(
       `id, user_id, next_delivery_date, total_amount,
        billing_key, billing_customer_key, failed_charge_count,
-       recipient_phone, interval_weeks, coverage_weeks, dog_id,
+       recipient_name, recipient_phone, zip, address, address_detail,
+       interval_weeks, coverage_weeks, dog_id,
        total_deliveries, next_retry_at, requires_billing_key_renewal,
        last_failed_charge_code, fresh_ratio, charge_key_seq`,
     )
@@ -601,7 +607,7 @@ async function runSubscriptionCharge(): Promise<Response> {
 
     // audit launch-fix: 배송 주소를 addresses/profiles 에서 lookup. 신청
     // 시점 snapshot 이 없으면 매번 lookup. 둘 다 없으면 결제 자체 skip.
-    const ship = await resolveShippingTarget(supabase, sub.user_id)
+    const ship = await resolveShippingTarget(supabase, sub.user_id, sub)
     // ★조회 실패와 미등록을 갈라서 처리한다(2026-08-02 검수).
     //   둘을 합쳐 두면 DB 가 잠깐 흔들린 것뿐인데 고객은 "배송지를 등록해
     //   주세요" 를 읽고, 사장님 경보도 주소 문제로 뜬다. 고칠 곳을 못 찾는다.
@@ -650,7 +656,9 @@ async function runSubscriptionCharge(): Promise<Response> {
         })
       }
       // 운영자 알림 — 정기구독이 무한 정지되는 것을 막기 위해.
-      captureBusinessEvent('warning', 'subscription.no_shipping_address', {
+      // ★error 로 올린다(2026-09-25): 이제 신청서 주소까지 대안으로 쓰므로 여기 오면
+      //   데이터가 깨진 것이다. warning 은 사장님 알림 규칙(level≥error)에 안 걸린다.
+      captureBusinessEvent('error', 'subscription.no_shipping_address', {
         subscriptionId: sub.id,
         userId: sub.user_id,
       })
@@ -1237,14 +1245,10 @@ async function runSubscriptionCharge(): Promise<Response> {
         })
         .eq('id', sub.id)
       const postOk = !ordersUpd.error && !subUpd.error
-      // audit #79: subscription_charges schema-drift cast.
-      await (supabase as unknown as {
-        from: (t: string) => {
-          update: (r: Record<string, unknown>) => {
-            eq: (c: string, v: string) => Promise<unknown>
-          }
-        }
-      })
+      // ★결과를 본다 (2026-09-25 3차 점검 — 규칙95 사각지대). 다중행 캐스트 때문에
+      //   정규식이 못 봤다. 이 쓰기가 실패하면 행이 pending·payment_key NULL 로 남아
+      //   '청구됐으나 미확정' 신호(payment_key)조차 없고, 브리핑·청구 통계가 틀린다.
+      const { error: chargeRowErr } = await supabase
         .from('subscription_charges')
         .update({
           // 후속 update 실패 시 'succeeded' 금지 → 'pending' 유지(payment_key 존재 =
@@ -1255,6 +1259,15 @@ async function runSubscriptionCharge(): Promise<Response> {
           completed_at: postOk ? successIso : null,
         })
         .eq('id', chargeRow!.id)
+      if (chargeRowErr) {
+        captureBusinessEvent('error', 'subscription.charge.charge_row_success_write_failed', {
+          subscriptionId: sub.id,
+          orderId: orderRow!.id,
+          paymentKey: result.paymentKey,
+          dbError: chargeRowErr.message,
+          note: '토스 결제는 성공했다 — subscription_charges 행을 수동으로 succeeded·payment_key 로 맞출 것',
+        })
+      }
       if (postOk) {
         captureBusinessEvent('info', 'subscription.charge.succeeded', {
           subscriptionId: sub.id,
@@ -1345,7 +1358,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       //
       // permanent (카드 만료/유효 X): 즉시 paused + requires_billing_key_renewal.
       //   재시도 의미 없음. 사용자가 카드 다시 등록할 때까지 대기.
-      // transient (잔액부족/네트워크): count 증가 안 함, next_retry_at +24h.
+      // transient (잔액부족/네트워크): count 증가 안 함, next_retry_at = 다음 날 크론 직전.
       //   같은 카드로 시간 지나면 풀릴 가능성.
       // unknown: 기존 3-strike 정책 — count++, 3회면 paused.
       const errorCode = result.error?.code ?? null
@@ -1364,7 +1377,8 @@ async function runSubscriptionCharge(): Promise<Response> {
         // permanent 는 count 증가 의미 없음 — 1회 카운트만 찍어 history 보전.
         nextFailedCount = sub.failed_charge_count + 1
       } else if (errorClass === 'transient') {
-        nextRetryAt = new Date(Date.now() + RETRY_COOLDOWN_MS).toISOString()
+        // 다음 날 크론이 반드시 집도록 — '실패+24h' 는 몇 초 차로 이틀 뒤가 됐다(2026-09-25).
+        nextRetryAt = nextRetryAtAfter(new Date()).toISOString()
         if (isDefinitiveDecline(errorCode)) {
           // 확정 거절(잔액부족류)도 실패 이력으로 센다. 일시정지는 안 한다
           // (3-strike 는 unknown 전용) — 회복 가능한 거절이다.

@@ -95,6 +95,11 @@ const serverSchema = z.object({
   // 호출할 수 있는 엔드포인트라 단순 admin 쿠키 가드가 아니라 고정 토큰으로 막음.
   CRON_SECRET: optStr(),
 
+  // === 배송조회 tracker.delivery (선택 — 없으면 자동 배송완료·고객 배송조회 불가) ===
+  // 2026-09 부터 키 필수. console.tracker.delivery 에서 발급(무료 키는 21일마다 만료).
+  DELIVERY_TRACKER_CLIENT_ID: optStr(),
+  DELIVERY_TRACKER_CLIENT_SECRET: optStr(),
+
   // === 운영 출시 후 등록되는 정보 (선택) ===================================
   // 통신판매업 신고번호 / 카카오 채널 URL. 신고 / 채널 생성 후 등록.
   // 미등록 상태에서도 앱은 동작 — placeholder 표시.
@@ -138,6 +143,8 @@ const raw = {
   NEXT_PUBLIC_BUSINESS_NAME: process.env.NEXT_PUBLIC_BUSINESS_NAME,
   NEXT_PUBLIC_FEED_BIZ_REG_NO: process.env.NEXT_PUBLIC_FEED_BIZ_REG_NO,
   CRON_SECRET: process.env.CRON_SECRET,
+  DELIVERY_TRACKER_CLIENT_ID: process.env.DELIVERY_TRACKER_CLIENT_ID,
+  DELIVERY_TRACKER_CLIENT_SECRET: process.env.DELIVERY_TRACKER_CLIENT_SECRET,
   NEXT_PUBLIC_MAIL_ORDER_NUMBER: process.env.NEXT_PUBLIC_MAIL_ORDER_NUMBER,
   NEXT_PUBLIC_KAKAO_CHANNEL_URL: process.env.NEXT_PUBLIC_KAKAO_CHANNEL_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,

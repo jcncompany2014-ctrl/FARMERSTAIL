@@ -139,7 +139,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   // 번호가 바뀐 경우에만 한 번 알린다. 배송 시작 알림은 재발송하지 않는다.
   if (order.order_status === 'shipping') {
-    pushToUser(
+    // await — 응답 뒤 인스턴스가 멈추면 새 송장번호 알림이 사라진다(규칙73 형제, 2026-09-25).
+    await pushToUser(
       order.user_id,
       {
         title: '운송장 정보가 업데이트됐어요',
