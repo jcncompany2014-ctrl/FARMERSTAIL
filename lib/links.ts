@@ -34,32 +34,57 @@ export const BIO_LINKS: BioLink[] = [
   },
 ]
 
-/** 이미지가 있는 이벤트 카드 — "지금 진행 중" 섹션. 끝난 이벤트는 여기서 뺀다. */
+/** 커버 사진 — 페이지 맨 위 풀블리드. ⛔실물 스냅만(사장님 2026-09-25 엑스표 4장). */
+export const BIO_COVER = '/pouch-freezer-43.jpg'
+
+/**
+ * 이벤트 배너 카드 — "알려드려요" 섹션. 번호 공지줄(notice) + 큰 타이포 배너가
+ * 한 쌍으로 그려진다(킥고잉 링크인바이오 문법). 끝난 이벤트는 여기서 뺀다.
+ */
 export type BioEventCard = {
-  /** 카드 이미지 위 작은 배지 (예: 모집 / 이벤트). */
+  /** 번호 공지줄 한 문장 (배너 위에 ① ② 로 붙는다). */
+  notice: string
+  /** 배너 이미지 위 작은 배지 (예: 모집 / 이벤트). */
   badge: string
   title: string
   sub: string
   /** public/ 경로의 이미지. */
   image: string
+  /**
+   * photo = 사진 위 어두운 스크림 + 크림 글자.
+   * paper = 밝은 이미지(여백이 왼쪽) 위 잉크 글자 — 이미지는 오른쪽으로 민다.
+   */
+  variant: 'photo' | 'paper'
   href: string
 }
 
 export const BIO_EVENT_CARDS: BioEventCard[] = [
   {
+    notice: '서포터즈 1기를 모집하고 있어요 (~9/30)',
     badge: '모집',
     title: '서포터즈 1기 모집',
-    sub: '~9/30 · 게시물 댓글로 지원해 주세요',
+    sub: '게시물 댓글로 지원해 주세요',
     image: '/hero-dog.jpg',
+    variant: 'photo',
     href: 'https://www.instagram.com/p/DdlgwF8Ej1L/',
   },
   {
+    notice: '스마트스토어 오픈 기념 리뷰 이벤트가 진행 중이에요',
     badge: '이벤트',
-    title: '오픈 기념 리뷰 이벤트',
-    sub: '스마트스토어 리뷰 최대 20% 포인트백',
+    title: '리뷰 최대 20% 포인트백',
+    sub: '스마트스토어 오픈 기념',
     image: '/pouch-ft-wide.webp',
+    variant: 'paper',
     href: 'https://smartstore.naver.com/farmerstail',
   },
+]
+
+/** 사진 가로 스트립 — 실물·생활감 스냅만(위 커버와 같은 규칙). */
+export const BIO_MOMENTS: string[] = [
+  '/pouch-freezer-45.jpg',
+  '/bowl-eating.jpg',
+  '/review-owner-dog.jpg',
+  '/bowl-fresh.jpg',
 ]
 
 /**

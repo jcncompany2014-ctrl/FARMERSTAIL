@@ -2,7 +2,15 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
 import { business } from '@/lib/business'
-import { APP_STORE_LINKS, BIO_EVENT_CARDS, BIO_LINKS, INSTAGRAM_URL } from '@/lib/links'
+import {
+  APP_STORE_LINKS,
+  BIO_COVER,
+  BIO_EVENT_CARDS,
+  BIO_LINKS,
+  BIO_MOMENTS,
+  INSTAGRAM_URL,
+} from '@/lib/links'
+import ShareButton from './ShareButton'
 import s from './link.module.css'
 
 /**
@@ -12,10 +20,11 @@ import s from './link.module.css'
  * 콘텐츠 목록은 lib/links.ts(config-as-code). 인앱 브라우저 안내 배너 포함.
  * 클릭 추적은 UTM → 자사 퍼널의 기존 수집(lib/utm.ts)이 이어받는다.
  *
- * 2026-09-25 사장님 제보("파워가 약하다·정적이다·이미지가 없다")로 개편:
- * 진입 스태거·눌림 인터랙션(link.module.css) + 이벤트 이미지 카드 +
- * 앱스토어 2종(env 폴백 — 이전엔 iOS env 부재로 Google Play 만 떴다) +
- * 카카오 채널 1:1 문의(lib/business 정본) + 인스타 아이콘.
+ * 2026-09-25 사장님 제보로 2차 개편(킥고잉 링크인바이오 문법):
+ * ① 풀블리드 커버 사진 + 겹치는 로고 + 공유 버튼, ② 번호 공지줄과 짝지어진
+ * 큰 타이포 배너 카드, ③ 사진 가로 스트립, ④ 다크 앱 다운로드 밴드,
+ * ⑤ 카카오 채널 문의 + 소셜. ⛔사진은 실물·생활감 스냅만
+ * (엑스표 4장: 밭길 뒷모습·셰퍼드·대리석 원물·푸들 — 앞 둘은 저장소에서 삭제).
  */
 export const metadata: Metadata = {
   title: '파머스테일 링크',
@@ -33,27 +42,47 @@ export default function LinkInBioPage() {
   return (
     <main className="min-h-[100dvh] bg-[#FAF9F5]">
       <InAppBrowserNotice />
-      <div className="mx-auto max-w-[430px] px-5 pb-16 pt-12 text-center">
-        {/* ── 헤더 ─────────────────────────────────────────────── */}
-        <header className={`${s.fadeUp} ${s.d1}`}>
+
+      {/* ── 커버 — 풀블리드 실물 사진, 아래로 갈수록 페이지 배경에 녹는다 ── */}
+      <div className="relative">
+        <div className="relative h-[235px] overflow-hidden">
+          <Image
+            src={BIO_COVER}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[center_62%]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-[#FAF9F5]"
+          />
+        </div>
+        <ShareButton />
+      </div>
+
+      <div className="mx-auto max-w-[430px] px-5 pb-16 text-center">
+        {/* ── 프로필 — 커버에 살짝 겹치는 로고 ─────────────────────── */}
+        <header className={`-mt-11 ${s.fadeUp} ${s.d1}`}>
           <Image
             src="/logo-stamp.png"
             alt="파머스테일"
-            width={76}
-            height={76}
+            width={84}
+            height={84}
             priority
-            className="mx-auto rounded-full"
+            className="mx-auto rounded-full shadow-[0_4px_18px_rgba(0,0,0,0.14)] ring-4 ring-[#FAF9F5]"
           />
-          <h1 className="mt-4 font-serif text-[22px] font-extrabold tracking-[-0.02em] text-[#1E1A14]">
+          <h1 className="mt-3.5 font-serif text-[23px] font-extrabold tracking-[-0.02em] text-[#1E1A14]">
             파머스테일
           </h1>
-          <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#6B6353]">
+          <p className="mt-1 text-[13.5px] leading-relaxed text-[#6B6353]">
             사료 대신, 진짜 음식 한 끼 🐾
           </p>
         </header>
 
-        {/* ── 빠른 이동 버튼 ───────────────────────────────────── */}
-        <div className={`mt-7 grid gap-3 ${s.fadeUp} ${s.d2}`}>
+        {/* ── 빠른 이동 버튼 ───────────────────────────────────────── */}
+        <div className={`mt-6 grid gap-3 ${s.fadeUp} ${s.d2}`}>
           {BIO_LINKS.map((l) => (
             <a
               key={l.href}
@@ -61,7 +90,7 @@ export default function LinkInBioPage() {
               {...extProps(l.href)}
               className={`${s.pressable} block rounded-full px-6 py-4 text-left no-underline ${
                 l.primary
-                  ? 'bg-[#1E1A14] text-[#FAF9F5]'
+                  ? 'bg-[#C86B45] text-white shadow-[0_6px_18px_rgba(200,107,69,0.35)]'
                   : 'border border-black/10 bg-white text-[#1E1A14] shadow-[0_2px_10px_rgba(0,0,0,0.04)]'
               }`}
             >
@@ -71,74 +100,144 @@ export default function LinkInBioPage() {
                   {l.sub && (
                     <span
                       className={`mt-0.5 block text-[12px] ${
-                        l.primary ? 'text-[#FAF9F5]/75' : 'text-[#9A9282]'
+                        l.primary ? 'text-white/80' : 'text-[#9A9282]'
                       }`}
                     >
                       {l.sub}
                     </span>
                   )}
                 </span>
-                <ArrowIcon className={l.primary ? 'text-[#FAF9F5]/80' : 'text-[#B6AB93]'} />
+                <ArrowIcon className={l.primary ? 'text-white/85' : 'text-[#B6AB93]'} />
               </span>
             </a>
           ))}
         </div>
 
-        {/* ── 지금 진행 중 — 이미지 카드 ───────────────────────── */}
+        {/* ── 알려드려요 — 번호 공지줄 + 큰 타이포 배너 ─────────────── */}
         {BIO_EVENT_CARDS.length > 0 && (
-          <section className={`mt-10 ${s.fadeUp} ${s.d3}`}>
-            <h2 className="text-[13px] font-bold tracking-[-0.01em] text-[#9A9282]">
-              지금 진행 중
+          <section className={`mt-11 ${s.fadeUp} ${s.d3}`}>
+            <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
+              파머스테일이 알려드려요 📣
             </h2>
-            <div className="mt-3 grid gap-4">
-              {BIO_EVENT_CARDS.map((c) => (
-                <a
-                  key={c.title}
-                  href={c.href}
-                  {...extProps(c.href)}
-                  className={`${s.card} ${s.pressable} block overflow-hidden rounded-3xl border border-black/5 bg-white text-left no-underline shadow-[0_2px_14px_rgba(0,0,0,0.05)]`}
-                >
-                  <div className="relative aspect-[16/9] overflow-hidden">
-                    <Image
-                      src={c.image}
-                      alt=""
-                      fill
-                      sizes="430px"
-                      className={`${s.cardImg} object-cover`}
-                    />
-                    <span className="absolute left-3 top-3 rounded-full bg-[#1E1A14]/85 px-2.5 py-1 text-[11px] font-bold text-[#FAF9F5]">
-                      {c.badge}
+            <p className="mt-1 text-[12px] text-[#9A9282]">알아두면 좋은 소식</p>
+
+            <div className="mt-5 grid gap-7">
+              {BIO_EVENT_CARDS.map((c, i) => (
+                <div key={c.title}>
+                  <p className="flex items-start gap-2 text-left">
+                    <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#C86B45]/10 text-[11px] font-extrabold text-[#C86B45]">
+                      {i + 1}
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 px-5 py-4">
-                    <span className="min-w-0">
-                      <span className="block text-[15.5px] font-extrabold text-[#1E1A14]">
-                        {c.title}
+                    <span className="text-[13.5px] font-bold tracking-[-0.01em] text-[#3A3428]">
+                      {c.notice}
+                    </span>
+                  </p>
+                  <a
+                    href={c.href}
+                    {...extProps(c.href)}
+                    className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
+                      c.variant === 'paper' ? 'border border-black/5 bg-white' : ''
+                    }`}
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden">
+                      <Image
+                        src={c.image}
+                        alt=""
+                        fill
+                        sizes="430px"
+                        className={`${s.cardImg} object-cover ${
+                          c.variant === 'paper' ? 'object-left' : ''
+                        }`}
+                      />
+                      {c.variant === 'photo' && (
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
+                        />
+                      )}
+                      <span
+                        className={`absolute left-4 top-4 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                          c.variant === 'photo'
+                            ? 'bg-[#C86B45] text-white'
+                            : 'bg-[#1E1A14] text-[#FAF9F5]'
+                        }`}
+                      >
+                        {c.badge}
                       </span>
-                      <span className="mt-0.5 block text-[12.5px] text-[#9A9282]">{c.sub}</span>
-                    </span>
-                    <ArrowIcon className="text-[#B6AB93]" />
-                  </div>
-                </a>
+                      <span
+                        className={`absolute bottom-4 left-4 right-14 ${
+                          c.variant === 'photo' ? 'text-[#FAF9F5]' : 'text-[#1E1A14]'
+                        }`}
+                      >
+                        <span className="block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em]">
+                          {c.title}
+                        </span>
+                        <span
+                          className={`mt-1 block text-[12.5px] font-semibold ${
+                            c.variant === 'photo' ? 'text-white/85' : 'text-[#6B6353]'
+                          }`}
+                        >
+                          {c.sub}
+                        </span>
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full ${
+                          c.variant === 'photo'
+                            ? 'bg-white/25 text-white backdrop-blur'
+                            : 'bg-[#1E1A14]/8 text-[#1E1A14]'
+                        }`}
+                      >
+                        <ArrowIcon />
+                      </span>
+                    </div>
+                  </a>
+                </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* ── 파머스테일 앱 ────────────────────────────────────── */}
-        <section className={`mt-10 ${s.fadeUp} ${s.d4}`}>
-          <h2 className="text-[13px] font-bold tracking-[-0.01em] text-[#9A9282]">
+        {/* ── 사진 스트립 — 파머스테일의 하루 ──────────────────────── */}
+        {BIO_MOMENTS.length > 0 && (
+          <section className={`mt-11 ${s.fadeUp} ${s.d4}`}>
+            <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
+              파머스테일의 하루
+            </h2>
+            <p className="mt-1 text-[12px] text-[#9A9282]">
+              오늘도 부엌에서, 진짜 음식을 만들고 있어요
+            </p>
+            <div
+              className={`${s.scrollRow} -mx-5 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5`}
+            >
+              {BIO_MOMENTS.map((src) => (
+                <div
+                  key={src}
+                  className="relative aspect-[4/5] w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl"
+                >
+                  <Image src={src} alt="" fill sizes="150px" className="object-cover" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── 파머스테일 앱 — 브랜드 밴드 ──────────────────────────── */}
+        <section
+          className={`mt-11 rounded-3xl bg-[#1E1A14] px-6 pb-6 pt-7 ${s.fadeUp} ${s.d5}`}
+        >
+          <h2 className="font-serif text-[19px] font-extrabold tracking-[-0.02em] text-[#FAF9F5]">
             파머스테일 앱
           </h2>
-          <p className="mt-1 text-[12.5px] text-[#9A9282]">
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#FAF9F5]/70">
             식사 기록부터 정기배송 관리까지, 앱이 제일 편해요
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <a
               href={APP_STORE_LINKS.android}
               target="_blank"
               rel="noreferrer"
-              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
+              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
             >
               <PlayStoreIcon />
               Google Play
@@ -147,7 +246,7 @@ export default function LinkInBioPage() {
               href={APP_STORE_LINKS.ios}
               target="_blank"
               rel="noreferrer"
-              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
+              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
             >
               <AppleIcon />
               App Store
@@ -155,9 +254,9 @@ export default function LinkInBioPage() {
           </div>
         </section>
 
-        {/* ── 카카오톡 문의 ────────────────────────────────────── */}
+        {/* ── 카카오톡 문의 ────────────────────────────────────────── */}
         {business.kakaoChannelUrl && (
-          <section className={`mt-10 ${s.fadeUp} ${s.d5}`}>
+          <section className={`mt-8 ${s.fadeUp} ${s.d5}`}>
             <a
               href={business.kakaoChannelUrl}
               target="_blank"
@@ -173,7 +272,7 @@ export default function LinkInBioPage() {
           </section>
         )}
 
-        {/* ── 푸터 ─────────────────────────────────────────────── */}
+        {/* ── 푸터 ─────────────────────────────────────────────────── */}
         <footer className={`mt-12 ${s.fadeUp} ${s.d6}`}>
           <a
             href={INSTAGRAM_URL}

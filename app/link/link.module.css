@@ -53,6 +53,14 @@
   transform: scale(1.045);
 }
 
+/* 사진 가로 스트립 — 스크롤바 숨김(모바일 앱 감성). */
+.scrollRow {
+  scrollbar-width: none;
+}
+.scrollRow::-webkit-scrollbar {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fadeUp {
     animation: none;
