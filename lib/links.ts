@@ -79,12 +79,10 @@ export const BIO_EVENT_CARDS: BioEventCard[] = [
   },
 ]
 
-/** 사진 가로 스트립 — 실물·생활감 스냅만(위 커버와 같은 규칙). */
+/** 사진 가로 스트립 — 실물 스냅만. ⛔review-owner-dog·bowl-fresh 기각(2026-09-25). */
 export const BIO_MOMENTS: string[] = [
   '/pouch-freezer-45.jpg',
   '/bowl-eating.jpg',
-  '/review-owner-dog.jpg',
-  '/bowl-fresh.jpg',
 ]
 
 /**

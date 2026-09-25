@@ -207,8 +207,11 @@ export default function LinkInBioPage() {
             <p className="mt-1 text-[12px] text-[#9A9282]">
               오늘도 부엌에서, 진짜 음식을 만들고 있어요
             </p>
+            {/* 2장 이하면 스크롤이 안 생기므로 가운데 정렬이 안전하다. */}
             <div
-              className={`${s.scrollRow} -mx-5 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5`}
+              className={`${s.scrollRow} -mx-5 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 ${
+                BIO_MOMENTS.length <= 2 ? 'justify-center' : ''
+              }`}
             >
               {BIO_MOMENTS.map((src) => (
                 <div
