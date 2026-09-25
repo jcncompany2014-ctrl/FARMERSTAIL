@@ -4424,7 +4424,7 @@ test('규칙108: iOS 앱 — 카카오가 있는 가입 화면엔 애플도 · �
   assert.ok(plist.includes('<key>NSPhotoLibraryAddUsageDescription</key>'), 'Info.plist 에 NSPhotoLibraryAddUsageDescription 이 없다')
 })
 
-test('규칙 100 — 체험단 가격 전환 예고는 푸시+메일 이중화·금액 명시', () => {
+test('규칙109: 체험단 가격 전환 예고는 푸시+메일 이중화·금액 명시', () => {
   /**
    * 2026-09-25 4차 점검: 전환 예고가 푸시 한 통뿐이었다 — 웹 가입자·OS 알림
    * 꺼짐이면 도달 0건(push_subscriptions 웹푸시 0행 실측)인데 sent 도 안 봤고,
