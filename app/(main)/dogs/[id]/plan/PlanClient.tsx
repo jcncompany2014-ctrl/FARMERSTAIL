@@ -33,7 +33,7 @@ import {
 import { ratiosFromPicks } from '@/lib/personalization/boxPicks'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
-import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
+import { fetchComputedFormula, isPermanentComputeFailure } from '@/lib/personalization/formulaCache'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
@@ -54,10 +54,10 @@ const RECIPE_LINES: FoodLine[] = ['weight', 'premium', 'basic', 'joint']
 // toppings=컨셉 토핑, veg=채소·탄수. 카드에는 main+organs+toppings 만,
 // 전체(+veg·오일)는 "재료 전체" 상세에서. (소는 내장도 한우 표기 — 사장님)
 // ★2026-08-25 — 여기 있던 하드코딩 목록을 lib/recipe-ingredients 정본으로 옮겼다.
-//   그 목록은 등록 서류와 **달랐다**: 없는 토핑(브로콜리·비트·애호박·양배추),
-//   4종 전부에 붙인 강황(실제로는 닭 전용), 정제수(v4 공정에서 삭제됨).
 //   원재료 표시는 사료관리법 표시사항이라 마스터·붙임2·DB 와 같아야 한다.
-//   규칙63 테스트가 이 성질(숫자 유출 금지·강황 닭 전용·유령 재료 금지)을 잠근다.
+//   (2026-09-26 주석 정정: 예전 이 자리엔 "강황은 닭 전용·브로콜리 등은 없는 토핑"이라 적혀
+//   있었는데, 그건 8/25 오전의 잘못된 판단이고 같은 날 사장님 확정 배합표 v4.0 LAST 로 뒤집혔다 —
+//   강황 0.10% 4종 공통, 컨셉 토핑 hero+support 2종 실재. 정본 파일 머리말 참조.)
 const cardIngredients = cardIngredientNames
 const fullIngredients = fullIngredientNames
 
@@ -78,7 +78,7 @@ const RECIPE_DESCRIPTIONS: Record<string, string> = {
   weight:
     '네 가지 중 가장 순하고 소화가 편한 단백질이에요. 지방이 낮아 체중 관리가 필요한 아이에게 특히 잘 맞고, 담백해서 화식을 처음 시작하는 아이도 부담 없이 먹어요. 무항생제 닭가슴살을 메인으로 씁니다.',
   premium:
-    '고단백에 헴철분이 풍부해 활동량 많은 아이, 근육과 활력이 필요한 아이에게 좋아요. 진한 풍미라 입이 짧은 아이도 잘 먹어요. 프리미엄 한우 목심을 저지방으로 손질해 담습니다.',
+    '고단백에 헴철분이 풍부해 활동량 많은 아이, 근육과 활력이 필요한 아이에게 좋아요. 진한 풍미라 입이 짧은 아이도 잘 먹어요. 프리미엄 한우 목심을 담습니다.',
   basic:
     '닭·소가 잘 안 맞는 아이도 편하게 먹는 노블 단백질이에요. 흔한 알레르겐이 아니라 부담이 낮으면서도, 담백한 감칠맛이 있어 기호성이 좋아요. 무항생제 오리 안심을 씁니다.',
   joint:
@@ -163,8 +163,13 @@ export default function PlanClient({
   initialFresh: number
 }) {
   const [state, setState] = useState<
-    { s: 'loading' } | { s: 'ready'; formula: Formula } | { s: 'empty' }
+    | { s: 'loading' }
+    | { s: 'ready'; formula: Formula }
+    | { s: 'empty' }
+    | { s: 'retry' }
   >({ s: 'loading' })
+  // '다시 시도' — 일시 실패만. 값이 바뀌면 아래 effect 가 다시 부른다(캐시는 일시 실패를 안 담는다).
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -173,7 +178,8 @@ export default function PlanClient({
         const { httpOk, body } = await fetchComputedFormula(dogId, 1)
         if (cancelled) return
         if (!httpOk || !('ok' in body) || body.ok !== true) {
-          setState({ s: 'empty' })
+          // 설문·분석이 먼저 필요한 경우만 '결과 없음'. 429·5xx·401 은 일시 실패(2026-09-26).
+          setState(isPermanentComputeFailure(body) ? { s: 'empty' } : { s: 'retry' })
           return
         }
         // 안전 게이트 — 판매 레시피 전부 알레르기면 플랜(오리 표시) 대신
@@ -184,13 +190,13 @@ export default function PlanClient({
         }
         setState({ s: 'ready', formula: body.formula })
       } catch {
-        if (!cancelled) setState({ s: 'empty' })
+        if (!cancelled) setState({ s: 'retry' })
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [dogId])
+  }, [dogId, attempt])
 
   if (state.s === 'loading') {
     return (
@@ -202,6 +208,29 @@ export default function PlanClient({
           <Skeleton className="h-28 w-full" rounded="lg" />
           <Skeleton className="h-24 w-full" rounded="lg" />
         </div>
+      </div>
+    )
+  }
+
+  if (state.s === 'retry') {
+    return (
+      <div className="px-5 py-16 text-center">
+        <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
+          레시피를 불러오지 못했어요
+        </p>
+        <p style={{ fontSize: 14, color: 'var(--muted)', margin: '8px 0 16px' }}>
+          잠시 연결이 매끄럽지 않아요. 다시 시도해 주세요.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setState({ s: 'loading' })
+            setAttempt((n) => n + 1)
+          }}
+          style={{ ...ctaLink(), border: 'none', cursor: 'pointer' }}
+        >
+          다시 시도
+        </button>
       </div>
     )
   }

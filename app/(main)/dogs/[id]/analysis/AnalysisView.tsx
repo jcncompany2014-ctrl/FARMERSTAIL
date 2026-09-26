@@ -361,7 +361,7 @@ export default function AnalysisView({
   // FOOD_LINE_META 매핑(정본 skuModel.LEGACY_LINE_TO_PROTEIN): basic=오리 / weight=닭 / skin=연어(보류) / premium=소 / joint=돼지.
   const MAG_LINE_SUB: Record<string, string> = {
     basic: '단일 단백원 · 소화 부담 낮음',
-    weight: '저칼로리 · 단호박 · 통통한 체형에',
+    weight: '고단백 · 브로콜리 · 체중 관리에', // 닭 = 조단백 최고(저칼로리 아님 — v4.0 130kcal, 2026-09-26)
     skin: 'Omega-3 · 피부·털',
     premium: '헴 철분 · 아연 · 활동량 多',
     joint: 'B1·콜린 · 관절·시니어',

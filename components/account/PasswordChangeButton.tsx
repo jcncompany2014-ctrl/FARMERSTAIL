@@ -36,7 +36,13 @@ export default function PasswordChangeButton({ email }: { email: string }) {
         redirectTo ? { redirectTo } : undefined,
       )
       if (authErr) {
-        setError(authErr.message)
+        // Supabase 원문('For security purposes, you can only request this after 42 seconds.')
+        // 대신 한국어(2026-09-26 점검 7차).
+        setError(
+          /rate|seconds|too many/i.test(authErr.message)
+            ? '보안을 위해 잠시 후 다시 요청해 주세요(1분에 한 번 보낼 수 있어요).'
+            : '메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.',
+        )
         return
       }
       setDone(true)

@@ -507,7 +507,7 @@ export default function OrderClient({
         .limit(1)
       if (existingSubs && existingSubs.length > 0) {
         const existingId = (existingSubs[0] as { id: string }).id
-        setErr(
+        failValidation(
           '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
         )
         // 앱 정기배송 화면(/mypage/subscriptions)은 focus 파라미터로 해당
@@ -575,7 +575,7 @@ export default function OrderClient({
         // 경합이다(폰과 PC 에서 거의 동시에 누른 경우). 알 수 없는 오류를
         // 보여주면 고객이 계속 다시 누른다.
         if (payload?.code === 'ALREADY_SUBSCRIBED') {
-          setErr(
+          failValidation(
             payload.message ??
               '이 강아지에 진행중인 정기배송이 이미 있어요. 마이페이지에서 관리해 주세요.',
           )
@@ -588,7 +588,13 @@ export default function OrderClient({
           )
           return
         }
-        setErr(payload?.message ?? '정기배송을 신청하지 못했어요. 다시 시도해 주세요.')
+        // ★서버 거절(금액 변경·알레르기·세션 만료 등)도 토스트로 — 문구 자리(.ord-err)는 폼 아래라
+        //   하단 고정 결제 버튼을 누른 고객 눈엔 "아무 반응 없음"이었다(2026-09-26 점검 7차).
+        failValidation(
+          res.status === 401
+            ? '로그인이 풀렸어요. 다시 로그인한 뒤 신청해 주세요.'
+            : (payload?.message ?? '정기배송을 신청하지 못했어요. 다시 시도해 주세요.'),
+        )
         return
       }
 
@@ -634,7 +640,7 @@ export default function OrderClient({
         )
       }
     } catch (e) {
-      setErr(userFacingError(e, '정기배송 신청 실패'))
+      failValidation(userFacingError(e, '정기배송을 신청하지 못했어요. 연결을 확인하고 다시 시도해 주세요.'))
     } finally {
       setSubmitting(false)
     }

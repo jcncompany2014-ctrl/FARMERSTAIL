@@ -19,10 +19,10 @@ import { business } from '@/lib/business'
 
 export default function AppError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }) {
   useEffect(() => {
     Sentry.captureException(error)
@@ -36,7 +36,7 @@ export default function AppError({
       description="잠시 후 다시 시도해 주세요. 반복되면 문제 코드를 고객센터에 알려 주세요."
       icon={<AlertTriangle className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="sale"
-      primary={{ label: '다시 시도', onClick: reset }}
+      primary={{ label: '다시 시도', onClick: retry }}
       secondary={{ label: '홈으로', href: '/' }}
       traceId={error.digest}
       footer={

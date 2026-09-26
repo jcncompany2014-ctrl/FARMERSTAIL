@@ -7,7 +7,7 @@ import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
 } from '@/lib/chatbot-system-prompt'
-import { checkAnthropicDailyCap, checkAiUserDailyLimit } from '@/lib/anthropic-usage'
+import { checkAnthropicDailyCap, checkAiUserDailyLimit, recordAnthropicUsage } from '@/lib/anthropic-usage'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
@@ -34,6 +34,7 @@ const zChatbot = z.object({
 type AnthropicResponse = {
   content?: Array<{ type: string; text?: string }>
   error?: { type?: string; message?: string }
+  usage?: { input_tokens?: number; output_tokens?: number }
 }
 
 export async function POST(req: Request) {
@@ -181,6 +182,9 @@ export async function POST(req: Request) {
     }
 
     const data = (await res.json()) as AnthropicResponse
+    // ★전역 하루 상한(sum_anthropic_calls_today)이 챗봇을 세게 기록한다(2026-09-26 점검 7차 —
+    //   예전엔 챗봇이 한 번도 기록되지 않아 상한이 챗봇 호출을 0으로 봤다). best-effort.
+    await recordAnthropicUsage('chatbot', data.usage)
     const reply =
       data.content?.find((c) => c.type === 'text')?.text?.trim() ?? ''
     if (!reply) {

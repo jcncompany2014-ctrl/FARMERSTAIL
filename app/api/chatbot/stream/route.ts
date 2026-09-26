@@ -12,7 +12,8 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
-import { checkAnthropicDailyCap, checkAiUserDailyLimit } from '@/lib/anthropic-usage'
+import { checkAnthropicDailyCap, checkAiUserDailyLimit, recordAnthropicUsage } from '@/lib/anthropic-usage'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
@@ -29,7 +30,16 @@ export const dynamic = 'force-dynamic'
 interface AnthropicStreamDelta {
   type: string
   delta?: { type: string; text?: string }
+  /** message_start — 입력 토큰 */
+  message?: { usage?: { input_tokens?: number; output_tokens?: number } }
+  /** message_delta — 출력 토큰(누적) */
+  usage?: { output_tokens?: number }
+  /** 스트림 중간 오류(overloaded 등) */
+  error?: { type?: string; message?: string }
 }
+
+/** 스트림이 끊겼을 때 고객에게 보낼 한 문장 — 원문(String(e))은 보내지 않는다(2026-09-26). */
+const STREAM_BROKEN = '답변이 중간에 끊겼어요. 다시 물어봐 주세요.'
 
 export async function POST(req: Request): Promise<Response> {
   // 같은 rate limit bucket — non-stream 과 합쳐서 분당 5건.
@@ -177,6 +187,8 @@ export async function POST(req: Request): Promise<Response> {
   // Anthropic SSE → 클라이언트 SSE (text delta 만 추출 후 재포장).
   // 누적된 텍스트는 stream 종료 시 chatbot_messages 에 저장.
   let fullText = ''
+  let inputTokens = 0
+  let outputTokens = 0
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -195,6 +207,19 @@ export async function POST(req: Request): Promise<Response> {
             if (!m) continue
             try {
               const obj = JSON.parse(m[1]!) as AnthropicStreamDelta
+              if (obj.type === 'message_start') {
+                inputTokens = obj.message?.usage?.input_tokens ?? inputTokens
+              } else if (obj.type === 'message_delta') {
+                outputTokens = obj.usage?.output_tokens ?? outputTokens
+              } else if (obj.type === 'error') {
+                // 중간 오류(과부하 등) — 예전엔 조용히 무시돼 빈 말풍선만 남았다.
+                captureBusinessEvent('error', 'anthropic.chatbot_stream.error_event', {
+                  type: obj.error?.type ?? 'unknown',
+                })
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ error: STREAM_BROKEN })}\n\n`),
+                )
+              }
               if (
                 obj.type === 'content_block_delta' &&
                 obj.delta?.type === 'text_delta' &&
@@ -211,12 +236,19 @@ export async function POST(req: Request): Promise<Response> {
           }
         }
       } catch (e) {
+        captureBusinessEvent('error', 'anthropic.chatbot_stream.broken', {
+          detail: (e instanceof Error ? e.message : String(e)).slice(0, 200),
+        })
         controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ error: String(e) })}\n\n`,
-          ),
+          encoder.encode(`data: ${JSON.stringify({ error: STREAM_BROKEN })}\n\n`),
         )
       } finally {
+        // ★사용량 기록 — 전역 하루 상한이 챗봇을 세게(2026-09-26 점검 7차). 닫기 전에 기다린다
+        //   (응답이 끝난 뒤의 비동기는 서버리스에서 잘릴 수 있다). recordAnthropicUsage 는 throw 안 함.
+        await recordAnthropicUsage('chatbot', {
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+        })
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         controller.close()
       }

@@ -4732,3 +4732,87 @@ test('규칙124: 링크 미리보기는 로고 한 장 · 앱 다운로드는 �
   assert.ok(link.includes('src="/badge-googleplay-ko.png"') && link.includes('src="/badge-appstore-ko.svg"'), '/link 앱 다운로드가 공식 배지가 아니다')
   assert.ok(!/function (PlayStoreIcon|AppleIcon)\(/.test(link), '/link 에 직접 그린 스토어 아이콘이 남아 있다')
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-26 출시 전 점검 7차 (실패 화면 UX / 입력 검증·신규 라우트 / 제품 사실 일관성) — 규칙125~127
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙125: 실패하면 고객에게 사실대로·다시 할 길과 함께 — 빈 화면·멈춘 버튼·거짓 성공·원문 오류 금지', () => {
+  // ① 오류 화면 '다시 시도' = retry(서버에서 다시 불러옴). reset 은 같은 오류를 다시 그린다.
+  for (const f of ['app/error.tsx', 'app/(main)/error.tsx', 'app/admin/error.tsx', 'app/checkout/error.tsx']) {
+    const b = stripComments(read(join(ROOT, ...f.split('/'))))
+    assert.ok(!/onClick[:=]\s*\{?\s*reset\b/.test(b) && /\bretry\b/.test(b), `${f}: 다시 시도가 reset(재요청 없음)이다`)
+  }
+  // ② 주문 결제 — 서버 거절·네트워크 실패도 토스트(문구 자리는 폼 아래라 고정 버튼 누른 눈엔 무반응)
+  const order = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx')))
+  assert.ok(!/setErr\(payload\?\.message/.test(order) && !/setErr\(userFacingError\(e/.test(order), '주문 서버 거절·네트워크 실패를 화면 밖 문구로만 알린다')
+  // ③ 카드 등록 — 취소된 신청은 '다시 신청하기'(같은 신청으로 무한 재시도 금지)
+  const bs = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-success', 'page.tsx')))
+  assert.ok(/SUBSCRIPTION_CANCELLED'[\s\S]{0,80}'gone'/.test(bs), '취소된 신청에 다시 시도(무한 반복)를 내민다')
+  // ④ 조회 실패 ≠ 없음 — 앱 홈·주문 화면·처방 캐시
+  const dash = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
+  assert.ok(/snapshotErr \? <HomeLoadFailed/.test(dash), '앱 홈이 조회 실패를 "첫 아이를 등록해주세요"로 그린다')
+  const opd = stripComments(read(join(ROOT, 'lib', 'subscription', 'orderPageData.ts')))
+  assert.ok(/if \(dogErr \|\| formulaErr \|\| profErr\)/.test(opd) && /if \(prodErr\) throw/.test(opd), '주문 화면이 조회 실패를 빈 화면으로 그린다')
+  const fc = stripComments(read(join(ROOT, 'lib', 'personalization', 'formulaCache.ts')))
+  assert.ok(/if \(res\.ok \|\| isPermanentComputeFailure\(body\)\)/.test(fc), '처방 계산 일시 실패를 30초 캐시해 다시 시도를 막는다')
+  // ⑤ 멈춘 버튼·사라지는 글
+  const del = stripComments(read(join(ROOT, 'app', 'mypage', 'delete', 'DeleteAccountForm.tsx')))
+  assert.ok(/try \{\s*res = await fetch\('\/api\/account\/delete'/.test(del), '탈퇴 버튼이 연결 끊김에 영원히 처리 중으로 멈춘다')
+  const cs = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'cs', 'CsThreadClient.tsx')))
+  assert.ok(cs.includes('setInput((cur) => (cur.trim() ? cur : text))'), '문의 전송 실패 시 쓴 글이 사라진다')
+  const chat = stripComments(read(join(ROOT, 'app', '(main)', 'chat', 'ChatClient.tsx')))
+  assert.ok(chat.includes('streamError = obj.error') && !/throw new Error\(obj\.error\)/.test(chat), 'AI 상담 스트림 오류를 삼켜 빈 말풍선만 남긴다')
+  // ⑥ 원문·다른 사건으로 말하기
+  const join_ = read(join(ROOT, 'app', 'start', 'join', 'page.tsx'))
+  assert.ok(join_.indexOf("s.includes('rate')") < join_.indexOf("s.includes('email') && s.includes('invalid')"), '가입: 발송 한도를 이메일 형식 오류로 안내한다')
+  const login = stripComments(read(join(ROOT, 'app', '(auth)', 'login', 'page.tsx')))
+  assert.ok(login.includes("'AuthRetryableFetchError'"), '로그인: 연결 끊김을 "비밀번호가 틀렸다"로 말한다')
+  for (const f of ['app/(main)/mypage/MypageClient.tsx', 'components/account/LogoutButton.tsx']) {
+    assert.ok(read(join(ROOT, ...f.split('/'))).includes("signOut({ scope: 'local' })"), `${f}: 로그아웃 실패를 성공한 척한다`)
+  }
+  const pw = stripComments(read(join(ROOT, 'components', 'account', 'PasswordChangeButton.tsx')))
+  assert.ok(!/setError\(authErr\.message\)/.test(pw), '비밀번호 재설정 메일 오류 원문(영어)을 보여 준다')
+  const ap = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'approve', 'route.ts')))
+  assert.ok(!/이미 \$\{status\} 상태입니다/.test(ap), "승인 응답에 상태값 원문('declined')이 나간다")
+  const modal = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'PriceChangeConsentModal.tsx')))
+  assert.ok(/res\.status === 409/.test(modal), '이미 처리된 제안에 동의 모달이 닫히지 않는다')
+  // ⑦ 앱 오프라인 첫 화면 — 빈 베이지 화면 대신 안내·다시 시도
+  assert.ok(/errorPath: 'error\.html'/.test(read(join(ROOT, 'capacitor.config.ts'))) && existsSync(join(ROOT, 'scripts', 'capacitor-error.html')) && read(join(ROOT, 'scripts', 'cap-webdir.mjs')).includes("copyFileSync('scripts/capacitor-error.html', 'capacitor-web/error.html')"), '앱이 오프라인에서 빈 화면만 띄운다(errorPath·원본·복사 중 하나가 빠졌다 — capacitor-web 은 gitignore 임시 폴더)')
+})
+
+test('규칙126: AI·결제 외부 오류는 한국어로, 사용량은 빠짐없이 — OCR·챗봇·카드 등록', () => {
+  const ocr = stripComments(read(join(ROOT, 'lib', 'vision', 'parseMedicalRecord.ts')))
+  assert.ok(!/message: err\.error\?\.message/.test(ocr) && !/message: err instanceof Error \? err\.message/.test(ocr), '진료기록 OCR 이 Anthropic·네트워크 원문을 고객에게 보낸다')
+  const ocrRoute = stripComments(read(join(ROOT, 'app', 'api', 'health', 'ocr', 'route.ts')))
+  assert.ok(ocrRoute.includes("'anthropic.health_ocr.failed'"), 'OCR 실패(크레딧 소진 등)가 사장님께 안 간다')
+  for (const f of ['app/api/chatbot/route.ts', 'app/api/chatbot/stream/route.ts']) {
+    const b = stripComments(read(join(ROOT, ...f.split('/'))))
+    assert.ok(b.includes("recordAnthropicUsage('chatbot'"), `${f}: 챗봇 호출이 전역 하루 상한에 안 잡힌다`)
+  }
+  const stream = stripComments(read(join(ROOT, 'app', 'api', 'chatbot', 'stream', 'route.ts')))
+  assert.ok(!/error: String\(e\)/.test(stream), '챗봇 스트림 오류 원문을 고객에게 보낸다')
+  const toss = stripComments(read(join(ROOT, 'lib', 'payments', 'toss.ts')))
+  const issue = toss.slice(toss.indexOf('export async function issueBillingKey'), toss.indexOf('export async function', toss.indexOf('export async function issueBillingKey') + 10))
+  assert.ok(!/message: err instanceof Error \? err\.message/.test(issue), "카드 등록 실패에 토스 통신 원문('fetch failed' 등)을 보여 준다")
+})
+
+test('규칙127: 제품 사실은 확정본대로 · 이벤트 코드 목록 비공개 · 새 처방 시작은 다음 박스 이내', () => {
+  // ① 사장님 확정 사실(v4.0 2026-07-18·배합표 2026-08-25)과 반대인 문구 금지
+  const detail = read(join(ROOT, 'lib', 'recipe-detail.ts'))
+  assert.ok(!/열량 밀도(가|를) (4종 가운데 )?가장 가(벼|볍)/.test(detail), "닭 = '열량 가장 가벼움'(v4.0 닭 130 > 오리·돼지 125)")
+  assert.ok(!/안심 부위|가장 기름기 적은 부위인 안심/.test(detail), "돼지 부위 = 뒷다리살(안심 아님, 2026-08-25)")
+  assert.ok(!/name: '강황',\s*role: '커큐민/.test(detail) && !/name: '강황',\s*note:\s*'커큐민이 든 노란 향신 뿌리예요\. 관절과 노화/.test(detail), '강황을 닭 전용 컨셉 토핑으로 소개한다(4종 공통)')
+  assert.ok(!/저칼로리/.test(stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'analysis', 'AnalysisView.tsx')))), "닭 '저칼로리' 태그")
+  assert.ok(!/저지방으로 손질/.test(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'plan', 'PlanClient.tsx'))), "한우 '저지방'(4종 중 지방 최다)")
+  assert.ok(!/concept: '체중관리·오메가3'/.test(read(join(ROOT, 'lib', 'web-recipes.ts'))), "닭 '오메가3'(닭 EPA+DHA 최저)")
+  assert.ok(!/상세 배합비와 영양 성적서는/.test(read(join(ROOT, 'components', 'web', 'fd', 'FdRecipeSheet.tsx'))), '앱에 없는 배합비·성적서를 약속한다')
+  const qr = stripComments(read(join(ROOT, 'app', 'recipe', '[protein]', 'page.tsx')))
+  assert.ok(qr.includes('fullIngredientNames(PROTEIN_LINE[key])') && !/숨긴 재료가 없어요/.test(qr), "봉투 QR 이 절반만 적고 '모든 것'이라 한다")
+  // ② 이벤트 코드는 비로그인 목록 조회 금지(선착순 자리 선점)
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260926110000_promotions_read_admin_only.sql'))
+  assert.ok(/drop policy if exists promotions_read_open/.test(mig) && /using \(public\.is_admin\(\)\)/.test(mig), '진행 중 이벤트 코드를 누구나 목록으로 받는다')
+  // ③ 새 처방 시작 상한 — 고객이 쓰는 next_delivery_date 를 먼 미래로 바꾸면 영원히 시작 안 됨
+  const cyc = stripComments(read(join(ROOT, 'lib', 'personalization', 'cycle.ts')))
+  assert.ok(/return next > cap \? cap : next/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
+})

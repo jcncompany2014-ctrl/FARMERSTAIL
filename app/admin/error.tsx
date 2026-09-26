@@ -16,10 +16,10 @@ import { ErrorScreen } from '@/components/ui/ErrorScreen'
 
 export default function AdminError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }) {
   useEffect(() => {
     Sentry.captureException(error, {
@@ -35,7 +35,7 @@ export default function AdminError({
       description="방금 수행한 작업이 저장되지 않았을 수 있어요. 목록에서 상태를 다시 확인해 주세요."
       icon={<AlertOctagon className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="sale"
-      primary={{ label: '다시 시도', onClick: reset }}
+      primary={{ label: '다시 시도', onClick: retry }}
       secondary={{ label: '관리자 홈', href: '/admin' }}
       traceId={error.digest}
     />

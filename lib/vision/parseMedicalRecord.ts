@@ -61,7 +61,15 @@ export type OcrUsage = {
 
 export type OcrResult =
   | { ok: true; data: MedicalRecordExtract; usage?: OcrUsage }
-  | { ok: false; code: string; message: string }
+  /** message = 고객에게 보여 줄 한국어. detail = 원문(로그·Sentry 전용, 화면 금지). */
+  | { ok: false; code: string; message: string; detail?: string }
+
+/**
+ * AI·네트워크 실패는 고객에게 한 문장으로만 (2026-09-26 출시 전 점검 7차).
+ * 예전엔 Anthropic 원문('Your credit balance is too low…', 'Overloaded', 'The operation was
+ * aborted due to timeout')이 진료기록 화면에 그대로 떴다(규칙94 가 이 경로를 못 봤다).
+ */
+const OCR_RETRY_MESSAGE = '사진을 지금 읽지 못했어요. 잠시 후 다시 시도해 주세요.'
 
 const SYSTEM_PROMPT = `당신은 한국 동물병원 진료서 / 처방전 / 영수증 이미지를
 구조화된 JSON 으로 변환하는 OCR 도우미입니다.
@@ -158,8 +166,9 @@ export async function parseMedicalRecord(
       const err = (await res.json().catch(() => ({}))) as AnthropicVisionResponse
       return {
         ok: false,
-        code: err.error?.type ?? 'AI_ERROR',
-        message: err.error?.message ?? 'OCR 호출에 실패했어요',
+        code: 'AI_ERROR',
+        message: OCR_RETRY_MESSAGE,
+        detail: `${res.status} ${err.error?.type ?? ''}: ${err.error?.message ?? ''}`.slice(0, 300),
       }
     }
 
@@ -187,7 +196,8 @@ export async function parseMedicalRecord(
     return {
       ok: false,
       code: 'NETWORK_ERROR',
-      message: err instanceof Error ? err.message : '네트워크 오류',
+      message: OCR_RETRY_MESSAGE,
+      detail: (err instanceof Error ? err.message : 'unknown').slice(0, 300),
     }
   }
 }

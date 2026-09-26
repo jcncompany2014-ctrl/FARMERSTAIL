@@ -41,14 +41,24 @@ export default function DeleteAccountForm() {
         ? reasonDetail.trim()
         : reason + (reasonDetail.trim() ? ` — ${reasonDetail.trim()}` : '')
 
-    const res = await fetch('/api/account/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reason: combinedReason,
-        confirmText: confirmText.trim(),
-      }),
-    })
+    // ★연결이 끊겨도 버튼이 '처리 중'에 멈추지 않게(2026-09-26 점검 7차). 탈퇴는 서버에서
+    //   끝났을 수도 있으니 "실패"라고 단정하지 않고 확인 방법을 알려 준다.
+    let res: Response
+    try {
+      res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason: combinedReason,
+          confirmText: confirmText.trim(),
+        }),
+        signal: AbortSignal.timeout(30_000),
+      })
+    } catch {
+      setLoading(false)
+      setError('연결이 끊겼어요. 탈퇴가 처리됐는지 다시 로그인해서 확인해 주세요.')
+      return
+    }
 
     const data = await res.json().catch(() => ({}))
 

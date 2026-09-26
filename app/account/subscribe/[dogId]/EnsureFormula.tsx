@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
-import { fetchComputedFormula } from '@/lib/personalization/formulaCache'
+import { fetchComputedFormula, isPermanentComputeFailure } from '@/lib/personalization/formulaCache'
 
 /**
  * 처방이 아직 없을 때 **그 자리에서 만들어** 준다.
@@ -59,7 +59,15 @@ export default function EnsureFormula({ dogId }: { dogId: string }) {
           router.refresh()
           return
         }
-        // 설문이 없거나 상담이 필요한 경우 등 — 만들 수 없는 이유가 있다.
+        // 일시 실패(429·5xx·401)는 '다시 시도' — 예전엔 전부 '설문'으로 보내 앱 설치 벽만
+        // 보였다(2026-09-26 점검 7차). 설문·분석이 먼저 필요한 경우만 'survey'.
+        if (!isPermanentComputeFailure(body)) {
+          setReason('식단을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.')
+          setFailKind('retry')
+          setState('failed')
+          return
+        }
+        // 설문이 없거나 분석을 다시 해야 하는 경우 — 만들 수 없는 이유가 있다.
         setReason(
           (body as { message?: string } | null)?.message ??
             '아직 식단을 만들 수 없어요',

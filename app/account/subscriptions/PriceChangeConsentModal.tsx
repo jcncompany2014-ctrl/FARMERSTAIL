@@ -79,6 +79,14 @@ export default function PriceChangeConsentModal({
         message?: string
         amountMismatch?: boolean
       }
+      // ★이미 처리된 제안(409 — 타임아웃 크론이 먼저 마감 등)이면 안내하고 닫는다. 예전엔 토스트만
+      //   띄우고 모달이 그대로 남아 같은 버튼을 계속 누르게 됐다(2026-09-26 점검 7차).
+      if (res.status === 409) {
+        toast.info(b.message ?? '이미 처리된 제안이에요.')
+        setDismissed(true)
+        router.refresh()
+        return
+      }
       if (!res.ok) {
         throw new Error(b.message ?? '처리하지 못했어요')
       }

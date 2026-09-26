@@ -408,14 +408,15 @@ export async function issueBillingKey(input: {
       code?: string
       message?: string
     }
-    const data = (await res.json()) as IssueResponse
+    // 게이트웨이가 HTML(502 등)을 주면 res.json() 이 SyntaxError 원문을 던졌다 — 따로 접는다.
+    const data = (await res.json().catch(() => ({}))) as IssueResponse
 
     if (!res.ok || !data.billingKey) {
       return {
         ok: false,
         error: {
           code: data.code,
-          message: data.message ?? 'billingKey 발급 실패',
+          message: data.message ?? '카드를 등록하지 못했어요. 잠시 후 다시 시도해 주세요.',
         },
       }
     }
@@ -428,11 +429,17 @@ export async function issueBillingKey(input: {
       cardNumber: data.cardNumber ?? data.card?.number,
     }
   } catch (err) {
+    // ★고객 화면에 뜨는 문구 — 'fetch failed'·'The operation was aborted due to timeout' 같은
+    //   원문을 보내지 않는다(2026-09-26 점검 7차). tossFetch 와 같은 원칙. 코드는 그대로 둔다
+    //   (billing-error-classify 가 NETWORK_ERROR 를 '결과 불명'으로 분류한다).
+    const timedOut = err instanceof Error && /timeout|abort/i.test(err.name + err.message)
     return {
       ok: false,
       error: {
         code: 'NETWORK_ERROR',
-        message: err instanceof Error ? err.message : 'unknown',
+        message: timedOut
+          ? '카드사 응답이 늦어요. 잠시 후 다시 시도해 주세요.'
+          : '결제 서버와 연결이 불안정해요. 잠시 후 다시 시도해 주세요.',
       },
     }
   }

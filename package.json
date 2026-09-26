@@ -33,7 +33,7 @@
     "newsletter:vol-01:send": "node --env-file-if-exists=.env.local --experimental-strip-types --disable-warning=ExperimentalWarning scripts/send-newsletter-vol-01.ts",
     "analyze": "ANALYZE=true next build",
     "analyze:win": "powershell -Command \"$env:ANALYZE='true'; next build\"",
-    "cap:webdir": "node -e \"require('fs').mkdirSync('capacitor-web',{recursive:true});require('fs').writeFileSync('capacitor-web/index.html','<!doctype html><meta charset=\\\"utf-8\\\"><title>Farmer\\u0027s Tail</title>')\"",
+    "cap:webdir": "node scripts/cap-webdir.mjs",
     "cap:add:android": "npm run cap:webdir && npx cap add android",
     "cap:add:ios": "npm run cap:webdir && npx cap add ios",
     "cap:sync": "npm run cap:webdir && npx cap sync",

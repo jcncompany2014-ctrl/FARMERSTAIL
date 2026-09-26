@@ -89,6 +89,9 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     // 개발 시 capacitor.config.dev.ts 로 오버라이드해서 localhost 사용.
     cleartext: false,
+    // ★서버를 못 불러오면(오프라인·서버 장애) webDir 의 한국어 안내 화면(2026-09-26 점검 7차).
+    //   예전엔 iOS 에서 베이지 빈 화면만 남고 다시 시도할 길이 없었다. 다음 앱 빌드부터 적용.
+    errorPath: 'error.html',
     // iOS 에서 ATS (App Transport Security) 가 https 만 허용 — http localhost
     // 는 Info.plist 에서 NSAppTransportSecurity > NSAllowsArbitraryLoads 로
     // 별도 풀어야 함 (개발 빌드만).

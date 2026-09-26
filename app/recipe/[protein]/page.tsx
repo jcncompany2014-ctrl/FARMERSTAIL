@@ -33,6 +33,16 @@ import {
   RECIPE_LEDGER,
   RECIPE_STORY,
 } from '@/lib/recipe-detail'
+import { fullIngredientNames } from '@/lib/recipe-ingredients'
+import type { FoodLine } from '@/lib/personalization/types'
+
+/** 레시피 키 → 추천 라인(원재료 정본 조회용). weight=닭·basic=오리·joint=돼지·premium=소. */
+const PROTEIN_LINE: Record<WebRecipe['protein'], FoodLine> = {
+  chicken: 'weight',
+  duck: 'basic',
+  pork: 'joint',
+  beef: 'premium',
+}
 
 /**
  * /recipe/[protein] — 제품 뒷면 QR 전용 레시피 상세 (2026-07-06, 사장님 지시).
@@ -376,13 +386,13 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
             <div className="text-center">
               <Eyebrow>Full Ingredients · 원물 원장</Eyebrow>
               <Display as="h2" size="lg" className="mt-3" style={{ color: 'var(--fd-pine)' }}>
-                이 봉투에 들어간
+                이 봉투의
                 <br />
-                모든 것
+                주요 재료
               </Display>
               <p className="mx-auto mt-4" style={{ maxWidth: 460, fontSize: 14, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                숨긴 재료가 없어요. 신선한 자연 원물을 우선하고, 자연으로 채우기
-                어려운 것만 최소한으로 보충해요.
+                신선한 자연 원물을 우선하고, 자연으로 채우기 어려운 것만
+                최소한으로 보충해요. 전체 원재료는 아래에 봉투 뒷면과 같이 적었어요.
               </p>
             </div>
             <div className="mt-10">
@@ -413,7 +423,13 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
                 </div>
               ))}
             </div>
-            <p className="mt-5 text-center" style={{ fontSize: 12, color: 'var(--fd-muted)' }}>
+            {/* ★전체 원재료 — 정본(lib/recipe-ingredients, 등록 서류·DB 와 같은 목록)에서 그대로.
+                위 원장은 이야기가 있는 주요 재료만이라 '모든 것'이라 부르지 않는다(2026-09-26 점검 7차). */}
+            <p className="mt-8 text-center" style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--fd-muted)' }}>
+              <strong style={{ color: 'var(--fd-pine)' }}>전체 원재료</strong>{' '}
+              {fullIngredientNames(PROTEIN_LINE[key]).join(', ')}
+            </p>
+            <p className="mt-3 text-center" style={{ fontSize: 12, color: 'var(--fd-muted)' }}>
               배합 비율은 우리 아이 맞춤 설계의 영역이라 봉투 라벨의 표기를
               따라요.
             </p>

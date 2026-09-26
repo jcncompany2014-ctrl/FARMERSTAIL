@@ -82,7 +82,11 @@ export async function loadOrderPageData(
   if (!user) return { ok: false, reason: 'unauthenticated' }
 
   // dog 소유 + 최신 formula + profile 병렬 prefetch.
-  const [{ data: dog }, { data: formulaRow }, { data: prof }] =
+  const [
+    { data: dog, error: dogErr },
+    { data: formulaRow, error: formulaErr },
+    { data: prof, error: profErr },
+  ] =
     await Promise.all([
       supabase
         .from('dogs')
@@ -115,6 +119,14 @@ export async function loadOrderPageData(
         .maybeSingle(),
     ])
 
+  // ★조회 실패를 '없음'으로 그리지 않는다(규칙1, 2026-09-26 점검 7차). 예전엔 처방 조회가 실패하면
+  //   '아직 박스 추천이 없어요', 상품 조회가 실패하면 결제 버튼 없는 빈 화면이 떴다. 던지면
+  //   error.tsx 의 '다시 시도'(retry — 서버에서 다시 불러온다)가 뜬다. /start/done 은 try 로 감싼다.
+  if (dogErr || formulaErr || profErr) {
+    throw new Error(
+      `order page lookup failed: ${(dogErr ?? formulaErr ?? profErr)!.message}`,
+    )
+  }
   if (!dog) return { ok: false, reason: 'dog_not_found' }
   const dogName = (dog as { name: string }).name
 
@@ -187,7 +199,7 @@ export async function loadOrderPageData(
       ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
       ...Object.values(TOPPER_TO_SLUG),
     ]
-    const { data: prodList } = await supabase
+    const { data: prodList, error: prodErr } = await supabase
       .from('products')
       .select(
         'id, name, slug, price, sale_price, image_url, stock, ' +
@@ -195,6 +207,7 @@ export async function loadOrderPageData(
       )
       .in('slug', allSlugs)
       .eq('is_active', true)
+    if (prodErr) throw new Error(`order page products lookup failed: ${prodErr.message}`)
     const map: Record<string, OrderProductRow> = {}
     for (const p of ((prodList ?? []) as unknown) as OrderProductRow[]) {
       map[p.slug] = p

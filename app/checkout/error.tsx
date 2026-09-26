@@ -16,10 +16,10 @@ import { business } from '@/lib/business'
 
 export default function CheckoutError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }) {
   useEffect(() => {
     Sentry.captureException(error, {
@@ -35,7 +35,7 @@ export default function CheckoutError({
       description="결제는 아직 진행되지 않았어요. 다시 시도하거나 주문 내역에서 확인해 주세요."
       icon={<CreditCard className="w-6 h-6" strokeWidth={2} aria-hidden />}
       tone="sale"
-      primary={{ label: '다시 시도', onClick: reset }}
+      primary={{ label: '다시 시도', onClick: retry }}
       secondary={{ label: '주문 내역', href: '/mypage/orders' }}
       traceId={error.digest}
       footer={

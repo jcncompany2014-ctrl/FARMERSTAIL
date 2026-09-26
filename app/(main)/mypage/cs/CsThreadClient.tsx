@@ -65,6 +65,8 @@ export default function CsThreadClient({ initial }: { initial: Msg[] }) {
         description: userFacingError(err, ''),
       })
       setMessages((prev) => prev.filter((m) => m.id !== tempId))
+      // ★쓴 글을 되돌린다 — 예전엔 입력창을 먼저 비워 최대 2,000자 문의가 통째로 사라졌다(2026-09-26).
+      setInput((cur) => (cur.trim() ? cur : text))
     } finally {
       setSending(false)
     }

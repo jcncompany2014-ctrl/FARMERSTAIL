@@ -74,9 +74,12 @@ export function fetchComputedFormula(
     })
     const body = (await res.json().catch(() => ({}))) as ComputeResponse
     const value: ComputeResult = { httpOk: res.ok, body }
-    // 성공/실패 응답 모두 캐시 (no_survey 같은 결정적 결과도 재호출 불필요).
-    // 단 네트워크 throw 는 캐시하지 않음 (아래 async 밖으로 전파).
-    cache.set(key, { at: Date.now(), value })
+    // 결정적 결과만 캐시(성공·설문 없음·분석 무효·강아지 없음). ★일시 실패(429 RATE_LIMITED·
+    // 5xx LOOKUP_FAILED·DB_ERROR·401)는 캐시하지 않는다 — 30초 동안 '다시 시도'가 같은 실패를
+    // 돌려줬다(2026-09-26 점검 7차). 네트워크 throw 도 캐시 안 함(아래 async 밖으로 전파).
+    if (res.ok || isPermanentComputeFailure(body)) {
+      cache.set(key, { at: Date.now(), value })
+    }
     return value
   })().finally(() => {
     inflight.delete(key)
@@ -89,4 +92,14 @@ export function fetchComputedFormula(
 /** AdjustSheet 등으로 처방이 바뀌면 호출 — 다음 fetch 가 새 결과를 받도록. */
 export function invalidateComputedFormula(dogId: string, cycleNumber = 1): void {
   cache.delete(keyOf(dogId, cycleNumber))
+}
+
+/**
+ * 처방 계산 실패 중 **고객이 할 일이 있는** 것(설문·분석을 먼저 해야 함) — 이것만 '결과 없음' 안내.
+ * 그 외(429·5xx·401·네트워크)는 일시 실패라 '다시 시도'로 안내한다(2026-09-26 점검 7차).
+ * 앱 플랜 화면이 모든 실패를 '아직 맞춤 결과가 없어요', 웹이 '앱에서 설문하기'로 보냈다.
+ */
+export function isPermanentComputeFailure(body: unknown): boolean {
+  const code = (body as { code?: unknown } | null)?.code
+  return code === 'NO_SURVEY' || code === 'INVALID_ANALYSIS' || code === 'DOG_NOT_FOUND'
 }

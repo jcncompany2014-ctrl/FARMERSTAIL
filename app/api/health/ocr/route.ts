@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseMedicalRecord } from '@/lib/vision/parseMedicalRecord'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   checkAnthropicDailyCap,
   checkAiUserDailyLimit,
@@ -144,6 +145,14 @@ export async function POST(req: Request) {
 
   const result = await parseMedicalRecord(dataUrl, apiKey)
   if (!result.ok) {
+    // AI·네트워크 실패는 사장님께 — 크레딧 소진·키 만료가 여기서 제일 먼저 드러난다(2026-09-26).
+    // 원문(detail)은 여기에만 남기고 응답에는 한국어 message 만 싣는다.
+    if (result.code === 'AI_ERROR' || result.code === 'NETWORK_ERROR') {
+      captureBusinessEvent('error', 'anthropic.health_ocr.failed', {
+        code: result.code,
+        detail: result.detail ?? null,
+      })
+    }
     return NextResponse.json(
       { code: result.code, message: result.message },
       { status: 502 },

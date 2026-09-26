@@ -272,7 +272,7 @@ export default function FdRecipeSheet({
               textTransform: 'uppercase',
             }}
           >
-            원재료
+            주요 원재료
           </div>
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {callouts.map((ing) => (
@@ -401,8 +401,8 @@ export default function FdRecipeSheet({
         </div>
 
         <p style={{ marginTop: 11, fontSize: 11, color: 'var(--fd-muted)', lineHeight: 1.55 }}>
-          공개 가능한 정보만 담았어요. 상세 배합비와 영양 성적서는 가입 후 앱에서
-          확인할 수 있어요.
+          주요 재료만 담았어요. 전체 원재료는 레시피 페이지와 봉투 뒷면에서 볼 수 있고,
+          보장성분 실측표는 나오는 대로 공개할게요.
         </p>
 
         {/* CTA — 설문 퍼널 (커머스 데드엔드 방지). 이미 퍼널 안이면 ctaHref=null → 숨김. */}

@@ -43,9 +43,13 @@ function humanizeSignupError(raw: string): string {
   if (s.includes('weak') || s.includes('easy to guess') || s.includes('pwned'))
     return '많이 알려져 유출된 적 있는 비밀번호예요. 다른 비밀번호로 바꿔 주세요.'
   if (s.includes('password')) return '비밀번호는 영문·숫자·특수문자를 포함해 8자 이상이어야 해요.'
-  if (s.includes('email')) return '이메일 형식을 확인해 주세요.'
+  // ★발송 한도·발송 실패를 '형식 오류'로 읽지 않는다(2026-09-26 점검 7차). 'email rate limit
+  //   exceeded'·'Error sending confirmation email' 도 'email' 을 품어, 가입이 몰린 날 올바른
+  //   주소를 넣은 고객에게 "형식을 확인해 주세요"가 떴다. 한도·발송을 먼저, 형식은 invalid 일 때만.
   if (s.includes('rate') || s.includes('too many'))
     return '요청이 많아요. 잠시 후 다시 시도해 주세요.'
+  if (s.includes('sending')) return '인증 메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요.'
+  if (s.includes('email') && s.includes('invalid')) return '이메일 형식을 확인해 주세요.'
   return '가입에 실패했어요. 잠시 후 다시 시도해 주세요.'
 }
 

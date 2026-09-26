@@ -97,6 +97,10 @@ describe('newFormulaAppliedFrom — 새 처방은 다음 박스부터 (그날 �
     assert.equal(newFormulaAppliedFrom('2026-10-15', '2026-10-13'), '2026-10-15')
     assert.equal(newFormulaAppliedFrom('2026-10-13', '2026-10-27T00:00:00+09:00'), '2026-10-27')
   })
+  it('먼 미래 발송일(고객이 직접 쓴 값)은 오늘+14 로 자른다 — 새 처방이 영원히 안 시작되는 것 방지', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-13', '2099-12-29'), '2026-10-27')
+    assert.equal(newFormulaAppliedFrom('2026-10-13', '2026-11-10'), '2026-10-27')
+  })
   it('박스 N = applied_from + (N-1)×14 — 체크인이 새 처방의 2·3번째 박스에 물린다', () => {
     const from = newFormulaAppliedFrom('2026-10-13', '2026-10-27')
     const at = (d: number) => new Date(Date.parse(from + 'T00:00:00Z') + d * 86_400_000).toISOString().slice(0, 10)

@@ -107,9 +107,13 @@ export async function POST(req: Request) {
     .eq('user_id', user.id)
     .eq('cycle_number', cycleNumber)
     .maybeSingle()
-  if (fetchErr || !pendingRaw) {
+  // 조회 실패와 '없음'을 가른다(규칙1) — 예전엔 둘 다 404 '해당 cycle 처방'(전문용어)이었다.
+  if (fetchErr) {
+    return dbError(fetchErr, 'personalization_approve_lookup', '잠시 후 다시 시도해 주세요')
+  }
+  if (!pendingRaw) {
     return NextResponse.json(
-      { code: 'NOT_FOUND', message: '해당 cycle 처방을 찾을 수 없어요' },
+      { code: 'NOT_FOUND', message: '확인할 새 레시피가 없어요. 화면을 새로고침해 주세요.' },
       { status: 404 },
     )
   }
@@ -120,7 +124,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         code: 'NOT_PENDING',
-        message: `이미 ${status} 상태입니다`,
+        // ★상태값(approved·declined) 원문을 고객에게 보이지 않는다(2026-09-26 점검 7차). 오래 열어 둔
+        //   화면에서 타임아웃 크론이 먼저 마감하면 '이미 declined 상태입니다'가 떴다.
+        message:
+          status === 'declined'
+            ? '답변 기간이 지나 지금 레시피를 그대로 이어가고 있어요.'
+            : '이미 새 레시피로 바뀌었어요.',
+        status,
       },
       { status: 409 },
     )

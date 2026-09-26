@@ -15,7 +15,10 @@ export default function LogoutButton() {
     setBusy(true)
     // 푸시 정리(네이티브 토큰 + 웹 구독) — signOut 후엔 세션이 없어 못 지운다.
     await cleanupPushOnLogout()
-    await supabase.auth.signOut()
+    // ★서버 로그아웃이 실패해도(오프라인 등) 이 기기 세션은 확실히 지운다(2026-09-26 점검 7차).
+    //   예전엔 오류를 안 봐서 로그인 화면으로 보냈는데 세션이 살아 있었다(푸시 토큰만 지워진 채).
+    const { error: signOutErr } = await supabase.auth.signOut()
+    if (signOutErr) await supabase.auth.signOut({ scope: 'local' })
     setBusy(false)
     router.push('/')
     router.refresh()

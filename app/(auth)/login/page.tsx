@@ -146,7 +146,16 @@ function LoginInner() {
         return
       }
       setUnconfirmedEmail('')
-      setFormError('이메일 또는 비밀번호가 올바르지 않아요')
+      // ★연결 끊김·시도 초과를 '비밀번호 틀림'으로 말하지 않는다(2026-09-26 점검 7차) — 맞는
+      //   비밀번호를 넣은 고객이 비밀번호를 의심하며 재설정까지 갔다.
+      const st = (error as { status?: number }).status
+      if (st === 429 || /rate|too many/i.test(error.message)) {
+        setFormError('로그인 시도가 많아요. 잠시 후 다시 시도해 주세요.')
+      } else if (error.name === 'AuthRetryableFetchError' || !st || st >= 500) {
+        setFormError('연결이 불안정해요. 잠시 후 다시 시도해 주세요.')
+      } else {
+        setFormError('이메일 또는 비밀번호가 올바르지 않아요')
+      }
       return
     }
 

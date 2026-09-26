@@ -17,6 +17,7 @@ import {
   type JournalEntry,
 } from '@/components/v3/home'
 import { StreakRewards } from '@/components/v3'
+import HomeLoadFailed from '@/components/v3/home/HomeLoadFailed'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import PushAutoRegister from '@/components/dashboard/PushAutoRegister'
@@ -649,7 +650,8 @@ export default async function DashboardPage() {
           addDogHref="/dogs/new"
         />
       ) : dogs.length === 0 ? (
-        <EmptyHomeNoDogs addDogHref="/dogs/new" />
+        // ★조회 실패를 '0마리'로 그리지 않는다 — 구독 고객에게 "첫 아이를 등록해주세요"가 떴다(2026-09-26).
+        snapshotErr ? <HomeLoadFailed /> : <EmptyHomeNoDogs addDogHref="/dogs/new" />
       ) : null}
 
       {/* 다음 배송 D-N strip (구독 활성 시). */}

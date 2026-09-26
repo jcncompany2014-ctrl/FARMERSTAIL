@@ -18,10 +18,10 @@ import * as Sentry from '@sentry/nextjs'
  */
 export default function AppError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string }
-  reset: () => void
+  retry: () => void
 }) {
   useEffect(() => {
     Sentry.captureException(error, {
@@ -70,7 +70,7 @@ export default function AppError({
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={reset}
+            onClick={retry}
             className="inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-full font-bold text-[13.5px] transition active:scale-[0.97]"
             style={{
               background: 'var(--ink)',

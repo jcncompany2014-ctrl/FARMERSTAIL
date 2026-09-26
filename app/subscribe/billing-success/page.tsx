@@ -134,7 +134,7 @@ function BillingSuccessInner() {
    *  · 'already' — 이미 등록된 결제수단이 있다. 재시도가 아니라 확인이 할 일.
    *  · 'retry'   — 그 외(네트워크·토스 오류). 기존대로 재시도.
    */
-  const [failKind, setFailKind] = useState<'retry' | 'auth' | 'already'>('retry')
+  const [failKind, setFailKind] = useState<'retry' | 'auth' | 'already' | 'gone'>('retry')
 
   useEffect(() => {
     if (isInvalidEntry) return
@@ -191,12 +191,17 @@ function BillingSuccessInner() {
           }
           // 401 은 '다시 시도'가 구조적으로 안 통한다 — billing-auth 에는 인증
           // 검사가 없어 토스 창이 다시 뜨고, 돌아와서 또 401 이다(무한 왕복).
+          // ★'gone' — 신청이 이미 취소·삭제됨(카드 없이 1시간 지나 정리 크론이 취소 등). 같은
+          //   신청으로 '다시 시도'하면 토스 창 → 또 SUBSCRIPTION_CANCELLED 무한 반복이었다
+          //   (2026-09-26 점검 7차). 새로 신청하는 길로 보낸다.
           setFailKind(
             res.status === 401
               ? 'auth'
               : data.code === 'ALREADY_REGISTERED'
                 ? 'already'
-                : 'retry',
+                : data.code === 'SUBSCRIPTION_CANCELLED' || data.code === 'NOT_FOUND'
+                  ? 'gone'
+                  : 'retry',
           )
           return
         }
@@ -381,7 +386,9 @@ function BillingSuccessInner() {
                 ? '로그인이 풀렸어요'
                 : failKind === 'already'
                   ? '이미 등록돼 있어요'
-                  : '등록에 실패했어요'}
+                  : failKind === 'gone'
+                    ? '신청이 만료됐어요'
+                    : '등록에 실패했어요'}
             </p>
             <p
               className="text-[12px] mt-3 leading-relaxed"
@@ -421,6 +428,14 @@ function BillingSuccessInner() {
                   style={{ background: 'var(--ink)', color: 'var(--bg)' }}
                 >
                   로그인하고 이어서 등록하기
+                </Link>
+              ) : failKind === 'gone' ? (
+                <Link
+                  href={isApp ? '/dogs' : '/account/dogs'}
+                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
+                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+                >
+                  다시 신청하기
                 </Link>
               ) : failKind === 'already' ? (
                 <Link

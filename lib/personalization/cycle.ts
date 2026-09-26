@@ -113,6 +113,10 @@ export function isCheckinLinkVisible(dueIn: number): boolean {
  * "박스 N = applied_from + (N-1)×14" 도 이 정의를 전제로 한다.
  *
  * 다음 발송일이 없으면(구독 없음·일시정지) 오늘, 이미 지난 날짜면(밀린 청구) 오늘.
+ * ★위로는 **오늘 + 배송 간격(14일)** 까지만 (2026-09-26 점검 7차). next_delivery_date 는 고객이
+ * 직접 쓸 수 있는 칸이라, 먼 미래(2099-…)로 바꿔 놓고 승인하면 새 처방이 영원히 시작되지 않아
+ * **청구는 새 금액·포장은 옛 처방**으로 갈라졌다. 건너뛰기로 정말 멀리 있는 경우엔 그 사이 박스가
+ * 없으니 더 일찍 시작해도 해가 없다.
  * 모두 KST yyyy-mm-dd 문자열 — 사전순 비교가 날짜순이다.
  */
 export function newFormulaAppliedFrom(
@@ -121,5 +125,9 @@ export function newFormulaAppliedFrom(
 ): string {
   const next = nextDeliveryDate ? nextDeliveryDate.slice(0, 10) : null
   if (!next || !/^\d{4}-\d{2}-\d{2}$/.test(next)) return todayKst
-  return next > todayKst ? next : todayKst
+  if (next <= todayKst) return todayKst
+  const cap = new Date(Date.parse(`${todayKst}T00:00:00Z`) + DELIVERY_INTERVAL_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10)
+  return next > cap ? cap : next
 }

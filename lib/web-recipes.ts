@@ -41,9 +41,9 @@ const WEB_RECIPE_COPY: Record<WebRecipe['protein'], Omit<WebRecipe, 'kcalPer100g
     protein: 'chicken',
     name: '닭 화식',
     // '항염'은 의약품 효능 오인 표현이라 성분 표기로 쓴다(사료관리법 §13).
-    concept: '체중관리·오메가3',
+    concept: '체중관리·고단백',
     recommendedFor: '다이어트·실내견',
-    mainIngredients: '닭가슴살 · 간 · 심장 · 강황 · 당근 · 현미',
+    mainIngredients: '닭가슴살 · 간 · 심장 · 브로콜리 · 당근 · 현미',
   },
   duck: {
     protein: 'duck',

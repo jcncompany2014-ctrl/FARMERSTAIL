@@ -173,6 +173,10 @@ export default function ChatClient({
       const decoder = new TextDecoder()
       let buffer = ''
       let aborted = false
+      // ★스트림 중 오류·빈 답변을 삼키지 않는다(2026-09-26 점검 7차). 예전엔 안쪽 try 가
+      //   throw 를 잡아 console 로만 보내 빈(또는 잘린) 말풍선만 남았다.
+      let streamError: string | null = null
+      let received = ''
       for (;;) {
         const { value, done } = await reader.read()
         if (done) break
@@ -191,9 +195,11 @@ export default function ChatClient({
           try {
             const obj = JSON.parse(body) as { delta?: string; error?: string }
             if (obj.error) {
-              throw new Error(obj.error)
+              streamError = obj.error
+              continue
             }
             if (obj.delta) {
+              received += obj.delta
               setMessages((prev) => {
                 const next = prev.slice()
                 const last = next[next.length - 1]
@@ -212,11 +218,29 @@ export default function ChatClient({
         }
       }
       if (aborted) return
+      if (!received) {
+        // 한 글자도 못 받았으면 실패로 — 아래 catch 가 말풍선을 치우고 안내한다.
+        throw new Error(streamError ?? '답변을 받지 못했어요. 다시 물어봐 주세요.')
+      }
+      if (streamError) {
+        // 일부만 받았으면 받은 데까지 두고 끊겼다고 덧붙인다.
+        const note = `\n\n(${streamError})`
+        setMessages((prev) => {
+          const next = prev.slice()
+          const last = next[next.length - 1]
+          if (last && last.role === 'assistant') {
+            next[next.length - 1] = { ...last, content: last.content + note }
+          }
+          return next
+        })
+      }
     } catch (err) {
       if (sentDogKey !== selectedDogId) return
       setError(userFacingError(err, '잠시 문제가 있었어요. 다시 시도해 주세요'))
       // 실패 시 user + 빈 assistant placeholder 둘 다 제거.
       setMessages((prev) => prev.slice(0, -2))
+      // 쓴 질문은 되돌린다 — 입력창을 먼저 비워 두었다(2026-09-26).
+      setInput((cur) => (cur.trim() ? cur : text))
     } finally {
       // loading 은 stale 하더라도 항상 false 로 — 다음 send 가능하게.
       setLoading(false)
