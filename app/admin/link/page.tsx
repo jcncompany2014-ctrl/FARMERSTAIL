@@ -35,7 +35,7 @@ export default async function AdminLinkPage() {
     admin.from('link_page_settings').select('cover_url, moment_urls, show_store_card').eq('id', 1).maybeSingle(),
     admin
       .from('link_banners')
-      .select('id, sort_order, enabled, variant, badge, notice, title, sub, href, image_url, starts_on, ends_on')
+      .select('id, sort_order, enabled, variant, accent, badge, condition, notice, title, sub, href, image_url, starts_on, ends_on')
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
   ])
@@ -52,7 +52,7 @@ export default async function AdminLinkPage() {
   const settings: LinkSettings = settingsRes.data
   const banners: BannerRow[] = (bannersRes.data ?? []).map((b) => ({
     ...b,
-    variant: b.variant === 'poster' ? 'poster' : 'photo',
+    variant: b.variant === 'poster' || b.variant === 'products' ? b.variant : 'photo',
     window: bannerWindow(today, b.starts_on, b.ends_on),
   }))
 
@@ -60,7 +60,7 @@ export default async function AdminLinkPage() {
     <>
       <AdminHeader
         title="링크 페이지"
-        sub="인스타 프로필 링크(farmerstail.kr/link) — 커버 사진 · 이벤트/모집 배너 · 하루 사진. 저장하면 바로 반영돼요."
+        sub="인스타 프로필 링크(farmerstail.kr/link) — 이벤트/모집 배너 · 파머스테일의 하루 사진. 저장하면 바로 반영돼요."
       />
       <LinkAdminClient today={today} settings={settings} banners={banners} />
     </>

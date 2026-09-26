@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { dbError } from '@/lib/api/errors'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { bannerWindow } from '@/lib/link-content/status'
+import { isAccentSetting } from '@/lib/link-content/accent'
 import { isSafeUrl, parseDateOrNull, requireAdmin } from '../_guard'
 
 export const runtime = 'nodejs'
@@ -19,11 +20,13 @@ export const dynamic = 'force-dynamic'
  */
 
 const SELECT =
-  'id, sort_order, enabled, variant, badge, notice, title, sub, href, image_url, starts_on, ends_on, created_at, updated_at'
+  'id, sort_order, enabled, variant, accent, badge, condition, notice, title, sub, href, image_url, starts_on, ends_on, created_at, updated_at'
 
 type Fields = {
-  variant: 'photo' | 'poster'
+  variant: 'photo' | 'poster' | 'products'
+  accent: string
   badge: string
+  condition: string
   notice: string
   title: string
   sub: string
@@ -46,11 +49,16 @@ function validate(body: Record<string, unknown>, requireAll: boolean): { patch: 
   const has = (k: string) => requireAll || body[k] !== undefined
 
   if (has('variant')) {
-    if (body.variant !== 'photo' && body.variant !== 'poster') return { bad: 'variant' }
+    if (body.variant !== 'photo' && body.variant !== 'poster' && body.variant !== 'products') return { bad: 'variant' }
     patch.variant = body.variant
+  }
+  if (has('accent')) {
+    if (!isAccentSetting(body.accent)) return { bad: 'accent' }
+    patch.accent = body.accent
   }
   for (const [k, max] of [
     ['badge', 20],
+    ['condition', 40],
     ['notice', 80],
     ['title', 60],
     ['sub', 80],
@@ -67,8 +75,14 @@ function validate(body: Record<string, unknown>, requireAll: boolean): { patch: 
     patch.href = body.href
   }
   if (has('image_url')) {
-    if (!isSafeUrl(body.image_url)) return { bad: 'image_url' }
-    patch.image_url = body.image_url
+    // products(스마트스토어 카드)는 파우치 컷이 코드에 고정 — 이미지 없이 '' 허용.
+    const isProducts = (patch.variant ?? body.variant) === 'products'
+    if (isProducts && (body.image_url === '' || body.image_url == null)) {
+      patch.image_url = ''
+    } else {
+      if (!isSafeUrl(body.image_url)) return { bad: 'image_url' }
+      patch.image_url = body.image_url
+    }
   }
   if (has('starts_on')) {
     const d = parseDateOrNull(body.starts_on)
@@ -90,7 +104,9 @@ function validate(body: Record<string, unknown>, requireAll: boolean): { patch: 
 
 const FIELD_LABEL: Record<string, string> = {
   variant: '종류',
+  accent: '포인트 컬러',
   badge: '배지',
+  condition: '조건 문구',
   notice: '공지 문장',
   title: '제목',
   sub: '부제',

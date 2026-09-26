@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { AdminCard, AdminButton, Badge, SectionTitle } from '@/components/admin/ui'
 import { bannerWindow, ENDED_GRACE_DAYS, type BannerWindow } from '@/lib/link-content/status'
+import { ACCENT_LABELS, ACCENT_SETTINGS } from '@/lib/link-content/accent'
 
 export type LinkSettings = {
   cover_url: string
@@ -19,8 +20,10 @@ export type BannerRow = {
   id: string
   sort_order: number
   enabled: boolean
-  variant: 'photo' | 'poster'
+  variant: 'photo' | 'poster' | 'products'
+  accent: string
   badge: string
+  condition: string
   notice: string
   title: string
   sub: string
@@ -33,8 +36,10 @@ export type BannerRow = {
 
 type BannerForm = {
   id?: string
-  variant: 'photo' | 'poster'
+  variant: 'photo' | 'poster' | 'products'
+  accent: string
   badge: string
+  condition: string
   notice: string
   title: string
   sub: string
@@ -47,7 +52,9 @@ type BannerForm = {
 
 const EMPTY_FORM: BannerForm = {
   variant: 'poster',
+  accent: 'auto',
   badge: '',
+  condition: '',
   notice: '',
   title: '',
   sub: '',
@@ -159,7 +166,9 @@ export default function LinkAdminClient({
     setForm({
       id: b.id,
       variant: b.variant,
+      accent: b.accent,
       badge: b.badge,
+      condition: b.condition,
       notice: b.notice,
       title: b.title,
       sub: b.sub,
@@ -180,16 +189,18 @@ export default function LinkAdminClient({
   function submitBanner() {
     if (!form) return
     if (!form.title.trim()) return setMsg('제목을 적어 주세요')
-    if (!form.image_url) return setMsg('이미지를 올려 주세요')
+    if (!form.image_url && form.variant !== 'products') return setMsg('이미지를 올려 주세요')
     if (!form.href.trim()) return setMsg('링크를 적어 주세요')
     const payload = {
       variant: form.variant,
+      accent: form.accent,
       badge: form.badge,
+      condition: form.condition,
       notice: form.notice,
       title: form.title,
       sub: form.sub,
       href: form.href.trim(),
-      image_url: form.image_url,
+      image_url: form.variant === 'products' ? '' : form.image_url,
       starts_on: form.starts_on || null,
       ends_on: form.ends_on || null,
       enabled: form.enabled,
@@ -269,17 +280,32 @@ export default function LinkAdminClient({
                 <label className={labelCls}>종류</label>
                 <select
                   value={form.variant}
-                  onChange={(e) => setForm({ ...form, variant: e.target.value as 'photo' | 'poster' })}
+                  onChange={(e) => setForm({ ...form, variant: e.target.value as BannerForm['variant'] })}
                   className={inputCls}
                 >
                   <option value="poster">포스터(세로 이미지, 글자는 아래에)</option>
                   <option value="photo">사진(가로 이미지 위에 제목)</option>
+                  <option value="products">스마트스토어 카드(파우치 4종 사진 고정)</option>
                 </select>
               </div>
               <div>
                 <label className={labelCls}>배지 (예: 모집 / 이벤트)</label>
                 <input value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })} className={inputCls} maxLength={20} />
               </div>
+            </div>
+            <div>
+              <label className={labelCls}>포인트 컬러 (카드 위 라인·배지 색 — 자동이면 링크 주소로 판단)</label>
+              <select value={form.accent} onChange={(e) => setForm({ ...form, accent: e.target.value })} className={inputCls}>
+                {ACCENT_SETTINGS.map((k) => (
+                  <option key={k} value={k}>
+                    {ACCENT_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>배지 옆 작은 조건 문구 (선택 — 예: 선착순 5두. 기간은 시작일·종료일에서 자동으로 붙어요)</label>
+              <input value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} className={inputCls} maxLength={40} />
             </div>
             <div>
               <label className={labelCls}>번호 옆 한 줄 공지 (예: 서포터즈 1기를 모집하고 있어요)</label>
@@ -309,6 +335,7 @@ export default function LinkAdminClient({
                 <input type="date" value={form.ends_on} onChange={(e) => setForm({ ...form, ends_on: e.target.value })} className={inputCls} />
               </div>
             </div>
+            {form.variant !== 'products' && (
             <div>
               <label className={labelCls}>이미지 {form.variant === 'poster' ? '(세로 4:5 권장)' : '(가로 16:10 권장)'}</label>
               {form.image_url && (
@@ -319,6 +346,7 @@ export default function LinkAdminClient({
               )}
               <input type="file" accept="image/*" disabled={busy} onChange={(e) => onBannerFile(e.target.files?.[0] ?? null)} className="text-[13px]" />
             </div>
+            )}
             <label className="flex items-center gap-2 text-[13px]">
               <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
               링크 페이지에 표시
@@ -354,14 +382,14 @@ export default function LinkAdminClient({
               <li key={b.id} className="flex flex-wrap items-center gap-3 rounded border border-[color:var(--adminui-line)] px-3 py-2">
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded bg-[color:var(--adminui-bg)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={b.image_url} alt="" className="h-full w-full object-cover" />
+                  <img src={b.variant === 'products' ? '/pouch-hanwoo.webp' : b.image_url} alt="" className="h-full w-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-bold">
                     {i + 1}. {b.title}
                   </p>
                   <p className="truncate text-[12px] text-[color:var(--adminui-mute)]">
-                    {b.starts_on ?? '바로'} ~ {b.ends_on ?? '계속'} · {b.variant === 'poster' ? '포스터' : '사진'}
+                    {b.starts_on ?? '바로'} ~ {b.ends_on ?? '계속'} · {b.variant === 'poster' ? '포스터' : b.variant === 'products' ? '스마트스토어 카드' : '사진'}{b.condition ? ` · ${b.condition}` : ''}
                   </p>
                 </div>
                 {statusBadge(b)}
@@ -384,15 +412,6 @@ export default function LinkAdminClient({
           </ul>
         )}
 
-        <label className="mt-4 flex items-center gap-2 text-[13px]">
-          <input
-            type="checkbox"
-            checked={settings.show_store_card}
-            disabled={busy}
-            onChange={(e) => void run('스마트스토어 카드', () => saveSettings({ show_store_card: e.target.checked }))}
-          />
-          배너 목록 맨 아래에 스마트스토어 카드(파우치 4종) 보이기
-        </label>
       </AdminCard>
 
       {/* ── 하루 사진 ─────────────────────────────────────────────── */}
@@ -404,21 +423,22 @@ export default function LinkAdminClient({
         {settings.moment_urls.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-3">
             {settings.moment_urls.map((u, i) => (
-              <li key={u + i} className="w-28">
+              <li key={u + i} className="w-32">
                 <div className="aspect-[4/5] overflow-hidden rounded border border-[color:var(--adminui-line)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={u} alt="" className="h-full w-full object-cover" />
                 </div>
-                <div className="mt-1 flex justify-between gap-1">
-                  <AdminButton onClick={() => moveMoment(i, -1)} disabled={busy || i === 0}>
+                {/* 버튼 3개가 AdminButton 패딩 때문에 썸네일 폭을 넘쳐 옆 항목과 겹쳤다(사장님 2026-09-26) → 작은 버튼. */}
+                <div className="mt-1 flex items-center justify-between gap-1">
+                  <MiniBtn onClick={() => moveMoment(i, -1)} disabled={busy || i === 0} label="왼쪽으로">
                     ←
-                  </AdminButton>
-                  <AdminButton onClick={() => removeMoment(i)} disabled={busy}>
+                  </MiniBtn>
+                  <MiniBtn onClick={() => removeMoment(i)} disabled={busy} label="목록에서 빼기">
                     빼기
-                  </AdminButton>
-                  <AdminButton onClick={() => moveMoment(i, 1)} disabled={busy || i === settings.moment_urls.length - 1}>
+                  </MiniBtn>
+                  <MiniBtn onClick={() => moveMoment(i, 1)} disabled={busy || i === settings.moment_urls.length - 1} label="오른쪽으로">
                     →
-                  </AdminButton>
+                  </MiniBtn>
                 </div>
               </li>
             ))}
@@ -436,5 +456,29 @@ export default function LinkAdminClient({
         </label>
       </AdminCard>
     </div>
+  )
+}
+
+function MiniBtn({
+  onClick,
+  disabled,
+  label,
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="h-7 min-w-7 rounded border border-[color:var(--adminui-line)] bg-[color:var(--adminui-bg)] px-2 text-[12px] font-bold text-[color:var(--adminui-ink)] disabled:opacity-40"
+    >
+      {children}
+    </button>
   )
 }

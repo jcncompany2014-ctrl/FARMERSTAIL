@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { BIO_COVER, BIO_MOMENTS } from '@/lib/links'
-import { bannerWindow, isBannerVisible, type BannerWindow } from './status'
+import { bannerWindow, isBannerVisible, sortEndedLast, type BannerWindow } from './status'
+import { resolveAccent, type AccentKey } from './accent'
 
 /**
  * /link 콘텐츠 로더 — DB(link_page_settings·link_banners)를 읽어 화면 모델로.
@@ -12,12 +13,17 @@ import { bannerWindow, isBannerVisible, type BannerWindow } from './status'
  * 인스타 프로필에 걸려 있어 빈 화면은 곧 유입 손실이다. 실패는 이벤트로 남긴다.
  */
 
-export type LinkBannerVariant = 'photo' | 'poster'
+/** products = 스마트스토어 카드(파우치 4종 컷은 코드 STORE_CARD.images, 글자는 DB). */
+export type LinkBannerVariant = 'photo' | 'poster' | 'products'
 
 export type LinkBanner = {
   id: string
   variant: LinkBannerVariant
   badge: string
+  /** 포인트 컬러(저장값 auto 면 링크 주소로 추정된 결과). */
+  accent: AccentKey
+  /** 배지 옆 작은 조건 문구(예: 선착순 5두) — 비면 표시 안 함. 기간은 startsOn/endsOn 에서 자동. */
+  condition: string
   notice: string
   title: string
   sub: string
@@ -32,6 +38,7 @@ export type LinkContent = {
   /** 2026-09-26 사장님 지시로 /link 는 커버를 그리지 않는다(로고 뒤 사진 = 난잡). DB 값만 유지. */
   coverUrl: string
   momentUrls: string[]
+  /** @deprecated 스토어 카드가 배너(variant products)가 되면서 무의미 — 컬럼만 남음. */
   showStoreCard: boolean
   /** 화면에 그릴 배너만(active·ended_recent), sort_order 순. */
   banners: LinkBanner[]
@@ -47,7 +54,7 @@ export const FALLBACK_CONTENT: Omit<LinkContent, 'banners' | 'fallback'> = {
 }
 
 function asVariant(v: string): LinkBannerVariant {
-  return v === 'poster' ? 'poster' : 'photo'
+  return v === 'poster' || v === 'products' ? v : 'photo'
 }
 
 export async function loadLinkContent(today: string): Promise<LinkContent> {
@@ -62,7 +69,7 @@ export async function loadLinkContent(today: string): Promise<LinkContent> {
     supabase.from('link_page_settings').select('cover_url, moment_urls, show_store_card').eq('id', 1).maybeSingle(),
     supabase
       .from('link_banners')
-      .select('id, variant, badge, notice, title, sub, href, image_url, starts_on, ends_on')
+      .select('id, variant, accent, badge, condition, notice, title, sub, href, image_url, starts_on, ends_on')
       .eq('enabled', true)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
@@ -83,6 +90,8 @@ export async function loadLinkContent(today: string): Promise<LinkContent> {
       id: r.id,
       variant: asVariant(r.variant),
       badge: r.badge,
+      accent: resolveAccent(r.accent, r.href),
+      condition: r.condition,
       notice: r.notice,
       title: r.title,
       sub: r.sub,
@@ -93,12 +102,14 @@ export async function loadLinkContent(today: string): Promise<LinkContent> {
       window: bannerWindow(today, r.starts_on, r.ends_on),
     }))
     .filter((b) => isBannerVisible(b.window))
+  // 마감(회색)은 자동으로 아래로 — 어드민 순서는 진행 중인 것들 사이에서만 유효.
+  const ordered = sortEndedLast(banners)
 
   return {
     coverUrl: s?.cover_url || FALLBACK_CONTENT.coverUrl,
     momentUrls: s && s.moment_urls.length > 0 ? s.moment_urls : FALLBACK_CONTENT.momentUrls,
     showStoreCard: s?.show_store_card ?? true,
-    banners,
+    banners: ordered,
     fallback: false,
   }
 }

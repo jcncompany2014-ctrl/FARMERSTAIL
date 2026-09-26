@@ -2869,7 +2869,9 @@ export type Database = {
       }
       link_banners: {
         Row: {
+          accent: string
           badge: string
+          condition: string
           created_at: string
           enabled: boolean
           ends_on: string | null
@@ -2885,7 +2887,9 @@ export type Database = {
           variant: string
         }
         Insert: {
+          accent?: string
           badge?: string
+          condition?: string
           created_at?: string
           enabled?: boolean
           ends_on?: string | null
@@ -2901,7 +2905,9 @@ export type Database = {
           variant: string
         }
         Update: {
+          accent?: string
           badge?: string
+          condition?: string
           created_at?: string
           enabled?: boolean
           ends_on?: string | null

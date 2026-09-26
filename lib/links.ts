@@ -48,6 +48,8 @@ export const BIO_MOMENTS: string[] = ['/pouch-freezer-45.jpg', '/bowl-eating.jpg
 export const STORE_CARD = {
   notice: '스마트스토어 오픈 기념 리뷰 이벤트가 진행 중이에요',
   badge: '이벤트',
+  /** 배지 옆 작은 회색 조건 — 사장님 2026-09-26 "각 제품당 선착순 10개". */
+  condition: '제품당 선착순 10개',
   title: '리뷰 최대 20% 포인트백',
   sub: '네이버 스마트스토어 오픈 기념 · 화식 4종',
   // 홈·레시피 페이지와 같은 실제 패키지 컷(스마트스토어 대표 이미지와 동일).
