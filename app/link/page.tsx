@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
+import OpenExternalInChrome from '@/components/web/OpenExternalInChrome'
 import { business } from '@/lib/business'
 import { APP_STORE_LINKS, BIO_LINKS, INSTAGRAM_URL, STORE_CARD } from '@/lib/links'
 import { loadLinkContent, type LinkBanner } from '@/lib/link-content/load'
@@ -34,11 +35,15 @@ export const metadata: Metadata = {
 
 export const revalidate = 300
 
-/** 외부 링크만 새 탭 — 내부(/start)는 같은 탭에서 퍼널 진행. */
+/**
+ * 외부 링크만 새 탭 — 내부(/start)는 같은 탭에서 퍼널 진행.
+ * data-ext="1" 은 OpenExternalInChrome 이 안드로이드 인앱 브라우저에서 크롬 intent 로
+ * 바꾸는 표식(인스타 안에서 스마트스토어를 열면 네이버 로그인이 뜨는 문제).
+ */
 function extProps(href: string) {
   return href.startsWith('/')
     ? {}
-    : { target: '_blank', rel: 'noreferrer' as const }
+    : { target: '_blank', rel: 'noreferrer' as const, 'data-ext': '1' }
 }
 
 export default async function LinkInBioPage() {
@@ -48,6 +53,7 @@ export default async function LinkInBioPage() {
   return (
     <main className="min-h-[100dvh] bg-[#FAF9F5]">
       <InAppBrowserNotice />
+      <OpenExternalInChrome />
 
       <div className="mx-auto max-w-[430px] px-5 pb-16 text-center">
         {/* ── 프로필 — 로고·이름·소개만. 커버 사진은 2026-09-26 사장님 지시로 뺐다
