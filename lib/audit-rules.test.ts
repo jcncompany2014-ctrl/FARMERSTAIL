@@ -4715,3 +4715,20 @@ test('규칙123: /link 콘텐츠는 어드민(/admin/link)이 정본 — 실제 
   assert.match(link, /export const revalidate = \d+/, '/link 가 ISR 이 아니다 — 기간 전환이 자동 반영되지 않는다')
   assert.ok(existsSync(join(ROOT, 'lib', 'link-content', 'status.test.ts')), '기간 판정 테스트가 없다')
 })
+
+test('규칙124: 링크 미리보기는 로고 한 장 · 앱 다운로드는 스토어 공식 배지 (사장님 2026-09-26)', () => {
+  /**
+   * 글자 카드 미리보기가 메신저 정사각형 자르기에서 ':테일' 조각으로 보였고(사장님 "못생겼다"),
+   * /link 앱 밴드는 직접 그린 알약 버튼이었다("실제 쟤네가 제공하는 걸로"). 둘 다 한 곳으로 모은다.
+   */
+  const og = stripComments(read(join(ROOT, 'app', 'og', 'route.tsx')))
+  assert.ok(og.includes('logoOgImage()') && !/searchParams/.test(og), '/og 가 페이지별 글자 카드를 다시 그린다')
+  const root = stripComments(read(join(ROOT, 'app', 'opengraph-image.tsx')))
+  assert.ok(root.includes('logoOgImage()'), '사이트 기본 미리보기가 로고 카드가 아니다')
+  assert.ok(!existsSync(join(ROOT, 'app', 'og', 'dog', 'route.tsx')), '/og/dog(쓰지 않는데 임의 URL 을 가져오던 카드)가 돌아왔다')
+  const card = read(join(ROOT, 'lib', 'og', 'logo-card.tsx'))
+  assert.ok(card.includes("join(process.cwd(), 'public', 'logo-stamp.png')"), '로고 카드가 도장 로고를 읽지 않는다')
+  const link = stripComments(read(join(ROOT, 'app', 'link', 'page.tsx')))
+  assert.ok(link.includes('src="/badge-googleplay-ko.png"') && link.includes('src="/badge-appstore-ko.svg"'), '/link 앱 다운로드가 공식 배지가 아니다')
+  assert.ok(!/function (PlayStoreIcon|AppleIcon)\(/.test(link), '/link 에 직접 그린 스토어 아이콘이 남아 있다')
+})

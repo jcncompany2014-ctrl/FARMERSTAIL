@@ -1,100 +1,14 @@
-import { ImageResponse } from 'next/og'
+import { logoOgImage, OG_SIZE } from '@/lib/og/logo-card'
 
-export const alt = '파머스테일 | Farmer\'s Tail — 프리미엄 반려견 식품'
-export const size = {
-  width: 1200,
-  height: 630,
-}
+/**
+ * 사이트 기본 미리보기 이미지(파일 규칙 — 모든 하위 페이지의 og:image 기본값).
+ * **로고만** — lib/og/logo-card 가 정본이고 /og 도 같은 한 장을 그린다(사장님 2026-09-26).
+ */
+export const runtime = 'nodejs'
+export const alt = '파머스테일'
+export const size = OG_SIZE
 export const contentType = 'image/png'
 
 export default async function OGImage() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          background: 'linear-gradient(135deg, #F5F0E6 0%, #EDE6D8 100%)',
-          padding: '80px',
-          position: 'relative',
-        }}
-      >
-        {/* 상단 뱃지 */}
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 20,
-            fontWeight: 700,
-            color: '#A0452E',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            marginBottom: '32px',
-          }}
-        >
-          FARM TO TAIL
-        </div>
-
-        {/* 메인 타이틀 */}
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 120,
-            fontWeight: 900,
-            color: '#3D2B1F',
-            letterSpacing: '-0.04em',
-            lineHeight: 1,
-            marginBottom: '24px',
-          }}
-        >
-          파머스테일
-        </div>
-
-        {/* 영문 로고 */}
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 44,
-            fontWeight: 700,
-            color: '#A0452E',
-            letterSpacing: '-0.02em',
-            marginBottom: '40px',
-          }}
-        >
-          Farmer&apos;s Tail
-        </div>
-
-        {/* 태그라인 */}
-        <div
-          style={{
-            display: 'flex',
-            fontSize: 32,
-            color: '#5C4A3A',
-            textAlign: 'center',
-            lineHeight: 1.4,
-          }}
-        >
-          우리 아이를 위한 프리미엄 반려견 식품
-        </div>
-
-        {/* 하단 장식 바 */}
-        <div
-          style={{
-            display: 'flex',
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '14px',
-            background:
-              'linear-gradient(90deg, #A0452E 0%, #A0452E 33%, #6B7F3A 33%, #6B7F3A 66%, #D4B872 66%, #D4B872 100%)',
-          }}
-        />
-      </div>
-    ),
-    { ...size }
-  )
+  return logoOgImage()
 }

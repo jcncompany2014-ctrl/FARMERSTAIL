@@ -20,7 +20,7 @@ import s from './link.module.css'
  * → 자동 숨김 (lib/link-content/status.ts, 사장님 2026-09-26). 페이지는 5분
  * ISR — 어드민 저장은 revalidatePath 로 즉시, 기간 전환은 늦어도 5분 안에.
  *
- * 킥고잉 링크인바이오 문법(2026-09-25): 풀블리드 커버 + 겹치는 로고 + 공유,
+ * 킥고잉 링크인바이오 문법(2026-09-25): 커버(2026-09-26 여백 둔 둥근 카드로) + 겹치는 로고 + 공유,
  * 번호 공지줄과 짝지어진 큰 타이포 배너, 사진 스트립, 다크 앱 밴드, 카톡 문의.
  * ⛔사진은 실물·생활감 스냅만.
  */
@@ -47,27 +47,32 @@ export default async function LinkInBioPage() {
     <main className="min-h-[100dvh] bg-[#FAF9F5]">
       <InAppBrowserNotice />
 
-      {/* ── 커버 — 풀블리드 실물 사진, 아래로 갈수록 페이지 배경에 녹는다 ── */}
-      <div className="relative">
-        <div className="relative h-[235px] overflow-hidden">
+      {/*
+        ── 커버 — 여백을 둔 둥근 사진 카드. 사진은 선명하게, 로고가 카드 아래 가장자리에 걸친다 ──
+        사장님 2026-09-26: 풀블리드 사진이 아래로 흰 그라데이션에 녹아 사진 절반이 뿌옇게
+        보였다. 흰 막을 걷고 카드로 세웠다. 위쪽만 아주 옅게 어둡게 — 공유 버튼 대비용.
+      */}
+      <div className="mx-auto max-w-[430px] px-4 pt-4">
+        <div className="relative h-[228px] overflow-hidden rounded-[28px] shadow-[0_12px_32px_rgba(30,26,20,0.14)] ring-1 ring-black/5">
           <Image
             src={content.coverUrl}
             alt=""
             fill
             priority
-            sizes="100vw"
+            sizes="(max-width: 430px) 100vw, 430px"
             className="object-cover object-[center_62%]"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-[#FAF9F5]"
+            className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/20 to-transparent"
           />
+          <ShareButton />
         </div>
-        <ShareButton />
       </div>
 
       <div className="mx-auto max-w-[430px] px-5 pb-16 text-center">
         {/* ── 프로필 — 커버에 살짝 겹치는 로고 ─────────────────────── */}
+        {/* 도장 PNG 는 속이 투명 — 크림 바탕을 깔아 뒤 사진이 비치지 않게(2026-09-26). */}
         <header className="-mt-11">
           <Image
             src="/logo-stamp.png"
@@ -75,7 +80,7 @@ export default async function LinkInBioPage() {
             width={84}
             height={84}
             priority
-            className={`${s.stampIn} mx-auto rounded-full shadow-[0_4px_18px_rgba(0,0,0,0.14)] ring-4 ring-[#FAF9F5]`}
+            className={`${s.stampIn} mx-auto rounded-full bg-[#FAF9F5] shadow-[0_4px_18px_rgba(0,0,0,0.14)] ring-4 ring-[#FAF9F5]`}
           />
           <div className={`${s.fadeUp} ${s.d1}`}>
             <h1 className="mt-3.5 font-serif text-[23px] font-extrabold tracking-[-0.02em] text-[#1E1A14]">
@@ -181,24 +186,44 @@ export default async function LinkInBioPage() {
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#FAF9F5]/70">
             식사 기록부터 정기배송 관리까지, 앱이 제일 편해요
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          {/*
+            스토어 **공식 배지** 그대로(사장님 2026-09-26 — 직접 그린 알약 버튼이 어색했다).
+            app/app-required 와 같은 에셋(ed9ebd68). 배지 그림은 바꾸지 않는다(Apple·Google 가이드).
+            눈에 보이는 높이를 40px 로 맞춘다: Apple SVG 는 여백 없음, Google PNG(646×250)는
+            위아래 투명 여백이 있어 보이는 부분이 76.8% — 이미지 52px + 위아래 -6px 로 상쇄.
+          */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-3">
             <a
               href={APP_STORE_LINKS.android}
               target="_blank"
               rel="noreferrer"
-              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
+              aria-label="Google Play에서 다운로드"
+              className={`${s.pressable} inline-flex`}
             >
-              <PlayStoreIcon />
-              Google Play
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/badge-googleplay-ko.png"
+                alt="Google Play에서 다운로드"
+                width={134}
+                height={52}
+                className="-my-1.5 h-[52px] w-auto"
+              />
             </a>
             <a
               href={APP_STORE_LINKS.ios}
               target="_blank"
               rel="noreferrer"
-              className={`${s.pressable} flex items-center justify-center gap-2 rounded-full bg-white px-4 py-3.5 text-[13px] font-bold text-[#1E1A14] no-underline`}
+              aria-label="App Store에서 다운로드"
+              className={`${s.pressable} inline-flex`}
             >
-              <AppleIcon />
-              App Store
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/badge-appstore-ko.svg"
+                alt="App Store에서 다운로드"
+                width={130}
+                height={40}
+                className="h-10 w-auto"
+              />
             </a>
           </div>
         </section>
@@ -409,22 +434,6 @@ function ArrowIcon({ className }: { className?: string }) {
       className={`shrink-0 ${className ?? ''}`}
     >
       <path d="m9 6 6 6-6 6" />
-    </svg>
-  )
-}
-
-function PlayStoreIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0">
-      <path d="M4 2.5v19c0 .4.5.7.8.4l10.9-9.1c.3-.2.3-.6 0-.8L4.8 2.1c-.3-.3-.8 0-.8.4Zm13 6.1 2.9 2.4c.6.5.6 1.5 0 2L17 15.4l-3.3-3.4L17 8.6Z" />
-    </svg>
-  )
-}
-
-function AppleIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0">
-      <path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.8-3.5.8-.7 0-1.9-.8-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.2 1.7 2.4 3 2.4 1.2 0 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.6-1-2.7-4Zm-2.3-7.3c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.1-.6 2.8-1.5Z" />
     </svg>
   )
 }
