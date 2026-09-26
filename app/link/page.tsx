@@ -139,11 +139,23 @@ export default function LinkInBioPage() {
                     <a
                       href={c.href}
                       {...extProps(c.href)}
-                      className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl border border-black/5 bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)]`}
+                      className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl border bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
+                        c.accent === 'naver' ? 'border-[#03C75A]/30' : 'border-black/5'
+                      }`}
                     >
+                      {/* 목적지 브랜드 라인 — 네이버 초록(사장님 2026-09-26 "초록 라인 포인트"). */}
+                      {c.accent === 'naver' && (
+                        <div aria-hidden="true" className="h-1.5 w-full bg-[#03C75A]" />
+                      )}
                       <div className="flex items-start justify-between gap-3 px-5 pt-5">
                         <span className="min-w-0">
-                          <span className="inline-block rounded-full bg-[#1E1A14] px-2.5 py-1 text-[11px] font-bold text-[#FAF9F5]">
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                              c.accent === 'naver'
+                                ? 'bg-[#03C75A] text-white'
+                                : 'bg-[#1E1A14] text-[#FAF9F5]'
+                            }`}
+                          >
                             {c.badge}
                           </span>
                           <span className="mt-2.5 block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
@@ -155,15 +167,31 @@ export default function LinkInBioPage() {
                         </span>
                         <span
                           aria-hidden="true"
-                          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1E1A14]/8 text-[#1E1A14]"
+                          className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            c.accent === 'naver'
+                              ? 'bg-[#03C75A]/12 text-[#03C75A]'
+                              : 'bg-[#1E1A14]/8 text-[#1E1A14]'
+                          }`}
                         >
                           <ArrowIcon />
                         </span>
                       </div>
-                      <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-1 bg-gradient-to-b from-white to-[#F4EFE6] px-3 pb-4 pt-2`}>
+                      {/* 선반 띠 — 사진 네모 경계가 안 보이게(사장님 2026-09-26 "사진
+                          배경과 따로 노는 느낌 없게"). 제품 컷 배경은 평면이 아니라
+                          코너 실측 #ECECEC~#F8F3F5 의 은은한 비네트라 색을 맞춰도 경계가
+                          남는다 → 띠를 가장 어두운 코너보다 살짝 어둡게(#EBEAEC) 두고
+                          darken 블렌드: 배경 픽셀은 전부 띠 색으로 수렴, 파우치만 남는다.
+                          (multiply 는 배경을 띠보다 더 어둡게 만들어 네모가 드러났다.) */}
+                      <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-0 bg-[#EBEAEC] px-3 pb-4 pt-3`}>
                         {c.images.map((src) => (
                           <div key={src} className="relative aspect-square">
-                            <Image src={src} alt="" fill sizes="110px" className="object-contain" />
+                            <Image
+                              src={src}
+                              alt=""
+                              fill
+                              sizes="110px"
+                              className="object-contain mix-blend-darken"
+                            />
                           </div>
                         ))}
                       </div>

@@ -71,6 +71,8 @@ export type BioEventCard = BioEventCardBase &
         variant: 'products'
         /** public/ 경로의 정사각 제품 컷 3~4장. */
         images: string[]
+        /** 목적지 브랜드 포인트 컬러 — naver = 스마트스토어 초록(#03C75A) 라인·배지·민트 배경. */
+        accent?: 'naver'
       }
   )
 
@@ -88,10 +90,11 @@ export const BIO_EVENT_CARDS: BioEventCard[] = [
     notice: '스마트스토어 오픈 기념 리뷰 이벤트가 진행 중이에요',
     badge: '이벤트',
     title: '리뷰 최대 20% 포인트백',
-    sub: '스마트스토어 오픈 기념 · 화식 4종',
+    sub: '네이버 스마트스토어 오픈 기념 · 화식 4종',
     // 홈·레시피 페이지와 같은 실제 패키지 컷(스마트스토어 대표 이미지와 동일).
     images: ['/pouch-hanwoo.webp', '/pouch-blackpork.webp', '/pouch-duck.webp', '/pouch-chicken.webp'],
     variant: 'products',
+    accent: 'naver',
     href: 'https://smartstore.naver.com/farmerstail',
   },
 ]
