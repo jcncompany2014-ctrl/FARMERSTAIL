@@ -64,8 +64,13 @@ export async function resolveAutoDiscount(input: {
   userId: string
   /** 할인 전 금액 — `subscriptions.total_amount`. */
   subtotal: number
+  /**
+   * 한 번(또는 기간 한정)만 붙는 할인을 빼고 계산 — "그 뒤 반복 금액"을 미리 보여 줄 때만 쓴다
+   * (2026-09-26, 카드 등록 화면이 이벤트 첫 박스가를 '2주마다' 금액으로 말하던 것). 청구엔 쓰지 않는다.
+   */
+  recurringOnly?: boolean
 }): Promise<AutoDiscount> {
-  const { userId, subtotal } = input
+  const { userId, subtotal, recurringOnly = false } = input
   const fullCharge: AutoDiscount = {
     reason: 'none',
     discountAmount: 0,
@@ -76,7 +81,7 @@ export async function resolveAutoDiscount(input: {
 
   // 체험단이면 그것만 쓴다 — 등급·프로모션과 절대 겹치지 않고, 프로모션 claim 은
   // 남겨 둔다(체험 뒤 첫 정상 결제에 쓸 수 있게). docs/TRIAL_PROGRAM_2026_10.md v2.
-  const trial = trialPricing(await getTrialState(userId), subtotal)
+  const trial = recurringOnly ? null : trialPricing(await getTrialState(userId), subtotal)
   if (trial) {
     return {
       reason: trial.phase === 'cheap' ? 'trial_cheap' : 'trial_half',
@@ -123,14 +128,17 @@ export async function resolveAutoDiscount(input: {
   //   청구는 막지 않되(정가로 긁고 사람이 차액을 돌려준다 — 위 profile 조회와 같은 판단)
   //   반드시 error 로 남긴다.
   let promoRate = 0
-  const { data: r, error: promoErr } = await (
-    supabase as unknown as {
-      rpc: (
-        fn: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { message: string } | null }>
-    }
-  ).rpc('pending_promotion_rate', { p_user_id: userId })
+  // recurringOnly(반복 금액 미리보기)면 한 번만 붙는 이벤트 할인을 조회하지 않는다.
+  const { data: r, error: promoErr } = recurringOnly
+    ? { data: null, error: null }
+    : await (
+        supabase as unknown as {
+          rpc: (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: unknown; error: { message: string } | null }>
+        }
+      ).rpc('pending_promotion_rate', { p_user_id: userId })
   if (promoErr) {
     captureBusinessEvent('error', 'billing.auto_discount.promotion_lookup_failed', {
       userId,

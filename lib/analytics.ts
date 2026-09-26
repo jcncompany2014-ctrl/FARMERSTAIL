@@ -15,6 +15,7 @@
  */
 
 import { getStoredUtm } from './utm.ts'
+import { readConsent } from './cookies.ts'
 
 type GtagCommand = 'config' | 'event' | 'js' | 'set' | 'consent'
 type GtagFn = (command: GtagCommand, ...args: unknown[]) => void
@@ -83,6 +84,8 @@ export function setAttStatus(status: AttStatus): void {
 function safeGtag(...args: Parameters<GtagFn>): void {
   if (typeof window === 'undefined') return
   if (!isTrackingAllowed()) return
+  // ★분석 동의가 없으면 GA 호출 자체를 안 한다(2026-09-26, Basic Consent Mode — AnalyticsScripts 주석).
+  if (readConsent()?.analytics !== true) return
   try {
     window.gtag?.(...args)
   } catch {
@@ -93,6 +96,8 @@ function safeGtag(...args: Parameters<GtagFn>): void {
 function safeFbq(...args: Parameters<FbqFn>): void {
   if (typeof window === 'undefined') return
   if (!isTrackingAllowed()) return
+  // 광고 동의가 없으면 픽셀 호출 금지(2026-09-26).
+  if (readConsent()?.marketing !== true) return
   try {
     window.fbq?.(...args)
   } catch {

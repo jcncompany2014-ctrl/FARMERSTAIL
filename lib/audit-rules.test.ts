@@ -4474,3 +4474,107 @@ test('규칙109: 체험단 가격 전환 예고는 푸시+메일 이중화·금�
     '어드민 layout 이 admin-shell-next 를 안 쓴다 — 내비 정본이 바뀌었으면 이 규칙과 AdminNav.tsx 경고 주석을 같이 고칠 것',
   )
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-26 출시 전 점검 5차 (탐색 3: 웹 퍼널·가격 고지·분석 동의 / 데이터 수명주기 / 어드민 도구) — 규칙110~116
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙110: DB 레이트리밋 카운터는 service_role 로 센다 — 쿠키 클라이언트는 RPC 권한이 없어 늘 fail-open', () => {
+  /**
+   * incr_rate_limit_counter 는 authenticated 에 EXECUTE 가 없다. 1차 점검에서 넣은 AI 사용자별
+   * 하루 한도와 결제확인 한도가 쿠키 클라이언트를 넘겨 **한 번도 동작하지 않았다**
+   * (rate_limit_counters 0행 실측). 규칙94 는 호출 존재만 봐서 못 잡았다.
+   */
+  const offenders: string[] = []
+  for (const f of walk(join(ROOT, 'app', 'api'))) {
+    const b = stripComments(read(f))
+    if (/rateLimitDB\(\{\s*supabase,/.test(b)) offenders.push(rel(f))
+  }
+  assert.deepEqual(offenders, [], `rateLimitDB 에 쿠키 클라이언트(supabase)를 넘긴다:\n${offenders.join('\n')}`)
+  const ai = stripComments(read(join(ROOT, 'lib', 'anthropic-usage.ts')))
+  const fn = ai.slice(ai.indexOf('export async function checkAiUserDailyLimit'))
+  assert.ok(/createAdminClient\(\)/.test(fn.slice(0, 800)), 'checkAiUserDailyLimit 가 service_role 로 세지 않는다')
+  assert.ok(fn.slice(0, 1200).includes('if (result.degraded)'), 'DB 한도가 fail-open 으로 떨어져도 알리지 않는다')
+})
+
+test('규칙111: 어드민 상품 수정 폼은 DB 배열·JSON 칸을 폼 문자열로 바꿔 시작한다 (판매 중 4종이 저장 불가였다)', () => {
+  const form = stripComments(read(join(ROOT, 'app', 'admin', 'products', 'ProductForm.tsx')))
+  assert.ok(form.includes('toFormShape(initialData)'), '수정 폼이 DB 행(text[]·jsonb)을 그대로 쓴다 — .split is not a function')
+  assert.ok(/nutritionBlank && hadNutrition/.test(form), '영양성분 칸을 비우면 38종 영양소가 null 로 덮인다')
+})
+
+test('규칙112: 정기결제 동의 화면은 실제 첫 결제·반복 금액을 말하고, 없는 동의 절차를 약속하지 않는다', () => {
+  /**
+   * 주문 화면은 '결제하기'를 누르면 곧바로 카드 등록 창이 열린다 — 정기결제 동의의 마지막 자리인데
+   * 구독가(할인 전)만 보였다. 카드 등록 화면은 이벤트 첫 박스가를 "2주마다"로 말하고
+   * "금액이 바뀌면 동의를 받는다"고 약속했지만 이벤트→정상가 전환엔 동의 절차가 없다.
+   */
+  const order = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx')))
+  assert.ok(order.includes('/api/subscriptions/price-preview'), '주문 화면이 실제 결제 금액을 서버에 묻지 않는다')
+  assert.ok(order.includes('firstCharge.toLocaleString()'), '주문 화면 결제 바가 실제 첫 결제 금액을 쓰지 않는다')
+  const preview = stripComments(read(join(ROOT, 'app', 'api', 'subscriptions', 'price-preview', 'route.ts')))
+  assert.ok(preview.includes('resolveAutoDiscount(') && preview.includes('recurringOnly: true'), '미리보기가 청구와 같은 함수로 첫 결제·반복 금액을 내지 않는다')
+  const auth = read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx'))
+  assert.ok(!auth.includes('결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요'), '없는 동의 절차를 약속한다(이벤트→정상가 전환엔 동의 게이트가 없다)')
+  assert.ok(stripComments(auth).includes('hasOneTimeDiscount('), '한정 할인(이벤트·서포터즈)을 "2주마다" 금액으로 보여 준다')
+})
+
+test('규칙113: 분석·광고 도구는 동의한 뒤에만 불러온다 (Basic Consent Mode) · 세부 설정 기본값은 꺼짐', () => {
+  /** Advanced Consent Mode 라 동의 전·'필수만' 뒤에도 GA 가 page_view(쿼리 포함 URL)를 보냈다(실측). */
+  const scripts = stripComments(read(join(ROOT, 'components', 'AnalyticsScripts.tsx')))
+  assert.ok(/GA_ID && analytics &&/.test(scripts), 'GA 스크립트를 분석 동의 없이 불러온다')
+  assert.ok(/CLARITY_ID && analytics &&/.test(scripts), 'Clarity 를 분석 동의 없이 불러온다')
+  assert.ok(/PIXEL_ID && marketing &&/.test(scripts), 'Meta Pixel 을 광고 동의 없이 불러온다')
+  const an = stripComments(read(join(ROOT, 'lib', 'analytics.ts')))
+  assert.ok(/readConsent\(\)\?\.analytics !== true\) return/.test(an), 'GA 이벤트가 분석 동의를 확인하지 않는다')
+  assert.ok(/readConsent\(\)\?\.marketing !== true\) return/.test(an), '픽셀 이벤트가 광고 동의를 확인하지 않는다')
+  const banner = stripComments(read(join(ROOT, 'components', 'CookieConsent.tsx')))
+  assert.ok(/useState\(false\)[\s\S]{0,80}useState\(false\)/.test(banner), '쿠키 세부 설정의 분석·광고가 켜진 채 시작한다')
+})
+
+test('규칙114: 사진·개인 데이터 파기는 실제로 지운다 — 서버 삭제 · 강아지 삭제 시 사진 · 목록 오류 보고 · 빠진 표', () => {
+  const photos = stripComments(read(join(ROOT, 'lib', 'dogPhotos.ts')))
+  assert.ok(photos.includes("fetch('/api/dog-photos/remove'"), '사진 삭제를 브라우저 storage.remove 로 한다(SELECT 정책이 없어 0건 삭제)')
+  assert.ok(!/storage\s*\.from\(DOG_AVATARS_BUCKET\)\s*\.remove\(/.test(photos), '브라우저에서 직접 storage.remove 를 부른다')
+  const purge = stripComments(read(join(ROOT, 'lib', 'storage', 'purgeUserStorage.ts')))
+  assert.ok(/if \(error\) throw new Error/.test(purge), '스토리지 목록 오류를 빈 목록(=성공)으로 접는다')
+  assert.ok(/offset/.test(purge), '1,000개 넘는 폴더를 끝까지 읽지 않는다')
+  const upload = stripComments(read(join(ROOT, 'app', 'api', 'photo-upload', '[token]', 'route.ts')))
+  assert.ok(upload.includes('`${ownerId}/photo-requests/'), '친구 업로드 사진이 주인 폴더 밖에 저장된다(탈퇴 파기에서 빠진다)')
+  const detail = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'DogDetailClient.tsx')))
+  assert.ok(detail.includes('/purge-photos'), '강아지를 지워도 사진이 남는다')
+  const del = stripComments(read(join(ROOT, 'app', 'api', 'account', 'delete', 'route.ts')))
+  for (const t of ['kibble_requests', 'source_waitlist', 'meta_learning_events', 'dog_members']) {
+    assert.ok(del.includes(`from('${t}')`), `탈퇴가 ${t} 를 지우거나 익명화하지 않는다`)
+  }
+  for (const f of ['instrumentation-client.ts', 'sentry.server.config.ts', 'sentry.edge.config.ts']) {
+    assert.ok(read(join(ROOT, f)).includes(".replace(EMAIL, '[이메일]')"), `${f}: Sentry 가 이메일을 가리지 않는다(주석은 가린다고 했다)`)
+  }
+})
+
+test('규칙115: 로그인 없이 부르는 메일·조회 API 는 받는 주소·본인 주문 기준으로 막는다', () => {
+  const nl = stripComments(read(join(ROOT, 'app', 'api', 'newsletter', 'route.ts')))
+  assert.ok((nl.match(/await withinRecipientCap\(/g) ?? []).length >= 2, '뉴스레터 확인 메일에 받는 주소 기준 하루 상한이 없다')
+  const ct = stripComments(read(join(ROOT, 'app', 'api', 'contact', 'route.ts')))
+  assert.ok(ct.includes("bucket: 'contact-ack-to'"), '문의 자동답장에 받는 주소 기준 상한이 없다')
+  const tr = stripComments(read(join(ROOT, 'app', 'api', 'tracking', 'route.ts')))
+  assert.ok(/auth\.getUser\(\)[\s\S]{0,400}\.from\('orders'\)[\s\S]{0,200}\.eq\('tracking_number', trackingNumber\)/.test(tr), '배송조회 프록시가 로그인·본인 주문 확인 없이 사장님 키를 쓴다')
+})
+
+test('규칙116: 어드민 숫자는 실제와 맞는다 — 환불 대기·CSV 시각·코호트 분모·배송 캘린더·월 예상·문의 처리·프로모션 기록', () => {
+  const refunds = stripComments(read(join(ROOT, 'app', 'admin', 'refunds', 'page.tsx')))
+  assert.ok(!/from\('refunds'\)[\s\S]{0,120}'pending'/.test(refunds), "환불 페이지 '처리 대기'가 늘 0인 refunds.pending 을 센다")
+  assert.ok(refunds.includes("from('payment_refund_queue')"), '환불 페이지가 막힌 환불(환불 큐)을 안 본다')
+  const csv = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'orders', 'export', 'route.ts')))
+  assert.ok(/9 \* 60 \* 60 \* 1000/.test(csv) && /T00:00:00\+09:00/.test(csv), '주문 CSV 가 UTC 로 찍힌다')
+  const cohort = stripComments(read(join(ROOT, 'app', 'admin', 'cohort', 'page.tsx')))
+  assert.ok(/\.not\('paid_at', 'is', null\)/.test(cohort), '코호트 환불율 분모에서 환불된 주문이 빠진다')
+  const cal = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'calendar', 'page.tsx')))
+  assert.ok(cal.includes('addDaysKst(d, 14)') && cal.includes('todayKstIsoDate()'), '배송 캘린더가 격주 회차를 안 그리거나 UTC 날짜를 쓴다')
+  const dash = stripComments(read(join(ROOT, 'app', 'admin', 'page.tsx')))
+  assert.ok(dash.includes('trialPricing(') && !/sum \+ \(s\.total_amount \?\? 0\) \* 2/.test(dash), "대시보드 '월 예상'이 서포터즈·등급 할인을 무시한다")
+  const thread = stripComments(read(join(ROOT, 'app', 'admin', 'users', '[id]', 'message', 'page.tsx')))
+  assert.ok(!/update\(\{ read_at:/.test(thread), "문의 스레드를 열기만 해도 '답 안 한 문의'에서 빠진다")
+  const promo = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'promotions', 'route.ts')))
+  assert.ok((promo.match(/recordAdminAction\(/g) ?? []).length >= 2, '프로모션 생성·수정(할인율)이 감사 기록을 남기지 않는다')
+})

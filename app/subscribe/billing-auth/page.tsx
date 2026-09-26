@@ -63,7 +63,49 @@ type BillingTerms = {
   discountLabel: string | null
   listAmount: number | null
   firstChargeDate: string | null
+  /** promotion(첫 박스만)·trial(체험 기간만)·tier(계속) — 2026-09-26 */
+  discountKind?: 'promotion' | 'trial' | 'tier' | null
+  recurringAmount?: number | null
 } | null
+
+/** 첫 결제 금액이 한정 할인이라 그 뒤 반복 금액과 다른가. */
+function hasOneTimeDiscount(terms: BillingTerms): boolean {
+  return (
+    (terms?.discountKind === 'promotion' || terms?.discountKind === 'trial') &&
+    terms.recurringAmount != null &&
+    terms.amount != null &&
+    terms.recurringAmount !== terms.amount
+  )
+}
+
+/**
+ * ★결제 금액 한 줄 — 한정 할인이면 "첫 박스 X원"만, 반복 금액은 아래 안내 줄에서 말한다
+ * (2026-09-26 출시 전 점검 5차). 예전엔 이벤트 첫 박스가를 "X원 · 2주마다"로 보여 줘
+ * 2번째 박스부터 정상가가 나가는 걸 숨겼다.
+ */
+function termsAmountText(terms: BillingTerms): string {
+  if (terms?.amount == null) return '주문 화면에서 확인한 금액 · 2주마다'
+  if (hasOneTimeDiscount(terms)) {
+    return `${terms!.discountKind === 'trial' ? '서포터즈 혜택가' : '첫 박스'} ${terms!.amount!.toLocaleString()}원`
+  }
+  return `${terms.amount.toLocaleString()}원 · 2주마다`
+}
+
+/** 할인 안내 + 반복 금액 + 동의 약속(실제 있는 범위만). */
+function termsNoteText(terms: BillingTerms): string {
+  const label = terms?.discountLabel
+  const recurring =
+    hasOneTimeDiscount(terms) && terms?.recurringAmount != null
+      ? terms.discountKind === 'trial'
+        ? // 고객 명칭은 '서포터즈'(사장님 2026-09-26). 3단(100원 → 반값 → 정상가)이라 반값 구간을 문장에 남긴다.
+          `서포터즈 혜택(100원·반값)이 모두 끝나면 2주마다 ${terms.recurringAmount.toLocaleString()}원이에요. `
+        : `${label ?? '이벤트 할인'}은 첫 박스에만 적용되고, 2번째 박스부터 2주마다 ${terms.recurringAmount.toLocaleString()}원이에요. `
+      : label
+        ? `${label}이 적용된 금액이에요. `
+        : ''
+  // 동의 게이트는 레시피 변경으로 금액이 바뀔 때(PriceChangeConsentModal)만 있다 — 그 범위만 약속한다.
+  return `${recurring}레시피가 바뀌어 금액이 달라지면 미리 알려드리고 동의를 받아요.`
+}
 
 /**
  * 정기결제 고지 — **금액 · 주기 · 첫 결제일**.
@@ -89,21 +131,15 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
         className="text-[15px] font-black mt-0.5"
         style={{ color: 'var(--ink)' }}
       >
-        {terms?.amount != null ? (
-          <>
-            {terms.discountLabel && terms.listAmount != null && (
-              <span
-                className="mr-1.5 line-through"
-                style={{ color: 'var(--muted)', fontWeight: 600 }}
-              >
-                {terms.listAmount.toLocaleString()}원
-              </span>
-            )}
-            {`${terms.amount.toLocaleString()}원 · 2주마다`}
-          </>
-        ) : (
-          '주문 화면에서 확인한 금액 · 2주마다'
+        {terms?.amount != null && !hasOneTimeDiscount(terms) && terms.discountLabel && terms.listAmount != null && (
+          <span
+            className="mr-1.5 line-through"
+            style={{ color: 'var(--muted)', fontWeight: 600 }}
+          >
+            {terms.listAmount.toLocaleString()}원
+          </span>
         )}
+        {termsAmountText(terms)}
       </p>
       <p
         className="text-[11.5px] mt-1.5 leading-relaxed"
@@ -115,9 +151,7 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
             )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
           : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
         <br />
-        {terms?.discountLabel ? `${terms.discountLabel}이 적용된 금액이에요. ` : ''}
-        결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요. 다음 결제 전까지
-        해지할 수 있어요.
+        {termsNoteText(terms)} 다음 결제 전까지 해지할 수 있어요.
       </p>
       {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 이 화면은 AuthAwareShell 을
           쓰지 않아 푸터가 없다. 전자상거래법 §13 은 결제 전에 읽을 수 있어야 한다.
@@ -389,21 +423,15 @@ function BillingAuthInner() {
                   className="text-[15px] font-black mt-0.5"
                   style={{ color: 'var(--ink)' }}
                 >
-                  {terms?.amount != null ? (
-                    <>
-                      {terms.discountLabel && terms.listAmount != null && (
-                        <span
-                          className="mr-1.5 line-through"
-                          style={{ color: 'var(--muted)', fontWeight: 600 }}
-                        >
-                          {terms.listAmount.toLocaleString()}원
-                        </span>
-                      )}
-                      {`${terms.amount.toLocaleString()}원 · 2주마다`}
-                    </>
-                  ) : (
-                    '주문 화면에서 확인한 금액 · 2주마다'
+                  {terms?.amount != null && !hasOneTimeDiscount(terms) && terms.discountLabel && terms.listAmount != null && (
+                    <span
+                      className="mr-1.5 line-through"
+                      style={{ color: 'var(--muted)', fontWeight: 600 }}
+                    >
+                      {terms.listAmount.toLocaleString()}원
+                    </span>
                   )}
+                  {termsAmountText(terms)}
                 </p>
                 <p
                   className="text-[11.5px] mt-1.5 leading-relaxed"
@@ -415,10 +443,7 @@ function BillingAuthInner() {
                       )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
                     : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
                   <br />
-                  {terms?.discountLabel
-                    ? `${terms.discountLabel}이 적용된 금액이에요. `
-                    : ''}
-                  결제일에 금액이 바뀌면 미리 알려드리고 동의를 받아요.
+                  {termsNoteText(terms)}
                 </p>
               </div>
               <div className="mt-6 flex flex-col gap-2.5 text-left">

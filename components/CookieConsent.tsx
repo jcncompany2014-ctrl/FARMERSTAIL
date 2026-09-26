@@ -85,8 +85,10 @@ export default function CookieConsent() {
     getServerSnapshot,
   )
   const [expanded, setExpanded] = useState(false)
-  const [analytics, setAnalytics] = useState(true)
-  const [marketing, setMarketing] = useState(true)
+  // ★선택 항목은 꺼진 상태에서 시작한다(2026-09-26) — '세부 설정'을 열고 그대로 저장하면
+  //   분석·광고에 동의한 것으로 기록됐다. 선택 동의의 기본값을 동의로 두지 않는다.
+  const [analytics, setAnalytics] = useState(false)
+  const [marketing, setMarketing] = useState(false)
   const isApp = useIsAppContext()
   const pathname = usePathname()
   // Hydration mismatch 방지 — server 는 항상 banner 렌더 (consent=null), client 는

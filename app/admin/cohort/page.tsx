@@ -74,10 +74,10 @@ export default async function AdminCohortPage() {
   }
 
   const [
-    { data: outcomesRaw },
-    { count: paidOrderCount },
-    { count: dogCount },
-    { count: deliveredOrderCount },
+    { data: outcomesRaw, error: outcomesErr },
+    { count: paidOrderCount, error: paidErr },
+    { count: dogCount, error: dogErr },
+    { count: deliveredOrderCount, error: deliveredErr },
   ] = await Promise.all([
     admin
       .from('feeding_outcomes')
@@ -86,10 +86,13 @@ export default async function AdminCohortPage() {
       )
       .order('created_at', { ascending: false })
       .limit(10000),
+    // ★환불율 분모 = **한 번이라도 결제된** 주문 (2026-09-26 출시 전 점검 5차). 예전엔
+    //   paid·부분환불만 세서, 고객이 취소(=환불)한 주문이 분모에서 빠져 환불이 늘수록
+    //   환불율이 부풀었다(결제 4·취소 2 → 100%).
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
-      .in('payment_status', PAID_STATUSES),
+      .not('paid_at', 'is', null),
     supabase
       .from('dogs')
       .select('id', { count: 'exact', head: true }),
@@ -100,6 +103,11 @@ export default async function AdminCohortPage() {
       .not('delivered_at', 'is', null),
   ])
 
+  // 조회 실패를 0%·0건으로 보이게 두지 않는다(규칙1) — 어드민 오류 화면으로.
+  const cohortLoadErr = outcomesErr ?? paidErr ?? dogErr ?? deliveredErr
+  if (cohortLoadErr) {
+    throw new Error(`코호트 지표 조회 실패 — 숫자를 신뢰할 수 없어요: ${cohortLoadErr.message}`)
+  }
   const outcomes = (outcomesRaw ?? []) as OutcomeRow[]
 
   // 재구매율·생애가치 표 — 2026-07-25 admin 홈에서 이리로 이전.

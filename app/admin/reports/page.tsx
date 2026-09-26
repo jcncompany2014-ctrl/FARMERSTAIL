@@ -368,7 +368,7 @@ export default async function AdminReportsPage({
       {/* Top 5 상품 */}
       {topProducts.length > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">많이 팔린 상품</span>
+          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">많이 팔린 상품 · 정가 기준(할인 전)</span>
           <ol className="bg-card rounded-xl border border-border overflow-hidden">
             {topProducts.map((p, i) => (
               <li

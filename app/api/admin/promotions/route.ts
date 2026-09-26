@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { normalizePromoCode } from '@/lib/promotions'
 import { dbError } from '@/lib/api/errors'
+import { recordAdminAction } from '@/lib/admin-audit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -183,6 +184,15 @@ export async function POST(req: Request) {
     return dbError(error, 'admin_promotions_create', '프로모션을 만들지 못했어요')
   }
 
+  // ★할인율은 돈이다 — 누가 언제 얼마짜리 이벤트를 만들었는지 남긴다(2026-09-26 출시 전 점검 5차).
+  await recordAdminAction(supabase, {
+    action: 'coupon_create',
+    entityType: 'coupon',
+    entityId: (data as { id?: string } | null)?.id ?? null,
+    diff: { after: { code, name, discount_rate: pct / 100, max_signups: maxSignups } },
+    req,
+  })
+
   return NextResponse.json({ ok: true, promotion: data })
 }
 
@@ -216,5 +226,12 @@ export async function PATCH(req: Request) {
   if (error) {
     return dbError(error, 'admin_promotions_update', '프로모션을 수정하지 못했어요')
   }
+  await recordAdminAction(supabase, {
+    action: 'coupon_update',
+    entityType: 'coupon',
+    entityId: body.id,
+    diff: { after: { active: body.active } },
+    req,
+  })
   return NextResponse.json({ ok: true })
 }

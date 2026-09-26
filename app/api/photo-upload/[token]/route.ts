@@ -122,7 +122,22 @@ export async function POST(req: Request, { params }: Params) {
   // service_role storage 업로드 (익명 사용자가 직접 storage 접근 X)
   const admin = createAdminClient()
   const ext = extFromMime(mime)
-  const path = `photo-requests/${token}.${ext}`
+  // ★강아지 주인 폴더 아래에 둔다 (2026-09-26 출시 전 점검 5차). 예전 경로
+  //   `photo-requests/{token}` 은 주인 폴더 밖이라 탈퇴 파기(purgeUserStorage, `{uid}/` 만 훑음)
+  //   에서 빠졌고, 토큰 행이 강아지와 함께 지워지면 찾을 길도 없어 공개 URL 로 영구히 남았다.
+  const { data: tokRow, error: tokErr } = await admin
+    .from('photo_request_tokens')
+    .select('dogs!inner(user_id)')
+    .eq('token', token)
+    .maybeSingle()
+  const ownerId = (tokRow as { dogs?: { user_id?: string } | null } | null)?.dogs?.user_id
+  if (tokErr || !ownerId) {
+    return NextResponse.json(
+      { code: 'INVALID', message: '유효하지 않은 링크예요' },
+      { status: 400 },
+    )
+  }
+  const path = `${ownerId}/photo-requests/${token}.${ext}`
   const buffer = Buffer.from(await imageBlob.arrayBuffer())
   // audit 2-10: upsert=true 였음 → 같은 토큰 보유자가 N번 덮어쓰기 가능.
   // submit_photo_request RPC 가 uploaded_photo_url IS NULL 조건으로 1회만

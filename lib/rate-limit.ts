@@ -91,6 +91,11 @@ export type RateLimitResult = {
   retryAfter: number
   /** 응답에 붙일 표준 헤더 세트 */
   headers: Headers
+  /**
+   * DB 카운터를 못 써서 인스턴스 메모리 값으로만 판정했다(fail-open) — 호출처가 알릴 수 있게
+   * (2026-09-26). 이 신호가 없어서 AI 사용자 한도가 한 번도 안 걸렸는데 아무도 몰랐다.
+   */
+  degraded?: boolean
 }
 
 /**
@@ -179,6 +184,13 @@ export function ipFromRequest(req: Request): string {
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type RateLimitDBArgs = RateLimitArgs & {
+  /**
+   * ★반드시 service_role 클라이언트 (2026-09-26 출시 전 점검 5차).
+   * incr_rate_limit_counter 는 authenticated 에 EXECUTE 가 없다(남의 카운터를 올리지
+   * 못하게 20260716030000 에서 회수). 쿠키 클라이언트를 넘기면 RPC 가 늘 실패해 fail-open
+   * 으로 메모리 카운터만 남는다 — 실제로 AI 사용자별 하루 한도와 결제확인 한도가 한 번도
+   * 동작하지 않았다(rate_limit_counters 0행 실측). key 는 서버가 정한 값(user.id·IP)이다.
+   */
   supabase: SupabaseClient
 }
 
@@ -210,7 +222,7 @@ export async function rateLimitDB(
       console.warn(
         `[rate-limit] DB rpc failed — fail-open. bucket=${bucket} err=${error?.message ?? 'no-data'}`,
       )
-      return local
+      return { ...local, degraded: true }
     }
     const count = data as number
     const remaining = Math.max(0, limit - count)

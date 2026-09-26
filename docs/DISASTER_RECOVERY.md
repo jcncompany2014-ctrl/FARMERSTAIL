@@ -92,6 +92,14 @@ select * from pg_stat_activity where state = 'active' order by query_start;
 
 ## 3. 백업 & 복원
 
+> ⚠️ **Supabase 백업에는 스토리지 파일이 들어 있지 않다** (공식 문서: "Database backups do not include objects you
+> store via the Storage API"). DB 를 복원해도 상품 이미지·블로그 커버·이벤트 이미지·고객 강아지 사진은 돌아오지
+> 않고, 없는 파일을 가리키는 URL 만 남는다(2026-09-26 출시 전 점검 5차).
+> - **어드민 콘텐츠 버킷**(products · blog-covers · event-images)은 분기마다 내려받아 따로 보관한다 —
+>   Supabase 대시보드 Storage 에서 폴더째 다운로드하거나 service_role 스크립트로 `list` → `download`.
+> - **고객 사진 버킷**(dog-avatars · dog-diary-photos · dog_checkin_photos · medical-records-images)은
+>   **백업하지 않는다** — 탈퇴·삭제 시 즉시 파기 원칙(개인정보처리방침 §7)과 충돌하기 때문. 이 선택을 여기 적어 둔다.
+
 ### 자동 백업
 - **Supabase: 일일 자동 백업 (Pro 플랜 — 2026-08-19 업그레이드, plan=pro 실측).**
   7일 보관(Team 14일 / Enterprise 30일). 콘솔 → Database → Backups 에서 복원.
@@ -159,6 +167,7 @@ psql "$DATABASE_URL" < backup-20260527.sql
 매 분기 첫 주 (3개월마다) 다음 항목 확인 — 캘린더에 반복 일정으로:
 
 - [ ] DB 백업 1회 수동 실행 + 복원 테스트 (새 staging Supabase 프로젝트에)
+- [ ] 어드민 콘텐츠 스토리지(products · blog-covers · event-images) 내려받아 보관 — DB 백업에 안 들어 있다
 - [ ] Vercel rollback 1회 시뮬레이션
 - [ ] 도메인 만료일 확인 (가비아 → 보유 도메인)
 - [ ] SSL 인증서 만료일 확인 (Vercel 자동 갱신이지만 확인)

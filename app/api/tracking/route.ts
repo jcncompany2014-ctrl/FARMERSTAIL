@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ipFromRequest, rateLimit } from '@/lib/rate-limit'
 import { env } from '@/lib/env'
+import { createClient } from '@/lib/supabase/server'
 import {
   carrierMeta,
   isTrackerAuthError,
@@ -13,10 +14,10 @@ import {
 /**
  * GET /api/tracking?carrier=&trackingNumber= — 배송 조회 프록시.
  *
- * # 인증이 없다 (의도)
- * 송장 조회는 로그인 전에도 필요할 수 있다. (상류 tracker.delivery 는 2026-09 부터
- * **키가 필수**다 — 키는 서버 env 에만 있고 여기서 붙인다. lib/tracking trackerAuthHeader)
- * 대신 **두 가지를 지킨다**:
+ * # 로그인 + 본인 주문만 (2026-09-26 — 예전엔 인증 없음)
+ * 상류 tracker.delivery 는 2026-09 부터 **키가 필수**다 — 키는 서버 env 에만 있고 여기서 붙인다
+ * (lib/tracking trackerAuthHeader). 인증 없이 열어 두면 남이 사장님 키 쿼터를 써 버린다.
+ * 그 밖에 **두 가지를 지킨다**:
  *
  *  1. **개인정보를 받아오지 않는다.** 상류는 sender·recipient 이름을 주지만 우리는
  *     쿼리에서 아예 뺐다. 우리 화면이 그걸 쓴 적이 없는데 인증 없는 엔드포인트가
@@ -129,6 +130,37 @@ export async function GET(req: Request) {
     )
   }
 
+  // ★로그인 + 본인 주문의 송장만 (2026-09-26 출시 전 점검 5차). 예전엔 인증 없이 아무 송장이나
+  //   사장님 키로 조회해 줬다 — 키 쿼터를 남이 다 쓰면 자동 배송완료 크론이 멈춘다. 이 API 를
+  //   부르는 화면(/mypage/orders/[id]/track)은 로그인 전용이다.
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ code: 'UNAUTHORIZED', message: '로그인이 필요해요' }, { status: 401 })
+  }
+  const { data: owned, error: ownedErr } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('carrier', carrierCode)
+    .eq('tracking_number', trackingNumber)
+    .limit(1)
+    .maybeSingle()
+  if (ownedErr) {
+    return NextResponse.json(
+      { code: 'LOOKUP_FAILED', message: '잠시 후 다시 확인해 주세요.' },
+      { status: 503 },
+    )
+  }
+  if (!owned) {
+    return NextResponse.json(
+      { code: 'TRACKING_NOT_FOUND', message: '주문을 찾을 수 없어요.' },
+      { status: 404 },
+    )
+  }
+
   const authHeader = trackerAuthHeader(
     env.DELIVERY_TRACKER_CLIENT_ID,
     env.DELIVERY_TRACKER_CLIENT_SECRET,
@@ -214,7 +246,8 @@ export async function GET(req: Request) {
     return NextResponse.json(result, {
       headers: {
         // Short-lived cache: tracker state updates every few minutes.
-        'Cache-Control': 'public, max-age=60, s-maxage=60',
+        // 본인 주문 정보라 공유 캐시 금지(2026-09-26 — 로그인 필수로 바뀜).
+        'Cache-Control': 'private, max-age=60',
       },
     })
   } catch (e) {

@@ -122,6 +122,21 @@ export async function POST(
     console.warn(
       `[admin-message] cs_messages insert failed user=${targetUserId}: ${sanitizeLogText(csErr.message)}`,
     )
+  } else {
+    // ★'답 안 한 문의'는 **답장한 순간** 처리로 친다 (2026-09-26 출시 전 점검 5차).
+    //   예전엔 스레드를 열기만 해도 read_at 이 찍혀 대시보드·문의함에서 빠졌고, 확인만 하고
+    //   나중에 답하려던 문의가 다시 떠오르지 않아 고객이 답을 못 받았다.
+    const { error: readErr } = await supabase
+      .from('cs_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', targetUserId)
+      .eq('sender', 'user')
+      .is('read_at', null)
+    if (readErr) {
+      console.warn(
+        `[admin-message] 답장 후 처리 표시 실패 user=${targetUserId}: ${sanitizeLogText(readErr.message)}`,
+      )
+    }
   }
 
   // Audit log — admin 이 사용자에게 보낸 메시지 추적 (분쟁 시 증거).

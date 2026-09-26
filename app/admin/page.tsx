@@ -31,6 +31,10 @@ import {
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
 import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { trialPricing, type TrialState } from '@/lib/payments/trial'
+import { computeAutoDiscount, applyDiscount } from '@/lib/discount'
+import { tierMeta } from '@/lib/tiers'
 import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import vercelConfig from '@/vercel.json'
 
@@ -183,7 +187,7 @@ export default async function AdminHome() {
     // MRR 이 과대계상된다(2026-07-19 검수).
     supabase
       .from('subscriptions')
-      .select('id, total_amount', { count: 'exact' })
+      .select('id, user_id, total_amount', { count: 'exact' })
       .eq('status', 'active')
       .not('billing_key', 'is', null),
 
@@ -436,13 +440,50 @@ export default async function AdminHome() {
   // 성립하지 않는다). 폴백 4주는 매출을 절반으로 과소계상하기까지 했다.
   const activeSubs =
     (activeSubscriptionsRes.data ?? []) as Array<{
+      user_id: string
       total_amount: number | null
     }>
   const activeSubCount = activeSubscriptionsRes.count ?? activeSubs.length
-  const estimatedMrr = activeSubs.reduce(
-    (sum, s) => sum + (s.total_amount ?? 0) * 2,
-    0,
-  )
+  /**
+   * ★월 예상 = **실제로 나갈 금액** 기준 (2026-09-26 출시 전 점검 5차). 예전엔 total_amount(할인 전)
+   *   × 2 라, 서포터즈 100원 박스가 정가로 잡혀 5두면 월 32만 원이 부풀었다(실입금 1,000원).
+   *   청구와 같은 순수함수로 계산한다 — 서포터즈 단계가(trialPricing), 아니면 등급 할인(나무 10%).
+   *   이벤트 첫 박스 할인은 한 번뿐이라 월 예상에 넣지 않는다. 조회가 실패하면 할인 전 금액으로 둔다.
+   */
+  const mrrUserIds = [...new Set(activeSubs.map((s) => s.user_id))]
+  const trialByUser = new Map<string, TrialState>()
+  const tierByUser = new Map<string, string | null>()
+  let mrrDiscountLookupFailed = false
+  if (mrrUserIds.length > 0) {
+    try {
+      const adminDb = createAdminClient()
+      const [trialRes, tierRes] = await Promise.all([
+        adminDb
+          .from('subscription_trials')
+          .select('user_id, cheap_remaining, half_remaining, cheap_price, half_rate')
+          .in('user_id', mrrUserIds),
+        adminDb.from('profiles').select('id, tier').in('id', mrrUserIds),
+      ])
+      if (trialRes.error || tierRes.error) mrrDiscountLookupFailed = true
+      for (const t of (trialRes.data ?? []) as Array<TrialState & { user_id: string }>) {
+        trialByUser.set(t.user_id, t)
+      }
+      for (const p of (tierRes.data ?? []) as Array<{ id: string; tier: string | null }>) {
+        tierByUser.set(p.id, p.tier)
+      }
+    } catch {
+      mrrDiscountLookupFailed = true
+    }
+  }
+  const chargeOf = (s: { user_id: string; total_amount: number | null }) => {
+    const subtotal = s.total_amount ?? 0
+    const trial = trialPricing(trialByUser.get(s.user_id) ?? null, subtotal)
+    if (trial) return trial.chargeAmount
+    const tier = tierMeta(tierByUser.get(s.user_id) ?? null)?.key ?? null
+    return subtotal - applyDiscount(subtotal, computeAutoDiscount({ tier }).rate)
+  }
+  const trialSubCount = activeSubs.filter((s) => trialByUser.has(s.user_id)).length
+  const estimatedMrr = activeSubs.reduce((sum, s) => sum + chargeOf(s) * 2, 0)
 
   const lowStockCount = lowStockRes.count ?? 0
   const lowStockItems =
@@ -672,9 +713,10 @@ export default async function AdminHome() {
         <Kicker>구독 현황</Kicker>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
-            label="구독 중인 고객"
-            value={`${activeSubCount}명`}
-            sub={`2주마다 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 미등록 ${noCardSubsRes.count}명` : ''}`}
+            // 구독은 강아지마다 1건이라 사람 수가 아니다(2026-09-26).
+            label="진행 중인 구독"
+            value={`${activeSubCount}건`}
+            sub={`2주마다 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원(할인 반영${mrrDiscountLookupFailed ? ' 실패 — 할인 전 기준' : ''})${trialSubCount > 0 ? ` · 서포터즈 ${trialSubCount}건 포함` : ''}${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 미등록 ${noCardSubsRes.count}명` : ''}`}
             tone="green"
             help="카드까지 등록해 실제로 결제되는 구독 수예요. '카드 미등록'은 신청만 하고 결제 수단을 안 붙인 고객 — 며칠 지나면 리마인드해 주세요."
           />
@@ -770,7 +812,7 @@ export default async function AdminHome() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SectionCard
           title="많이 나간 상품 (최근 30일)"
-          desc="최근 30일간 매출이 큰 상품 순서예요."
+          desc="최근 30일간 많이 나간 상품 순서예요. 금액은 정가(할인 전) 기준이라 실제 입금액과 달라요 — 서포터즈 100원·등급·이벤트 할인 미반영."
           action={
             <Link
               href="/admin/products"

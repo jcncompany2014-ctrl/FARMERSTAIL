@@ -23,7 +23,7 @@ function guessExt(file: File): string {
 }
 
 /** Extracts the storage object path from a public URL, or null if mismatch. */
-function pathFromPublicUrl(url: string): string | null {
+export function dogAvatarPathFromUrl(url: string): string | null {
   const marker = `/object/public/${DOG_AVATARS_BUCKET}/`
   const i = url.indexOf(marker)
   if (i < 0) return null
@@ -56,14 +56,24 @@ export async function uploadDogPhoto(
   return { url: data.publicUrl, path }
 }
 
+/**
+ * 사진 파기 — **서버 라우트로** (2026-09-26 출시 전 점검 5차).
+ * 브라우저의 `storage.remove()` 는 dog-avatars 에 SELECT 정책이 없어 0건 삭제로 조용히
+ * 끝났다(바꾸거나 지운 사진이 공개 URL 로 계속 열림). /api/dog-photos/remove 가 소유를
+ * 확인하고 service_role 로 지운다. 실패는 던진다 — 호출부가 best-effort 로 삼킨다.
+ */
 export async function deleteDogPhotoByUrl(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   url: string | null | undefined
 ): Promise<void> {
   if (!url) return
-  const path = pathFromPublicUrl(url)
-  if (!path) return
-  await supabase.storage.from(DOG_AVATARS_BUCKET).remove([path])
+  if (!dogAvatarPathFromUrl(url)) return
+  const res = await fetch('/api/dog-photos/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  if (!res.ok) throw new Error(`photo remove failed: ${res.status}`)
 }
 
 /**

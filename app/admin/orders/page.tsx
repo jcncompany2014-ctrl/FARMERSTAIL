@@ -187,7 +187,7 @@ export default async function AdminOrdersPage({
               네비게이션 방지(기존 동작 유지) */}
           <a href={exportHref} download>
             <Download />
-            CSV 내보내기
+            CSV 내보내기 · 최근 90일
           </a>
         </Button>
       </div>

@@ -178,15 +178,28 @@ export const AI_USER_DAILY_LIMIT = {
 export type AiUserLimitBucket = keyof typeof AI_USER_DAILY_LIMIT
 
 export async function checkAiUserDailyLimit(
-  supabase: SupabaseClient,
+  // 호환용으로 받기만 한다 — 카운터는 **항상 service_role** 로 센다(아래 주석).
+  _supabase: SupabaseClient,
   userId: string,
   bucket: AiUserLimitBucket,
 ): Promise<RateLimitResult> {
-  return rateLimitDB({
-    supabase,
+  // ★2026-09-26: 호출처가 쿠키 클라이언트를 넘겨서 RPC 권한이 없어 이 한도가 한 번도
+  //   걸리지 않았다(rateLimitDB 주석). 서비스 키가 없으면 예전처럼 메모리 한도로 떨어진다.
+  let admin: SupabaseClient
+  try {
+    admin = createAdminClient() as unknown as SupabaseClient
+  } catch {
+    admin = _supabase
+  }
+  const result = await rateLimitDB({
+    supabase: admin,
     bucket: `ai-user-${bucket}`,
     key: userId,
     limit: AI_USER_DAILY_LIMIT[bucket],
     windowMs: 86_400_000,
   })
+  if (result.degraded) {
+    captureBusinessEvent('warning', 'ratelimit.ai_user.db_fail_open', { bucket, userId })
+  }
+  return result
 }

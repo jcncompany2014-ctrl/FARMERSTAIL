@@ -62,8 +62,9 @@ export async function POST(req: Request) {
    * 주문 소유권은 아래 조회가 user_id 로 검증한다.
    */
   const ordersAdmin = createAdminClient()
+  // ★카운터는 service_role 로 — 쿠키 클라이언트는 RPC 권한이 없어 늘 fail-open 이었다(2026-09-26).
   const rl = await rateLimitDB({
-    supabase,
+    supabase: ordersAdmin,
     bucket: 'payments-confirm',
     key: ipFromRequest(req),
     limit: 10,

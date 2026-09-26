@@ -29,6 +29,7 @@ function scrubKoreanPII<T>(event: T): T {
   const PHONE = /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/g
   const BRN = /\b\d{3}-?\d{2}-?\d{5}\b/g
   const ACCT = /\b\d{2,4}-\d{2,4}-\d{4,7}\b/g
+  const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g // 이메일 — 주석이 약속하던 것(2026-09-26 추가)
 
   const scrub = (s: string) =>
     s
@@ -36,6 +37,7 @@ function scrubKoreanPII<T>(event: T): T {
       .replace(PHONE, '[휴대폰]')
       .replace(BRN, '[사업자번호]')
       .replace(ACCT, '[계좌]')
+      .replace(EMAIL, '[이메일]')
 
   const walk = (val: unknown): unknown => {
     if (typeof val === 'string') return scrub(val)

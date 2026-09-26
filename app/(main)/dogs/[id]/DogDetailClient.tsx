@@ -253,6 +253,12 @@ export default function DogDetailClient({
       return
     }
 
+    // ★지운 강아지의 사진도 파기한다(2026-09-26) — 예전엔 DB 행만 지워 일기·체크인·진료기록·
+    //   프로필 사진이 탈퇴 때까지 남았다. 서버가 '정말 지워졌는지' 확인한 뒤 본인 폴더만 지운다.
+    void fetch(`/api/dogs/${dogId}/purge-photos`, { method: 'POST', keepalive: true }).catch(() => {
+      /* 파기 실패는 서버가 Sentry 로 남긴다 — 화면 흐름은 막지 않는다 */
+    })
+
     router.push('/dogs')
     router.refresh()
   }

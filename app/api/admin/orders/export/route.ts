@@ -55,22 +55,27 @@ type OrderRow = {
     | null
 }
 
+/**
+ * ★KST 로 찍는다 (2026-09-26 출시 전 점검 5차). 서버(Vercel)는 UTC 라 Date 의 로컬 getter 를
+ * 쓰면 09:10 KST 정기결제가 '00:10'으로, KST 새벽 주문은 **전날**로 찍혔다(세무·정산용 파일).
+ */
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
+  const k = new Date(d.getTime() + 9 * 60 * 60 * 1000)
+  const y = k.getUTCFullYear()
+  const m = String(k.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(k.getUTCDate()).padStart(2, '0')
+  const hh = String(k.getUTCHours()).padStart(2, '0')
+  const mm = String(k.getUTCMinutes()).padStart(2, '0')
   return `${y}-${m}-${day} ${hh}:${mm}`
 }
 
+/** YYYY-MM-DD 는 **KST 자정**으로 읽는다(예전엔 UTC 자정 — 경계가 9시간 어긋났다). */
 function parseBoundary(input: string | null, fallback: Date): string {
   if (!input) return fallback.toISOString()
-  // YYYY-MM-DD 는 로컬 자정으로 해석해 하루 단위 범위가 어긋나지 않게.
-  const d = /^\d{4}-\d{2}-\d{2}$/.test(input) ? new Date(`${input}T00:00:00`) : new Date(input)
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(input) ? new Date(`${input}T00:00:00+09:00`) : new Date(input)
   if (Number.isNaN(d.getTime())) return fallback.toISOString()
   return d.toISOString()
 }
@@ -222,9 +227,9 @@ export async function GET(request: Request) {
   // 미스매치를 일으켜 문자열 경로로 통일.
   const body = toCsvWithBom(rows, columns)
 
-  const today = new Date()
-  const stamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
-  const filename = `farmerstail_orders_${stamp}.csv`
+  // 파일 이름에 **기간**을 적는다 — from 이 없으면 최근 90일로 잘리는데 화면에 안 보였다(2026-09-26).
+  const ymd = (iso: string) => formatDateTime(iso).slice(0, 10).replace(/-/g, '')
+  const filename = `farmerstail_orders_${ymd(from)}-${ymd(to)}.csv`
 
   return new NextResponse(body, {
     status: 200,

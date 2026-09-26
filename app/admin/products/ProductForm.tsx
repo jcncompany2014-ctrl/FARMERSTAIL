@@ -71,6 +71,24 @@ const EMPTY: ProductData = {
 
 const CATEGORIES = ['체험팩', '정기배송', '간식', '화식', '기타']
 
+/**
+ * DB 행 → 폼 칸. 배열은 콤마로 잇고, JSON 객체는 보기 좋게 문자열로.
+ * 이미 문자열이면 그대로(새 상품·옛 데이터 호환).
+ */
+function toFormShape(data: ProductData): ProductData {
+  const raw = data as unknown as Record<string, unknown>
+  const listText = (v: unknown): string | null =>
+    Array.isArray(v) ? v.filter((x) => typeof x === 'string').join(', ') : typeof v === 'string' ? v : null
+  const jsonText = (v: unknown): string | null =>
+    v == null ? null : typeof v === 'string' ? v : JSON.stringify(v, null, 2)
+  return {
+    ...data,
+    allergens: listText(raw.allergens),
+    certifications: listText(raw.certifications),
+    nutrition_facts: jsonText(raw.nutrition_facts),
+  }
+}
+
 export default function ProductForm({
   mode,
   initialData,
@@ -82,7 +100,15 @@ export default function ProductForm({
   const supabase = createClient()
   const toast = useToast()
 
-  const [form, setForm] = useState<ProductData>(initialData ?? EMPTY)
+  // ★DB 행을 폼 모양(문자열 칸)으로 바꿔서 시작한다 (2026-09-26 출시 전 점검 5차).
+  //   수정 페이지는 select('*') 행을 그대로 넘기는데 allergens·certifications 는 text[],
+  //   nutrition_facts 는 jsonb 객체다. 문자열로 가정한 저장 코드가 `.split is not a function`
+  //   으로 멈춰 **판매 중인 4종 레시피는 가격·재고를 폼으로 못 고쳤다**(오류 표시도 없이).
+  const [form, setForm] = useState<ProductData>(() =>
+    initialData ? toFormShape(initialData) : EMPTY,
+  )
+  // 영양성분 칸을 비웠다고 38종 영양소(라벨 인쇄가 읽는 값)를 지우지 않는다 — 원래 값이 있었으면 유지.
+  const hadNutrition = initialData?.nutrition_facts != null
   const [loading, setLoading] = useState(false)
   // 사진 업로드 상태 — 블로그 커버와 같은 패턴 (2026-08-08 사장님 요청).
   // 업로드 라우트(/api/admin/products/upload)는 이미 있었는데 폼에 URL
@@ -212,9 +238,10 @@ export default function ProductForm({
           .filter(Boolean)
       : null
     let nutritionParsed: unknown = null
-    if (form.nutrition_facts && form.nutrition_facts.trim()) {
+    const nutritionBlank = !(form.nutrition_facts && form.nutrition_facts.trim())
+    if (!nutritionBlank) {
       try {
-        nutritionParsed = JSON.parse(form.nutrition_facts)
+        nutritionParsed = JSON.parse(form.nutrition_facts ?? '')
       } catch {
         toast.error(
           '영양성분 JSON 형식이 올바르지 않아요. 예: {"protein_pct":35,"fat_pct":12}',
@@ -246,6 +273,7 @@ export default function ProductForm({
       shelf_life_days: form.shelf_life_days,
       net_weight_g: form.net_weight_g,
       ingredients: form.ingredients?.trim() || null,
+      // 비운 칸 + 원래 값 있음 → 이 키를 보내지 않아 DB 값을 그대로 둔다(아래에서 제거).
       nutrition_facts: nutritionParsed,
       allergens: allergensArr,
       storage_method: form.storage_method?.trim() || null,
@@ -272,6 +300,10 @@ export default function ProductForm({
           }>
         }
       }
+    }
+
+    if (nutritionBlank && hadNutrition) {
+      delete (payload as Record<string, unknown>).nutrition_facts
     }
 
     if (mode === 'create') {

@@ -351,6 +351,41 @@ export default function OrderClient({
   // 실제로 보내는 중량도 청구 대상 기준 — 품절분은 박스에 안 들어간다.
   const totalCycleG = billable.reduce((s, it) => s + it.deliveredG, 0)
 
+  /**
+   * ★실제 첫 결제·반복 금액 (2026-09-26 출시 전 점검 5차). '결제하기'를 누르면 곧바로 카드
+   * 등록 창이 열려 이 화면이 정기결제 동의의 마지막 자리인데, 구독가(할인 전)만 보여 줘서
+   * 이벤트 첫 박스 할인·체험가·등급 할인 고객은 실제 금액과 "2번째 박스부터 정상가"를 못 봤다.
+   * 청구와 같은 함수로 서버가 계산한다(/api/subscriptions/price-preview). 실패하면 구독가 그대로.
+   */
+  const [pricePreview, setPricePreview] = useState<{
+    firstAmount: number
+    recurringAmount: number
+    discountKind: 'promotion' | 'trial' | 'tier' | null
+    discountLabel: string | null
+    discountAmount: number
+  } | null>(null)
+  useEffect(() => {
+    if (!(totalAmount > 0)) return
+    let cancelled = false
+    fetch(`/api/subscriptions/price-preview?subtotal=${totalAmount}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled) setPricePreview(j?.ok ? j : null)
+      })
+      .catch(() => {
+        if (!cancelled) setPricePreview(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [totalAmount])
+  const firstCharge =
+    pricePreview && pricePreview.discountAmount > 0 ? pricePreview.firstAmount : totalAmount
+  const oneTimeDiscount =
+    pricePreview != null &&
+    (pricePreview.discountKind === 'promotion' || pricePreview.discountKind === 'trial') &&
+    pricePreview.recurringAmount !== pricePreview.firstAmount
+
   // GA4 begin_checkout — 주문 화면 진입 1회(마운트 시 초기 구성 기준). 가입
   // (sign_up)→주문 진입(begin_checkout)→결제(purchase) 퍼널의 가운데 단계.
   // 2026-07-19 이전엔 호출처 0 = 어디서 이탈하는지 측정 불가였다.
@@ -1125,10 +1160,26 @@ export default function OrderClient({
               </span>
             </div>
             <div className="ord-summary-divide" />
+            {pricePreview && pricePreview.discountAmount > 0 && (
+              <div className="ord-summary-row">
+                <span>{pricePreview.discountLabel ?? '할인'}</span>
+                <span>−{pricePreview.discountAmount.toLocaleString()}원</span>
+              </div>
+            )}
             <div className="ord-summary-row">
-              <span>2주 결제</span>
-              <strong>{totalAmount.toLocaleString()}원</strong>
+              <span>{oneTimeDiscount ? '첫 결제' : '2주 결제'}</span>
+              <strong>{firstCharge.toLocaleString()}원</strong>
             </div>
+            {oneTimeDiscount && pricePreview && (
+              <div className="ord-summary-row">
+                <span>
+                  {pricePreview.discountKind === 'trial'
+                    ? '서포터즈 혜택(100원·반값)이 모두 끝나면'
+                    : '2번째 박스부터'}
+                </span>
+                <span>2주마다 {pricePreview.recurringAmount.toLocaleString()}원</span>
+              </div>
+            )}
             <div className="ord-summary-row ord-summary-info">
               <Sparkles size={11} strokeWidth={2.2} color="var(--moss)" />
               <span>
@@ -1193,10 +1244,12 @@ export default function OrderClient({
           <div className="ord-paybar">
             <div className="ord-paybar-info">
               <span className="ord-paybar-cap">
-                첫 박스 · 2주마다 · 다음 결제 전 해지
+                {oneTimeDiscount && pricePreview
+                  ? `첫 박스 · ${pricePreview.discountKind === 'trial' ? '서포터즈 혜택 뒤' : '2번째부터'} 2주마다 ${pricePreview.recurringAmount.toLocaleString()}원`
+                  : '첫 박스 · 2주마다 · 다음 결제 전 해지'}
               </span>
               <span className="ord-paybar-price">
-                {totalAmount.toLocaleString()}원
+                {firstCharge.toLocaleString()}원
                 <span className="ord-paybar-badge">정기배송가</span>
               </span>
             </div>

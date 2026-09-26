@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { AdminTabs, Hl, Em, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 
 /**
  * /admin/subscriptions/calendar — 정기배송 일정 캘린더 뷰.
@@ -31,13 +32,13 @@ type SearchParamsT = Promise<{ ym?: string; day?: string }>
 const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
 function parseYm(ym: string | undefined): { year: number; month: number } {
-  // YYYY-MM. invalid → 이번달.
-  const now = new Date()
+  // YYYY-MM. invalid → 이번달(**KST** — 서버는 UTC 라 KST 새벽엔 전달로 보였다, 2026-09-26).
+  const [ty, tm] = todayKstIsoDate().split('-').map(Number) as [number, number]
   if (!ym || !/^\d{4}-\d{2}$/.test(ym)) {
-    return { year: now.getFullYear(), month: now.getMonth() + 1 }
+    return { year: ty, month: tm }
   }
   const [y, m] = ym.split('-').map(Number) as [number, number]
-  if (m < 1 || m > 12) return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  if (m < 1 || m > 12) return { year: ty, month: tm }
   return { year: y, month: m }
 }
 
@@ -62,12 +63,15 @@ export default async function SubscriptionsCalendarPage({
 
   // 활성 + paused 구독 모두 표시 (paused 는 다음 발송 예정인지 본 후 dim 으로).
   // 규칙1 — error 를 버리면 조회 실패가 "이번 달 배송 없음" 빈 달력으로 보인다.
+  // ★이번 달 안의 **모든** 발송 회차를 그린다 (2026-09-26 출시 전 점검 5차).
+  //   예전엔 next_delivery_date 한 칸만 봐서 격주 두 번째 회차(+14일)가 빠졌고, 일시정지·
+  //   카드 없는 구독까지 '예정'으로 셌다 — 이 숫자로 원물을 발주하면 틀린다.
+  //   그래서 달 끝 이전이 다음 발송일인 구독을 가져와 14일씩 앞으로 늘린다.
   const { data: subs, error: subsErr } = await supabase
     .from('subscriptions')
     .select(
-      'id, status, next_delivery_date, total_amount, recipient_name, profiles(name, email), subscription_items(product_name, quantity)',
+      'id, status, next_delivery_date, total_amount, recipient_name, has_billing_key, requires_billing_key_renewal, profiles(name, email), subscription_items(product_name, quantity)',
     )
-    .gte('next_delivery_date', startKey)
     .lte('next_delivery_date', endKey)
     .in('status', ['active', 'paused'])
     .order('next_delivery_date', { ascending: true })
@@ -78,17 +82,38 @@ export default async function SubscriptionsCalendarPage({
     next_delivery_date: string | null
     total_amount: number | null
     recipient_name: string | null
+    has_billing_key: boolean | null
+    requires_billing_key_renewal: boolean | null
     profiles: { name: string | null; email: string | null } | null
     subscription_items: { product_name: string; quantity: number }[]
   }
 
   const subsByDay = new Map<string, SubLite[]>()
-  for (const s of (subs ?? []) as unknown as SubLite[]) {
-    if (!s.next_delivery_date) continue
-    const key = s.next_delivery_date.slice(0, 10)
+  const push = (key: string, s: SubLite) => {
     const arr = subsByDay.get(key) ?? []
     arr.push(s)
     subsByDay.set(key, arr)
+  }
+  // 합계는 **청구될 회차만** — 활성 + 카드 있음 + 재등록 불필요.
+  let monthTotalCount = 0
+  let monthTotalRevenue = 0
+  for (const s of (subs ?? []) as unknown as SubLite[]) {
+    if (!s.next_delivery_date) continue
+    const first = s.next_delivery_date.slice(0, 10)
+    if (s.status !== 'active') {
+      // 일시정지는 달력에 흐리게만 — 청구·발송 안 된다.
+      if (first >= startKey) push(first, s)
+      continue
+    }
+    const chargeable = s.has_billing_key === true && s.requires_billing_key_renewal !== true
+    for (let d = first; d <= endKey; d = addDaysKst(d, 14)) {
+      if (d < startKey) continue
+      push(d, s)
+      if (chargeable) {
+        monthTotalCount += 1
+        monthTotalRevenue += s.total_amount ?? 0
+      }
+    }
   }
 
   // 그리드 셀 — 첫 주의 빈 칸 + 마지막 주의 빈 칸 채워서 7×N 격자.
@@ -103,8 +128,7 @@ export default async function SubscriptionsCalendarPage({
     isWeekend: boolean
     items: SubLite[]
   }
-  const today = new Date()
-  const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+  const todayKey = todayKstIsoDate()
 
   const cells: Cell[] = []
   for (let i = 0; i < totalCells; i++) {
@@ -130,12 +154,7 @@ export default async function SubscriptionsCalendarPage({
     }
   }
 
-  // 월별 합계
-  const monthTotalCount = (subs ?? []).length
-  const monthTotalRevenue = (subs ?? []).reduce(
-    (s, x) => s + (x.total_amount ?? 0),
-    0,
-  )
+  // 월별 합계는 위 회차 전개에서 계산했다(청구될 회차만, 구독가 기준).
 
   // prev/next 월 계산
   const prevYm = month === 1 ? `${year - 1}-12` : `${year}-${pad(month - 1)}`
@@ -153,7 +172,7 @@ export default async function SubscriptionsCalendarPage({
           <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>앞으로 나갈 배송을 달력으로</Hl> 봐요 (발송은{' '}
             <Em>매주 화요일 하루</Em>예요). 날짜를 보고 몇 박스를 준비해야 할지
-            미리 가늠할 수 있어요. — 이번 달 예정 {monthTotalCount}건 · 합계{' '}
+            미리 가늠할 수 있어요. — 이번 달 청구될 회차 {monthTotalCount}건 · 합계(할인 전 구독가){' '}
             {monthTotalRevenue.toLocaleString('ko-KR')}원
           </p>
         </div>

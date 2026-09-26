@@ -77,6 +77,11 @@ export async function GET(req: Request) {
   // 할인 후 = 실제 출금액. 청구 크론과 같은 함수를 쓴다.
   let chargeAmount = row.total_amount
   let discountLabel: string | null = null
+  // ★첫 결제와 그 뒤 반복 금액을 나눠 말한다 (2026-09-26 출시 전 점검 5차).
+  //   이벤트 할인은 첫 결제 한 번, 체험가는 체험 기간만 — 화면이 이 금액을 '2주마다'로
+  //   말하고 있었다(2번째 박스부터 정상가가 동의 없이 나가는데).
+  let discountKind: 'promotion' | 'trial' | 'tier' | null = null
+  let recurringAmount = row.total_amount
   if (typeof row.total_amount === 'number' && row.total_amount > 0) {
     const d = await resolveAutoDiscount({
       userId: user.id,
@@ -84,6 +89,24 @@ export async function GET(req: Request) {
     })
     chargeAmount = d.chargeAmount
     discountLabel = d.discountAmount > 0 ? (d.label ?? '할인') : null
+    discountKind =
+      d.discountAmount <= 0
+        ? null
+        : d.reason === 'promotion'
+          ? 'promotion'
+          : d.reason === 'trial_cheap' || d.reason === 'trial_half'
+            ? 'trial'
+            : 'tier'
+    recurringAmount =
+      discountKind === 'promotion' || discountKind === 'trial'
+        ? (
+            await resolveAutoDiscount({
+              userId: user.id,
+              subtotal: row.total_amount,
+              recurringOnly: true,
+            })
+          ).chargeAmount
+        : chargeAmount
   }
 
   return NextResponse.json({
@@ -94,6 +117,10 @@ export async function GET(req: Request) {
     discountLabel,
     /** 할인 전 금액 — 화면이 취소선 등으로 함께 보여줄 수 있게. */
     listAmount: row.total_amount,
+    /** 할인 종류 — promotion(첫 박스만)·trial(체험 기간만)·tier(계속). */
+    discountKind,
+    /** 한정 할인이 끝난 뒤 2주마다 나갈 금액. */
+    recurringAmount,
     // 카드 등록 전 구독은 next_delivery_date 가 null — 첫 결제일은 다음
     // 화요일(billing-issue 가 그렇게 잡는다).
     firstChargeDate: row.next_delivery_date ?? nextShipDate(),

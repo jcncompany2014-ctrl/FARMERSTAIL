@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { zNewsletterSubscribe } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
-import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
+import { rateLimit, rateLimitDB, ipFromRequest } from '@/lib/rate-limit'
 import { notifyNewsletterConfirm } from '@/lib/email'
 
 /**
@@ -98,11 +98,13 @@ export async function POST(req: Request) {
         { status: 500 },
       )
     }
-    // double opt-in confirm 메일 — fire-and-forget. 발송 실패해도 사용자에게는
+    // double opt-in confirm 메일. 발송 실패해도 사용자에게는
     // "확인 메일을 보냈어요" 라고 응답해 spam check 우회 차단.
-    await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
-      /* swallow */
-    })
+    if (await withinRecipientCap(supabase, email)) {
+      await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+        /* swallow */
+      })
+    }
     return NextResponse.json({
       ok: true,
       reactivated: true,
@@ -154,13 +156,36 @@ export async function POST(req: Request) {
   // status='confirmed' 로 전환. 정보통신망법 §50 명시 동의 절차 준수.
   // 메일 발송 실패해도 row 는 남기고 사용자 응답엔 정상 — 재시도는 사용자가
   // 다시 구독 신청하면 토큰 갱신 + 재발송.
-  await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
-    /* swallow — Resend 미설정 / 일시 오류 시 다음 신청에 재발송 */
-  })
+  if (await withinRecipientCap(supabase, email)) {
+    await notifyNewsletterConfirm({ email, confirmToken }).catch(() => {
+      /* swallow — Resend 미설정 / 일시 오류 시 다음 신청에 재발송 */
+    })
+  }
 
   return NextResponse.json({
     ok: true,
     subscribed: true,
     message: '확인 메일을 보냈어요. 이메일을 열어 구독을 마무리해 주세요.',
   })
+}
+
+/**
+ * ★받는 주소 기준 하루 상한 (2026-09-26 출시 전 점검 5차).
+ * 이 API 는 로그인 없이 **아무 주소**로 확인 메일을 보낸다. IP 한도는 인스턴스별 메모리라
+ * 우회가 쉬워서, 남의 주소로 하루 수천 통을 보낼 수 있었다 — 받은 사람이 스팸 신고를 누르면
+ * 그 주소는 수신차단 목록에 올라 **결제·배송 메일까지 영구 차단**되고, 도메인 평판도 떨어진다.
+ * 같은 주소로는 하루 3통까지. 넘으면 조용히 건너뛴다(응답은 같게 — 구독 여부를 캐낼 수 없게).
+ */
+async function withinRecipientCap(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<boolean> {
+  const rl = await rateLimitDB({
+    supabase: admin as never,
+    bucket: 'newsletter-confirm-to',
+    key: email.trim().toLowerCase(),
+    limit: 3,
+    windowMs: 86_400_000,
+  })
+  return rl.ok
 }

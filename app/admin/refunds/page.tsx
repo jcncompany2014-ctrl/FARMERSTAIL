@@ -40,7 +40,7 @@ export default async function AdminRefundsPage() {
   if (!user) redirect('/login?next=/admin/refunds')
   if (!(await isAdmin(supabase, user))) redirect('/admin')
 
-  const [{ data: refunds }, { count: pendingCount }] = await Promise.all([
+  const [{ data: refunds }, { data: queueRows, error: queueErr }] = await Promise.all([
     supabase
       .from('refunds')
       .select(
@@ -48,39 +48,30 @@ export default async function AdminRefundsPage() {
       )
       .order('refunded_at', { ascending: false })
       .limit(100),
+    // ★막힌 환불의 정본은 payment_refund_queue (2026-09-26 출시 전 점검 5차).
+    //   예전 '처리 대기'는 refunds.status='pending' 을 셌는데 refunds 는 성공한 환불만
+    //   적는 원장이라 늘 0 이었고, 대시보드 '환불 대기 N'을 눌러 오면 '0건'이 떴다.
+    //   재시도 중(pending)과 최종 실패(permanently_failed)를 둘 다 보여 준다.
     supabase
-      .from('refunds')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
+      .from('payment_refund_queue')
+      .select('id, order_id, amount, attempts, reason, last_error, status, next_retry_at')
+      .in('status', ['pending', 'permanently_failed'])
+      .order('created_at', { ascending: true })
+      .limit(50),
   ])
-
-  // 데드레터 — 자동 재시도 모두 실패한 환불(수동 처리 필요). payment_refund_queue
-  // 는 supabase typegen 미포함이라 unknown 캐스팅. RLS admin read 정책(마이그
-  // 20260608000002) 적용 후 노출 — 미적용/RLS 차단이면 빈 배열(무해).
-  const { data: deadLetters } = await (
-    supabase as unknown as {
-      from: (t: string) => {
-        select: (c: string) => {
-          eq: (
-            col: string,
-            val: string,
-          ) => { limit: (n: number) => Promise<{ data: unknown }> }
-        }
-      }
-    }
-  )
-    .from('payment_refund_queue')
-    .select('id, order_id, amount, attempts, reason, last_error')
-    .eq('status', 'permanently_failed')
-    .limit(20)
-  const dead = ((deadLetters as unknown[]) ?? []) as Array<{
+  const queue = (queueRows ?? []) as Array<{
     id: string
     order_id: string
     amount: number
     attempts: number
     reason: string | null
     last_error: string | null
+    status: string
+    next_retry_at: string | null
   }>
+  const dead = queue.filter((q) => q.status === 'permanently_failed')
+  const retrying = queue.filter((q) => q.status === 'pending')
+  const pendingCount = queueErr ? null : queue.length
 
   type Refund = {
     id: string
@@ -130,7 +121,8 @@ export default async function AdminRefundsPage() {
       {/* Hero stat 3-grid */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <StatCard kicker="이번 달 환불" value={monthCount} unit="건" tone="brand" Icon={Calendar} />
-        <StatCard kicker="이번 달 환불액" value={monthTotal} unit="원" tone="danger" Icon={TrendingDown} />
+        {/* 이 표는 고객 취소·관리자 환불만 적는다 — 자동 환불(청구 중 해지·재시도)까지 합친 액수는 리포트 */}
+        <StatCard kicker="이번 달 환불액(수동)" value={monthTotal} unit="원" tone="danger" Icon={TrendingDown} />
         <StatCard
           kicker="처리 대기"
           value={pendingCount ?? 0}
@@ -140,6 +132,42 @@ export default async function AdminRefundsPage() {
           highlight={pendingCount && pendingCount > 0 ? true : false}
         />
       </div>
+
+      {queueErr && (
+        <Card className="gap-2 border-destructive/40 bg-destructive/5 py-3">
+          <CardContent className="px-4 text-[12px] text-destructive">
+            환불 대기 목록을 불러오지 못했어요 — 새로고침해 주세요. (0건으로 보이면 안 되는 자리예요)
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 재시도 중 — 고객 돈이 아직 안 돌아간 상태. 자동으로 다시 시도한다. */}
+      {retrying.length > 0 && (
+        <Card className="gap-3 py-4">
+          <CardContent className="px-4">
+            <h2 className="mb-2 text-[13px] font-bold">자동 환불 재시도 중 ({retrying.length})</h2>
+            <ul className="space-y-1.5">
+              {retrying.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-2"
+                >
+                  <Link
+                    href={`/admin/orders/${d.order_id}`}
+                    className="truncate font-mono text-[12px] hover:text-primary"
+                  >
+                    주문 #{String(d.order_id).slice(0, 8)} · {Number(d.amount).toLocaleString()}원
+                  </Link>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {d.attempts}회 시도
+                    {d.last_error ? ` · ${String(d.last_error).slice(0, 28)}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 데드레터 — 자동 재시도 모두 실패(수동 처리 필요). 최우선 노출. */}
       {dead.length > 0 && (

@@ -1,48 +1,83 @@
+'use client'
+
 /**
- * GA4 + Meta Pixel 스크립트 로더.
+ * GA4 · Meta Pixel · Microsoft Clarity 스크립트 로더 — **동의한 뒤에만 불러온다**.
  *
- * `afterInteractive` 전략 — 첫 페인트 이후 비동기 로드. 앱 JS 번들
- * 바깥에서 로드되므로 TBT(Total Blocking Time)에 영향 없음.
+ * # 2026-09-26 출시 전 점검 5차 — Advanced → Basic Consent Mode
+ * 예전엔 gtag.js 를 늘 불러 두고 consent default=denied 만 걸었다(Advanced Consent Mode).
+ * 그러면 GA 는 **쿠키 없는 집계 신호(page_view, gcs=G100)를 계속 보낸다** — 실측으로
+ * 동의 전과 '필수만' 선택 뒤에도 방문 URL(쿼리 포함: /start?p=코드, /vet/공유토큰)이
+ * Google 로 갔다. 개인정보처리방침·배너는 "분석은 동의 후에만"이라고 약속한다.
+ * 그래서 스크립트 자체를 동의 뒤에 넣는다:
+ *   · GA4·Clarity — 분석(analytics) 동의가 있을 때만
+ *   · Meta Pixel — 광고(marketing) 동의가 있을 때만
+ * 동의하지 않으면 제3자에게 아무 요청도 가지 않는다(외부 요청 0).
  *
- * ID가 비어있으면 해당 스크립트만 선택적으로 생략. 둘 중 하나만
- * 켜두고 나머지는 비워두는 운영이 가능.
- *
- * Consent gating
- * ──────────────
- * GA4 는 Consent Mode v2, Meta Pixel 은 consent API 를 사용해 사용자가
- * 동의하기 전까지 쿠키 저장·식별자 전송을 막는다. 스크립트 자체는 로드해
- * 가볍게 동작시키되, CookieConsent 배너에서 동의가 들어오면 `gtag('consent',
- * 'update', ...)` 로 상태를 풀어준다. (lib/cookies.ts 참고.)
+ * 앱(ft_app)은 CookieConsent 가 자동으로 '필수만'을 기록하므로 앱에서도 로드되지 않는다.
+ * iOS 는 그와 별도로 ATT 게이트(lib/analytics isTrackingAllowed)가 있다.
  */
 import Script from 'next/script'
+import { useSyncExternalStore } from 'react'
+import { COOKIE_STORAGE_KEY, readConsent, type CookieConsent } from '@/lib/cookies'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
-// Microsoft Clarity — 무료 heatmap / 세션 녹화. analytics 카테고리.
-// 셋업: Bing Webmaster Tools → Microsoft Clarity → Project ID 가져옴.
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID
 
-// Consent 기본값 — 모든 tracker 호출보다 먼저 실행되도록 같은 Script 안에서
-// 순차 실행. afterInteractive 로도 순서는 보장되며 (GA4 init 자체가
-// afterInteractive), `wait_for_update: 500` 옵션이 ConsentBootstrap 이 저장된
-// 값을 쏠 때까지 이벤트 전송을 잠깐 대기시키므로 실질적으로는 문제가 없다.
-const CONSENT_DEFAULT = `
+// 외부 요청이 없는 로컬 스텁 — ConsentBootstrap·applyConsentToTrackers 가 window.gtag 를
+// 안전하게 부를 수 있게. dataLayer 에만 쌓이고, gtag.js 는 동의 전엔 로드되지 않는다.
+const GTAG_STUB = `
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  window.gtag = gtag;
-  gtag('consent', 'default', {
+  window.gtag = window.gtag || function gtag(){ window.dataLayer.push(arguments); };
+  window.gtag('consent', 'default', {
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
-    analytics_storage: 'denied',
-    wait_for_update: 500
+    analytics_storage: 'denied'
   });
 `
 
+function subscribe(cb: () => void) {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener('ft-consent-change', cb)
+  window.addEventListener('ft-consent-reset', cb)
+  window.addEventListener('storage', cb)
+  return () => {
+    window.removeEventListener('ft-consent-change', cb)
+    window.removeEventListener('ft-consent-reset', cb)
+    window.removeEventListener('storage', cb)
+  }
+}
+
+// useSyncExternalStore 는 스냅샷 참조가 같아야 한다 — 원문 문자열 기준으로 캐시(CookieConsent 와 같은 방식).
+let cachedRaw: string | null | undefined
+let cachedValue: CookieConsent | null = null
+function getSnapshot(): CookieConsent | null {
+  if (typeof window === 'undefined') return null
+  let raw: string | null = null
+  try {
+    raw = window.localStorage.getItem(COOKIE_STORAGE_KEY)
+  } catch {
+    raw = null
+  }
+  if (raw === cachedRaw) return cachedValue
+  cachedRaw = raw
+  cachedValue = readConsent()
+  return cachedValue
+}
+function getServerSnapshot(): CookieConsent | null {
+  return null
+}
+
 export default function AnalyticsScripts() {
+  const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const analytics = consent?.analytics === true
+  const marketing = consent?.marketing === true
+
   return (
     <>
-      {GA_ID && (
+      <Script id="gtag-stub" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: GTAG_STUB }} />
+      {GA_ID && analytics && (
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
@@ -51,70 +86,49 @@ export default function AnalyticsScripts() {
           <Script
             id="ga4-init"
             strategy="afterInteractive"
-            // consent default 를 먼저, 그 뒤에 config. send_page_view: false 로
-            // App Router 자동 감지를 꺼둔다 (instrumentation-client.ts 에서 수동).
+            // 동의가 있을 때만 여기 온다 — 저장된 선택을 그대로 반영한 뒤 config.
+            // send_page_view: false — 페이지뷰는 instrumentation-client 가 수동으로 보낸다.
             dangerouslySetInnerHTML={{
               __html: `
-                ${CONSENT_DEFAULT}
-                gtag('js', new Date());
-                gtag('config', '${GA_ID}', { send_page_view: false });
+                window.gtag('consent', 'update', {
+                  analytics_storage: 'granted',
+                  ad_storage: '${marketing ? 'granted' : 'denied'}',
+                  ad_user_data: '${marketing ? 'granted' : 'denied'}',
+                  ad_personalization: '${marketing ? 'granted' : 'denied'}'
+                });
+                window.gtag('js', new Date());
+                window.gtag('config', '${GA_ID}', { send_page_view: false });
               `,
             }}
           />
         </>
       )}
-      {!GA_ID && (
-        // GA_ID 가 없어도 window.gtag stub 을 띄워야 ConsentBootstrap 이 안전.
+      {PIXEL_ID && marketing && (
         <Script
-          id="consent-stub"
+          id="meta-pixel-init"
           strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT }}
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('consent', 'grant');
+              fbq('init', '${PIXEL_ID}');
+              fbq('track', 'PageView');
+            `,
+          }}
         />
       )}
-      {PIXEL_ID && (
-        <>
-          <Script
-            id="meta-pixel-init"
-            strategy="afterInteractive"
-            // fbq 로드 직후 consent 를 revoke 로 잡아 둔다. 이후 동의 시
-            // `fbq('consent', 'grant')` 로 풀어준다 (lib/cookies.ts).
-            dangerouslySetInnerHTML={{
-              __html: `
-                !function(f,b,e,v,n,t,s)
-                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                n.queue=[];t=b.createElement(e);t.async=!0;
-                t.src=v;s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s)}(window, document,'script',
-                'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('consent', 'revoke');
-                fbq('init', '${PIXEL_ID}');
-                fbq('track', 'PageView');
-              `,
-            }}
-          />
-          {/* noscript 픽셀 — JS 미지원 브라우저용 catch-all */}
-          <noscript>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              height={1}
-              width={1}
-              style={{ display: 'none' }}
-              alt=""
-              src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`}
-            />
-          </noscript>
-        </>
-      )}
-      {CLARITY_ID && (
+      {CLARITY_ID && analytics && (
         <Script
           id="ms-clarity-init"
           strategy="afterInteractive"
-          // Clarity 는 자체 consent API 를 사용한다. 스크립트는 로드하되 기본을
-          // denied 로 설정 → analytics 동의 시 lib/cookies.ts 가
-          // clarity('consent', true) 로 풀어준다. ?ref=bwt 는 Bing Webmaster
-          // Tools 셋업 식별자 (분석에는 영향 없음).
+          // ?ref=bwt 는 Bing Webmaster Tools 셋업 식별자(분석에는 영향 없음).
           dangerouslySetInnerHTML={{
             __html: `
               (function(c,l,a,r,i,t,y){
@@ -122,8 +136,7 @@ export default function AnalyticsScripts() {
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
                 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
               })(window, document, "clarity", "script", "${CLARITY_ID}");
-              // 기본 denied — ConsentBootstrap 이 저장된 동의를 흘려준다.
-              window.clarity && window.clarity('consent', false);
+              window.clarity('consent');
             `,
           }}
         />

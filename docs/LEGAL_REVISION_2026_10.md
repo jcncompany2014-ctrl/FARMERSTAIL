@@ -17,6 +17,9 @@
 | 국외이전 · Anthropic (:565-566) | 익명화된 설문 응답(이름·연락처 포함하지 않음) | 위 행과 같게 — **"이름·연락처 포함하지 않음" 삭제** | 진료 영수증엔 보호자 성명·연락처가 흔히 인쇄돼 있다 |
 | 국외이전 · Supabase (:450) | 미국 (AWS us-east) | **대한민국(AWS 서울 리전) 저장** · 수탁사 Supabase Inc.(미국) | `get_project` region = ap-northeast-2 (2026-09-25 실측) |
 | (검토) 배송조회 | 없음 | 배송조회 대행 **tracker.delivery**: 택배사·송장번호 | 송장번호만 보내 개인정보 해당 여부 불확실 — 변호사 판단 |
+| 국외이전 · Sentry (:578-596) | 오류 발생 시 stack trace·route·사용자 식별번호 | + **오류가 난 세션의 화면 조작 기록(세션 리플레이 — 글자·입력·사진은 가린 채)** | `instrumentation-client.ts` replaysOnErrorSampleRate 1.0 + replayIntegration(maskAllText·maskAllInputs·blockAllMedia). 또는 리플레이를 분석 동의에 묶을지 사장님 결정 (5차 점검 H5) |
+
+> 참고(5차 점검): GA4·Clarity·Meta Pixel 은 2026-09-26 부터 **동의한 뒤에만 로드**되도록 코드를 고쳐 방침의 "동의 시에만"과 일치한다(예전엔 동의 전·거부 후에도 GA 가 쿠키 없는 신호를 보냈다).
 
 **함께 할 일(코드):** 건강기록 업로드 화면에 "보호자 이름·연락처는 가리고 찍어 주세요" 안내 한 줄.
 

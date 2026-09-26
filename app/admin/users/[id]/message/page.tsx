@@ -57,13 +57,8 @@ export default async function AdminUserMessagePage({
   if (profileErr) throw new Error(`프로필 조회 실패: ${profileErr.message}`)
   if (!profile) notFound()
 
-  // 사용자가 보낸 미확인 메시지가 있으면 read 처리 — admin 이 thread 본 시점.
-  await supabase
-    .from('cs_messages')
-    .update({ read_at: new Date().toISOString() })
-    .eq('user_id', id)
-    .eq('sender', 'user')
-    .is('read_at', null)
+  // ★열람만으로는 처리하지 않는다 (2026-09-26) — 답장을 보낼 때 처리 표시한다
+  //   (app/api/admin/users/[id]/message). 예전엔 열기만 해도 '답 안 한 문의'에서 사라졌다.
 
   const recent = (pushLog ?? []) as Array<{
     id: string

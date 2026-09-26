@@ -6,6 +6,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute, captureBusinessEvent } from '@/lib/sentry/trace'
 import { purgeUserStorage } from '@/lib/storage/purgeUserStorage'
+import { dogAvatarPathFromUrl } from '@/lib/dogPhotos'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -255,6 +256,23 @@ export async function POST(req: Request) {
   //   • native_push_tokens / newsletter_subscribers — 통신 채널, 즉시 해제
   //   • addresses — 배송지 저장본 (orders 행에 snapshot 이 별도)
   //   • push_log — 발송 이력 audit 가 user 떠나면 의미 없음
+  // ★옛 친구 업로드 사진(`photo-requests/{token}` — 주인 폴더 밖)은 토큰으로만 찾을 수 있다.
+  //   토큰 행은 dogs 와 함께 지워지므로 **지우기 전에** 모은다(2026-09-26 출시 전 점검 5차).
+  const { data: legacyUploads, error: legacyErr } = await admin
+    .from('photo_request_tokens')
+    .select('uploaded_photo_url, dogs!inner(user_id)')
+    .eq('dogs.user_id', user.id)
+    .not('uploaded_photo_url', 'is', null)
+  if (legacyErr) {
+    captureBusinessEvent('error', 'account.delete.legacy_photo_lookup_failed', {
+      userId: user.id,
+      dbError: legacyErr.message,
+    })
+  }
+  const legacyPhotoPaths = ((legacyUploads ?? []) as Array<{ uploaded_photo_url: string | null }>)
+    .map((r) => (r.uploaded_photo_url ? dogAvatarPathFromUrl(r.uploaded_photo_url) : null))
+    .filter((p): p is string => typeof p === 'string' && p.startsWith('photo-requests/'))
+
   const deletionOps = await Promise.allSettled([
     admin.from('dogs').delete().eq('user_id', user.id),
     admin.from('push_subscriptions').delete().eq('user_id', user.id),
@@ -268,6 +286,15 @@ export async function POST(req: Request) {
     admin.from('dog_checkins').delete().eq('user_id', user.id),
     admin.from('native_push_tokens').delete().eq('user_id', user.id),
     admin.from('newsletter_subscribers').delete().eq('user_id', user.id),
+    // ★2026-09-26 출시 전 점검 5차 — 삭제 목록에서 빠져 있던 개인 데이터. 탈퇴는 soft delete 라
+    //   auth.users CASCADE 가 5년 뒤 purge 때에야 돌아서, 그때까지 남아 있었다.
+    //   · kibble_requests.raw_input(자유 입력) · source_waitlist.concern(자유 입력)
+    //   · meta_learning_events(추천 학습 로그) — 지우면 추천 통계가 바뀌므로 user_id 만 비운다(익명화)
+    //   · dog_members(남의 강아지 가족 등록)
+    admin.from('kibble_requests').delete().eq('user_id', user.id),
+    admin.from('source_waitlist').delete().eq('user_id', user.id),
+    admin.from('meta_learning_events').update({ user_id: null }).eq('user_id', user.id),
+    admin.from('dog_members').delete().eq('user_id', user.id),
     /**
      * ★이메일 기준으로도 지운다 (2026-08-20 7라운드 감사).
      *
@@ -319,6 +346,14 @@ export async function POST(req: Request) {
   // §7("복구·재생 불가 기술로 삭제")·§3("탈퇴 시 즉시 파기")과 정합. 오직 {user.id}/
   // prefix 아래만 훑어 남의 파일은 건드리지 않는다(lib/storage/purgeUserStorage).
   const storagePurge = await purgeUserStorage(admin, user.id)
+  if (legacyPhotoPaths.length > 0) {
+    const { error: legacyRmErr } = await admin.storage.from('dog-avatars').remove(legacyPhotoPaths)
+    storagePurge.push({
+      bucket: 'dog-avatars(photo-requests)',
+      removed: legacyRmErr ? 0 : legacyPhotoPaths.length,
+      ...(legacyRmErr ? { error: legacyRmErr.message } : {}),
+    })
+  }
   const storageFailures = storagePurge.filter((r) => r.error)
   if (storageFailures.length > 0) {
     console.error(

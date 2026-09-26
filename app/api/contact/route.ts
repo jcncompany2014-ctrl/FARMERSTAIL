@@ -13,7 +13,8 @@
 
 import { NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email/client'
-import { ipFromRequest, rateLimit } from '@/lib/rate-limit'
+import { ipFromRequest, rateLimit, rateLimitDB } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { business } from '@/lib/business'
 
 export const runtime = 'nodejs'
@@ -132,6 +133,24 @@ export async function POST(req: Request) {
   //    보낼 수 있어서, 이름·내용을 그대로 실으면 "결제 실패, 여기서 카드 재등록" 같은 글을 우리 도메인
   //    메일로 남에게 보낼 수 있었다(피싱 중계). 고정 문구 + 카테고리(선택지)만 보낸다. 사장님은 관리자
   //    메일에서 원문을 본다.
+  // ★받는 주소 기준 하루 3통 (2026-09-26) — 로그인 없이 아무 주소로 보내는 자동답장이라
+  //   남의 주소로 반복 발송해 스팸 신고(→ 그 주소의 거래 메일까지 영구 차단)를 유도할 수 있었다.
+  //   문의 자체(관리자 메일)는 그대로 접수된다.
+  let recipientOk = true
+  try {
+    const rl = await rateLimitDB({
+      supabase: createAdminClient() as never,
+      bucket: 'contact-ack-to',
+      key: email.trim().toLowerCase(),
+      limit: 3,
+      windowMs: 86_400_000,
+    })
+    recipientOk = rl.ok
+  } catch {
+    /* 서비스 키 없음 — 메모리 한도(위 IP)만으로 진행 */
+  }
+  if (!recipientOk) return NextResponse.json({ ok: true }, { status: 200 })
+
   const userHtml = renderUserEmail({ categoryLabel })
   const userResult = await sendEmail({
     to: email,
