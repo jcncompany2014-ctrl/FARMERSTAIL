@@ -232,6 +232,14 @@ export default function DogDetailClient({
       // FT100 = 진행 중 정기배송이 있어 DB 트리거가 거부한 것(20260730000400).
       // 화면이 이미 막지만, 다른 기기에서 방금 구독을 만든 경우 목록이 낡아
       // 여기까지 올 수 있다. DB 원문 대신 무엇을 해야 하는지 알려준다.
+      // FT101 = 해지는 했지만 이미 결제된 이번 박스가 준비 중(20260926130000) — 지우면 그 박스의 처방이
+      // 사라져 빈 팩으로 나간다. 박스가 출발한 뒤에 지우게 안내한다(2026-09-26 점검 8차).
+      if ((error as { code?: string }).code === 'FT101') {
+        toast.error('이미 결제된 박스가 준비 중이라 지금은 지울 수 없어요. 박스가 출발한 뒤에 지워 주세요.')
+        setShowDeleteConfirm(false)
+        setDeleting(false)
+        return
+      }
       if ((error as { code?: string }).code === 'FT100') {
         toast.error(
           '정기배송이 진행 중이라 지울 수 없어요. 정기배송을 먼저 정리해 주세요.',

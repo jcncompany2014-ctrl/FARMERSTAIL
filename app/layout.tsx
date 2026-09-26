@@ -25,7 +25,8 @@ import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
 import AppContextCookieSync from "@/components/AppContextCookieSync";
-import NativeShellBridge from "@/components/NativeShellBridge";
+import NativeShellBridge from "@/components/NativeShellBridge";
+import NativeUpdateNotice from "@/components/NativeUpdateNotice";
 import {
   buildOrganizationJsonLd,
   buildWebSiteJsonLd,
@@ -36,12 +37,18 @@ import { ToastProvider } from "@/components/ui/Toast";
 // 앱 컨텍스트 (v3) 에서는 헤드라인/디스플레이도 Pretendard 만 사용 — Serif
 // 폐기. 웹 (랜딩/blog/events) 에서는 아래 Noto Serif KR / Cormorant 사용 유지.
 const pretendard = localFont({
-  src: "./fonts/PretendardVariable.woff2",
+  // ★KS X 1001 한글 2,350자 + 라틴·문장부호·기호만 담은 부분 글꼴(2026-09-26 점검 8차, fontTools subset).
+  //   전체 파일(2.06MB)을 모든 화면이 가장 먼저 받던 것 — 앱 첫 실행 전송량의 약 83% 였다 → 524KB.
+  //   KS X 1001 밖의 드문 음절(고객이 적은 이름 등)은 휴대폰 기본 한글 글꼴로 보인다 — 전체 글꼴을 뒤에
+  //   받쳐 두는 방식은 부분 글꼴이 도착하기 전 첫 렌더에서 브라우저가 전체 파일까지 받아 효과가 없었다(실측).
+  //   우리 문구에 쓰는 글자는 규칙129 가 부분 글꼴에 다 들어 있는지 지킨다('퀠' 추가).
+  src: "./fonts/PretendardVariable-ksx.woff2",
   display: "swap",
   weight: "45 920",
   variable: "--font-sans",
   preload: true,
 });
+
 
 // 마루부리 (MaruBuri) — 웹 farm v4 의 국문 헤드라인 서체 (Phase Q, 2026-06-12).
 // 네이버 마루 프로젝트 무료 글꼴 (https://hangeul.naver.com/maru) — self-host
@@ -379,7 +386,7 @@ export default function RootLayout({
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){document.documentElement.classList.add('ft-standalone');}}catch(e){}})();`,
+            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');}}catch(e){}}}catch(e){}})();`,
           }}
         />
       </head>
@@ -420,7 +427,8 @@ export default function RootLayout({
         <AppContextCookieSync />
         {/* 네이티브 셸 연결 — 푸시 탭 라우팅 · App Links · 하드웨어 뒤로가기.
             웹/PWA 에서는 isNativeApp() 에서 즉시 빠져 아무 일도 안 한다. */}
-        <NativeShellBridge />
+        <NativeShellBridge />
+        <NativeUpdateNotice />
         {/* Core Web Vitals beacon — Sentry 로 poor LCP/INP/CLS 알림 전송 */}
         <WebVitalsReporter />
         {/* 이미 저장된 쿠키 동의를 마운트 즉시 tracker 에 반영 */}

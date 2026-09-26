@@ -724,7 +724,9 @@ async function runSubscriptionCharge(): Promise<Response> {
       discount_amount: discountAmount,
       discount_reason: discountReason,
       recipient_name: ship.name,
-      recipient_phone: sub.recipient_phone ?? ship.phone,
+      // ★전화도 이름·주소와 **같은 출처**(ship)에서 — 예전엔 전화만 신청서 값이라, 기본 배송지로 가는
+      //   박스 라벨에 다른 사람(예: 둘째 강아지 신청서의 부모님) 번호가 찍혔다(2026-09-26 점검 8차).
+      recipient_phone: ship.phone,
       zip: ship.zip,
       address: ship.address,
       address_detail: ship.addressDetail,

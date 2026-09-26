@@ -4834,3 +4834,90 @@ test('규칙128: 보관·알레르기 안내는 라벨·실제 원료대로 (사
   const mig = read(join(ROOT, 'supabase', 'migrations', '20260926120000_content_faq_blog_facts.sql'))
   assert.ok(mig.includes('제조일로부터 냉동 180일') && mig.includes('카카오톡으로 편하게 문의'), 'FAQ·블로그 정정 마이그레이션이 비었다')
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-26 출시 전 점검 8차 (개인정보 과다 노출 / 다견·가족·계정 조합 / 구버전 앱 호환·앱 속도) — 규칙129~131
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙129: 본문 글꼴은 부분 글꼴(524KB) — 우리 문구의 한글은 전부 그 안에 있다', () => {
+  /**
+   * 전체 Pretendard(2.06MB)를 모든 화면이 가장 먼저 받았다(앱 첫 실행 전송량의 약 83%). KS X 1001 2,350자 +
+   * 기호만 담은 부분 글꼴로 바꿨다(scripts/pretendard-subset.py). 우리 문구가 그 밖의 음절을 쓰면 그 글자만
+   * 다른 글꼴로 보이므로, 새 음절은 scripts/pretendard-subset-extras.json 에 넣고 다시 만든다.
+   */
+  const layout = read(join(ROOT, 'app', 'layout.tsx'))
+  assert.ok(/src: "\.\/fonts\/PretendardVariable-ksx\.woff2"/.test(layout), '본문 글꼴이 부분 글꼴이 아니다(2MB 전체를 preload)')
+  const ksx = new Set<string>()
+  const dec = new TextDecoder('euc-kr')
+  for (let lead = 0xb0; lead <= 0xc8; lead++) {
+    for (let trail = 0xa1; trail <= 0xfe; trail++) {
+      const ch = dec.decode(new Uint8Array([lead, trail]))
+      const cp = ch.codePointAt(0) ?? 0
+      if (cp >= 0xac00 && cp <= 0xd7a3) ksx.add(ch)
+    }
+  }
+  assert.equal(ksx.size, 2350, 'KS X 1001 한글 표를 못 만들었다')
+  const extras = new Set<string>(JSON.parse(read(join(ROOT, 'scripts', 'pretendard-subset-extras.json'))).extras)
+  const missing: string[] = []
+  for (const dir of ['app', 'components', 'lib']) {
+    for (const f of walk(join(ROOT, dir))) {
+      if (f.endsWith('.test.ts')) continue
+      // 주석은 화면에 안 나온다 — 빼고 본다. 정규식의 '가-힣' 범위 표기도 글자가 아니다.
+      const src = stripComments(read(f)).replace(/가[-–]힣/g, '')
+      for (const ch of src) {
+        const cp = ch.codePointAt(0) ?? 0
+        if (cp >= 0xac00 && cp <= 0xd7a3 && !ksx.has(ch) && !extras.has(ch)) missing.push(`${rel(f)}: ${ch}`)
+      }
+    }
+  }
+  assert.deepEqual([...new Set(missing)], [], `부분 글꼴에 없는 음절을 문구에 쓴다 — extras 에 넣고 python scripts/pretendard-subset.py:\n${[...new Set(missing)].join('\n')}`)
+})
+
+test('규칙130: 옛 앱 버전을 지킨다 — 네이티브에 기대는 웹 기능은 빌드 번호로 · 업데이트 안내 · 스플래시 1회 · 공유 기기 푸시', () => {
+  // ① iOS 이미지 저장 — 사진 추가 권한 문구가 없는 빌드에서 공유 시트 '이미지 저장'은 앱을 종료시킨다.
+  const save = stripComments(read(join(ROOT, 'lib', 'save-image.ts')))
+  assert.ok(/buildAtLeast\(info\.build, NATIVE_FEATURE_MIN_BUILD\.iosPhotoAdd\)/.test(save), 'iOS 이미지 저장이 빌드 번호를 안 본다(옛 빌드에서 앱 종료)')
+  const nb = read(join(ROOT, 'lib', 'native-build.ts'))
+  const minPhoto = Number(nb.match(/iosPhotoAdd: (\d+)/)?.[1])
+  const pbx = read(join(ROOT, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj'))
+  const builds = [...pbx.matchAll(/CURRENT_PROJECT_VERSION = (\d+);/g)].map((m) => Number(m[1]))
+  assert.ok(builds.length > 0 && builds.every((b) => b >= minPhoto), `다음 iOS 빌드 번호(${builds})가 사진 권한 게이트(${minPhoto})보다 낮다 — 새 빌드에서도 저장이 막힌다`)
+  assert.ok(read(join(ROOT, 'ios', 'App', 'App', 'Info.plist')).includes('NSPhotoLibraryAddUsageDescription'), 'Info.plist 에 사진 추가 권한 문구가 없다')
+  // ② 옛 버전 사용자에게 업데이트 안내(환경변수로 켬)
+  const layout = read(join(ROOT, 'app', 'layout.tsx'))
+  assert.ok(layout.includes('<NativeUpdateNotice />'), '옛 앱 버전에 업데이트 안내가 없다')
+  // ③ 스플래시는 앱 실행당 한 번
+  assert.ok(layout.includes("sessionStorage.getItem('ft_splash_shown')") && read(join(ROOT, 'app', 'globals.css')).includes('html.ft-splash-skip .ft-splash'), '전체 로드마다 2.1초 스플래시가 다시 덮는다')
+  // ④ 같은 기기의 이전 사용자 토큰 정리(가족 폰에서 남의 결제·복약 알림)
+  const reg = stripComments(read(join(ROOT, 'app', 'api', 'push', 'native-register', 'route.ts')))
+  assert.ok(/\.eq\('device_id', deviceId\)\.neq\('user_id', user\.id\)/.test(reg) && /\.eq\('token', token\)\.neq\('user_id', user\.id\)/.test(reg), '같은 기기·토큰의 이전 사용자 행을 안 지운다')
+})
+
+test('규칙131: 한 마리·한 사람 가정을 깨지 않는다 · 열람권 주소를 흘리지 않는다', () => {
+  // ① 라벨 전화 = 주소와 같은 출처
+  const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(/recipient_phone: ship\.phone,/.test(ch) && !/recipient_phone: sub\.recipient_phone \?\? ship\.phone/.test(ch), '라벨 전화만 신청서 값이다(주소는 기본 배송지)')
+  // ② 결제된 박스가 준비 중이면 강아지 삭제 금지(처방이 cascade 로 사라져 빈 팩)
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260926130000_block_dog_delete_with_open_paid_order.sql'))
+  assert.ok(mig.includes("errcode = 'FT101'") && /order_status in \('pending', 'preparing'\)/.test(mig), '결제된 준비 중 박스가 있어도 강아지를 지운다')
+  assert.ok(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'DogDetailClient.tsx')).includes("=== 'FT101'"), '강아지 삭제 화면이 FT101 을 안내하지 않는다')
+  // ③ 환불 사유는 그 박스의 강아지에
+  const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
+  assert.ok(/from\('subscriptions'\)\s*\.select\('dog_id'\)/.test(cancel), "환불 사유를 계정의 아무 강아지에 적는다")
+  // ④ 둘째 강아지 설문 — '강아지가 한 마리라도 있으면' 버리지 않는다
+  for (const f of ['lib/auth/applyAutosignupDraft.ts', 'lib/auth/createDogFromDraft.ts']) {
+    const b = stripComments(read(join(ROOT, ...f.split('/'))))
+    assert.ok(/\.eq\('name', \(dog\.name \|\| ''\)\.trim\(\)\)/.test(b), `${f}: 멱등 가드가 '강아지 아무나'라 둘째 강아지 설문을 버린다`)
+  }
+  const claim = stripComments(read(join(ROOT, 'app', 'start', 'claim', 'page.tsx')))
+  assert.ok(/count && count > 0 && !hasCompleteDraft/.test(claim), '카카오·애플 로그인이 기존 회원의 둘째 강아지 설문을 말없이 지운다')
+  // ⑤ 열람권 주소(/vet/·/photo-upload/)는 분석·광고·오류 도구로 안 간다
+  assert.ok(stripComments(read(join(ROOT, 'components', 'AnalyticsScripts.tsx'))).includes('isTokenBearerPath('), '토큰 주소에서도 분석·광고 도구를 싣는다')
+  assert.ok(stripComments(read(join(ROOT, 'components', 'CookieConsent.tsx'))).includes('isTokenBearerPath('), '토큰 주소에서도 쿠키 배너(→동의→분석)를 띄운다')
+  for (const f of ['instrumentation-client.ts', 'sentry.server.config.ts']) {
+    const b = read(join(ROOT, f))
+    assert.ok(b.includes("'/$1/[token]'") && b.includes('beforeSendTransaction('), `${f}: Sentry 가 토큰 주소를 가리지 않는다`)
+  }
+  // ⑥ 개인 메일이 박힌 공개 시안 페이지 금지
+  assert.ok(!existsSync(join(ROOT, 'app', 'dev', 'admin-preview', 'page.tsx')), '사장님 개인 메일이 박힌 공개 시안 페이지가 돌아왔다')
+})

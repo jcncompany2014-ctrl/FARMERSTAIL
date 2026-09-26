@@ -80,21 +80,24 @@ export default function StartClaimPage() {
       // 빠지는 사람도 링크를 타고 왔다면 할인은 받아야 한다. 계정당 1회는 DB 가 강제.
       await claimPromotionOnSignup()
 
-      // ① 이미 강아지 보유(기존 회원·이관 완료) → 이관 스킵, 홈으로.
-      //    잔여 초안이 있으면 정리(다른 익명 설문 흔적).
+      // ① 이미 강아지 보유 + 완성된 설문 초안 없음(기존 회원 로그인) → 홈으로.
+      //    ★초안이 있으면 새 강아지로 이관한다(2026-09-26 점검 8차) — 예전엔 강아지가 한 마리라도 있으면
+      //    초안을 말없이 지웠다. 로그아웃 상태로 둘째 강아지 설문을 한 기존 회원의 설문이 사라졌다.
+      //    같은 초안의 재이관은 applyAutosignupDraft 의 '같은 이름' 가드가 막는다.
       const { count } = await supabase
         .from('dogs')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-      if (count && count > 0) {
+      const draft = loadAutosignupDraft()
+      const hasCompleteDraft = !!draft && isDogDraftComplete(draft.dog)
+      if (count && count > 0 && !hasCompleteDraft) {
         clearAutosignupDraft()
         if (!cancelled) router.replace(home)
         return
       }
 
-      // ② 강아지 無 + 설문 초안 완성 → 계정으로 이관 → 분석 화면.
-      const draft = loadAutosignupDraft()
-      if (draft && isDogDraftComplete(draft.dog)) {
+      // ② 설문 초안 완성 → 계정으로 이관(첫째든 둘째든) → 분석 화면.
+      if (draft && hasCompleteDraft) {
         const dogName = (draft.dog.name || '').trim()
         try {
           const dogId = await applyAutosignupDraft(user.id, draft)
@@ -114,8 +117,8 @@ export default function StartClaimPage() {
         }
       }
 
-      // ③ 강아지 無 + 초안 無/이관 실패 → 설문으로(설문 없이 진입 불가).
-      if (!cancelled) router.replace('/start')
+      // ③ 이관 실패 — 기존 회원이면 홈(초안은 남겨 둔다), 강아지 無 이면 설문으로(설문 없이 진입 불가).
+      if (!cancelled) router.replace(count && count > 0 ? home : '/start')
     })()
     return () => {
       cancelled = true

@@ -4,6 +4,7 @@ import { zNativePushRegister } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { dbError } from '@/lib/api/errors'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,16 @@ export async function GET(req: Request) {
   if (error) {
     return dbError(error, 'push_native_status', '등록 상태를 확인하지 못했어요')
   }
+  // ★이미 등록된 기기도 앱 버전은 매 실행 갱신(2026-09-26 점검 8차) — 예전엔 첫 등록 값에 멈춰
+  //   옛 버전(카카오톡 로그인·카드사 앱 전환 무반응)을 쓰는 사람이 몇인지 알 수 없었다. best-effort.
+  const appVersion = url.searchParams.get('appVersion')?.slice(0, 32)
+  if ((count ?? 0) > 0 && appVersion) {
+    await supabase
+      .from('native_push_tokens')
+      .update({ app_version: appVersion })
+      .eq('user_id', user.id)
+      .eq('device_id', deviceId)
+  }
   return NextResponse.json({ registered: (count ?? 0) > 0 })
 }
 
@@ -90,6 +101,26 @@ export async function POST(req: Request) {
       { code: 'UNAUTHORIZED', message: '로그인이 필요해요' },
       { status: 401 },
     )
+  }
+
+  /**
+   * ★같은 기기·같은 토큰의 **다른 사용자** 행을 먼저 지운다 (2026-09-26 점검 8차).
+   * 가족이 함께 쓰는 폰에서 A 의 로그아웃 정리가 실패하면(오프라인 등) (A, 기기) 행이 남아, B 가
+   * 로그인한 뒤에도 A 의 결제·복약·배송 알림이 B 의 잠금화면에 떴다. 웹 푸시가 onConflict:'endpoint'
+   * 로 이미 막은 것과 같은 원리 — 지금 이 토큰을 쥔 사람이 주인이다. 범위는 코드가 책임진다(service_role).
+   */
+  try {
+    const admin = createAdminClient()
+    const [byDevice, byToken] = await Promise.all([
+      admin.from('native_push_tokens').delete().eq('device_id', deviceId).neq('user_id', user.id),
+      admin.from('native_push_tokens').delete().eq('token', token).neq('user_id', user.id),
+    ])
+    const handoffErr = byDevice.error ?? byToken.error
+    if (handoffErr) {
+      console.error('[native-register] 이전 사용자 토큰 정리 실패:', handoffErr.message)
+    }
+  } catch (e) {
+    console.error('[native-register] 이전 사용자 토큰 정리 예외:', e instanceof Error ? e.message : e)
   }
 
   const { error } = await supabase.from('native_push_tokens').upsert(

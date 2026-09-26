@@ -18,6 +18,8 @@
  */
 import Script from 'next/script'
 import { useSyncExternalStore } from 'react'
+import { usePathname } from 'next/navigation'
+import { isTokenBearerPath } from '@/lib/token-paths'
 import { COOKIE_STORAGE_KEY, readConsent, type CookieConsent } from '@/lib/cookies'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
@@ -71,8 +73,11 @@ function getServerSnapshot(): CookieConsent | null {
 
 export default function AnalyticsScripts() {
   const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const analytics = consent?.analytics === true
-  const marketing = consent?.marketing === true
+  // ★토큰 주소(/vet/·/photo-upload/)에선 동의가 있어도 분석·광고 도구를 싣지 않는다 — 픽셀 PageView 가
+  //   전체 URL(=14일짜리 건강정보 열람권)을 메타로 보냈다(2026-09-26 점검 8차).
+  const onTokenPage = isTokenBearerPath(usePathname())
+  const analytics = consent?.analytics === true && !onTokenPage
+  const marketing = consent?.marketing === true && !onTokenPage
 
   return (
     <>

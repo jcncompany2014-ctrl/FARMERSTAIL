@@ -92,6 +92,10 @@ Sentry.init({
   beforeSend(event) {
     return scrubKoreanPII(event)
   },
+  // 성능 트랜잭션에도 같은 스크러버 — URL·이름에 토큰 주소(/vet/·/photo-upload/)가 남던 것(2026-09-26).
+  beforeSendTransaction(event) {
+    return scrubKoreanPII(event)
+  },
   beforeBreadcrumb(crumb) {
     if (crumb.message) crumb.message = scrubString(crumb.message)
     if (crumb.data) crumb.data = scrubKoreanPII(crumb.data)
@@ -111,6 +115,7 @@ function scrubString(s: string): string {
     .replace(BRN, '[사업자번호]')
     .replace(ACCT, '[계좌]')
     .replace(EMAIL, '[이메일]')
+    .replace(/\/(vet|photo-upload)\/[^/?#\s"']+/g, '/$1/[token]') // 열람권 토큰 주소(lib/token-paths 와 같은 식)
 }
 
 function scrubKoreanPII<T>(event: T): T {

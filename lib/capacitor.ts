@@ -307,8 +307,11 @@ export async function autoRegisterNativePush(): Promise<AutoRegisterResult> {
 
   // 서버에 이 기기 행이 있으면 끝 — 권한 팝업도, POST 도 안 한다.
   try {
+    // 앱 버전도 함께 — 이미 등록된 기기면 서버가 버전만 갱신한다(보급률 확인용, 2026-09-26).
+    const { appVersion } = await getDeviceInfo()
     const res = await fetch(
-      `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
+      `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}` +
+        (appVersion ? `&appVersion=${encodeURIComponent(appVersion)}` : ''),
     )
     if (res.status === 401) {
       autoRegisterTried = false // 아직 로그인 전 — 로그인 뒤 홈에서 다시

@@ -21,6 +21,7 @@
  * 전부 다시 흘려보낸다. 그래서 콜백을 모듈 스코프 상수로 잡아두고 rerender
  * 에도 ref 가 고정되도록 한다.
  */
+import { redactTokenPaths } from '@/lib/token-paths'
 import { useReportWebVitals } from 'next/web-vitals'
 
 type WebVitalMetric = {
@@ -35,8 +36,9 @@ type WebVitalMetric = {
 function sendMetric(metric: WebVitalMetric) {
   // pathname 은 SPA 네비게이션 후에도 현재 위치를 보여줘야 하므로 호출
   // 시점에 직접 읽는다.
+  // 토큰 주소(/vet/·/photo-upload/)는 가린다 — 지표에 열람권을 남기지 않는다(2026-09-26).
   const path =
-    typeof window === 'undefined' ? null : window.location.pathname
+    typeof window === 'undefined' ? null : redactTokenPaths(window.location.pathname)
   const payload = JSON.stringify({
     id: metric.id,
     name: metric.name,

@@ -73,6 +73,10 @@ Sentry.init({
     // Sentry의 기본 scrubber도 돌지만 한국 포맷은 놓치는 경우 있어 이중화.
     return scrubKoreanPII(event)
   },
+  // 성능 트랜잭션에도 — 요청 URL 에 토큰 주소(/vet/·/photo-upload/)가 남던 것(2026-09-26).
+  beforeSendTransaction(event) {
+    return scrubKoreanPII(event)
+  },
 })
 
 /**
@@ -101,6 +105,7 @@ function scrubKoreanPII<T>(event: T): T {
       .replace(BRN, '[사업자번호]')
       .replace(ACCT, '[계좌]')
       .replace(EMAIL, '[이메일]')
+      .replace(/\/(vet|photo-upload)\/[^/?#\s"']+/g, '/$1/[token]') // 열람권 토큰 주소(lib/token-paths 와 같은 식)
 
   const walk = (val: unknown): unknown => {
     if (typeof val === 'string') return scrub(val)

@@ -1,0 +1,4 @@
+{
+  "_why": "KS X 1001 한글 2,350자 밖인데 우리 문구에 실제로 쓰는 음절. 부분 글꼴(app/fonts/PretendardVariable-ksx.woff2)에 추가로 넣는다. 새 음절을 쓰면 여기에 더하고 python scripts/pretendard-subset.py 로 다시 만든다 — 규칙129 가 빠진 음절을 잡는다.",
+  "extras": ["퀠"]
+}

@@ -253,7 +253,7 @@ function LoginInner() {
             router.replace(
               isApp
                 ? `/dogs/${dogId}/analysis?fromSurvey=1`
-                : `/start/done?name=${encodeURIComponent(dogName)}`,
+                : `/start/done?name=${encodeURIComponent(dogName)}&dog=${dogId}`, // claim 과 같게 — 완료 화면 CTA 가 이 강아지로(2026-09-26)
             )
             return
           }

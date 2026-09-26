@@ -502,21 +502,28 @@ export async function POST(
     try {
       const { recordOutcome } = await import('@/lib/feeding-outcomes')
       // best-effort 기록. 실패를 "강아지 없음" 과 섞지 않도록 error 를 꺼낸다.
-      const { data: dogRow, error: dogErr } = await supabase
-        .from('dogs')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
+      // ★환불된 박스의 강아지 = 그 주문 구독의 dog_id (2026-09-26 점검 8차). 예전엔 계정의 아무 강아지
+      //   (정렬 없는 limit 1)라, 두 마리 가정에서 '안 먹어요·소화 문제'가 다른 아이 기록으로 쌓여 기호성·소화
+      //   코호트가 틀어졌다. 구독이 없는(단건) 주문이면 누구 것인지 모르니 기록하지 않는다.
+      const subId = (order as { subscription_id?: string | null }).subscription_id ?? null
+      const { data: dogRow, error: dogErr } = subId
+        ? await supabase
+            .from('subscriptions')
+            .select('dog_id')
+            .eq('id', subId)
+            .eq('user_id', user.id)
+            .not('dog_id', 'is', null)
+            .maybeSingle()
+        : { data: null, error: null }
       if (dogErr) {
         captureBusinessEvent('warning', 'order.cancel.outcome_record_skipped', {
           orderId: order.id,
           reason: 'dogs_lookup_failed',
         })
       }
-      if (dogRow) {
+      if (dogRow?.dog_id) {
         await recordOutcome(supabase, {
-          dog_id: dogRow.id,
+          dog_id: dogRow.dog_id,
           user_id: user.id,
           source: 'refund',
           reason_category: body.reason_category,

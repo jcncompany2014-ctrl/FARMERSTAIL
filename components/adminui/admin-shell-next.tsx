@@ -9,8 +9,8 @@
  * ⚠️ 반드시 `.admin-scope` 래퍼 안에서만 사용 — shadcn 팔레트가 그 서브트리
  *   에서만 유효하다(globals.css 하단 참조). 웹/앱 화면에 import 금지.
  *
- * 현재는 /dev/admin-preview 데모에서만 사용. 사장님 승인 후 Phase 2 에서
- * app/admin/layout.tsx 의 AdminShell 을 이것으로 교체한다.
+ * app/admin/layout.tsx 가 쓰는 **실제** 어드민 내비다(2026-09-04 개편 완료). 시안 페이지
+ * /dev/admin-preview 는 사장님 개인 메일이 박힌 채 공개돼 있어 2026-09-26 삭제했다(점검 8차).
  */
 import type { ReactNode } from 'react'
 import Image from 'next/image'

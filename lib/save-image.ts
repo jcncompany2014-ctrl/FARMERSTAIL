@@ -11,7 +11,8 @@
  * 거기에 "이미지 저장"이 있다. 지원하지 않는 환경(안드로이드 WebView)은 `unsupported` 를
  * 돌려주고, 화면이 **정직하게** 안내한다(거짓 성공 금지).
  */
-import { isNativeApp } from '@/lib/capacitor'
+import { isNativeApp, getPlatform } from '@/lib/capacitor'
+import { nativeBuildInfo, buildAtLeast, NATIVE_FEATURE_MIN_BUILD } from '@/lib/native-build'
 
 export type SaveImageResult = 'downloaded' | 'shared' | 'cancelled' | 'unsupported'
 
@@ -30,6 +31,12 @@ export async function saveCanvasImage(
   if (!blob) throw new Error('blob-failed')
 
   if (isNativeApp()) {
+    // ★iOS 는 사진 추가 권한 문구가 들어간 빌드에서만(2026-09-26 점검 8차). 설치된 빌드 2 에서
+    //   공유 시트의 '이미지 저장'을 누르면 iOS 가 앱을 종료한다 — 빌드를 모르면 막는 쪽으로.
+    if (getPlatform() === 'ios') {
+      const info = await nativeBuildInfo()
+      if (!info || !buildAtLeast(info.build, NATIVE_FEATURE_MIN_BUILD.iosPhotoAdd)) return 'unsupported'
+    }
     const file = new File([blob], filename, { type: 'image/png' })
     const nav = navigator as FileShareNavigator
     if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { usePathname } from 'next/navigation'
+import { isTokenBearerPath } from '@/lib/token-paths'
 import Link from 'next/link'
 import { Cookie, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useIsAppContext } from '@/lib/app-context-client'
@@ -115,6 +116,9 @@ export default function CookieConsent() {
   // 법적으로 안전하고(Consent Mode 기본 denied), 자사몰로 넘어오는 첫 화면
   // (/start)에서 정상 노출된다. (사장님 2026-09-24)
   if (pathname === '/link') return null
+  // 수의사 공유·사진 요청 토큰 페이지 — 동의 뒤 분석 도구가 주소(=열람권)를 복제하지 않게 배너 자체를 안 띄운다
+  // (동의 없음 = 분석 거부 유지, 2026-09-26 점검 8차). AnalyticsScripts 도 같은 경로에서 꺼진다.
+  if (isTokenBearerPath(pathname)) return null
   // 이미 결정했으면 렌더링 생략. 앱이면 배너 자체를 안 보여줌.
   if (consent !== null) return null
   if (isApp) return null

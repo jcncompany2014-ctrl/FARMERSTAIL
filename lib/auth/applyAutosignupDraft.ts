@@ -41,12 +41,17 @@ export async function applyAutosignupDraft(
 
   const supabase = createClient()
 
-  // ① 멱등 가드 — 이미 dog 있으면(이관 완료/수동 등록) 그 id 반환·재이관 스킵.
+  // ① 멱등 가드 — 이 초안의 강아지가 이미 있으면(이관 완료) 그 id 반환·재이관 스킵.
+  // ★멱등 가드는 '같은 이름의 강아지가 이미 있나'로 본다 (2026-09-26 점검 8차). 예전엔 강아지가 한
+  //   마리라도 있으면 그 id 를 돌려줘, 로그아웃 상태로 **둘째 강아지** 설문을 한 기존 회원이 로그인하면
+  //   설문이 버려지고 첫째 강아지 화면으로 갔다. 같은 초안을 두 번 이관해도(이름이 같으니) 중복은 안 생긴다.
   try {
     const { data: existing } = await supabase
       .from('dogs')
       .select('id')
       .eq('user_id', userId)
+      .eq('name', (dog.name || '').trim())
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
     if (existing?.id) return existing.id as string
