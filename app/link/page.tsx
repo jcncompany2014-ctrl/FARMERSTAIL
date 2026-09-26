@@ -263,122 +263,82 @@ function NoticeLine({ n, text, ended }: { n: number; text: string; ended: boolea
 }
 
 /**
- * 이벤트·모집 배너 — photo(가로 사진 위 글자) / poster(세로 포스터, 글자는 아래 띠) /
- * products(스마트스토어: 글자는 위 흰 띠, 실제 파우치 4종 컷은 아래 선반 띠).
- * 포인트 컬러(accent — 인스타 그라데이션·네이버 초록·쿠팡·자사몰)는 상단 라인·배지·
- * 화살표·테두리에. 배지 옆 작은 회색 글씨 = 기간 · 조건(사장님 2026-09-26).
+ * 이벤트·모집 배너 — 세 종류 모두 **글자(배지·기간·조건 → 제목 → 부제 → 화살표)가 위,
+ * 비주얼이 아래** (사장님 2026-09-26 "전부 위로"). 비주얼만 다르다:
+ *   photo = 가로 16:10 사진 · poster = 세로 4:5 포스터 · products = 파우치 4종 선반 띠.
+ * 포인트 컬러(accent — 인스타·네이버·쿠팡·자사몰)는 상단 라인·배지·화살표·테두리.
  * 종료 후 14일은 회색+"기간 종료" 덮개, 링크 없음.
  */
 function BannerCard({ b }: { b: LinkBanner }) {
   const ended = b.window === 'ended_recent'
   const t = ACCENT_THEMES[b.accent]
   const meta = [periodLabel(b.startsOn, b.endsOn), b.condition].filter(Boolean).join(' · ')
-  const boxed = b.variant !== 'photo'
-  const cls = `${s.card} ${ended ? '' : s.pressable} mt-2.5 block overflow-hidden rounded-3xl text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
-    boxed ? 'border bg-white' : ''
-  }`
-  const boxStyle = boxed ? { borderColor: t.border } : undefined
+  const cls = `${s.card} ${ended ? '' : s.pressable} mt-2.5 block overflow-hidden rounded-3xl border bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)]`
 
-  const badgeRow = (onImage: boolean): ReactNode =>
-    b.badge || meta ? (
-      <span className={`flex flex-wrap items-center gap-2 ${onImage ? '' : 'mb-1.5'}`}>
-        {b.badge && (
-          <span
-            className="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold"
-            style={{ background: t.badgeBg, color: t.badgeFg }}
-          >
-            {b.badge}
+  const textBand = (
+    <div className="flex items-start justify-between gap-3 px-5 pb-4 pt-5">
+      <span className="min-w-0">
+        {(b.badge || meta) && (
+          <span className="mb-1.5 flex flex-wrap items-center gap-2">
+            {b.badge && (
+              <span
+                className="inline-block rounded-full px-2.5 py-1 text-[11px] font-bold"
+                style={{ background: t.badgeBg, color: t.badgeFg }}
+              >
+                {b.badge}
+              </span>
+            )}
+            {meta && <span className="text-[11.5px] font-semibold text-[#9A9282]">{meta}</span>}
           </span>
         )}
-        {meta && (
-          <span
-            className={
-              onImage
-                ? 'text-[11.5px] font-semibold text-white/90 [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]'
-                : 'text-[11.5px] font-semibold text-[#9A9282]'
-            }
-          >
-            {meta}
-          </span>
-        )}
+        <span className="block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
+          {b.title}
+        </span>
+        {b.sub && <span className="mt-1 block text-[12.5px] font-semibold text-[#6B6353]">{b.sub}</span>}
       </span>
-    ) : null
-
-  const arrow = (onImage: boolean): ReactNode => (
-    <span
-      aria-hidden="true"
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-        onImage ? 'bg-white/25 text-white backdrop-blur' : ''
-      }`}
-      style={onImage ? undefined : { background: t.arrowBg, color: t.arrowFg }}
-    >
-      <ArrowIcon />
-    </span>
+      <span
+        aria-hidden="true"
+        className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        style={{ background: t.arrowBg, color: t.arrowFg }}
+      >
+        <ArrowIcon />
+      </span>
+    </div>
   )
 
-  let body: ReactNode
-  if (b.variant === 'photo') {
-    body = (
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <Image src={b.imageUrl} alt="" fill sizes="430px" className={`${s.cardImg} object-cover`} />
-        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-        <span className="absolute left-4 top-4">{badgeRow(true)}</span>
-        <span className="absolute bottom-4 left-4 right-14 text-[#FAF9F5]">
-          <span className="block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em]">{b.title}</span>
-          {b.sub && <span className="mt-1 block text-[12.5px] font-semibold text-white/85">{b.sub}</span>}
-        </span>
-        <span className="absolute bottom-4 right-4">{arrow(true)}</span>
+  let visual: ReactNode
+  if (b.variant === 'products') {
+    // 선반 띠 — 제품 컷 배경은 코너 실측 #ECECEC~#F8F3F5 의 은은한 비네트라 색만
+    // 맞춰선 네모가 남는다 → 띠를 가장 어두운 코너보다 살짝 어둡게(#EBEAEC) 두고
+    // darken 블렌드: 배경 픽셀은 전부 띠 색으로 수렴, 파우치만 남는다.
+    visual = (
+      <div className={`${s.cardImg} grid grid-cols-4 gap-0 bg-[#EBEAEC] px-3 pb-4 pt-3`}>
+        {STORE_CARD.images.map((src) => (
+          <div key={src} className="relative aspect-square">
+            <Image src={src} alt="" fill sizes="110px" className="object-contain mix-blend-darken" />
+          </div>
+        ))}
       </div>
     )
-  } else if (b.variant === 'poster') {
-    body = (
-      <>
-        <div className="relative aspect-[4/5] overflow-hidden">
-          <Image src={b.imageUrl} alt="" fill sizes="430px" className={`${s.cardImg} object-cover object-top`} />
-        </div>
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
-          <span className="min-w-0">
-            {badgeRow(false)}
-            <span className="block font-serif text-[20px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
-              {b.title}
-            </span>
-            {b.sub && <span className="mt-0.5 block text-[12.5px] font-semibold text-[#6B6353]">{b.sub}</span>}
-          </span>
-          {arrow(false)}
-        </div>
-      </>
-    )
   } else {
-    body = (
-      <>
-        <div className="flex items-start justify-between gap-3 px-5 pt-5">
-          <span className="min-w-0">
-            {badgeRow(false)}
-            <span className="mt-1 block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
-              {b.title}
-            </span>
-            {b.sub && <span className="mt-1 block text-[12.5px] font-semibold text-[#6B6353]">{b.sub}</span>}
-          </span>
-          <span className="mt-1">{arrow(false)}</span>
-        </div>
-        {/* 선반 띠 — 제품 컷 배경은 코너 실측 #ECECEC~#F8F3F5 의 은은한 비네트라 색만
-            맞춰선 네모가 남는다 → 띠를 가장 어두운 코너보다 살짝 어둡게(#EBEAEC) 두고
-            darken 블렌드: 배경 픽셀은 전부 띠 색으로 수렴, 파우치만 남는다. */}
-        <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-0 bg-[#EBEAEC] px-3 pb-4 pt-3`}>
-          {STORE_CARD.images.map((src) => (
-            <div key={src} className="relative aspect-square">
-              <Image src={src} alt="" fill sizes="110px" className="object-contain mix-blend-darken" />
-            </div>
-          ))}
-        </div>
-      </>
+    visual = (
+      <div className={`relative overflow-hidden ${b.variant === 'poster' ? 'aspect-[4/5]' : 'aspect-[16/10]'}`}>
+        <Image
+          src={b.imageUrl}
+          alt=""
+          fill
+          sizes="430px"
+          className={`${s.cardImg} object-cover ${b.variant === 'poster' ? 'object-top' : ''}`}
+        />
+      </div>
     )
   }
 
   const inner = (
     <div className={`relative ${ended ? 'grayscale opacity-60' : ''}`}>
       {t.line && <div aria-hidden="true" className="h-1.5 w-full" style={{ background: t.line }} />}
-      {body}
+      {textBand}
+      {visual}
       {ended && (
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="rounded-full bg-[#1E1A14]/85 px-4 py-2 text-[13px] font-extrabold text-[#FAF9F5] shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
@@ -391,13 +351,13 @@ function BannerCard({ b }: { b: LinkBanner }) {
 
   if (ended) {
     return (
-      <div className={cls} style={boxStyle} aria-label={`${b.title} — 기간 종료`}>
+      <div className={cls} style={{ borderColor: t.border }} aria-label={`${b.title} — 기간 종료`}>
         {inner}
       </div>
     )
   }
   return (
-    <a href={b.href} {...extProps(b.href)} className={cls} style={boxStyle}>
+    <a href={b.href} {...extProps(b.href)} className={cls} style={{ borderColor: t.border }}>
       {inner}
     </a>
   )
