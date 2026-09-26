@@ -4683,3 +4683,35 @@ test('규칙122: 처리 한도는 조용히 넘치지 않는다 — 청구 크�
   const br = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
   assert.ok(br.includes('scaleWarnings('), '아침 브리핑이 처리 한도 접근을 알리지 않는다')
 })
+
+test('규칙123: /link 콘텐츠는 어드민(/admin/link)이 정본 — 실제 내비 등록 · 관리자 관문 · 기간 판정 테스트 · 저장 후 재생성', () => {
+  /**
+   * 2026-09-26 사장님: 커버 사진·이벤트/모집 배너(기간)·하루 사진을 어드민에서 올리고,
+   * 기간이 끝난 배너는 14일 회색 "기간 종료" 뒤 자동 숨김. 이 구조가 무너지는 방식:
+   *   (a) 어드민 내비(실제 파일 admin-shell-next)에서 빠져 URL 로만 도달
+   *   (b) API 가 관리자 관문 없이 열림(공개 페이지 콘텐츠를 아무나 바꾼다)
+   *   (c) 저장 후 revalidatePath 가 빠져 /link 가 5분 뒤에야 바뀜 → "저장했는데 안 보인다"
+   *   (d) 기간 판정 순수 함수의 테스트가 사라짐
+   */
+  const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
+  assert.match(shell, /href:\s*'\/admin\/link'/, '링크 페이지 관리가 실제 어드민 내비에 없다')
+
+  const page = stripComments(read(join(ROOT, 'app', 'admin', 'link', 'page.tsx')))
+  assert.match(page, /isAdmin\(/, '/admin/link 가 관리자 판정 없이 열린다')
+
+  const apiDir = join(ROOT, 'app', 'api', 'admin', 'link')
+  const routes = walk(apiDir).filter((f) => /route\.ts$/.test(f))
+  assert.ok(routes.length >= 3, `/api/admin/link 라우트가 부족하다(${routes.length})`)
+  for (const f of routes) {
+    const src = stripComments(read(f))
+    assert.match(src, /requireAdmin\(\)/, `${rel(f)}: 관리자 관문(requireAdmin) 없이 열린다`)
+    if (/settings|banners/.test(f)) {
+      assert.match(src, /revalidatePath\('\/link'\)/, `${rel(f)}: 저장 후 /link 재생성이 빠졌다`)
+    }
+  }
+
+  const link = stripComments(read(join(ROOT, 'app', 'link', 'page.tsx')))
+  assert.match(link, /loadLinkContent\(/, '/link 가 어드민 저장값(loadLinkContent)을 안 읽는다')
+  assert.match(link, /export const revalidate = \d+/, '/link 가 ISR 이 아니다 — 기간 전환이 자동 반영되지 않는다')
+  assert.ok(existsSync(join(ROOT, 'lib', 'link-content', 'status.test.ts')), '기간 판정 테스트가 없다')
+})

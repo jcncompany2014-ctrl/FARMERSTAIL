@@ -2,14 +2,9 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
 import { business } from '@/lib/business'
-import {
-  APP_STORE_LINKS,
-  BIO_COVER,
-  BIO_EVENT_CARDS,
-  BIO_LINKS,
-  BIO_MOMENTS,
-  INSTAGRAM_URL,
-} from '@/lib/links'
+import { APP_STORE_LINKS, BIO_LINKS, INSTAGRAM_URL, STORE_CARD } from '@/lib/links'
+import { loadLinkContent, type LinkBanner } from '@/lib/link-content/load'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import ShareButton from './ShareButton'
 import s from './link.module.css'
 
@@ -17,19 +12,24 @@ import s from './link.module.css'
  * /link — 인스타 프로필용 링크인바이오 (litt.ly 대체, 2026-09-24).
  *
  * 웹 마케팅 라우트(/start·/brand 와 같은 부류) — 크롬 없이 한 장짜리.
- * 콘텐츠 목록은 lib/links.ts(config-as-code). 인앱 브라우저 안내 배너 포함.
- * 클릭 추적은 UTM → 자사 퍼널의 기존 수집(lib/utm.ts)이 이어받는다.
+ * 커버 사진·이벤트/모집 배너·'파머스테일의 하루' 사진은 어드민(/admin/link)
+ * 저장값(lib/link-content/load.ts)이 정본이고, 고정 콘텐츠(버튼·스토어 카드·
+ * 스토어 링크)는 lib/links.ts. 클릭 추적은 UTM → 자사 퍼널의 기존 수집.
  *
- * 2026-09-25 사장님 제보로 2차 개편(킥고잉 링크인바이오 문법):
- * ① 풀블리드 커버 사진 + 겹치는 로고 + 공유 버튼, ② 번호 공지줄과 짝지어진
- * 큰 타이포 배너 카드, ③ 사진 가로 스트립, ④ 다크 앱 다운로드 밴드,
- * ⑤ 카카오 채널 문의 + 소셜. ⛔사진은 실물·생활감 스냅만
- * (엑스표 4장: 밭길 뒷모습·셰퍼드·대리석 원물·푸들 — 앞 둘은 저장소에서 삭제).
+ * 배너 기간: 시작 전 숨김 → 진행 중 → 종료 후 14일간 회색 "기간 종료"(클릭 불가)
+ * → 자동 숨김 (lib/link-content/status.ts, 사장님 2026-09-26). 페이지는 5분
+ * ISR — 어드민 저장은 revalidatePath 로 즉시, 기간 전환은 늦어도 5분 안에.
+ *
+ * 킥고잉 링크인바이오 문법(2026-09-25): 풀블리드 커버 + 겹치는 로고 + 공유,
+ * 번호 공지줄과 짝지어진 큰 타이포 배너, 사진 스트립, 다크 앱 밴드, 카톡 문의.
+ * ⛔사진은 실물·생활감 스냅만.
  */
 export const metadata: Metadata = {
   title: '파머스테일 링크',
   description: '파머스테일 — 신선 화식, 맞춤 식단, 이벤트 바로가기',
 }
+
+export const revalidate = 300
 
 /** 외부 링크만 새 탭 — 내부(/start)는 같은 탭에서 퍼널 진행. */
 function extProps(href: string) {
@@ -38,7 +38,11 @@ function extProps(href: string) {
     : { target: '_blank', rel: 'noreferrer' as const }
 }
 
-export default function LinkInBioPage() {
+export default async function LinkInBioPage() {
+  const content = await loadLinkContent(todayKstIsoDate())
+  const showStore = content.showStoreCard
+  const noticeCount = content.banners.length + (showStore ? 1 : 0)
+
   return (
     <main className="min-h-[100dvh] bg-[#FAF9F5]">
       <InAppBrowserNotice />
@@ -47,7 +51,7 @@ export default function LinkInBioPage() {
       <div className="relative">
         <div className="relative h-[235px] overflow-hidden">
           <Image
-            src={BIO_COVER}
+            src={content.coverUrl}
             alt=""
             fill
             priority
@@ -116,7 +120,7 @@ export default function LinkInBioPage() {
         </div>
 
         {/* ── 알려드려요 — 번호 공지줄 + 큰 타이포 배너 ─────────────── */}
-        {BIO_EVENT_CARDS.length > 0 && (
+        {noticeCount > 0 && (
           <section className={`mt-11 ${s.fadeUp} ${s.d3} ${s.revealOnScroll}`}>
             <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
               파머스테일이 알려드려요 📣
@@ -124,155 +128,24 @@ export default function LinkInBioPage() {
             <p className="mt-1 text-[12px] text-[#9A9282]">알아두면 좋은 소식</p>
 
             <div className="mt-5 grid gap-7">
-              {BIO_EVENT_CARDS.map((c, i) => (
-                <div key={c.title}>
-                  <p className="flex items-start gap-2 text-left">
-                    <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#C86B45]/10 text-[11px] font-extrabold text-[#C86B45]">
-                      {i + 1}
-                    </span>
-                    <span className="text-[13.5px] font-bold tracking-[-0.01em] text-[#3A3428]">
-                      {c.notice}
-                    </span>
-                  </p>
-                  {c.variant === 'products' ? (
-                    /* 글자(위 흰 띠)와 제품 사진(아래 한 줄)이 겹치지 않는 배너. */
-                    <a
-                      href={c.href}
-                      {...extProps(c.href)}
-                      className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl border bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
-                        c.accent === 'naver' ? 'border-[#03C75A]/30' : 'border-black/5'
-                      }`}
-                    >
-                      {/* 목적지 브랜드 라인 — 네이버 초록(사장님 2026-09-26 "초록 라인 포인트"). */}
-                      {c.accent === 'naver' && (
-                        <div aria-hidden="true" className="h-1.5 w-full bg-[#03C75A]" />
-                      )}
-                      <div className="flex items-start justify-between gap-3 px-5 pt-5">
-                        <span className="min-w-0">
-                          <span
-                            className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                              c.accent === 'naver'
-                                ? 'bg-[#03C75A] text-white'
-                                : 'bg-[#1E1A14] text-[#FAF9F5]'
-                            }`}
-                          >
-                            {c.badge}
-                          </span>
-                          <span className="mt-2.5 block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
-                            {c.title}
-                          </span>
-                          <span className="mt-1 block text-[12.5px] font-semibold text-[#6B6353]">
-                            {c.sub}
-                          </span>
-                        </span>
-                        <span
-                          aria-hidden="true"
-                          className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                            c.accent === 'naver'
-                              ? 'bg-[#03C75A]/12 text-[#03C75A]'
-                              : 'bg-[#1E1A14]/8 text-[#1E1A14]'
-                          }`}
-                        >
-                          <ArrowIcon />
-                        </span>
-                      </div>
-                      {/* 선반 띠 — 사진 네모 경계가 안 보이게(사장님 2026-09-26 "사진
-                          배경과 따로 노는 느낌 없게"). 제품 컷 배경은 평면이 아니라
-                          코너 실측 #ECECEC~#F8F3F5 의 은은한 비네트라 색을 맞춰도 경계가
-                          남는다 → 띠를 가장 어두운 코너보다 살짝 어둡게(#EBEAEC) 두고
-                          darken 블렌드: 배경 픽셀은 전부 띠 색으로 수렴, 파우치만 남는다.
-                          (multiply 는 배경을 띠보다 더 어둡게 만들어 네모가 드러났다.) */}
-                      <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-0 bg-[#EBEAEC] px-3 pb-4 pt-3`}>
-                        {c.images.map((src) => (
-                          <div key={src} className="relative aspect-square">
-                            <Image
-                              src={src}
-                              alt=""
-                              fill
-                              sizes="110px"
-                              className="object-contain mix-blend-darken"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </a>
-                  ) : (
-                  <a
-                    href={c.href}
-                    {...extProps(c.href)}
-                    className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
-                      c.variant === 'paper' ? 'border border-black/5 bg-white' : ''
-                    }`}
-                  >
-                    <div className="relative aspect-[16/10] overflow-hidden">
-                      <Image
-                        src={c.image}
-                        alt=""
-                        fill
-                        sizes="430px"
-                        className={`${s.cardImg} object-cover ${
-                          c.variant === 'paper' ? 'object-left' : ''
-                        }`}
-                      />
-                      {c.variant === 'photo' && (
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
-                        />
-                      )}
-                      {c.variant === 'paper' && (
-                        /* 왼쪽 텍스트 자리만 살짝 하얗게 — 잉크 글자 가독. */
-                        <div
-                          aria-hidden="true"
-                          className="absolute inset-0 bg-gradient-to-r from-white/85 via-white/20 to-transparent"
-                        />
-                      )}
-                      <span
-                        className={`absolute left-4 top-4 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                          c.variant === 'photo'
-                            ? 'bg-[#C86B45] text-white'
-                            : 'bg-[#1E1A14] text-[#FAF9F5]'
-                        }`}
-                      >
-                        {c.badge}
-                      </span>
-                      <span
-                        className={`absolute bottom-4 left-4 right-14 ${
-                          c.variant === 'photo' ? 'text-[#FAF9F5]' : 'text-[#1E1A14]'
-                        }`}
-                      >
-                        <span className="block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em]">
-                          {c.title}
-                        </span>
-                        <span
-                          className={`mt-1 block text-[12.5px] font-semibold ${
-                            c.variant === 'photo' ? 'text-white/85' : 'text-[#6B6353]'
-                          }`}
-                        >
-                          {c.sub}
-                        </span>
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className={`absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full ${
-                          c.variant === 'photo'
-                            ? 'bg-white/25 text-white backdrop-blur'
-                            : 'bg-[#1E1A14]/8 text-[#1E1A14]'
-                        }`}
-                      >
-                        <ArrowIcon />
-                      </span>
-                    </div>
-                  </a>
-                  )}
+              {content.banners.map((b, i) => (
+                <div key={b.id}>
+                  <NoticeLine n={i + 1} text={b.notice} ended={b.window === 'ended_recent'} />
+                  <BannerCard b={b} />
                 </div>
               ))}
+              {showStore && (
+                <div>
+                  <NoticeLine n={content.banners.length + 1} text={STORE_CARD.notice} ended={false} />
+                  <StoreCard />
+                </div>
+              )}
             </div>
           </section>
         )}
 
         {/* ── 사진 스트립 — 파머스테일의 하루 ──────────────────────── */}
-        {BIO_MOMENTS.length > 0 && (
+        {content.momentUrls.length > 0 && (
           <section className={`mt-11 ${s.fadeUp} ${s.d4} ${s.revealOnScroll}`}>
             <h2 className="text-[16.5px] font-extrabold tracking-[-0.015em] text-[#1E1A14]">
               파머스테일의 하루
@@ -283,10 +156,10 @@ export default function LinkInBioPage() {
             {/* 2장 이하면 스크롤이 안 생기므로 가운데 정렬이 안전하다. */}
             <div
               className={`${s.scrollRow} -mx-5 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 ${
-                BIO_MOMENTS.length <= 2 ? 'justify-center' : ''
+                content.momentUrls.length <= 2 ? 'justify-center' : ''
               }`}
             >
-              {BIO_MOMENTS.map((src) => (
+              {content.momentUrls.map((src) => (
                 <div
                   key={src}
                   className="relative aspect-[4/5] w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl"
@@ -363,6 +236,159 @@ export default function LinkInBioPage() {
         </footer>
       </div>
     </main>
+  )
+}
+
+/* ── 배너 조각 ─────────────────────────────────────────────────────── */
+
+function NoticeLine({ n, text, ended }: { n: number; text: string; ended: boolean }) {
+  return (
+    <p className="flex items-start gap-2 text-left">
+      <span
+        className={`mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[11px] font-extrabold ${
+          ended ? 'bg-black/5 text-[#9A9282]' : 'bg-[#C86B45]/10 text-[#C86B45]'
+        }`}
+      >
+        {n}
+      </span>
+      <span
+        className={`text-[13.5px] font-bold tracking-[-0.01em] ${
+          ended ? 'text-[#9A9282] line-through decoration-[#B6AB93]' : 'text-[#3A3428]'
+        }`}
+      >
+        {text}
+        {ended && <span className="ml-1.5 no-underline font-semibold">(종료)</span>}
+      </span>
+    </p>
+  )
+}
+
+/**
+ * 이벤트·모집 배너 — photo(가로 사진 위 글자) / poster(세로 포스터, 글자는 아래 띠).
+ * 종료 후 14일은 회색+"기간 종료" 덮개, 링크 없음(사장님 2026-09-26).
+ */
+function BannerCard({ b }: { b: LinkBanner }) {
+  const ended = b.window === 'ended_recent'
+  const cls = `${s.card} ${ended ? '' : s.pressable} mt-2.5 block overflow-hidden rounded-3xl text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)] ${
+    b.variant === 'poster' ? 'border border-black/5 bg-white' : ''
+  }`
+
+  const inner = (
+    <div className={`relative ${ended ? 'grayscale opacity-60' : ''}`}>
+      {b.variant === 'poster' ? (
+        <>
+          <div className="relative aspect-[4/5] overflow-hidden">
+            <Image src={b.imageUrl} alt="" fill sizes="430px" className={`${s.cardImg} object-cover object-top`} />
+          </div>
+          <div className="flex items-center justify-between gap-3 px-5 py-4">
+            <span className="min-w-0">
+              {b.badge && (
+                <span className="mb-1.5 inline-block rounded-full bg-[#1E1A14] px-2.5 py-1 text-[11px] font-bold text-[#FAF9F5]">
+                  {b.badge}
+                </span>
+              )}
+              <span className="block font-serif text-[20px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
+                {b.title}
+              </span>
+              {b.sub && <span className="mt-0.5 block text-[12.5px] font-semibold text-[#6B6353]">{b.sub}</span>}
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1E1A14]/8 text-[#1E1A14]"
+            >
+              <ArrowIcon />
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className="relative aspect-[16/10] overflow-hidden">
+          <Image src={b.imageUrl} alt="" fill sizes="430px" className={`${s.cardImg} object-cover`} />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
+          />
+          {b.badge && (
+            <span className="absolute left-4 top-4 rounded-full bg-[#C86B45] px-2.5 py-1 text-[11px] font-bold text-white">
+              {b.badge}
+            </span>
+          )}
+          <span className="absolute bottom-4 left-4 right-14 text-[#FAF9F5]">
+            <span className="block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em]">
+              {b.title}
+            </span>
+            {b.sub && <span className="mt-1 block text-[12.5px] font-semibold text-white/85">{b.sub}</span>}
+          </span>
+          <span
+            aria-hidden="true"
+            className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/25 text-white backdrop-blur"
+          >
+            <ArrowIcon />
+          </span>
+        </div>
+      )}
+      {ended && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="rounded-full bg-[#1E1A14]/85 px-4 py-2 text-[13px] font-extrabold text-[#FAF9F5] shadow-[0_4px_14px_rgba(0,0,0,0.25)]">
+            기간 종료
+          </span>
+        </div>
+      )}
+    </div>
+  )
+
+  if (ended) {
+    return (
+      <div className={cls} aria-label={`${b.title} — 기간 종료`}>
+        {inner}
+      </div>
+    )
+  }
+  return (
+    <a href={b.href} {...extProps(b.href)} className={cls}>
+      {inner}
+    </a>
+  )
+}
+
+/** 스마트스토어 카드 — 글자는 위 흰 띠, 실제 파우치 4종은 아래 선반 띠. 네이버 초록 포인트. */
+function StoreCard() {
+  const c = STORE_CARD
+  return (
+    <a
+      href={c.href}
+      {...extProps(c.href)}
+      className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl border border-[#03C75A]/30 bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)]`}
+    >
+      {/* 목적지 브랜드 라인 — 네이버 초록(사장님 2026-09-26 "초록 라인 포인트"). */}
+      <div aria-hidden="true" className="h-1.5 w-full bg-[#03C75A]" />
+      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+        <span className="min-w-0">
+          <span className="inline-block rounded-full bg-[#03C75A] px-2.5 py-1 text-[11px] font-bold text-white">
+            {c.badge}
+          </span>
+          <span className="mt-2.5 block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
+            {c.title}
+          </span>
+          <span className="mt-1 block text-[12.5px] font-semibold text-[#6B6353]">{c.sub}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#03C75A]/12 text-[#03C75A]"
+        >
+          <ArrowIcon />
+        </span>
+      </div>
+      {/* 선반 띠 — 제품 컷 배경은 코너 실측 #ECECEC~#F8F3F5 의 은은한 비네트라 색만
+          맞춰선 네모가 남는다 → 띠를 가장 어두운 코너보다 살짝 어둡게(#EBEAEC) 두고
+          darken 블렌드: 배경 픽셀은 전부 띠 색으로 수렴, 파우치만 남는다. */}
+      <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-0 bg-[#EBEAEC] px-3 pb-4 pt-3`}>
+        {c.images.map((src) => (
+          <div key={src} className="relative aspect-square">
+            <Image src={src} alt="" fill sizes="110px" className="object-contain mix-blend-darken" />
+          </div>
+        ))}
+      </div>
+    </a>
   )
 }
 

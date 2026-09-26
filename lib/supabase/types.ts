@@ -2867,6 +2867,81 @@ export type Database = {
         }
         Relationships: []
       }
+      link_banners: {
+        Row: {
+          badge: string
+          created_at: string
+          enabled: boolean
+          ends_on: string | null
+          href: string
+          id: string
+          image_url: string
+          notice: string
+          sort_order: number
+          starts_on: string | null
+          sub: string
+          title: string
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          badge?: string
+          created_at?: string
+          enabled?: boolean
+          ends_on?: string | null
+          href: string
+          id?: string
+          image_url: string
+          notice?: string
+          sort_order?: number
+          starts_on?: string | null
+          sub?: string
+          title: string
+          updated_at?: string
+          variant: string
+        }
+        Update: {
+          badge?: string
+          created_at?: string
+          enabled?: boolean
+          ends_on?: string | null
+          href?: string
+          id?: string
+          image_url?: string
+          notice?: string
+          sort_order?: number
+          starts_on?: string | null
+          sub?: string
+          title?: string
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: []
+      }
+      link_page_settings: {
+        Row: {
+          cover_url: string
+          id: number
+          moment_urls: string[]
+          show_store_card: boolean
+          updated_at: string
+        }
+        Insert: {
+          cover_url: string
+          id?: number
+          moment_urls?: string[]
+          show_store_card?: boolean
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string
+          id?: number
+          moment_urls?: string[]
+          show_store_card?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           address: string

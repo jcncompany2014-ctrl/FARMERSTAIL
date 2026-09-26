@@ -47,6 +47,7 @@ import {
   ArrowLeft,
   ListChecks,
   Stamp,
+  Link2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -118,6 +119,8 @@ const NAV_GROUPS = [
       { href: '/admin/blog', label: '매거진', icon: Newspaper },
       { href: '/admin/faqs', label: 'FAQ', icon: HelpCircle },
       { href: '/admin/promotions', label: '프로모션', icon: Ticket },
+      // 인스타 프로필 링크 페이지(/link) 콘텐츠 — 커버·배너(기간)·하루 사진(2026-09-26).
+      { href: '/admin/link', label: '링크 페이지', icon: Link2 },
     ],
   },
   {
