@@ -9,6 +9,7 @@
  * 수 있는 수준. 트래픽이 늘면 dynamic sampling으로 조정.
  */
 import * as Sentry from '@sentry/nextjs'
+import { scrubSentryEvent } from '@/lib/sentry-scrub'
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -71,52 +72,11 @@ Sentry.init({
   beforeSend(event) {
     // PII 한국 특화 패턴 scrubbing — 주민등록번호, 휴대폰, 이메일.
     // Sentry의 기본 scrubber도 돌지만 한국 포맷은 놓치는 경우 있어 이중화.
-    return scrubKoreanPII(event)
+    return scrubSentryEvent(event)
   },
   // 성능 트랜잭션에도 — 요청 URL 에 토큰 주소(/vet/·/photo-upload/)가 남던 것(2026-09-26).
+  // ★트랜잭션엔 Sentry Scope(순환 객체)가 실려 온다 — 스크러버가 순환 안전해야 한다(lib/sentry-scrub 머리말).
   beforeSendTransaction(event) {
-    return scrubKoreanPII(event)
+    return scrubSentryEvent(event)
   },
 })
-
-/**
- * 한국 환경 특화 PII 스크러버.
- *
- * Sentry 기본 scrubber는 이메일/신용카드 같은 글로벌 패턴은 잡지만:
- *   - 주민등록번호 (XXXXXX-XXXXXXX)
- *   - 한국 휴대폰 (010-XXXX-XXXX, +82 ...)
- *   - 사업자등록번호 (XXX-XX-XXXXX)
- *   - 계좌번호-계좌주 조합
- * 은 못 잡는다. 에러 스택/메시지/breadcrumb data에 이게 찍힐 가능성이
- * 있어 한 번 더 치운다. 오탐 허용 (계좌번호와 유사한 일반 숫자도 가릴 수
- * 있음) — 로그 가독성보다 PII 유출 방지가 우선.
- */
-function scrubKoreanPII<T>(event: T): T {
-  const RRN = /\b\d{6}-?[1-4]\d{6}\b/g // 주민번호
-  const PHONE = /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/g // 한국 휴대폰
-  const BRN = /\b\d{3}-?\d{2}-?\d{5}\b/g // 사업자등록번호
-  const ACCT = /\b\d{2,4}-\d{2,4}-\d{4,7}\b/g // 계좌번호 대략
-  const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g // 이메일 — 주석이 약속하던 것(2026-09-26 추가)
-
-  const scrub = (s: string) =>
-    s
-      .replace(RRN, '[주민번호]')
-      .replace(PHONE, '[휴대폰]')
-      .replace(BRN, '[사업자번호]')
-      .replace(ACCT, '[계좌]')
-      .replace(EMAIL, '[이메일]')
-      .replace(/\/(vet|photo-upload)\/[^/?#\s"']+/g, '/$1/[token]') // 열람권 토큰 주소(lib/token-paths 와 같은 식)
-
-  const walk = (val: unknown): unknown => {
-    if (typeof val === 'string') return scrub(val)
-    if (Array.isArray(val)) return val.map(walk)
-    if (val && typeof val === 'object') {
-      const out: Record<string, unknown> = {}
-      for (const [k, v] of Object.entries(val)) out[k] = walk(v)
-      return out
-    }
-    return val
-  }
-
-  return walk(event) as T
-}

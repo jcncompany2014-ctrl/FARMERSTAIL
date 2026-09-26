@@ -1499,6 +1499,7 @@ test('규칙 33 — 휴대폰 검증은 lib/phone 정본만 (자체 정규식 �
     if (file.includes('.test.')) continue
     const rel = file.replace(ROOT, '').split(sep).join('/')
     if (rel === '/lib/phone.ts') continue // 정본 자신
+    if (rel === '/lib/sentry-scrub.ts') continue // 검증이 아니라 오류 기록 속 번호를 찾아 가리는 검색식(2026-09-26 설정 파일에서 이사)
     const src = stripComments(read(file))
     // 식별번호 나열을 문자클래스로 들고 있으면 자체 검증식이다.
     if (/01\[0?1[0-9]*6789\]/.test(src) || src.includes('01[016789]') || src.includes('01[16789]')) {
@@ -4547,8 +4548,10 @@ test('규칙114: 사진·개인 데이터 파기는 실제로 지운다 — 서�
   for (const t of ['kibble_requests', 'source_waitlist', 'meta_learning_events', 'dog_members']) {
     assert.ok(del.includes(`from('${t}')`), `탈퇴가 ${t} 를 지우거나 익명화하지 않는다`)
   }
+  // 세 설정 파일의 스크러버는 2026-09-26 lib/sentry-scrub 하나로 모였다(규칙131) — 이메일 가림은 거기서 본다.
+  assert.ok(read(join(ROOT, 'lib', 'sentry-scrub.ts')).includes(".replace(EMAIL, '[이메일]')"), 'lib/sentry-scrub: Sentry 가 이메일을 가리지 않는다(주석은 가린다고 했다)')
   for (const f of ['instrumentation-client.ts', 'sentry.server.config.ts', 'sentry.edge.config.ts']) {
-    assert.ok(read(join(ROOT, f)).includes(".replace(EMAIL, '[이메일]')"), `${f}: Sentry 가 이메일을 가리지 않는다(주석은 가린다고 했다)`)
+    assert.ok(stripComments(read(join(ROOT, f))).includes("from '@/lib/sentry-scrub'"), `${f}: 공용 스크러버를 안 쓴다(이메일이 안 가려진다)`)
   }
 })
 
@@ -4914,10 +4917,22 @@ test('규칙131: 한 마리·한 사람 가정을 깨지 않는다 · 열람권 
   // ⑤ 열람권 주소(/vet/·/photo-upload/)는 분석·광고·오류 도구로 안 간다
   assert.ok(stripComments(read(join(ROOT, 'components', 'AnalyticsScripts.tsx'))).includes('isTokenBearerPath('), '토큰 주소에서도 분석·광고 도구를 싣는다')
   assert.ok(stripComments(read(join(ROOT, 'components', 'CookieConsent.tsx'))).includes('isTokenBearerPath('), '토큰 주소에서도 쿠키 배너(→동의→분석)를 띄운다')
-  for (const f of ['instrumentation-client.ts', 'sentry.server.config.ts']) {
-    const b = read(join(ROOT, f))
-    assert.ok(b.includes("'/$1/[token]'") && b.includes('beforeSendTransaction('), `${f}: Sentry 가 토큰 주소를 가리지 않는다`)
+  // Sentry 스크러버는 lib/sentry-scrub 하나(순환 안전). 설정 파일마다 복사해 둔 재귀 walk 를 트랜잭션에 붙였더니
+  // 트랜잭션에 실려 오는 Scope(순환 객체)에서 RangeError 로 전부 터졌다(2026-09-26 Sentry FARMERSTAIL-APP-13).
+  // 동작 자체는 lib/sentry-scrub.test.ts 가 실제 SDK 파이프라인으로 검사한다 — 여기선 복사본이 돌아오는 것을 막는다.
+  for (const f of ['instrumentation-client.ts', 'sentry.server.config.ts', 'sentry.edge.config.ts']) {
+    const b = stripComments(read(join(ROOT, f)))
+    assert.ok(b.includes("from '@/lib/sentry-scrub'"), `${f}: 공용 스크러버(lib/sentry-scrub)를 안 쓴다`)
+    assert.ok(!/const walk\s*=/.test(b) && !/function scrub/.test(b), `${f}: 설정 파일 안에 자체 스크러버가 돌아왔다(순환에서 터진 그 코드)`)
+    if (f !== 'sentry.edge.config.ts') {
+      assert.ok(/beforeSendTransaction\(event\) \{\s*return scrubSentryEvent\(event\)/.test(b), `${f}: Sentry 트랜잭션이 토큰 주소를 가리지 않는다`)
+    }
   }
+  const scrubLib = stripComments(read(join(ROOT, 'lib', 'sentry-scrub.ts')))
+  assert.ok(
+    scrubLib.includes('redactTokenPaths(') && scrubLib.includes('SDK_INTERNAL_KEYS.has(k)') && scrubLib.includes('new WeakMap'),
+    'lib/sentry-scrub 가 토큰 가림 · SDK 내부 칸(sdkProcessingMetadata) 건너뛰기 · 순환 안전 중 하나를 잃었다',
+  )
   // ⑥ 개인 메일이 박힌 공개 시안 페이지 금지
   assert.ok(!existsSync(join(ROOT, 'app', 'dev', 'admin-preview', 'page.tsx')), '사장님 개인 메일이 박힌 공개 시안 페이지가 돌아왔다')
 })

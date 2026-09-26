@@ -9,6 +9,7 @@
  * DSN이 세팅되지 않은 환경(로컬 dev, preview)에서는 자동 no-op.
  */
 import * as Sentry from '@sentry/nextjs'
+import { scrubSentryEvent, scrubSentryString } from '@/lib/sentry-scrub'
 import {
   trackPageView,
   captureFirstTouchFromUrl,
@@ -90,47 +91,19 @@ Sentry.init({
   // (주민번호 / 휴대폰 / 이메일 / 계좌) 가 우연히 들어가는 케이스를 한 번 더
   // 거른다. Sentry 기본 scrubber 는 한국 포맷을 못 잡으므로 이중화.
   beforeSend(event) {
-    return scrubKoreanPII(event)
+    return scrubSentryEvent(event)
   },
   // 성능 트랜잭션에도 같은 스크러버 — URL·이름에 토큰 주소(/vet/·/photo-upload/)가 남던 것(2026-09-26).
+  // ★트랜잭션엔 Sentry Scope(순환 객체)가 실려 온다 — 스크러버가 순환 안전해야 한다(lib/sentry-scrub 머리말).
   beforeSendTransaction(event) {
-    return scrubKoreanPII(event)
+    return scrubSentryEvent(event)
   },
   beforeBreadcrumb(crumb) {
-    if (crumb.message) crumb.message = scrubString(crumb.message)
-    if (crumb.data) crumb.data = scrubKoreanPII(crumb.data)
+    if (crumb.message) crumb.message = scrubSentryString(crumb.message)
+    if (crumb.data) crumb.data = scrubSentryEvent(crumb.data)
     return crumb
   },
 })
-
-function scrubString(s: string): string {
-  const RRN = /\b\d{6}-?[1-4]\d{6}\b/g
-  const PHONE = /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/g
-  const BRN = /\b\d{3}-?\d{2}-?\d{5}\b/g
-  const ACCT = /\b\d{2,4}-\d{2,4}-\d{4,7}\b/g
-  const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g // 이메일 — 주석이 약속하던 것(2026-09-26 추가)
-  return s
-    .replace(RRN, '[주민번호]')
-    .replace(PHONE, '[휴대폰]')
-    .replace(BRN, '[사업자번호]')
-    .replace(ACCT, '[계좌]')
-    .replace(EMAIL, '[이메일]')
-    .replace(/\/(vet|photo-upload)\/[^/?#\s"']+/g, '/$1/[token]') // 열람권 토큰 주소(lib/token-paths 와 같은 식)
-}
-
-function scrubKoreanPII<T>(event: T): T {
-  const walk = (val: unknown): unknown => {
-    if (typeof val === 'string') return scrubString(val)
-    if (Array.isArray(val)) return val.map(walk)
-    if (val && typeof val === 'object') {
-      const out: Record<string, unknown> = {}
-      for (const [k, v] of Object.entries(val)) out[k] = walk(v)
-      return out
-    }
-    return val
-  }
-  return walk(event) as T
-}
 
 // Sentry의 client-side router transition hook과 analytics page_view를
 // 하나로 합쳐서 export한다. Next 16은 `onRouterTransitionStart`를
