@@ -46,6 +46,7 @@ import {
   Gauge,
   ArrowLeft,
   ListChecks,
+  Stamp,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -98,6 +99,10 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/users', label: '고객', icon: Users },
       { href: '/admin/surveys', label: '설문 기록', icon: ListChecks },
+      // 서포터즈(체험단) 도장 화면. ★이 표가 실제 어드민 내비의 유일한 정본 —
+      // components/admin/AdminNav.tsx 는 9/4 개편 뒤 죽은 파일이라 거기에만
+      // 넣었더니 사장님 화면엔 이틀간 안 떴다(2026-09-26).
+      { href: '/admin/trials', label: '체험단(서포터즈)', icon: Stamp },
       { href: '/admin/cs-inbox', label: 'CS 인박스', icon: Inbox },
       { href: '/admin/push-campaigns', label: '푸시 캠페인', icon: BellRing },
       { href: '/admin/push-stats', label: '푸시 지표', icon: BarChart3 },

@@ -4355,7 +4355,9 @@ test('규칙107: 고객 알림·메일은 사실대로, 끝까지 — await · �
       let k = i - 1
       while (k >= 0 && lines[k]!.trim() === '') k--
       const prev = (lines[k] ?? '').trim()
-      if (/=>$|\($|return$/.test(prev)) return
+      // 화살표 반환(=>)·인자 자리(()·배열 원소([ 또는 앞 원소 끝 ,) — Promise.all([...]) 안의 호출은
+      // 바깥 await 가 기다린다(2026-09-26 확장 — 체험단 세션이 병렬 발송을 순차로 바꿔야 했던 오탐).
+      if (/=>$|\($|\[$|,$|return$/.test(prev)) return
       bare.push(`${rel(f)}:${i + 1} ${l.trim().slice(0, 50)}`)
     })
   }
@@ -4452,5 +4454,23 @@ test('규칙109: 체험단 가격 전환 예고는 푸시+메일 이중화·금�
     src,
     /nextPricing\.chargeAmount\.toLocaleString/,
     '예고 본문의 금액(resolveAutoDiscount 숫자)이 사라졌다 — "반값/정상가" 말만으로는 고지가 아니다',
+  )
+
+  // (d) 도장 화면은 **실제** 어드민 내비(admin-shell-next)에 있어야 한다.
+  //     2026-09-26: 죽은 파일(components/admin/AdminNav.tsx — 9/4 개편 뒤 미사용)에만
+  //     넣고 "배포됐다"고 두 번 보고했다. 사장님 화면엔 이틀간 없었다.
+  const shell = stripComments(
+    read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')),
+  )
+  assert.match(
+    shell,
+    /href:\s*'\/admin\/trials'/,
+    '체험단(서포터즈) 도장 화면이 실제 어드민 내비(admin-shell-next NAV_GROUPS)에 없다',
+  )
+  const layout = stripComments(read(join(ROOT, 'app', 'admin', 'layout.tsx')))
+  assert.match(
+    layout,
+    /components\/adminui\/admin-shell-next/,
+    '어드민 layout 이 admin-shell-next 를 안 쓴다 — 내비 정본이 바뀌었으면 이 규칙과 AdminNav.tsx 경고 주석을 같이 고칠 것',
   )
 })

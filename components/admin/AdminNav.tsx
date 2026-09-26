@@ -27,6 +27,12 @@ import {
 } from 'lucide-react'
 
 /**
+ * ⛔ 죽은 파일 — 2026-09-04 어드민 개편 Phase 2 이후 app/admin/layout.tsx 는
+ * components/adminui/admin-shell-next.tsx(NAV_GROUPS)만 렌더한다. 롤백 대비로
+ * 보존할 뿐, **여기에 메뉴를 넣어도 사장님 화면엔 아무것도 안 뜬다**
+ * (2026-09-26 체험단 메뉴 — 이 파일만 고치고 이틀간 "없다" 제보 받음).
+ * 메뉴 추가는 admin-shell-next.tsx 에. 규칙109 가 실제 내비를 검사한다.
+ *
  * AdminNav — 관리자 사이드바 네비게이션 (client island).
  *
  * 기존 layout.tsx 의 평면 22-link nav 를 대체. 개선점:
