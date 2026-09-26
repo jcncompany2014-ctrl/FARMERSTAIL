@@ -311,12 +311,12 @@ export function renderTrialPriceChange(input: {
   const dateLabel = formatKoDate(input.nextChargeDate)
   const won = `${input.nextAmount.toLocaleString()}원`
   const heading =
-    input.nextPhase === 'half' ? '체험 기간이 끝났어요' : '체험 혜택이 모두 끝났어요'
+    input.nextPhase === 'half' ? '서포터즈 100원 기간이 끝났어요' : '서포터즈 혜택이 모두 끝났어요'
   const subject = `[파머스테일] 다음 박스부터 ${won}으로 결제돼요`
   const lead =
     input.nextPhase === 'half'
-      ? `${withHonorific(input.recipientName)}, 체험 기간의 100원 박스가 모두 끝났어요. 다음 박스부터는 반값 혜택가로 이어져요.`
-      : `${withHonorific(input.recipientName)}, 준비해 드린 체험 혜택이 모두 끝났어요. 다음 박스부터는 원래 가격으로 이어져요.`
+      ? `${withHonorific(input.recipientName)}, 서포터즈 100원 박스가 모두 끝났어요. 다음 박스부터는 반값 혜택가로 이어져요.`
+      : `${withHonorific(input.recipientName)}, 준비해 드린 서포터즈 혜택이 모두 끝났어요. 다음 박스부터는 원래 가격으로 이어져요.`
 
   const body = `
     <p style="margin:0 0 14px 0;">${escape(lead)}</p>

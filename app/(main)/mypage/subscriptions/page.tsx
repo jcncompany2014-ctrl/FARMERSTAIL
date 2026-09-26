@@ -425,7 +425,7 @@ export default async function AppSubscriptionsSummaryPage({
       {trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0) && (
         <section className="px-5 py-4" style={card}>
           <p className="text-[11px] font-bold" style={{ color: V3.inkMute }}>
-            체험단 진행 중
+            서포터즈 진행 중
           </p>
           <p className="mt-1 text-[16px] font-bold" style={{ color: V3.ink }}>
             {trial.cheap_remaining > 0

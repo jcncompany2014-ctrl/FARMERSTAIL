@@ -82,6 +82,10 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/personalization', icon: ClipboardCheck, label: '레시피 승인' },
       { href: '/admin/users', icon: Users, label: '고객' },
       { href: '/admin/surveys', icon: ListChecks, label: '설문 기록' },
+      // 서포터즈 운영 기간(2026-10~) 동안 매일 그룹 — '가끔'에 넣었더니 드로어
+      // 스크롤 아래라 사장님이 두 번이나 "없다"고 제보했다(2026-09-25·26).
+      // 기수 운영이 끝나면 '가끔'으로 되돌린다.
+      { href: '/admin/trials', icon: Stamp, label: '체험단(서포터즈)' },
       { href: '/admin/refunds', icon: Undo2, label: '환불 관리' },
     ],
   },
@@ -99,7 +103,6 @@ const GROUPS: NavGroup[] = [
       { href: '/admin/blog', icon: PenLine, label: '콘텐츠' },
       { href: '/admin/push-campaigns', icon: Megaphone, label: '알림' },
       { href: '/admin/promotions', icon: Ticket, label: '이벤트 · 프로모션' },
-      { href: '/admin/trials', icon: Stamp, label: '체험단' },
       { href: '/admin/automation', icon: SlidersHorizontal, label: '설정' },
     ],
   },

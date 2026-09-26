@@ -46,7 +46,8 @@ export function trialPricing(state: TrialState | null, subtotal: number): TrialP
       phase: 'cheap',
       chargeAmount,
       discountAmount: subtotal - chargeAmount,
-      label: `체험단 ${chargeAmount.toLocaleString()}원`,
+      // 고객 노출 명칭은 '서포터즈' (사장님 2026-09-26 — "체험단"은 내부 용어).
+      label: `서포터즈 ${chargeAmount.toLocaleString()}원`,
       remaining: state.cheap_remaining,
     }
   }
@@ -58,7 +59,7 @@ export function trialPricing(state: TrialState | null, subtotal: number): TrialP
       phase: 'half',
       chargeAmount,
       discountAmount: subtotal - chargeAmount,
-      label: `체험단 반값`,
+      label: `서포터즈 반값`,
       remaining: state.half_remaining,
     }
   }

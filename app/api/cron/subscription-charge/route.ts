@@ -1042,8 +1042,8 @@ async function runSubscriptionCharge(): Promise<Response> {
               const dateLabel = `${Number(mm)}월 ${Number(dd)}일`
               const body =
                 nextPhase === 'half'
-                  ? `체험 기간의 100원 박스가 끝났어요. 다음 박스(${dateLabel})부터는 반값 혜택가 ${won}으로 결제돼요. 결제 전에 메일로 다시 안내드려요.`
-                  : `체험 혜택이 모두 끝났어요. 다음 박스(${dateLabel})부터는 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
+                  ? `서포터즈 100원 박스가 모두 끝났어요. 다음 박스(${dateLabel})부터는 반값 혜택가 ${won}으로 결제돼요. 결제 전에 메일로 다시 안내드려요.`
+                  : `서포터즈 혜택이 모두 끝났어요. 다음 박스(${dateLabel})부터는 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
               const pushRes = await pushToUser(
                 sub.user_id,
                 { title: '다음 박스 가격 안내', body, url: '/mypage/subscriptions' },
