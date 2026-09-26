@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { chromeIntentUrl, detectInAppBrowser, isAndroidUa } from './inapp-browser.ts'
+import {
+  chromeIntentUrl,
+  detectInAppBrowser,
+  inAppBrowserLabel,
+  isAndroidUa,
+  withPromoParam,
+} from './inapp-browser.ts'
 
 const IG_IOS =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/21F90 Instagram 340.0.0.22.93'
@@ -32,5 +38,28 @@ describe('인앱 브라우저 감지', () => {
     )
     assert.equal(chromeIntentUrl('javascript:alert(1)'), null)
     assert.equal(chromeIntentUrl('not a url'), null)
+  })
+  it('배너 문구는 감지된 앱 이름 — 카톡에서 "인스타그램"이라고 하지 않는다(5차 점검)', () => {
+    assert.equal(inAppBrowserLabel('kakaotalk'), '카카오톡')
+    assert.equal(inAppBrowserLabel('naver'), '네이버')
+    assert.equal(inAppBrowserLabel('line'), '라인')
+    assert.equal(inAppBrowserLabel('facebook'), '페이스북')
+    assert.equal(inAppBrowserLabel('instagram'), '인스타그램')
+  })
+  it('크롬 전환 URL 에 초안의 이벤트 코드를 되붙인다 — 있으면 원문 우선, 없으면 그대로', () => {
+    assert.equal(
+      withPromoParam('https://www.farmerstail.kr/start', 'busan1102'),
+      'https://www.farmerstail.kr/start?p=busan1102',
+    )
+    assert.equal(
+      withPromoParam('https://www.farmerstail.kr/start?utm_source=instagram', 'busan1102'),
+      'https://www.farmerstail.kr/start?utm_source=instagram&p=busan1102',
+    )
+    assert.equal(
+      withPromoParam('https://www.farmerstail.kr/start?p=orig', 'busan1102'),
+      'https://www.farmerstail.kr/start?p=orig',
+    )
+    assert.equal(withPromoParam('https://www.farmerstail.kr/start', null), 'https://www.farmerstail.kr/start')
+    assert.equal(withPromoParam('not a url', 'x'), 'not a url')
   })
 })

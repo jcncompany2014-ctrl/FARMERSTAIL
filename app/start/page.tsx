@@ -8,6 +8,7 @@ import { planHref } from '@/lib/funnel-cta'
 import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
+import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
 
 /**
  * /start — FD식 무료 맞춤분석 퍼널 진입 (트랙B B1b).
@@ -290,5 +291,12 @@ export default async function StartPage() {
   )
 
   if (isApp) return <StartAppShell>{appBody}</StartAppShell>
-  return <WebChrome>{body}</WebChrome>
+  // 인앱 브라우저 안내는 이 첫 화면에서만(설문 진입 전 — 초안이 아직 없어 크롬으로
+  // 옮겨도 잃을 게 없는 유일한 지점). 웹 분기 전용.
+  return (
+    <>
+      <InAppBrowserNotice />
+      <WebChrome>{body}</WebChrome>
+    </>
+  )
 }

@@ -23,6 +23,41 @@ export function isAndroidUa(ua: string | null | undefined): boolean {
   return Boolean(ua && /Android/i.test(ua))
 }
 
+/** 배너 문구용 앱 이름 — 카톡·네이버에서 "인스타그램 안 브라우저"라고 떴다(5차 점검). */
+export function inAppBrowserLabel(kind: InAppKind): string {
+  switch (kind) {
+    case 'instagram':
+      return '인스타그램'
+    case 'facebook':
+      return '페이스북'
+    case 'kakaotalk':
+      return '카카오톡'
+    case 'naver':
+      return '네이버'
+    case 'line':
+      return '라인'
+  }
+}
+
+/**
+ * 크롬으로 옮길 때 이벤트 코드를 잃지 않게 `?p=` 를 되붙인다.
+ * /start?p=code 는 코드를 초안(localStorage)에 싣는데, 크롬은 저장소가 따로라
+ * 초안이 없다 — URL 에 다시 실어 보내야 StartClient 가 재저장한다.
+ * 이미 p 가 있으면 그대로(사용자가 들어온 링크가 우선). 코드 없으면 원문.
+ */
+export function withPromoParam(href: string, promo: string | null | undefined): string {
+  if (!promo) return href
+  let u: URL
+  try {
+    u = new URL(href)
+  } catch {
+    return href
+  }
+  if (u.searchParams.has('p')) return href
+  u.searchParams.set('p', promo)
+  return u.toString()
+}
+
 /**
  * 안드로이드에서 크롬으로 강제 이동하는 intent URL.
  * https URL 만 받는다 — 그 외(javascript: 등)는 null 로 거절.
