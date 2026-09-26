@@ -12,7 +12,7 @@ import s from './link.module.css'
  * /link — 인스타 프로필용 링크인바이오 (litt.ly 대체, 2026-09-24).
  *
  * 웹 마케팅 라우트(/start·/brand 와 같은 부류) — 크롬 없이 한 장짜리.
- * 커버 사진·이벤트/모집 배너·'파머스테일의 하루' 사진은 어드민(/admin/link)
+ * 이벤트/모집 배너·'파머스테일의 하루' 사진은 어드민(/admin/link)
  * 저장값(lib/link-content/load.ts)이 정본이고, 고정 콘텐츠(버튼·스토어 카드·
  * 스토어 링크)는 lib/links.ts. 클릭 추적은 UTM → 자사 퍼널의 기존 수집.
  *
@@ -20,7 +20,7 @@ import s from './link.module.css'
  * → 자동 숨김 (lib/link-content/status.ts, 사장님 2026-09-26). 페이지는 5분
  * ISR — 어드민 저장은 revalidatePath 로 즉시, 기간 전환은 늦어도 5분 안에.
  *
- * 킥고잉 링크인바이오 문법(2026-09-25): 커버(2026-09-26 여백 둔 둥근 카드로) + 겹치는 로고 + 공유,
+ * 킥고잉 링크인바이오 문법(2026-09-25): 도장 로고 + 공유(커버 사진은 2026-09-26 제거),
  * 번호 공지줄과 짝지어진 큰 타이포 배너, 사진 스트립, 다크 앱 밴드, 카톡 문의.
  * ⛔사진은 실물·생활감 스냅만.
  */
@@ -47,33 +47,11 @@ export default async function LinkInBioPage() {
     <main className="min-h-[100dvh] bg-[#FAF9F5]">
       <InAppBrowserNotice />
 
-      {/*
-        ── 커버 — 여백을 둔 둥근 사진 카드. 사진은 선명하게, 로고가 카드 아래 가장자리에 걸친다 ──
-        사장님 2026-09-26: 풀블리드 사진이 아래로 흰 그라데이션에 녹아 사진 절반이 뿌옇게
-        보였다. 흰 막을 걷고 카드로 세웠다. 위쪽만 아주 옅게 어둡게 — 공유 버튼 대비용.
-      */}
-      <div className="mx-auto max-w-[430px] px-4 pt-4">
-        <div className="relative h-[228px] overflow-hidden rounded-[28px] shadow-[0_12px_32px_rgba(30,26,20,0.14)] ring-1 ring-black/5">
-          <Image
-            src={content.coverUrl}
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 430px) 100vw, 430px"
-            className="object-cover object-[center_62%]"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/20 to-transparent"
-          />
-          <ShareButton />
-        </div>
-      </div>
-
       <div className="mx-auto max-w-[430px] px-5 pb-16 text-center">
-        {/* ── 프로필 — 커버에 살짝 겹치는 로고 ─────────────────────── */}
-        {/* 도장 PNG 는 속이 투명 — 크림 바탕을 깔아 뒤 사진이 비치지 않게(2026-09-26). */}
-        <header className="-mt-11">
+        {/* ── 프로필 — 로고·이름·소개만. 커버 사진은 2026-09-26 사장님 지시로 뺐다
+            ("아이콘 뒤에 사진 있는 거 빼자, 난잡"). 공유 버튼은 헤더 우상단. ── */}
+        <header className="relative pt-12">
+          <ShareButton />
           <Image
             src="/logo-stamp.png"
             alt="파머스테일"

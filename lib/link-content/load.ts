@@ -29,6 +29,7 @@ export type LinkBanner = {
 }
 
 export type LinkContent = {
+  /** 2026-09-26 사장님 지시로 /link 는 커버를 그리지 않는다(로고 뒤 사진 = 난잡). DB 값만 유지. */
   coverUrl: string
   momentUrls: string[]
   showStoreCard: boolean

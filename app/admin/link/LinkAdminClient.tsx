@@ -131,15 +131,6 @@ export default function LinkAdminClient({
     if (j.ok) setBanners(j.banners)
   }
 
-  // ── 커버 ────────────────────────────────────────────────────────────
-  function onCoverFile(file: File | null) {
-    if (!file) return
-    void run('커버 사진', async () => {
-      const url = await uploadImage(file, 'cover')
-      await saveSettings({ cover_url: url })
-    })
-  }
-
   // ── 하루 사진 ────────────────────────────────────────────────────────
   function onMomentFile(file: File | null) {
     if (!file) return
@@ -255,27 +246,8 @@ export default function LinkAdminClient({
         </p>
       )}
 
-      {/* ── 커버 ─────────────────────────────────────────────────── */}
-      <AdminCard>
-        <SectionTitle title="맨 위 커버 사진" />
-        <p className="text-[13px] text-[color:var(--adminui-mute)]">
-          링크 페이지 맨 위에 꽉 차게 들어가는 사진이에요. 가로가 긴 실물 사진이 잘 어울려요.
-        </p>
-        <div className="mt-3 overflow-hidden rounded border border-[color:var(--adminui-line)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={settings.cover_url} alt="" className="h-44 w-full object-cover" />
-        </div>
-        <label className="mt-3 inline-block">
-          <span className="sr-only">커버 사진 파일</span>
-          <input
-            type="file"
-            accept="image/*"
-            disabled={busy}
-            onChange={(e) => onCoverFile(e.target.files?.[0] ?? null)}
-            className="text-[13px]"
-          />
-        </label>
-      </AdminCard>
+      {/* 커버 사진 섹션은 2026-09-26 사장님 지시("로고 뒤 사진 빼자 — 난잡")로 뺐다.
+          DB 의 cover_url 은 남아 있지만 /link 가 그리지 않는다. */}
 
       {/* ── 배너 ─────────────────────────────────────────────────── */}
       <AdminCard>
