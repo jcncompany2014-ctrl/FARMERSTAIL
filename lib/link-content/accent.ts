@@ -71,7 +71,8 @@ export const ACCENT_THEMES: Record<AccentKey, AccentTheme> = {
   },
   instagram: {
     line: IG_GRADIENT,
-    badgeBg: IG_GRADIENT,
+    // 배지는 단색 — 그라데이션 위 흰 글자가 안 읽혔다(사장님 2026-09-26). 라인만 그라데이션.
+    badgeBg: '#DD2A7B',
     badgeFg: '#FFFFFF',
     arrowBg: 'rgba(221,42,123,0.12)',
     arrowFg: '#DD2A7B',

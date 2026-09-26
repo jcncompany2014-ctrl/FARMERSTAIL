@@ -28,5 +28,7 @@ describe('/link 배너 포인트 컬러', () => {
     }
     assert.equal(ACCENT_THEMES.none.line, null)
     assert.match(ACCENT_THEMES.instagram.line ?? '', /linear-gradient/)
+    // 배지는 단색이어야 읽힌다(사장님 2026-09-26) — 라인만 그라데이션.
+    assert.doesNotMatch(ACCENT_THEMES.instagram.badgeBg, /gradient/)
   })
 })
