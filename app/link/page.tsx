@@ -134,6 +134,41 @@ export default function LinkInBioPage() {
                       {c.notice}
                     </span>
                   </p>
+                  {c.variant === 'products' ? (
+                    /* 글자(위 흰 띠)와 제품 사진(아래 한 줄)이 겹치지 않는 배너. */
+                    <a
+                      href={c.href}
+                      {...extProps(c.href)}
+                      className={`${s.card} ${s.pressable} mt-2.5 block overflow-hidden rounded-3xl border border-black/5 bg-white text-left no-underline shadow-[0_4px_18px_rgba(0,0,0,0.07)]`}
+                    >
+                      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+                        <span className="min-w-0">
+                          <span className="inline-block rounded-full bg-[#1E1A14] px-2.5 py-1 text-[11px] font-bold text-[#FAF9F5]">
+                            {c.badge}
+                          </span>
+                          <span className="mt-2.5 block font-serif text-[23px] font-extrabold leading-snug tracking-[-0.02em] text-[#1E1A14]">
+                            {c.title}
+                          </span>
+                          <span className="mt-1 block text-[12.5px] font-semibold text-[#6B6353]">
+                            {c.sub}
+                          </span>
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1E1A14]/8 text-[#1E1A14]"
+                        >
+                          <ArrowIcon />
+                        </span>
+                      </div>
+                      <div className={`${s.cardImg} mt-3 grid grid-cols-4 gap-1 bg-gradient-to-b from-white to-[#F4EFE6] px-3 pb-4 pt-2`}>
+                        {c.images.map((src) => (
+                          <div key={src} className="relative aspect-square">
+                            <Image src={src} alt="" fill sizes="110px" className="object-contain" />
+                          </div>
+                        ))}
+                      </div>
+                    </a>
+                  ) : (
                   <a
                     href={c.href}
                     {...extProps(c.href)}
@@ -201,6 +236,7 @@ export default function LinkInBioPage() {
                       </span>
                     </div>
                   </a>
+                  )}
                 </div>
               ))}
             </div>

@@ -41,22 +41,38 @@ export const BIO_COVER = '/pouch-freezer-43.jpg'
  * 이벤트 배너 카드 — "알려드려요" 섹션. 번호 공지줄(notice) + 큰 타이포 배너가
  * 한 쌍으로 그려진다(킥고잉 링크인바이오 문법). 끝난 이벤트는 여기서 뺀다.
  */
-export type BioEventCard = {
+type BioEventCardBase = {
   /** 번호 공지줄 한 문장 (배너 위에 ① ② 로 붙는다). */
   notice: string
   /** 배너 이미지 위 작은 배지 (예: 모집 / 이벤트). */
   badge: string
   title: string
   sub: string
-  /** public/ 경로의 이미지. */
-  image: string
-  /**
-   * photo = 사진 위 어두운 스크림 + 크림 글자.
-   * paper = 밝은 이미지(여백이 왼쪽) 위 잉크 글자 — 이미지는 오른쪽으로 민다.
-   */
-  variant: 'photo' | 'paper'
   href: string
 }
+
+export type BioEventCard = BioEventCardBase &
+  (
+    | {
+        /**
+         * photo = 사진 위 어두운 스크림 + 크림 글자.
+         * paper = 밝은 이미지(여백이 왼쪽) 위 잉크 글자 — 이미지는 오른쪽으로 민다.
+         */
+        variant: 'photo' | 'paper'
+        /** public/ 경로의 이미지. */
+        image: string
+      }
+    | {
+        /**
+         * products = 글자는 위 흰 띠, 제품 사진은 아래 한 줄 — 글자와 사진이
+         * 겹치지 않는다(사장님 2026-09-26 "정보가 많은 사진 위에 폰트 올리면
+         * 헷갈리려나" → 안 올린다). 스마트스토어와 같은 실제 패키지 컷.
+         */
+        variant: 'products'
+        /** public/ 경로의 정사각 제품 컷 3~4장. */
+        images: string[]
+      }
+  )
 
 export const BIO_EVENT_CARDS: BioEventCard[] = [
   {
@@ -72,9 +88,10 @@ export const BIO_EVENT_CARDS: BioEventCard[] = [
     notice: '스마트스토어 오픈 기념 리뷰 이벤트가 진행 중이에요',
     badge: '이벤트',
     title: '리뷰 최대 20% 포인트백',
-    sub: '스마트스토어 오픈 기념',
-    image: '/pouch-ft-wide.webp',
-    variant: 'paper',
+    sub: '스마트스토어 오픈 기념 · 화식 4종',
+    // 홈·레시피 페이지와 같은 실제 패키지 컷(스마트스토어 대표 이미지와 동일).
+    images: ['/pouch-hanwoo.webp', '/pouch-blackpork.webp', '/pouch-duck.webp', '/pouch-chicken.webp'],
+    variant: 'products',
     href: 'https://smartstore.naver.com/farmerstail',
   },
 ]
