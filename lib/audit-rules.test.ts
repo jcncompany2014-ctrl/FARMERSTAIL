@@ -4816,3 +4816,21 @@ test('규칙127: 제품 사실은 확정본대로 · 이벤트 코드 목록 비
   const cyc = stripComments(read(join(ROOT, 'lib', 'personalization', 'cycle.ts')))
   assert.ok(/return next > cap \? cap : next/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
 })
+
+test('규칙128: 보관·알레르기 안내는 라벨·실제 원료대로 (사장님 승인 2026-09-26 — FAQ DB 는 마이그 20260926120000)', () => {
+  /**
+   * 라이브 FAQ(DB)·코드 폴백·/plans 가 ① "냉동 12개월·해동 후 냉장 7일"(라벨은 냉동 180일·3일)
+   * ② "원료가 든 레시피는 자동 제외, 실수로 섞일 일 없다"(연어유·난각분말은 4종 공통이라 생선·계란은 안 빠진다)
+   * 라고 했다. DB 는 테스트가 못 보니 코드 쪽 폴백·문구를 잠근다(폴백이 틀리면 DB 장애 때 틀린 안내가 나간다).
+   */
+  const faq = read(join(ROOT, 'app', 'faq', 'page.tsx'))
+  assert.ok(!/12개월까지 보관/.test(faq) && !/7일 이내 급여/.test(faq), 'FAQ 폴백 보관기한이 라벨(냉동 180일·해동 후 3일)과 다르다')
+  assert.ok(faq.includes('제조일로부터 냉동 180일'), 'FAQ 폴백에 라벨 유통기한이 없다')
+  assert.ok(!/실수로 섞여 들어갈 일이 없습니다/.test(faq), "FAQ 폴백이 생선·계란까지 '자동 제외'를 약속한다")
+  assert.ok(/연어유[\s\S]{0,400}카카오톡으로 편하게 문의/.test(faq), 'FAQ 폴백 알레르기 답에 공통 원료 안내·카카오톡 문의가 없다')
+  assert.ok((faq.match(/whitespace-pre-line/g) ?? []).length >= 2, 'FAQ 답변의 문단 나눔이 한 줄로 뭉친다')
+  const plans = read(join(ROOT, 'app', 'plans', 'page.tsx'))
+  assert.ok(!/해당 원료가 포함된 레시피는 자동으로 제외/.test(plans), "/plans 가 생선·계란까지 '자동 제외'를 약속한다")
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260926120000_content_faq_blog_facts.sql'))
+  assert.ok(mig.includes('제조일로부터 냉동 180일') && mig.includes('카카오톡으로 편하게 문의'), 'FAQ·블로그 정정 마이그레이션이 비었다')
+})
