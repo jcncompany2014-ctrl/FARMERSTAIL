@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/auth/admin'
 import { normalizePromoCode } from '@/lib/promotions'
 import { dbError } from '@/lib/api/errors'
 import { recordAdminAction } from '@/lib/admin-audit'
+import { parseKstLocalDateTime } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -141,8 +142,10 @@ export async function POST(req: Request) {
     )
   }
 
-  const startsAt = body.startsAt ? new Date(body.startsAt) : new Date()
-  const endsAt = body.endsAt ? new Date(body.endsAt) : null
+  // ★폼의 datetime-local 은 오프셋이 없다 — KST 로 읽는다(2026-09-26 출시 전 점검 6차).
+  //   new Date(v) 는 서버(UTC)에서 9시간 늦게 열고 늦게 닫았다(purin2024 실측).
+  const startsAt = body.startsAt ? parseKstLocalDateTime(body.startsAt) : new Date()
+  const endsAt = body.endsAt ? parseKstLocalDateTime(body.endsAt) : null
   if (!endsAt || Number.isNaN(endsAt.getTime()) || Number.isNaN(startsAt.getTime())) {
     return NextResponse.json({ code: 'INVALID_DATE', message: '기간을 확인해 주세요' }, { status: 400 })
   }

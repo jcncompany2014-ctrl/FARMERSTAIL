@@ -317,6 +317,43 @@ async function settleRefunded(
   attempts: number,
   lastError: string | null,
 ): Promise<void> {
+  /**
+   * ★이미 적힌 환불은 다시 적지 않는다 (2026-09-26 출시 전 점검 6차).
+   *
+   * 큐가 백오프로 기다리는 사이 사장님(관리자 환불)·고객(셀프 취소)·토스 웹훅이 먼저
+   * 환불하면, 여기서 토스가 ALREADY_CANCELED 를 돌려주고 이 마무리가 **원장에 −금액을 한 번
+   * 더** 넣고 'refunded' 를 'cancelled' 로 덮었다. 위 주석의 "중간에 죽으면 다음 실행이
+   * 이어받는다"도 같은 이중 기록을 만든다(장부는 썼는데 큐를 못 닫은 경우).
+   * 그래서 이 주문에 이미 기록된 환불(음수 합)을 먼저 본다. 못 보면 큐를 닫지 않고
+   * 다음 실행에 맡긴다 — 추측으로 적지도, 닫지도 않는다.
+   */
+  const { data: priorRefunds, error: priorErr } = await (
+    admin.from('payment_events' as never) as unknown as {
+      select: (c: string) => {
+        eq: (k: string, v: string) => {
+          lt: (k: string, v: number) => Promise<{
+            data: Array<{ amount: number | null }> | null
+            error: { message: string } | null
+          }>
+        }
+      }
+    }
+  )
+    .select('amount')
+    .eq('order_id', row.order_id)
+    .lt('amount', 0)
+  if (priorErr) {
+    captureBusinessEvent('warning', 'refund.queue.prior_refund_lookup_failed', {
+      orderId: row.order_id,
+      dbError: priorErr.message,
+      note: '기존 환불 기록을 못 봐서 이번엔 장부·큐를 건드리지 않음 — 다음 실행이 다시 시도',
+    })
+    return
+  }
+  const alreadyRefunded = -(priorRefunds ?? []).reduce((sum, e) => sum + (e.amount ?? 0), 0)
+  const ledgerAlreadyCovers = alreadyRefunded >= row.amount
+
+  // 주문 상태도 이미 환불·취소로 끝났으면 덮지 않는다('refunded' → 'cancelled' 로 뒤집던 것).
   const { error: ordErr } = await admin
     .from('orders')
     .update({
@@ -325,6 +362,7 @@ async function settleRefunded(
       refunded_amount: row.amount,
     })
     .eq('id', row.order_id)
+    .not('payment_status', 'in', '("cancelled","refunded")')
   if (ordErr) {
     // 환불은 이미 됐다 — 되돌릴 수 없으니 사람에게 알린다.
     captureBusinessEvent('error', 'refund.queue.order_update_failed', {
@@ -335,13 +373,23 @@ async function settleRefunded(
   }
 
   const { recordPaymentEvent } = await import('@/lib/payment-events')
-  const ev = await recordPaymentEvent(admin as never, {
-    orderId: row.order_id,
-    paymentKey: row.payment_key,
-    eventType: 'cron_refund_queue',
-    amount: -row.amount, // 음수 = 환불(SUM = 현재 잔액)
-    source: 'cron_refund_queue',
-  })
+  const ev = ledgerAlreadyCovers
+    ? ({ ok: true } as const)
+    : await recordPaymentEvent(admin as never, {
+        orderId: row.order_id,
+        paymentKey: row.payment_key,
+        eventType: 'cron_refund_queue',
+        amount: -row.amount, // 음수 = 환불(SUM = 현재 잔액)
+        source: 'cron_refund_queue',
+      })
+  if (ledgerAlreadyCovers) {
+    captureBusinessEvent('info', 'refund.queue.already_refunded_elsewhere', {
+      orderId: row.order_id,
+      amount: row.amount,
+      alreadyRefunded,
+      note: '다른 경로가 먼저 환불·기록함 — 원장 이중 기록 없이 큐만 닫음',
+    })
+  }
   // 반환값을 버리면 원장 누락이 조용히 지나가고, 주간 대사에서 익명
   // mismatch 로만 드러난다 — 그때는 원인을 못 찾는다.
   if (!ev.ok) {

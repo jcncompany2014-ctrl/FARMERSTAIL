@@ -10,6 +10,7 @@ import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import { cronLabel } from '@/lib/cron-labels'
 import vercelConfig from '@/vercel.json'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { scaleWarnings } from '@/lib/ops/scale-watch'
 
 /**
  * 다가오는 발송일(화요일) — **마감 리드타임 없이**. nextShipDate 는 '지금 주문하면
@@ -264,6 +265,44 @@ async function runDailyBriefing(): Promise<Response> {
   if (cCs > 0) items.push(`✉️ 답장 대기 ${cCs}건`)
   const cStock = nOf('품절', stockOut)
   if (cStock > 0) items.push(`📉 품절 ${cStock}개`)
+
+  // 규모 경보 — 조용히 깨지는 처리 한도에 다가가면 미리(lib/ops/scale-watch, 2026-09-26 점검 6차).
+  //   맨 뒤에 둔다: 오늘 할 일은 아니고, 몇 주 안에 손봐야 할 일이다.
+  {
+    const oneYearAgo = new Date(nowMs - 365 * 24 * 60 * 60 * 1000).toISOString()
+    const [subsN, formulasN, paidN, ledgerN] = await Promise.all([
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .not('billing_key', 'is', null),
+      supabase.from('dog_formulas').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .in('payment_status', PAID_STATUSES),
+      supabase
+        .from('payment_events')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', oneYearAgo),
+    ])
+    const orNull = (label: string, r: { count: number | null; error: { message: string } | null }) => {
+      if (r.error) {
+        countFailures.push(`규모(${label}): ${r.error.message}`)
+        return null
+      }
+      return r.count ?? 0
+    }
+    const warnings = scaleWarnings({
+      activeBilledSubs: orNull('활성 구독', subsN),
+      formulas: orNull('처방', formulasN),
+      paidOrders: orNull('결제 주문', paidN),
+      ledgerRows365d: orNull('결제 원장', ledgerN),
+    })
+    if (warnings.length > 0) {
+      items.push(`📈 규모 경보(처리 한도 전에 개선 필요): ${warnings.join(' / ')}`)
+    }
+  }
 
   // 못 센 항목은 맨 앞에 — 아래 숫자가 전부가 아닐 수 있다는 걸 먼저 말한다.
   if (countFailures.length > 0) {

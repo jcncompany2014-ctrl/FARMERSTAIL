@@ -68,6 +68,18 @@ export function nowKstMs(): number {
   return Date.now() + 9 * 60 * 60 * 1000
 }
 
+/**
+ * `<input type="datetime-local">` 값("2026-11-02T10:00" — 오프셋 없음)을 **KST 시각**으로 읽는다.
+ * 서버(UTC)에서 `new Date(v)` 는 로컬=UTC 로 읽어 9시간 늦어진다 — 프로모션 기간이 실제로
+ * 그렇게 저장됐다(2026-09-26 출시 전 점검 6차: 17:11 입력 → 다음 날 02:11 KST 시작).
+ * 오프셋·Z 가 이미 붙은 값은 그대로 파싱한다.
+ */
+export function parseKstLocalDateTime(v: string): Date {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(:\d{2})?$/.exec(v.trim())
+  if (m) return new Date(`${m[1]}T${m[2]}${m[3] ?? ':00'}+09:00`)
+  return new Date(v)
+}
+
 /** 두 ISO date 의 일수 차이 (a - b). DST 없으므로 단순 차이. */
 export function diffDaysKst(a: string, b: string): number {
   const dA = new Date(a + 'T00:00:00Z').getTime()

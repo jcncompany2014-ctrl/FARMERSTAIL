@@ -14,9 +14,13 @@ type ApprovedBox = {
   subscriptionId: string
   total: number
   itemRows: SubscriptionItemRow[]
+  /** 구독의 다음 발송일 — 승인된 처방은 이 박스부터(newFormulaAppliedFrom). */
+  nextDeliveryDate: string | null
 }
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { quoteBox } from '@/lib/subscription/boxQuote'
+import { CYCLE_COVER_DAYS, newFormulaAppliedFrom } from '@/lib/personalization/cycle'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -144,10 +148,8 @@ export async function POST(req: Request) {
   }
 
   const now = new Date()
-  const today = now.toISOString().slice(0, 10)
-  const plus28 = new Date(now.getTime() + 28 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10)
+  // KST — 예전 toISOString() 은 UTC 날짜라 수요일 00~09시 승인이 화요일로 찍혔다(2026-09-26).
+  const today = todayKstIsoDate()
 
   if (decision === 'approve') {
     // 금액을 **먼저** 계산한다 — 처방만 승인되고 금액 갱신이 실패하면
@@ -225,8 +227,14 @@ export async function POST(req: Request) {
       .update({
         approval_status: 'approved',
         approved_at: now.toISOString(),
-        applied_from: today,
-        applied_until: plus28,
+        // ★다음 박스부터(cycle.ts 정본). '오늘'이면 박스 3 발송일 당일 승인이 이미 옛 금액으로
+        //   결제된 그날 박스를 새 처방으로 포장시켰다(피킹은 applied_from ≤ 발송일만 고른다).
+        //   커버 기간도 크론과 같은 CYCLE_COVER_DAYS(예전 28 은 크론 42 와 갈라져 있었다).
+        applied_from: newFormulaAppliedFrom(today, box?.nextDeliveryDate),
+        applied_until: addDaysKst(
+          newFormulaAppliedFrom(today, box?.nextDeliveryDate),
+          CYCLE_COVER_DAYS,
+        ),
       })
       .eq('id', pending.id)
       .eq('approval_status', 'pending_approval')
@@ -471,5 +479,6 @@ async function boxForApproved(
     subscriptionId: sub.id,
     total: quote.total,
     itemRows: quote.itemRows,
+    nextDeliveryDate: (subRow as unknown as { next_delivery_date: string | null }).next_delivery_date ?? null,
   }
 }

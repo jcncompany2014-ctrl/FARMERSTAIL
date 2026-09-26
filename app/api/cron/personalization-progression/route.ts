@@ -28,6 +28,7 @@ import {
   MIN_DAYS_BEFORE_DUE,
   PRICE_CHANGE_WINDOW_DAYS,
   isCycleDue,
+  newFormulaAppliedFrom,
 } from '@/lib/personalization/cycle'
 import { getAutomationSettings } from '@/lib/automation-settings'
 
@@ -212,7 +213,13 @@ export async function GET(req: Request) {
   /** dog_id → 구독 정보 (배송 회차 카운트 + 금액 재산정용). active 구독만. */
   const billingByDog = new Map<
     string,
-    { subId: string; freshRatio: number | null; currentTotal: number }
+    {
+      subId: string
+      freshRatio: number | null
+      currentTotal: number
+      /** 새 처방 적용 시작점(= 다음 박스) — newFormulaAppliedFrom 이 쓴다. */
+      nextDeliveryDate: string | null
+    }
   >()
   if (allDogIds.length > 0) {
     const { data: subs, error: subsErr } = await supabase
@@ -239,6 +246,7 @@ export async function GET(req: Request) {
         dog_id: string | null
         fresh_ratio: number | null
         total_amount: number
+        next_delivery_date: string | null
       }
     >) {
       if (s.dog_id && subscriptionState(s) === 'active') {
@@ -247,6 +255,7 @@ export async function GET(req: Request) {
           subId: s.id,
           freshRatio: s.fresh_ratio,
           currentTotal: s.total_amount,
+          nextDeliveryDate: s.next_delivery_date,
         })
       }
     }
@@ -784,10 +793,15 @@ export async function GET(req: Request) {
       // 배송에서 처방을 못 찾는 **공백**이 안 생긴다.
       // (이전 CYCLE_DAYS=30 은 3번째 박스가 나가는 날[28일]에서 이틀 뒤 끝나
       //  승인이 늦으면 그 구간에 활성 처방이 없는 공백이 났다.)
-      const appliedFrom = requiresApproval ? null : today
+      // ★시작점은 '오늘'이 아니라 **다음 박스**(newFormulaAppliedFrom — cycle.ts 정본).
+      //   오늘(박스 3 발송일) 09:10 에 옛 처방·옛 금액으로 결제된 박스가 10:10 이후
+      //   피킹에서 새 처방으로 포장되고, 카운트가 그 박스를 새 회차 1번째로 셌다
+      //   (2026-09-26 출시 전 점검 6차). 피킹은 applied_from ≤ 발송일인 처방만 고른다.
+      const startsOn = newFormulaAppliedFrom(today, billing?.nextDeliveryDate)
+      const appliedFrom = requiresApproval ? null : startsOn
       const appliedUntil = requiresApproval
         ? null
-        : addDaysIso(today, CYCLE_COVER_DAYS)
+        : addDaysIso(startsOn, CYCLE_COVER_DAYS)
       const approvalStatus = requiresApproval ? 'pending_approval' : 'auto_applied'
       const proposedAt = requiresApproval ? new Date().toISOString() : null
       const approvedAt = requiresApproval ? null : new Date().toISOString()

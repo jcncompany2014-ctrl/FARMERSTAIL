@@ -5,6 +5,8 @@ import { trackCron } from '@/lib/cron-tracking'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
 import { petName } from '@/lib/korean'
+import { deriveAgeFromBirth } from '@/lib/dog-age'
+import { nowKstMs, todayKstIsoDate } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,14 +24,16 @@ export const dynamic = 'force-dynamic'
  * # 처리 규칙
  *  - birth_date 가 NULL → 건드리지 않음 (수동 입력만 신뢰).
  *  - birth_date 미래 → 잘못된 데이터 — 무시.
- *  - age 1세 미만 → unit='months', value = 개월 수.
- *  - age 1세 이상 → unit='years', value = 만 나이 (정수 floor).
+ *  - 나이는 정본 deriveAgeFromBirth(달력 기준, KST 오늘) — 가입·수정 화면과 같은 값.
+ *    ★예전엔 days/365.25 내림이라 두 번째 생일(730.4일/365.25=1.9997)에
+ *    "1살이 됐어요" 푸시가 갔다(2026-09-26 출시 전 점검 6차).
+ *  - 1000마리 넘으면 페이지로 끝까지 읽는다(예전엔 limit 1000·정렬 없음 → 넘친 강아지는 영영 안 셈).
  *
  * # 보안
  * CRON_SECRET bearer.
  */
 
-const MAX_PER_RUN = 1000
+const PAGE = 1000
 
 export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
@@ -42,17 +46,6 @@ export async function GET(req: Request) {
   return trackCron('dog-age-update', async () => {
     const supabase = createAdminClient()
 
-  // birth_date 가 있는 dogs.
-  const { data: dogs, error } = await supabase
-    .from('dogs')
-    .select('id, user_id, name, birth_date, age_value, age_unit')
-    .not('birth_date', 'is', null)
-    .limit(MAX_PER_RUN)
-
-  if (error) {
-    return dbError(error, 'cron_dog_age_update', '강아지 나이 업데이트 실패')
-  }
-
   type DogRow = {
     id: string
     user_id: string
@@ -61,50 +54,52 @@ export async function GET(req: Request) {
     age_value: number | null
     age_unit: string | null
   }
-  const list = (dogs ?? []) as DogRow[]
+  // birth_date 가 있는 dogs — id 순 페이지로 끝까지.
+  const list: DogRow[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data: dogs, error } = await supabase
+      .from('dogs')
+      .select('id, user_id, name, birth_date, age_value, age_unit')
+      .not('birth_date', 'is', null)
+      .order('id', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) {
+      return dbError(error, 'cron_dog_age_update', '강아지 나이 업데이트 실패')
+    }
+    list.push(...((dogs ?? []) as DogRow[]))
+    if ((dogs ?? []).length < PAGE) break
+  }
 
   let updated = 0
   let unchanged = 0
   let invalid = 0
   let birthdays = 0
+  let failed = 0
 
-  // KST today (month, day).
-  const todayKst = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }),
-  )
-  const todayMonth = todayKst.getMonth() + 1
-  const todayDay = todayKst.getDate()
+  // KST 오늘 (month, day). deriveAgeFromBirth 는 UTC getter 라 KST 로 민 ms 를 넘긴다.
+  const todayIso = todayKstIsoDate()
+  const [, todayMonthStr, todayDayStr] = todayIso.split('-')
+  const todayMonth = Number(todayMonthStr)
+  const todayDay = Number(todayDayStr)
+  const kstNow = nowKstMs()
 
   for (const dog of list) {
-    const birth = new Date(dog.birth_date + 'T00:00:00+09:00')
-    if (Number.isNaN(birth.getTime())) {
+    const birthIso = dog.birth_date.slice(0, 10)
+    const age = deriveAgeFromBirth(birthIso, kstNow)
+    if (!age || !/^\d{4}-\d{2}-\d{2}$/.test(birthIso) || birthIso > todayIso) {
       invalid += 1
       continue
     }
-    if (birth.getTime() > Date.now()) {
-      invalid += 1
-      continue
-    }
-
-    const ms = Date.now() - birth.getTime()
-    const days = ms / (24 * 60 * 60 * 1000)
-    const years = days / 365.25
-    let nextValue: number
-    let nextUnit: 'months' | 'years'
-    if (years < 1) {
-      nextValue = Math.max(1, Math.floor(days / 30))
-      nextUnit = 'months'
-    } else {
-      nextValue = Math.floor(years)
-      nextUnit = 'years'
-    }
+    const nextValue = age.value
+    const nextUnit = age.unit
 
     if (dog.age_value !== nextValue || dog.age_unit !== nextUnit) {
-      await supabase
+      const { error: upErr } = await supabase
         .from('dogs')
         .update({ age_value: nextValue, age_unit: nextUnit })
         .eq('id', dog.id)
-      updated += 1
+      if (upErr) failed += 1
+      else updated += 1
     } else {
       unchanged += 1
     }
@@ -121,7 +116,7 @@ export async function GET(req: Request) {
     if (
       birthMonth === todayMonth &&
       birthDay === todayDay &&
-      years >= 0.083 // 약 1개월 이상 — 너무 어린 강아지 첫 입력 직후 생일 알림 회피
+      nextUnit === 'years' // 월·일이 같으면 만 1살 이상 — 오늘 태어난 강아지(0개월)는 빼고
     ) {
       // ★await 필수 (2026-08-08 크론 감사). fire-and-forget 이면 라우트가
       //  응답한 뒤 Vercel 이 람다를 얼려 **발송과 push_log 기록이 유실**되고
@@ -144,6 +139,7 @@ export async function GET(req: Request) {
       updated,
       unchanged,
       invalid,
+      failed,
       birthdays,
     })
   })

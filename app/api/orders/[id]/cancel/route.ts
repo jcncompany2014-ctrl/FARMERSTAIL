@@ -241,6 +241,10 @@ export async function POST(
     .eq('id', order.id)
     .eq('user_id', user.id)
     .eq('payment_status', order.payment_status)
+    // ★아직 취소 가능한 상태일 때만(2026-09-26 출시 전 점검 6차). 토스 환불(최대 15초)
+    //   사이에 사장님이 송장을 넣어 '배송중'이 되면, 예전엔 그걸 '취소'로 덮어 배송 추적이
+    //   끊기고 박스가 나간 줄 아무도 몰랐다. 0행이면 아래에서 사람에게 올린다.
+    .in('order_status', ['pending', 'preparing'])
     .select('id')
 
   if (cancelErr) {
@@ -266,7 +270,61 @@ export async function POST(
   }
 
   if (!cancelRows || cancelRows.length === 0) {
-    // 다른 요청 (더블클릭 두 번째 / admin cancel / cron expire) 이 이미 처리.
+    /**
+     * 다른 요청(더블클릭 두 번째 / admin cancel / cron expire)이 이미 처리했거나,
+     * **환불 도중 사장님이 발송 처리**한 경우다. 앞의 경우는 먼저 끝난 요청이 원장을
+     * 적었다. 뒤의 경우는 돈은 돌아갔는데 원장·주문 어디에도 안 남는다 — 원장에 환불이
+     * 없으면 여기서 적고 사람에게 올린다(박스를 회수할지 사장님 판단).
+     */
+    if (refundAmount > 0) {
+      const { data: priorRefunds, error: priorErr } = await (
+        admin.from('payment_events' as never) as unknown as {
+          select: (c: string) => {
+            eq: (k: string, v: string) => {
+              lt: (k: string, v: number) => Promise<{
+                data: Array<{ amount: number | null }> | null
+                error: { message: string } | null
+              }>
+            }
+          }
+        }
+      )
+        .select('amount')
+        .eq('order_id', order.id)
+        .lt('amount', 0)
+      const already = -(priorRefunds ?? []).reduce((sum, e) => sum + (e.amount ?? 0), 0)
+      if (priorErr || already < refundAmount) {
+        const { recordPaymentEvent } = await import('@/lib/payment-events')
+        if (!priorErr) {
+          await recordPaymentEvent(admin, {
+            orderId: order.id,
+            paymentKey: order.payment_key ?? null,
+            eventType: 'refunded',
+            amount: -refundAmount,
+            prevStatus: order.payment_status,
+            newStatus: 'cancelled',
+            source: 'user_cancel',
+            actorUserId: user.id,
+            metadata: { reason: body.reason || '고객 요청', note: 'refunded_but_order_state_changed' },
+          })
+        }
+        captureBusinessEvent('error', 'order.cancel.refunded_but_state_changed', {
+          orderId: order.id,
+          userId: user.id,
+          refundAmount,
+          ledgerLookupFailed: Boolean(priorErr),
+          note: '토스 환불은 됐는데 그 사이 주문 상태가 바뀜(발송 처리 등) — 박스·주문 상태 수동 확인',
+        })
+        return NextResponse.json(
+          {
+            code: 'CANCEL_NEEDS_CS',
+            message:
+              '결제는 취소됐어요. 다만 박스가 막 출발 처리돼 고객센터에서 확인 후 연락드릴게요.',
+          },
+          { status: 409 },
+        )
+      }
+    }
     return NextResponse.json(
       {
         code: 'ALREADY_PROCESSED',

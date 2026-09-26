@@ -721,8 +721,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:96',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동 · 2026-09-25 구조분해 두 줄(환불 최종실패·크론 실패) 추가로 96 이동, 넷 다 같은 집계임을 재확인함)",
+      at: 'app/api/cron/daily-briefing/route.ts:97',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동 · 2026-09-25 구조분해 두 줄(환불 최종실패·크론 실패) 추가로 96 이동 · 2026-09-26 규모 경보 import 한 줄로 97 이동, 다섯 다 같은 집계임을 재확인함)",
     },
   ]
 
@@ -4577,4 +4577,109 @@ test('규칙116: 어드민 숫자는 실제와 맞는다 — 환불 대기·CSV 
   assert.ok(!/update\(\{ read_at:/.test(thread), "문의 스레드를 열기만 해도 '답 안 한 문의'에서 빠진다")
   const promo = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'promotions', 'route.ts')))
   assert.ok((promo.match(/recordAdminAction\(/g) ?? []).length >= 2, '프로모션 생성·수정(할인율)이 감사 기록을 남기지 않는다')
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-26 출시 전 점검 6차 — 규칙117~
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙117: 어드민 화면이 브라우저에서 직접 쓰는 표는 DB 감사 트리거가 기록한다 (새 화면이 새 표를 쓰면 빨간불)', () => {
+  /**
+   * 구독 상태·상품 가격/재고·추천 알고리즘·자동화 스위치를 어드민 화면이 브라우저 클라이언트로 바로 써서
+   * recordAdminAction 이 한 번도 불리지 않았다(5차 I4). 화면을 서버 라우트로 옮기는 대신
+   * audit_admin_row_change 트리거(20260926100000)가 관리자 요청만 골라 admin_audit_log 에 남긴다.
+   * 트리거 목록은 마이그레이션에서 읽는다 — 코드와 DB 가 같은 목록을 본다.
+   * 콘텐츠 표(FAQ·파트너·블로그)는 돈·운영과 무관해 감사 대상에서 뺐다.
+   */
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260926100000_admin_change_audit_triggers.sql'))
+  const audited = new Set([...mig.matchAll(/create trigger audit_admin_change [^;]*? on public\.(\w+)/g)].map((m) => m[1]!))
+  assert.ok(audited.has('subscriptions') && audited.has('products'), '감사 트리거 목록을 읽지 못했다')
+  assert.ok(mig.includes("- 'billing_key' - 'billing_customer_key'"), '감사 기록에 결제 키 칸이 실린다')
+  assert.ok(/if v_uid is null then\s+return null;/.test(mig), '크론·서버 요청까지 is_admin 조회를 한다(청구 크론 행마다)')
+  const CONTENT_ONLY = new Set(['faqs', 'partners', 'blog_posts', 'blog_categories'])
+  const dirs = [join(ROOT, 'app', 'admin'), join(ROOT, 'components', 'admin'), join(ROOT, 'components', 'adminui')]
+  const unaudited: string[] = []
+  for (const d of dirs) {
+    for (const f of walk(d)) {
+      const src = read(f)
+      if (!/^\s*['"]use client['"]/.test(src)) continue
+      const b = stripComments(src)
+      const froms = [...b.matchAll(/\.from\('(\w+)'\)/g)]
+      froms.forEach((m, i) => {
+        const end = i + 1 < froms.length ? froms[i + 1]!.index! : b.length
+        const seg = b.slice(m.index!, Math.min(end, m.index! + 400))
+        if (!/\.(update|insert|delete|upsert)\(/.test(seg)) return
+        const t = m[1]!
+        if (!audited.has(t) && !CONTENT_ONLY.has(t)) unaudited.push(`${rel(f)} → ${t}`)
+      })
+    }
+  }
+  assert.deepEqual(unaudited, [], `감사 트리거 없는 표를 어드민 화면이 직접 쓴다 — 트리거를 추가하거나 서버 라우트+recordAdminAction 으로:\n${unaudited.join('\n')}`)
+})
+
+test('규칙118: 사람이 KST 로 적은 날짜·시각은 KST 로 읽는다 — 프로모션 기간 · 생일 나이 · 생일 D-day', () => {
+  // ① 프로모션 datetime-local(오프셋 없음)을 서버(UTC)가 new Date 로 읽어 9시간 늦게 열고 닫았다(purin2024 실측).
+  const promo = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'promotions', 'route.ts')))
+  assert.ok(!/new Date\(body\.(startsAt|endsAt)\)/.test(promo), '프로모션 기간을 서버 로컬(UTC)로 읽는다')
+  assert.ok(promo.includes('parseKstLocalDateTime(body.startsAt)') && promo.includes('parseKstLocalDateTime(body.endsAt)'), '프로모션 기간 파싱이 KST 헬퍼를 안 쓴다')
+  const promoUi = stripComments(read(join(ROOT, 'app', 'admin', 'promotions', 'PromotionsClient.tsx')))
+  assert.ok(/timeZone: 'Asia\/Seoul'/.test(promoUi), '프로모션 기간 표시가 브라우저 시간대를 따른다')
+  // ② 생일 나이는 정본(달력 기준) — days/365.25 내림은 두 번째 생일에 "1살"이라 했다.
+  const age = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'dog-age-update', 'route.ts')))
+  assert.ok(age.includes('deriveAgeFromBirth(') && !/365\.25/.test(age), '생일 나이를 365.25 나눗셈으로 센다')
+  assert.ok(/\.range\(from, from \+ PAGE - 1\)/.test(age), '강아지 1,000마리 넘으면 뒤쪽은 나이·생일 알림이 영영 안 간다')
+  // ③ AI 코멘트의 생일 D-day 는 KST 로 민 시각으로.
+  const st = stripComments(read(join(ROOT, 'app', 'api', 'analysis', 'structured', 'route.ts')))
+  assert.ok(/birthdayInfo\(dog\.birth_date \?\? null, nowKstMs\(\)\)/.test(st), '생일 D-day 를 UTC 날짜로 센다(KST 00~09시 하루 틀림)')
+})
+
+test('규칙119: 새 처방은 다음 박스부터 — 그날 결제된 박스는 옛 처방으로 포장 · 카운트·체크인·카드도 같은 기준', () => {
+  /**
+   * 박스 3 발송일 10:10 크론·당일 승인이 applied_from=오늘로 넣어, 이미 옛 처방·옛 금액으로
+   * 결제된 그날 박스가 피킹에서 새 처방으로 나왔고, 카운트가 그 박스를 새 회차 1번째로 셌다.
+   */
+  const cyc = read(join(ROOT, 'lib', 'personalization', 'cycle.ts'))
+  assert.ok(cyc.includes('export function newFormulaAppliedFrom('), '새 처방 시작점 정본이 없다')
+  const prog = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'personalization-progression', 'route.ts')))
+  assert.ok(prog.includes('newFormulaAppliedFrom(today, billing?.nextDeliveryDate)'), '재제안 크론이 새 처방을 오늘부터 적용한다')
+  assert.ok(!/requiresApproval \? null : today\b/.test(prog), '재제안 크론에 applied_from=today 가 남아 있다')
+  const ap = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'approve', 'route.ts')))
+  assert.ok(ap.includes('newFormulaAppliedFrom(today, box?.nextDeliveryDate)'), '승인이 새 처방을 오늘부터 적용한다')
+  assert.ok(!/const today = now\.toISOString\(\)\.slice\(0, 10\)/.test(ap), '승인 날짜가 UTC 다(수요일 새벽 승인이 화요일로 찍힌다)')
+  const pick = stripComments(read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')))
+  assert.ok(/f\.applied_from && f\.applied_from\.slice\(0, 10\) > shipDate\) continue/.test(pick), '피킹이 아직 시작 전인 처방으로 오늘 박스를 싼다')
+  assert.ok(/if \(formulasErr \|\| dogsErr\)/.test(pick), '처방 조회 실패를 "처방 없음"으로 접어 빈 팩을 싼다')
+  const card = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', '_components', 'CurrentFormulaCard.tsx')))
+  assert.ok(!/setHours\(0, 0, 0, 0\)/.test(card) && card.includes('diffDaysKst('), '처방 카드가 기기 자정과 UTC 날짜를 섞는다')
+  assert.ok(!card.includes('다음 박스 D-') && !/cycle_number\}번째 박스/.test(card), '처방 카드가 회차를 박스 번호로·종료일을 다음 박스로 말한다')
+})
+
+test('규칙120: 환불은 한 번만 적는다 — 큐 재시도·즉시환불 실패·고객 취소가 다른 경로의 환불·발송을 덮지 않는다', () => {
+  const rr = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'refund-retry', 'route.ts')))
+  const settle = rr.slice(rr.indexOf('async function settleRefunded('))
+  assert.ok(/\.lt\('amount', 0\)/.test(settle) && settle.includes('ledgerAlreadyCovers'), '환불 큐 마무리가 이미 적힌 환불을 안 보고 원장에 또 적는다')
+  assert.ok(/\.not\('payment_status', 'in', '\("cancelled","refunded"\)'\)/.test(settle), "환불 큐 마무리가 'refunded' 주문을 'cancelled' 로 덮는다")
+  const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(/payment_status: 'paid',\s*payment_key: result\.paymentKey,\s*paid_at: successIso,\s*\}\)\s*\.eq\('id', orderRow\.id\)\s*\.eq\('payment_status', 'pending'\)/.test(ch), "즉시환불 실패 분기가 웹훅이 쓴 'cancelled' 를 'paid' 로 되돌린다")
+  const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
+  assert.ok(/\.in\('order_status', \['pending', 'preparing'\]\)/.test(cancel), '고객 취소가 그 사이 발송된 주문을 취소로 덮는다')
+  assert.ok(cancel.includes('order.cancel.refunded_but_state_changed'), '환불은 됐는데 상태가 바뀐 취소를 "이미 처리됨"으로 조용히 끝낸다')
+})
+
+test('규칙121: 건너뛰기는 청구와 겨루지 않는다 — 청구 선점·고객 건너뛰기 모두 본 날짜 그대로일 때만', () => {
+  const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(/\.eq\('status', 'active'\)\s*\.eq\('next_delivery_date', sub\.next_delivery_date\)\s*\.select\('id'\)/.test(ch), '청구 선점이 status 만 봐서 방금 미룬 박스도 결제한다')
+  const app = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.ok(app.includes("q.eq('next_delivery_date', seen)") && app.includes('moveNextDate(sub.id,'), '앱 건너뛰기가 화면이 본 날짜를 확인하지 않는다')
+  const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
+  assert.ok(web.includes("q.eq('next_delivery_date', seenNext)"), '웹 건너뛰기가 화면이 본 날짜를 확인하지 않는다')
+  assert.ok(/timeZone: 'Asia\/Seoul',\s*month: 'long'/.test(web), '웹 발송일 표시가 기기 시간대를 따른다(해외에서 월요일로)')
+})
+
+test('규칙122: 처리 한도는 조용히 넘치지 않는다 — 청구 크론 밀림 경보 · 아침 브리핑 규모 경보', () => {
+  const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(ch.includes('TIME_BUDGET_MS') && ch.includes("'subscription.charge.backlog'"), '청구 크론이 다 못 처리한 구독을 알리지 않는다(박스가 한 주 밀린다)')
+  assert.ok(/\.order\('next_delivery_date', \{ ascending: true \}\)\s*\.order\('id'/.test(ch), '청구 대상 정렬이 없어 상한에 걸리면 임의로 잘린다')
+  const br = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
+  assert.ok(br.includes('scaleWarnings('), '아침 브리핑이 처리 한도 접근을 알리지 않는다')
 })

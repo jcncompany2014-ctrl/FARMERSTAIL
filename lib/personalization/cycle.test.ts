@@ -14,6 +14,7 @@ import {
   isCheckinLinkVisible,
   CHECKIN_WINDOW_BEFORE,
   CHECKIN_WINDOW_AFTER,
+  newFormulaAppliedFrom,
 } from './cycle.ts'
 
 describe('isCycleDue — 배송 회차 만기 판정', () => {
@@ -78,5 +79,28 @@ describe('isCheckinLinkVisible — 노출 창', () => {
   it('요청 후 최대 CHECKIN_WINDOW_AFTER 일까지 보인다(지각 응답 허용)', () => {
     assert.equal(isCheckinLinkVisible(-CHECKIN_WINDOW_AFTER), true)
     assert.equal(isCheckinLinkVisible(-CHECKIN_WINDOW_AFTER - 1), false)
+  })
+})
+
+describe('newFormulaAppliedFrom — 새 처방은 다음 박스부터 (그날 결제된 박스는 옛 처방)', () => {
+  it('박스 3 발송일(화) 10:10 크론 — 청구 뒤라 다음 발송일은 +14 → 그날부터', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-13', '2026-10-27'), '2026-10-27')
+  })
+  it('박스 4 발송일 아침(청구 전) 승인 — 다음 발송일이 오늘 → 오늘 박스부터', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-27', '2026-10-27'), '2026-10-27')
+  })
+  it('다음 발송일 없음(구독 없음·일시정지) → 오늘', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-13', null), '2026-10-13')
+    assert.equal(newFormulaAppliedFrom('2026-10-13', undefined), '2026-10-13')
+  })
+  it('밀린 발송일(과거) → 오늘 · timestamp 문자열도 날짜로', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-15', '2026-10-13'), '2026-10-15')
+    assert.equal(newFormulaAppliedFrom('2026-10-13', '2026-10-27T00:00:00+09:00'), '2026-10-27')
+  })
+  it('박스 N = applied_from + (N-1)×14 — 체크인이 새 처방의 2·3번째 박스에 물린다', () => {
+    const from = newFormulaAppliedFrom('2026-10-13', '2026-10-27')
+    const at = (d: number) => new Date(Date.parse(from + 'T00:00:00Z') + d * 86_400_000).toISOString().slice(0, 10)
+    assert.equal(at(checkinDueDayOffset('week_2')), '2026-11-10')
+    assert.equal(at(checkinDueDayOffset('week_4')), '2026-11-24')
   })
 })

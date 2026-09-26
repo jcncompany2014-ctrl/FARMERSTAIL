@@ -101,3 +101,25 @@ export const CHECKIN_WINDOW_AFTER = 3
 export function isCheckinLinkVisible(dueIn: number): boolean {
   return dueIn >= -CHECKIN_WINDOW_AFTER && dueIn <= CHECKIN_WINDOW_BEFORE
 }
+
+/**
+ * 새 처방(회차 2+)의 applied_from = **새 처방이 처음 담기는 박스의 발송일** — 정본.
+ *
+ * 위 모델대로 박스 3 이 나갈 때 제안하고 **박스 4 부터** 새 처방이다. 그래서 '오늘'이
+ * 아니라 구독의 다음 발송일(next_delivery_date)이다. 예전엔 '오늘'(= 박스 3 발송일,
+ * 10:10 크론·당일 승인)이라 ① 이미 옛 처방·옛 금액으로 결제된 그날 박스가 피킹에서
+ * 새 처방으로 포장됐고 ② 박스 카운트가 그 박스를 새 회차 1번째로 세어 재제안·체크인이
+ * 한 박스 일찍 왔다(2026-09-26 출시 전 점검 6차). checkinDueDayOffset 의
+ * "박스 N = applied_from + (N-1)×14" 도 이 정의를 전제로 한다.
+ *
+ * 다음 발송일이 없으면(구독 없음·일시정지) 오늘, 이미 지난 날짜면(밀린 청구) 오늘.
+ * 모두 KST yyyy-mm-dd 문자열 — 사전순 비교가 날짜순이다.
+ */
+export function newFormulaAppliedFrom(
+  todayKst: string,
+  nextDeliveryDate: string | null | undefined,
+): string {
+  const next = nextDeliveryDate ? nextDeliveryDate.slice(0, 10) : null
+  if (!next || !/^\d{4}-\d{2}-\d{2}$/.test(next)) return todayKst
+  return next > todayKst ? next : todayKst
+}

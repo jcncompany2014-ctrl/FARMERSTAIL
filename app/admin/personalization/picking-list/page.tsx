@@ -56,6 +56,7 @@ type FormulaRow = {
   transition_strategy: string | null
   user_adjusted: boolean
   approval_status: string | null
+  applied_from: string | null
 }
 
 type SubRow = {
@@ -355,20 +356,20 @@ export default async function PickingListPage({
     ...Object.values(TOPPER_TO_SLUG),
   ]
   const [
-    { data: dogsRaw },
-    { data: formulasRaw },
+    { data: dogsRaw, error: dogsErr },
+    { data: formulasRaw, error: formulasErr },
     { data: prodRaw },
     { data: prodAllRaw },
   ] = await Promise.all([
       dogIds.length
         ? supabase.from('dogs').select('id, name').in('id', dogIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }> }),
+        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
       dogIds.length
         ? supabase
             .from('dog_formulas')
             .select(
               'id, dog_id, cycle_number, formula, daily_kcal, ' +
-                'transition_strategy, user_adjusted, approval_status',
+                'transition_strategy, user_adjusted, approval_status, applied_from',
             )
             .in('dog_id', dogIds)
             // ★처방 정렬은 created_at — cycle_number 가 아니다 (2026-07-30 최종감사).
@@ -377,7 +378,7 @@ export default async function PickingListPage({
             // 다른 처방을 집어 "청구한 금액과 담는 박스가 다른 처방" 이 된다 —
             // 사장님이 과거 지적한 "닭으로 추천받았는데 오리랑 소를 받아" 와 같은 부류.
             .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] as unknown[] }),
+        : Promise.resolve({ data: [] as unknown[], error: null }),
       supabase
         .from('products')
         .select('slug, name, price, sale_price, stock, is_subscribable')
@@ -404,6 +405,14 @@ export default async function PickingListPage({
         .in('slug', allSlugs),
     ])
 
+  // ★처방·강아지 조회 실패를 '처방 없음'·'(강아지 미상)'으로 접지 않는다(규칙1) —
+  //   팩 구성이 빈칸인 채 포장되는 것보다 화면이 멈추는 게 낫다(2026-09-26 출시 전 점검 6차).
+  if (formulasErr || dogsErr) {
+    throw new Error(
+      `처방·강아지 조회 실패 — 팩 구성을 신뢰할 수 없어요: ${(formulasErr ?? dogsErr)!.message}`,
+    )
+  }
+
   const dogNames: Record<string, string> = {}
   for (const d of (dogsRaw ?? []) as Array<{ id: string; name: string }>) {
     dogNames[d.id] = d.name
@@ -417,6 +426,11 @@ export default async function PickingListPage({
   for (const f of ((formulasRaw ?? []) as unknown) as FormulaRow[]) {
     if (f.approval_status === 'pending_approval' || f.approval_status === 'declined')
       continue
+    // ★아직 시작 전인 처방은 이 발송일 박스에 담지 않는다 (2026-09-26 출시 전 점검 6차).
+    //   새 처방은 다음 박스부터(applied_from = 다음 발송일, cycle.ts newFormulaAppliedFrom).
+    //   예전엔 최신 처방을 그냥 골라, 박스 3 발송일 10:10 크론·당일 승인 뒤에 이 화면을 열면
+    //   이미 옛 처방·옛 금액으로 결제된 그날 박스가 새 처방으로 나왔다.
+    if (f.applied_from && f.applied_from.slice(0, 10) > shipDate) continue
     if (!formulaByDog[f.dog_id]) formulaByDog[f.dog_id] = f
   }
 

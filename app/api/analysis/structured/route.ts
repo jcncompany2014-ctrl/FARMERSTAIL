@@ -17,6 +17,7 @@ import {
 } from '@/lib/anthropic-usage'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { nowKstMs } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -224,7 +225,9 @@ export async function POST(req: Request) {
             86_400_000,
         )
       : null
-  const bday = birthdayInfo(dog.birth_date ?? null, Date.now())
+  // KST 로 민 ms — birthdayInfo 는 UTC getter 라 Date.now() 면 KST 00~09시 코멘트가 생일을 하루 틀렸다
+  // (한 번 만든 코멘트는 캐시돼 고정된다 — 2026-09-26 출시 전 점검 6차).
+  const bday = birthdayInfo(dog.birth_date ?? null, nowKstMs())
 
   // 4) Anthropic 호출
   const apiKey = process.env.ANTHROPIC_API_KEY

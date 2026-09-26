@@ -133,6 +133,42 @@ export default function DogSubscriptionClient({
     return user.id
   }
 
+  /**
+   * 건너뛰기 전용 — 화면이 본 발송일이 DB 에서도 그대로일 때만 옮긴다(2026-09-26 출시 전 점검 6차).
+   * 화면을 열어 둔 사이 09:10 청구가 그 박스를 결제하고 날짜를 +14 로 옮기면, 옛 날짜 기준
+   * 계산이 사실상 같은 날짜를 다시 써서 "미뤘어요"라고 말하는데 박스는 결제·발송됐다.
+   * 'stale' 이면 최신 일정을 다시 불러온다.
+   */
+  async function moveNextDate(
+    subId: string,
+    seen: string | null,
+    next: string,
+  ): Promise<'ok' | 'stale' | 'error'> {
+    const u = await uid()
+    if (!u) return 'error'
+    const q = supabase
+      .from('subscriptions')
+      .update({ next_delivery_date: next })
+      .eq('id', subId)
+      .eq('user_id', u)
+    const { data, error } = await (
+      seen ? q.eq('next_delivery_date', seen) : q.is('next_delivery_date', null)
+    ).select('id')
+    if (error) {
+      toast.error('변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+      return 'error'
+    }
+    if (!data || data.length === 0) {
+      toast.info('배송 일정이 방금 바뀌었어요 — 최신 일정을 불러왔어요. 확인 후 다시 눌러 주세요.')
+      router.refresh()
+      return 'stale'
+    }
+    setSubs((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, next_delivery_date: next } : s)),
+    )
+    return 'ok'
+  }
+
   async function patch(subId: string, update: Record<string, unknown>) {
     const u = await uid()
     if (!u) return false
@@ -177,7 +213,7 @@ export default function DogSubscriptionClient({
     // 목요일 배송일 같은 게 생겼다(2026-07-15 실측).
     const base = sub.next_delivery_date ?? nextShipDate()
     const next = nextCycleDate(base)
-    if (await patch(sub.id, { next_delivery_date: next })) {
+    if ((await moveNextDate(sub.id, sub.next_delivery_date ?? null, next)) === 'ok') {
       toast.success(`다음 배송을 ${dateLabel(next)}로 미뤘어요.`)
     }
     setBusy(null)

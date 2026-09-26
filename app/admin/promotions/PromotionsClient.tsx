@@ -30,7 +30,9 @@ export type PromoWithStat = {
 }
 
 function fmt(iso: string) {
+  // KST 고정 — 입력(KST)과 같은 시각을 보여 준다(브라우저 시간대에 기대지 않는다).
   return new Date(iso).toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',

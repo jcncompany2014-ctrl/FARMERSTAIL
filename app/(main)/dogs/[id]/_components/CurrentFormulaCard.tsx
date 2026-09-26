@@ -6,6 +6,7 @@ import {
   isCheckinLinkVisible,
 } from '@/lib/personalization/cycle'
 import { recipeName } from '@/lib/personalization/format'
+import { todayKstIsoDate, diffDaysKst, addDaysKst } from '@/lib/datetime-kst'
 import type { Formula } from '@/lib/personalization/types'
 
 /**
@@ -26,25 +27,15 @@ export default function CurrentFormulaCard({
   checkinStatus: CheckinStatus
   dogId: string
 }) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  // 적용 일자 D-day 계산
-  const appliedFrom = formula.applied_from
-    ? new Date(formula.applied_from)
-    : null
-  const appliedUntil = formula.applied_until
-    ? new Date(formula.applied_until)
-    : null
-  const daysIntoCycle = appliedFrom
-    ? Math.floor(
-        (today.getTime() - appliedFrom.getTime()) / (1000 * 60 * 60 * 24),
-      )
-    : null
-  const daysToEnd = appliedUntil
-    ? Math.ceil(
-        (appliedUntil.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-      )
+  // ★날짜는 전부 KST 문자열로 센다 (2026-09-26 출시 전 점검 6차). 예전엔 기기 로컬 자정과
+  //   'YYYY-MM-DD'(UTC 자정)를 섞어 KST 기기에서 첫날 '-1일째'·체크인 D-1 어긋남이 났고,
+  //   서버(UTC)와 브라우저가 다른 값을 그렸다.
+  const today = todayKstIsoDate()
+  const appliedFrom = formula.applied_from ? formula.applied_from.slice(0, 10) : null
+  // 0 = 시작일. 음수 = 아직 시작 전(새 식단은 다음 박스부터 — cycle.ts newFormulaAppliedFrom).
+  const daysIntoCycle = appliedFrom ? diffDaysKst(today, appliedFrom) : null
+  const startLabel = appliedFrom
+    ? `${Number(appliedFrom.slice(5, 7))}월 ${Number(appliedFrom.slice(8, 10))}일`
     : null
 
   // 체크인 D-Day = 처방 적용일 + (배송 회차−1)×배송간격. 회차/간격은 정본
@@ -52,10 +43,7 @@ export default function CurrentFormulaCard({
   // 따라 움직인다(예전엔 +14/+28 을 손으로 박아둬 크론과 갈라질 위험이 있었다).
   const dueInFor = (checkpoint: 'week_2' | 'week_4'): number | null => {
     if (!appliedFrom || checkinStatus[checkpoint]) return null
-    const dueMs =
-      appliedFrom.getTime() +
-      checkinDueDayOffset(checkpoint) * 24 * 60 * 60 * 1000
-    return Math.ceil((dueMs - today.getTime()) / (1000 * 60 * 60 * 24))
+    return diffDaysKst(addDaysKst(appliedFrom, checkinDueDayOffset(checkpoint)), today)
   }
   const week2DueIn = dueInFor('week_2')
   const week4DueIn = dueInFor('week_4')
@@ -80,7 +68,8 @@ export default function CurrentFormulaCard({
             <span className="kicker">
               {isPending
                 ? '동의 필요 · 새 박스'
-                : `맞춤 식단 · ${formula.cycle_number}번째 박스`}
+                : // 회차 번호는 박스 번호가 아니다(회차 1개 = 박스 3개) — '번째 식단'.
+                  `맞춤 식단 · ${formula.cycle_number}번째 식단`}
             </span>
             {formula.user_adjusted && (
               <span className="text-[9px] font-bold text-terracotta px-1.5 py-0.5 rounded-full bg-terracotta/10">
@@ -127,13 +116,17 @@ export default function CurrentFormulaCard({
           </Link>
         ) : (
           <div className="space-y-1.5">
-            {daysIntoCycle !== null && daysToEnd !== null && (
+            {/* 예전 '다음 박스 D-N'은 식단 적용 **종료일**(42일 뒤)까지를 셌다 — 실제 다음
+                박스는 정기배송 카드가 보여준다. 여기선 이 식단이 언제 시작하는지만. */}
+            {daysIntoCycle !== null && startLabel !== null && (
               <div className="flex items-center justify-between text-[10.5px] py-1.5 px-3 rounded-lg bg-bg">
                 <span className="text-muted">
-                  {formula.cycle_number}번째 박스 진행
+                  {formula.cycle_number}번째 식단
                 </span>
                 <span className="font-bold text-text">
-                  {daysIntoCycle}일째 · 다음 박스 D-{daysToEnd}
+                  {daysIntoCycle < 0
+                    ? `${startLabel} 박스부터 시작`
+                    : `${startLabel} 시작 · ${daysIntoCycle + 1}일째`}
                 </span>
               </div>
             )}

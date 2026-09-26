@@ -171,17 +171,53 @@ export default function SubscriptionsWebClient({
       setActionLoading(null)
       return
     }
+    // 화면이 본 발송일 — 건너뛰기는 이 값이 DB 에서도 그대로일 때만 쓴다(아래 CAS).
+    const seenNext = weeks
+      ? (subs.find((s) => s.id === subId)?.next_delivery_date ?? null)
+      : null
     const update: Record<string, unknown> = weeks
       ? (() => {
-          const sub = subs.find((s) => s.id === subId)
           // 선택한 주(週)만큼 미루기 — 화요일 보존(주 단위라 요일 불변). 기준이
           // 없으면 다음 화요일부터. weeks 를 nextCycleDate 에 반드시 넘긴다(안 넘기면
           // 항상 2주 폴백). 2026-07-18: 건너뛰기=**2주**로 앱과 통일(사장님) — 이전엔
           // 웹만 4주라 앱(2주)과 달랐고, 박스가 14일치라 4주 미루면 2주 굶었다.
-          const baseIso = sub?.next_delivery_date ?? nextShipDate()
+          const baseIso = seenNext ?? nextShipDate()
           return { next_delivery_date: nextCycleDate(baseIso, weeks) }
         })()
       : { status: 'paused' }
+    /**
+     * ★건너뛰기는 화면이 본 날짜 그대로일 때만 (2026-09-26 출시 전 점검 6차).
+     *   화면을 열어 둔 사이 09:10 청구가 그 박스를 결제하고 날짜를 +14 로 옮기면, 옛 날짜
+     *   기준 계산이 사실상 같은 날짜를 다시 써서 "미뤘어요"라고 말하는데 박스는 결제·발송됐다.
+     *   0행이면 최신 일정을 다시 불러 보여 준다.
+     */
+    if (weeks) {
+      const q = supabase
+        .from('subscriptions')
+        .update({ next_delivery_date: update.next_delivery_date as string })
+        .eq('id', subId)
+        .eq('user_id', uid)
+      const { data: moved, error: skipErr } = await (
+        seenNext ? q.eq('next_delivery_date', seenNext) : q.is('next_delivery_date', null)
+      ).select('id')
+      if (skipErr) {
+        toast.error('변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+        setActionLoading(null)
+        return
+      }
+      if (!moved || moved.length === 0) {
+        toast.info('배송 일정이 방금 바뀌었어요 — 최신 일정을 불러왔어요. 확인 후 다시 눌러 주세요.')
+        await reload()
+        setActionLoading(null)
+        return
+      }
+      toast.success(
+        `다음 배송을 ${weeks}주 미뤘어요. 정기배송 관리에서 되돌릴 수 있어요.`,
+      )
+      await reload()
+      setActionLoading(null)
+      return
+    }
     const { error } = await (supabase as unknown as {
       from: (t: string) => {
         update: (r: Record<string, unknown>) => {
@@ -456,6 +492,8 @@ export default function SubscriptionsWebClient({
                   style={{ color: 'var(--fd-muted)', letterSpacing: '0.04em' }}
                 >
                   {new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
+                    // KST 고정 — 해외 기기(UTC 보다 늦은 시간대)에선 화요일 발송일이 월요일로 보였다.
+                    timeZone: 'Asia/Seoul',
                     month: 'long',
                     day: 'numeric',
                   })}{' '}

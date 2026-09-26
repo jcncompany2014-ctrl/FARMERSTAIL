@@ -305,6 +305,13 @@ async function recomputeChargeBase(
 
 
 const MAX_PER_RUN = 100
+/**
+ * 한 번 실행의 시간 예산(ms). maxDuration 300초에 강제 종료되면 cron_health 기록조차
+ * 안 남는다 — 그 전에 멈추고 **남은 건수를 알린다**(2026-09-26 출시 전 점검 6차).
+ * 건당 약 3초(실측)라 같은 화요일 대상이 약 80명을 넘으면 여기에 걸린다. 넘친 구독은
+ * 다음 날 청구돼 박스가 한 주 밀리므로 '청구 실패'와 섞지 않고 따로 올린다.
+ */
+const TIME_BUDGET_MS = 240_000
 // 3-strike 상수는 lib/payments/billing-error-classify 정본 — 카드 재등록 시
 // 자동 재개 판정(isPausedByBillingFailure)이 같은 숫자를 봐야 한다.
 const MAX_FAILED = MAX_FAILED_CHARGES
@@ -407,7 +414,12 @@ async function runSubscriptionCharge(): Promise<Response> {
     .not('billing_key', 'is', null)
     .lte('next_delivery_date', today)
     .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
-    .limit(MAX_PER_RUN)
+    // 가장 오래 밀린 것부터, 같은 날은 id 순 — 정렬이 없으면 상한에 걸릴 때 매번
+    // 임의로 잘려 같은 고객이 계속 밀릴 수 있었다.
+    .order('next_delivery_date', { ascending: true })
+    .order('id', { ascending: true })
+    // 한 건 더 읽어 상한을 넘었는지 안다(넘친 건은 이번 실행에서 처리하지 않는다).
+    .limit(MAX_PER_RUN + 1)
 
   if (fetchErr) {
     return NextResponse.json(
@@ -417,7 +429,11 @@ async function runSubscriptionCharge(): Promise<Response> {
   }
 
   // audit #79: SubscriptionRow 가 generated types schema 와 다름 (recipient_zip 등).
-  const targets = ((subs ?? []) as unknown) as SubscriptionRow[]
+  const fetched = ((subs ?? []) as unknown) as SubscriptionRow[]
+  const overCap = fetched.length > MAX_PER_RUN
+  const targets = fetched.slice(0, MAX_PER_RUN)
+  const runStartedAt = Date.now()
+  let deferredByTime = 0
 
   // 청구액 대조용 products — 모든 구독이 같은 목록을 쓰므로 루프 앞에서 1회.
   // 실패하면 null 로 두고, recomputeChargeBase 가 구독별로 skip 신호를 남긴다
@@ -458,7 +474,12 @@ async function runSubscriptionCharge(): Promise<Response> {
   // 보낼 수 없는 상태(수신거부·미설정·수신자 없음) — 실패가 아니라 별도 지표.
   let mailSkippedCount = 0
 
-  for (const sub of targets) {
+  for (const [idx, sub] of targets.entries()) {
+    // 시간 예산을 넘으면 남은 구독은 건드리지 않고 멈춘다(청구 도중이 아니라 다음 건 시작 전).
+    if (Date.now() - runStartedAt > TIME_BUDGET_MS) {
+      deferredByTime = targets.length - idx
+      break
+    }
     // 2-0) 이중청구 가드(점검 high): 이미 Toss 청구됐으나 후속 update 실패로
     //      미확정(status='pending' + payment_key 존재)인 charge 가 있으면 새 청구를
     //      하지 않는다. 재청구 가드가 next_delivery_date 한 곳에만 의존하면, 후속
@@ -825,6 +846,10 @@ async function runSubscriptionCharge(): Promise<Response> {
       .update({ last_charge_lock_at: new Date().toISOString() })
       .eq('id', sub.id)
       .eq('status', 'active')
+      // ★배치 조회 뒤 고객이 '건너뛰기'로 날짜를 옮겼으면 청구하지 않는다(2026-09-26 출시 전 점검 6차).
+      //   청구는 한 건씩 돌아 뒤쪽 구독은 조회와 선점 사이가 몇 분이다 — status 만 보면
+      //   미룬 박스가 결제·발송되고 성공 UPDATE 가 고객의 날짜를 스냅샷 기준으로 덮었다.
+      .eq('next_delivery_date', sub.next_delivery_date)
       .select('id')
     if (claimErr || !claimed || claimed.length === 0) {
       skipped++
@@ -1234,6 +1259,9 @@ async function runSubscriptionCharge(): Promise<Response> {
         } else {
           // 즉시 환불 실패 → payment_status='paid' 로 두고(위에서 큐 적재),
           //   refund-retry 크론이 이어받아 settleRefunded 로 정합화한다.
+          // ★pending 일 때만 — 타임아웃이었지만 토스가 실제로 취소했으면 웹훅이 먼저
+          //   'cancelled' 를 써 둔다. 그걸 'paid' 로 되돌리면 도장·누적결제액 트리거가
+          //   다시 돈다(2026-09-26 출시 전 점검 6차). 0행이면 웹훅이 처리한 것.
           const { error: paidErr } = await supabase
             .from('orders')
             .update({
@@ -1242,6 +1270,7 @@ async function runSubscriptionCharge(): Promise<Response> {
               paid_at: successIso,
             })
             .eq('id', orderRow.id)
+            .eq('payment_status', 'pending')
           // 돈은 나갔는데 주문이 pending 으로 남으면 환불 재시도·원장이 어긋난다 — 알린다(2026-09-24).
           if (paidErr) {
             captureBusinessEvent('error', 'subscription.charge.paid_write_failed', {
@@ -1631,10 +1660,25 @@ async function runSubscriptionCharge(): Promise<Response> {
     await new Promise((r) => setTimeout(r, 100))
   }
 
+  // ★처리 못 하고 남긴 구독 — 청구 실패가 아니라 '처리량 부족'. 박스가 한 주 밀리니
+  //   사람이 오늘 안에 알아야 한다(수동 재실행 또는 처리량 개선).
+  if (overCap || deferredByTime > 0) {
+    captureBusinessEvent('error', 'subscription.charge.backlog', {
+      today,
+      overCap,
+      deferredByTime,
+      processed: targets.length - deferredByTime,
+      note: '오늘 청구 대상을 다 처리하지 못함 — 남은 구독은 내일 청구돼 박스가 밀린다',
+    })
+  }
+
   return NextResponse.json({
     ok: true,
     today,
-    checked: targets.length,
+    checked: targets.length - deferredByTime,
+    backlog: overCap || deferredByTime > 0,
+    deferredByTime,
+    overCap,
     succeeded,
     declined,
     mailSent,
