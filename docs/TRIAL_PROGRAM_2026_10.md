@@ -292,11 +292,13 @@ tags: [파머스테일, 체험단, 마케팅, 구독]
   '해지·정지 재확인 → 자동환불 → continue' 분기 **뒤**, 박스 발송이 확정된 자리에서만
   실행한다. 전엔 그 앞이라 청구 몇 초 사이 정지한 고객이 100원 환불+박스 없음인데
   회차는 소진되고 고지까지 나갔다.
-- 미결(사장님 B21): **환불된 서포터즈 박스가 회차를 쓰는가** — 고객 셀프취소·관리자
-  부분취소·환불재시도 어느 경로도 subscription_trials 를 복원하지 않는다
-  (tg_orders_reclaim_promotion 은 promotion_claims 만). 정책이 "안 쓴다"면 주문
-  discount_reason in (trial_cheap, trial_half) 이 cancelled/refunded 로 갈 때 회차 +1
-  복원 트리거를 추가한다.
+- ✅ **환불된 서포터즈 박스는 회차를 돌려준다** (사장님 2026-09-26 "되돌려줘", B21 종결).
+  `tg_orders_restore_trial_round`(BEFORE UPDATE OF payment_status ON orders,
+  `20260926180000_restore_trial_round_on_refund.sql`): discount_reason trial_* 주문이
+  paid|partially_refunded → refunded|cancelled 로 갈 때 해당 구간 +1, 주문당 1회
+  (`orders.trial_round_restored_at` 마커). 청구 크론의 pending→refunded 즉시환불은
+  차감 전이라 해당 없음. 부분환불(박스 나감)은 복원 안 함. 롤백 트랜잭션 실측:
+  3→4, 두 번째 환불 전이에도 4 유지.
 - v1의 "80% 프로모션 코드" 방식은 폐기 — 3단 가격표가 대체.
 - 0원 금지 규칙(결제감사 #7)은 그대로 두고 100원이 그 위에서 동작.
 - 추정 개발량: 1~2일 (가격표 테이블+마이그레이션, resolveAutoDiscount 분기,

@@ -4474,6 +4474,13 @@ test('규칙109: 체험단 가격 전환 예고는 푸시+메일 이중화·금�
     /components\/adminui\/admin-shell-next/,
     '어드민 layout 이 admin-shell-next 를 안 쓴다 — 내비 정본이 바뀌었으면 이 규칙과 AdminNav.tsx 경고 주석을 같이 고칠 것',
   )
+
+  // (e) 환불된 서포터즈 박스는 회차를 돌려준다(사장님 2026-09-26) — 경로가 여럿이라
+  //     코드가 아니라 orders.payment_status 트리거가 정본. 마이그레이션이 사라지면 안 된다.
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260926180000_restore_trial_round_on_refund.sql'))
+  assert.match(mig, /create trigger trg_orders_restore_trial_round/i, '회차 복원 트리거가 사라졌다')
+  assert.match(mig, /before update of payment_status on public\.orders/i, '트리거가 payment_status 전이에 안 걸린다')
+  assert.match(mig, /trial_round_restored_at/, '주문당 1회 멱등 마커가 사라졌다')
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

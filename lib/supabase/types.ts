@@ -1733,6 +1733,7 @@ export type Database = {
           subtotal: number
           total_amount: number
           tracking_number: string | null
+          trial_round_restored_at: string | null
           updated_at: string
           user_id: string
           virtual_account_bank: string | null
@@ -1775,6 +1776,7 @@ export type Database = {
           subtotal: number
           total_amount: number
           tracking_number?: string | null
+          trial_round_restored_at?: string | null
           updated_at?: string
           user_id: string
           virtual_account_bank?: string | null
@@ -1817,6 +1819,7 @@ export type Database = {
           subtotal?: number
           total_amount?: number
           tracking_number?: string | null
+          trial_round_restored_at?: string | null
           updated_at?: string
           user_id?: string
           virtual_account_bank?: string | null
