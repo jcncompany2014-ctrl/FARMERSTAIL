@@ -29,6 +29,19 @@ test('문자열: 주민번호·휴대폰·사업자번호·계좌·이메일·�
   assert.equal(s, '[주민번호] [휴대폰] [사업자번호] [계좌] [이메일] /vet/[token] /photo-upload/[token]?x=1')
 })
 
+test('주소 속 비밀값(웹훅 token·가입 확인 token_hash·OAuth code)을 가리고 다른 쿼리는 남긴다', () => {
+  assert.equal(
+    scrubSentryString('POST /api/webhooks/solapi?token=s3cr3tVALUE&x=1'),
+    'POST /api/webhooks/solapi?token=[redacted]&x=1',
+  )
+  assert.equal(
+    scrubSentryString('https://www.farmerstail.kr/auth/confirm?token_hash=abc123&type=signup'),
+    'https://www.farmerstail.kr/auth/confirm?token_hash=[redacted]&type=signup',
+  )
+  assert.equal(scrubSentryString('/auth/callback?code=9f8e7d&next=/dashboard'), '/auth/callback?code=[redacted]&next=/dashboard')
+  assert.equal(scrubSentryString('/start?p=purin2024&utm_source=ig'), '/start?p=purin2024&utm_source=ig')
+})
+
 test('평범한 객체·배열은 끝까지 들어가 가리고, 원본은 바꾸지 않는다', () => {
   const ev = { request: { url: 'https://x/vet/tok' }, spans: [{ description: 'GET /photo-upload/zz' }], extra: { a: ['010 1234 5678'] } }
   const out = scrubSentryEvent(ev)

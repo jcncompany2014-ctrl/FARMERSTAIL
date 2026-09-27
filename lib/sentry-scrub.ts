@@ -26,6 +26,9 @@ const PHONE = /\b01[016789][-\s]?\d{3,4}[-\s]?\d{4}\b/g // 한국 휴대폰
 const BRN = /\b\d{3}-?\d{2}-?\d{5}\b/g // 사업자등록번호
 const ACCT = /\b\d{2,4}-\d{2,4}-\d{4,7}\b/g // 계좌번호 대략
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g // 이메일
+// 주소 속 비밀값 — 솔라피 웹훅 ?token=(2026-09-28), 가입 확인 ?token_hash=, OAuth ?code= 가 서버 트랜잭션의
+// url·http.target 에 그대로 실린다. 이름에 token·secret·code 가 든 쿼리 값만 가린다(키 이름은 남겨 디버깅 가능).
+const SECRET_QUERY = /([?&][A-Za-z_]*(?:token|secret|code)[A-Za-z_]*=)[^&#\s"']+/gi
 
 /** SDK 내부용 칸 — 전송되지 않고, Scope 같은 순환 객체가 들어 있다. 절대 들어가지 않는다. */
 const SDK_INTERNAL_KEYS = new Set(['sdkProcessingMetadata'])
@@ -37,7 +40,8 @@ export function scrubSentryString(s: string): string {
       .replace(PHONE, '[휴대폰]')
       .replace(BRN, '[사업자번호]')
       .replace(ACCT, '[계좌]')
-      .replace(EMAIL, '[이메일]'),
+      .replace(EMAIL, '[이메일]')
+      .replace(SECRET_QUERY, '$1[redacted]'),
   )
 }
 
