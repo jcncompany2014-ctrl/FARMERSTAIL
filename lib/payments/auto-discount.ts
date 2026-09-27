@@ -8,6 +8,7 @@ import {
 } from '@/lib/discount'
 import { pickBetterDiscount } from '@/lib/promotions'
 import { trialPricing } from '@/lib/payments/trial'
+import { pickWithNeighbor } from '@/lib/payments/neighbor'
 import { getTrialState } from '@/lib/payments/trial-state'
 
 /**
@@ -49,13 +50,15 @@ import { getTrialState } from '@/lib/payments/trial-state'
  */
 
 export type AutoDiscount = {
-  reason: DiscountReason | 'promotion' | 'trial_cheap' | 'trial_half'
+  reason: DiscountReason | 'promotion' | 'trial_cheap' | 'trial_half' | 'neighbor'
   /** 할인 금액(원). */
   discountAmount: number
   /** 실제 청구액 = subtotal − discountAmount. */
   chargeAmount: number
   /** 프로모션을 실제로 **쓴** 경우만 true — 소진 표시 대상. */
   promoClaimed: boolean
+  /** 이웃 할인(첫 박스 1회)을 실제로 쓴 경우만 true — 소진 표시 대상. */
+  neighborClaimed: boolean
   /** 화면에 쓸 이름. 할인이 없으면 null. */
   label: string | null
 }
@@ -76,6 +79,7 @@ export async function resolveAutoDiscount(input: {
     discountAmount: 0,
     chargeAmount: subtotal,
     promoClaimed: false,
+    neighborClaimed: false,
     label: null,
   }
 
@@ -88,6 +92,7 @@ export async function resolveAutoDiscount(input: {
       discountAmount: trial.discountAmount,
       chargeAmount: trial.chargeAmount,
       promoClaimed: false,
+      neighborClaimed: false,
       label: trial.label,
     }
   }
@@ -149,18 +154,47 @@ export async function resolveAutoDiscount(input: {
     if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
   }
 
+  // 이웃 할인(어드민이 특정 고객에게 붙인 첫 박스 1회 할인, 2026-09-27) — 아직 안 쓴 것.
+  // 조회 실패는 '없음'(프로모션과 같은 판단)이되 반드시 이벤트로 남긴다.
+  // recurringOnly(둘째 박스부터 금액 미리보기)면 한 번만 붙는 할인이라 빼고 센다.
+  let neighborRate = 0
+  if (!recurringOnly) {
+    const { data: nb, error: nbErr } = await supabase
+      .from('neighbor_discounts')
+      .select('rate')
+      .eq('user_id', userId)
+      .is('redeemed_order_id', null)
+      .maybeSingle()
+    if (nbErr) {
+      captureBusinessEvent('error', 'billing.auto_discount.neighbor_lookup_failed', {
+        userId,
+        dbError: nbErr.message,
+      })
+    } else if (nb) {
+      const n = Number(nb.rate)
+      if (Number.isFinite(n) && n > 0) neighborRate = Math.min(1, n)
+    }
+  }
+
   const picked = pickBetterDiscount(
     { rate: tierDiscount.rate, label: tierDiscount.label },
     promoRate > 0 ? { rate: promoRate, label: '이벤트 할인' } : null,
   )
-  const discountAmount = applyDiscount(subtotal, picked.rate)
+  // 등급/이벤트 중 고른 것과 이웃 할인 중 더 큰 쪽 하나만(같으면 이웃 할인은 아껴 둔다).
+  const final = pickWithNeighbor(picked, neighborRate > 0 ? { rate: neighborRate } : null)
+  const discountAmount = applyDiscount(subtotal, final.rate)
   return {
-    reason: picked.reason === 'promotion' ? 'promotion' : tierDiscount.reason,
+    reason: final.useNeighbor
+      ? 'neighbor'
+      : picked.reason === 'promotion'
+        ? 'promotion'
+        : tierDiscount.reason,
     discountAmount,
     chargeAmount: subtotal - discountAmount,
     // 프로모션을 실제로 **쓴** 경우에만 소진 표시 대상. 등급이 더 커서 안 쓴
-    // 프로모션은 남겨 둔다 — 다음 기회에 쓸 수 있어야 한다.
-    promoClaimed: picked.reason === 'promotion',
-    label: discountAmount > 0 ? picked.label : null,
+    // 프로모션은 남겨 둔다 — 다음 기회에 쓸 수 있어야 한다. 이웃 할인도 같다.
+    promoClaimed: !final.useNeighbor && picked.reason === 'promotion',
+    neighborClaimed: final.useNeighbor,
+    label: discountAmount > 0 ? final.label : null,
   }
 }

@@ -2927,6 +2927,39 @@ export type Database = {
         }
         Relationships: []
       }
+      neighbor_discounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          note: string
+          rate: number
+          redeemed_at: string | null
+          redeemed_order_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          note?: string
+          rate: number
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          note?: string
+          rate?: number
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       link_page_settings: {
         Row: {
           cover_url: string

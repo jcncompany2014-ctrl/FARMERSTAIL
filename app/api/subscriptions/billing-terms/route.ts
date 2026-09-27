@@ -92,7 +92,7 @@ export async function GET(req: Request) {
     discountKind =
       d.discountAmount <= 0
         ? null
-        : d.reason === 'promotion'
+        : d.reason === 'promotion' || d.reason === 'neighbor'
           ? 'promotion'
           : d.reason === 'trial_cheap' || d.reason === 'trial_half'
             ? 'trial'

@@ -564,7 +564,7 @@ async function runSubscriptionCharge(): Promise<Response> {
     // 청구 기준은 **항상** 저장 금액 = 고객이 동의하고 모든 화면이 보여주는 값.
     const trustedSubtotal = amountCheck.chargeBase
 
-    const { reason: discountReason, discountAmount, chargeAmount, promoClaimed } =
+    const { reason: discountReason, discountAmount, chargeAmount, promoClaimed, neighborClaimed } =
       await resolveAutoDiscount({ userId: sub.user_id, subtotal: trustedSubtotal })
 
     // ★결제 감사 #7 (2026-07-29): 0원 이하 청구 금지. 100% 프로모션이 허용돼
@@ -1288,6 +1288,29 @@ async function runSubscriptionCharge(): Promise<Response> {
               })
             }
           }
+        }
+      }
+
+      // ★이웃 할인 소진 표시 (2026-09-27) — 첫 박스 1회 할인. 서포터즈 차감과 같은 자리:
+      //   '청구 후 재확인 → 자동환불 → continue' 뒤, 박스가 실제로 나가는 것이 확정된 곳.
+      //   CAS(.is('redeemed_order_id', null)) 로 크론 재시도·동시 실행에도 한 번만 소진되고,
+      //   0행이면(이미 소진·도장 떼짐) 성공으로 세지 않고 이벤트로 남긴다(규칙1).
+      //   전액 환불·취소는 tg_orders_reclaim_neighbor_discount 가 되돌린다.
+      if (neighborClaimed) {
+        const { data: nbRows, error: nbErr } = await supabase
+          .from('neighbor_discounts')
+          .update({ redeemed_order_id: orderRow!.id, redeemed_at: new Date().toISOString() })
+          .eq('user_id', sub.user_id)
+          .is('redeemed_order_id', null)
+          .select('user_id')
+        if (nbErr || (nbRows?.length ?? 0) === 0) {
+          captureBusinessEvent('error', 'subscription.charge.neighbor_mark_failed', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            orderId: orderRow!.id,
+            dbError: nbErr ? String(nbErr.message ?? 'unknown') : null,
+            note: '이웃 할인 소진 표시 실패/0행 — 다음 회차 할인 재적용 위험. admin 확인.',
+          })
         }
       }
 

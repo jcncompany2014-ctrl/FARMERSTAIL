@@ -48,6 +48,7 @@ import {
   ListChecks,
   Stamp,
   Link2,
+  Gift,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -104,6 +105,8 @@ const NAV_GROUPS = [
       // components/admin/AdminNav.tsx 는 9/4 개편 뒤 죽은 파일이라 거기에만
       // 넣었더니 사장님 화면엔 이틀간 안 떴다(2026-09-26).
       { href: '/admin/trials', label: '체험단(서포터즈)', icon: Stamp },
+      // 이웃 할인 — 지인·쓰레드 유입 고객에게 첫 박스 할인율 도장(2026-09-27).
+      { href: '/admin/neighbors', label: '이웃 할인', icon: Gift },
       { href: '/admin/cs-inbox', label: 'CS 인박스', icon: Inbox },
       { href: '/admin/push-campaigns', label: '푸시 캠페인', icon: BellRing },
       { href: '/admin/push-stats', label: '푸시 지표', icon: BarChart3 },

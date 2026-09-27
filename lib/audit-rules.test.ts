@@ -4943,3 +4943,32 @@ test('규칙131: 한 마리·한 사람 가정을 깨지 않는다 · 열람권 
   // ⑥ 개인 메일이 박힌 공개 시안 페이지 금지
   assert.ok(!existsSync(join(ROOT, 'app', 'dev', 'admin-preview', 'page.tsx')), '사장님 개인 메일이 박힌 공개 시안 페이지가 돌아왔다')
 })
+
+test('규칙132: 이웃 할인(첫 박스 1회 지정 할인)은 판정·소진·되돌림·CHECK 가 한 벌이다', () => {
+  /**
+   * 사장님 2026-09-27 "지인·쓰레드 유입에게 첫 박스만 할인율 골라서" → 이름 '이웃 할인'.
+   * 체험단 때 겪은 사고(orders CHECK 가 새 사유를 거부해 청구 전멸, 규칙96)와 "소진을
+   * 청구 전에 표시해 실패 시 할인 증발"(결제감사 #3)을 같은 자리에서 잠근다.
+   */
+  const resolver = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
+  assert.match(resolver, /from\('neighbor_discounts'\)/, '판정이 이웃 할인을 안 본다')
+  assert.match(resolver, /\.is\('redeemed_order_id', null\)/, '이미 쓴 이웃 할인이 다시 적용된다')
+  assert.match(resolver, /if \(!recurringOnly\) \{[\s\S]{0,200}neighbor_discounts/, '반복 금액 미리보기(recurringOnly)에 1회 할인이 섞인다')
+  assert.match(resolver, /pickWithNeighbor\(/, '더 큰 쪽 하나만 규칙(pickWithNeighbor)이 빠졌다')
+
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.match(cron, /if \(neighborClaimed\)[\s\S]{0,600}\.is\('redeemed_order_id', null\)[\s\S]{0,200}\.select\('user_id'\)/, '이웃 할인 소진이 CAS(.is null)+행 확인이 아니다')
+  assert.match(cron, /neighbor_mark_failed/, '소진 0행/실패가 무음이다')
+  // 소진은 '청구 후 재확인 → 자동환불' 분기 **뒤**에 — 앞이면 환불된 박스가 할인을 먹는다.
+  assert.ok(cron.indexOf('if (neighborClaimed)') > cron.indexOf('청구 후 상태 재확인'), '이웃 할인 소진이 환불 재확인보다 앞에 있다')
+
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260927090000_neighbor_discounts.sql'))
+  assert.match(mig, /'trial_half', 'neighbor'\]/, 'orders.discount_reason CHECK 에 neighbor 가 없다 — 청구가 전멸한다')
+  assert.match(mig, /create trigger trg_orders_reclaim_neighbor_discount/i, '환불 시 되돌림 트리거가 없다')
+
+  const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
+  assert.match(shell, /href:\s*'\/admin\/neighbors'/, '이웃 할인 화면이 실제 어드민 내비에 없다')
+  const api = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'neighbors', 'route.ts')))
+  assert.match(api, /requireAdmin\(\)/, '이웃 할인 API 가 관리자 관문 없이 열린다')
+  assert.match(api, /NEIGHBOR_RATES/, '할인율이 선택지(NEIGHBOR_RATES) 검증 없이 들어간다')
+})

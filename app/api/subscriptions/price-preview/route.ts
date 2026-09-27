@@ -44,7 +44,7 @@ export async function GET(req: Request) {
   const discountKind: 'promotion' | 'trial' | 'tier' | null =
     now.discountAmount <= 0
       ? null
-      : now.reason === 'promotion'
+      : now.reason === 'promotion' || now.reason === 'neighbor'
         ? 'promotion'
         : now.reason === 'trial_cheap' || now.reason === 'trial_half'
           ? 'trial'
