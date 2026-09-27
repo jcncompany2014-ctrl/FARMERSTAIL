@@ -295,6 +295,9 @@ export async function POST(req: Request) {
     admin.from('source_waitlist').delete().eq('user_id', user.id),
     admin.from('meta_learning_events').update({ user_id: null }).eq('user_id', user.id),
     admin.from('dog_members').delete().eq('user_id', user.id),
+    // 알림톡 발송 기록 — 번호는 이미 마스킹. 결제 사전 고지 등 "보냈다"는 증빙은 남기되
+    //   사람과의 연결(user_id)은 끊는다(익명화, 2026-09-28).
+    admin.from('message_log').update({ user_id: null, to_masked: '' }).eq('user_id', user.id),
     /**
      * ★이메일 기준으로도 지운다 (2026-08-20 7라운드 감사).
      *

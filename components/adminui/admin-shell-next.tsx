@@ -49,6 +49,7 @@ import {
   Stamp,
   Link2,
   Gift,
+  MessageSquare,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -109,6 +110,8 @@ const NAV_GROUPS = [
       { href: '/admin/neighbors', label: '이웃 할인', icon: Gift },
       { href: '/admin/cs-inbox', label: 'CS 인박스', icon: Inbox },
       { href: '/admin/push-campaigns', label: '푸시 캠페인', icon: BellRing },
+      // 카카오 알림톡 준비 상태·발송 내역(2026-09-28, docs/MARKET_HUB_AND_ALIMTALK_PLAN_2026_10.md).
+      { href: '/admin/messages', label: '알림톡', icon: MessageSquare },
       { href: '/admin/push-stats', label: '푸시 지표', icon: BarChart3 },
       { href: '/admin/loyalty', label: '스탬프·등급', icon: Medal },
     ],

@@ -2927,6 +2927,57 @@ export type Database = {
         }
         Relationships: []
       }
+      message_log: {
+        Row: {
+          channel: string
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          provider_group_id: string | null
+          provider_message_id: string | null
+          source_id: string
+          status: string
+          status_code: string | null
+          template_code: string
+          to_masked: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          provider_group_id?: string | null
+          provider_message_id?: string | null
+          source_id: string
+          status?: string
+          status_code?: string | null
+          template_code: string
+          to_masked?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          provider_group_id?: string | null
+          provider_message_id?: string | null
+          source_id?: string
+          status?: string
+          status_code?: string | null
+          template_code?: string
+          to_masked?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       neighbor_discounts: {
         Row: {
           created_at: string

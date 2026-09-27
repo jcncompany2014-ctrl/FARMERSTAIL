@@ -4972,3 +4972,34 @@ test('규칙132: 이웃 할인(첫 박스 1회 지정 할인)은 판정·소진�
   assert.match(api, /requireAdmin\(\)/, '이웃 할인 API 가 관리자 관문 없이 열린다')
   assert.match(api, /NEIGHBOR_RATES/, '할인율이 선택지(NEIGHBOR_RATES) 검증 없이 들어간다')
 })
+
+test('규칙133: 알림톡 — 보내기 전에 자리 잡기(한 번만) · 절대 throw 안 함 · 승인 전 템플릿은 안 보냄 · 웹훅 토큰 · 탈퇴 익명화', () => {
+  /**
+   * 2026-09-28 알림톡 1단계 기반. 솔라피엔 멱등키가 없어 크론 재시도·웹훅 재전송이면 같은 안내가
+   * 두 번 나간다 → message_log unique 로 "먼저 자리 잡고 보내기". 호출 지점이 청구·환불 같은 돈
+   * 경로라 발송 실패가 결제 기록을 끊으면 안 된다(throw 금지). 웹훅은 로그인 없는 공개 주소라
+   * 토큰 없이 열리면 누구나 발송 상태를 조작한다.
+   */
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20260928100000_message_log.sql'))
+  assert.match(mig, /constraint message_log_once unique \(event_type, source_id, channel\)/, 'message_log 한 번만 제약이 없다')
+  assert.match(mig, /revoke all on table public\.message_log from anon, authenticated/, 'message_log 가 고객에게 열려 있다')
+
+  const src = stripComments(read(join(ROOT, 'lib', 'notify', 'alimtalk.ts')))
+  const insertAt = src.indexOf(".from('message_log')")
+  const sendAt = src.indexOf('svc.send(')
+  assert.ok(insertAt > 0 && sendAt > insertAt, '발송 기록 자리 잡기가 전송보다 앞에 있어야 한다(중복 발송 방지)')
+  assert.match(src, /'23505'[\s\S]{0,80}duplicate/, '같은 이벤트 재요청(unique 충돌)을 건너뛰지 않는다')
+  assert.match(src, /if \(!template\.solapiTemplateId\) return/, '승인 전 템플릿(ID 없음)을 보내려 한다')
+  assert.doesNotMatch(src, /\bthrow\b/, 'sendAlimtalk 가 throw 한다 — 돈 경로 호출부가 끊긴다')
+
+  const hook = stripComments(read(join(ROOT, 'app', 'api', 'webhooks', 'solapi', 'route.ts')))
+  assert.match(hook, /timingSafeEqual/, '웹훅 토큰을 시간 일정 비교로 검증하지 않는다')
+  assert.match(hook, /status: 401/, '토큰 실패를 401 로 막지 않는다')
+  assert.match(hook, /status: 500/, 'DB 오류를 200 으로 삼킨다 — 재전송이 끊긴다(AGENTS.md 1번)')
+
+  const del = stripComments(read(join(ROOT, 'app', 'api', 'account', 'delete', 'route.ts')))
+  assert.ok(del.includes("from('message_log')"), '탈퇴가 알림톡 발송 기록을 익명화하지 않는다')
+
+  const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
+  assert.match(shell, /href:\s*'\/admin\/messages'/, '알림톡 화면이 실제 어드민 내비에 없다')
+})
