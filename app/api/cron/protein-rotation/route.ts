@@ -4,6 +4,8 @@ import { pushToUser } from '@/lib/push'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { petName, iGa } from '@/lib/korean'
+import { snapBoxLines } from '@/lib/personalization/boxComposition'
+import type { FoodLine } from '@/lib/personalization/types'
 
 export const runtime = 'nodejs'
 /** 제목 고정부 = dedup 앵커(2026-08-05). 마케팅 푸시라 `(광고)` 가 앞에 붙는다. */
@@ -132,6 +134,28 @@ async function runRotation(): Promise<Response> {
     }
 
     // 강아지 이름 조회
+    // ★이미 두 가지 레시피를 받는 박스엔 보내지 않는다(2026-09-28 점검 9차) — 박스는 보통 2종(50/50)이라
+    //   "한 가지 단백질만 오래 먹으면"이 사실이 아니었다. 박스 구성은 subscription_items 가 아니라 처방의
+    //   lineRatios → snapBoxLines 가 정본(규칙89)이라 최신 처방(created_at 역순 — AGENTS 6)으로 판정한다.
+    //   한 가지로 스냅되는 박스만 대상. 모르면(조회 실패·처방 없음) 보내지 않는다.
+    const { data: fRow, error: fErr } = await admin
+      .from('dog_formulas')
+      .select('formula')
+      .eq('dog_id', sub.dog_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (fErr) {
+      console.error('[protein-rotation] 처방 조회 실패, 건너뜀:', fErr.message)
+      skipped += 1
+      continue
+    }
+    const lineRatios = (fRow?.formula as { lineRatios?: Record<FoodLine, number> } | null)?.lineRatios
+    if (!lineRatios || snapBoxLines(lineRatios).length !== 1) {
+      skipped += 1
+      continue
+    }
+
     const { data: dogRow, error: dogRowErr } = await admin
       .from('dogs')
       .select('name')
@@ -154,7 +178,7 @@ async function runRotation(): Promise<Response> {
     const title = `${iGa(petName(dog.name))} 벌써 ${sub.total_deliveries}${ROTATION_TITLE_ANCHOR}`
     const body =
       cycle === 1
-        ? '한 가지 단백질만 오래 먹으면 그 단백질에 예민해질 수 있어요. 다음 박스엔 다른 레시피도 한번 섞어볼까요?'
+        ? '한 가지 단백질만 오래 먹으면 그 단백질에 예민해질 수 있어요. 다음 레시피 제안 때 다른 단백질도 함께 살펴볼게요.'
         : '슬슬 다른 단백질도 맛보여 줄 때예요. 어떤 레시피가 맞을지 같이 골라봐요.'
 
     try {

@@ -49,6 +49,7 @@ export default function SubscriptionCard({
   dogId,
   hasFormula,
   trial = null,
+  chargePreview,
 }: {
   subscriptions: ActiveSubscription[]
   dogName: string
@@ -56,6 +57,8 @@ export default function SubscriptionCard({
   hasFormula: boolean
   /** 체험단 가격표 — 있으면 금액이 체험가로 표시된다(청구와 같은 판정) */
   trial?: TrialState | null
+  /** 구독별 다음 결제액(청구와 같은 resolveAutoDiscount) — 있으면 이것이 우선 */
+  chargePreview?: Record<string, number>
 }) {
   if (subscriptions.length === 0 && !hasFormula) return null
 
@@ -160,7 +163,7 @@ export default function SubscriptionCard({
                       </span>
                     </div>
                     <span className="shrink-0 text-[12px] font-bold text-text font-mono whitespace-nowrap tabular-nums">
-                      {(trialPricing(trial, s.total_amount)?.chargeAmount ?? s.total_amount).toLocaleString()}원/2주
+                      {(chargePreview?.[s.id] ?? trialPricing(trial, s.total_amount)?.chargeAmount ?? s.total_amount).toLocaleString()}원/2주
                     </span>
                   </div>
                   {/* 레시피를 위에 이름으로 보여줬으면, 화식 비율 티어는 보조로 한 줄 더. */}

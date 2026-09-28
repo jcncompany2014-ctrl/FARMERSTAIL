@@ -5078,3 +5078,40 @@ test('규칙140: 같은 돈이 두 번 움직이지 않는다 — 부분환불 �
   // ⑧ 확정 거절(잔액부족) 재시도 상한
   assert.ok(/isDefinitiveDecline\(errorCode\)\)\s*\{[\s\S]{0,200}?shouldPause = nextFailedCount >= MAX_FAILED/.test(ch), '잔액부족 재시도에 상한이 없다(매일 청구·알림 무한)')
 })
+
+test('규칙141: 관리자 한 번의 오터치가 되돌릴 수 없게 번지지 않고, 고객에게 가는 말은 실제와 같다', () => {
+  // ① 송장 없이 '준비 중 → 배송 완료' 금지
+  const st = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'orders', '[id]', 'status', 'route.ts')))
+  assert.ok(st.includes("code: 'SHIP_FIRST'") && /order\.order_status === 'preparing' && !order\.shipped_at/.test(st), '송장 없이 배송 완료(되돌릴 수 없는 종결·고객 알림)로 넘어간다')
+  // ② 구독 해지·정지 확인창에 대상과 결과
+  const subs = read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx'))
+  assert.ok(subs.includes('다시 켤 수 없어요') && /newStatus === 'paused' &&\s*!confirm\(/.test(subs), '해지·정지 확인창이 누구의 구독인지·되돌릴 수 없는지를 말하지 않는다')
+  // ③ 프로모션 끄기 가짜 성공 금지 · 만들기 확인 · 0행 = 404
+  const pc = stripComments(read(join(ROOT, 'app', 'admin', 'promotions', 'PromotionsClient.tsx')))
+  assert.ok(/if \(!res\.ok\) \{\s*revert\(\)/.test(pc), '프로모션 켜기·끄기가 서버 실패를 무시한다(화면만 꺼짐)')
+  assert.ok(pc.includes('pct > 50 && !window.confirm('), '프로모션 할인율 50% 초과에 재확인이 없다(9→90 오타)')
+  const pr = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'promotions', 'route.ts')))
+  assert.ok(/\.update\(\{ active: body\.active \}\)\s*\.eq\('id', body\.id\)\s*\.select\('id'\)/.test(pr), '프로모션 PATCH 가 0행을 성공으로 답한다')
+  // ④ 일괄 광고 푸시 확인창에 대상
+  assert.ok(read(join(ROOT, 'app', 'admin', 'push-campaigns', 'CampaignBuilder.tsx')).includes('· 대상: ${seg?.label'), '일괄 푸시 확인창에 대상이 없다')
+  // ⑤ 배송완료 크론 — 결제된 주문만 · CAS(알림 중복·환불 주문에 '배송 완료' 금지)
+  const tp = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'tracking-poll', 'route.ts')))
+  assert.ok(tp.includes(".in('payment_status', [...PAID_STATUSES])"), '전액 환불한 주문에도 "배송이 완료됐어요"가 간다')
+  assert.ok(/order_status: 'delivered',[\s\S]{0,120}?\.eq\('id', ord\.id\)\s*\.eq\('order_status', 'shipping'\)\s*\.is\('delivered_at', null\)\s*\.select\('id'\)/.test(tp), '배송완료 저장이 CAS 가 아니다(관리자와 겹치면 알림 두 번)')
+  // ⑥ 문구 — 실제 일과 같게
+  const prog = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'personalization-progression', 'route.ts')))
+  assert.ok(!prog.includes('이번 박스는 ${recipeName(next)}예요') && !prog.includes('2주 결제가 ${won('), '처방 알림이 "이번 박스"·"2주 결제(할인 전 금액)"라고 말한다')
+  assert.ok(!read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')).includes('정기배송 관리에서 되돌릴 수 있어요'), '없는 되돌리기 기능을 약속한다')
+  assert.ok(!read(join(ROOT, 'lib', 'email', 'templates', 'orders.ts')).includes('상품 준비가 시작되면 다시 알려드릴게요'), '보내지 않는 "준비 시작" 알림을 약속한다')
+  assert.ok(!read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')).includes('결제 전에 메일로 다시 안내드려요'), '알림을 끈 고객에겐 안 가는 사전고지 메일을 약속한다')
+  // ⑦ 알림 설정을 지키는 생일 푸시 · 전제가 맞는 단백질 푸시
+  assert.ok(stripComments(read(join(ROOT, 'app', 'api', 'cron', 'dog-age-update', 'route.ts'))).includes("{ category: 'health' }"), '생일 푸시가 알림 설정·조용 시간을 무시한다')
+  assert.ok(stripComments(read(join(ROOT, 'app', 'api', 'cron', 'protein-rotation', 'route.ts'))).includes('snapBoxLines(lineRatios).length !== 1'), '두 가지 레시피 박스에도 "한 가지 단백질만" 푸시가 간다')
+  // ⑧ 영수증 — 결제된 주문만, 환불 반영
+  const rc = stripComments(read(join(ROOT, 'app', 'mypage', 'orders', '[id]', 'receipt', 'page.tsx')))
+  assert.ok(rc.includes("['paid', 'partially_refunded', 'refunded'].includes(o.payment_status)) notFound()") && rc.includes('실제 결제 금액'), '결제 실패 주문도 영수증이 나오고, 환불이 영수증에 없다')
+  // ⑨ 강아지 화면의 결제 예정 금액 = 청구와 같은 함수
+  for (const f of ['app/(main)/dogs/[id]/subscription/page.tsx', 'app/(main)/dogs/[id]/page.tsx']) {
+    assert.ok(stripComments(read(join(ROOT, ...f.split('/')))).includes('resolveAutoDiscount('), `${f}: 결제 예정 금액이 청구와 다른 계산(서포터즈만)이다`)
+  }
+})

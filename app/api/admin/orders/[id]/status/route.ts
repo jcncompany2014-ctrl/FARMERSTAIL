@@ -166,6 +166,19 @@ export async function POST(
     shipCarrier = nextCarrier
     shipTracking = nextTracking
   } else if (orderStatus === 'delivered') {
+    // ★송장 없이 '준비 중 → 배송 완료' 금지(2026-09-28 점검 9차). '배송 중'은 송장 필수(위)인데 그 아래 버튼이
+    //   바로 통과해, 고객에게 "배송이 완료됐어요" 푸시·메일이 나가고 주문이 피킹·발송 대기에서 사라졌다.
+    //   배송 완료는 되돌릴 수 없는 종결 상태라 송장을 넣어 '배송 중'을 먼저 거치게 한다.
+    if (order.order_status === 'preparing' && !order.shipped_at) {
+      return NextResponse.json(
+        {
+          code: 'SHIP_FIRST',
+          message:
+            '아직 발송 전이에요. 송장번호를 넣어 “배송 중”으로 먼저 바꿔 주세요 — 배송 완료는 되돌릴 수 없고 고객에게 바로 알림이 가요.',
+        },
+        { status: 400 },
+      )
+    }
     update.delivered_at = order.delivered_at ?? now
     // delivered는 shipping 을 건너뛰고 바로 찍혀도 되지만, shipped_at은 한 번은 남겨둡니다.
     if (!order.shipped_at) update.shipped_at = now

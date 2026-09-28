@@ -913,10 +913,10 @@ export async function GET(req: Request) {
         // 3일 안에 동의/거부, 무반응=거부. 모달은 pending 상태를 감지해 뜬다.
         if (diff.forced) {
           pushTitle = `[중요] ${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
-          pushBody = `안전을 위해 레시피를 바꿔야 해서 2주 결제가 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 3일 안에 동의 또는 이전 유지를 골라주세요.`
+          pushBody = `안전을 위해 레시피를 바꿔야 해서 2주 상품 금액이 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요(받고 계신 할인은 그대로예요). 3일 안에 동의 또는 이전 유지를 골라주세요.`
         } else {
           pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
-          pushBody = `몸무게 변화를 반영하면 2주 결제가 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요. 3일 안에 동의 또는 이전 유지를 골라주세요.`
+          pushBody = `몸무게 변화를 반영하면 2주 상품 금액이 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요(받고 계신 할인은 그대로예요). 3일 안에 동의 또는 이전 유지를 골라주세요.`
         }
         // 푸시는 앱으로 간다 → 앱 전용 정기배송 화면. 이 화면이 금액변경
         // 동의 모달을 띄운다(2026-07-30 신설, 웹 화면에만 있던 게이트를 이관).
@@ -924,11 +924,12 @@ export async function GET(req: Request) {
       } else if (requiresApproval) {
         // 금액 변동 없는 제안 → 기존 승인 화면(/approve) 유지.
         pushTitle = `${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
-        pushBody = `이번 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
+        pushBody = `다음 박스 구성이 바뀔 수 있어요 — ${recipeName(next)} 제안. 5일 안에 확인해 주세요.`
         pushUrl = `/dogs/${cur.dog_id}/approve?cycle=${next.cycleNumber}`
       } else {
         pushTitle = `${petName(dogTyped.name)} 다음 박스 준비됐어요 🐾`
-        pushBody = `이번 박스는 ${recipeName(next)}예요. 자세히 보기 →`
+        // '이번 박스'가 아니다 — 오늘 결제된 박스는 옛 레시피로 포장되고 새 레시피는 다음 박스부터다(2026-09-28, 규칙119).
+        pushBody = `다음 박스부터 ${recipeName(next)}예요. 자세히 보기 →`
         pushUrl = `/dogs/${cur.dog_id}/analysis`
       }
 

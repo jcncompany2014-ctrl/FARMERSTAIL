@@ -100,12 +100,15 @@ export default function DogSubscriptionClient({
   dogName,
   startHref,
   trial = null,
+  chargePreview = null,
 }: {
   initialSubs: DogSub[]
   dogName: string
   startHref: string
   /** 체험단 가격표 — 있으면 금액 표시가 체험가로 바뀐다 (청구와 같은 판정) */
   trial?: TrialState | null
+  /** 구독별 다음 결제액(서버가 청구와 같은 resolveAutoDiscount 로 계산 — 이벤트·이웃·등급·서포터즈 전부) */
+  chargePreview?: Record<string, { chargeAmount: number; label: string | null }> | null
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -271,6 +274,7 @@ export default function DogSubscriptionClient({
       {live.map((sub) => (
         <SubCard
           trial={trial}
+          preview={chargePreview?.[sub.id] ?? null}
           key={sub.id}
           sub={sub}
           name={name}
@@ -364,6 +368,7 @@ function SubCard({
   sub,
   name,
   trial,
+  preview,
   busy,
   onCard,
   onSkip,
@@ -375,6 +380,7 @@ function SubCard({
   sub: DogSub
   name: string
   trial: TrialState | null
+  preview: { chargeAmount: number; label: string | null } | null
   busy: boolean
   onCard: () => void
   onSkip: () => void
@@ -436,7 +442,10 @@ function SubCard({
       {/* 체험단이면 실제 청구될 체험가로 — 청구·요약 화면과 같은 판정(trialPricing).
           원래 금액을 숨기지 않고 취소선으로 함께 보여준다(2026-09-24 출시점검 제보). */}
       {(() => {
-        const tp = trialPricing(trial, sub.total_amount)
+        // 서버 미리보기(청구와 같은 함수)가 우선 — 없으면 서포터즈 판정으로 대신한다.
+        const tpRaw = trialPricing(trial, sub.total_amount)
+        const shown = preview ? preview.chargeAmount : tpRaw ? tpRaw.chargeAmount : sub.total_amount
+        const tp = shown !== sub.total_amount ? { chargeAmount: shown } : null
         return (
           <span className="sub-amount">
             {tp && (

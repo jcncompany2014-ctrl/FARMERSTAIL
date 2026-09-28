@@ -128,7 +128,8 @@ export async function GET(req: Request) {
         body: `${petName(dog.name)}가 ${nextValue}${nextUnit === 'years' ? '살' : '개월'}이 됐어요. 새 영양 분석을 받아 보세요.`,
         url: `/dogs/${dog.id}`,
         tag: `dog-birthday-${dog.id}-${todayMonth}-${todayDay}`,
-      }).catch(() => null)
+        // ★카테고리 필수(2026-09-28 점검 9차) — 없으면 알림 설정·조용 시간을 건너뛰어, 건강 알림을 끈 고객에게도 갔다.
+      }, { category: 'health' }).catch(() => null)
       if ((pushResult?.sent ?? 0) > 0) birthdays += 1
     }
   }

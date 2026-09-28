@@ -71,6 +71,8 @@ type Props = {
   aiComment: { analysisId: string; cached: AiAnalysisJson | null } | null
   /** 체험단 가격표 — SubscriptionCard 금액 표시용 (청구와 같은 판정) */
   trial?: TrialState | null
+  /** 구독별 다음 결제액 — 서버가 청구와 같은 함수로 계산 */
+  chargePreview?: Record<string, number>
   /** 첫 4주 온보딩 여정 phase(유저 가입일 기준). 개요 최상단 배너용. */
   gracePhase: OnboardingPhase
 }
@@ -86,6 +88,7 @@ export default function DogDetailClient({
   aiComment,
   gracePhase,
   trial = null,
+  chargePreview,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -417,6 +420,7 @@ export default function DogDetailClient({
       {!subsQueryFailed && (
       <SubscriptionCard
         trial={trial}
+        chargePreview={chargePreview}
         subscriptions={subscriptions}
         dogName={dog.name}
         dogId={dogId}

@@ -153,6 +153,8 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
 
         {/* 인쇄 / PDF 영수증 — 본문 외 새 탭으로 print-optimized 페이지 열기.
             사업자 정보 + 주문/배송지/결제 합계가 한 장에 정리돼 세무 / 보관용. */}
+        {/* 결제된 주문만 영수증 링크(2026-09-28) — 결제 실패·대기 주문의 영수증 화면은 막았다. */}
+        {['paid', 'partially_refunded', 'refunded'].includes(order.payment_status) && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={`/mypage/orders/${order.id}/receipt`}
@@ -161,6 +163,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
             영수증 / PDF
           </Link>
         </div>
+        )}
       </section>
 
       {/* 취소 안내 배너 */}

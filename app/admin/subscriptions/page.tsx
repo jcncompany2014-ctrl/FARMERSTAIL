@@ -182,9 +182,24 @@ export default function AdminSubscriptionsPage() {
 
   async function handleStatusChange(subId: string, newStatus: string) {
     // 해지는 되돌리기 어려운 조치 — 모바일 오터치 가드(2026-07-19 검수).
+    // ★확인창에 **누구의** 구독인지·무엇이 사라지는지를 적는다(2026-09-28 점검 9차). 폰 카드 목록에서 작은 버튼이
+    //   붙어 있어 다른 카드의 해지를 눌러도 "이 구독을" 만 보고 확인하게 됐다. 해지는 카드 정보가 지워지고(트리거)
+    //   다시 켤 수 없다(부활 가드) — 고객이 새로 신청해야 한다.
+    const target = subs.find((s) => s.id === subId)
+    const who = target
+      ? `${target.profiles?.name || target.recipient_name || '고객'}${target.dogs ? ` · 🐶 ${target.dogs.name}` : ''} · ${target.total_amount.toLocaleString()}원`
+      : '이 구독'
     if (
       newStatus === 'cancelled' &&
-      !confirm('이 구독을 해지할까요? 다음 자동결제가 중단됩니다.')
+      !confirm(
+        `${who}\n\n이 구독을 해지할까요?\n· 다음 자동결제가 멈추고 등록된 카드 정보가 지워져요\n· 해지한 구독은 다시 켤 수 없어요(고객이 새로 신청해야 해요)`,
+      )
+    ) {
+      return
+    }
+    if (
+      newStatus === 'paused' &&
+      !confirm(`${who}\n\n이 구독을 일시정지할까요? 다시 시작하기 전까지 결제·발송이 멈춰요.`)
     ) {
       return
     }

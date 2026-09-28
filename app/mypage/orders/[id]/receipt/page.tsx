@@ -45,6 +45,7 @@ type OrderRow = {
   discount_amount: number | null
   discount_reason: string | null
   payment_status: string
+  refunded_amount: number | null
   payment_method: string | null
   order_status: string
   created_at: string
@@ -103,7 +104,7 @@ export default async function ReceiptPage({
     .select(
       `
       id, order_number, total_amount, shipping_fee, discount_amount,
-      discount_reason, payment_status,
+      discount_reason, payment_status, refunded_amount,
       payment_method, order_status, created_at, paid_at, recipient_name,
       recipient_phone, address, address_detail,
       zip, delivery_memo, user_id,
@@ -116,6 +117,10 @@ export default async function ReceiptPage({
 
   if (!order) notFound()
   const o = order as unknown as OrderRow
+  // ★결제되지 않은 주문은 영수증이 아니다(2026-09-28 점검 9차) — 결제 실패·대기 주문도 주소로 들어오면
+  //   결제 영수증 모양으로 '최종 결제 금액'을 찍었다. 한 번이라도 결제된 주문(환불 포함)만 영수증을 보인다.
+  if (!['paid', 'partially_refunded', 'refunded'].includes(o.payment_status)) notFound()
+  const refunded = Math.max(0, o.refunded_amount ?? 0)
 
   const subtotal = (o.order_items ?? []).reduce(
     (s, it) => s + (it.line_total ?? 0),
@@ -416,6 +421,19 @@ export default async function ReceiptPage({
               {o.total_amount.toLocaleString()}원
             </span>
           </div>
+          {/* 환불이 있으면 환불액과 실제 결제 금액을 함께 — 예전엔 환불 주문도 결제 금액만 찍었다(2026-09-28). */}
+          {refunded > 0 && (
+            <>
+              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span>환불 금액</span>
+                <span style={{ fontWeight: 700 }}>−{refunded.toLocaleString()}원</span>
+              </div>
+              <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ fontWeight: 700 }}>실제 결제 금액</span>
+                <span style={{ fontWeight: 800 }}>{Math.max(0, o.total_amount - refunded).toLocaleString()}원</span>
+              </div>
+            </>
+          )}
           {o.payment_method && (
             <div
               style={{

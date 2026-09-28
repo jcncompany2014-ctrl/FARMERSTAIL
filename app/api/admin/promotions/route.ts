@@ -222,12 +222,17 @@ export async function PATCH(req: Request) {
   }
 
   const admin = createAdminClient()
-  const { error } = await admin
+  const { data: changed, error } = await admin
     .from('promotions')
     .update({ active: body.active })
     .eq('id', body.id)
+    .select('id')
   if (error) {
     return dbError(error, 'admin_promotions_update', '프로모션을 수정하지 못했어요')
+  }
+  // 0행 = 그 id 가 없다 — 성공이라고 답하면 화면은 바뀌었는데 DB 는 그대로다(2026-09-28, 규칙1).
+  if (!changed || changed.length === 0) {
+    return NextResponse.json({ code: 'NOT_FOUND', message: '프로모션을 찾지 못했어요' }, { status: 404 })
   }
   await recordAdminAction(supabase, {
     action: 'coupon_update',

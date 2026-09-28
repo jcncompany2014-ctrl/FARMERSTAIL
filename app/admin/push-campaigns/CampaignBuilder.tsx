@@ -44,7 +44,20 @@ export default function CampaignBuilder() {
       toast.error('제목과 본문을 입력해 주세요')
       return
     }
-    if (!confirm('정말 일괄 발송할까요? 되돌릴 수 없습니다.')) return
+    // 누구에게·무엇이 나가는지 확인창에 적는다(2026-09-28 점검 9차) — 예전엔 "정말 일괄 발송할까요?" 뿐이었다.
+    const seg = SEGMENTS.find((x) => x.key === segment)
+    if (
+      !confirm(
+        `[광고] 푸시를 일괄 발송할까요? 되돌릴 수 없어요.
+
+· 대상: ${seg?.label ?? segment} — ${seg?.desc ?? ''}
+· 제목: ${title.trim()}
+· 본문: ${body.trim()}
+
+응답이 끊겨도 다시 누르지 말고 아래 발송 이력을 먼저 확인해 주세요(다시 누르면 한 번 더 나가요).`,
+      )
+    )
+      return
 
     setSending(true)
     try {

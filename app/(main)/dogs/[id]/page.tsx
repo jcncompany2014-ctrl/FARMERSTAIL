@@ -6,6 +6,7 @@
 // 이후: server-side parallel fetch + 즉시 페인트. 인증/소유 redirect 도 서버.
 import { redirect } from 'next/navigation'
 import { getTrialState } from '@/lib/payments/trial-state'
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
@@ -216,9 +217,22 @@ export default async function DogDetailPage({
   // 이 개요페이지 최상단으로 이동(2026-07-24 사장님). 29일+ 는 null=자동 졸업.
   const gracePhase = onboardingPhase(user.created_at)
 
+  // 구독 카드의 '원/2주' = 청구와 같은 함수(resolveAutoDiscount)로(2026-09-28 점검 9차) — 서포터즈만 반영하던 것.
+  const chargePreview: Record<string, number> = {}
+  await Promise.all(
+    (subscriptions as Array<{ id: string; total_amount: number }>).map(async (s) => {
+      try {
+        chargePreview[s.id] = (await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 })).chargeAmount
+      } catch {
+        /* 미리보기 실패 — 카드가 서포터즈 판정으로 대신 그린다 */
+      }
+    }),
+  )
+
   return (
     <DogDetailClient
       trial={await getTrialState(user.id)}
+      chargePreview={chargePreview}
       dog={dog}
       initialWeightLogs={initialWeightLogs}
       currentFormula={currentFormula}

@@ -76,7 +76,7 @@ export function renderOrderConfirmation(
     preview: `총 ${input.totalAmount.toLocaleString()}원 주문을 잘 받았어요`,
     body: `
       <p style="margin:0 0 16px 0;">
-        주문을 잘 받았어요. 상품 준비가 시작되면 다시 알려드릴게요.
+        주문을 잘 받았어요. 박스가 발송되면 송장번호와 함께 다시 알려드릴게요.
       </p>
       <div style="margin-top:12px;">
         <div style="font-size:10px;color:#7A7A7A;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:8px;">주문 상품</div>

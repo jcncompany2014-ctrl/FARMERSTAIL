@@ -66,6 +66,18 @@ export default function PromotionsClient({
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
+    // ★만들기 전에 무엇이 열리는지 확인(2026-09-28 점검 9차) — 9% 를 치려다 90 을 넣거나 인원 칸을 비우면(무제한)
+    //   기간 동안 링크로 가입한 모든 사람의 첫 박스가 그 할인으로 청구된다. 50% 초과는 한 번 더 묻는다.
+    const pct = Number(form.discountPct)
+    const cap = form.maxSignups ? `${Number(form.maxSignups).toLocaleString()}명` : '인원 제한 없음'
+    const period = `${form.startsAt || '지금'} ~ ${form.endsAt || '종료일 없음'}`
+    if (!window.confirm(`'${form.name || form.code}' 이벤트를 만들까요?
+
+· 첫 박스 ${pct}% 할인
+· ${cap}
+· 기간 ${period}
+· 링크: ${linkOf(form.code)}`)) return
+    if (pct > 50 && !window.confirm(`할인율이 ${pct}%예요. 오타가 아닌지 한 번 더 확인해 주세요 — 첫 박스가 ${100 - pct}% 가격으로 청구돼요.`)) return
     setBusy(true)
     setErr(null)
     try {
@@ -97,15 +109,23 @@ export default function PromotionsClient({
 
   async function toggle(id: string, active: boolean) {
     setRows((r) => r.map((p) => (p.id === id ? { ...p, active } : p)))
+    // ★서버가 거절해도(세션 만료 401·500) 화면만 '꺼짐'이 되던 것(2026-09-28 점검 9차) — 새어 나간 이벤트 링크를
+    //   급히 끄는 순간에 실제 DB 는 켜진 채 할인이 계속 붙었다. 응답을 보고 실패면 되돌리고 알린다.
+    const revert = () => setRows((r) => r.map((p) => (p.id === id ? { ...p, active: !active } : p)))
     try {
-      await fetch('/api/admin/promotions', {
+      const res = await fetch('/api/admin/promotions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, active }),
       })
+      if (!res.ok) {
+        revert()
+        const data = (await res.json().catch(() => null)) as { message?: string } | null
+        window.alert(`${active ? '켜기' : '끄기'}가 반영되지 않았어요 — ${data?.message ?? `오류 ${res.status}`}. 새로고침 후 다시 시도해 주세요`)
+      }
     } catch {
-      // 실패 시 원복 — 낙관적 UI.
-      setRows((r) => r.map((p) => (p.id === id ? { ...p, active: !active } : p)))
+      revert()
+      window.alert(`${active ? '켜기' : '끄기'}가 반영되지 않았어요 — 네트워크가 불안정해요`)
     }
   }
 

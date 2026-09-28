@@ -212,7 +212,7 @@ export default function SubscriptionsWebClient({
         return
       }
       toast.success(
-        `다음 배송을 ${weeks}주 미뤘어요. 정기배송 관리에서 되돌릴 수 있어요.`,
+        `다음 배송을 ${weeks}주 미뤘어요.`,
       )
       await reload()
       setActionLoading(null)
@@ -240,7 +240,7 @@ export default function SubscriptionsWebClient({
       trackSubscriptionPaused({ subscriptionId: subId, reason: 'user_action' })
     } else {
       toast.success(
-        `다음 배송을 ${weeks}주 미뤘어요. 정기배송 관리에서 되돌릴 수 있어요.`,
+        `다음 배송을 ${weeks}주 미뤘어요.`,
       )
     }
     await reload()

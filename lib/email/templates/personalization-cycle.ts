@@ -13,7 +13,7 @@ export type PersonalizationCycleEmailInput = {
   dogName: string
   dogId: string
   cycleNumber: number
-  /** 이번 박스 원물(레시피) 이름 — "한우·치킨 레시피". %·형용사 없음. */
+  /** 다음 박스 원물(레시피) 이름 — "한우·치킨 레시피". %·형용사 없음. */
   recipeLabel: string
   /** Reasoning chipLabel 배열. 최대 4개 노출. */
   reasoningLabels: string[]
@@ -44,7 +44,7 @@ export function renderPersonalizationCycle(
 
   const calloutHtml = `
     <div style="font-size:11px;font-weight:800;color:#B63619;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">
-      이번 박스 레시피
+      다음 박스 레시피
     </div>
     <div style="font-family:Pretendard,sans-serif;font-size:22px;font-weight:800;color:#173B33;letter-spacing:-0.02em;line-height:1.2;">
       ${escape(input.recipeLabel)}
@@ -75,7 +75,7 @@ export function renderPersonalizationCycle(
     }
 
     <p style="margin:24px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
-      레시피 구성과 이번 박스를 이렇게 정한 이유를 정기배송 화면에서 확인할 수 있어요.
+      레시피 구성과 다음 박스를 이렇게 정한 이유를 정기배송 화면에서 확인할 수 있어요.
     </p>
 
     <p style="margin:18px 0 0 0;font-size:11px;color:#5A6C61;line-height:1.65;">
@@ -134,7 +134,7 @@ export function renderPersonalizationApprovalNeeded(input: {
   if (hasPrice) {
     rows.push(
       block.row(
-        '2주 결제 금액',
+        '2주 상품 금액(할인 전)',
         `${input.priceFrom!.toLocaleString()}원 → <strong>${input.priceTo!.toLocaleString()}원</strong>`,
       ),
     )

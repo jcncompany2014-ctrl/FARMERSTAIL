@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DogSubscriptionClient, { type DogSub } from './DogSubscriptionClient'
 import { getTrialState } from '@/lib/payments/trial-state'
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 
 export default async function DogSubscriptionPage({
   params,
@@ -84,12 +85,31 @@ export default async function DogSubscriptionPage({
     ? `/dogs/${dogId}/plan`
     : `/dogs/${dogId}/analysis`
 
+  // ★다음 결제액은 청구 크론과 **같은 함수**(resolveAutoDiscount)로(2026-09-28 점검 9차). 예전엔 이 화면만
+  //   서포터즈 할인(trialPricing)만 반영해, 이벤트·이웃 할인·나무 등급 10% 가 빠진 금액을 "결제 예정"으로
+  //   보여 줬다(사전고지 메일·/mypage/subscriptions 와 숫자가 갈렸다). 계산 실패는 null → 화면이 옛 방식으로.
+  const subsList = (subsData ?? []) as unknown as DogSub[]
+  const chargePreview: Record<string, { chargeAmount: number; label: string | null }> = {}
+  await Promise.all(
+    subsList
+      .filter((s) => s.status === 'active' || s.status === 'paused')
+      .map(async (s) => {
+        try {
+          const d = await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 })
+          chargePreview[s.id] = { chargeAmount: d.chargeAmount, label: d.label ?? null }
+        } catch {
+          /* 미리보기 실패 — 화면은 서포터즈 판정으로 대신 그린다 */
+        }
+      }),
+  )
+
   return (
     <DogSubscriptionClient
-      initialSubs={(subsData ?? []) as unknown as DogSub[]}
+      initialSubs={subsList}
       dogName={dogName}
       startHref={startHref}
       trial={await getTrialState(user.id)}
+      chargePreview={chargePreview}
     />
   )
 }

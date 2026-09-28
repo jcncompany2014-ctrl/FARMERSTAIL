@@ -179,7 +179,7 @@ export default function PriceChangeConsentModal({
               </div>
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[12px]" style={{ color: 'var(--fd-muted)' }}>
-                  2주 결제
+                  2주 상품 금액(할인 전)
                 </span>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--fd-pine)' }}>
                   {won(proposal.priceFrom)} → {won(proposal.priceTo)}

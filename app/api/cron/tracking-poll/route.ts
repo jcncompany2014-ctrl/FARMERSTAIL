@@ -11,6 +11,7 @@ import { env } from '@/lib/env'
 import { pushToUser } from '@/lib/push'
 import { notifyOrderDelivered } from '@/lib/email'
 import { trackCron } from '@/lib/cron-tracking'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -94,6 +95,8 @@ async function runTrackingPoll(): Promise<Response> {
       'id, user_id, order_number, total_amount, recipient_name, carrier, tracking_number, shipped_at',
     )
     .eq('order_status', 'shipping')
+    // ★결제된 주문만(2026-09-28 점검 9차) — 배송 중 전액 환불한 주문에도 "배송이 완료됐어요"가 갔다.
+    .in('payment_status', [...PAID_STATUSES])
     .not('carrier', 'is', null)
     .not('tracking_number', 'is', null)
     .is('delivered_at', null)
@@ -211,13 +214,17 @@ async function runTrackingPoll(): Promise<Response> {
      * 되고, 고객에게 "배송이 완료됐어요" 가 **성공할 때까지 매일** 간다.
      * 그런데 크론은 계속 초록이었다(규칙1 의 알림 쪽 짝).
      */
-    const { error: deliveredErr } = await supabase
+    // CAS — 조회 뒤 관리자가 먼저 '배송완료'를 눌렀으면(또는 환불로 상태가 바뀌었으면) 0행 → 알림을 또 보내지 않는다.
+    const { data: deliveredRows, error: deliveredErr } = await supabase
       .from('orders')
       .update({
         order_status: 'delivered',
         delivered_at: deliveredAt,
       })
       .eq('id', ord.id)
+      .eq('order_status', 'shipping')
+      .is('delivered_at', null)
+      .select('id')
 
     if (deliveredErr) {
       console.error(
@@ -227,6 +234,11 @@ async function runTrackingPoll(): Promise<Response> {
       )
       errors += 1
       saveFailed += 1
+      await new Promise((r) => setTimeout(r, 200))
+      continue
+    }
+    if (!deliveredRows || deliveredRows.length === 0) {
+      // 이미 다른 경로가 처리 — 알림은 그쪽이 보냈다.
       await new Promise((r) => setTimeout(r, 200))
       continue
     }
