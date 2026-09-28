@@ -4964,7 +4964,9 @@ test('규칙132: 이웃 할인(첫 박스 1회 지정 할인)은 판정·소진�
   const resolver = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
   assert.match(resolver, /from\('neighbor_discounts'\)/, '판정이 이웃 할인을 안 본다')
   assert.match(resolver, /\.is\('redeemed_order_id', null\)/, '이미 쓴 이웃 할인이 다시 적용된다')
-  assert.match(resolver, /if \(!recurringOnly\) \{[\s\S]{0,200}neighbor_discounts/, '반복 금액 미리보기(recurringOnly)에 1회 할인이 섞인다')
+  // skipOneTime = recurringOnly || 앞선 구독 있음(규칙135) — 반복 금액·두 번째 구독 미리보기엔 1회 할인 제외.
+  assert.match(resolver, /const skipOneTime = recurringOnly \|\|/, 'skipOneTime 이 recurringOnly 를 포함하지 않는다')
+  assert.match(resolver, /if \(!skipOneTime\) \{[\s\S]{0,200}neighbor_discounts/, '반복 금액 미리보기(recurringOnly)에 1회 할인이 섞인다')
   assert.match(resolver, /pickWithNeighbor\(/, '더 큰 쪽 하나만 규칙(pickWithNeighbor)이 빠졌다')
 
   const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
@@ -5114,4 +5116,29 @@ test('규칙141: 관리자 한 번의 오터치가 되돌릴 수 없게 번지�
   for (const f of ['app/(main)/dogs/[id]/subscription/page.tsx', 'app/(main)/dogs/[id]/page.tsx']) {
     assert.ok(stripComments(read(join(ROOT, ...f.split('/')))).includes('resolveAutoDiscount('), `${f}: 결제 예정 금액이 청구와 다른 계산(서포터즈만)이다`)
   }
+})
+
+test('규칙135: 여러 구독 미리보기 — 1회성 할인·서포터즈 회차는 사용자 단위, 청구 순서 첫 구독만 받는다', () => {
+  /**
+   * 2026-09-28 출시점검 9차: 이벤트 50% 고객이 두 마리를 같은 화요일에 시작하면 두 구독 모두
+   * "42,850원 예정"으로 사전 고지됐는데 실제로는 먼저 청구되는 하나만 할인(소진은 청구 성공 뒤).
+   * 미리보기는 subscriptionId 를 넘겨 청구 순서상 앞선 구독만큼 당겨 계산하고,
+   * 청구 크론은 넘기지 않는다(실시간 상태로 판정 — 이미 맞다).
+   */
+  const resolver = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
+  assert.match(resolver, /advanceTrialState\(await getTrialState\(userId\), ahead\)/, '서포터즈 회차를 앞선 구독만큼 당기지 않는다')
+  assert.match(resolver, /const skipOneTime = recurringOnly \|\| ahead > 0/, '두 번째 이후 구독 미리보기에 1회성 할인이 들어간다')
+  assert.match(resolver, /\.order\('next_delivery_date', \{ ascending: true \}\)\s*\.order\('id'/, '청구 순서(next_delivery_date, id) 기준이 아니다')
+
+  for (const rel of [
+    ['app', '(main)', 'dogs', '[id]', 'page.tsx'],
+    ['app', '(main)', 'dogs', '[id]', 'subscription', 'page.tsx'],
+    ['app', '(main)', 'mypage', 'subscriptions', 'page.tsx'],
+    ['app', 'api', 'cron', 'subscription-reminders', 'route.ts'],
+  ]) {
+    const src = stripComments(read(join(ROOT, ...rel)))
+    assert.match(src, /resolveAutoDiscount\(\{[^}]*subscriptionId:/, `${rel.join('/')}: 구독별 미리보기가 청구 순서를 모른다`)
+  }
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.doesNotMatch(cron, /resolveAutoDiscount\(\{[^}]*subscriptionId:/, '청구 크론이 미리보기 옵션을 쓴다 — 실제 청구는 실시간 상태로')
 })

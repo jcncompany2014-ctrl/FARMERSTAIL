@@ -137,7 +137,7 @@ export async function GET(req: Request) {
      */
     const chargeAmount =
       typeof sub.total_amount === 'number' && sub.total_amount > 0
-        ? (await resolveAutoDiscount({ userId: sub.user_id, subtotal: sub.total_amount }))
+        ? (await resolveAutoDiscount({ userId: sub.user_id, subtotal: sub.total_amount, subscriptionId: sub.id }))
             .chargeAmount
         : sub.total_amount
 

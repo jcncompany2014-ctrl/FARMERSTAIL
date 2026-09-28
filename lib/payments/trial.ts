@@ -22,6 +22,24 @@ export type TrialState = {
 
 export type TrialPhase = 'cheap' | 'half'
 
+/**
+ * 앞선 청구가 `rounds` 번 먼저 회차를 쓴 뒤의 상태 — 여러 구독 미리보기용(2026-09-28 9차 점검).
+ * 한 사람의 서포터즈 회차는 구독 수와 무관하게 사용자 단위로 줄어든다. 청구 순서상 두 번째
+ * 구독의 결제 예정 금액은 첫 구독이 한 회차를 쓴 뒤의 가격이어야 한다. 100원 구간부터 쓰고,
+ * 다 쓰면 반값 구간을 쓴다(청구 크론의 차감 순서와 같다). 청구 자체엔 쓰지 않는다.
+ */
+export function advanceTrialState(state: TrialState | null, rounds: number): TrialState | null {
+  if (!state || rounds <= 0) return state
+  const n = Math.trunc(rounds)
+  const fromCheap = Math.min(state.cheap_remaining, n)
+  const fromHalf = Math.min(state.half_remaining, n - fromCheap)
+  return {
+    ...state,
+    cheap_remaining: state.cheap_remaining - fromCheap,
+    half_remaining: state.half_remaining - fromHalf,
+  }
+}
+
 export type TrialPricing = {
   phase: TrialPhase
   chargeAmount: number

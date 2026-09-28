@@ -95,7 +95,7 @@ export default async function DogSubscriptionPage({
       .filter((s) => s.status === 'active' || s.status === 'paused')
       .map(async (s) => {
         try {
-          const d = await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 })
+          const d = await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0, subscriptionId: s.id })
           chargePreview[s.id] = { chargeAmount: d.chargeAmount, label: d.label ?? null }
         } catch {
           /* 미리보기 실패 — 화면은 서포터즈 판정으로 대신 그린다 */

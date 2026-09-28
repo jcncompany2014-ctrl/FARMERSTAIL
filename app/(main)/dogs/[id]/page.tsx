@@ -222,7 +222,7 @@ export default async function DogDetailPage({
   await Promise.all(
     (subscriptions as Array<{ id: string; total_amount: number }>).map(async (s) => {
       try {
-        chargePreview[s.id] = (await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 })).chargeAmount
+        chargePreview[s.id] = (await resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0, subscriptionId: s.id })).chargeAmount
       } catch {
         /* 미리보기 실패 — 카드가 서포터즈 판정으로 대신 그린다 */
       }

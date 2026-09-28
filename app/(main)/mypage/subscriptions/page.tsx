@@ -259,7 +259,7 @@ export default async function AppSubscriptionsSummaryPage({
   const [discounts, trial] = await Promise.all([
     Promise.all(
       dueNext.map((s) =>
-        resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0 }),
+        resolveAutoDiscount({ userId: user.id, subtotal: s.total_amount ?? 0, subscriptionId: s.id }),
       ),
     ),
     getTrialState(user.id),

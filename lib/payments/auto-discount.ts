@@ -7,7 +7,7 @@ import {
   type DiscountReason,
 } from '@/lib/discount'
 import { pickBetterDiscount } from '@/lib/promotions'
-import { trialPricing } from '@/lib/payments/trial'
+import { advanceTrialState, trialPricing } from '@/lib/payments/trial'
 import { pickWithNeighbor } from '@/lib/payments/neighbor'
 import { hasPaidBox } from '@/lib/payments/customer-history'
 import { getTrialState } from '@/lib/payments/trial-state'
@@ -73,8 +73,16 @@ export async function resolveAutoDiscount(input: {
    * (2026-09-26, 카드 등록 화면이 이벤트 첫 박스가를 '2주마다' 금액으로 말하던 것). 청구엔 쓰지 않는다.
    */
   recurringOnly?: boolean
+  /**
+   * 미리보기 전용 — 이 구독의 결제 예정 금액을 계산할 때 넘긴다(2026-09-28 9차 점검).
+   * 이벤트·이웃 할인·서포터즈 회차는 **사용자 단위**라, 구독이 여럿이면 청구 순서상 먼저 결제되는
+   * 구독이 먼저 쓴다. 넘기면 청구 순서(next_delivery_date, id)상 앞선 구독 수만큼: 1회성 할인은
+   * 빼고, 서포터즈 회차는 당겨서 계산한다. **청구(크론)엔 넘기지 않는다** — 실제 청구는 앞선
+   * 구독이 쓴 뒤의 실시간 상태로 판정되므로 이미 맞다.
+   */
+  subscriptionId?: string
 }): Promise<AutoDiscount> {
-  const { userId, subtotal, recurringOnly = false } = input
+  const { userId, subtotal, recurringOnly = false, subscriptionId } = input
   const fullCharge: AutoDiscount = {
     reason: 'none',
     discountAmount: 0,
@@ -84,9 +92,16 @@ export async function resolveAutoDiscount(input: {
     label: null,
   }
 
+  // 여러 구독 미리보기 — 이 구독보다 먼저 청구될 구독 수(0 이면 첫 구독, 기존과 같다).
+  const ahead = subscriptionId && !recurringOnly ? await subscriptionsAhead(userId, subscriptionId) : 0
+  // 앞선 구독이 1회성 할인(이벤트·이웃)을 먼저 쓴다 → 이 구독의 미리보기에선 뺀다.
+  const skipOneTime = recurringOnly || ahead > 0
+
   // 체험단이면 그것만 쓴다 — 등급·프로모션과 절대 겹치지 않고, 프로모션 claim 은
   // 남겨 둔다(체험 뒤 첫 정상 결제에 쓸 수 있게). docs/TRIAL_PROGRAM_2026_10.md v2.
-  const trial = recurringOnly ? null : trialPricing(await getTrialState(userId), subtotal)
+  const trial = recurringOnly
+    ? null
+    : trialPricing(advanceTrialState(await getTrialState(userId), ahead), subtotal)
   if (trial) {
     return {
       reason: trial.phase === 'cheap' ? 'trial_cheap' : 'trial_half',
@@ -134,8 +149,8 @@ export async function resolveAutoDiscount(input: {
   //   청구는 막지 않되(정가로 긁고 사람이 차액을 돌려준다 — 위 profile 조회와 같은 판단)
   //   반드시 error 로 남긴다.
   let promoRate = 0
-  // recurringOnly(반복 금액 미리보기)면 한 번만 붙는 이벤트 할인을 조회하지 않는다.
-  const { data: r, error: promoErr } = recurringOnly
+  // recurringOnly(반복 금액 미리보기)·앞선 구독이 있는 미리보기면 한 번만 붙는 이벤트 할인을 조회하지 않는다.
+  const { data: r, error: promoErr } = skipOneTime
     ? { data: null, error: null }
     : await (
         supabase as unknown as {
@@ -159,7 +174,7 @@ export async function resolveAutoDiscount(input: {
   // 조회 실패는 '없음'(프로모션과 같은 판단)이되 반드시 이벤트로 남긴다.
   // recurringOnly(둘째 박스부터 금액 미리보기)면 한 번만 붙는 할인이라 빼고 센다.
   let neighborRate = 0
-  if (!recurringOnly) {
+  if (!skipOneTime) {
     const { data: nb, error: nbErr } = await supabase
       .from('neighbor_discounts')
       .select('rate')
@@ -209,4 +224,31 @@ export async function resolveAutoDiscount(input: {
     neighborClaimed: final.useNeighbor,
     label: discountAmount > 0 ? final.label : null,
   }
+}
+
+/**
+ * 청구 순서상 이 구독보다 먼저 결제될 활성 구독 수 — 청구 크론과 같은 순서(next_delivery_date, id).
+ * 조회 실패·이 구독이 활성 목록에 없음이면 0(기존 동작 — 미리보기가 조금 낙관적일 뿐 청구엔 영향 없음).
+ */
+async function subscriptionsAhead(userId: string, subscriptionId: string): Promise<number> {
+  let admin: ReturnType<typeof createAdminClient>
+  try {
+    admin = createAdminClient()
+  } catch {
+    return 0
+  }
+  const { data, error } = await admin
+    .from('subscriptions')
+    .select('id, next_delivery_date')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .not('next_delivery_date', 'is', null)
+    .order('next_delivery_date', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) {
+    captureBusinessEvent('warning', 'billing.auto_discount.order_lookup_failed', { userId, dbError: error.message })
+    return 0
+  }
+  const idx = (data ?? []).findIndex((s) => s.id === subscriptionId)
+  return idx > 0 ? idx : 0
 }

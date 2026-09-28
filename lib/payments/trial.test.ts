@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { trialPricing, type TrialState } from './trial.ts'
+import { advanceTrialState, trialPricing, type TrialState } from './trial.ts'
 
 const base = (over: Partial<TrialState> = {}): TrialState => ({
   cheap_remaining: 4,
@@ -57,5 +57,26 @@ describe('체험단 3단 가격', () => {
 
   it('회차 우선순위: cheap 이 남아있으면 half 를 먼저 쓰지 않는다', () => {
     assert.equal(trialPricing(base({ cheap_remaining: 1 }), 31620)?.phase, 'cheap')
+  })
+})
+
+describe('여러 구독 미리보기 — 앞선 청구가 쓴 회차만큼 당긴다', () => {
+  it('100원 1회 남은 사람의 두 번째 구독은 반값으로 보인다', () => {
+    const s = base({ cheap_remaining: 1, half_remaining: 4 })
+    assert.equal(trialPricing(advanceTrialState(s, 1), 31620)?.phase, 'half')
+  })
+  it('100원을 다 쓰면 반값에서 이어서 뺀다', () => {
+    const s = advanceTrialState(base({ cheap_remaining: 2, half_remaining: 4 }), 3)
+    assert.equal(s?.cheap_remaining, 0)
+    assert.equal(s?.half_remaining, 3)
+  })
+  it('다 쓰고도 남으면 체험 없음(정상가)', () => {
+    const s = advanceTrialState(base({ cheap_remaining: 1, half_remaining: 1 }), 5)
+    assert.equal(trialPricing(s, 31620), null)
+  })
+  it('첫 구독(0회)·체험 없음은 그대로', () => {
+    const s = base({ cheap_remaining: 3 })
+    assert.equal(advanceTrialState(s, 0), s)
+    assert.equal(advanceTrialState(null, 2), null)
   })
 })
