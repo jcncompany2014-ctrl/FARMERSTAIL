@@ -5003,3 +5003,30 @@ test('규칙133: 알림톡 — 보내기 전에 자리 잡기(한 번만) · 절
   const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
   assert.match(shell, /href:\s*'\/admin\/messages'/, '알림톡 화면이 실제 어드민 내비에 없다')
 })
+
+test('규칙134: 돈이 걸린 어드민 도장(서포터즈·이웃 할인) — 기존 결제 고객 차단 · 확인창 · 후보 이력 표시 · 감사 기록', () => {
+  /**
+   * 2026-09-28 출시점검 9차(어드민 위험 동작): 부분 이름 검색 10줄 중 잘못 누르면 확인 없이 즉시
+   * 등록됐고, 서버가 결제 이력을 안 봐서 기존 구독자에게 붙으면 다음 결제부터 100원×4→반값×4
+   * (약 19.6만 원) 또는 최대 50% 할인이 나갔다. 떼면 남은 회차 흔적도 없었다(떼고 다시 찍으면 4+4 초기화).
+   */
+  const trials = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'trials', 'route.ts')))
+  const neighbors = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'neighbors', 'route.ts')))
+  assert.match(trials, /hasPaidBox\(admin, body\.userId\)[\s\S]{0,400}body\.force !== true/, '서포터즈 도장이 결제 이력 고객을 force 없이 받는다')
+  assert.match(neighbors, /hasPaidBox\(admin, body\.userId\)[\s\S]{0,400}NOT_FIRST_BOX/, '이웃 할인이 결제 이력 고객에게 붙는다')
+  for (const [name, src] of [['trials', trials], ['neighbors', neighbors]] as const) {
+    assert.match(src, /customerHistories\(/, `${name}: 후보 검색이 구독 상태·결제 이력을 안 보여준다`)
+    const audits = src.match(/recordAdminAction\(/g) ?? []
+    assert.ok(audits.length >= 2, `${name}: 붙이기·떼기 감사 기록이 없다(${audits.length})`)
+  }
+
+  const resolver = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
+  assert.match(resolver, /hasPaidBox\(supabase, userId\)/, '청구 판정이 이웃 할인의 "첫 박스"를 강제하지 않는다')
+
+  const tc = stripComments(read(join(ROOT, 'app', 'admin', 'trials', 'TrialsClient.tsx')))
+  const nc = stripComments(read(join(ROOT, 'app', 'admin', 'neighbors', 'NeighborsClient.tsx')))
+  assert.match(tc, /async function stamp\([\s\S]{0,200}window\.confirm/, '서포터즈 도장 찍기에 확인창이 없다')
+  assert.match(tc, /HAS_PAID_HISTORY[\s\S]{0,200}window\.confirm/, '결제 이력 고객 재확인이 없다')
+  assert.match(nc, /async function give\([\s\S]{0,300}window\.confirm/, '이웃 할인 붙이기에 확인창이 없다')
+  assert.match(tc, /취소하지 못했어요/, '도장 취소 실패가 화면에 안 나온다')
+})

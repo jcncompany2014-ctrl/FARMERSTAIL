@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { dbError } from '@/lib/api/errors'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
+import { recordAdminAction } from '@/lib/admin-audit'
+import { customerHistories, hasPaidBox } from '@/lib/payments/customer-history'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,7 +29,7 @@ async function requireAdmin() {
   if (!user) return { fail: NextResponse.json({ code: 'UNAUTHORIZED', message: '로그인이 필요해요' }, { status: 401 }) }
   if (!(await isAdmin(supabase, user)))
     return { fail: NextResponse.json({ code: 'FORBIDDEN', message: '권한이 없어요' }, { status: 403 }) }
-  return { user }
+  return { user, supabase }
 }
 
 export async function GET(req: Request) {
@@ -43,11 +45,17 @@ export async function GET(req: Request) {
     if (!safeQ) return NextResponse.json({ ok: true, candidates: [] })
     const { data, error } = await admin
       .from('profiles')
-      .select('id, name, email')
+      .select('id, name, email, created_at')
       .or(`email.ilike.%${safeQ}%,name.ilike.%${safeQ}%`)
       .limit(10)
     if (error) return dbError(error, 'admin_trials_search', '검색하지 못했어요')
-    return NextResponse.json({ ok: true, candidates: data ?? [] })
+    // 후보마다 구독 상태·결제 박스 수·가입일 — 이름만 보고 엉뚱한 사람(기존 구독자)에게 붙이는 사고 방지.
+    const hist = await customerHistories(admin, (data ?? []).map((p) => p.id))
+    if (!hist.ok) return dbError({ message: hist.error }, 'admin_trials_search_history', '고객 이력을 불러오지 못했어요')
+    return NextResponse.json({
+      ok: true,
+      candidates: (data ?? []).map((p) => ({ ...p, ...hist.byUser.get(p.id)! })),
+    })
   }
 
   const { data: trials, error } = await admin
@@ -80,7 +88,7 @@ export async function POST(req: Request) {
   const gate = await requireAdmin()
   if ('fail' in gate) return gate.fail
 
-  let body: { userId?: string; note?: string; cheapBoxes?: number; halfBoxes?: number }
+  let body: { userId?: string; note?: string; cheapBoxes?: number; halfBoxes?: number; force?: boolean }
   try {
     body = await req.json()
   } catch {
@@ -97,6 +105,19 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient()
+  // ★기존 구독자에게 잘못 찍으면 다음 결제부터 100원×4 → 반값×4(2026-09-28 9차 점검).
+  //   결제한 박스가 있으면 기본 거부 — 화면이 한 번 더 확인받고 force 로만 찍는다.
+  //   이력 조회 실패는 막는다(돈이 걸린 도장).
+  const paid = await hasPaidBox(admin, body.userId)
+  if (paid === null) {
+    return NextResponse.json({ code: 'HISTORY_UNAVAILABLE', message: '결제 이력을 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요' }, { status: 503 })
+  }
+  if (paid && body.force !== true) {
+    return NextResponse.json(
+      { code: 'HAS_PAID_HISTORY', message: '이미 결제한 박스가 있는 고객이에요 — 찍으면 다음 결제부터 서포터즈 가격이 적용돼요' },
+      { status: 409 },
+    )
+  }
   const { error } = await admin.from('subscription_trials').insert({
     user_id: body.userId,
     cheap_remaining: cheap,
@@ -110,6 +131,13 @@ export async function POST(req: Request) {
     }
     return dbError(error, 'admin_trials_create', '도장을 찍지 못했어요')
   }
+  await recordAdminAction(gate.supabase, {
+    action: 'trial_stamp',
+    entityType: 'user',
+    entityId: body.userId,
+    diff: { after: { cheap_remaining: cheap, half_remaining: half }, meta: { forced: paid === true } },
+    req,
+  })
   return NextResponse.json({ ok: true })
 }
 
@@ -127,7 +155,22 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ code: 'INVALID_BODY', message: 'userId 필요' }, { status: 400 })
   }
   const admin = createAdminClient()
-  const { error } = await admin.from('subscription_trials').delete().eq('user_id', body.userId)
+  // 지우기 전 남은 회차를 감사 기록에 담는다 — 떼고 다시 찍으면 4+4 로 초기화되므로 흔적이 필요.
+  const { data: rows, error } = await admin
+    .from('subscription_trials')
+    .delete()
+    .eq('user_id', body.userId)
+    .select('cheap_remaining, half_remaining, note, created_at')
   if (error) return dbError(error, 'admin_trials_delete', '도장을 취소하지 못했어요')
+  if (!rows || rows.length === 0) {
+    return NextResponse.json({ code: 'NOT_FOUND', message: '도장이 없거나 이미 취소됐어요' }, { status: 404 })
+  }
+  await recordAdminAction(gate.supabase, {
+    action: 'trial_unstamp',
+    entityType: 'user',
+    entityId: body.userId,
+    diff: { before: rows[0] },
+    req,
+  })
   return NextResponse.json({ ok: true })
 }

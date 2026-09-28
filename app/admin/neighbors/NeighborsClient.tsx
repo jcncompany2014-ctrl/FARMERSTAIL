@@ -19,7 +19,24 @@ export type NeighborRow = {
   profile: { name: string | null; email: string | null }
 }
 
-type Candidate = { id: string; name: string | null; email: string | null }
+type Candidate = {
+  id: string
+  name: string | null
+  email: string | null
+  created_at?: string
+  paidBoxes?: number
+  subscriptionStatus?: string | null
+}
+
+const SUB_LABEL: Record<string, string> = { active: '구독 중', paused: '일시정지', cancelled: '해지' }
+
+/** 후보 줄 설명 — 이름만 보고 엉뚱한 사람에게 누르지 않게(2026-09-28 9차 점검). */
+function candidateMeta(c: Candidate): string {
+  const sub = c.subscriptionStatus ? (SUB_LABEL[c.subscriptionStatus] ?? c.subscriptionStatus) : '구독 없음'
+  const paid = c.paidBoxes ? `결제 ${c.paidBoxes}회` : '결제 없음'
+  const joined = c.created_at ? `가입 ${c.created_at.slice(0, 10)}` : ''
+  return [sub, paid, joined].filter(Boolean).join(' · ')
+}
 
 const pct = (r: number) => `${Math.round(r * 100)}%`
 
@@ -53,6 +70,8 @@ export default function NeighborsClient({ initial }: { initial: NeighborRow[] })
   }
 
   async function give(c: Candidate) {
+    const who = `${c.name ?? '(이름 없음)'} ${c.email ?? ''}`.trim()
+    if (!window.confirm(`${who} 님에게 이웃 할인 ${pct(rate)}를 붙일까요?\n(${candidateMeta(c)})\n\n첫 결제 한 번에만 적용돼요.`)) return
     setBusy(true)
     setMsg(null)
     try {
@@ -136,12 +155,18 @@ export default function NeighborsClient({ initial }: { initial: NeighborRow[] })
           <ul className="mt-3 grid gap-2">
             {candidates.map((c) => (
               <li key={c.id} className="flex items-center justify-between rounded border border-[color:var(--adminui-line)] px-3 py-2">
-                <span className="text-[14px]">
+                <span className="min-w-0 text-[14px]">
                   {c.name ?? '(이름 없음)'} <span className="text-[color:var(--adminui-mute)]">{c.email ?? '이메일 없음(카카오)'}</span>
+                  <span className="block text-[12px] text-[color:var(--adminui-mute)]">{candidateMeta(c)}</span>
                 </span>
-                <AdminButton onClick={() => give(c)} disabled={busy}>
-                  이웃 할인 {pct(rate)} 붙이기
-                </AdminButton>
+                {c.paidBoxes ? (
+                  // 첫 박스 전용 — 결제 이력이 있으면 서버도 거부한다(9차 점검).
+                  <span className="text-[12px] text-[color:var(--adminui-mute)]">첫 박스가 지나서 붙일 수 없어요</span>
+                ) : (
+                  <AdminButton onClick={() => give(c)} disabled={busy}>
+                    이웃 할인 {pct(rate)} 붙이기
+                  </AdminButton>
+                )}
               </li>
             ))}
           </ul>

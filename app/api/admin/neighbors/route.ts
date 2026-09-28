@@ -5,6 +5,8 @@ import { isAdmin } from '@/lib/auth/admin'
 import { dbError } from '@/lib/api/errors'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
 import { NEIGHBOR_RATES } from '@/lib/payments/neighbor'
+import { recordAdminAction } from '@/lib/admin-audit'
+import { customerHistories, hasPaidBox } from '@/lib/payments/customer-history'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,7 +30,7 @@ async function requireAdmin() {
   if (!user) return { fail: NextResponse.json({ code: 'UNAUTHORIZED', message: '로그인이 필요해요' }, { status: 401 }) }
   if (!(await isAdmin(supabase, user)))
     return { fail: NextResponse.json({ code: 'FORBIDDEN', message: '권한이 없어요' }, { status: 403 }) }
-  return { user }
+  return { user, supabase }
 }
 
 export async function GET(req: Request) {
@@ -44,11 +46,17 @@ export async function GET(req: Request) {
     if (!safeQ) return NextResponse.json({ ok: true, candidates: [] })
     const { data, error } = await admin
       .from('profiles')
-      .select('id, name, email')
+      .select('id, name, email, created_at')
       .or(`email.ilike.%${safeQ}%,name.ilike.%${safeQ}%`)
       .limit(10)
     if (error) return dbError(error, 'admin_neighbors_search', '검색하지 못했어요')
-    return NextResponse.json({ ok: true, candidates: data ?? [] })
+    // 후보마다 구독 상태·결제 박스 수·가입일 — 이름만 보고 엉뚱한 사람(기존 구독자)에게 붙이는 사고 방지.
+    const hist = await customerHistories(admin, (data ?? []).map((p) => p.id))
+    if (!hist.ok) return dbError({ message: hist.error }, 'admin_neighbors_search_history', '고객 이력을 불러오지 못했어요')
+    return NextResponse.json({
+      ok: true,
+      candidates: (data ?? []).map((p) => ({ ...p, ...hist.byUser.get(p.id)! })),
+    })
   }
 
   const { data: rows, error } = await admin
@@ -96,6 +104,18 @@ export async function POST(req: Request) {
   const note = (body.note ?? '').trim().slice(0, 200)
 
   const admin = createAdminClient()
+  // ★'첫 박스' 할인이다 — 결제한 박스가 있는 고객에겐 붙이지 않는다(2026-09-28 9차 점검:
+  //   기존 구독자의 다음 회차가 최대 50% 할인되는 경로). 청구 판정도 같은 검사를 한다.
+  const paid = await hasPaidBox(admin, body.userId)
+  if (paid === null) {
+    return NextResponse.json({ code: 'HISTORY_UNAVAILABLE', message: '결제 이력을 확인하지 못했어요. 잠시 뒤 다시 시도해 주세요' }, { status: 503 })
+  }
+  if (paid) {
+    return NextResponse.json(
+      { code: 'NOT_FIRST_BOX', message: '이미 결제한 박스가 있는 고객이에요 — 이웃 할인은 첫 박스 전용이에요' },
+      { status: 409 },
+    )
+  }
   const { error } = await admin.from('neighbor_discounts').insert({
     user_id: body.userId,
     rate,
@@ -109,6 +129,13 @@ export async function POST(req: Request) {
     }
     return dbError(error, 'admin_neighbors_create', '이웃 할인을 붙이지 못했어요')
   }
+  await recordAdminAction(gate.supabase, {
+    action: 'neighbor_discount_give',
+    entityType: 'user',
+    entityId: body.userId,
+    diff: { after: { rate, source } },
+    req,
+  })
   return NextResponse.json({ ok: true })
 }
 
@@ -132,10 +159,17 @@ export async function DELETE(req: Request) {
     .delete()
     .eq('user_id', body.userId)
     .is('redeemed_order_id', null)
-    .select('user_id')
+    .select('rate, source, created_at')
   if (error) return dbError(error, 'admin_neighbors_delete', '이웃 할인을 떼지 못했어요')
   if (!data || data.length === 0) {
     return NextResponse.json({ code: 'NOT_DELETABLE', message: '이미 쓴 할인이거나 없어요' }, { status: 409 })
   }
+  await recordAdminAction(gate.supabase, {
+    action: 'neighbor_discount_remove',
+    entityType: 'user',
+    entityId: body.userId,
+    diff: { before: data[0] },
+    req,
+  })
   return NextResponse.json({ ok: true })
 }

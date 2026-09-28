@@ -9,6 +9,7 @@ import {
 import { pickBetterDiscount } from '@/lib/promotions'
 import { trialPricing } from '@/lib/payments/trial'
 import { pickWithNeighbor } from '@/lib/payments/neighbor'
+import { hasPaidBox } from '@/lib/payments/customer-history'
 import { getTrialState } from '@/lib/payments/trial-state'
 
 /**
@@ -171,8 +172,19 @@ export async function resolveAutoDiscount(input: {
         dbError: nbErr.message,
       })
     } else if (nb) {
-      const n = Number(nb.rate)
-      if (Number.isFinite(n) && n > 0) neighborRate = Math.min(1, n)
+      // ★'첫 박스'를 청구 시점에도 서버가 강제한다(2026-09-28 9차 점검). 도장 API 가 결제 이력을
+      //   거르지만, 그 뒤에 결제가 생긴 채 도장이 남아 있으면(예: 도장 후 다른 경로로 첫 박스 결제)
+      //   기존 구독자의 다음 회차가 최대 50% 할인된다. 박스가 실제로 나간 결제가 있으면 안 쓴다.
+      //   이력 조회 실패는 안 쓰는 쪽(할인 누수보다 정가가 회복 가능) + 이벤트.
+      const paid = await hasPaidBox(supabase, userId)
+      if (paid === null) {
+        captureBusinessEvent('error', 'billing.auto_discount.neighbor_history_failed', { userId })
+      } else if (paid) {
+        captureBusinessEvent('warning', 'billing.auto_discount.neighbor_not_first_box', { userId })
+      } else {
+        const n = Number(nb.rate)
+        if (Number.isFinite(n) && n > 0) neighborRate = Math.min(1, n)
+      }
     }
   }
 

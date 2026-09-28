@@ -18,7 +18,24 @@ export type TrialRow = {
   profile: { name: string | null; email: string | null }
 }
 
-type Candidate = { id: string; name: string | null; email: string | null }
+type Candidate = {
+  id: string
+  name: string | null
+  email: string | null
+  created_at?: string
+  paidBoxes?: number
+  subscriptionStatus?: string | null
+}
+
+const SUB_LABEL: Record<string, string> = { active: '구독 중', paused: '일시정지', cancelled: '해지' }
+
+/** 후보 줄 설명 — 이름만 보고 엉뚱한 사람에게 누르지 않게(2026-09-28 9차 점검). */
+function candidateMeta(c: Candidate): string {
+  const sub = c.subscriptionStatus ? (SUB_LABEL[c.subscriptionStatus] ?? c.subscriptionStatus) : '구독 없음'
+  const paid = c.paidBoxes ? `결제 ${c.paidBoxes}회` : '결제 없음'
+  const joined = c.created_at ? `가입 ${c.created_at.slice(0, 10)}` : ''
+  return [sub, paid, joined].filter(Boolean).join(' · ')
+}
 
 function phaseBadge(t: TrialRow) {
   if (t.cheap_remaining > 0) return <Badge tone="green">100원 구간 · {t.cheap_remaining}회 남음</Badge>
@@ -54,15 +71,26 @@ export default function TrialsClient({ initial }: { initial: TrialRow[] }) {
   }
 
   async function stamp(c: Candidate) {
+    const who = `${c.name ?? '(이름 없음)'} ${c.email ?? ''}`.trim()
+    // 찍기는 돈이 걸린 동작 — 대상·조건을 확인받는다(취소에만 있던 확인창, 9차 점검).
+    if (!window.confirm(`${who} 님에게 서포터즈 도장을 찍을까요?\n(${candidateMeta(c)})\n\n다음 결제부터 100원 4회 → 반값 4회 → 정상가로 진행돼요.`)) return
     setBusy(true)
     setMsg(null)
     try {
-      const r = await fetch('/api/admin/trials', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userId: c.id, note: c.name ?? '' }),
-      })
-      const j = await r.json()
+      const send = (force: boolean) =>
+        fetch('/api/admin/trials', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ userId: c.id, note: c.name ?? '', force }),
+        })
+      let r = await send(false)
+      let j = await r.json()
+      // 결제 이력이 있는 기존 고객 — 서버가 막았다. 정말 맞는지 한 번 더 묻고 force 로만.
+      if (r.status === 409 && j.code === 'HAS_PAID_HISTORY') {
+        if (!window.confirm(`⚠️ ${who} 님은 이미 결제한 박스가 있는 고객이에요(${candidateMeta(c)}).\n찍으면 다음 결제부터 100원이 돼요. 정말 찍을까요?`)) return
+        r = await send(true)
+        j = await r.json()
+      }
       if (!r.ok) {
         setMsg(j.message ?? '실패했어요')
         return
@@ -85,7 +113,14 @@ export default function TrialsClient({ initial }: { initial: TrialRow[] }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ userId: t.user_id }),
       })
-      if (r.ok) await refresh()
+      if (!r.ok) {
+        // 실패가 무반응이면 취소된 줄 안다(9차 점검).
+        const j = await r.json().catch(() => ({}))
+        setMsg((j as { message?: string }).message ?? '취소하지 못했어요')
+        return
+      }
+      setMsg('도장을 취소했어요. 다음 결제부터 정상 규칙으로 돌아가요.')
+      await refresh()
     } finally {
       setBusy(false)
     }
@@ -114,8 +149,9 @@ export default function TrialsClient({ initial }: { initial: TrialRow[] }) {
           <ul className="mt-3 grid gap-2">
             {candidates.map((c) => (
               <li key={c.id} className="flex items-center justify-between rounded border border-[color:var(--adminui-line)] px-3 py-2">
-                <span className="text-[14px]">
+                <span className="min-w-0 text-[14px]">
                   {c.name ?? '(이름 없음)'} <span className="text-[color:var(--adminui-mute)]">{c.email ?? '이메일 없음(카카오)'}</span>
+                  <span className="block text-[12px] text-[color:var(--adminui-mute)]">{candidateMeta(c)}</span>
                 </span>
                 <AdminButton onClick={() => stamp(c)} disabled={busy}>
                   체험단 도장
