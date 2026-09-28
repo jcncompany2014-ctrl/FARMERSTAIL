@@ -81,8 +81,14 @@ export async function resolveAutoDiscount(input: {
    * 구독이 쓴 뒤의 실시간 상태로 판정되므로 이미 맞다.
    */
   subscriptionId?: string
+  /**
+   * 미리보기 전용 — 앞선 구독 수를 호출부가 직접 준다(청구 순서에 아직 없는 카드 등록 전 구독).
+   * 동의 화면은 고지액 ≥ 실제 청구액이어야 해서, 먼저 청구될 수 있는 다른 구독 수를 넘겨
+   * 보수적으로(1회성 제외·서포터즈 회차 당김) 계산한다. subscriptionId 보다 우선.
+   */
+  aheadCount?: number
 }): Promise<AutoDiscount> {
-  const { userId, subtotal, recurringOnly = false, subscriptionId } = input
+  const { userId, subtotal, recurringOnly = false, subscriptionId, aheadCount } = input
   const fullCharge: AutoDiscount = {
     reason: 'none',
     discountAmount: 0,
@@ -93,7 +99,13 @@ export async function resolveAutoDiscount(input: {
   }
 
   // 여러 구독 미리보기 — 이 구독보다 먼저 청구될 구독 수(0 이면 첫 구독, 기존과 같다).
-  const ahead = subscriptionId && !recurringOnly ? await subscriptionsAhead(userId, subscriptionId) : 0
+  const ahead = recurringOnly
+    ? 0
+    : typeof aheadCount === 'number'
+      ? Math.max(0, Math.trunc(aheadCount))
+      : subscriptionId
+        ? await subscriptionsAhead(userId, subscriptionId)
+        : 0
   // 앞선 구독이 1회성 할인(이벤트·이웃)을 먼저 쓴다 → 이 구독의 미리보기에선 뺀다.
   const skipOneTime = recurringOnly || ahead > 0
 

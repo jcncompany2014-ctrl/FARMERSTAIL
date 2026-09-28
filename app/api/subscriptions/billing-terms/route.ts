@@ -82,11 +82,29 @@ export async function GET(req: Request) {
   //   말하고 있었다(2번째 박스부터 정상가가 동의 없이 나가는데).
   let discountKind: 'promotion' | 'trial' | 'tier' | null = null
   let recurringAmount = row.total_amount
+  let oneTimeDeferred = false
   if (typeof row.total_amount === 'number' && row.total_amount > 0) {
+    // ★여러 구독 — 이벤트·이웃 할인·서포터즈 회차는 사람 단위라 먼저 청구되는 구독이 쓴다
+    //   (2026-09-28 9차 점검). 이 구독은 카드 등록 전이라 청구 순서가 미정 → 이미 있는
+    //   활성·일시정지 구독이 모두 먼저 청구된다고 보고 보수적으로 고지한다. 동의 화면은
+    //   고지액 ≥ 실제 청구액이어야 한다(할인가로 동의받고 정가가 나가면 '동의와 다른 청구').
+    const { count: othersCount, error: othersErr } = await supabase
+      .from('subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .in('status', ['active', 'paused'])
+      .neq('id', subscriptionId)
+    // 조회 실패면 다른 구독이 있다고 본다(보수적).
+    const others = othersErr ? 1 : (othersCount ?? 0)
     const d = await resolveAutoDiscount({
       userId: user.id,
       subtotal: row.total_amount,
+      aheadCount: others,
     })
+    if (others > 0) {
+      const optimistic = await resolveAutoDiscount({ userId: user.id, subtotal: row.total_amount })
+      oneTimeDeferred = optimistic.chargeAmount < d.chargeAmount
+    }
     chargeAmount = d.chargeAmount
     discountLabel = d.discountAmount > 0 ? (d.label ?? '할인') : null
     discountKind =
@@ -121,6 +139,8 @@ export async function GET(req: Request) {
     discountKind,
     /** 한정 할인이 끝난 뒤 2주마다 나갈 금액. */
     recurringAmount,
+    /** 다른 구독에 1회성 할인이 먼저 쓰일 수 있어 할인 전(보수적) 금액으로 고지했는가. */
+    oneTimeDeferred,
     // 카드 등록 전 구독은 next_delivery_date 가 null — 첫 결제일은 다음
     // 화요일(billing-issue 가 그렇게 잡는다).
     firstChargeDate: row.next_delivery_date ?? nextShipDate(),

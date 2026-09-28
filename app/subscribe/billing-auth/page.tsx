@@ -66,6 +66,8 @@ type BillingTerms = {
   /** promotion(첫 박스만)·trial(체험 기간만)·tier(계속) — 2026-09-26 */
   discountKind?: 'promotion' | 'trial' | 'tier' | null
   recurringAmount?: number | null
+  /** 다른 구독에 할인이 먼저 쓰일 수 있어 할인 전 금액으로 안내 — 2026-09-28 */
+  oneTimeDeferred?: boolean
 } | null
 
 /** 첫 결제 금액이 한정 할인이라 그 뒤 반복 금액과 다른가. */
@@ -103,8 +105,11 @@ function termsNoteText(terms: BillingTerms): string {
       : label
         ? `${label}이 적용된 금액이에요. `
         : ''
+  const deferred = terms?.oneTimeDeferred
+    ? '다른 정기배송에 할인이 먼저 적용될 수 있어 할인 전 금액으로 안내해요. '
+    : ''
   // 동의 게이트는 레시피 변경으로 금액이 바뀔 때(PriceChangeConsentModal)만 있다 — 그 범위만 약속한다.
-  return `${recurring}레시피가 바뀌어 금액이 달라지면 미리 알려드리고 동의를 받아요.`
+  return `${deferred}${recurring}레시피가 바뀌어 금액이 달라지면 미리 알려드리고 동의를 받아요.`
 }
 
 /**
@@ -214,12 +219,10 @@ function BillingAuthInner() {
    * 바로 열리므로, 주문 화면을 안 거치고 여기로 오는 사람이 있다.
    * 전자상거래법상 정기결제 고지이고, 토스 PG 정기결제 심사가 보는 화면이다.
    */
-  const [terms, setTerms] = useState<{
-    amount: number | null
-    discountLabel: string | null
-    listAmount: number | null
-    firstChargeDate: string | null
-  } | null>(null)
+  // ★BillingTerms 전체를 담는다(2026-09-28) — 예전 좁은 타입이 discountKind·recurringAmount 를
+  //   버려서 '첫 박스만 할인, 2번째부터 N원' 안내가 한 번도 안 떴고, 이벤트 첫 박스가가
+  //   '2주마다' 금액처럼 보였다(정기결제 동의 화면).
+  const [terms, setTerms] = useState<BillingTerms>(null)
 
   useEffect(() => {
     if (isInvalidEntry) return
@@ -244,6 +247,9 @@ function BillingAuthInner() {
             discountLabel?: string | null
             listAmount?: number | null
             firstChargeDate?: string | null
+            discountKind?: 'promotion' | 'trial' | 'tier' | null
+            recurringAmount?: number | null
+            oneTimeDeferred?: boolean
           } | null)
         : null
       if (!alive) return
@@ -263,6 +269,9 @@ function BillingAuthInner() {
         discountLabel: data.discountLabel ?? null,
         listAmount: data.listAmount ?? null,
         firstChargeDate: data.firstChargeDate ?? nextShipDate(),
+        discountKind: data.discountKind ?? null,
+        recurringAmount: data.recurringAmount ?? null,
+        oneTimeDeferred: data.oneTimeDeferred === true,
       })
     })()
     return () => {

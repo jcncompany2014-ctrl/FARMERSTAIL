@@ -5141,4 +5141,14 @@ test('규칙135: 여러 구독 미리보기 — 1회성 할인·서포터즈 회
   }
   const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
   assert.doesNotMatch(cron, /resolveAutoDiscount\(\{[^}]*subscriptionId:/, '청구 크론이 미리보기 옵션을 쓴다 — 실제 청구는 실시간 상태로')
+  assert.doesNotMatch(cron, /resolveAutoDiscount\(\{[^}]*aheadCount:/, '청구 크론이 미리보기 옵션(aheadCount)을 쓴다')
+
+  // 카드 등록(정기결제 동의) — 청구 순서에 아직 없는 구독이라 다른 활성·일시정지 구독을 모두 앞선다고
+  // 보고 보수적으로 고지(고지액 ≥ 실제 청구액). 화면은 서버가 준 할인 종류·반복 금액을 **버리지 않는다** —
+  // 좁은 상태 타입이 그 둘을 버려서 '첫 박스만 할인' 안내가 한 번도 안 떴다(2026-09-28).
+  const terms = stripComments(read(join(ROOT, 'app', 'api', 'subscriptions', 'billing-terms', 'route.ts')))
+  assert.match(terms, /\.in\('status', \['active', 'paused'\]\)[\s\S]{0,300}aheadCount: others/, '동의 화면 금액이 다른 구독을 고려하지 않는다')
+  const auth = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx')))
+  assert.match(auth, /useState<BillingTerms>\(null\)/, '동의 화면 상태가 BillingTerms 전체를 담지 않는다')
+  assert.match(auth, /discountKind: data\.discountKind[\s\S]{0,120}recurringAmount: data\.recurringAmount/, '동의 화면이 할인 종류·반복 금액을 버린다 — 첫 박스 할인가가 2주마다로 보인다')
 })
