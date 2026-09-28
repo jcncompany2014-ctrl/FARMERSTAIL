@@ -69,11 +69,18 @@ export function describeBillingError(
     if (c.startsWith('EXPIRED')) return { short: '카드 유효기간 만료', classOf }
     if (c.includes('CARD_NUMBER') || c === 'INVALID_CARD_NUMBER')
       return { short: '카드 번호 오류', classOf }
-    if (c.includes('BILLING_KEY')) return { short: '카드 인증 만료', classOf }
+    if (c.includes('BILLING_KEY') || c === 'INVALID_BILL_KEY_REQUEST' || c === 'NOT_MATCHES_CUSTOMER_KEY')
+      return { short: '카드 인증 만료', classOf }
+    if (c === 'INVALID_STOPPED_CARD') return { short: '정지된 카드', classOf }
+    if (c === 'INVALID_CARD_LOST_OR_STOLEN') return { short: '분실·도난 신고된 카드', classOf }
+    if (c === 'INVALID_REJECT_CARD' || c === 'EXCEED_MAX_AUTH_COUNT' || c === 'NOT_REGISTERED_CARD_COMPANY')
+      return { short: '카드사에서 사용을 막은 카드', classOf }
+    if (c === 'NOT_SUPPORTED_CARD_TYPE') return { short: '지원하지 않는 카드', classOf }
     return { short: '카드 정보 확인 필요', classOf }
   }
   if (classOf === 'transient') {
-    if (c.includes('INSUFFICIENT')) return { short: '잔액 부족', classOf }
+    if (c.includes('INSUFFICIENT') || c === 'REJECT_ACCOUNT_PAYMENT') return { short: '잔액 부족', classOf }
+    if (c === 'REJECT_CARD_PAYMENT') return { short: '한도 초과 또는 잔액 부족', classOf }
     if (c.includes('LIMIT')) return { short: '한도 초과', classOf }
     if (c.includes('NETWORK') || c.includes('TIMEOUT'))
       return { short: '네트워크 오류 — 잠시 후 재시도', classOf }
@@ -82,7 +89,19 @@ export function describeBillingError(
   return { short: '결제 처리 실패', classOf }
 }
 
+// ★2026-09-28 점검 9차 — 토스 **자동결제 승인 API 문서의 실제 코드**를 넣었다. 예전 목록은 문서에 없는 이름
+//   (EXPIRED_CARD·CARD_REPORT_LOST 등) 위주라, 정지·분실·도난 카드와 무효 빌링키가 전부 unknown 으로 떨어져
+//   카드 재등록 요청 없이 3일간 매일 시도된 뒤에야 멈췄다. 옛 이름은 남긴다(다른 응답 경로·과거 기록 대비).
+//   출처: docs.tosspayments.com/reference/error-codes — 카드 자동결제 승인.
 const PERMANENT_CODES = new Set<string>([
+  'INVALID_STOPPED_CARD', // 정지된 카드
+  'INVALID_CARD_LOST_OR_STOLEN', // 분실·도난 카드
+  'INVALID_REJECT_CARD', // 카드 사용 거절 — 카드사 문의 필요
+  'INVALID_BILL_KEY_REQUEST', // 빌링키 인증 미완료·무효
+  'NOT_SUPPORTED_CARD_TYPE', // 지원되지 않는 카드 종류
+  'NOT_REGISTERED_CARD_COMPANY', // 카드 사용 등록 필요
+  'EXCEED_MAX_AUTH_COUNT', // 최대 인증 횟수 초과 — 카드사 문의
+  'NOT_MATCHES_CUSTOMER_KEY', // 빌링 인증 고객키 ≠ 결제 고객키 — 재등록으로만 풀린다
   'EXPIRED_CARD',
   'EXPIRED_CARD_NUMBER',
   'INVALID_CARD',
@@ -101,6 +120,7 @@ const PERMANENT_CODES = new Set<string>([
 ])
 
 const TRANSIENT_CODES = new Set<string>([
+  'REJECT_ACCOUNT_PAYMENT', // 잔액부족(계좌) — 토스 문서 코드(2026-09-28)
   'INSUFFICIENT_FUNDS',
   'INSUFFICIENT_BALANCE',
   'EXCEED_LIMIT',
@@ -172,6 +192,7 @@ export function nextRetryAtAfter(failedAt: Date): Date {
  * **절대 여기 넣지 말 것** — 돈이 나갔을 수 있다.
  */
 const DEFINITIVE_DECLINE_CODES = new Set<string>([
+  'REJECT_ACCOUNT_PAYMENT',
   'INSUFFICIENT_FUNDS',
   'INSUFFICIENT_BALANCE',
   'EXCEED_LIMIT',
@@ -181,6 +202,38 @@ const DEFINITIVE_DECLINE_CODES = new Set<string>([
   'REJECT_CARD_COMPANY',
   'REJECT_CARD_PAYMENT',
 ])
+
+/**
+ * **우리 설정 오류**인가 — 고객 카드 문제가 아니다(2026-09-28 점검 9차).
+ *
+ * 형식은 맞지만 틀린 운영키(UNAUTHORIZED_KEY)는 프리플라이트(키 형식 검사)를 통과해, 예전엔 unknown 으로
+ * 떨어져 **전 고객**에게 "결제 실패"가 나가고 3일 뒤 전원 일시정지됐다(출시일 운영키 교체 사고 경로).
+ * 이 코드는 고객 실패로 세지 않고, 고객에게 알리지 않고, 사장님께 경보한다. 인증 계열이면 그 실행을 멈춘다.
+ */
+const MERCHANT_CONFIG_CODES = new Set<string>([
+  'UNAUTHORIZED_KEY', // 인증되지 않은 시크릿 키
+  'INCORRECT_BASIC_AUTH_FORMAT', // Basic 인증 형식 오류
+  'INVALID_REQUEST', // 잘못된 요청(우리 파라미터)
+  'BELOW_MINIMUM_AMOUNT', // 카드 100원 미만 — 우리 가격 계산 문제
+])
+export function isMerchantConfigError(code: string | null | undefined): boolean {
+  return !!code && MERCHANT_CONFIG_CODES.has(code.trim().toUpperCase())
+}
+/** 인증 계열 — 이 코드가 한 번 나오면 나머지 고객도 전부 같은 이유로 실패한다. 그 실행을 멈춘다. */
+export function isMerchantAuthError(code: string | null | undefined): boolean {
+  const c = code?.trim().toUpperCase() ?? ''
+  return c === 'UNAUTHORIZED_KEY' || c === 'INCORRECT_BASIC_AUTH_FORMAT'
+}
+
+/**
+ * 이 실패는 **돈이 나갔는지 모르는가** — 다음 시도 전에 토스에 주문번호로 조회해 확정해야 하는가(2026-09-28).
+ * 돈이 안 나간 게 보장된 것(permanent·확정 거절 = shouldAdvanceChargeKey)과 우리 설정 오류(인증 단계에서
+ * 거부)를 뺀 나머지 전부 — 타임아웃·네트워크·토스 5xx(FAILED_*)·분류표에 없는 코드.
+ */
+export function needsOutcomeCheck(code: string | null | undefined): boolean {
+  if (isMerchantConfigError(code)) return false
+  return !shouldAdvanceChargeKey(classifyBillingError(code), code)
+}
 
 /** 직전 실패 코드가 확정 거절인가 — 재시도에 새 멱등키를 써도 안전한가. */
 export function isDefinitiveDecline(code: string | null | undefined): boolean {

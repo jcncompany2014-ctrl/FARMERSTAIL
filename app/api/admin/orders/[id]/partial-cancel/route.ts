@@ -35,6 +35,12 @@ export const dynamic = 'force-dynamic'
 
 type Body = {
   cancelAmount: number
+  /**
+   * 관리자 화면이 **보고 있던** 누적 환불액(2026-09-28 점검 9차). 서버 값과 다르면 토스를 부르기 전에 멈춘다.
+   * 멱등키도 이 값으로 만든다 — 서버가 새로 읽은 값으로 만들면, 첫 요청이 토스·DB 까지 끝나고 응답만 끊긴 뒤
+   * 다시 누를 때 키가 달라져 **같은 금액이 한 번 더 환불**됐다.
+   */
+  expectedRefundedAmount: number
   cancelReason?: string
   refundReceiveAccount?: {
     bank: string // Toss 은행 코드 (예: "88" 신한)
@@ -59,7 +65,7 @@ export async function POST(
     )
   }
 
-  const { cancelAmount, cancelReason, refundReceiveAccount } = body
+  const { cancelAmount, cancelReason, refundReceiveAccount, expectedRefundedAmount } = body
 
   if (
     typeof cancelAmount !== 'number' ||
@@ -68,6 +74,16 @@ export async function POST(
   ) {
     return NextResponse.json(
       { code: 'INVALID_AMOUNT', message: '취소 금액은 0원보다 커야 합니다' },
+      { status: 400 }
+    )
+  }
+  if (
+    typeof expectedRefundedAmount !== 'number' ||
+    !Number.isInteger(expectedRefundedAmount) ||
+    expectedRefundedAmount < 0
+  ) {
+    return NextResponse.json(
+      { code: 'STALE_SCREEN', message: '화면이 오래됐어요. 새로고침한 뒤 다시 시도해 주세요' },
       { status: 400 }
     )
   }
@@ -130,6 +146,18 @@ export async function POST(
     )
   }
 
+  // 화면이 본 누적 환불액과 지금 DB 가 다르면 그 사이 환불이 반영된 것이다(응답 유실 후 재탭 · 다른 기기 ·
+  // 자동환불 웹훅). 토스를 부르기 **전에** 멈춘다 — 다시 보내면 새 멱등키로 같은 금액이 또 환불된다.
+  if ((order.refunded_amount ?? 0) !== expectedRefundedAmount) {
+    return NextResponse.json(
+      {
+        code: 'REFUND_STATE_CHANGED',
+        message: `그 사이 환불이 반영됐어요(현재 누적 ${(order.refunded_amount ?? 0).toLocaleString()}원). 새로고침해서 확인해 주세요`,
+      },
+      { status: 409 }
+    )
+  }
+
   const remaining = order.total_amount - (order.refunded_amount ?? 0)
   if (cancelAmount > remaining) {
     return NextResponse.json(
@@ -177,10 +205,10 @@ export async function POST(
         'Content-Type': 'application/json',
         // 같은 payment에 대해 여러 번 부분 취소를 보낼 때 네트워크
         // 재시도/더블클릭으로 중복 취소가 발생하지 않도록 멱등 키.
-        // R83: 결정적 키 — (orderId, cancelAmount, refunded_amount before this call).
-        // refunded_amount 는 각 성공 후 누적되어 자동 변별. 같은 admin 액션의 retry
-        // 는 같은 키 → Toss dedup. 다른 회차 부분 취소는 다른 키 → 정상 처리.
-        'Idempotency-Key': `partial-cancel-${order.id}-${order.refunded_amount ?? 0}-${cancelAmount}`,
+        // 결정적 키 — (orderId, 화면이 본 누적 환불액, cancelAmount). 위에서 DB 값과 같음을 확인했으므로
+        // 첫 요청이 토스까지만 가고 DB 기록 전에 끊긴 재시도는 같은 키 → 토스 dedup. 첫 요청이 DB 까지
+        // 끝났으면 위 409 에서 이미 멈춘다(2026-09-28 — 예전엔 서버가 새로 읽은 값으로 키를 만들어 재탭이 새 환불이 됐다).
+        'Idempotency-Key': `partial-cancel-${order.id}-${expectedRefundedAmount}-${cancelAmount}`,
       },
       body: JSON.stringify({
         cancelReason: cancelReason?.trim() || '부분 환불',

@@ -2748,6 +2748,7 @@ export type Database = {
           payment_key: string | null
           scheduled_for: string
           status: string
+          toss_verified_at: string | null
           subscription_id: string
           user_id: string
         }
@@ -2762,6 +2763,7 @@ export type Database = {
           payment_key?: string | null
           scheduled_for: string
           status: string
+          toss_verified_at?: string | null
           subscription_id: string
           user_id: string
         }
@@ -2776,6 +2778,7 @@ export type Database = {
           payment_key?: string | null
           scheduled_for?: string
           status?: string
+          toss_verified_at?: string | null
           subscription_id?: string
           user_id?: string
         }

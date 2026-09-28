@@ -221,6 +221,39 @@ export async function fetchPayment(
   )
 }
 
+/**
+ * **주문번호(orderId)** 로 결제 조회 — `GET /v1/payments/orders/{orderId}` (2026-09-28 점검 9차).
+ *
+ * 자동결제가 타임아웃·토스 5xx 로 **결과 불명**이면, 다음 시도 전에 이걸로 "그 주문번호가 실제로 결제됐나"를
+ * 확정한다. 멱등키만 믿으면 안 된다 — 토스 멱등키는 (API 키·주소·메서드) 단위라 카드를 바꾸면(빌링키 = 주소)
+ * 같은 키도 새 요청이 되고, 우리는 시도마다 새 주문번호를 만들어 토스의 주문번호 중복 방어도 안 걸린다.
+ *
+ * 반환: 결제 있음 → { found: true, payment } · 없음(NOT_FOUND_PAYMENT/NOT_FOUND 404) → { found: false } ·
+ * 조회 실패(네트워크·5xx·인증) → { found: null } = **모른다**(호출부는 청구하지 않는다).
+ */
+export async function lookupPaymentByOrderId(
+  orderId: string,
+): Promise<{ found: true; payment: TossPayment } | { found: false } | { found: null; error: TossError }> {
+  const r = await tossFetch<TossPayment>(`/payments/orders/${encodeURIComponent(orderId)}`, { method: 'GET' })
+  if (r.ok) return { found: true, payment: r.data }
+  if (r.status === 404 && (r.error.code === 'NOT_FOUND_PAYMENT' || r.error.code === 'NOT_FOUND')) {
+    return { found: false }
+  }
+  return { found: null, error: r.error }
+}
+
+/**
+ * 조회한 결제 상태 → 지금 고객 돈이 우리에게 **잡혀 있나**.
+ *   held    — DONE · PARTIAL_CANCELED: 결제됐고 (적어도 일부) 환불 안 됨 → 이 회차를 또 청구하면 이중청구
+ *   none    — CANCELED(전액 환불됨) · ABORTED · EXPIRED: 돈이 없다 → 새로 청구해도 안전
+ *   pending — READY · IN_PROGRESS · WAITING_FOR_DEPOSIT: 아직 진행 중 → 모른다(청구하지 않는다)
+ */
+export function orderPaymentOutcome(status: TossPaymentStatus): 'held' | 'none' | 'pending' {
+  if (status === 'DONE' || status === 'PARTIAL_CANCELED') return 'held'
+  if (status === 'CANCELED' || status === 'ABORTED' || status === 'EXPIRED') return 'none'
+  return 'pending'
+}
+
 // --- 표시용 라벨 매핑 ------------------------------------------------------
 
 /**
@@ -329,6 +362,11 @@ export interface BillingChargeResult {
    * **원결제의 금액**이라 지금 청구하려던 금액과 다를 수 있다.
    */
   totalAmount?: number
+  /**
+   * 토스가 돌려준 주문번호. 멱등키 **재생** 응답이면 원결제(첫 시도)의 주문번호라 이번에 만든 주문번호와
+   * 다르다 — 그때 결제키를 이번 주문에 붙이면 환불 웹훅이 옛 주문을 찾아 장부가 갈라진다(2026-09-28).
+   */
+  orderId?: string
   error?: { code?: string; message?: string }
 }
 
@@ -511,6 +549,7 @@ export async function chargeBillingKey(input: {
       ok: true,
       paymentKey: data.paymentKey,
       status: data.status,
+      orderId: typeof data.orderId === 'string' ? data.orderId : undefined,
       // 실제 승인 금액 — 호출 측이 우리가 보낸 금액과 대조한다.
       totalAmount: typeof data.totalAmount === 'number' ? data.totalAmount : undefined,
     }

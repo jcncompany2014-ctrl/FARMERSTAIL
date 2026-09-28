@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
-import { nextCycleDateAligned } from '@/lib/shipping-schedule'
-import { chargeBillingKey, cancelPayment } from '@/lib/payments/toss'
+import { nextChargeDateAfterSuccess } from '@/lib/shipping-schedule'
+import { chargeBillingKey, cancelPayment, lookupPaymentByOrderId } from '@/lib/payments/toss'
+import { verifyAmbiguousCharges } from '@/lib/payments/ambiguous-charges'
 import { keyMode } from '@/lib/payments/key-mode'
 import {
   classifyBillingError,
@@ -13,6 +14,8 @@ import {
   nextRetryAtAfter,
   isOutcomeUnknownCode,
   MAX_FAILED_CHARGES,
+  isMerchantConfigError,
+  isMerchantAuthError,
 } from '@/lib/payments/billing-error-classify'
 import { notifySubscriptionChargeFailed, notifyOrderPlaced, notifyTrialPriceChange } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
@@ -347,7 +350,9 @@ function todayKstIsoDate(): string {
  *      다음날 크론이 곧바로 또 청구한다)
  */
 function nextDeliveryDate(dueIso: string, todayIso: string): string {
-  return nextCycleDateAligned(dueIso, todayIso)
+  // ★2026-09-28 점검 9차 — 늦게 성공(재시도·따라잡기)하면 그 박스는 다음 발송 화요일에 나가므로 다음 청구는
+  //   그로부터 +14. 예정일+14 로 두면 T+13 성공 → T+14 또 청구(결제 2번·박스 1개). lib/shipping-schedule 참고.
+  return nextChargeDateAfterSuccess(dueIso, todayIso)
 }
 
 export async function GET(req: Request) {
@@ -390,6 +395,26 @@ async function runSubscriptionCharge(): Promise<Response> {
 
   const supabase = createAdminClient()
   const today = todayKstIsoDate()
+
+  // 0) 결과 불명 자동결제 확정 — 대상 조회 전에(멱등키 앵커를 올린 결과가 아래 조회에 반영되게).
+  const ambiguity = await verifyAmbiguousCharges(supabase, {
+    lookup: lookupPaymentByOrderId,
+    report: captureBusinessEvent,
+  })
+  if (ambiguity.abort) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: ambiguity.abort,
+        errors: 1,
+        note:
+          ambiguity.abort === 'toss_unauthorized'
+            ? '토스가 시크릿 키를 거부 — 운영키 확인 전까지 청구하지 않는다(전원 실패·3회 정지 방지)'
+            : '결과 불명 청구 확인 단계 실패 — 이중청구를 피하려고 이번 실행은 청구하지 않는다',
+      },
+      { status: 500 },
+    )
+  }
 
   // 1) 오늘 결제 대상 구독 fetch.
   //    제외 조건:
@@ -468,6 +493,8 @@ async function runSubscriptionCharge(): Promise<Response> {
    */
   let declined = 0
   let skipped = 0
+  // 토스가 우리 키를 거부 — 남은 고객 청구를 멈췄다(2026-09-28).
+  let merchantAbort = false
   // 결제완료 메일 — 0 이면 '돈은 받았는데 아무 연락 안 감'이라 지표로 낸다.
   let mailSent = 0
   let mailFailed = 0
@@ -479,6 +506,11 @@ async function runSubscriptionCharge(): Promise<Response> {
     if (Date.now() - runStartedAt > TIME_BUDGET_MS) {
       deferredByTime = targets.length - idx
       break
+    }
+    // 2-00) 결과 불명 시도가 아직 확정 안 된 구독 — 모르면 긁지 않는다(verifyAmbiguousCharges).
+    if (ambiguity.unresolvedSubIds.has(sub.id)) {
+      skipped++
+      continue
     }
     // 2-0) 이중청구 가드(점검 high): 이미 Toss 청구됐으나 후속 update 실패로
     //      미확정(status='pending' + payment_key 존재)인 charge 가 있으면 새 청구를
@@ -852,6 +884,9 @@ async function runSubscriptionCharge(): Promise<Response> {
       //   청구는 한 건씩 돌아 뒤쪽 구독은 조회와 선점 사이가 몇 분이다 — status 만 보면
       //   미룬 박스가 결제·발송되고 성공 UPDATE 가 고객의 날짜를 스냅샷 기준으로 덮었다.
       .eq('next_delivery_date', sub.next_delivery_date)
+      // ★배치 조회 뒤 고객이 카드를 재등록했으면 옛 빌링키로 긁지 않는다(2026-09-28 점검 9차) — 옛 카드 실패가
+      //   재등록 초기화(실패횟수·재시도·재등록 표시)를 덮어 새 카드 청구가 하루 늦어졌다. 다음 실행이 새 카드로 청구.
+      .eq('billing_key', sub.billing_key)
       .select('id')
     if (claimErr || !claimed || claimed.length === 0) {
       skipped++
@@ -923,6 +958,18 @@ async function runSubscriptionCharge(): Promise<Response> {
     )
 
     if (result.ok) {
+      // ★재생 응답 감지(2026-09-28) — 토스가 돌려준 주문번호가 이번 주문과 다르면 첫 시도의 결제가 재생된 것이다.
+      //   결제키가 이번 주문에 붙으면 환불 웹훅(order_number 기준)이 옛 '실패' 주문을 찾아 장부가 갈라진다. 사람이 본다.
+      if (result.orderId && result.orderId !== orderRow.order_number) {
+        captureBusinessEvent('error', 'subscription.charge.replayed_order_mismatch', {
+          subscriptionId: sub.id,
+          orderId: orderRow.id,
+          ourOrderNumber: orderRow.order_number,
+          tossOrderNumber: result.orderId,
+          paymentKey: result.paymentKey,
+          note: '멱등키 재생 — 토스 결제의 주문번호가 다른(옛) 주문. 옛 주문과 이번 주문 중 하나로 장부 정리 필요',
+        })
+      }
       /**
        * ★토스가 실제로 승인한 금액과 우리가 청구하려던 금액을 대조한다
        * (2026-09-01 감사). 예전엔 응답의 금액을 읽지도 않고 버렸다 — 카드에 찍힌
@@ -1474,7 +1521,17 @@ async function runSubscriptionCharge(): Promise<Response> {
       let nextRetryAt: string | null = null
       const reasonShort = describeBillingError(errorCode).short
 
-      if (errorClass === 'permanent') {
+      // ★우리 설정 오류(틀린 운영키·잘못된 요청·100원 미만)는 고객 실패가 아니다(2026-09-28) — 횟수·정지·
+      //   멱등키 앵커 그대로, 내일 재시도, 고객 알림 없음, 사장님 경보. 인증 계열이면 아래에서 실행을 멈춘다.
+      const merchantErr = isMerchantConfigError(errorCode)
+      if (merchantErr) {
+        nextRetryAt = nextRetryAtAfter(new Date()).toISOString()
+        captureBusinessEvent('error', 'subscription.charge.merchant_config_error', {
+          subscriptionId: sub.id,
+          errorCode,
+          note: '토스가 우리 요청·키를 거부 — 고객 카드 문제 아님. 키·요청값 확인 필요',
+        })
+      } else if (errorClass === 'permanent') {
         shouldPause = true
         shouldMarkRenewal = true
         // permanent 는 count 증가 의미 없음 — 1회 카운트만 찍어 history 보전.
@@ -1483,11 +1540,14 @@ async function runSubscriptionCharge(): Promise<Response> {
         // 다음 날 크론이 반드시 집도록 — '실패+24h' 는 몇 초 차로 이틀 뒤가 됐다(2026-09-25).
         nextRetryAt = nextRetryAtAfter(new Date()).toISOString()
         if (isDefinitiveDecline(errorCode)) {
-          // 확정 거절(잔액부족류)도 실패 이력으로 센다. 일시정지는 안 한다
-          // (3-strike 는 unknown 전용) — 회복 가능한 거절이다.
+          // 확정 거절(잔액부족류)도 실패 이력으로 센다 — 회복 가능한 거절이라 매일 재시도하되 3회에서 멈춘다(아래).
           // ★2026-09-01 — 예전엔 이 증가의 목적이 "멱등키 앵커를 올리는 것"이었다.
           //   앵커는 charge_key_seq 로 분리됐으므로(아래) 여기는 이력 전용이다.
           nextFailedCount = sub.failed_charge_count + 1
+          // ★상한(2026-09-28 점검 9차) — 예전엔 확정 거절에 상한이 없어 잔액부족 고객에게 매일 청구 시도·주문행·
+          //   푸시·메일이 끝없이 이어졌다(머리 주석의 '3회 누적 시 paused' 와도 달랐다). 3회면 멈추고 안내한다.
+          //   카드 재등록(billing-issue) 또는 고객의 '다시 시작'으로 풀린다(isPausedByBillingFailure).
+          shouldPause = nextFailedCount >= MAX_FAILED
         }
         // 그 외 transient(타임아웃류)는 count 유지 — 같은 멱등키 재사용이 맞다
         // (결과 불명 재시도가 새 청구가 되면 이중청구).
@@ -1503,7 +1563,8 @@ async function runSubscriptionCharge(): Promise<Response> {
         last_failed_charge_code: errorCode,
         // ★고객 정기배송 화면이 이 칸을 그대로 보여 준다 — 한국어 요약만(2026-09-25).
         //   토스·네트워크 원문(영어)은 subscription_charges.error_message 에 남는다.
-        last_failed_charge_reason: reasonShort,
+        // 우리 설정 오류면 고객 카드 탓처럼 보이지 않게(2026-09-28).
+        last_failed_charge_reason: merchantErr ? '결제 시스템 점검 중 — 내일 다시 시도해요' : reasonShort,
         next_retry_at: nextRetryAt,
       }
       // ★멱등키 앵커는 **돈이 안 나간 게 보장된 실패에서만** 오른다
@@ -1583,6 +1644,17 @@ async function runSubscriptionCharge(): Promise<Response> {
         declined += 1
       } else {
         failed += 1
+      }
+
+      // 우리 설정 오류는 고객에게 알리지 않는다 — 고객 카드엔 아무 문제가 없다. 인증 계열이면 남은 고객도
+      // 전부 같은 이유로 실패하므로 여기서 실행을 멈춘다(전원 '결제 실패' 알림·누적 방지).
+      if (merchantErr) {
+        if (isMerchantAuthError(errorCode)) {
+          merchantAbort = true
+          break
+        }
+        await new Promise((r) => setTimeout(r, 100))
+        continue
       }
 
       // 푸시 알림 — order 카테고리 (push_preferences + quiet hours 자동 검사).
@@ -1702,10 +1774,28 @@ async function runSubscriptionCharge(): Promise<Response> {
     })
   }
 
+  if (merchantAbort) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'toss_unauthorized',
+        errors: 1,
+        today,
+        succeeded,
+        note: '청구 중 토스가 시크릿 키를 거부 — 남은 구독은 청구하지 않고 멈춤. 운영키 확인 후 재실행',
+      },
+      { status: 500 },
+    )
+  }
+
   return NextResponse.json({
     ok: true,
     today,
     checked: targets.length - deferredByTime,
+    ambiguousChecked: ambiguity.checked,
+    ambiguousHeld: ambiguity.held,
+    ambiguousReleased: ambiguity.released,
+    ambiguousUnknown: ambiguity.unknown,
     backlog: overCap || deferredByTime > 0,
     deferredByTime,
     overCap,

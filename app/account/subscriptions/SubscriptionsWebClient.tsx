@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { nextShipDate, nextCycleDate } from '@/lib/shipping-schedule'
+import { nextShipDate, nextCycleDate, resumeShipDate } from '@/lib/shipping-schedule'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import {
   trackSubscriptionPaused,
@@ -280,7 +280,8 @@ export default function SubscriptionsWebClient({
     }
     // 재개하면 **다음 화요일**부터 (2026-07-16). 주기는 2주 하나로 고정 —
     // 박스가 14일치라 다른 주기는 성립하지 않는다.
-    const nextIso = nextShipDate()
+    // 아직 오지 않은 원래 배송일은 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
+    const nextIso = resumeShipDate(sub.next_delivery_date)
     const { error } = await supabase
       .from('subscriptions')
       .update({ status: 'active', next_delivery_date: nextIso })

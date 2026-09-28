@@ -9,6 +9,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 import { nextShipDate } from '@/lib/shipping-schedule'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 
 export const runtime = 'nodejs'
@@ -285,6 +286,11 @@ export async function POST(req: Request) {
   // 분기는 옛 낱개 커머스 잔재라 제거(2026-07-16). 첫 배송은 언제나 다음 화요일.
   let firstDeliveryIso: string | null = null
   if (!cur?.next_delivery_date) {
+    firstDeliveryIso = nextShipDate()
+  } else if (cur.next_delivery_date < todayKstIsoDate()) {
+    // ★카드 만료·결제 실패로 멈춰 **날짜가 이미 지난** 재등록(2026-09-28 점검 9차) — 옛 날짜를 두면 다음 날
+    //   아침 크론이 몇 주 전 회차를 곧바로 청구한다. 화면·메일은 "다음 배송일에 결제돼요"라고 안내하므로
+    //   다음 발송 화요일로 다시 잡는다(그날 아침 청구·발송).
     firstDeliveryIso = nextShipDate()
   }
 

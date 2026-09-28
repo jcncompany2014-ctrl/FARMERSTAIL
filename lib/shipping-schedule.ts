@@ -62,6 +62,22 @@ export function nextShipDate(fromIso: string = todayKstIsoDate()): string {
 }
 
 /**
+ * 일시정지 → **재개**할 때의 다음 배송일(2026-09-28 점검 9차).
+ *
+ * 예전엔 재개가 무조건 `nextShipDate()` 로 덮어써서, 청구 직후(다음 배송일 = 2주 뒤) 정지했다 곧바로 재개하면
+ * 다음 배송이 **1주 앞당겨져** 한 주 만에 또 결제·발송됐다(관리자·앱·웹 재개 3곳 공통). 일시정지는 날짜를
+ * 지우지 않으므로, 아직 오지 않은 발송 요일 날짜가 있으면 그대로 두고 지났거나 없을 때만 다음 발송 화요일로.
+ */
+export function resumeShipDate(
+  currentIso: string | null | undefined,
+  fromIso: string = todayKstIsoDate(),
+): string {
+  const earliest = nextShipDate(fromIso)
+  if (currentIso && currentIso >= earliest && weekdayOf(currentIso) === SHIP_WEEKDAY) return currentIso
+  return earliest
+}
+
+/**
  * 이후 배송일 — 2주(14일) 뒤. 14일 = 정확히 2주라 요일이 보존된다.
  * (요일이 어긋나면 화요일로 다시 당기는 게 아니라 애초에 어긋날 수 없다.)
  */
@@ -88,6 +104,21 @@ export function nextCycleDateAligned(dueIso: string, todayIso: string): string {
   let next = nextCycleDate(addDaysKst(dueIso, gap))
   while (next <= todayIso) next = nextCycleDate(next)
   return next
+}
+
+/**
+ * 청구 **성공** 뒤 다음 청구일(2026-09-28 점검 9차).
+ *
+ * 제때(예정일 당일) 결제 → 그날 발송, 다음 = 예정일 + 14 (위 nextCycleDateAligned 그대로).
+ * **늦게 성공**(잔액부족 재시도가 며칠 뒤 성공 · 크론 누락 따라잡기 · 카드 재등록) → 그 박스는 예정일에 이미
+ * 발송금지로 빠졌으므로 **다음 발송 가능 화요일**에 나간다. 다음 청구는 그로부터 14일 뒤여야 한다.
+ * 예전엔 예정일+14 로 잡아, 월요일(T+13)에 성공하면 다음 날(T+14) 또 청구되고 피킹 리스트엔 구독당
+ * 한 줄만 떠 **결제 2번·박스 1개**가 됐다. 결과 = 발송일+14 라 피킹 리스트의 '오늘 아침 청구분'
+ * 판정(next_delivery_date === 발송일+14)과도 맞는다.
+ */
+export function nextChargeDateAfterSuccess(dueIso: string, todayIso: string): string {
+  if (todayIso <= dueIso) return nextCycleDateAligned(dueIso, todayIso)
+  return nextCycleDateAligned(nextShipDate(todayIso), todayIso)
 }
 
 export type ShipDay = {

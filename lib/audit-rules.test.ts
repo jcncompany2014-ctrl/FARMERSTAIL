@@ -515,11 +515,15 @@ test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role
     'last_failed_charge_reason',
   ])
   const offenders: string[] = []
+  // service_role 클라이언트를 **주입받는** 모듈(2026-09-28) — 파일 안에서 만들지 않는다. 대신 호출부가
+  // admin 클라이언트를 넘기는지를 아래에서 본다(모듈 → 호출부).
+  const INJECTED_ADMIN = new Map([['lib/payments/ambiguous-charges.ts', 'app/api/cron/subscription-charge/route.ts']])
   for (const file of walk(join(ROOT, 'app'))
     .concat(walk(join(ROOT, 'components')))
     .concat(walk(join(ROOT, 'lib')))) {
     const src = read(file)
     if (!src.includes("from('subscriptions')")) continue
+    if (INJECTED_ADMIN.has(rel(file))) continue
     // 파일이 admin 클라이언트를 아예 안 만들면, 그 파일의 모든 쓰기는
     // 로그인 클라이언트다 — 화이트리스트 밖 칸을 쓰면 실패한다.
     if (src.includes('createAdminClient')) continue
@@ -532,6 +536,13 @@ test('★ 규칙13: 화이트리스트 밖 칸을 쓰는 UPDATE 는 service_role
         offenders.push(`${rel(file)}:${line} :: ${outside.join(', ')}`)
       }
     }
+  }
+  for (const [mod, caller] of INJECTED_ADMIN) {
+    const c = stripComments(read(join(ROOT, ...caller.split('/'))))
+    assert.ok(
+      c.includes('createAdminClient()') && c.includes(`from '@/${mod.replace(/\.ts$/, '')}'`),
+      `${mod}: 호출부(${caller})가 service_role 클라이언트를 넘기지 않는다 — 잠긴 칸 쓰기가 조용히 실패한다`,
+    )
   }
   assert.deepEqual(
     offenders,
@@ -4678,7 +4689,7 @@ test('규칙120: 환불은 한 번만 적는다 — 큐 재시도·즉시환불 
 
 test('규칙121: 건너뛰기는 청구와 겨루지 않는다 — 청구 선점·고객 건너뛰기 모두 본 날짜 그대로일 때만', () => {
   const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
-  assert.ok(/\.eq\('status', 'active'\)\s*\.eq\('next_delivery_date', sub\.next_delivery_date\)\s*\.select\('id'\)/.test(ch), '청구 선점이 status 만 봐서 방금 미룬 박스도 결제한다')
+  assert.ok(/\.eq\('status', 'active'\)\s*\.eq\('next_delivery_date', sub\.next_delivery_date\)\s*(?:\.eq\('billing_key', sub\.billing_key\)\s*)?\.select\('id'\)/.test(ch), '청구 선점이 status 만 봐서 방금 미룬 박스도 결제한다')
   const app = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
   assert.ok(app.includes("q.eq('next_delivery_date', seen)") && app.includes('moveNextDate(sub.id,'), '앱 건너뛰기가 화면이 본 날짜를 확인하지 않는다')
   const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
@@ -5029,4 +5040,41 @@ test('규칙134: 돈이 걸린 어드민 도장(서포터즈·이웃 할인) —
   assert.match(tc, /HAS_PAID_HISTORY[\s\S]{0,200}window\.confirm/, '결제 이력 고객 재확인이 없다')
   assert.match(nc, /async function give\([\s\S]{0,300}window\.confirm/, '이웃 할인 붙이기에 확인창이 없다')
   assert.match(tc, /취소하지 못했어요/, '도장 취소 실패가 화면에 안 나온다')
+})
+// ─────────────────────────────────────────────────────────────────────────────
+// 2026-09-28 출시 전 점검 9차 (알림 문구 정합 / 어드민 위험 동작 / 결제 실패 복구) — 규칙140~
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('규칙140: 같은 돈이 두 번 움직이지 않는다 — 부분환불 재탭 · 재개 · 늦은 성공 · 재등록 · 결과 불명 · 카드 교체 경합', () => {
+  // ① 부분환불 — 멱등키는 '화면이 본' 누적 환불액으로, 서버 값과 다르면 토스 전에 409
+  const pc = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'orders', '[id]', 'partial-cancel', 'route.ts')))
+  assert.ok(/'Idempotency-Key': `partial-cancel-\$\{order\.id\}-\$\{expectedRefundedAmount\}-\$\{cancelAmount\}`/.test(pc), '부분환불 멱등키가 서버가 새로 읽은 값으로 만들어진다(응답 유실 뒤 재탭 = 이중 환불)')
+  const conflictAt = pc.indexOf("'REFUND_STATE_CHANGED'")
+  const tossAt = pc.indexOf('/cancel`')
+  assert.ok(conflictAt > 0 && tossAt > 0 && conflictAt < tossAt, '누적 환불액 불일치 검사가 토스 호출보다 앞에 없다')
+  assert.ok(read(join(ROOT, 'app', 'admin', 'orders', '[id]', 'PartialCancelPanel.tsx')).includes('expectedRefundedAmount: refundedAmount'), '환불 패널이 자기가 본 누적 환불액을 보내지 않는다')
+  // ② 재개 — 아직 오지 않은 원래 배송일을 앞당기지 않는다(관리자·앱·웹 3곳)
+  for (const f of ['app/admin/subscriptions/page.tsx', 'app/(main)/dogs/[id]/subscription/DogSubscriptionClient.tsx', 'app/account/subscriptions/SubscriptionsWebClient.tsx']) {
+    const b = stripComments(read(join(ROOT, ...f.split('/'))))
+    assert.ok(b.includes('resumeShipDate('), `${f}: 재개가 원래 배송일을 무시하고 다음 화요일로 덮는다(1주 만에 또 결제)`)
+  }
+  // ③ 늦은 성공 — 그 박스가 나가는 화요일 + 14
+  const ch = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok(/function nextDeliveryDate\([^)]*\)[^{]*\{\s*return nextChargeDateAfterSuccess\(/.test(ch), '청구 성공 뒤 다음 청구일이 예정일+14 그대로다(T+13 성공 → 다음 날 또 청구)')
+  // ④ 카드 재등록 — 지난 날짜면 다음 발송 화요일로
+  const bi = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
+  assert.ok(/cur\.next_delivery_date < todayKstIsoDate\(\)\)\s*\{\s*firstDeliveryIso = nextShipDate\(\)/.test(bi), '재등록 시 지난 날짜를 그대로 둬 몇 주 전 회차가 다음 날 아침 청구된다')
+  // ⑤ 결과 불명 — 매 실행 맨 앞에서 토스 주문번호 조회로 확정, 모르면 그 구독 청구 금지
+  const verifyAt = ch.indexOf('await verifyAmbiguousCharges(supabase')
+  const targetsAt = ch.indexOf(".lte('next_delivery_date', today)")
+  assert.ok(verifyAt > 0 && targetsAt > 0 && verifyAt < targetsAt, '결과 불명 확정이 청구 대상 조회보다 먼저 돌지 않는다')
+  assert.ok(ch.includes('ambiguity.unresolvedSubIds.has(sub.id)'), '결과를 모르는 구독을 청구 루프가 건너뛰지 않는다')
+  assert.ok(stripComments(read(join(ROOT, 'lib', 'payments', 'toss.ts'))).includes('`/payments/orders/${encodeURIComponent(orderId)}`'), '토스 주문번호 조회 API 가 없다')
+  assert.ok(existsSync(join(ROOT, 'supabase', 'migrations', '20260928120000_subscription_charges_toss_verified_at.sql')), '결과 확인 표시 칸 마이그레이션이 사라졌다')
+  // ⑥ 선점에 빌링키 — 배치 조회 뒤 재등록된 카드를 옛 키로 긁지 않는다
+  assert.ok(/\.eq\('next_delivery_date', sub\.next_delivery_date\)\s*\.eq\('billing_key', sub\.billing_key\)/.test(ch), '청구 선점이 빌링키를 확인하지 않는다(재등록 경합)')
+  // ⑦ 우리 설정 오류(틀린 운영키)는 고객 실패가 아니다 — 알림 없이, 인증 계열이면 실행 중단
+  assert.ok(ch.includes('isMerchantConfigError(errorCode)') && ch.includes('merchantAbort = true'), '틀린 운영키가 전 고객 결제 실패·3회 정지로 번진다')
+  // ⑧ 확정 거절(잔액부족) 재시도 상한
+  assert.ok(/isDefinitiveDecline\(errorCode\)\)\s*\{[\s\S]{0,200}?shouldPause = nextFailedCount >= MAX_FAILED/.test(ch), '잔액부족 재시도에 상한이 없다(매일 청구·알림 무한)')
 })

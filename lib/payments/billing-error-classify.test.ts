@@ -8,6 +8,10 @@ import {
   RETRY_COOLDOWN_MS,
   nextRetryAtAfter,
   isOutcomeUnknownCode,
+  isDefinitiveDecline,
+  isMerchantConfigError,
+  isMerchantAuthError,
+  needsOutcomeCheck,
 } from './billing-error-classify.ts'
 
 /**
@@ -304,6 +308,56 @@ describe('isOutcomeUnknownCode — 결과를 모르는 실패는 "결제 실패"
   it('확정 거절·카드 문제는 결과가 분명하다', () => {
     for (const c of ['INSUFFICIENT_BALANCE', 'EXCEED_MAX_DAILY_PAYMENT_COUNT', 'EXPIRED_CARD', 'REJECT_CARD_COMPANY', null, '']) {
       assert.equal(isOutcomeUnknownCode(c), false, String(c))
+    }
+  })
+})
+
+// ── 2026-09-28 점검 9차 — 토스 자동결제 승인 문서의 실제 코드 ─────────────────────────────
+describe('토스 문서 코드 — 카드 문제는 permanent(재등록 요청), 잔액부족은 확정 거절', () => {
+  it('정지·분실·도난·사용거절·빌링키 무효·미지원 카드·인증 초과 → permanent', () => {
+    for (const c of [
+      'INVALID_STOPPED_CARD', 'INVALID_CARD_LOST_OR_STOLEN', 'INVALID_REJECT_CARD', 'INVALID_BILL_KEY_REQUEST',
+      'NOT_SUPPORTED_CARD_TYPE', 'NOT_REGISTERED_CARD_COMPANY', 'EXCEED_MAX_AUTH_COUNT', 'NOT_MATCHES_CUSTOMER_KEY',
+      'INVALID_CARD_EXPIRATION', 'INVALID_CARD_NUMBER',
+    ]) {
+      assert.equal(classifyBillingError(c), 'permanent', c)
+    }
+  })
+  it('REJECT_ACCOUNT_PAYMENT(계좌 잔액부족)·REJECT_CARD_PAYMENT → 확정 거절(돈 안 나감 — 새 키 안전)', () => {
+    for (const c of ['REJECT_ACCOUNT_PAYMENT', 'REJECT_CARD_PAYMENT', 'REJECT_CARD_COMPANY']) {
+      assert.equal(classifyBillingError(c), 'transient', c)
+      assert.equal(isDefinitiveDecline(c), true, c)
+    }
+  })
+  it('고객 요약 문구 — 새 코드도 한국어로', () => {
+    assert.equal(describeBillingError('INVALID_STOPPED_CARD').short, '정지된 카드')
+    assert.equal(describeBillingError('INVALID_CARD_LOST_OR_STOLEN').short, '분실·도난 신고된 카드')
+    assert.equal(describeBillingError('REJECT_ACCOUNT_PAYMENT').short, '잔액 부족')
+    assert.equal(describeBillingError('REJECT_CARD_PAYMENT').short, '한도 초과 또는 잔액 부족')
+  })
+})
+
+describe('우리 설정 오류 — 고객 실패로 세지 않는다', () => {
+  it('UNAUTHORIZED_KEY·INCORRECT_BASIC_AUTH_FORMAT·INVALID_REQUEST·BELOW_MINIMUM_AMOUNT', () => {
+    for (const c of ['UNAUTHORIZED_KEY', 'INCORRECT_BASIC_AUTH_FORMAT', 'INVALID_REQUEST', 'BELOW_MINIMUM_AMOUNT']) {
+      assert.equal(isMerchantConfigError(c), true, c)
+      assert.notEqual(classifyBillingError(c), 'permanent', `${c} 가 카드 재등록을 요구하면 안 된다`)
+    }
+    assert.equal(isMerchantAuthError('UNAUTHORIZED_KEY'), true)
+    assert.equal(isMerchantAuthError('INVALID_REQUEST'), false)
+    assert.equal(isMerchantConfigError('REJECT_CARD_PAYMENT'), false)
+  })
+})
+
+describe('needsOutcomeCheck — 돈이 나갔는지 모르는 실패만 토스 조회', () => {
+  it('타임아웃·네트워크·토스 5xx·분류표 밖·null → 조회 필요', () => {
+    for (const c of ['NETWORK_ERROR', 'PAY_PROCESS_TIMEOUT', 'TOSS_TIMEOUT', 'FAILED_INTERNAL_SYSTEM_PROCESSING', 'FAILED_CARD_COMPANY_RESPONSE', 'SOMETHING_NEW', null]) {
+      assert.equal(needsOutcomeCheck(c), true, String(c))
+    }
+  })
+  it('카드 거절(permanent)·확정 거절·우리 설정 오류 → 조회 불필요(돈 안 나감 보장)', () => {
+    for (const c of ['INVALID_STOPPED_CARD', 'INVALID_CARD_EXPIRATION', 'REJECT_CARD_PAYMENT', 'REJECT_ACCOUNT_PAYMENT', 'UNAUTHORIZED_KEY']) {
+      assert.equal(needsOutcomeCheck(c), false, c)
     }
   })
 })

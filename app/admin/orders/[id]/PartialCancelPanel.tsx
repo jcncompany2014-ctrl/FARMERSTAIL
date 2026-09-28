@@ -103,6 +103,8 @@ export default function PartialCancelPanel({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             cancelAmount: amount,
+            // 이 화면이 본 누적 환불액 — 서버 값과 다르면 토스를 부르기 전에 멈춘다(응답 유실 후 재탭 이중 환불 방지).
+            expectedRefundedAmount: refundedAmount,
             cancelReason: reason || undefined,
             ...(isVirtualAccount
               ? {
@@ -119,6 +121,8 @@ export default function PartialCancelPanel({
       const data = await res.json()
       if (!res.ok) {
         setError(data?.message ?? '환불 실패')
+        // 실패해도 서버 쪽 상태가 바뀌었을 수 있다 — 누적 환불액을 새로 받아 다음 시도가 옛 값으로 가지 않게.
+        router.refresh()
         return
       }
       router.refresh()
@@ -128,7 +132,9 @@ export default function PartialCancelPanel({
       setAccountNumber('')
       setHolderName('')
     } catch (e) {
-      setError(userFacingError(e, '환불 요청 중 오류'))
+      // 응답이 끊긴 경우 — 환불은 이미 됐을 수 있다. 새로고침으로 실제 누적 환불액을 보여 준다.
+      setError(userFacingError(e, '응답을 받지 못했어요 — 환불됐을 수 있으니 새로고침된 금액을 확인해 주세요'))
+      router.refresh()
     } finally {
       setSubmitting(false)
     }

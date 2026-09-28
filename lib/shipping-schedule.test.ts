@@ -11,6 +11,8 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   nextCycleDateAligned,
+  nextChargeDateAfterSuccess,
+  resumeShipDate,
   nextShipDate,
   nextCycleDate,
   weekdayOf,
@@ -155,4 +157,55 @@ it('★ 여러 주 밀렸어도 결과는 반드시 미래 — 다음날 재청�
   const next = nextCycleDateAligned('2026-07-07', '2026-07-27')
   assert.ok(next > '2026-07-27', `미래여야 함: ${next}`)
   assert.equal(weekdayKo(next), '화')
+})
+
+// ── 2026-09-28 점검 9차 — 늦은 성공·재개가 다음 청구를 앞당기지 않는다 ─────────────────────────
+describe('nextChargeDateAfterSuccess — 늦게 성공하면 그 박스가 나가는 화요일 + 14', () => {
+  it('예정일 당일 성공 → 예정일 + 14 (기존과 같음)', () => {
+    assert.equal(nextChargeDateAfterSuccess(TUE, TUE), '2026-07-28')
+  })
+  it('★예정일(화) 실패 → 다음 주 월요일(T+13) 재시도 성공 → 다음 날 또 청구하지 않는다', () => {
+    // 예전: 예정일+14 = 07-28(화) = 성공 다음 날 → 결제 2번·박스 1개
+    const next = nextChargeDateAfterSuccess(TUE, '2026-07-27')
+    assert.notEqual(next, '2026-07-28')
+    // 월요일 성공분은 마감(일) 지나 다음 발송 화요일 08-04 에 나가고, 다음 청구는 그 +14
+    assert.equal(next, '2026-08-18')
+    assert.equal(weekdayKo(next), '화')
+  })
+  it('다음 날(수) 재시도 성공 → 다음 주 화요일 발송 + 14', () => {
+    assert.equal(nextChargeDateAfterSuccess(TUE, WED), '2026-08-04')
+  })
+  it('크론 누락 따라잡기(화 예정 → 목 청구)도 화요일 정렬·미래', () => {
+    const next = nextChargeDateAfterSuccess(TUE, THU)
+    assert.equal(weekdayKo(next), '화')
+    assert.ok(next > THU)
+    assert.equal(next, '2026-08-04')
+  })
+  it('결과는 언제나 오늘 이후 · 화요일', () => {
+    for (const today of [TUE, WED, THU, FRI, SAT, SUN, '2026-07-20', '2026-07-27', '2026-08-10']) {
+      const n = nextChargeDateAfterSuccess(TUE, today)
+      assert.ok(n > today, `${today} → ${n}`)
+      assert.equal(weekdayOf(n), SHIP_WEEKDAY)
+      // 늦은 성공이면 성공일로부터 최소 1주 이상 간격(한 주 안에 두 번 청구 금지)
+      if (today > TUE) assert.ok(n >= nextShipDate(today), `${today} → ${n}`)
+    }
+  })
+})
+
+describe('resumeShipDate — 재개가 원래 배송일을 앞당기지 않는다', () => {
+  it('★청구 직후 정지 → 곧바로 재개: 2주 뒤 원래 날짜 유지(예전엔 다음 화요일로 1주 앞당김)', () => {
+    // 07-14(화) 청구 끝 → 다음 07-28. 수요일(07-15) 정지·재개
+    assert.equal(resumeShipDate('2026-07-28', WED), '2026-07-28')
+  })
+  it('원래 날짜가 지났거나 없으면 다음 발송 화요일', () => {
+    assert.equal(resumeShipDate('2026-07-14', '2026-07-20'), nextShipDate('2026-07-20'))
+    assert.equal(resumeShipDate(null, WED), nextShipDate(WED))
+    assert.equal(resumeShipDate(undefined, WED), nextShipDate(WED))
+  })
+  it('마감이 지난 원래 날짜(내일 화요일, 월요일 재개)는 다음 주로 — 뒤로만 민다', () => {
+    assert.equal(resumeShipDate(TUE, MON), nextShipDate(MON))
+  })
+  it('화요일이 아닌 옛 날짜는 다음 발송 화요일로 스냅', () => {
+    assert.equal(resumeShipDate('2026-07-30', WED), nextShipDate(WED))
+  })
 })

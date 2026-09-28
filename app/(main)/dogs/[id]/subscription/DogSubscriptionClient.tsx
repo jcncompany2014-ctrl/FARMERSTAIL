@@ -53,7 +53,7 @@ import FreshRatioSheet from '@/components/subscription/FreshRatioSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { petName, iGa } from '@/lib/korean'
-import { nextShipDate, nextCycleDate, weekdayKo } from '@/lib/shipping-schedule'
+import { nextShipDate, nextCycleDate, weekdayKo, resumeShipDate } from '@/lib/shipping-schedule'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   subscriptionState,
@@ -231,7 +231,8 @@ export default function DogSubscriptionClient({
   async function resume(sub: DogSub) {
     setBusy(sub.id)
     // 재개하면 다음 화요일부터. '오늘 + 14일' 로 잡으면 오늘 요일로 어긋난다.
-    const next = nextShipDate()
+    // 단 아직 오지 않은 원래 배송일이 있으면 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
+    const next = resumeShipDate(sub.next_delivery_date)
     if (await patch(sub.id, { status: 'active', next_delivery_date: next })) {
       trackSubscriptionResumed({ subscriptionId: sub.id })
       toast.success(`${dateLabel(next)}부터 다시 보내드릴게요.`)

@@ -5,7 +5,7 @@ import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
-import { nextShipDate } from '@/lib/shipping-schedule'
+import { resumeShipDate } from '@/lib/shipping-schedule'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
@@ -225,7 +225,8 @@ export default function AdminSubscriptionsPage() {
         !!sub?.has_billing_key && !sub?.requires_billing_key_renewal
       if (cardUsable) {
         // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
-        updates.next_delivery_date = nextShipDate()
+        // 아직 오지 않은 원래 배송일은 그대로 — 정지했다 곧바로 재개해도 다음 청구가 앞당겨지지 않게(2026-09-28).
+        updates.next_delivery_date = resumeShipDate(sub?.next_delivery_date)
       } else {
         updates.next_delivery_date = null
         if (sub?.requires_billing_key_renewal) {
