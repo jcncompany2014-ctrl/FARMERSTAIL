@@ -21,6 +21,13 @@ export type BioLink = {
 
 const UTM = 'utm_source=instagram&utm_medium=bio'
 
+/**
+ * 스마트스토어 — 사장님이 준 네이버 마케팅 링크(2026-09-30). 뒤의 NaPm 은 네이버 쪽
+ * 유입 집계용 값이라 지우거나 줄이면 안 된다. DB 배너(link_banners.href)도 같은 주소.
+ */
+export const SMARTSTORE_URL =
+  'https://smartstore.naver.com/farmerstail?NaPm=ct%3D1k3pc0air%7Cci%3Dshopn%7Ctr%3Dmktlnk%7Chk%3Da8be6386e76ece0ea39773e5ef80b98b699a375f%7Ctrx%3Dundefined'
+
 export const BIO_LINKS: BioLink[] = [
   {
     label: '2분 설문으로 맞춤 식단 받기',
@@ -31,7 +38,7 @@ export const BIO_LINKS: BioLink[] = [
   {
     label: '스마트스토어에서 구매하기',
     sub: '네이버에서 간편하게',
-    href: 'https://smartstore.naver.com/farmerstail',
+    href: SMARTSTORE_URL,
   },
 ]
 
@@ -54,7 +61,7 @@ export const STORE_CARD = {
   sub: '네이버 스마트스토어 오픈 기념 · 화식 4종',
   // 홈·레시피 페이지와 같은 실제 패키지 컷(스마트스토어 대표 이미지와 동일).
   images: ['/pouch-hanwoo.webp', '/pouch-blackpork.webp', '/pouch-duck.webp', '/pouch-chicken.webp'],
-  href: 'https://smartstore.naver.com/farmerstail',
+  href: SMARTSTORE_URL,
 } as const
 
 /**
