@@ -3911,6 +3911,13 @@ test('규칙89: 어드민 "설문 기록"(/admin/surveys) — 두 내비에 등�
   assert.match(labels, /snapBoxLines\(ratios\)/, '표시 박스가 lineRatios 를 snapBoxLines 로 스냅하지 않는다')
   assert.doesNotMatch(labels, /picks\.push\(\{[^}]*\bratio,/, '엔진 초안(layerA.picks)의 비율이 그대로 표시 박스에 들어간다 — 70/30 이 사장님 화면에 뜬다')
   assert.doesNotMatch(labels, /ratio >= 0\.3/, '박스 스냅 임계를 따로 구현했다 — boxComposition.SECOND_LINE_MIN 하나만 정본')
+
+  // 2026-10-01 사장님 "두 개 다 설문이 같은데 값이 달라"(로아): 간식 답만 다른 두 설문 카드에
+  // 두 번째 설문의 박스가 둘 다 붙었다. 처방은 강아지 단위라 설문과 짝지을 때 다음 설문을 경계로.
+  assert.match(data, /pickSurveyFormula\(list, createdMs, nextMs\)/, '설문 카드가 다음 설문 경계 없이 처방을 고른다 — 다음 설문의 박스가 이 설문 것처럼 뜬다')
+  assert.match(labels, /nextSurveyMs - 60_000/, 'pickSurveyFormula 에 다음 설문 상한이 없다')
+  assert.match(list, /formulaSource === 'previous'/, '이전 설문의 처방을 라벨 없이 이 설문 박스처럼 보인다')
+  assert.match(labels, /chips\.push\(`간식 \$\{snack\}`\)/, '설문 칩에 간식이 없다 — g/일만 다른 두 설문이 같아 보인다')
 })
 
 test('규칙90: 처방 근거 문구(reasoning) 에 영문 라인명·라인 비율% 금지 — 고객 재제안 화면에 그대로 나간다', () => {

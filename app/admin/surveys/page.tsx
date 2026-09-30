@@ -196,6 +196,7 @@ function SurveyCard({ r }: { r: SurveyRecord }) {
             <div className="text-[10.5px] font-bold text-muted-foreground">추천 박스</div>
             {box && box.picks.length > 0 ? (
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {r.formulaSource === 'previous' && <Badge tone="amber">이전 설문 처방</Badge>}
                 {box.picks.map((p) => (
                   <span key={p.protein + p.name} className="rounded-md bg-card border border-border px-2 py-1 text-[13px] font-bold text-foreground">
                     {p.name} {Math.round(p.ratio * 100)}%
@@ -207,6 +208,10 @@ function SurveyCard({ r }: { r: SurveyRecord }) {
                 {box.chips.slice(0, 3).map((c) => (
                   <span key={c} className="text-[11px] text-muted-foreground">· {c}</span>
                 ))}
+              </div>
+            ) : r.nextSurveyAt ? (
+              <div className="mt-1 text-[12px] text-muted-foreground">
+                이 설문으론 박스를 계산하지 않았어요 — {fmtKst(r.nextSurveyAt)} 설문으로 다시 계산됐어요
               </div>
             ) : (
               <div className="mt-1 text-[12px] text-muted-foreground">아직 추천 박스 없음 (분석 화면을 열면 계산돼요)</div>

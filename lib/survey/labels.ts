@@ -204,6 +204,11 @@ export function surveyChips(answers: unknown, meta: SurveyRowMeta = {}): string[
   if (trend && a.weightTrend6mo !== 'unknown') chips.push(`체중 ${trend}`)
   const food = surveyOrigin(a) === 'web' ? pick(WEB_FOOD, a.foodType) ?? str(a.foodType) : str(a.foodType)
   if (food) chips.push(food)
+  // 간식은 급여 그램을 바꾼다(가끔 5%·매일 10% 차감) — 칩이 없으면 g/일만 다른 두 설문이 같아 보인다.
+  const treatKcal = num(a.treatKcalPerDay)
+  const snack = str(a.snackFreq)
+  if (treatKcal !== null && treatKcal > 0) chips.push(`간식 ${treatKcal}kcal`)
+  else if (snack === '매일' || snack === '가끔') chips.push(`간식 ${snack}`)
   const allergies = strs(a.allergies)
   if (allergies.length) chips.push(`알레르기 ${allergies.length}`)
   const conds = strs(a.chronicConditions)
@@ -302,6 +307,34 @@ export type FormulaRowLike = {
   approval_status?: string | null
   user_adjusted?: boolean | null
   cycle_number?: number | null
+}
+
+/**
+ * 설문 한 건에 붙일 처방 고르기. 처방(dog_formulas)은 강아지 단위라 설문과 직접 연결이 없다.
+ * 이 설문의 처방 = [이 설문 − 60초, 같은 강아지 다음 설문 − 60초) 사이에 계산된 첫 처방.
+ * 다음 설문을 경계로 두지 않으면 다음 설문의 박스가 이 설문 카드에 붙는다
+ * (2026-10-01 로아: 간식 답이 다른 두 설문 카드에 같은 402g 박스).
+ * 가장 최근 설문인데 자기 처방이 없으면 이전 설문의 처방을 'previous' 로(라벨 필수).
+ * `list` 는 computed_at 오름차순.
+ */
+export function pickSurveyFormula<T extends FormulaRowLike>(
+  list: readonly T[],
+  createdMs: number,
+  nextSurveyMs: number | null,
+): { formula: T | null; source: 'own' | 'previous' | null } {
+  const lower = createdMs - 60_000
+  const upper = nextSurveyMs === null ? Infinity : nextSurveyMs - 60_000
+  const own = list.find((f) => {
+    if (!f.computed_at) return false
+    const t = new Date(f.computed_at).getTime()
+    return t >= lower && t < upper
+  })
+  if (own) return { formula: own, source: 'own' }
+  if (nextSurveyMs === null) {
+    const latest = list[list.length - 1] ?? null
+    return latest ? { formula: latest, source: 'previous' } : { formula: null, source: null }
+  }
+  return { formula: null, source: null }
 }
 
 export type BoxSummary = {

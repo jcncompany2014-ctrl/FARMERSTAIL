@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { surveyOrigin, type SurveyOrigin, type SurveyRowMeta, type AnalysisLike, type FormulaRowLike } from '@/lib/survey/labels'
+import { pickSurveyFormula, surveyOrigin, type SurveyOrigin, type SurveyRowMeta, type AnalysisLike, type FormulaRowLike } from '@/lib/survey/labels'
 
 /**
  * 설문 기록 데이터 조립 — surveys 를 축으로 dogs · profiles · analyses · dog_formulas ·
@@ -31,9 +31,16 @@ export type SurveyRecord = {
   dog: SurveyDog | null
   owner: { email: string | null; name: string | null } | null
   analysis: (AnalysisLike & { id: string; created_at: string }) | null
-  /** 이 설문 직후에 계산된 처방(없으면 그 강아지의 최신 처방). */
+  /**
+   * 이 설문으로 계산된 처방 — 이 설문 ~ 같은 강아지의 다음 설문 사이에 계산된 첫 처방('own').
+   * 가장 최근 설문인데 자기 처방이 없으면 이전 설문의 처방을 표시('previous', 라벨 필수).
+   * 다음 설문이 있는데 자기 처방이 없으면 null — 다음 설문의 박스를 이 설문 것처럼 그리지
+   * 않는다(2026-10-01 로아: 간식 답이 다른 두 설문에 같은 박스가 떴다).
+   */
   formula: (FormulaRowLike & { id: string }) | null
-  formulaIsLater: boolean
+  formulaSource: 'own' | 'previous' | null
+  /** 같은 강아지의 다음 설문 시각 — 이 설문으로 박스가 계산되지 않은 이유 안내용. */
+  nextSurveyAt: string | null
   subscriptionStatus: string | null
 }
 
@@ -61,7 +68,7 @@ export async function loadSurveyRecords(adminIn: SupabaseClient, onlyId?: string
   const userIds = [...new Set(rows.map((r) => String(r.user_id)))]
   const surveyIds = rows.map((r) => String(r.id))
 
-  const [dogsRes, profilesRes, analysesRes, formulasRes, subsRes] = await Promise.all([
+  const [dogsRes, profilesRes, analysesRes, formulasRes, subsRes, siblingsRes] = await Promise.all([
     admin.from('dogs').select('id, name, breed, weight, age_value, age_unit, neutered, gender, prescription_diet, photo_url').in('id', dogIds),
     admin.from('profiles').select('id, email, name').in('id', userIds),
     admin
@@ -74,8 +81,11 @@ export async function loadSurveyRecords(adminIn: SupabaseClient, onlyId?: string
       .in('dog_id', dogIds)
       .order('computed_at', { ascending: true }),
     admin.from('subscriptions').select('dog_id, status, created_at').in('dog_id', dogIds).order('created_at', { ascending: false }),
+    // 같은 강아지의 모든 설문 시각 — 처방을 "어느 설문의 것인지" 가르는 경계. 상세(onlyId)는
+    // 설문 한 건만 읽으므로 다음 설문을 여기서 따로 알아야 한다.
+    admin.from('surveys').select('dog_id, created_at').in('dog_id', dogIds),
   ])
-  for (const [label, res] of [['강아지', dogsRes], ['보호자', profilesRes], ['분석', analysesRes], ['처방', formulasRes], ['구독', subsRes]] as const) {
+  for (const [label, res] of [['강아지', dogsRes], ['보호자', profilesRes], ['분석', analysesRes], ['처방', formulasRes], ['구독', subsRes], ['설문 순서', siblingsRes]] as const) {
     if (res.error) return { ok: false, message: `${label} 정보를 불러오지 못했어요: ${res.error.message}` }
   }
 
@@ -119,13 +129,21 @@ export async function loadSurveyRecords(adminIn: SupabaseClient, onlyId?: string
     if (!prev || (prev !== 'active' && st === 'active')) subByDog.set(did, st)
   }
 
+  const surveyTimesByDog = new Map<string, number[]>()
+  for (const s of (siblingsRes.data ?? []) as Array<Record<string, unknown>>) {
+    const did = String(s.dog_id)
+    const list = surveyTimesByDog.get(did) ?? []
+    list.push(new Date(String(s.created_at)).getTime())
+    surveyTimesByDog.set(did, list)
+  }
+
   const records: SurveyRecord[] = rows.map((r) => {
     const dogId = String(r.dog_id)
     const createdMs = new Date(String(r.created_at)).getTime()
     const list = formulasByDog.get(dogId) ?? []
-    // 설문 시각 이후에 계산된 첫 처방 = 이 설문의 결과. 없으면 최신 처방(이전 설문의 것).
-    const after = list.find((f) => f.computed_at && new Date(f.computed_at).getTime() >= createdMs - 60_000)
-    const formula = after ?? list[list.length - 1] ?? null
+    // 다음 설문을 경계로 처방을 고른다 — 없으면 다음 설문의 박스가 이 카드에 붙는다(로아).
+    const nextMs = (surveyTimesByDog.get(dogId) ?? []).filter((t) => t > createdMs).sort((a, b) => a - b)[0] ?? null
+    const { formula, source } = pickSurveyFormula(list, createdMs, nextMs)
     const dog = dogById.get(dogId) ?? null
     return {
       id: String(r.id),
@@ -148,7 +166,8 @@ export async function loadSurveyRecords(adminIn: SupabaseClient, onlyId?: string
       owner: ownerById.get(String(r.user_id)) ?? null,
       analysis: analysisBySurvey.get(String(r.id)) ?? null,
       formula: formula ? { ...formula } : null,
-      formulaIsLater: !!formula && !after,
+      formulaSource: source,
+      nextSurveyAt: nextMs === null ? null : new Date(nextMs).toISOString(),
       subscriptionStatus: subByDog.get(dogId) ?? null,
     }
   })

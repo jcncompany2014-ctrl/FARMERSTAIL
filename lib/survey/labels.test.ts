@@ -4,6 +4,7 @@ import {
   describeAnalysis,
   describeBox,
   describeSurvey,
+  pickSurveyFormula,
   surveyChips,
   surveyOrigin,
 } from './labels.ts'
@@ -56,7 +57,10 @@ test('앱 v4 답변 → 한글 섹션 (고객이 누른 글자 그대로)', () =
   assert.equal(flat['추가 질문 4개'], '답함')
   // 영어 키가 그대로 새어 나오지 않는다
   for (const sec of s) for (const i of sec.items) assert.doesNotMatch(i.value, /^[a-z_]+$/, `${i.label}: ${i.value}`)
-  assert.deepEqual(surveyChips(v4, { current_medications: v4.currentMedications }), ['체형 4/9', '체중 빠졌어요', '습식/화식', '질환 1', '약 2', '체중 관리'])
+  assert.deepEqual(surveyChips(v4, { current_medications: v4.currentMedications }), ['체형 4/9', '체중 빠졌어요', '습식/화식', '간식 가끔', '질환 1', '약 2', '체중 관리'])
+  // 간식 답만 다른 두 설문(로아 2026-09-24)이 칩으로 구분된다 — '거의 안 줌'은 차감 0 이라 칩 없음.
+  assert.ok(!surveyChips({ ...v4, snackFreq: '거의 안 줌' }).some((c) => c.startsWith('간식')))
+  assert.ok(surveyChips({ ...v4, snackFreq: '매일' }).includes('간식 매일'))
 })
 
 test('웹 1분 설문(체형 5지선다·영문 키) 도 읽힌다', () => {
@@ -145,4 +149,21 @@ test('추천 박스 — 표시 박스는 lineRatios(정본) 를 고객 카드와
     for (const p of b!.picks) assert.ok(p.ratio === 1 || p.ratio === 0.5, `${p.name} ${p.ratio}`)
   }
   assert.equal(describeBox(null), null)
+})
+
+test('설문↔처방 짝짓기 — 다음 설문의 박스가 이전 설문 카드에 붙지 않는다 (로아 2026-09-24)', () => {
+  // 실측: 설문 12:28:45(간식 거의 안 줌) · 설문 12:37:58(간식 가끔) · 처방 12:38:00 한 건(두 번째 설문 것).
+  const s1 = Date.parse('2026-09-24T03:28:45Z')
+  const s2 = Date.parse('2026-09-24T03:37:58Z')
+  const f = { computed_at: '2026-09-24T03:38:00Z', daily_grams: 402 }
+  assert.deepEqual(pickSurveyFormula([f], s1, s2), { formula: null, source: null })
+  assert.deepEqual(pickSurveyFormula([f], s2, null), { formula: f, source: 'own' })
+  // 설문 직후 계산본이 둘이면(진행 크론 재계산) 첫 박스를 고른다.
+  const f2 = { computed_at: '2026-10-20T00:00:00Z', daily_grams: 390 }
+  assert.equal(pickSurveyFormula([f, f2], s2, null).formula, f)
+  // 가장 최근 설문인데 자기 처방이 없으면 이전 설문의 처방을 'previous' 로(화면이 라벨을 단다).
+  const s3 = Date.parse('2026-11-01T00:00:00Z')
+  assert.deepEqual(pickSurveyFormula([f, f2], s3, null), { formula: f2, source: 'previous' })
+  // 처방이 전혀 없으면 null.
+  assert.deepEqual(pickSurveyFormula([], s1, null), { formula: null, source: null })
 })

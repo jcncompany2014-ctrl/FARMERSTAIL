@@ -173,8 +173,10 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
               title="추천 박스"
               desc={
                 box
-                  ? `${box.cycle != null ? `${box.cycle}번째 박스 · ` : ''}${box.computedAt ? `계산 ${fmtKst(box.computedAt)}` : ''}${r.formulaIsLater ? ' · 이 설문 이후 계산본이 없어 강아지의 최신 처방을 표시' : ''}`
-                  : undefined
+                  ? `${box.cycle != null ? `${box.cycle}번째 박스 · ` : ''}${box.computedAt ? `계산 ${fmtKst(box.computedAt)}` : ''}${r.formulaSource === 'previous' ? ' · 이 설문으로 계산된 박스가 없어 이전 설문의 처방을 표시' : ''}`
+                  : r.nextSurveyAt
+                    ? `이 설문으론 박스를 계산하지 않았어요 — ${fmtKst(r.nextSurveyAt)} 설문으로 다시 계산됐어요`
+                    : undefined
               }
             />
             {box && box.picks.length > 0 ? (
@@ -240,6 +242,8 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
                   </details>
                 )}
               </>
+            ) : r.nextSurveyAt ? (
+              <p className="text-[13px] text-muted-foreground">이 설문 뒤에 설문을 다시 해서, 박스는 다음 설문으로 계산됐어요.</p>
             ) : (
               <p className="text-[13px] text-muted-foreground">아직 추천 박스가 없어요. 고객이 분석 화면을 열면 계산돼요.</p>
             )}
