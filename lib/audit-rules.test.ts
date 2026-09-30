@@ -5159,3 +5159,18 @@ test('규칙135: 여러 구독 미리보기 — 1회성 할인·서포터즈 회
   assert.match(auth, /useState<BillingTerms>\(null\)/, '동의 화면 상태가 BillingTerms 전체를 담지 않는다')
   assert.match(auth, /discountKind: data\.discountKind[\s\S]{0,120}recurringAmount: data\.recurringAmount/, '동의 화면이 할인 종류·반복 금액을 버린다 — 첫 박스 할인가가 2주마다로 보인다')
 })
+
+test('규칙142: 크는 자견에게 체중 증가를 이유로 급여량 감량을 제안하지 않는다', () => {
+  /**
+   * # 왜 (2026-10-01 자견 계수 점검)
+   * 체중 재측정 크론은 BCS 5 를 '유지' 목표로 보고 4주에 +2% 넘게 늘면 −10% 를 제안·기록했다.
+   * 월령을 보지 않아서, 1.5→2.0kg 정상 성장한 4개월 말티푸에게 "236→212kcal 로 조정" 푸시가
+   * 가고 다음 회차 기준 kcal 이 깎인 채 승인 대기에 올라갈 수 있었다(체중 기록이 쌓이면 발동).
+   */
+  const rw = stripComments(read(join(ROOT, 'lib', 'calorie-v2', 'reweigh.ts')))
+  assert.match(rw, /if \(i\.isGrowing\) \{\s*return \{\s*action: 'hold'/, '재측정 판정이 성장기 자견을 걸러내지 않는다')
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'weight-change-detect', 'route.ts')))
+  assert.match(cron, /\.select\('id, user_id, name, age_value, age_unit'\)/, '체중 크론이 강아지 월령을 읽지 않는다')
+  assert.match(cron, /\.select\('bcs_score, stage'\)/, '체중 크론이 분석 당시 생애주기를 읽지 않는다')
+  assert.match(cron, /decideReweigh\(\{[\s\S]{0,160}isGrowing,/, '체중 크론이 성장기 여부를 판정에 넘기지 않는다')
+})

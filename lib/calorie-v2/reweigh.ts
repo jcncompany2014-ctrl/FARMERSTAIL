@@ -19,6 +19,12 @@ export interface ReweighInput {
   days: number
   /** 최신 분석 BCS — 목표(lose/gain/maintain) 유도. 없으면 maintain. */
   bcsScore?: number | null
+  /**
+   * 성장기 자견. 자라는 강아지는 체중이 느는 게 정상이라 유지·감량 판정(+2% → −10%)을
+   * 걸면 안 된다 — 4주에 1.5→2.0kg 크는 말티푸에게 "236→212kcal 로 줄이자"가 나갔다
+   * (2026-10-01 점검). 성장 추적은 성장식 재계산의 몫이다.
+   */
+  isGrowing?: boolean
 }
 
 export interface ReweighDecision {
@@ -55,6 +61,15 @@ export function decideReweigh(i: ReweighInput): ReweighDecision {
   }
   const weightDeltaPct =
     ((i.latestWeightKg - i.baselineWeightKg) / i.baselineWeightKg) * 100
+  if (i.isGrowing) {
+    return {
+      action: 'hold',
+      goal,
+      weightDeltaPct: +weightDeltaPct.toFixed(2),
+      newDer: i.prevDer,
+      note: '성장기 — 체중이 느는 건 성장이라 급여량 조정을 제안하지 않아요.',
+    }
+  }
   const fb = feedbackAdjustment(i.prevDer, weightDeltaPct, i.days, goal)
   return {
     action: fb.newDer !== i.prevDer ? 'adjust' : 'hold',

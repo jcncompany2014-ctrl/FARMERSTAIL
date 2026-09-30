@@ -6,6 +6,7 @@ import { trackCron } from '@/lib/cron-tracking'
 import { recordOutcome } from '@/lib/feeding-outcomes'
 import { petName } from '@/lib/korean'
 import { decideReweigh } from '@/lib/calorie-v2/reweigh'
+import { stageFromKR } from '@/lib/nutrition'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
@@ -64,12 +65,18 @@ async function runDetect(): Promise<Response> {
    * 쓰는데, UUID 200개 ≈ 7KB 로 URL 길이 한도 안에서 여유가 있다.
    */
   const PAGE = 200
-  const dogList: Array<{ id: string; user_id: string; name: string }> = []
+  const dogList: Array<{
+    id: string
+    user_id: string
+    name: string
+    age_value: number | null
+    age_unit: string | null
+  }> = []
   let lastId: string | null = null
   for (;;) {
     let pageQuery = admin
       .from('dogs')
-      .select('id, user_id, name')
+      .select('id, user_id, name, age_value, age_unit')
       .order('id', { ascending: true })
       .limit(PAGE)
     if (lastId) pageQuery = pageQuery.gt('id', lastId)
@@ -84,6 +91,8 @@ async function runDetect(): Promise<Response> {
       id: string
       user_id: string
       name: string
+      age_value: number | null
+      age_unit: string | null
     }>
     const tail = page[page.length - 1]
     if (!tail) break
@@ -227,7 +236,7 @@ async function runDetect(): Promise<Response> {
             .maybeSingle(),
           admin
             .from('analyses')
-            .select('bcs_score')
+            .select('bcs_score, stage')
             .eq('dog_id', dog.id)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -240,6 +249,13 @@ async function runDetect(): Promise<Response> {
         ])
       const prevDer = (formulaRow as { daily_kcal: number } | null)?.daily_kcal
       const bcsScore = (analysisRow as { bcs_score: number | null } | null)?.bcs_score
+      // 자견은 체중이 느는 게 정상 — 유지·감량 판정 제외. 분석 당시 성장기였거나 지금 12개월
+      // 미만이면(나이는 dog-age-update 가 매일 갱신) 성장기로 본다.
+      const ageMonths =
+        dog.age_value == null ? null : dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
+      const isGrowing =
+        stageFromKR((analysisRow as { stage: string | null } | null)?.stage) === 'puppy' ||
+        (ageMonths != null && ageMonths < 12)
       const days = Math.round(
         (Date.parse(latest.measured_at) - Date.parse(baseline.measured_at)) /
           86_400_000,
@@ -251,6 +267,7 @@ async function runDetect(): Promise<Response> {
           latestWeightKg: latest.weight,
           days,
           bcsScore,
+          isGrowing,
         })
         if (decision.action === 'adjust') {
           const { error: rwErr } = await admin.from('reweighs').insert({

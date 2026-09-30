@@ -96,4 +96,15 @@ describe('decideReweigh — M10 판정', () => {
       'insufficient',
     )
   })
+
+  it('성장기 자견 — 크는 체중(+33%)에 감량 제안을 하지 않는다 (낑콩 2026-10-01)', () => {
+    // 말티푸 4개월 1.5kg → 4주 뒤 2.0kg (정상 성장). 성장식으로도 이 시점 ~237kcal 필요.
+    const growing = decideReweigh({ prevDer: 236, baselineWeightKg: 1.5, latestWeightKg: 2.0, days: 28, bcsScore: 5, isGrowing: true })
+    assert.equal(growing.action, 'hold')
+    assert.equal(growing.newDer, 236)
+    // 과체중 자견(BCS 7)도 '감량 정체 −10%'를 걸지 않는다 — 자견은 감량이 아니라 성장 속도 조절.
+    assert.equal(decideReweigh({ prevDer: 700, baselineWeightKg: 8, latestWeightKg: 8.6, days: 28, bcsScore: 7, isGrowing: true }).action, 'hold')
+    // 같은 입력이 성견이면 그대로 −10% (기존 동작 보존).
+    assert.equal(decideReweigh({ prevDer: 236, baselineWeightKg: 1.5, latestWeightKg: 2.0, days: 28, bcsScore: 5 }).newDer, 212)
+  })
 })
