@@ -28,7 +28,13 @@ import {
 import { daysSinceIso, isoDaysAgo } from '@/lib/persona'
 import type { Json } from '@/lib/supabase/types'
 // 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
-import { shipTimingLabel } from '@/lib/shipping-schedule'
+import { shipTimingLabel, describeUpcomingBox, paidBoxShipIso } from '@/lib/shipping-schedule'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { boxStage, stageDetail, type BoxStage } from '@/lib/commerce/box-progress'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { petName } from '@/lib/korean'
+import BoxProgressCard from '@/components/v3/home/BoxProgressCard'
 import { subscriptionState } from '@/lib/subscription-state'
 import Link from 'next/link'
 import { dailyPortionTotalG } from '@/lib/personalization/boxPricing'
@@ -319,17 +325,112 @@ export default async function DashboardPage() {
   // eslint-disable-next-line react-hooks/purity
   const nowKstMs = Date.now() + 9 * 3600 * 1000
 
-  // 활성 구독 D-day 카운트.
+  // ── 결제된 박스 진행(2026-10-01 사장님 — 발송 준비 → 발송 → 배송 중 → 배송 완료) ─────────────────
+  // 일정이 토·일 조리 → 월 포장 → 화 발송으로 바뀌어 일반 고객은 토요일 아침에 결제되고 박스는 사흘 뒤 나간다.
+  // 결제됐는데 아무 소식이 없는 구간을 홈 카드가 채운다. 판정·문구 정본 = lib/commerce/box-progress.
+  // 조회 실패는 카드만 안 뜬다(돈·버튼과 무관한 표시) — 대신 남긴다.
+  const todayKst = todayKstIsoDate()
+  const [{ data: boxOrderRows, error: boxOrdersErr }, chargeTiming] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('id, subscription_id, order_status, payment_status, paid_at, shipped_at, delivered_at, tracking_number, carrier, created_at')
+      .eq('user_id', user.id)
+      .not('subscription_id', 'is', null)
+      .in('payment_status', PAID_STATUSES)
+      .in('order_status', ['preparing', 'shipping', 'delivered'])
+      .gte('created_at', new Date(nowKstMs - 9 * 3600 * 1000 - 21 * 86_400_000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10),
+    getChargeTiming(user.id),
+  ])
+  if (boxOrdersErr) console.error('[dashboard] 박스 진행 주문 조회 실패', boxOrdersErr.message)
+  type BoxOrderRow = {
+    id: string
+    subscription_id: string | null
+    order_status: string | null
+    payment_status: string | null
+    paid_at: string | null
+    shipped_at: string | null
+    delivered_at: string | null
+    tracking_number: string | null
+    carrier: string | null
+    created_at: string
+  }
+  const boxOrders = ((boxOrderRows ?? []) as BoxOrderRow[]).filter((o) => boxStage(o, todayKst) !== null)
+  const boxSubIds = [...new Set(boxOrders.map((o) => o.subscription_id).filter((x): x is string => !!x))]
+  const boxSubs = new Map<string, { dog_id: string | null; next_delivery_date: string | null; items: string[] }>()
+  if (boxSubIds.length > 0) {
+    const { data: bsRows, error: bsErr } = await supabase
+      .from('subscriptions')
+      .select('id, dog_id, next_delivery_date, subscription_items(product_name)')
+      .in('id', boxSubIds)
+    if (bsErr) console.error('[dashboard] 박스 진행 구독 조회 실패', bsErr.message)
+    for (const r of (bsRows ?? []) as Array<{
+      id: string
+      dog_id: string | null
+      next_delivery_date: string | null
+      subscription_items: { product_name: string }[] | null
+    }>) {
+      boxSubs.set(r.id, {
+        dog_id: r.dog_id,
+        next_delivery_date: r.next_delivery_date,
+        items: (r.subscription_items ?? []).map((it) => it.product_name.replace(/\s*\([^)]*\)\s*$/, '')),
+      })
+    }
+  }
+  // 구독마다 가장 최근 박스 하나.
+  const seenBoxSub = new Set<string>()
+  const boxCards: Array<{
+    key: string
+    dogLabel: string
+    stage: BoxStage
+    detail: string
+    itemLabel: string | null
+    href: string
+    linkLabel: string
+  }> = []
+  for (const o of boxOrders) {
+    if (!o.subscription_id || seenBoxSub.has(o.subscription_id)) continue
+    seenBoxSub.add(o.subscription_id)
+    const stage = boxStage(o, todayKst)!
+    const sub = boxSubs.get(o.subscription_id)
+    const dog = dogs.find((d) => d.id === sub?.dog_id)
+    // 발송 준비 중인 박스의 발송일 — 결제 시각 기준 정본(paidBoxShipIso). next − 14 만 보면 결제 뒤 '2주 미루기'에
+    // 이번 박스를 2주 늦게 말한다(실제로는 그대로 나간다).
+    const shipIso =
+      stage === 'preparing' ? paidBoxShipIso(sub?.next_delivery_date ?? null, o.paid_at ?? o.created_at) : null
+    const tracking = !!(o.tracking_number && o.carrier) && stage !== 'preparing'
+    boxCards.push({
+      key: o.id,
+      dogLabel: dog ? petName(dog.name) : '우리 아이',
+      stage,
+      detail: stageDetail(stage, shipIso, todayKst),
+      itemLabel: sub && sub.items.length > 0 ? sub.items.join(' · ') : null,
+      href: tracking ? `/mypage/orders/${o.id}/track` : `/mypage/orders/${o.id}`,
+      linkLabel: tracking ? '실시간 배송 조회' : '주문 자세히 보기',
+    })
+  }
+
+  // 활성 구독 D-day 카운트 — 화면용 박스 판정(lib/shipping-schedule describeUpcomingBox).
+  // ★토요일 결제 뒤엔 next_delivery_date 가 다음 주기라 그대로 세면 사흘 뒤 나갈 박스를 두고 "17일 후 발송"이라
+  //   말한다(2026-10-01). 결제됐고 아직 안 나간 박스가 있으면 그 박스, 결제일이 지났는데 결제 증거가 없으면 '확인 중'.
   const upcomingDelivery =
     hasActiveSub && subscription?.next_delivery_date
       ? (() => {
-          const targetIso = `${subscription.next_delivery_date}T00:00:00+09:00`
-          // 같은 이유 — server component 의 의도된 시간 의존성.
-          const todayKstStart = new Date(
-            new Date(nowKstMs).toISOString().slice(0, 10) + 'T00:00:00+09:00',
-          ).getTime()
+          // 최신순 조회라 첫 행이 가장 최근 결제 박스.
+          const paidPreparing = ((boxOrderRows ?? []) as BoxOrderRow[]).find(
+            (o) => o.subscription_id === subscription.id && o.order_status === 'preparing',
+          )
+          const box = describeUpcomingBox({
+            nextDeliveryDate: subscription.next_delivery_date,
+            timing: chargeTiming,
+            hasPaidPreparingOrder: !!paidPreparing,
+            paidAt: paidPreparing ? (paidPreparing.paid_at ?? paidPreparing.created_at) : null,
+            today: todayKst,
+          })
+          if (!box) return null
           const days = Math.round(
-            (new Date(targetIso).getTime() - todayKstStart) / 86_400_000,
+            (Date.parse(`${box.shipIso}T00:00:00Z`) - Date.parse(`${todayKst}T00:00:00Z`)) / 86_400_000,
           )
           const items = subscription.subscription_items ?? []
           const productLabel =
@@ -338,9 +439,19 @@ export default async function DashboardPage() {
               : items.length === 1
                 ? items[0]!.product_name
                 : `${items[0]!.product_name} 외 ${items.length - 1}개`
-          return { daysUntil: days, productLabel }
+          return { daysUntil: days, productLabel, chargeCheck: box.kind === 'charge_check' }
         })()
       : null
+  // 결제 확인 중이면 발송을 약속하지 않는다.
+  const deliveryTiming = upcomingDelivery
+    ? upcomingDelivery.chargeCheck
+      ? {
+          dLabel: '확인 중',
+          detail: '결제를 확인하고 있어요. 확인되면 박스를 준비해 보내드려요.',
+          metric: { value: '확인', unit: '중' },
+        }
+      : shipTimingLabel(upcomingDelivery.daysUntil)
+    : null
 
   const firstDog = dogs[0]
 
@@ -570,6 +681,19 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* 결제된 박스가 움직이는 중이면 맨 위에(2026-10-01 사장님 — 발송 준비 → 발송 → 배송 중 → 배송 완료). */}
+      {boxCards.map((b) => (
+        <BoxProgressCard
+          key={b.key}
+          dogLabel={b.dogLabel}
+          stage={b.stage}
+          detail={b.detail}
+          itemLabel={b.itemLabel}
+          href={b.href}
+          linkLabel={b.linkLabel}
+        />
+      ))}
+
       {/* 2. ActiveDog 카드 — 첫 강아지 spotlight */}
       {firstDog && (
         <ActiveDogCard
@@ -607,12 +731,8 @@ export default async function DashboardPage() {
               // 문구는 lib/shipping-schedule 정본 — 이 날짜는 **발송일**이다
               // (예전엔 '도착'이라고 써서 하루 앞당겨 약속했다, 2026-07-30).
               key: '배송',
-              value: upcomingDelivery
-                ? shipTimingLabel(upcomingDelivery.daysUntil).metric.value
-                : '--',
-              sub: upcomingDelivery
-                ? shipTimingLabel(upcomingDelivery.daysUntil).metric.unit
-                : '예정',
+              value: deliveryTiming ? deliveryTiming.metric.value : '--',
+              sub: deliveryTiming ? deliveryTiming.metric.unit : '예정',
               tone: 'accent',
             },
           ]}
@@ -654,14 +774,14 @@ export default async function DashboardPage() {
         snapshotErr ? <HomeLoadFailed /> : <EmptyHomeNoDogs addDogHref="/dogs/new" />
       ) : null}
 
-      {/* 다음 배송 D-N strip (구독 활성 시). */}
-      {upcomingDelivery && (
+      {/* 다음 배송 D-N strip (구독 활성 시). 박스 진행 카드가 떠 있으면 같은 이야기라 숨긴다. */}
+      {upcomingDelivery && deliveryTiming && boxCards.length === 0 && (
         <DeliveryStripCard
-          dLabel={shipTimingLabel(upcomingDelivery.daysUntil).dLabel}
+          dLabel={deliveryTiming.dLabel}
           channelLabel="정기배송"
           // ★ 이 날짜는 발송일이다. 예전 문구("내일 새벽 도착")는 하루를 앞당기고
           //   우리가 알 수 없는 시각까지 단정했다 — 도착은 지역에 따라 다르다.
-          timingLabel={shipTimingLabel(upcomingDelivery.daysUntil).detail}
+          timingLabel={deliveryTiming.detail}
           itemLabel={upcomingDelivery.productLabel}
           href="/mypage/subscriptions"
         />

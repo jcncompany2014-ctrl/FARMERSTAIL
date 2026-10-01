@@ -11,6 +11,8 @@ import { createClient } from '@/lib/supabase/server'
 import DogSubscriptionClient, { type DogSub } from './DogSubscriptionClient'
 import { getTrialState } from '@/lib/payments/trial-state'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
 export default async function DogSubscriptionPage({
   params,
@@ -32,7 +34,7 @@ export default async function DogSubscriptionPage({
   ] = await Promise.all([
       supabase
         .from('dogs')
-        .select('name')
+        .select('name, photo_url')
         .eq('id', dogId)
         .eq('user_id', user.id)
         .maybeSingle(),
@@ -81,6 +83,7 @@ export default async function DogSubscriptionPage({
   }
   if (!dog) redirect('/dogs')
   const dogName = (dog as { name: string }).name
+  const dogPhoto = (dog as { photo_url?: string | null }).photo_url ?? null
   const startHref = formulaRow
     ? `/dogs/${dogId}/plan`
     : `/dogs/${dogId}/analysis`
@@ -103,12 +106,52 @@ export default async function DogSubscriptionPage({
       }),
   )
 
+  // ★이번 박스 진행 상황(2026-10-01 B안) — 결제됐지만 아직 안 나간 박스(결제됨 + 발송 대기 주문)가 있으면
+  //   화면이 '이번 박스'의 조리·발송 단계를 보여준다. 일반 고객은 발송 3일 전 토요일에 결제되므로
+  //   토~화 사이에는 다음 결제일보다 이 박스가 궁금하다. 조회가 실패하면 단계만 '다음 박스' 기준으로 —
+  //   돈·버튼과 무관한 표시라 화면을 멈추지 않는다.
+  const liveIds = subsList.filter((s) => s.status !== 'cancelled').map((s) => s.id)
+  const inProgress: Record<string, boolean> = {}
+  // 그 박스의 결제 시각 — 발송일을 next_delivery_date 만으로 세면 결제 뒤 '2주 미루기'에 이번 박스가
+  //   2주 늦게 나가는 것처럼 보인다(lib/shipping-schedule paidBoxShipIso, 2026-10-02).
+  const inProgressPaidAt: Record<string, string> = {}
+  if (liveIds.length > 0) {
+    const { data: prepRows, error: prepErr } = await supabase
+      .from('orders')
+      .select('subscription_id, paid_at, created_at')
+      .in('subscription_id', liveIds)
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', 'preparing')
+      .order('created_at', { ascending: false })
+    if (prepErr) {
+      console.error('[dogs/subscription] 준비 중 박스 조회 실패:', prepErr.message)
+    } else {
+      for (const r of (prepRows ?? []) as Array<{
+        subscription_id: string | null
+        paid_at: string | null
+        created_at: string
+      }>) {
+        if (!r.subscription_id || inProgress[r.subscription_id]) continue
+        inProgress[r.subscription_id] = true
+        inProgressPaidAt[r.subscription_id] = r.paid_at ?? r.created_at
+      }
+    }
+  }
+
+  // 결제 시점 — getTrialState 는 조회 실패를 '체험 아님'으로 접어 서포터즈에게 토요일 결제를 보여줄 수 있다.
+  //   getChargeTiming 은 실패면 null(모름) → 화면이 결제 요일을 말하지 않는다(사장님 "정상가 전까지 알리지 마").
+  const [trial, chargeTiming] = await Promise.all([getTrialState(user.id), getChargeTiming(user.id)])
   return (
     <DogSubscriptionClient
       initialSubs={subsList}
       dogName={dogName}
+      dogPhoto={dogPhoto}
       startHref={startHref}
-      trial={await getTrialState(user.id)}
+      trial={trial}
+      // 결제 시점 정본(lib/shipping-schedule) — 서포터즈 체험 구간은 발송일(화), 그 외는 조리 직전 토요일. 모르면 null.
+      chargeTiming={chargeTiming}
+      inProgress={inProgress}
+      inProgressPaidAt={inProgressPaidAt}
       chargePreview={chargePreview}
     />
   )

@@ -14,6 +14,11 @@
  *
  * radius 는 16 → **4**. 4가 앱 v3 서명값이고(AGENTS.md 'sm signature'),
  * 마이페이지·홈 카드도 이미 4다. 16 은 이 화면과 주문 화면만 쓰던 예외였다.
+ *
+ * # 2026-10-01 사장님 B안 ("이 일반 결제 화면이 너무 별로야 강력하게 업그레이드")
+ * 한 장 요약(강아지·금액·결제일·하루 얼마·박스 여정) + 함께한 박스 + 2×2 큰 버튼.
+ * 모서리는 12 — 정기배송 요약 화면(/mypage/subscriptions)도 사장님 B안으로 12다. 같은 정보를
+ * 두 화면이 다른 모양으로 보여주면 다른 앱 같다. (앱 전체 모서리 통일은 결정 목록에 따로.)
  */
 
 .sub-page {
@@ -24,15 +29,31 @@
 .sub-card {
   background: var(--surface-card-elevated, #fff);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: 12px;
   padding: 18px 16px 16px;
   margin-bottom: 12px;
 }
+
+/* 머리 — 누구의 정기배송인지(사진 · 이름 · 레시피 · 상태). */
+.sub-head { display: flex; align-items: center; gap: 12px; }
+.sub-avatar {
+  position: relative; flex-shrink: 0; overflow: hidden;
+  width: 48px; height: 48px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-2); color: var(--muted);
+  font-size: 16px; font-weight: 800;
+}
+.sub-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sub-head-name { font-size: 16px; font-weight: 800; color: var(--ink); word-break: keep-all; }
+.sub-head-sub { font-size: 14px; color: var(--muted); word-break: keep-all; }
 .sub-card.is-off { opacity: 0.7; }
 
-/* 상태 — 알약이 아니라 작은 글씨. 색으로만 구분한다. */
+/* 상태 — B안은 알약(글자색 계열 옅은 바탕). 요약 화면의 상태 알약과 같은 모양. */
 .sub-state {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+  flex-shrink: 0;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+  padding: 3px 10px; border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
 }
 .sub-state.is-on { color: var(--moss); }
 /* 대기 상태 노랑 — hex 를 직접 쓰지 않는다(tokens.ts 원칙 1). 마이페이지 요약
@@ -53,7 +74,7 @@
  * 열로 세로 정렬되는 곳(목록·표)에서만 tabular 를 쓴다.
  */
 .sub-amount {
-  display: block; margin-top: 5px;
+  display: block; margin-top: 16px;
   font-size: 30px; font-weight: 800; color: var(--ink);
   letter-spacing: -0.02em; line-height: 1.05;
 }
@@ -86,6 +107,71 @@
 }
 .sub-warn svg { flex-shrink: 0; margin-top: 2px; }
 
+/* ── 박스 여정 (결제 → 조리 → 발송 → 도착) ────────────────────────────── */
+.sub-journey {
+  margin-top: 16px; padding: 14px 12px 12px;
+  border-radius: 12px; background: var(--bg-2);
+}
+.sub-journey-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.sub-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 4px;
+  position: relative;
+}
+/* 단계 사이 선 — 점 중심 높이에. */
+.sub-steps::before {
+  content: ''; position: absolute; top: 15px; left: calc(50% / var(--n, 4)); right: calc(50% / var(--n, 4));
+  height: 2px; background: var(--rule);
+}
+.sub-step { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 3px; }
+.sub-step-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-card-elevated, #fff); color: var(--muted);
+  border: 2px solid var(--rule);
+}
+.sub-step.is-done .sub-step-dot { background: var(--terracotta); border-color: var(--terracotta); color: #fff; }
+.sub-step.is-now .sub-step-dot { border-color: var(--terracotta); color: var(--terracotta); }
+.sub-step-label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.sub-step-when { font-size: 12px; color: var(--muted); word-break: keep-all; line-height: 1.35; }
+.sub-step:not(.is-done):not(.is-now) .sub-step-label { color: var(--muted); }
+
+/* ── 함께한 박스 ────────────────────────────────────────────────────────── */
+.sub-boxes { margin-top: 14px; }
+.sub-boxes-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sub-kicker { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: -0.01em; }
+.sub-boxes-count { font-size: 14px; color: var(--text); font-weight: 600; word-break: keep-all; text-align: right; }
+.sub-dots { display: flex; gap: 6px; margin-top: 8px; }
+.sub-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--bg-2); }
+.sub-dot.is-on { background: var(--terracotta); }
+.sub-dot.is-next { background: transparent; border: 2px dashed var(--terracotta); }
+
+/* ── 관리 — 2×2 큰 버튼 (부모님 세대 — 작은 버튼 줄은 누르기 어렵다) ────────── */
+.sub-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+.sub-tile {
+  appearance: none; cursor: pointer; font-family: inherit; text-align: left;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-height: 92px; padding: 14px;
+  border-radius: 12px; border: 1px solid var(--rule);
+  background: var(--surface-card-elevated, #fff); color: var(--ink);
+  transition: opacity 120ms, border-color 140ms;
+}
+.sub-tile:active { opacity: 0.7; }
+.sub-tile:disabled { opacity: 0.5; cursor: default; }
+.sub-tile svg { color: var(--terracotta); }
+.sub-tile-label { font-size: 16px; font-weight: 800; color: var(--ink); }
+.sub-tile-sub { font-size: 13px; color: var(--muted); word-break: keep-all; line-height: 1.35; }
+.sub-cancel {
+  appearance: none; cursor: pointer; font-family: inherit;
+  display: block; margin: 14px auto 0; padding: 10px 12px; min-height: 44px;
+  border: 0; background: transparent; color: var(--muted);
+  font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
+}
+.sub-busy-line {
+  display: flex; align-items: center; gap: 6px; margin: 14px 0 0;
+  font-size: 14px; color: var(--muted);
+}
+
 /* ── 액션 ──────────────────────────────────────────────────────────────── */
 .sub-actions {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
@@ -107,8 +193,9 @@
 .sub-btn:disabled { opacity: 0.5; cursor: default; }
 /* 주 행동은 전폭 하나 — 무엇을 눌러야 하는지 고민할 여지를 없앤다. */
 .sub-btn.is-primary {
-  flex: 1 1 100%;
-  padding: 13px 14px; font-size: 13px;
+  flex: 1 1 100%; width: 100%; margin-top: 16px;
+  min-height: 52px; border-radius: 12px;
+  padding: 13px 14px; font-size: 16px;
   background: var(--terracotta); border-color: var(--terracotta); color: #fff;
 }
 .sub-btn.is-quiet {
@@ -122,8 +209,8 @@
 .sub-busy { display: inline-flex; color: var(--muted); }
 
 .sub-foot {
-  margin: 12px 0 0;
-  font-size: 12px; line-height: 1.55; color: var(--muted);
+  margin: 10px 0 0;
+  font-size: 13px; line-height: 1.55; color: var(--muted); word-break: keep-all;
 }
 
 /* ── 빈 상태 ───────────────────────────────────────────────────────────── */
@@ -133,7 +220,7 @@
   padding: 40px 24px;
   background: var(--surface-card-elevated, #fff);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: 12px;
   color: var(--muted);
 }
 .sub-empty h2 { margin: 6px 0 0; font-size: 14.5px; font-weight: 800; color: var(--ink); }
