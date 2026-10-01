@@ -5189,3 +5189,24 @@ test('규칙143: 자견 칼로리는 가정견 자견 식(Klein 2019)이다 — 
   // 고객 분석 화면에 그대로 나가는 근거 줄 — 전문용어·비율% 금지(브랜드 보이스)
   assert.doesNotMatch(nu, /label: `성장기[^`]*(%|NRC|정확식|간이 근사)/, '자견 근거 줄에 전문용어·%가 고객에게 나간다')
 })
+
+test('규칙144: 보호자에게 "다 자라면 몇 kg" 를 묻지 않는다 — 자견 성장은 성장곡선 추정 한 곳에서', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "이런 화면이 있는지도 몰랐어 … 보호자가 대체 어케 알아")
+   * 앱 설문이 18개월 미만 자견 보호자에게 예상 성견 체중을 물었고(안내문은 '칼슘', 예시 '30kg',
+   * 검증 없음), 그 답이 자견 칼로리 전체를 좌우했다(웨스티에 20kg 오입력 → 1,214kcal).
+   * 지금은 FEDIAF 2025 성장곡선(lib/growth-curve.ts)으로 나이·체중에서 추정한다. 분석(nutrition)과
+   * 처방(compute 의 대형견 자견 규칙)이 같은 추정을 봐야 한다.
+   */
+  const flow = stripComments(read(join(ROOT, 'lib', 'survey', 'flow.ts')))
+  assert.doesNotMatch(flow, /key: 'adultWeight'|\| 'adultWeight'/, '설문에 "다 자라면 몇 kg" 화면이 돌아왔다')
+  const sc = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'SurveyClient.tsx')))
+  assert.match(sc, /expectedAdultWeight: null,\s*ageWeeks: ageWeeksFromBirth\(/, '설문 분석이 보호자 답을 성견체중으로 쓰거나 생일 주령을 안 넘긴다')
+  assert.match(sc, /expected_adult_weight_kg: null,/, '설문이 예상 성견체중을 다시 저장한다')
+  assert.doesNotMatch(sc, /AdultWeightScreen/, '설문에 예상 성견체중 화면이 남아 있다')
+  const nu = stripComments(read(join(ROOT, 'lib', 'nutrition.ts')))
+  assert.match(nu, /estimateGrowth\(w0, ageWeeks\)/, '자견 칼로리가 성장곡선 추정을 쓰지 않는다')
+  assert.doesNotMatch(nu, /if \(m < 4\) factor = 3\.0/, '월령 계단 폴백(×3.0/2.5/2.0 — 한 달에 −20% 절벽)으로 돌아갔다')
+  const cr = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'compute', 'route.ts')))
+  assert.match(cr, /expectedAdultWeightKg:\s*ageMonths < 24[\s\S]{0,120}estimateGrowth\(/, '처방의 대형견 자견 규칙이 분석과 다른 성견체중(보호자 답)을 본다')
+})

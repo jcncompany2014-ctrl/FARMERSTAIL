@@ -405,12 +405,43 @@ describe('calculateNutrition — 자견 Klein 2019 가정견 식 (2026-10-01 NRC
     assert.doesNotMatch(punch.factorBreakdown[0]?.label ?? '', /%|NRC|Klein|정확식/)
   })
 
-  it('성견 예상체중 미입력 → 간이 근사 폴백 (5개월 ×2.5)', () => {
+  it('성견 예상체중을 안 받으면 성장곡선으로 추정 (보호자에게 묻지 않음, 2026-10-01)', () => {
+    // 3kg · 5개월(월 중간 = 23.9주) → ≤7kg 곡선 73.6% → 성견 ≈4.1kg, p=0.736
+    // → (254.1 − 135×0.736)×3^0.75 = 353 kcal. (옛 월령 계단 ×2.5 = 399)
     const r = calculateNutrition(
       baseDog({ weight: 3, ageValue: 5, ageUnit: 'months' }),
       baseAnswers(),
     )
-    assert.equal(r.factor, 2.5)
+    assert.equal(r.stage, 'puppy')
+    assert.equal(r.mer, 353)
+  })
+
+  it('생일 주령으로 추정 — 펀치(31.3주 8.3kg) 723 · 낑콩(21.1주 1.5kg) 218 · 서너(46.4주 6.2kg) 478', () => {
+    // 펀치: ≤7kg 곡선이면 성견 9.9kg(구간 밖) → 7~15kg 곡선 78.7% → 성견 10.5kg.
+    const punch = calculateNutrition(
+      baseDog({ weight: 8.3, ageValue: 7, ageUnit: 'months', ageWeeks: 31.29, breed: '웨스트 하이랜드 화이트 테리어', gender: 'male', neutered: false }),
+      baseAnswers({ isEasyKeeper: true }),
+    )
+    assert.equal(punch.mer, 723)
+    const kk = calculateNutrition(
+      baseDog({ weight: 1.5, ageValue: 4, ageUnit: 'months', ageWeeks: 21.14, breed: '말티푸', gender: 'female', neutered: false }),
+      baseAnswers(),
+    )
+    assert.equal(kk.mer, 218)
+    const sn = calculateNutrition(
+      baseDog({ weight: 6.2, ageValue: 10, ageUnit: 'months', ageWeeks: 46.43, breed: '요크셔 테리어' }),
+      baseAnswers({ bcsExact: 6 }),
+    )
+    assert.equal(sn.stage, 'puppy')
+    assert.equal(sn.mer, 478)
+  })
+
+  it('예상 성견체중 추정이 생애주기 사이즈도 정한다 — 13개월 30kg 리트리버는 아직 자견(18개월까지)', () => {
+    const r = calculateNutrition(
+      baseDog({ weight: 30, ageValue: 1, ageUnit: 'years', ageWeeks: 56.5, breed: '골든 리트리버' }),
+      baseAnswers(),
+    )
+    assert.equal(r.stage, 'puppy')
   })
 
   it('현재체중 ≥ 성견예상 (p=1 클램프) — 성장 말기 완만 수렴', () => {

@@ -8,6 +8,7 @@ import {
   legacyStepToScreen,
   mainCount,
   progressPct,
+  restoreScreenKey,
   screenError,
   type FlowAnswers,
 } from './flow.ts'
@@ -58,11 +59,13 @@ test('비중성화 암컷 — 임신·수유 화면이 질환 뒤·목표 앞에
   assert.ok(buildScreens(unknownIntact, '').some((x) => x.key === 'pregnancy'))
 })
 
-test('18개월 미만 자견 — 예상 성견 체중 화면(건너뛰기 가능)', () => {
+test('자견에게도 "다 자라면 몇 kg" 를 묻지 않는다 — 성장곡선 추정 (2026-10-01), 옛 초안은 다음 화면으로', () => {
   const s = buildScreens(puppy, '')
-  assert.ok(s.some((x) => x.key === 'adultWeight' && x.part === 'conditional'))
-  assert.ok(isSkippable('adultWeight'))
-  assert.equal(screenError('adultWeight', blank), null)
+  assert.ok(!s.some((x) => (x.key as string) === 'adultWeight'))
+  assert.equal(isScreenKey('adultWeight'), false)
+  assert.equal(restoreScreenKey('adultWeight'), 'goal')
+  assert.equal(restoreScreenKey('stool'), 'stool')
+  assert.equal(restoreScreenKey('nope'), null)
 })
 
 test('관문에서 "답하기"면 선택 4개가 붙고, "건너뛰기"면 붙지 않는다', () => {

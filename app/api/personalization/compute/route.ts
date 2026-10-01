@@ -6,6 +6,7 @@ import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
+import { ageWeeksFromBirth, estimateGrowth, WEEKS_PER_MONTH } from '@/lib/growth-curve'
 import { isPlausibleMer } from '@/lib/personalization/merSanity'
 import { subscribedRecomputeDecision } from '@/lib/personalization/subscribed-recompute'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
@@ -193,7 +194,7 @@ export async function POST(req: Request) {
   const { data: dog, error: dogErr } = await supabase
     .from('dogs')
     .select(
-      'id, name, weight, age_value, age_unit, neutered, activity_level, breed',
+      'id, name, weight, age_value, age_unit, neutered, activity_level, breed, birth_date',
     )
     .eq('id', dogId)
     .eq('user_id', user.id)
@@ -574,7 +575,16 @@ export async function POST(req: Request) {
     dailyWalkMinutes: survey.daily_walk_minutes ?? null,
     pregnancyWeek: survey.pregnancy_week ?? null,
     litterSize: survey.litter_size ?? null,
-    expectedAdultWeightKg: survey.expected_adult_weight_kg ?? null,
+    // 예상 성견체중 — 보호자에게 묻지 않는다(2026-10-01). 분석(calculateNutrition)과 같은 성장곡선
+    // 추정을 써야 대형견 자견 규칙(≥25kg)과 자견 칼로리가 한 값을 본다. 24개월 이상은 null.
+    expectedAdultWeightKg:
+      ageMonths < 24 && (dog.weight ?? 0) > 0
+        ? estimateGrowth(
+            dog.weight as number,
+            ageWeeksFromBirth((dog as { birth_date?: string | null }).birth_date ?? null, Date.now()) ??
+              (ageMonths + 0.5) * WEEKS_PER_MONTH,
+          ).adultKg
+        : null,
     irisStage:
       (survey.iris_stage as AlgorithmInput['irisStage']) ?? null,
     breed: (dog as { breed?: string | null }).breed ?? null,

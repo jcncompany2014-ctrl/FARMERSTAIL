@@ -12,6 +12,7 @@ import {
 import { legacyAdultLadder } from './calorie-v2/adapter.ts'
 import { estimateIdealBodyWeight } from './calorie-v2/engine.ts'
 import { breedFlagsFromLabel } from './calorie-v2/breeds.ts'
+import { estimateGrowth, WEEKS_PER_MONTH, type GrowthEstimate } from './growth-curve.ts'
 import type { FactorLine } from './calorie-v2/types.ts'
 
 /**
@@ -163,16 +164,22 @@ export type DogInfo = {
    */
   breed?: string | null
   /**
-   * [A4] 예상 성견 체중 kg.
+   * [A4] 예상 성견 체중 kg — **보호자에게 묻지 않는다**(2026-10-01, 설문 질문 제거).
    *
-   * lifeStage 임계 결정에 사용. 12개월 골든 puppy (현재 18kg) 가 성견 시
-   * 30kg+ 라면 large breed puppy protocol (18mo) 이 적용돼야 — 단순 현재
-   * 체중만 보면 medium 견으로 분류돼 12mo 에 adult 전환 + puppy factor 1.4
-   * 손실. firstBox.ts 의 expectedAdultWeightKg 와 동일 신호.
+   * 미지정 / null / 0 이면 24개월 미만은 나이·현재 체중으로 성장곡선 추정
+   * (lib/growth-curve.ts estimateGrowth). 값을 넘기는 곳은 월간 성장 재계산처럼
+   * "지난 실측 체중으로 고정한 추정치"를 쓰는 경우뿐이다.
    *
-   * 미지정 / null / 0 시 dog.weight 그대로 사용 (이전 동작).
+   * lifeStage 임계(대형견 18·초대형 24개월까지 자견)와 자견 칼로리 식의 p 에 쓰인다.
+   * firstBox.ts 의 대형견 자견 규칙(expectedAdultWeightKg ≥ 25)과 같은 신호.
    */
   expectedAdultWeight?: number | null
+  /**
+   * 생일로 계산한 정확한 주령(lib/growth-curve.ts ageWeeksFromBirth). 자견 성장곡선 추정에만
+   * 쓴다. 없으면 월령(ageValue/ageUnit)에서 근사 — dogs.age_value 는 12개월부터 '살' 단위라
+   * 거칠다.
+   */
+  ageWeeks?: number | null
 }
 
 export type BCSResult = {
@@ -417,7 +424,18 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // 강아지 0.5kg ~ 100kg 합리적 범위로 clamp. 0 이면 RER=0 → MER=0 → 분석
   // 의미 없음. 0.5kg 최소로 가정 (소형견 신생아 ~250g, 분양 가능 최소).
   const w0 = Math.max(0.5, Math.min(100, dog.weight || 0.5))
-  const stage = lifeStage(dog)
+  // 자견 성장 추정 — 예상 성견체중을 넘겨받지 않았으면 24개월 미만은 나이·체중으로 추정한다
+  // (보호자에게 묻지 않음, lib/growth-curve.ts). 생애주기 사이즈 판정과 자견 칼로리 식이 같은 값을 쓴다.
+  const givenAdultKg =
+    dog.expectedAdultWeight && dog.expectedAdultWeight > 0 ? dog.expectedAdultWeight : null
+  const ageWeeks =
+    dog.ageWeeks != null && dog.ageWeeks > 0 ? dog.ageWeeks : (ageMonths(dog) + 0.5) * WEEKS_PER_MONTH
+  const growth: GrowthEstimate | null = givenAdultKg
+    ? { adultKg: givenAdultKg, fraction: Math.min(1, w0 / givenAdultKg) }
+    : ageMonths(dog) < 24
+      ? estimateGrowth(w0, ageWeeks)
+      : null
+  const stage = lifeStage({ ...dog, expectedAdultWeight: growth?.adultKg ?? null })
 
   // BCS — 정확 입력(v2) 우선, 없으면 5단계 매핑
   const bcs = answers.bcsExact
@@ -476,38 +494,32 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // 칼로리 v2 4단계 — 견종 플래그 (OB→easy-keeper OR·BRA→활동 억제·TOY→자견 −15%).
   const breedFlags = breedFlagsFromLabel(dog.breed)
   if (stage === 'puppy') {
-    const m = ageMonths(dog)
-    const adultKg =
-      dog.expectedAdultWeight && dog.expectedAdultWeight > 0
-        ? dog.expectedAdultWeight
-        : null
-    if (adultKg) {
-      // 자견 에너지 — Klein 2019 가정견 자견 493두 식 (FEDIAF 2025 Table VII-8b 채택):
-      //   ME(kcal/일) = (254.1 − 135.0·p) × BW^0.75,  p = 현재체중 / 예상 성견체중.
-      // (원문 MJ 식 (1.063 − 0.565·p)×BW^0.75 × 239 kcal/MJ. doi 10.1111/jpn.13191)
-      //
-      // 2026-10-01 사장님 확정으로 NRC 2006 식(130×BW^0.75×3.2×(e^−0.87p−0.1))에서 교체.
-      // NRC 앞 상수 130 은 사육장 활동견 기준이라 가정견 자견을 과대추정했다(가정견 실섭취 =
-      // NRC 의 78~83%, Klein 2019). p→1 극한도 1.9×RER 이라 성견 사다리(1.4~1.6)와 어긋났다
-      // (7개월 웨스티 펀치 785 → 695kcal, AAHA 2.0×RER=685 와 수렴). 이 식의 p→1 극한은
-      // 119 kcal/kg^0.75(≈1.7×RER).
-      // 토이 −15% 는 겹쳐 쓰지 않는다 — Klein 은 이미 가정견 실측이고, 요크셔 콜로니 실측
-      // (10주 ≈194 · 52주 ≈120 kcal/kg^0.75, Alexander 2017)과 보정 없이 맞는다.
-      // factor 는 RER 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
-      const p = Math.min(1, w / adultKg)
-      const der = (254.1 - 135.0 * p) * Math.pow(w, 0.75)
-      factor = der / RER
-      factorBreakdown = [
-        // 고객 분석 화면에 그대로 나가는 줄 — 전문용어·비율% 금지(브랜드 보이스).
-        { label: '성장기 기본(크는 몫 포함)', delta: +factor.toFixed(2) },
-      ]
-    } else {
-      // 성견 예상체중 미입력 — 간이 근사 폴백 (나이 단계).
-      if (m < 4) factor = 3.0
-      else if (m < 8) factor = 2.5
-      else factor = 2.0
-      factorBreakdown = [{ label: '성장기 기본(크는 몫 포함)', delta: factor }]
-    }
+    // 자견 에너지 — Klein 2019 가정견 자견 493두 식 (FEDIAF 2025 Table VII-8b 채택):
+    //   ME(kcal/일) = (254.1 − 135.0·p) × BW^0.75,  p = 다 큰 몸무게 대비 지금 몸무게.
+    // (원문 MJ 식 (1.063 − 0.565·p)×BW^0.75 × 239 kcal/MJ. doi 10.1111/jpn.13191)
+    //
+    // 2026-10-01 사장님 확정으로 NRC 2006 식(130×BW^0.75×3.2×(e^−0.87p−0.1))에서 교체.
+    // NRC 앞 상수 130 은 사육장 활동견 기준이라 가정견 자견을 과대추정했다(가정견 실섭취 =
+    // NRC 의 78~83%, Klein 2019). p→1 극한도 1.9×RER 이라 성견 사다리(1.4~1.6)와 어긋났다
+    // (7개월 웨스티 펀치 785 → 695kcal, AAHA 2.0×RER=685 와 수렴). 이 식의 p→1 극한은
+    // 119 kcal/kg^0.75(≈1.7×RER).
+    // 토이 −15% 는 겹쳐 쓰지 않는다 — Klein 은 이미 가정견 실측이고, 요크셔 콜로니 실측
+    // (10주 ≈194 · 52주 ≈120 kcal/kg^0.75, Alexander 2017)과 보정 없이 맞는다.
+    //
+    // p: 성견체중을 넘겨받았으면 현재/성견, 아니면 성장곡선의 '다 큰 정도'(FEDIAF Table VII-8a,
+    // lib/growth-curve.ts). 곡선 값을 그대로 쓰면 신뢰도 안전보정으로 w 가 오를 때 p 까지 올라
+    // 오히려 kcal 이 줄던 역효과(펀치 신뢰도 0.4: 785→778)도 사라진다.
+    // 월령 계단 폴백(×3.0/2.5/2.0 — 7→8개월에 −20% 절벽, 토이 보정 누락)은 이 추정으로 대체.
+    // stage==='puppy' 면 growth 는 항상 있다(자견 임계 최대 24개월 = 추정 범위).
+    const g = growth ?? estimateGrowth(w0, ageWeeks)
+    const p = givenAdultKg ? Math.min(1, w / givenAdultKg) : g.fraction
+    const der = (254.1 - 135.0 * p) * Math.pow(w, 0.75)
+    // factor 는 RER 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
+    factor = der / RER
+    factorBreakdown = [
+      // 고객 분석 화면에 그대로 나가는 줄 — 전문용어·비율% 금지(브랜드 보이스).
+      { label: '성장기 기본(크는 몫 포함)', delta: +factor.toFixed(2) },
+    ]
   } else if (ladderBcs >= 6) {
     // v2 감량 분기 (M2b·M5) — 과체중은 이상체중 기준 RER × 1.0 에서 시작.
     // (이전: 현재 체중 RER × bcsMerFactor 0.75~0.9 곱셈)

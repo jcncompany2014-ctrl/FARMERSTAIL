@@ -20,12 +20,13 @@ import { useConfirm } from '@/components/v3/useConfirm'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
 import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
+import { ageWeeksFromBirth } from '@/lib/growth-curve'
 import {
   buildScreens,
   counterLabel,
-  isScreenKey,
   isSkippable,
   legacyStepToScreen,
+  restoreScreenKey,
   progressPct,
   screenError,
   type FlowAnswers,
@@ -64,7 +65,6 @@ import {
 } from './steps/Status'
 import {
   PregnancyScreen,
-  AdultWeightScreen,
   type PregnancyValue,
   type SurveyDog,
 } from './steps/Pregnancy'
@@ -198,13 +198,10 @@ export default function SurveyClient({
   const [irisStage, setIrisStage] = useState<IrisStage>(seed?.irisStage ?? null)
   const [pancreatitisSeverity, setPancreatitisSeverity] =
     useState<PancreatitisSeverity>(seed?.pancreatitisSeverity ?? null)
-  // 조건부 — 임신·수유 / 예상 성견 체중
+  // 조건부 — 임신·수유
   const [pregnancy, setPregnancy] = useState<PregnancyValue>(seed?.pregnancy ?? '')
   const [pregnancyWeek, setPregnancyWeek] = useState<number | null>(seed?.pregnancyWeek ?? null)
   const [litterSize, setLitterSize] = useState<number | null>(seed?.litterSize ?? null)
-  const [expectedAdultWeightKg, setExpectedAdultWeightKg] = useState<number | null>(
-    seed?.expectedAdultWeightKg ?? null,
-  )
   // 11. 케어 목표 (★알고리즘 1순위)
   const [careGoal, setCareGoal] = useState<CareGoal | ''>((seed?.careGoal as CareGoal | '') ?? '')
   // 관문 — 선택 묶음 답하기 / 건너뛰기
@@ -241,7 +238,7 @@ export default function SurveyClient({
       const { data, error } = await supabase
         .from('dogs')
         .select(
-          'id, name, weight, age_value, age_unit, neutered, activity_level, gender, breed, weight_method, weight_measured_at',
+          'id, name, weight, age_value, age_unit, neutered, activity_level, gender, breed, weight_method, weight_measured_at, birth_date',
         )
         .eq('id', dogId)
         .eq('user_id', user.id)
@@ -310,8 +307,6 @@ export default function SurveyClient({
       if (typeof data.pregnancy === 'string') setPregnancy(data.pregnancy as PregnancyValue)
       if (data.pregnancyWeek !== undefined) setPregnancyWeek(data.pregnancyWeek as number | null)
       if (data.litterSize !== undefined) setLitterSize(data.litterSize as number | null)
-      if (data.expectedAdultWeightKg !== undefined)
-        setExpectedAdultWeightKg(data.expectedAdultWeightKg as number | null)
       if (typeof data.weightTrend === 'string') setWeightTrend(data.weightTrend as WeightTrend)
       if (typeof data.giSensitivity === 'string') setGiSensitivity(data.giSensitivity as GiSensitivity)
       if (typeof data.indoorActivity === 'string') setIndoorActivity(data.indoorActivity as IndoorActivity)
@@ -322,12 +317,13 @@ export default function SurveyClient({
       if (data.optChoice === 'answer' || data.optChoice === 'skip') choice = data.optChoice
       // 화면 복원 — v4 'screen' 우선, 없으면 v3 'currentStep' 을 이어받는다.
       let restoredScreen: ScreenKey | null = null
-      if (isScreenKey(data.screen)) restoredScreen = data.screen
+      const fromDraft = restoreScreenKey(data.screen)
+      if (fromDraft) restoredScreen = fromDraft
       else if (typeof data.currentStep === 'string')
         restoredScreen = legacyStepToScreen(data.currentStep)
       if (restoredScreen) {
         // 선택 화면에서 저장됐다면 관문 답은 '답하기'였다.
-        if (isSkippable(restoredScreen) && restoredScreen !== 'adultWeight') choice = 'answer'
+        if (isSkippable(restoredScreen)) choice = 'answer'
         setScreen(restoredScreen)
       }
       setOptChoice(choice)
@@ -389,7 +385,6 @@ export default function SurveyClient({
             pregnancy,
             pregnancyWeek,
             litterSize,
-            expectedAdultWeightKg,
             weightTrend,
             giSensitivity,
             indoorActivity,
@@ -437,7 +432,6 @@ export default function SurveyClient({
     pregnancy,
     pregnancyWeek,
     litterSize,
-    expectedAdultWeightKg,
     weightTrend,
     giSensitivity,
     indoorActivity,
@@ -517,8 +511,6 @@ export default function SurveyClient({
         return vigorous !== '' || housing !== ''
       case 'optMeds':
         return medications.trim() !== ''
-      case 'adultWeight':
-        return expectedAdultWeightKg !== null
       default:
         return true
     }
@@ -719,7 +711,8 @@ export default function SurveyClient({
       iris_stage: chronicConditions.includes('kidney') ? irisStage : null,
       pregnancy_week: pregnancy === 'pregnant' ? pregnancyWeek : null,
       litter_size: pregnancy === 'lactating' ? litterSize : null,
-      expected_adult_weight_kg: ageInMonths < 18 ? expectedAdultWeightKg : null,
+      // 2026-10-01: '다 자라면 몇 kg' 를 묻지 않음(보호자가 알 수 없다) → 성장곡선 추정. 컬럼은 옛 답 보존용.
+      expected_adult_weight_kg: null,
       // 2026-07-14: 설문에서 예산을 묻지 않음 → 항상 null(컬럼 유지).
       budget_tier: null,
     }
@@ -806,7 +799,9 @@ export default function SurveyClient({
         activityLevel: dog.activity_level,
         gender: dog.gender as 'male' | 'female' | null,
         weightReliability: weightReliability(effWeightMethod, effWeightMeasuredAt),
-        expectedAdultWeight: expectedAdultWeightKg ?? null,
+        // 예상 성견체중은 묻지 않는다 — 생일 주령·체중으로 성장곡선 추정(lib/growth-curve.ts).
+        expectedAdultWeight: null,
+        ageWeeks: ageWeeksFromBirth(dog.birth_date ?? null, new Date().getTime()),
         breed: (dog as { breed?: string | null }).breed ?? null,
       },
       answers,
@@ -1037,12 +1032,6 @@ export default function SurveyClient({
             setPregnancyWeek={setPregnancyWeek}
             litterSize={litterSize}
             setLitterSize={setLitterSize}
-          />
-        )}
-        {!isLoading && cur?.key === 'adultWeight' && (
-          <AdultWeightScreen
-            expectedAdultWeightKg={expectedAdultWeightKg}
-            setExpectedAdultWeightKg={setExpectedAdultWeightKg}
           />
         )}
         {!isLoading && cur?.key === 'goal' && (

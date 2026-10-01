@@ -18,7 +18,9 @@
  * # 화면 구성
  *   항상(11): ribs · waist · abdomen · weight · stool · food · snack · fresh ·
  *             allergy · chronic · goal
- *   조건부(0~2): pregnancy(암컷·비중성화) · adultWeight(18개월 미만)
+ *   조건부(0~1): pregnancy(암컷·비중성화)
+ *   (2026-10-01 '다 자라면 몇 kg' 화면 제거 — 보호자가 알 수 없는 답이 자견 칼로리 전체를
+ *    좌우했다. 나이·체중 성장곡선으로 추정: lib/growth-curve.ts)
  *   관문(1): gate — "4개 더 답하기" / "건너뛰고 결과 보기"
  *   선택(4, 관문에서 '답하기'일 때만): optFood · optWalk · optExercise · optMeds
  *   loading 은 제출 화면(번호 없음).
@@ -36,7 +38,6 @@ export type ScreenKey =
   | 'allergy'
   | 'chronic'
   | 'pregnancy'
-  | 'adultWeight'
   | 'goal'
   | 'gate'
   | 'optFood'
@@ -84,11 +85,6 @@ export function showsPregnancy(dog: FlowDog): boolean {
   return (dog.gender === 'female' || dog.gender == null) && !dog.neutered
 }
 
-/** 예상 성견 체중 — 18개월 미만 자견만(AAFCO 대형견 Ca 상한 판정). */
-export function showsAdultWeight(dog: FlowDog): boolean {
-  return dog.ageMonths < 18
-}
-
 export function buildScreens(dog: FlowDog, choice: OptionalChoice): Screen[] {
   const out: Screen[] = []
   const req = (k: ScreenKey) => out.push({ key: k, part: 'required' })
@@ -103,7 +99,6 @@ export function buildScreens(dog: FlowDog, choice: OptionalChoice): Screen[] {
   req('allergy')
   req('chronic')
   if (showsPregnancy(dog)) out.push({ key: 'pregnancy', part: 'conditional' })
-  if (showsAdultWeight(dog)) out.push({ key: 'adultWeight', part: 'conditional' })
   req('goal')
   out.push({ key: 'gate', part: 'gate' })
   if (choice === 'answer') {
@@ -206,7 +201,6 @@ export function screenError(key: ScreenKey, a: FlowAnswers): string | null {
       return a.careGoal ? null : '가장 신경 쓰고 싶은 것을 하나 골라 주세요'
     case 'gate':
       return a.optChoice ? null : '둘 중 하나를 골라 주세요'
-    case 'adultWeight':
     case 'optFood':
     case 'optWalk':
     case 'optExercise':
@@ -217,7 +211,7 @@ export function screenError(key: ScreenKey, a: FlowAnswers): string | null {
 
 /** 화면이 "안 답해도 넘어갈 수 있는" 화면인지(CTA 라벨 '건너뛰기' 판정용). */
 export function isSkippable(key: ScreenKey): boolean {
-  return key === 'adultWeight' || OPTIONAL_KEYS.includes(key)
+  return OPTIONAL_KEYS.includes(key)
 }
 
 /**
@@ -250,7 +244,6 @@ export function legacyStepToScreen(step: string): ScreenKey {
 export const ALL_SCREEN_KEYS: readonly ScreenKey[] = [
   ...REQUIRED_KEYS.slice(0, 10),
   'pregnancy',
-  'adultWeight',
   'goal',
   'gate',
   ...OPTIONAL_KEYS,
@@ -258,4 +251,13 @@ export const ALL_SCREEN_KEYS: readonly ScreenKey[] = [
 
 export function isScreenKey(v: unknown): v is ScreenKey {
   return typeof v === 'string' && (ALL_SCREEN_KEYS as readonly string[]).includes(v)
+}
+
+/**
+ * 저장된 초안의 화면 키 → 지금 화면. 없어진 '다 자라면 몇 kg'(adultWeight, 2026-10-01 제거)
+ * 화면에서 멈춘 초안은 그다음 화면(goal)으로 이어 준다 — 처음부터 다시 하지 않게.
+ */
+export function restoreScreenKey(v: unknown): ScreenKey | null {
+  if (v === 'adultWeight') return 'goal'
+  return isScreenKey(v) ? v : null
 }

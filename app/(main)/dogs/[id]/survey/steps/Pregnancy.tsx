@@ -1,7 +1,8 @@
-// 설문 v4 — 조건부 화면 2개.
+// 설문 v4 — 조건부 화면.
 //   PregnancyScreen  : 암컷 + 비중성화만 (수컷/중성화견에 켜져 MER ×2.5 폭주 차단).
 //                      임신 주차 / 산자 수는 둘째 줄(선택).
-//   AdultWeightScreen: 18개월 미만 자견만 — 예상 성견 체중 (대형견 Ca 상한, 건너뛰기 가능).
+//   (AdultWeightScreen '다 자라면 몇 kg' 는 2026-10-01 제거 — 보호자가 알 수 없는 답이 자견 칼로리
+//    전체를 좌우했다. 나이·체중 성장곡선으로 추정: lib/growth-curve.ts)
 import { Check, Baby, Heart, AlertCircle } from 'lucide-react'
 import { ScreenShell, OptionList, SecondLine } from './ScreenShell'
 
@@ -16,6 +17,8 @@ export type SurveyDog = {
   neutered: boolean
   activity_level: 'low' | 'medium' | 'high'
   gender: 'male' | 'female' | null
+  /** 생일(YYYY-MM-DD) — 자견 성장곡선 주령. 없으면 월령 근사. */
+  birth_date?: string | null
 }
 
 function ageMonths(dog: SurveyDog): number {
@@ -136,51 +139,6 @@ export function PregnancyScreen({
           </div>
         </SecondLine>
       )}
-    </ScreenShell>
-  )
-}
-
-export function AdultWeightScreen({
-  expectedAdultWeightKg,
-  setExpectedAdultWeightKg,
-}: {
-  expectedAdultWeightKg: number | null
-  setExpectedAdultWeightKg: (v: number | null) => void
-}) {
-  return (
-    <ScreenShell
-      kicker="몸 상태"
-      optional
-      title={
-        <>
-          다 자라면
-          <br />
-          몇 kg쯤 될까요?
-        </>
-      }
-      sub="어린 강아지는 다 컸을 때 체중으로 뼈에 필요한 칼슘 양을 정해요. 모르면 건너뛰어도 돼요."
-    >
-      <div className="s-input-suffix">
-        <input
-          type="number"
-          onWheel={(e) => e.currentTarget.blur()}
-          inputMode="decimal"
-          className="s-inp"
-          aria-label="예상 성견 체중 (kg)"
-          min={0.5}
-          max={100}
-          step={0.5}
-          value={expectedAdultWeightKg ?? ''}
-          onChange={(e) => {
-            const v = e.target.value
-            setExpectedAdultWeightKg(
-              v === '' ? null : Math.max(0.5, Math.min(100, Number(v))),
-            )
-          }}
-          placeholder="예: 30"
-        />
-        <span className="s-unit">kg</span>
-      </div>
     </ScreenShell>
   )
 }
