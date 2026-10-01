@@ -9,6 +9,8 @@ import { resumeShipDate } from '@/lib/shipping-schedule'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
+import { isLiveTrial, supporterViews, type SupporterView } from '@/lib/payments/trial-display'
+import type { TrialState } from '@/lib/payments/trial'
 
 type SubscriptionRow = {
   id: string
@@ -70,6 +72,8 @@ const TABS = [
   { value: 'paused', label: '일시정지' },
   { value: 'cancelled', label: '해지' },
   { value: 'upcoming', label: '📦 배송 예정' },
+  // 서포터즈(체험단) — 결제 금액이 정가와 달라 따로 본다(사장님 2026-10-01 "확실하게 구분감 있게").
+  { value: 'supporters', label: '서포터즈' },
 ]
 
 // 색은 orders/refunds 와 같은 토큰 팔레트(2026-09-05 어드민 개편).
@@ -97,6 +101,10 @@ export default function AdminSubscriptionsPage() {
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  // 서포터즈 도장(사용자 단위) — subscription_trials 는 service_role 전용이라 어드민 API 로 받는다.
+  // 못 받으면 서포터즈도 정가로 보이므로 그 사실을 화면에 알린다(규칙1 — 실패를 '없음'으로 위장 금지).
+  const [trials, setTrials] = useState<Map<string, TrialState>>(new Map())
+  const [trialsError, setTrialsError] = useState(false)
 
   useEffect(() => {
     void loadAll()
@@ -109,7 +117,20 @@ export default function AdminSubscriptionsPage() {
     //  `billing_key`·`billing_customer_key` 외에 `last_charge_lock_at`·
     //  `next_retry_at`·`last_failed_charge_code` 같은 서버 전용 칸도 함께
     //  빠진다(별표는 그것들까지 전부 내보냈다).
-    const { data, error, count } = await subsQuery().range(0, PER_PAGE - 1)
+    const [{ data, error, count }, trialRes] = await Promise.all([
+      subsQuery().range(0, PER_PAGE - 1),
+      fetch('/api/admin/trials')
+        .then(async (r) =>
+          r.ok ? ((await r.json()) as { ok?: boolean; trials?: Array<TrialState & { user_id: string }> }) : null,
+        )
+        .catch(() => null),
+    ])
+    if (trialRes?.ok && Array.isArray(trialRes.trials)) {
+      setTrials(new Map(trialRes.trials.map((t) => [t.user_id, t])))
+      setTrialsError(false)
+    } else {
+      setTrialsError(true)
+    }
 
     setLoadError(Boolean(error))
     // audit #79: generated row vs domain SubscriptionRow nullable 차이 — unknown cast.
@@ -158,6 +179,8 @@ export default function AdminSubscriptionsPage() {
       // 오늘 포함 7일 이내 배송 예정
       const diff = (new Date(s.next_delivery_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
       if (diff < 0 || diff > 7) return false
+    } else if (tab === 'supporters') {
+      if (!isLiveTrial(trials.get(s.user_id))) return false
     } else if (tab !== 'all') {
       if (s.status !== tab) return false
     }
@@ -172,6 +195,10 @@ export default function AdminSubscriptionsPage() {
     }
     return true
   })
+
+  // 서포터즈 — 구독별 실제 다음 결제 금액(청구와 같은 판정, lib/payments/trial-display).
+  const supporter = supporterViews(subs, trials)
+  const supporterCount = subs.filter((s) => isLiveTrial(trials.get(s.user_id))).length
 
   // 배송 예정 건수
   const upcomingCount = subs.filter((s) => {
@@ -321,6 +348,11 @@ export default function AdminSubscriptionsPage() {
                   {upcomingCount}
                 </span>
               )}
+              {t.value === 'supporters' && supporterCount > 0 && (
+                <span className="ml-1 rounded-full bg-violet-600 px-1.5 py-0.5 text-[10px] text-white">
+                  {supporterCount}
+                </span>
+              )}
             </FilterChip>
           ))}
         </div>
@@ -332,6 +364,12 @@ export default function AdminSubscriptionsPage() {
           className="w-full rounded-full border border-input bg-card px-3 py-1.5 text-xs focus:border-primary focus:outline-none sm:w-56"
         />
       </div>
+
+      {trialsError && !loading && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          서포터즈 정보를 불러오지 못했어요 — 지금은 서포터즈 고객도 정가로 보여요. 새로고침해 주세요.
+        </p>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
@@ -387,6 +425,8 @@ export default function AdminSubscriptionsPage() {
                     <SubRow
                       key={sub.id}
                       sub={sub}
+                      supporter={supporter.get(sub.id) ?? null}
+                      isSupporter={isLiveTrial(trials.get(sub.user_id))}
                       isLoading={actionLoading === sub.id}
                       onAction={handleStatusChange}
                     />
@@ -402,6 +442,8 @@ export default function AdminSubscriptionsPage() {
               <SubCard
                 key={sub.id}
                 sub={sub}
+                supporter={supporter.get(sub.id) ?? null}
+                isSupporter={isLiveTrial(trials.get(sub.user_id))}
                 isLoading={actionLoading === sub.id}
                 onAction={handleStatusChange}
               />
@@ -442,6 +484,32 @@ function StatusBadge({ status }: { status: SubscriptionRow['status'] }) {
       <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden />
       {badge.label}
     </Badge>
+  )
+}
+
+/** 서포터즈 배지 — 상태 배지(초록·노랑)와 겹치지 않는 보라. */
+function SupporterBadge() {
+  return <Badge className="border-transparent bg-violet-600 text-white">서포터즈</Badge>
+}
+
+/**
+ * 금액 칸 — 서포터즈면 **실제 다음 결제 금액**을 크게, 정가는 취소선으로 작게, 남은 기간 한 줄.
+ * 정가만 크게 보이면 100원 결제 고객이 51,500원 고객처럼 읽힌다(사장님 2026-10-01 캡처).
+ */
+function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: SupporterView | null }) {
+  if (!supporter) {
+    return <strong className="tabular-nums">{sub.total_amount.toLocaleString()}원</strong>
+  }
+  return (
+    <span className="inline-flex flex-col items-end">
+      <strong className="text-[15px] tabular-nums text-violet-700">
+        {supporter.chargeAmount.toLocaleString()}원
+      </strong>
+      <span className="text-[10px] tabular-nums text-muted-foreground line-through">
+        정가 {supporter.listAmount.toLocaleString()}원
+      </span>
+      <span className="mt-0.5 text-[10px] font-semibold text-violet-700">{supporter.caption}</span>
+    </span>
   )
 }
 
@@ -502,20 +570,26 @@ function RowActions({
 
 function SubRow({
   sub,
+  supporter,
+  isSupporter,
   isLoading,
   onAction,
 }: {
   sub: SubscriptionRow
+  supporter: SupporterView | null
+  isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
 }) {
   return (
     <tr
-      className={`transition hover:bg-secondary/50 ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+      className={`transition ${isSupporter ? 'bg-violet-50/70 hover:bg-violet-100/60' : 'hover:bg-secondary/50'} ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+      style={isSupporter ? { boxShadow: 'inset 3px 0 0 rgb(124 58 237)' } : undefined}
     >
       <td className="px-4 py-3">
-        <div className="text-xs font-bold">
+        <div className="flex items-center gap-1.5 text-xs font-bold">
           {sub.profiles?.name || sub.recipient_name || '-'}
+          {isSupporter && <SupporterBadge />}
         </div>
         <div className="text-[10px] text-muted-foreground">{sub.profiles?.email || ''}</div>
       </td>
@@ -542,7 +616,7 @@ function SubRow({
           : '-'}
       </td>
       <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
-        {sub.total_amount.toLocaleString()}원
+        <AmountCell sub={sub} supporter={supporter} />
       </td>
       <td className="px-4 py-3 text-center text-xs">
         {sub.total_deliveries}회
@@ -557,21 +631,26 @@ function SubRow({
 /** 모바일 카드 — 테이블과 같은 정보를 세로로. 가로 스크롤 없음. */
 function SubCard({
   sub,
+  supporter,
+  isSupporter,
   isLoading,
   onAction,
 }: {
   sub: SubscriptionRow
+  supporter: SupporterView | null
+  isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
 }) {
   return (
     <div
-      className={`rounded-xl border border-border bg-card p-4 shadow-sm ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
+      className={`rounded-xl border p-4 shadow-sm ${isSupporter ? 'border-violet-300 bg-violet-50/70' : 'border-border bg-card'} ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-bold">
+          <p className="flex items-center gap-1.5 truncate text-[13px] font-bold">
             {sub.profiles?.name || sub.recipient_name || '-'}
+            {isSupporter && <SupporterBadge />}
           </p>
           <p className="truncate text-[10px] text-muted-foreground">
             {sub.profiles?.email || ''}
@@ -603,9 +682,7 @@ function SubCard({
           </strong>{' '}
           · 누적 {sub.total_deliveries}회
         </span>
-        <strong className="tabular-nums">
-          {sub.total_amount.toLocaleString()}원
-        </strong>
+        <AmountCell sub={sub} supporter={supporter} />
       </div>
       <div className="mt-3">
         <RowActions sub={sub} isLoading={isLoading} onAction={onAction} align="start" />

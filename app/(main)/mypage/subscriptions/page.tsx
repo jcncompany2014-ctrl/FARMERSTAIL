@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronRight, AlertTriangle, Receipt } from 'lucide-react'
+import Image from 'next/image'
+import { ChevronRight, AlertTriangle, Receipt, CheckCircle2, CreditCard } from 'lucide-react'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { V3, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import {
@@ -18,6 +19,7 @@ import { getTrialState } from '@/lib/payments/trial-state'
 import { weekdayKo } from '@/lib/shipping-schedule'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
+import { DELIVERY_INTERVAL_DAYS } from '@/lib/personalization/cycle'
 import { petName } from '@/lib/korean'
 import { recipeName, friendlyChangeReason } from '@/lib/personalization/format'
 import type { Formula } from '@/lib/personalization/types'
@@ -128,7 +130,7 @@ export default async function AppSubscriptionsSummaryPage({
         'has_billing_key, billing_customer_key, billing_card_brand, ' +
         'billing_card_last4, failed_charge_count, next_retry_at, ' +
         'last_failed_charge_reason, requires_billing_key_renewal, ' +
-        'subscription_items(*), dogs(id, name)',
+        'subscription_items(*), dogs(id, name, photo_url)',
     )
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
@@ -336,26 +338,108 @@ export default async function AppSubscriptionsSummaryPage({
     }
   }
 
+  // ── 2026-10-01 사장님 B안: 이 화면 카드는 전부 둥글게(12). 바로 앞 분석·플랜 화면이 둥근
+  //    카드라 각진 카드면 결제 직후 다른 앱 같았다. 앱 전체 모서리 통일은 결정 목록.
   const card: React.CSSProperties = {
     background: V3.paperHi,
     border: `1px solid ${V3.rule}`,
-    borderRadius: V3Radius.sm,
+    borderRadius: V3Radius.md,
   }
+  // 머리말 — 한글·13px·굵게(AGENTS 규칙85).
+  const kicker: React.CSSProperties = {
+    fontSize: 13,
+    fontWeight: 700,
+    letterSpacing: '-0.01em',
+    color: V3.inkMute,
+  }
+  // 알약 표시(상태·할인·날짜) — 글자색과 같은 계열 옅은 바탕.
+  const pill = (color: string): React.CSSProperties => ({
+    color,
+    background: `color-mix(in srgb, ${color} 12%, transparent)`,
+    borderRadius: V3Radius.pill,
+    padding: '2px 9px',
+    fontSize: 13,
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+  })
+
+  // ── 서포터즈 혜택 — 회차가 아니라 **기간·총액**으로(사장님 2026-10-01 "56일치 밥이 총 400원").
+  //    숫자는 청구와 같은 판정(lib/payments/trial — 100원 구간 먼저, 단가 최소 100원).
+  const trialLive = !!trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0)
+  const trialBlock = trialLive && trial ? (() => {
+    const cheap = trial.cheap_remaining
+    const half = trial.half_remaining
+    const price = Math.max(100, Math.trunc(trial.cheap_price))
+    const segs = [
+      ...Array.from({ length: cheap }, () => 'cheap' as const),
+      ...Array.from({ length: half }, () => 'half' as const),
+    ]
+    return (
+      <div>
+        <p style={kicker}>서포터즈 혜택</p>
+        <p
+          className="mt-1 font-bold"
+          style={{ fontSize: V3FontSize.base, color: V3.ink, lineHeight: 1.4, wordBreak: 'keep-all' }}
+        >
+          {cheap > 0
+            ? `남은 ${cheap * DELIVERY_INTERVAL_DAYS}일치 밥이 총 ${(cheap * price).toLocaleString('ko-KR')}원이에요`
+            : `남은 ${half * DELIVERY_INTERVAL_DAYS}일치 밥은 반값이에요`}
+        </p>
+        {/* 남은 박스(2주치) 하나 = 막대 한 칸. 첫 칸 = 다음 결제. */}
+        <div className="mt-2.5 flex items-center" style={{ gap: 3 }} aria-hidden>
+          {segs.map((ph, i) => (
+            <span
+              key={i}
+              style={{
+                flex: 1,
+                height: 8,
+                borderRadius: V3Radius.pill,
+                marginLeft: i === cheap && cheap > 0 ? 6 : 0,
+                background:
+                  i === 0
+                    ? V3.accent
+                    : ph === 'cheap' || cheap === 0
+                      ? `color-mix(in srgb, ${V3.accent} 35%, transparent)`
+                      : V3.paperDeep,
+              }}
+            />
+          ))}
+        </div>
+        <div
+          className="mt-1.5 flex justify-between gap-2"
+          style={{ fontSize: V3FontSize.xs, color: V3.inkMute, wordBreak: 'keep-all' }}
+        >
+          {cheap > 0 && <span>{price.toLocaleString('ko-KR')}원 · {cheap * DELIVERY_INTERVAL_DAYS}일</span>}
+          {half > 0 && <span>반값 · {half * DELIVERY_INTERVAL_DAYS}일</span>}
+          <span>그다음 정상가</span>
+        </div>
+        <p className="mt-2" style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}>
+          가격이 바뀌기 전에 미리 알려드릴게요
+        </p>
+      </div>
+    )
+  })() : null
 
   return (
     <main className="px-5 pt-4 pb-10" style={{ background: V3.paper }}>
       {sp.new === '1' && (
-        <p
-          className="mb-3 px-4 py-3 text-[12.5px] font-bold"
+        <div
+          className="mb-3 flex items-center gap-2.5 px-4 py-3"
           style={{
-            ...card,
-            background: V3.paperHi,
-            color: V3.sage,
-            borderColor: V3.sage,
+            background: `color-mix(in srgb, ${V3.sage} 12%, transparent)`,
+            borderRadius: V3Radius.md,
           }}
         >
-          정기배송이 시작됐어요. 다음 결제일에 자동으로 결제돼요.
-        </p>
+          <CheckCircle2 className="shrink-0" size={22} strokeWidth={2.2} style={{ color: V3.sage }} aria-hidden />
+          <span>
+            <span className="block font-bold" style={{ fontSize: V3FontSize.base, color: V3.sage }}>
+              정기배송이 시작됐어요
+            </span>
+            <span className="block" style={{ fontSize: V3FontSize.sm, color: V3.sage }}>
+              다음 결제일에 자동으로 결제돼요
+            </span>
+          </span>
+        </div>
       )}
 
       {/* ── 조치가 필요한 것 — 어느 강아지인지 이름을 붙여 바로 보낸다 ── */}
@@ -387,22 +471,22 @@ export default async function AppSubscriptionsSummaryPage({
               style={{ ...card, borderColor: V3.sale }}
             >
               <AlertTriangle
-                className="w-4 h-4 shrink-0 mt-px"
+                className="w-5 h-5 shrink-0 mt-px"
                 strokeWidth={2.4}
                 style={{ color: V3.sale }}
               />
               <span className="flex-1 min-w-0">
                 <span
-                  className="block text-[13px] font-bold"
-                  style={{ color: V3.ink }}
+                  className="block font-bold"
+                  style={{ fontSize: V3FontSize.base, color: V3.ink }}
                 >
                   {st === 'needs_card'
                     ? `${dog} 정기배송은 아직 시작 전이에요`
                     : `${dog} 결제가 되지 않았어요`}
                 </span>
                 <span
-                  className="block text-[11.5px] mt-0.5 leading-relaxed"
-                  style={{ color: V3.inkMute }}
+                  className="block mt-0.5 leading-relaxed"
+                  style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}
                 >
                   {st === 'needs_card'
                     ? '결제수단을 등록하면 첫 배송일이 잡혀요.'
@@ -410,7 +494,7 @@ export default async function AppSubscriptionsSummaryPage({
                 </span>
               </span>
               <ChevronRight
-                className="w-4 h-4 shrink-0 mt-px"
+                className="w-5 h-5 shrink-0 mt-px"
                 strokeWidth={2.4}
                 style={{ color: V3.inkFaint }}
               />
@@ -418,83 +502,80 @@ export default async function AppSubscriptionsSummaryPage({
           )
         })}
 
-      {/* ── 체험단 진행 카드 (2026-09-24, TRIAL_PROGRAM v2) ──
-          도장 있는 계정에만 보인다. 다음 가격이 미리 보여야 "몰래 비싸짐"이
-          없다 — 전환 고지(D4)의 화면 반쪽. 숫자 근거는 청구와 같은 판정
-          (trialPricing)이라 갈라질 수 없다. */}
-      {trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0) && (
-        <section className="px-5 py-4" style={card}>
-          <p className="text-[11px] font-bold" style={{ color: V3.inkMute }}>
-            서포터즈 진행 중
-          </p>
-          <p className="mt-1 text-[16px] font-bold" style={{ color: V3.ink }}>
-            {trial.cheap_remaining > 0
-              ? `지금은 100원 구간 — ${trial.cheap_remaining}번 남았어요`
-              : `지금은 반값 구간 — ${trial.half_remaining}번 남았어요`}
-          </p>
-          <p className="mt-1 text-[12.5px]" style={{ color: V3.inkMute, lineHeight: 1.55 }}>
-            {trial.cheap_remaining > 0
-              ? `100원 박스가 끝나면 두 달간 내 구독가의 반값으로, 그다음부터 정상가로 이어져요. 바뀌기 전에 미리 알려드릴게요.`
-              : `반값 박스가 끝나면 정상가로 이어져요. 바뀌기 전에 미리 알려드릴게요.`}
-          </p>
-        </section>
-      )}
-
-      {/* ── 주인공: 결제 정보 ──
-          'NEXT PAYMENT' 킥커·구분선·설명 문단을 걷어냈다(사장님 2026-07-30
-          "덜어내기"). 날짜 → 금액 → 결제수단 세 줄이면 다 읽힌다. */}
+      {/* ── 주인공: 결제 정보 (+ 서포터즈 혜택을 같은 카드 안에) ──
+          예전엔 서포터즈 카드와 결제 카드가 간격 없이 붙어 테두리가 겹쳐 보였다(사장님 캡처). */}
       {nextDate ? (
-        <section className="px-5 py-5" style={card}>
-          <p className="text-[11px] font-bold" style={{ color: V3.inkMute }}>
-            다음 결제
-          </p>
+        <section className="px-4 py-5" style={card}>
+          <div className="flex items-center justify-between gap-2">
+            <span style={kicker}>다음 결제</span>
+            {/* ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07).
+                결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다. */}
+            <span style={pill(V3.ink)}>
+              {nextDate < todayKstIsoDate()
+                ? `${dateLabel(nextDate)} 예정이었어요 · 확인 중`
+                : dateLabel(nextDate)}
+            </span>
+          </div>
           <p
-            className="mt-1.5 text-[30px] font-black"
-            style={{ color: V3.ink, letterSpacing: '-0.02em', lineHeight: 1.05 }}
+            className="mt-1.5 font-black"
+            style={{ fontSize: 34, color: V3.ink, letterSpacing: '-0.02em', lineHeight: 1.1 }}
           >
             <HeroAmount value={nextAmount} />
           </p>
           {/* 할인이 있으면 무엇이 빠졌는지 한 줄. 원래 금액은 취소선으로 —
               비율(%)은 쓰지 않는다(사장님 브랜드 보이스 규칙). */}
           {nextDiscount > 0 && (
-            <p className="mt-1.5 text-[12px]" style={{ color: V3.sage }}>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span
                 style={{
-                  color: V3.inkFaint,
+                  fontSize: V3FontSize.sm,
+                  color: V3.inkMute,
                   textDecoration: 'line-through',
-                  marginRight: 6,
                 }}
               >
                 {krw(nextSubtotal)}
               </span>
-              {discountLabel ?? '할인'} −{krw(nextDiscount)}
-            </p>
+              <span style={pill(V3.sage)}>
+                {discountLabel ?? '할인'} −{krw(nextDiscount)}
+              </span>
+            </div>
           )}
-          {/* ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07).
-              결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다. */}
-          <p className="mt-2 text-[12.5px]" style={{ color: V3.ink }}>
-            {nextDate < todayKstIsoDate()
-              ? `${dateLabel(nextDate)} 예정이었어요 · 확인 중`
-              : dateLabel(nextDate)}
-          </p>
-          <p className="mt-0.5 text-[12px]" style={{ color: V3.inkMute }}>
+          <p
+            className="mt-3 flex items-center gap-1.5"
+            style={{ fontSize: V3FontSize.sm, color: V3.inkSoft }}
+          >
+            <CreditCard className="w-[18px] h-[18px] shrink-0" strokeWidth={2} style={{ color: V3.inkMute }} aria-hidden />
             {oneMethod ?? '구독별로 결제수단이 달라요'}
           </p>
+          {trialBlock && (
+            <>
+              <div className="my-4" style={{ borderTop: `1px dashed ${V3.rule}` }} />
+              {trialBlock}
+            </>
+          )}
         </section>
       ) : (
         /* 결제 예정이 없을 때. '시작 전' 구독이 아래 목록에 뜨고 위에 조치
            배너도 있으므로 여기서는 짧게만 말한다 — 예전엔 이 자리가 통째로
            빈 화면이 되어 버튼 하나만 남았다(사장님 제보). */
-        <section className="px-5 py-6" style={card}>
-          <p className="text-[13px] font-bold" style={{ color: V3.ink }}>
-            {rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요'}
-          </p>
-          <p className="mt-1.5 text-[13px]" style={{ color: V3.inkMute }}>
-            {rows.length > 0
-              ? '결제수단을 등록하면 첫 결제일이 정해져요.'
-              : '아래 버튼으로 바로 시작할 수 있어요.'}
-          </p>
-        </section>
+        <>
+          <section className="px-5 py-6" style={card}>
+            <p className="font-bold" style={{ fontSize: V3FontSize.base, color: V3.ink }}>
+              {rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요'}
+            </p>
+            <p className="mt-1.5" style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}>
+              {rows.length > 0
+                ? '결제수단을 등록하면 첫 결제일이 정해져요.'
+                : '아래 버튼으로 바로 시작할 수 있어요.'}
+            </p>
+          </section>
+          {/* 서포터즈인데 아직 카드 등록 전 — 혜택이 기다리고 있다는 걸 먼저 보여 준다. */}
+          {trialBlock && (
+            <section className="mt-3 px-4 py-5" style={card}>
+              {trialBlock}
+            </section>
+          )}
+        </>
       )}
 
       {/* ── 구독 없는 강아지 — 큰 시작 버튼 (하단 탭 "정기배송" 의 핵심) ── */}
@@ -543,17 +624,14 @@ export default async function AppSubscriptionsSummaryPage({
         )
       })()}
 
-      {/* ── 구독별 한 줄 — 관리는 강아지 화면에서 ── */}
+      {/* ── 구독별 한 장 — 관리는 강아지 화면에서 ── */}
       {rows.length > 0 && (
         <>
-          <p
-            className="mt-7 mb-2 px-1 text-[11px] font-bold"
-            style={{ color: V3.inkMute }}
-          >
+          <p className="mt-7 mb-2 px-1" style={kicker}>
             정기배송 {rows.length}건
           </p>
-          <ul className="overflow-hidden" style={card}>
-            {rows.map((s, i) => {
+          <ul className="flex flex-col gap-2">
+            {rows.map((s) => {
               const st = subscriptionState(s)
               const chipColor = STATE_COLOR[st]
               const focused = sp.focus === s.id
@@ -562,13 +640,15 @@ export default async function AppSubscriptionsSummaryPage({
                 brand: s.billing_card_brand,
                 last4: s.billing_card_last4,
               })
+              const dogName = s.dogs?.name ?? '정기배송'
+              const photo = (s.dogs as { photo_url?: string | null } | null)?.photo_url ?? null
               return (
                 <li
                   key={s.id}
                   style={{
-                    borderTop: i === 0 ? undefined : `1px solid ${V3.ruleSoft}`,
+                    ...card,
                     // 푸시·메일이 ?focus=<id> 로 보낸 그 구독을 눈에 띄게.
-                    boxShadow: focused ? `inset 3px 0 0 ${V3.accent}` : undefined,
+                    boxShadow: focused ? `0 0 0 2px ${V3.accent}` : undefined,
                   }}
                 >
                   <Link
@@ -579,28 +659,39 @@ export default async function AppSubscriptionsSummaryPage({
                     }
                     className="flex items-center gap-3 px-4 py-3.5 active:opacity-70"
                   >
+                    <span
+                      className="relative shrink-0 flex items-center justify-center overflow-hidden font-bold"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        background: V3.paperDeep,
+                        color: V3.inkMute,
+                        fontSize: V3FontSize.base,
+                      }}
+                      aria-hidden
+                    >
+                      {photo ? (
+                        <Image src={photo} alt="" fill sizes="44px" className="object-cover" unoptimized />
+                      ) : (
+                        dogName.slice(0, 1)
+                      )}
+                    </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2">
                         <span
-                          className="text-[13.5px] font-bold truncate"
-                          style={{ color: V3.ink }}
+                          className="font-bold truncate"
+                          style={{ fontSize: V3FontSize.base, color: V3.ink }}
                         >
-                          {s.dogs?.name ?? '정기배송'}
+                          {dogName}
                         </span>
-                        <span
-                          className="shrink-0 text-[10px] font-bold px-1.5 py-0.5"
-                          style={{
-                            color: chipColor,
-                            border: `1px solid ${chipColor}`,
-                            borderRadius: V3Radius.xs,
-                          }}
-                        >
+                        <span className="shrink-0" style={pill(chipColor)}>
                           {SUB_STATE_LABEL[st]}
                         </span>
                       </span>
                       <span
-                        className="block mt-1 text-[11.5px] leading-snug"
-                        style={{ color: V3.inkMute }}
+                        className="block mt-1 leading-snug"
+                        style={{ fontSize: V3FontSize.sm, color: V3.inkMute, wordBreak: 'keep-all' }}
                       >
                         {krw(s.total_amount)}
                         {s.fresh_ratio ? ` · ${freshTierLabel(s.fresh_ratio)}` : ''}
@@ -611,7 +702,7 @@ export default async function AppSubscriptionsSummaryPage({
                       </span>
                     </span>
                     <ChevronRight
-                      className="w-4 h-4 shrink-0"
+                      className="w-5 h-5 shrink-0"
                       strokeWidth={2.4}
                       style={{ color: V3.inkFaint }}
                     />
@@ -629,15 +720,15 @@ export default async function AppSubscriptionsSummaryPage({
         style={card}
       >
         <Receipt
-          className="w-4 h-4 shrink-0"
-          strokeWidth={2.4}
+          className="w-5 h-5 shrink-0"
+          strokeWidth={2.2}
           style={{ color: V3.inkMute }}
         />
-        <span className="flex-1 text-[13px] font-bold" style={{ color: V3.ink }}>
+        <span className="flex-1 font-bold" style={{ fontSize: V3FontSize.base, color: V3.ink }}>
           결제·주문 내역
         </span>
         <ChevronRight
-          className="w-4 h-4 shrink-0"
+          className="w-5 h-5 shrink-0"
           strokeWidth={2.4}
           style={{ color: V3.inkFaint }}
         />

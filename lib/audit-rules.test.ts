@@ -5250,3 +5250,23 @@ test('규칙146: 체험단 도장을 찍으면 보호자에게 앱 알림이 가
   assert.match(box, /get\('focus'\) !== PLAN_FOCUS_PARAM\) return\s*rootRef\.current\?\.scrollIntoView/, '?focus=plan 으로 들어와도 플랜 고르기 카드로 내려가지 않는다')
   assert.match(box, /const PLAN_FOCUS_PARAM = 'plan'/, '플랜 고르기 주소 값이 알림 링크(?focus=plan)와 다르다')
 })
+
+test('규칙147: 서포터즈 금액은 실제 결제 금액으로 — 어드민은 확실히 구분되고, 고객 화면은 기간·총액으로 말한다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님)
+   * 어드민 구독 목록 '회당 금액'이 서포터즈 고객도 정가(51,500원)로 떠서 실제 결제(100원)와 달랐다
+   * ("확실하게 구분감 있게"). 고객 정기배송 화면은 서포터즈 카드가 결제 카드에 붙어 겹쳐 보였고
+   * "4번 남았어요"처럼 회차로 말했다 — 사장님 원칙은 "56일치 밥이 총 400원"(기간·총액).
+   */
+  const admin = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
+  assert.match(admin, /const supporter = supporterViews\(subs, trials\)/, '어드민 구독 목록이 서포터즈 실제 결제 금액을 계산하지 않는다')
+  assert.match(admin, /<AmountCell sub=\{sub\} supporter=\{supporter\} \/>/, '어드민 금액 칸이 서포터즈를 정가로 보인다')
+  assert.match(admin, /\{ value: 'supporters', label: '서포터즈' \}/, '어드민에 서포터즈만 보는 탭이 없다')
+  assert.match(admin, /서포터즈 정보를 불러오지 못했어요/, '서포터즈 조회 실패를 화면이 숨긴다(정가로 보이는데 알리지 않음)')
+  const view = stripComments(read(join(ROOT, 'lib', 'payments', 'trial-display.ts')))
+  assert.match(view, /trialPricing\(state, s\.total_amount\)/, '서포터즈 표시 금액이 청구와 같은 판정(trialPricing)이 아니다')
+  const app = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'subscriptions', 'page.tsx')))
+  assert.doesNotMatch(app, /번 남았어요/, '고객 정기배송 화면이 서포터즈 혜택을 회차로 말한다 — 기간·총액으로')
+  assert.match(app, /일치 밥이 총 \$\{/, '고객 정기배송 화면이 서포터즈 혜택을 기간·총액으로 말하지 않는다')
+  assert.match(app, /borderRadius: V3Radius\.md,/, '정기배송 화면 카드가 둥근 모서리(B안)가 아니다')
+})
