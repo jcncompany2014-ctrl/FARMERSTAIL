@@ -131,9 +131,10 @@ export async function GET(req: Request) {
   // ★첫 결제일 = 결제 시점 정본(2026-10-01 일정 변경). 발송일(화)과 결제일이 고객마다 다르다 — 일반 = 발송 3일 전
   //   토요일(조리 직전), 서포터즈 체험 구간 = 발송일. 이 값이 정기결제 동의 화면의 "첫 결제 M월 D일"이다(법정 고지).
   //   결제 시점을 모르면(조회 실패) 결제일을 비운다 — 화면은 발송일만 말하고, 틀린 결제일을 고지하지 않는다.
-  //   카드 등록 전 구독은 next_delivery_date 가 null — 첫 발송일은 billing-issue 가 잡는 것과 같은 nextShipDate().
-  const firstShipDate = row.next_delivery_date ?? nextShipDate()
+  //   카드 등록 전 구독은 next_delivery_date 가 null — 첫 발송일은 billing-issue 가 잡는 것과 같은 계산
+  //   (nextShipDate + 결제 시점별 마감: 서포터즈 체험 구간 일요일·일반 금요일 밤, 2026-10-02).
   const timing = await getChargeTiming(user.id)
+  const firstShipDate = row.next_delivery_date ?? nextShipDate(undefined, timing ?? 'before_cooking')
   const firstChargeDate = timing ? chargeDateFor(firstShipDate, timing) : null
 
   return NextResponse.json({

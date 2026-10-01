@@ -52,8 +52,9 @@ import {
   chargeDateFor,
   nextShipDate,
   weekdayKo,
-  SHIP_WEEK,
+  shipWeekFor,
   SHIP_WHY,
+  type ChargeTiming,
 } from '@/lib/shipping-schedule'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
@@ -323,10 +324,9 @@ export default function OrderClient({
   // 진실(lib/shipping-schedule)에서 뽑는다. billing-issue 가 카드 등록 시점에
   // 같은 함수로 next_delivery_date 를 잡으므로 여기 표시와 정확히 일치한다.
   // 렌더 중 Date.now() 를 피하려고 mount 후 1회 계산(SSR/CSR 하이드레이션 안전).
+  //   마감은 결제 시점별이다(2026-10-02) — 서포터즈 체험 구간은 원래 방식(일요일), 일반은 금요일 밤. 그 판정은 아래
+  //   가격 미리보기(discountKind 'trial')가 나온 뒤에 한다(그 effect 는 pricePreview 선언 아래).
   const [firstShipIso, setFirstShipIso] = useState<string | null>(null)
-  useEffect(() => {
-    setFirstShipIso(nextShipDate())
-  }, [])
 
   // ── 라인 + 토퍼 → 항목 빌드 (freshRatio 변경 시 자동 재계산) ────────
   // 계산 본체는 lib/personalization/boxPricing (정본). 모델 설명·가격 규칙은
@@ -394,6 +394,14 @@ export default function OrderClient({
     pricePreview != null &&
     (pricePreview.discountKind === 'promotion' || pricePreview.discountKind === 'trial') &&
     pricePreview.recurringAmount !== pricePreview.firstAmount
+
+  // 첫 발송일 마감 — 서포터즈 체험 구간(미리보기가 체험가)이면 원래 방식 그대로 일요일, 아니면 금요일 밤
+  //   (lib/shipping-schedule leadDaysFor, 사장님 2026-10-02 "1기 서포터즈는 포함 아닌 거 아니었어?").
+  //   billing-issue 가 카드 등록 때 같은 판정(getChargeTiming)으로 실제 next_delivery_date 를 잡는다.
+  const shipTiming: ChargeTiming = pricePreview?.discountKind === 'trial' ? 'ship_day' : 'before_cooking'
+  useEffect(() => {
+    setFirstShipIso(nextShipDate(undefined, shipTiming))
+  }, [shipTiming])
 
   /**
    * ★첫 결제일 — 결제 시점이 고객마다 다르다(2026-10-01 일정 변경). 일반 = 발송 3일 전 토요일 아침(조리 직전),
@@ -940,7 +948,7 @@ export default function OrderClient({
               어떻게 돌아가는지 그대로 보여준다(사장님 2026-07-15). 요일을 하루로
               조이는 게 제약이 아니라 신선함의 이유라는 걸 납득시키는 자리.
               날짜·요일은 lib/shipping-schedule 단일 진실에서 나온다. */}
-          <ShipRhythmCard firstShipIso={firstShipIso} />
+          <ShipRhythmCard firstShipIso={firstShipIso} timing={shipTiming} />
 
           {/* (급여표/전환 카드는 사장님 요청으로 제거 — 2026-07-16.) */}
 
@@ -1352,7 +1360,9 @@ function dateKo(iso: string): string {
   return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
 }
 
-function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
+function ShipRhythmCard({ firstShipIso, timing }: { firstShipIso: string | null; timing: ChargeTiming }) {
+  // 서포터즈 체험 구간은 신청 마감이 일요일이라 리듬표의 마감 문구도 일요일 칸에(shipWeekFor).
+  const week = shipWeekFor(timing)
   const firstLabel = firstShipIso ? `첫 발송 ${dateKo(firstShipIso)}` : '첫 발송일 계산 중'
   return (
     // 기본 접힘 — 한 주 리듬은 '읽고 납득하는' 내용이라 결제 전에 한 번 보면
@@ -1373,7 +1383,7 @@ function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
 
       <div className="ord-fold-body">
       <ol className="ord-week" aria-label="한 주 배송 리듬">
-        {SHIP_WEEK.map((d) => (
+        {week.map((d) => (
           <li
             key={d.dow}
             className={

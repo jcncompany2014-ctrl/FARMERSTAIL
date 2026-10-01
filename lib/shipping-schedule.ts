@@ -40,6 +40,20 @@ export const SHIP_WEEKDAY = 2
 const LEAD_DAYS = 4
 
 /**
+ * ★서포터즈(1기) 체험 구간의 마감 — **원래 방식 그대로 일요일**(발송 이틀 전, 옛 LEAD 2).
+ *
+ * 사장님 2026-10-02: "여태 우리가 만든 규칙에 이번 1기 서포터즈는 포함 아닌 거 아니었어?" — 체험 구간(100원·반값)
+ * 동안은 결제(발송일 화요일)만이 아니라 **신청 마감도 옛 규칙**이다. 정상가로 넘어가면(before_cooking) 금요일 밤.
+ * 판정은 결제 시점과 같은 chargeTimingFor(체험 회차가 남았는가) — 두 규칙이 같은 사람에게 같이 적용된다.
+ */
+const LEAD_DAYS_SUPPORTER = 2
+
+/** 결제 시점별 신청 마감 리드타임 — 일반 4(금요일 밤) · 서포터즈 체험 구간 2(일요일). */
+export function leadDaysFor(timing: ChargeTiming): number {
+  return timing === 'ship_day' ? LEAD_DAYS_SUPPORTER : LEAD_DAYS
+}
+
+/**
  * 결제 시점 — 발송일은 모두 화요일이고, **언제 결제하느냐**만 다르다(2026-10-01 사장님).
  *  · before_cooking — 발송 3일 전 **토요일 아침, 조리 직전**. 일반 고객의 기본.
  *    사장님 선택("조리 직전"): 마감을 가장 늦게(금요일 밤) 둘 수 있다. 대가로 결제가 실패한
@@ -144,11 +158,15 @@ export function weekdayKo(isoDate: string): string {
 
 /**
  * fromIso(기본 오늘) 이후 가장 가까운 **발송 가능한 화요일**.
- * 마감(LEAD_DAYS)을 지난 주문은 그다음 주 화요일로 넘어간다.
+ * 마감을 지난 주문은 그다음 주 화요일로 넘어간다. 마감은 결제 시점별(leadDaysFor) — 일반 금요일 밤,
+ * 서포터즈 체험 구간 일요일. timing 을 안 넘기면 일반(금요일).
  */
-export function nextShipDate(fromIso: string = todayKstIsoDate()): string {
+export function nextShipDate(
+  fromIso: string = todayKstIsoDate(),
+  timing: ChargeTiming = 'before_cooking',
+): string {
   // 리드타임을 먼저 더한 뒤, 그 날짜 이상인 첫 화요일을 찾는다.
-  const earliest = addDaysKst(fromIso, LEAD_DAYS)
+  const earliest = addDaysKst(fromIso, leadDaysFor(timing))
   const gap = (SHIP_WEEKDAY - weekdayOf(earliest) + 7) % 7
   return addDaysKst(earliest, gap)
 }
@@ -163,8 +181,9 @@ export function nextShipDate(fromIso: string = todayKstIsoDate()): string {
 export function resumeShipDate(
   currentIso: string | null | undefined,
   fromIso: string = todayKstIsoDate(),
+  timing: ChargeTiming = 'before_cooking',
 ): string {
-  const earliest = nextShipDate(fromIso)
+  const earliest = nextShipDate(fromIso, timing)
   if (currentIso && currentIso >= earliest && weekdayOf(currentIso) === SHIP_WEEKDAY) return currentIso
   return earliest
 }
@@ -252,6 +271,21 @@ export const SHIP_WEEK: ShipDay[] = [
   { dow: 6, ko: '토', what: '조리' },
   { dow: 0, ko: '일', what: '조리' },
 ]
+
+/**
+ * 결제 시점별 한 주 리듬 — 서포터즈 체험 구간은 신청 마감이 일요일(LEAD_DAYS_SUPPORTER)이라 금요일 칸의 마감 문구를
+ * 일요일 칸으로 옮긴다. 결제 요일은 여전히 적지 않는다(SHIP_WEEK 원칙).
+ */
+export function shipWeekFor(timing: ChargeTiming): ShipDay[] {
+  if (timing !== 'ship_day') return SHIP_WEEK
+  return SHIP_WEEK.map((d) =>
+    d.dow === 5
+      ? { ...d, what: '원료 입고 · 손질' }
+      : d.dow === 0
+        ? { ...d, what: '조리 · 이날까지 신청하면 이번 화요일 발송' }
+        : d,
+  )
+}
 
 /**
  * `next_delivery_date` 까지 남은 날 → **고객에게 보여줄 문구**.

@@ -350,7 +350,12 @@ export default function AdminSubscriptionsPage() {
       if (cardUsable) {
         // 배송 주기는 2주 하나로 고정 — 재개는 다음 화요일부터(2026-07-16).
         // 아직 오지 않은 원래 배송일은 그대로 — 정지했다 곧바로 재개해도 다음 청구가 앞당겨지지 않게(2026-09-28).
-        updates.next_delivery_date = resumeShipDate(sub?.next_delivery_date)
+        // 마감은 결제 시점별 — 서포터즈 체험 구간 일요일·일반 금요일 밤(2026-10-02). 서포터즈 정보를 못 받았으면 일반.
+        updates.next_delivery_date = resumeShipDate(
+          sub?.next_delivery_date,
+          undefined,
+          sub && !trialsError ? chargeTimingFor(trials.get(sub.user_id)) : 'before_cooking',
+        )
       } else {
         updates.next_delivery_date = null
         if (sub?.requires_billing_key_renewal) {

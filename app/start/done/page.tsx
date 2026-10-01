@@ -38,7 +38,7 @@ import { loadOrderPageData } from '@/lib/subscription/orderPageData'
 import { quoteBox } from '@/lib/subscription/boxQuote'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { recipeName } from '@/lib/personalization/format'
-import { chargeDateFor, nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
+import { chargeDateFor, nextShipDate, weekdayKo, type ChargeTiming } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { petName } from '@/lib/korean'
 
@@ -59,16 +59,16 @@ function dateKo(iso: string): string {
 }
 
 /**
- * 첫 결제일 — 로그인한 사용자의 결제 시점(lib/payments/charge-timing)을 알 때만. 비로그인·조회 실패면 null —
+ * 결제 시점 — 로그인한 사용자일 때만(lib/payments/charge-timing). 첫 결제일과 첫 발송 마감(서포터즈 일요일·일반
+ * 금요일)이 이걸 따른다. 비로그인·조회 실패면 null —
  * 그때 화면은 결제 요일을 단정하지 않는다(서포터즈에게 토요일 결제를 보이면 안 된다, 2026-10-01).
  */
-async function loadFirstChargeIso(shipIso: string): Promise<string | null> {
+async function loadChargeTiming(): Promise<ChargeTiming | null> {
   try {
     const supabase = await createClient()
     const user = await getSafeUser(supabase)
     if (!user) return null
-    const timing = await getChargeTiming(user.id)
-    return timing ? chargeDateFor(shipIso, timing) : null
+    return await getChargeTiming(user.id)
   } catch {
     return null
   }
@@ -136,9 +136,11 @@ export default async function StartDonePage({
 
   // 이름 조사는 정본 헬퍼로(받침 있으면 '이'). 없으면 '우리 아이'.
   const who = rawName ? petName(rawName) : '우리 아이'
-  const shipIso = nextShipDate()
+  // 첫 발송일 마감도 결제 시점별(2026-10-02) — 서포터즈 체험 구간 일요일·일반 금요일 밤. 모르면 일반.
+  const chargeTiming = await loadChargeTiming()
+  const shipIso = nextShipDate(undefined, chargeTiming ?? 'before_cooking')
   const ship = shipLabel(shipIso)
-  const chargeIso = await loadFirstChargeIso(shipIso)
+  const chargeIso = chargeTiming ? chargeDateFor(shipIso, chargeTiming) : null
 
   return (
     <WebChrome>

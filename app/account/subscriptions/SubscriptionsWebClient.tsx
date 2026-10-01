@@ -233,7 +233,8 @@ export default function SubscriptionsWebClient({
           // 없으면 다음 화요일부터. weeks 를 nextCycleDate 에 반드시 넘긴다(안 넘기면
           // 항상 2주 폴백). 2026-07-18: 건너뛰기=**2주**로 앱과 통일(사장님) — 이전엔
           // 웹만 4주라 앱(2주)과 달랐고, 박스가 14일치라 4주 미루면 2주 굶었다.
-          const baseIso = seenNext ?? nextShipDate()
+          // 마감은 결제 시점별(서포터즈 체험 구간 일요일·일반 금요일 밤, 2026-10-02).
+          const baseIso = seenNext ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
           return { next_delivery_date: nextCycleDate(baseIso, weeks) }
         })()
       : { status: 'paused' }
@@ -333,7 +334,7 @@ export default function SubscriptionsWebClient({
     // 재개하면 **다음 화요일**부터 (2026-07-16). 주기는 2주 하나로 고정 —
     // 박스가 14일치라 다른 주기는 성립하지 않는다.
     // 아직 오지 않은 원래 배송일은 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
-    const nextIso = resumeShipDate(sub.next_delivery_date)
+    const nextIso = resumeShipDate(sub.next_delivery_date, undefined, chargeTiming ?? 'before_cooking')
     const { error } = await supabase
       .from('subscriptions')
       .update({ status: 'active', next_delivery_date: nextIso })

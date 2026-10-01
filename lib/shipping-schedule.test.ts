@@ -17,6 +17,8 @@ import {
   onTimeChargeDeadline,
   describeUpcomingBox,
   paidBoxShipIso,
+  leadDaysFor,
+  shipWeekFor,
   resumeShipDate,
   nextShipDate,
   nextCycleDate,
@@ -93,6 +95,42 @@ describe('nextShipDate — 언제 주문하든 화요일', () => {
       // 조리 직전 결제일이 오늘이거나 지났으면 크론이 이미 돌았거나 조리가 시작된 뒤다.
       assert.ok(chargeDateFor(ship, 'before_cooking') > d, `${d} → 결제 ${chargeDateFor(ship, 'before_cooking')}`)
     }
+  })
+})
+
+// ── 2026-10-02 사장님 "1기 서포터즈는 포함 아닌 거 아니었어?" — 체험 구간은 마감도 원래 방식(일요일) ──────────
+describe('서포터즈 체험 구간 마감 = 일요일(원래 방식) · 일반 = 금요일 밤', () => {
+  it('리드타임 — 서포터즈 2일(일요일)·일반 4일(금요일)', () => {
+    assert.equal(leadDaysFor('ship_day'), 2)
+    assert.equal(leadDaysFor('before_cooking'), 4)
+  })
+  it('★서포터즈는 토·일에 신청해도 그 주 화요일에 받는다', () => {
+    assert.equal(nextShipDate(FRI, 'ship_day'), '2026-07-21')
+    assert.equal(nextShipDate(SAT, 'ship_day'), '2026-07-21')
+    assert.equal(nextShipDate(SUN, 'ship_day'), '2026-07-21')
+    // 일반은 토·일 신청이면 다음 주(조리가 이미 시작됐다)
+    assert.equal(nextShipDate(SAT, 'before_cooking'), '2026-07-28')
+    assert.equal(nextShipDate(SUN, 'before_cooking'), '2026-07-28')
+  })
+  it('서포터즈도 월요일 신청은 다음 주(원래 방식의 마감은 일요일)', () => {
+    assert.equal(nextShipDate(MON, 'ship_day'), '2026-07-21')
+    assert.equal(nextShipDate('2026-07-20', 'ship_day'), '2026-07-28')
+  })
+  it('결제 시점을 안 넘기면 일반 마감(금요일) — 옛 호출부 무손상', () => {
+    for (const d of [MON, TUE, WED, THU, FRI, SAT, SUN]) assert.equal(nextShipDate(d), nextShipDate(d, 'before_cooking'))
+  })
+  it('재개도 같은 마감을 쓴다', () => {
+    assert.equal(resumeShipDate(null, SUN, 'ship_day'), '2026-07-21')
+    assert.equal(resumeShipDate(null, SUN), '2026-07-28')
+  })
+  it('★주간 리듬 — 서포터즈는 마감 문구가 일요일 칸에, 결제 요일은 어디에도 없다', () => {
+    const sup = shipWeekFor('ship_day')
+    const fri = sup.find((d) => d.dow === 5)!
+    const sun = sup.find((d) => d.dow === 0)!
+    assert.doesNotMatch(fri.what, /신청/)
+    assert.match(sun.what, /이날까지 신청하면 이번 화요일 발송/)
+    for (const d of sup) assert.doesNotMatch(d.what, /결제/)
+    assert.equal(shipWeekFor('before_cooking'), SHIP_WEEK)
   })
 })
 

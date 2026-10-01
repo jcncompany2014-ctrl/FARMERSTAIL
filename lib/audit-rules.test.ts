@@ -5076,7 +5076,8 @@ test('규칙140: 같은 돈이 두 번 움직이지 않는다 — 부분환불 �
   // ④ 카드 재등록 — 지난 날짜면 다음 발송 화요일로
   const bi = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
   // 2026-10-01: '지난 날짜' = 결제일(조리 직전 토요일 / 서포터즈 발송일) 기준 — chargeDateFor.
-  assert.ok(/chargeDateFor\(cur\.next_delivery_date, \(await getChargeTiming\(user\.id\)\) \?\? 'ship_day'\) < todayKstIsoDate\(\)\s*\)\s*\{\s*firstDeliveryIso = nextShipDate\(\)/.test(bi), '재등록 시 결제일이 지난 회차를 그대로 둬 조리가 끝난 박스를 늦게 청구한다')
+  // 2026-10-02: 결제 시점을 한 번 조회해(chargeTiming) 첫 박스 마감에도 쓴다 — 서포터즈 일요일·일반 금요일(규칙157).
+  assert.ok(/chargeDateFor\(cur\.next_delivery_date, chargeTiming \?\? 'ship_day'\) < todayKstIsoDate\(\)\s*\)\s*\{\s*firstDeliveryIso = nextShipDate\(undefined, chargeTiming \?\? 'before_cooking'\)/.test(bi), '재등록 시 결제일이 지난 회차를 그대로 둬 조리가 끝난 박스를 늦게 청구한다')
   // ⑤ 결과 불명 — 매 실행 맨 앞에서 토스 주문번호 조회로 확정, 모르면 그 구독 청구 금지
   const verifyAt = ch.indexOf('await verifyAmbiguousCharges(supabase')
   // 2026-10-01: 조회는 사흘 앞 발송분까지(토요일 결제) — 결제일 판정은 구독별(규칙153).
@@ -5559,4 +5560,64 @@ test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동
     assert.doesNotMatch(src, /마이페이지에서 반품 신청/, `${name}이 없는 '마이페이지 반품 신청'을 안내한다`)
     assert.doesNotMatch(src, /수도권은 다음 날|일요일이며/, `${name}이 옛 일정(일요일 마감·다음 날 도착)을 말한다`)
   }
+})
+
+test('규칙156: 개인정보처리방침은 실제 처리와 같다 — 코드가 보내고 저장하는 것은 방침에서 지울 수 없다', () => {
+  /**
+   * # 왜 (2026-10-02 사장님 "ㄱㄱ" — docs/LEGAL_REVISION_2026_10.md §1 즉시 시행)
+   * 방침이 "익명화된 설문 응답만 Anthropic 으로(이름·연락처 미포함)"·"Supabase 미국 저장"·"결제 방식(카드·가상계좌)만
+   * 저장"이라고 적고 있었는데 실제로는 진료 영수증 이미지(보호자 성명·연락처 인쇄)가 그대로 가고, 저장은 서울 리전이며,
+   * 카드사명·끝 4자리·빌링키를 저장한다. 개인정보보호법 §30(기재 정확성). 규칙68(푸시)과 같은 방식으로 코드↔문서를 묶는다.
+   */
+  const policy = stripComments(read(join(ROOT, 'app', 'legal', 'privacy', 'page.tsx')))
+  assert.match(policy, /보호자 이름, 출생연도/, '가입 시 이름·출생연도 수집이 방침에 없다(app/start/join)')
+  assert.match(policy, /카드번호 끝 4자리/, '카드번호 끝 4자리 저장이 방침에 없다(subscriptions.billing_card_last4)')
+  assert.match(policy, /빌링키/, '정기결제 빌링키 저장이 방침에 없다(subscriptions.billing_key)')
+  assert.doesNotMatch(policy, /가상계좌/, '방침이 없는 결제 수단(가상계좌)을 적는다 — 카드 전용')
+  assert.doesNotMatch(policy, /us-east/, 'Supabase 저장 위치를 미국으로 적는다 — 프로젝트 리전은 ap-northeast-2(서울)')
+  assert.match(policy, /서울 리전/, 'Supabase 저장 위치(서울 리전)가 방침에 없다')
+  assert.doesNotMatch(policy, /이름·연락처\s*포함하지 않음/, 'Anthropic 전송에 이름·연락처가 없다고 적는다 — 영수증 이미지에 인쇄돼 있다')
+
+  const ocr = join(ROOT, 'app', 'api', 'health', 'ocr', 'route.ts')
+  if (existsSync(ocr) && /anthropic/i.test(read(ocr))) {
+    assert.match(policy, /진료서·영수증 이미지/, '진료서 판독이 Claude 로 이미지를 보내는데 방침에 없다')
+  }
+  if (existsSync(join(ROOT, 'lib', 'notify', 'alimtalk.ts'))) {
+    assert.match(policy, /솔라피/, '알림톡 발송 대행(솔라피)이 위탁표에 없다 — 첫 발송 전에 있어야 한다(§26②)')
+    assert.match(policy, /알림톡 전달/, '알림톡 전달((주)카카오)이 위탁표에 없다')
+  }
+  if (/replayIntegration\(/.test(stripComments(read(join(ROOT, 'instrumentation-client.ts'))))) {
+    assert.match(policy, /세션 리플레이/, 'Sentry 세션 리플레이를 켜 두었는데 방침에 없다')
+  }
+})
+
+test('규칙157: 1기 서포터즈 체험 구간은 신청 마감도 원래 방식(일요일) — 첫 박스·재개 날짜를 정하는 곳은 전부 결제 시점을 넘긴다', () => {
+  /**
+   * # 왜 (2026-10-02 사장님 "여태 우리가 만든 규칙에 이번 1기 서포터즈는 포함 아닌 거 아니었어?")
+   * 일정 변경(토·일 조리)에서 서포터즈는 결제(발송일 화요일)만 원래대로 두고 **마감은 금요일 밤을 모두에게** 걸었다 →
+   * 주말에 카드를 등록하는 서포터즈가 10/6 대신 10/13 을 받을 뻔했다. 체험 구간(chargeTimingFor = ship_day) 동안은
+   * 마감도 옛 규칙(일요일, LEAD 2). 정상가부터 금요일 밤.
+   */
+  const sched = stripComments(read(join(ROOT, 'lib', 'shipping-schedule.ts')))
+  assert.match(sched, /const LEAD_DAYS_SUPPORTER = 2\b/, '서포터즈 마감이 일요일(발송 이틀 전)이 아니다')
+  assert.match(sched, /return timing === 'ship_day' \? LEAD_DAYS_SUPPORTER : LEAD_DAYS/, '마감이 결제 시점(서포터즈 체험 구간)을 따르지 않는다')
+  assert.match(sched, /addDaysKst\(fromIso, leadDaysFor\(timing\)\)/, 'nextShipDate 가 결제 시점별 마감을 쓰지 않는다')
+
+  // 첫 박스·재개 날짜를 정하는 호출은 전부 결제 시점을 넘긴다(안 넘기면 서포터즈도 금요일 마감).
+  let calls = 0
+  for (const f of walk(join(ROOT, 'app')).filter((x) => /\.tsx?$/.test(x))) {
+    const src = stripComments(read(f))
+    for (const m of src.matchAll(/\b(nextShipDate|resumeShipDate)\(/g)) {
+      calls++
+      const tail = src.slice(m.index!, m.index! + 220)
+      assert.match(tail, /chargeTiming|chargeTimingFor\(|shipTiming|'ship_day'|'before_cooking'/, `${f} — ${m[1]} 가 결제 시점 없이 마감을 잡는다(서포터즈에게 금요일 마감)`)
+    }
+  }
+  assert.ok(calls >= 8, `첫 박스·재개 날짜 호출을 ${calls}곳만 찾았다 — 검사가 헛돈다`)
+
+  const issue = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
+  assert.match(issue, /const chargeTiming = await getChargeTiming\(user\.id\)[\s\S]{0,200}firstDeliveryIso = nextShipDate\(undefined, chargeTiming \?\? 'before_cooking'\)/, '카드 등록이 서포터즈 첫 박스를 금요일 마감으로 잡는다')
+  const order = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx')))
+  assert.match(order, /pricePreview\?\.discountKind === 'trial' \? 'ship_day' : 'before_cooking'/, '주문 화면이 서포터즈 첫 발송일을 금요일 마감으로 보여준다')
+  assert.match(order, /shipWeekFor\(timing\)/, '주문 화면 리듬표가 서포터즈에게 금요일 마감 문구를 보여준다')
 })

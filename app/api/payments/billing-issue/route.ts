@@ -292,19 +292,23 @@ export async function POST(req: Request) {
   //
   // 구독은 박스 하나뿐이고 주기도 2주 하나다(2026-07-13 확정) — '비박스/다른 주기'
   // 분기는 옛 낱개 커머스 잔재라 제거(2026-07-16). 첫 배송은 언제나 다음 화요일.
+  // 결제 시점 — 서포터즈 체험 구간 = 발송일 · 그 외 = 조리 직전 토요일. **첫 박스 마감도 이걸 따른다**(2026-10-02
+  //   사장님 "1기 서포터즈는 포함 아닌 거 아니었어?"): 서포터즈는 원래 방식(일요일 마감), 일반은 금요일 밤
+  //   (lib/shipping-schedule leadDaysFor). 조회 실패(null)면 일반 마감 — 결제 요일 판정은 아래처럼 옛 동작.
+  const chargeTiming = await getChargeTiming(user.id)
   let firstDeliveryIso: string | null = null
   if (!cur?.next_delivery_date) {
-    firstDeliveryIso = nextShipDate()
+    firstDeliveryIso = nextShipDate(undefined, chargeTiming ?? 'before_cooking')
   } else if (
     // ★2026-10-01 일정 변경 — 지난 건 '발송일'이 아니라 '결제일'로 본다. 일반 고객은 발송 3일 전 토요일(조리 직전)에
     //   결제되므로, 토요일 결제가 실패한 뒤 일·월요일에 카드를 다시 등록하면 이번 화요일 박스는 조리가 이미 끝났다.
     //   옛 기준(발송일 < 오늘)이면 이번 화요일이 그대로 남아 월요일에 늦게 청구되고 박스가 한 주 밀린다 — 고객은
     //   "결제된 박스부터 보내드려요"라고 안내받는다. 결제 시점을 모르면 발송일 기준(옛 동작)으로 둔다.
-    chargeDateFor(cur.next_delivery_date, (await getChargeTiming(user.id)) ?? 'ship_day') < todayKstIsoDate()
+    chargeDateFor(cur.next_delivery_date, chargeTiming ?? 'ship_day') < todayKstIsoDate()
   ) {
     // ★카드 만료·결제 실패로 멈춰 **결제일이 이미 지난** 재등록(2026-09-28 점검 9차) — 옛 날짜를 두면 다음 날
     //   아침 크론이 지난 회차를 곧바로 청구한다. 다음 발송 화요일로 다시 잡는다(그 박스의 결제일에 청구).
-    firstDeliveryIso = nextShipDate()
+    firstDeliveryIso = nextShipDate(undefined, chargeTiming ?? 'before_cooking')
   }
 
   /**

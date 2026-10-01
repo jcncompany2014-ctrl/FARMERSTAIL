@@ -239,7 +239,8 @@ export default function DogSubscriptionClient({
     setBusy(sub.id)
     // 기준은 '예정된 배송일'이지 오늘이 아니다. 예전엔 null 이면 오늘로 폴백해
     // 목요일 배송일 같은 게 생겼다(2026-07-15 실측).
-    const base = sub.next_delivery_date ?? nextShipDate()
+    // 마감은 결제 시점별(서포터즈 체험 구간 일요일·일반 금요일 밤, 2026-10-02).
+    const base = sub.next_delivery_date ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
     const next = nextCycleDate(base)
     if ((await moveNextDate(sub.id, sub.next_delivery_date ?? null, next)) === 'ok') {
       // 결제된 이번 박스는 그대로 나간다(사장님 2026-10-01 "그대로 발송") — 미룬 건 그다음 박스다.
@@ -270,7 +271,7 @@ export default function DogSubscriptionClient({
     setBusy(sub.id)
     // 재개하면 다음 화요일부터. '오늘 + 14일' 로 잡으면 오늘 요일로 어긋난다.
     // 단 아직 오지 않은 원래 배송일이 있으면 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
-    const next = resumeShipDate(sub.next_delivery_date)
+    const next = resumeShipDate(sub.next_delivery_date, undefined, chargeTiming ?? 'before_cooking')
     if (await patch(sub.id, { status: 'active', next_delivery_date: next })) {
       trackSubscriptionResumed({ subscriptionId: sub.id })
       toast.success(`${dateLabel(next)}부터 다시 보내드릴게요.`)
