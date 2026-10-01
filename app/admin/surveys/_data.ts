@@ -74,7 +74,9 @@ export async function loadSurveyRecords(adminIn: SupabaseClient, onlyId?: string
     admin
       .from('analyses')
       .select('id, survey_id, dog_id, created_at, rer, mer, factor, factor_breakdown, feed_g, bcs_score, stage, protein_pct, fat_pct, carb_pct, risk_flags, vet_consult_recommended, supplements, next_review_date')
-      .in('survey_id', surveyIds),
+      .in('survey_id', surveyIds)
+      // 자견 월간 자동 갱신 행도 같은 survey_id 를 쓴다 — 설문 카드엔 그 설문으로 만든 분석만.
+      .eq('source', 'survey'),
     admin
       .from('dog_formulas')
       .select('id, dog_id, cycle_number, formula, reasoning, daily_kcal, daily_grams, computed_at, algorithm_version, approval_status, user_adjusted')

@@ -120,7 +120,7 @@ export default async function AnalysesTimelinePage({
   const { data: analysesRaw } = await supabase
     .from('analyses')
     .select(
-      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, carb_pct, fiber_pct, guideline_version, vet_consult_recommended, next_review_date, commentary, supplements'
+      'id, created_at, mer, rer, stage, bcs_label, bcs_score, feed_g, protein_pct, fat_pct, carb_pct, fiber_pct, guideline_version, vet_consult_recommended, next_review_date, commentary, supplements, source'
     )
     .eq('dog_id', dogId)
     .eq('user_id', user.id)
@@ -136,6 +136,8 @@ export default async function AnalysesTimelinePage({
     next_review_date: string | null
     commentary: string | null
     supplements: string[] | null
+    /** survey | growth_auto(자견 월간 성장 자동 갱신, 2026-10-01) */
+    source: string | null
   })[]
   // v1.6.1 audit (2026-05-05) — algorithm 핵심 수정 후 분석은 stale 가능.
   // 첫 row (LATEST) 가 stale 면 "재분석 권장" hint.
@@ -152,7 +154,8 @@ export default async function AnalysesTimelinePage({
           분석 히스토리
         </h1>
         <p className="text-[10.5px] text-muted mt-1">
-          설문으로 받은 맞춤 분석 결과 · 총 {analyses.length}회
+          {/* 자견은 매달 성장에 맞춰 자동으로 다시 계산된 기록도 쌓인다(source growth_auto). */}
+          맞춤 분석 기록 · 총 {analyses.length}회
         </p>
       </section>
 
@@ -267,6 +270,11 @@ export default async function AnalysesTimelinePage({
                         {isLatest && (
                           <span className="inline-block px-1.5 py-0.5 rounded-full bg-terracotta text-white text-[9px] font-black">
                             최신
+                          </span>
+                        )}
+                        {a.source === 'growth_auto' && (
+                          <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-black" style={{ background: 'color-mix(in srgb, var(--moss, #4f6a48) 14%, transparent)', color: 'var(--moss, #4f6a48)' }}>
+                            매달 자동 갱신
                           </span>
                         )}
                       </div>

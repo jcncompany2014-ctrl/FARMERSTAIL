@@ -343,10 +343,15 @@ export default function AnalysisView({
   // 에서 +14~48% 오차 + asymmetric care goal 의 safetyWeightShift 가 섞인
   // "내부 목표체중" 이라 사용자가 입력한 값과 다르다. archive(과거 분석)는
   // 당시 체중을 따로 저장하지 않아 그 분석의 RER 로 역산(차선).
+  // 자견 월간 자동 갱신 행(2026-10-01)은 계산에 쓴 체중을 저장한다(weight_kg, 서버만 씀) —
+  // 그 값을 먼저 쓴다. 안 그러면 "1.5kg · 하루 ○kcal(1.8kg 기준)"처럼 칼로리와 체중이 갈린다.
+  const rowWeightKg = Number((analysis as { weight_kg?: number | string | null }).weight_kg ?? NaN)
   const magWeightKg =
-    !isArchive && dog.weight != null
-      ? +dog.weight.toFixed(1)
-      : +weightFromRER(analysis.rer).toFixed(1)
+    Number.isFinite(rowWeightKg) && rowWeightKg > 0
+      ? +rowWeightKg.toFixed(1)
+      : !isArchive && dog.weight != null
+        ? +dog.weight.toFixed(1)
+        : +weightFromRER(analysis.rer).toFixed(1)
   // MER 신뢰구간 — 체중 측정 신뢰도(method+recency)로 폭 결정. MER=RER=70×W^0.75
   // 라 체중 측정 품질이 구간을 지배한다 (H5: 이전엔 null 고정 → 가짜 ±8%).
   const merAccuracy = weightReliability(

@@ -5,6 +5,7 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { petName } from '@/lib/korean'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { stageFromKR } from '@/lib/nutrition'
 
 export const runtime = 'nodejs'
 /** 제목 고정부 = dedup 앵커(2026-08-05). 갈라지면 14일 가드가 죽는다. */
@@ -110,6 +111,30 @@ export async function GET(req: Request) {
     targets = ((rows as unknown) as DogRow[]).slice(0, 200)
   }
 
+  // 성장기 강아지는 뺀다(2026-10-01 사장님 "귀찮지 않게 한 달에 한 번 정도만").
+  // 마지막 분석이 성장기면 매달 성장 알림(lib/growth)이 "몸무게를 재서 기록해 주세요"까지 말한다.
+  // ★조회 실패를 "성장기 아님"으로 읽으면 자견 보호자에게 한 달에 두 번 간다 — 모르면 이번 주는
+  //   보내지 않는다(다음 주 다시 돈다). 위 마지막 기록 조회와 같은 원칙.
+  let skippedGrowing = 0
+  if (targets.length > 0) {
+    const { data: stageRows, error: stageErr } = await supabase
+      .from('analyses')
+      .select('dog_id, stage, created_at')
+      .in('dog_id', targets.map((t) => t.id))
+      .order('created_at', { ascending: false })
+    if (stageErr) {
+      captureBusinessEvent('error', 'cron.weight_reminder.stage_lookup_failed', { dbError: stageErr.message })
+      return NextResponse.json({ ok: false, error: 'STAGE_LOOKUP_FAILED', targets: targets.length, sent: 0 })
+    }
+    const latestStage = new Map<string, string | null>()
+    for (const r of (stageRows ?? []) as Array<{ dog_id: string; stage: string | null }>) {
+      if (!latestStage.has(r.dog_id)) latestStage.set(r.dog_id, r.stage)
+    }
+    const before = targets.length
+    targets = targets.filter((t) => stageFromKR(latestStage.get(t.id) ?? null) !== 'puppy')
+    skippedGrowing = before - targets.length
+  }
+
   // user_id 별 강아지 묶기 (중복 user 합침).
   const byUser = new Map<string, DogRow[]>()
   for (const t of targets) {
@@ -186,6 +211,7 @@ export async function GET(req: Request) {
       users: byUser.size,
       sent,
       skipped,
+      skippedGrowing,
     })
   })
 }

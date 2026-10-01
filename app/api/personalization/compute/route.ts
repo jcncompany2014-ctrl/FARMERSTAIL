@@ -7,7 +7,7 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { decideFirstBox } from '@/lib/personalization/firstBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
 import { ageWeeksFromBirth, estimateGrowth, WEEKS_PER_MONTH } from '@/lib/growth-curve'
-import { isPlausibleMer } from '@/lib/personalization/merSanity'
+import { isPlausibleMer, plausibilityWeightKg } from '@/lib/personalization/merSanity'
 import { subscribedRecomputeDecision } from '@/lib/personalization/subscribed-recompute'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
@@ -67,7 +67,7 @@ async function backfillV3(
       .maybeSingle(),
     supabase
       .from('analyses')
-      .select('mer')
+      .select('mer, source, weight_kg')
       .eq('dog_id', dog.id)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -80,13 +80,17 @@ async function backfillV3(
     care_goal: string | null
     gi_sensitivity: string | null
   } | null
-  const analysis = analysisResp.data as unknown as { mer: number } | null
+  const analysis = analysisResp.data as unknown as {
+    mer: number
+    source: string | null
+    weight_kg: number | null
+  } | null
   if (!survey || !analysis) return null
   // ★저장된 mer 이 그 체중에서 나올 수 있는 값인지 본다(2026-08-05 보안 감사).
   //   analyses 는 브라우저가 직접 INSERT 하므로 mer 을 임의로 넣을 수 있고,
   //   그 값이 dailyKcal → daily_kcal → 청구액으로 흐른다. 금액을 재계산해
   //   깎지는 않고(규칙5), 물리적으로 불가능한 값만 거른다.
-  if (!isPlausibleMer(analysis.mer, dog.weight)) return null
+  if (!isPlausibleMer(analysis.mer, plausibilityWeightKg(dog.weight, analysis))) return null
 
   const answers =
     (survey.answers as {
@@ -372,7 +376,7 @@ export async function POST(req: Request) {
     // analysis 는 survey 와 1:1 — 최신 survey id 모르니 dog_id 로 최신 1개.
     supabase
       .from('analyses')
-      .select('mer, feed_g')
+      .select('mer, feed_g, source, weight_kg')
       .eq('dog_id', dogId)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -384,6 +388,8 @@ export async function POST(req: Request) {
   const analysis = analysisResp.data as unknown as {
     mer: number
     feed_g: number
+    source: string | null
+    weight_kg: number | null
   } | null
 
   if (!survey || !analysis) {
@@ -400,7 +406,8 @@ export async function POST(req: Request) {
   //   analyses 는 브라우저가 직접 INSERT 하므로 mer 이 청구액으로 흐르는 입력이다.
   //   재계산으로 깎지 않고(규칙5), RER 배수 범위 밖만 거부한다. 정상 고객은 어떤
   //   조합으로도 안 걸린다(허용 0.4~6.0 vs 실제 factor 0.5~5.0).
-  if (!isPlausibleMer(analysis.mer, dog.weight)) {
+  // 자견 월간 자동 갱신 행은 그 행이 쓴 (추정) 체중 기준 — plausibilityWeightKg 참고.
+  if (!isPlausibleMer(analysis.mer, plausibilityWeightKg(dog.weight, analysis))) {
     captureBusinessEvent('error', 'personalization.compute.implausible_mer', {
       dogId,
       note: '저장된 mer 이 체중 기준 RER 배수 범위를 벗어남 — 조작 또는 데이터 손상',

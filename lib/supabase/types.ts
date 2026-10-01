@@ -342,6 +342,7 @@ export type Database = {
           protein_pct: number | null
           rer: number | null
           risk_flags: string[] | null
+          source: string
           stage: string | null
           structured_analysis: Json | null
           structured_analysis_at: string | null
@@ -349,6 +350,7 @@ export type Database = {
           survey_id: string
           user_id: string
           vet_consult_recommended: boolean
+          weight_kg: number | null
         }
         Insert: {
           bcs_label?: string | null
@@ -375,6 +377,7 @@ export type Database = {
           protein_pct?: number | null
           rer?: number | null
           risk_flags?: string[] | null
+          source?: string
           stage?: string | null
           structured_analysis?: Json | null
           structured_analysis_at?: string | null
@@ -382,6 +385,7 @@ export type Database = {
           survey_id: string
           user_id: string
           vet_consult_recommended?: boolean
+          weight_kg?: number | null
         }
         Update: {
           bcs_label?: string | null
@@ -408,6 +412,7 @@ export type Database = {
           protein_pct?: number | null
           rer?: number | null
           risk_flags?: string[] | null
+          source?: string
           stage?: string | null
           structured_analysis?: Json | null
           structured_analysis_at?: string | null
@@ -415,6 +420,7 @@ export type Database = {
           survey_id?: string
           user_id?: string
           vet_consult_recommended?: boolean
+          weight_kg?: number | null
         }
         Relationships: [
           {

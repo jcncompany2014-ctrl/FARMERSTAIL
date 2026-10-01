@@ -7,6 +7,7 @@ import { dbError } from '@/lib/api/errors'
 import { petName } from '@/lib/korean'
 import { deriveAgeFromBirth } from '@/lib/dog-age'
 import { nowKstMs, todayKstIsoDate } from '@/lib/datetime-kst'
+import { runMonthlyGrowth } from '@/lib/growth/run'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,10 @@ export const dynamic = 'force-dynamic'
  * # 부수 효과
  * 강아지 생일 (오늘 이 dog 의 birth_date 와 month-day 일치) 인 dogs 의 보호자
  * 에게 푸시 알림 1회 — 생일 축하 + 영양 재분석 권유.
+ *
+ * # 자견 월간 성장 재계산 (2026-10-01 사장님 "자동으로 한 달씩 지나면서 계산해 … 한 달에 한 번 알림")
+ * 나이를 갱신한 뒤, 성장기 강아지 중 마지막 분석이 30일 지난 강아지의 칼로리를 다시 계산해 분석 행
+ * (source growth_auto)을 넣고 앱 알림을 1회 보낸다 — lib/growth/run · lib/growth/monthly.
  *
  * # 처리 규칙
  *  - birth_date 가 NULL → 건드리지 않음 (수동 입력만 신뢰).
@@ -53,13 +58,20 @@ export async function GET(req: Request) {
     birth_date: string // ISO date
     age_value: number | null
     age_unit: string | null
+    // 월간 성장 재계산 입력
+    weight: number | null
+    neutered: boolean | null
+    activity_level: string | null
+    gender: string | null
+    breed: string | null
+    weight_measured_at: string | null
   }
   // birth_date 가 있는 dogs — id 순 페이지로 끝까지.
   const list: DogRow[] = []
   for (let from = 0; ; from += PAGE) {
     const { data: dogs, error } = await supabase
       .from('dogs')
-      .select('id, user_id, name, birth_date, age_value, age_unit')
+      .select('id, user_id, name, birth_date, age_value, age_unit, weight, neutered, activity_level, gender, breed, weight_measured_at')
       .not('birth_date', 'is', null)
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1)
@@ -134,6 +146,13 @@ export async function GET(req: Request) {
     }
   }
 
+    // ── 자견 월간 성장 재계산 + 월 1회 알림 ── (나이 갱신 뒤 — 오늘 기준 나이로 계산)
+    const growth = await runMonthlyGrowth(
+      supabase,
+      list.map((d) => ({ ...d, weight: d.weight == null ? null : Number(d.weight) })),
+      kstNow,
+    )
+
     return NextResponse.json({
       ok: true,
       checked: list.length,
@@ -142,6 +161,7 @@ export async function GET(req: Request) {
       invalid,
       failed,
       birthdays,
+      growth,
     })
   })
 }

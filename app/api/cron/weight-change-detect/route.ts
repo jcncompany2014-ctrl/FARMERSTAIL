@@ -174,6 +174,7 @@ async function runDetect(): Promise<Response> {
   let skippedNoData = 0
   let skippedSmall = 0
   let skippedSpam = 0
+  let skippedGrowing = 0
 
   for (const dog of dogList) {
     // 일괄 조회 결과에서 이 강아지의 기록(35일치, 오름차순)을 꺼낸다.
@@ -223,6 +224,11 @@ async function runDetect(): Promise<Response> {
     // ── 칼로리 v2 M10 — 재측정 피드백 판정·기록 ──
     // 현재 DER = 최신 cycle formula.daily_kcal. 목표 = 최신 분석 BCS.
     let reweighProposal: { prevDer: number; newDer: number } | null = null
+    // 자견은 체중이 느는 게 정상 — 유지·감량 판정 제외. 분석 당시 성장기였거나 지금 12개월
+    // 미만이면(나이는 dog-age-update 가 매일 갱신) 성장기로 본다. 분석 조회가 실패해도 나이로는 안다.
+    const ageMonths =
+      dog.age_value == null ? null : dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
+    let isGrowing = ageMonths != null && ageMonths < 12
     try {
       const [{ data: formulaRow }, { data: analysisRow }, { count: recentReweigh }] =
         await Promise.all([
@@ -249,13 +255,8 @@ async function runDetect(): Promise<Response> {
         ])
       const prevDer = (formulaRow as { daily_kcal: number } | null)?.daily_kcal
       const bcsScore = (analysisRow as { bcs_score: number | null } | null)?.bcs_score
-      // 자견은 체중이 느는 게 정상 — 유지·감량 판정 제외. 분석 당시 성장기였거나 지금 12개월
-      // 미만이면(나이는 dog-age-update 가 매일 갱신) 성장기로 본다.
-      const ageMonths =
-        dog.age_value == null ? null : dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
-      const isGrowing =
-        stageFromKR((analysisRow as { stage: string | null } | null)?.stage) === 'puppy' ||
-        (ageMonths != null && ageMonths < 12)
+      isGrowing =
+        isGrowing || stageFromKR((analysisRow as { stage: string | null } | null)?.stage) === 'puppy'
       const days = Math.round(
         (Date.parse(latest.measured_at) - Date.parse(baseline.measured_at)) /
           86_400_000,
@@ -291,6 +292,14 @@ async function runDetect(): Promise<Response> {
       }
     } catch {
       /* M10 판정 실패 — 기존 감지·푸시 흐름은 계속 (silent) */
+    }
+
+    // 성장기 강아지는 이 알림을 보내지 않는다(2026-10-01 사장님 "한 달에 한 번 정도만") —
+    // 몸무게 변화는 매달 성장 알림(lib/growth, dog-age-update 크론)이 한 번에 말한다.
+    // 위 기록(outcome)은 그대로 남긴다.
+    if (isGrowing) {
+      skippedGrowing += 1
+      continue
     }
 
     // 14일 이내 같은 push 보낸 적 있으면 skip.
@@ -355,6 +364,7 @@ async function runDetect(): Promise<Response> {
       no_data: skippedNoData,
       small_change: skippedSmall,
       spam_window: skippedSpam,
+      growing: skippedGrowing,
     },
   })
 }

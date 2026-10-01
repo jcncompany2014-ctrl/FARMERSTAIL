@@ -83,6 +83,8 @@ export default async function SurveyPage({
     .select('id, created_at, rer, bcs_score')
     .eq('dog_id', id)
     .eq('user_id', user.id)
+    // 자견 월간 자동 갱신(growth_auto)은 설문이 아니다 — 직전 '설문' 결과와 비교한다(2026-10-01).
+    .eq('source', 'survey')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -103,6 +105,8 @@ export default async function SurveyPage({
       .select('id', { count: 'exact', head: true })
       .eq('dog_id', id)
       .eq('user_id', user.id)
+      // 월 3회 한도는 고객이 직접 한 설문만 센다 — 자동 갱신이 재설문을 막으면 안 된다.
+      .eq('source', 'survey')
       .gte('created_at', monthStartUtcIso)
 
     // 이번 달 3회 이상 분석했으면 게이트 (체중/질병 변경은 아래에서 우회 허용).

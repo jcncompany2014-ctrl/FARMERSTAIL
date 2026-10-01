@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { isPlausibleMer, MER_FACTOR_MIN, MER_FACTOR_MAX } from './merSanity.ts'
+import { isPlausibleMer, plausibilityWeightKg, MER_FACTOR_MIN, MER_FACTOR_MAX } from './merSanity.ts'
 import { computeRer, calculateNutrition } from '../nutrition.ts'
 import type { DogInfo, SurveyAnswers } from '../nutrition.ts'
 
@@ -82,4 +82,20 @@ test('★정상 고객은 어떤 조합으로도 안 걸린다 — 실제 엔진
     }
   }
   assert.ok(checked >= 600, `조합이 너무 적다(${checked})`)
+})
+
+test('자견 월간 자동 갱신 행 — 그 행이 쓴 (추정) 체중으로 본다, 설문 행의 weight_kg 는 믿지 않는다', () => {
+  // 등록 1.5kg(8주)로 몇 달 안 잰 중형 자견: 자동 갱신이 추정 6kg 로 계산한 mer 은 1.5kg 기준 범위를 넘는다.
+  const merEst = Math.round(computeRer(6) * 2.5)
+  assert.equal(isPlausibleMer(merEst, 1.5), false, '전제: 등록 체중 기준이면 막힌다')
+  assert.equal(plausibilityWeightKg(1.5, { source: 'growth_auto', weight_kg: 6 }), 6)
+  assert.equal(isPlausibleMer(merEst, plausibilityWeightKg(1.5, { source: 'growth_auto', weight_kg: 6 })), true)
+  // 설문 행·표식 없는 행은 weight_kg 가 있어도 등록 체중 — (트리거가 고객 쓰기를 막지만 이중으로)
+  assert.equal(plausibilityWeightKg(1.5, { source: 'survey', weight_kg: 4 }), 1.5)
+  assert.equal(plausibilityWeightKg(1.5, { weight_kg: 4 }), 1.5)
+  // 추정이 실측보다 작으면 실측(큰 쪽) · 숫자 문자열(numeric) 도 읽는다 · 이상값은 무시
+  assert.equal(plausibilityWeightKg(5, { source: 'growth_auto', weight_kg: '4.2' }), 5)
+  assert.equal(plausibilityWeightKg(1.5, { source: 'growth_auto', weight_kg: 0 }), 1.5)
+  assert.equal(plausibilityWeightKg(null, { source: 'growth_auto', weight_kg: 3 }), 3)
+  assert.equal(plausibilityWeightKg(null, null), null)
 })

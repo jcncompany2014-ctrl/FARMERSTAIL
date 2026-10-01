@@ -108,6 +108,7 @@ export default async function YearInReviewPage({
       .select('id', { count: 'exact', head: true })
       .eq('dog_id', dogId)
       .eq('user_id', user.id)
+      .eq('source', 'survey') // 받은 분석 = 설문. 자견 월간 자동 갱신은 세지 않는다
       .gte('created_at', sinceIso)
       .lte('created_at', untilIso),
     supabase

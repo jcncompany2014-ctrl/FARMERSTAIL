@@ -62,6 +62,7 @@ export default async function FunnelPage({
   const { data: analysisRows, error: analysesErr } = await supabase
     .from('analyses')
     .select('user_id')
+    .eq('source', 'survey') // 자견 월간 자동 갱신은 설문이 아니다
     .gte('created_at', since)
   const surveyStarts = new Set(
     (analysisRows ?? []).map((r) => (r as { user_id: string }).user_id),

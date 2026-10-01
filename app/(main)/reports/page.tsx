@@ -40,6 +40,7 @@ export default async function ReportsPage() {
       .from('analyses')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .eq('source', 'survey') // 자견 월간 자동 갱신은 '받은 분석' 횟수가 아니다
       .gte('created_at', monthIso),
     supabase
       .from('dogs')

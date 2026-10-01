@@ -54,3 +54,25 @@ export function isPlausibleMer(
   const factor = mer / rer
   return factor >= MER_FACTOR_MIN && factor <= MER_FACTOR_MAX
 }
+
+/**
+ * 타당성 검사의 기준 체중 — 보통은 등록 체중(dogs.weight).
+ *
+ * 자견 월간 자동 갱신 행(source growth_auto, 2026-10-01)은 성장곡선으로 추정한 이번 달 체중으로
+ * 계산되고, 추정치는 dogs.weight 를 덮지 않는다(실측만 실측). 그래서 몇 달 체중을 안 잰 강아지는
+ * 그 행의 mer 이 등록 체중 기준 범위를 벗어나 처방 화면이 "분석을 다시 진행해 주세요"로 막힐 수
+ * 있다. 그 행에 한해 행이 쓴 체중(weight_kg)과 등록 체중 중 큰 쪽을 쓴다.
+ *
+ * ★source·weight_kg 는 고객이 못 쓴다 — analyses_lock_server_columns 트리거가 고객 역할의 쓰기를
+ *   되돌린다(20261001180000). 그 잠금이 없으면 이 함수가 그대로 탈출구가 된다(AGENTS 규칙2).
+ */
+export function plausibilityWeightKg(
+  dogWeightKg: number | null | undefined,
+  analysis: { source?: string | null; weight_kg?: number | string | null } | null | undefined,
+): number | null {
+  const dogW = typeof dogWeightKg === 'number' && Number.isFinite(dogWeightKg) && dogWeightKg > 0 ? dogWeightKg : null
+  if (analysis?.source !== 'growth_auto') return dogW
+  const rowW = analysis.weight_kg == null ? NaN : Number(analysis.weight_kg)
+  if (!Number.isFinite(rowW) || rowW <= 0) return dogW
+  return dogW == null ? rowW : Math.max(dogW, rowW)
+}
