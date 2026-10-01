@@ -113,15 +113,19 @@
 
 /* 컴팩트 화식 티어 — 결과지 전용(빠르게 훑는 화면). 자세한 카드형은 플랜
    페이지가 담당(사장님 2026-07-14). */
+/* '추천' 배지는 카드 윗선 한가운데에 걸친다(위아래 절반씩). 예전엔 top:-7px 로 7px 만
+   밖에 두고 나머지는 카드 안(위 여백 10px)에 들어갔는데, 시니어용 글자 키움(2026-09-22) 뒤
+   배지가 커지자 '곁들임' 글자를 덮었다(사장님 2026-10-01 캡처). 배지 크기와 무관하게 안 겹치도록
+   위 여백을 배지 절반 + 여유로 잡고, 그리드 위 여백으로 밖으로 나온 절반을 받는다. */
 .fb-tier-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
-  margin-top: 4px;
+  margin-top: 14px;
 }
 .fb-tierc {
   position: relative;
   appearance: none; cursor: pointer; font-family: inherit;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 10px 4px;
+  padding: 18px 4px 10px;
   border: 1px solid var(--rule);
   background: #fff;
   border-radius: 10px;
@@ -130,16 +134,16 @@
 .fb-tierc[data-sel='true'] {
   border: 2px solid var(--terracotta);
   background: color-mix(in srgb, var(--terracotta) 5%, transparent);
-  padding: 9px 4px;
+  padding: 17px 4px 9px;
 }
 .fb-tierc-name { font-size: 14px; font-weight: 700; color: var(--ink); }
 .fb-tierc-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
 .fb-tierc[data-sel='true'] .fb-tierc-sub { color: var(--terracotta); }
 .fb-tierc-badge {
-  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
-  font-size: 12px; font-weight: 700; color: #fff;
+  position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+  font-size: 12px; font-weight: 700; color: #fff; line-height: 1.25;
   background: var(--terracotta);
-  padding: 2px 7px; border-radius: 99px; white-space: nowrap;
+  padding: 2px 8px; border-radius: 99px; white-space: nowrap;
 }
 .fb-tierc-desc {
   margin-top: 10px;

@@ -5210,3 +5210,21 @@ test('규칙144: 보호자에게 "다 자라면 몇 kg" 를 묻지 않는다 —
   const cr = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'compute', 'route.ts')))
   assert.match(cr, /expectedAdultWeightKg:\s*ageMonths < 24[\s\S]{0,120}estimateGrowth\(/, '처방의 대형견 자견 규칙이 분석과 다른 성견체중(보호자 답)을 본다')
 })
+
+test('규칙145: 분석 화면 화식 비율 카드의 "추천" 배지가 카드 글자를 덮지 않는다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 캡처 "UI 깨짐")
+   * 배지가 top:-7px 로 7px 만 밖에 있고 나머지는 카드 안(위 여백 10px)에 들어가, 시니어용 글자
+   * 키움 뒤 '곁들임'을 덮었다. 배지는 윗선 한가운데(translate -50%)에 걸치고, 카드 위 여백은
+   * 배지 절반보다 넉넉해야 한다(12px 글자 배지 높이 ≈19px → 절반 ≈10px).
+   */
+  const css = stripComments(read(join(ROOT, 'components', 'analysis', 'recommendation.css')))
+  const badge = css.match(/\.fb-tierc-badge \{([^}]*)\}/)?.[1] ?? ''
+  assert.match(badge, /top: 0;/, '추천 배지가 카드 윗선에 걸치지 않는다')
+  assert.match(badge, /transform: translate\(-50%, -50%\)/, '추천 배지가 윗선 한가운데에 걸치지 않는다 — 카드 안 글자를 덮는다')
+  for (const sel of ['\\.fb-tierc', "\\.fb-tierc\\[data-sel='true'\\]"]) {
+    const body = css.match(new RegExp(`${sel} \\{([^}]*)\\}`))?.[1] ?? ''
+    const top = Number(body.match(/padding: (\d+)px/)?.[1] ?? 0)
+    assert.ok(top >= 16, `${sel} 위 여백 ${top}px — 배지 절반(≈10px)+여유보다 작다`)
+  }
+})
