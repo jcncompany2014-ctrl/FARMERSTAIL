@@ -5291,3 +5291,23 @@ test('규칙148: 처방 근거에 연어는 절대 안 나오고, 알레르기 �
   const fin = stripComments(read(join(ROOT, 'lib', 'personalization', 'reasoning-final.ts')))
   assert.match(fin, /UNSOLD_RECIPE_WORDS: readonly string\[\] = \['연어'\]/, '판매하지 않는 레시피 목록에서 연어가 빠졌다')
 })
+
+test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 네이티브 스플래시와 같은 배경·로고 크기로 이어진다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "앱 처음 들어가면 이렇게 뜨는 거 굳이 두 번 떠야 하냐 … 위아래 색이 배경색이랑 다른 누런색")
+   * 네이티브 스플래시(크림 #F5F0E6·큰 로고)가 걷히면 웹 로딩 화면(var(--bg)·210px 로고·커지며 등장)이 다른 화면처럼
+   * 한 번 더 떴고, 상태바(네이티브 크림)만 누렇게 띠로 남았다. 배경색은 capacitor.config 와 같은 값이어야 하고,
+   * 로고는 네이티브 이미지 실측(폭 = 화면 높이의 36.5%)대로, 등장 모션 없이 이어받는다.
+   */
+  const cap = read(join(ROOT, 'capacitor.config.ts'))
+  const splashBg = cap.match(/SplashScreen:\s*\{[\s\S]*?backgroundColor:\s*'(#[0-9A-Fa-f]{6})'/)?.[1]
+  const statusBg = cap.match(/StatusBar:\s*\{[\s\S]*?backgroundColor:\s*'(#[0-9A-Fa-f]{6})'/)?.[1]
+  assert.ok(splashBg && statusBg, 'capacitor.config 에서 스플래시·상태바 배경색을 못 찾았다')
+  const css = stripComments(read(join(ROOT, 'app', 'globals.css')))
+  const block = css.match(/\.ft-splash \{([^}]*)\}/)?.[1] ?? ''
+  assert.ok(block.toUpperCase().includes(`BACKGROUND: ${splashBg!.toUpperCase()}`), `웹 로딩 화면 배경이 네이티브 스플래시(${splashBg})와 다르다 — 두 번 뜨는 것처럼 보인다`)
+  assert.equal(splashBg!.toUpperCase(), statusBg!.toUpperCase(), '상태바 배경이 스플래시와 달라 위에 띠가 생긴다')
+  const logo = css.match(/\.ft-splash__logo \{([^}]*)\}/)?.[1] ?? ''
+  assert.match(logo, /width: min\(calc\(\(100vh \+ 47px\) \* 0\.365\), 88vw\)/, '로고 크기가 네이티브 스플래시(화면 높이의 36.5%)와 다르다')
+  assert.doesNotMatch(css, /ft-splash-logo/, '로고 등장 모션이 돌아왔다 — 네이티브가 걷힐 때 로고가 다시 등장한다')
+})

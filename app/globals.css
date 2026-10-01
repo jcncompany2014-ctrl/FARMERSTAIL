@@ -1736,6 +1736,13 @@ html[data-theme="dark"] .fiber::after {
    첫 페인트부터 안 보임. 설치형 PWA 만 media(display-mode: standalone) 또는
    html.ft-standalone(iOS 레거시 navigator.standalone) 로 노출.
    prefers-reduced-motion 은 globals 전역 가드가 즉시화(접근성). */
+/* ★네이티브 스플래시(capacitor.config SplashScreen)와 **한 화면처럼** 이어지게(사장님 2026-10-01
+   "굳이 두 번 떠야 하냐 … 위아래 색이 배경색이랑 다른 누런색"). 예전엔 배경이 var(--bg)·로고 210px·
+   등장 모션이라 네이티브(크림 #F5F0E6·큰 로고)가 걷히는 순간 다른 화면이 하나 더 뜨는 것처럼 보였고,
+   상태바(네이티브 #F5F0E6)만 누렇게 띠로 남았다.
+   네이티브 이미지 실측(ios Splash 2732² · android port 960×1600): 배경 #F5F0E6, 로고 폭 = 화면 높이의 36.5%,
+   화면 정중앙. 웹뷰는 상태바 아래에서 시작하므로(overlaysWebView=false) 높이에 상태바(~47px)를 더해
+   크기를 맞추고, 중심을 상태바 절반만큼 올린다. 점 3개만 더해져 "로딩 중"으로 이어진다. */
 .ft-splash {
   display: none; /* 기본: 웹 브라우저 — 첫 페인트부터 숨김 */
   position: fixed;
@@ -1744,17 +1751,17 @@ html[data-theme="dark"] .fiber::after {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: #F5F0E6; /* = capacitor.config SplashScreen·StatusBar backgroundColor */
 }
 @media all and (display-mode: standalone) {
   .ft-splash {
     display: flex;
-    animation: ft-splash-dismiss 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    animation: ft-splash-dismiss 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 }
 html.ft-standalone .ft-splash {
   display: flex;
-  animation: ft-splash-dismiss 2.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: ft-splash-dismiss 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 /* 스플래시는 앱 실행(세션)당 한 번 — 카드 등록 복귀·소셜 로그인 복귀·'다시 시도'·배포 직후 전체
    로드마다 2.1초 로고가 다시 덮던 것(2026-09-26 점검 8차). layout 인라인 스크립트가 sessionStorage 로
@@ -1763,12 +1770,12 @@ html.ft-splash-skip .ft-splash {
   display: none !important;
 }
 .ft-splash__logo {
-  width: 210px;
+  /* 네이티브와 같은 크기·자리 — 등장 모션 없이 그대로 이어받고 은은한 숨쉬기만(scale 1 에서 시작). */
+  width: min(calc((100vh + 47px) * 0.365), 88vw);
   height: auto;
-  /* 등장(0.9s) 후 → 은은한 숨쉬기(delay 0.9s, 무한). 로고 자체가 계속 살아있음. */
-  animation:
-    ft-splash-logo 900ms cubic-bezier(0.22, 1, 0.36, 1) both,
-    ft-splash-breathe 2.4s ease-in-out 900ms infinite;
+  position: relative;
+  top: -23px;
+  animation: ft-splash-breathe 2.4s ease-in-out infinite;
 }
 .ft-splash__dots {
   position: absolute;
@@ -1788,12 +1795,6 @@ html.ft-splash-skip .ft-splash {
 }
 .ft-splash__dots span:nth-child(3) {
   animation-delay: 0.32s;
-}
-@keyframes ft-splash-logo {
-  0%   { opacity: 0; transform: scale(0.84) translateY(8px); }
-  50%  { opacity: 1; transform: scale(1.04) translateY(0); }
-  70%  { transform: scale(0.99); }
-  100% { opacity: 1; transform: scale(1); }
 }
 @keyframes ft-splash-breathe {
   0%, 100% { transform: scale(1); }
