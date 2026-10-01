@@ -16,6 +16,7 @@ import {
   ALL_LINES,
 } from '@/lib/personalization/lines'
 import { collapseToSingle } from '@/lib/personalization/boxComposition'
+import { finalizeReasoning } from '@/lib/personalization/reasoning-final'
 import {
   deriveAvailableLines,
   deriveAvailableToppers,
@@ -652,11 +653,16 @@ export async function POST(req: Request) {
   // 100%" 를 보여주고 박스는 오리를 보내는 불일치가 났다(연어는 고객 완전
   // 비노출 원칙 위반). 정본 하나(=저장 처방)를 여기서 게이트하면 분석·플랜·
   // 주문·박스가 전부 같은 걸 본다 — line 546 의 교훈을 게이트에도 적용.
+  // 알레르기로 막힌 라인 — 대체(연어 → ?)가 알레르기 레시피로 가지 않게(2026-10-01 펀치, 오리 알레르기).
+  const allergyBlockedLines = ALL_LINES.filter((l) =>
+    SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) => input.allergies.includes(b)),
+  )
   {
     const gated = gateAvailability(formula.lineRatios, formula.toppers, {
       availableLines: deriveAvailableLines(activeSlugs),
       availableToppers: deriveAvailableToppers(activeSlugs),
       reasoning: formula.reasoning,
+      blockedLines: allergyBlockedLines,
     })
     formula.lineRatios = gated.lineRatios
     formula.toppers = gated.toppers
@@ -702,6 +708,10 @@ export async function POST(req: Request) {
         input.allergies.includes(b),
       ),
   )
+  // ★근거 문구 최종 정리 — 첫 박스 1종 접기·선호 우선이 끝난 **최종 박스** 기준(2026-10-01 사장님).
+  //   연어 언급은 통째로 빼고, 최종 박스에 없는 레시피를 약속하는 문구('위장 민감 · 오리 위주' 등)도 뺀다.
+  formula.reasoning = finalizeReasoning(formula.reasoning, formula.lineRatios, { blockedLines: allergyBlockedLines })
+
   const needsConsultation =
     shippedAllergenLeak || (v3?.layerA?.needsConsultation ?? false)
   const consultationReason = needsConsultation

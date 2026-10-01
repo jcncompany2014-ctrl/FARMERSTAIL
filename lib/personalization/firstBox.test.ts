@@ -1248,6 +1248,23 @@ describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
   })
 })
 
+describe('decideFirstBox — 위장 민감은 담을 수 있는 레시피를 중심으로 (2026-10-01 펀치)', () => {
+  it('오리 알레르기 + 위장 자주 민감 — 중심을 오리로 잡지 않고, 칩도 실제 중심 레시피를 말한다', () => {
+    const f = decideFirstBox({
+      ...baseInput(),
+      allergies: ['오리'],
+      giSensitivity: 'frequent',
+      careGoal: 'general_upgrade',
+      availableLines: ['basic', 'weight', 'premium', 'joint'],
+    })
+    assert.equal(f.lineRatios.basic, 0, '오리(알레르기)가 박스에 남았다')
+    const gi = f.reasoning.find((r) => r.ruleId === 'gi-sensitive')
+    assert.ok(gi, '위장 민감 설명이 사라졌다 — 중심을 막힌 오리로 잡아 정리 단계가 지웠다')
+    assert.doesNotMatch(`${gi.action}${gi.chipLabel}`, /오리/)
+    assert.ok(gi.promisedLines && gi.promisedLines.every((l) => l !== 'basic'))
+  })
+})
+
 describe('decideFirstBox — 복합 시나리오', () => {
   it('7세 + BCS 6 + 닭알레르기 + 위장가끔 — 일관된 처방', () => {
     const f = decideFirstBox({

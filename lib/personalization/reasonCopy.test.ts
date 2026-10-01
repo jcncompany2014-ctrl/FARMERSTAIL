@@ -16,6 +16,10 @@ import { decideFirstBox } from './firstBox.ts'
 import { decideNextBox } from './nextBox.ts'
 import { gateAvailability } from './skuMap.ts'
 import type { AlgorithmInput, Checkin, Formula, Reasoning } from './types.ts'
+import type { FoodLine } from './types.ts'
+import { ALL_LINES, FOOD_LINE_META } from './lines.ts'
+import { collapseToSingle } from './boxComposition.ts'
+import { finalizeReasoning } from './reasoning-final.ts'
 
 // 영문 라인명(대문자) + 설문 키(소문자 — "선호 단백질: beef, salmon, pork, lamb" 처럼 trigger 에 그대로 새던 것).
 const ENGLISH_LINE = /\b(Weight|Joint|Skin|Premium|Basic|Chicken|Duck|Pork|Beef|Salmon|chicken|duck|pork|beef|salmon|lamb)\b/
@@ -173,5 +177,72 @@ describe('근거 문구 스윕 — 영문 라인명·라인 비율% 없음', () 
     )
     assert.ok(reasoning.length >= 2, '게이트 근거가 발화하지 않았다')
     assert.deepEqual(offenders(reasoning, 'gate'), [])
+  })
+})
+
+// ── 2026-10-01 사장님 "연어라는 멘트 나오면 안 되는 거 알지? 아예 전부 안 나오게" · "오리 알러지인데 왜 오리가" ──
+// 고객 화면 근거 문구에 판매하지 않는 연어가 한 번도 나오지 않고, 알레르기 레시피가 박스에 들어가지 않으며,
+// 막힌 레시피·최종 박스에 없는 레시피를 약속하는 조정 문구가 남지 않는다 — compute 라우트와 같은 순서
+// (decideFirstBox → 첫 박스 1종 접기 → finalizeReasoning)로 넓게 돌려 본다.
+const SOLD: FoodLine[] = ['basic', 'weight', 'premium', 'joint']
+const blockedOf = (allergies: string[]): Set<FoodLine> =>
+  new Set(ALL_LINES.filter((l) => FOOD_LINE_META[l].blockingAllergies.some((a) => allergies.includes(a))))
+const salmonIn = (rs: Reasoning[]) => rs.filter((r) => /연어/.test(`${r.trigger}${r.action}${r.chipLabel}`)).map((r) => `${r.ruleId}: ${r.chipLabel}`)
+
+function* salmonDuckInputs(): Generator<AlgorithmInput> {
+  // 기존 격자 전부 + 판매 라인 제한(연어 없음)
+  for (const i of firstBoxInputs()) yield { ...i, availableLines: SOLD }
+  // 펀치형: 닭·오리 알레르기 × 피부·인지 질환(연어 몫을 만드는 룰) × 위장 민감 × 선호(연어 포함/없음) × 나이
+  for (const allergies of [['오리'], ['닭·칠면조', '오리', '계란'], ['소고기', '오리'], ['돼지고기'], ['연어·생선']])
+    for (const chronicConditions of [[], ['allergy_skin'], ['cognitive_decline'], ['allergy_skin', 'arthritis']])
+      for (const giSensitivity of ['rare', 'frequent', 'always'] as const)
+        for (const preferredProteins of [[], ['salmon'], ['salmon', 'duck', 'beef'], ['pork']])
+          for (const ageMonths of [7, 48, 110])
+            yield { ...base(), allergies, chronicConditions, giSensitivity, preferredProteins, ageMonths, careGoal: 'skin_coat', availableLines: SOLD }
+}
+
+describe('연어 비노출 · 알레르기 레시피 비출고 · 근거↔박스 일치 (2026-10-01)', () => {
+  it('첫 박스 — 라우트와 같은 순서로 넓게', () => {
+    let runs = 0
+    const bad: string[] = []
+    for (const input of salmonDuckInputs()) {
+      runs++
+      const blocked = blockedOf(input.allergies)
+      const f = decideFirstBox(input)
+      const final = collapseToSingle(f.lineRatios, f.firstBoxLine ?? null)
+      const rs = finalizeReasoning(f.reasoning, final, { blockedLines: blocked })
+      const tag = `[${input.allergies.join('+') || '-'}|${input.chronicConditions.join('+') || '-'}|gi:${input.giSensitivity}|pref:${input.preferredProteins.join('+') || '-'}|${input.ageMonths}m]`
+      for (const s of salmonIn(f.reasoning)) bad.push(`${tag} 엔진 출력에 연어: ${s}`)
+      if ((final.skin ?? 0) > 0) bad.push(`${tag} 최종 박스에 연어 ${final.skin}`)
+      // 판매 레시피 중 하나라도 먹을 수 있으면 알레르기 레시피는 박스에 없어야 한다(전부 막히면 라우트가 상담으로).
+      if (SOLD.some((l) => !blocked.has(l))) {
+        for (const l of blocked) if ((final[l] ?? 0) > 0) bad.push(`${tag} 알레르기 레시피 ${FOOD_LINE_META[l].nameKo} 출고 ${final[l]}`)
+        for (const l of blocked) if ((f.lineRatios[l] ?? 0) > 0) bad.push(`${tag} 접기 전 비율에도 알레르기 ${FOOD_LINE_META[l].nameKo} ${f.lineRatios[l]}`)
+      }
+      for (const r of rs) {
+        if (r.promisedLines && !r.promisedLines.some((l) => (final[l] ?? 0) > 0)) bad.push(`${tag} 박스에 없는 레시피 약속: ${r.chipLabel}`)
+        if (!/^(next-)?allergy-/.test(r.ruleId)) for (const l of blocked) if (`${r.action}${r.chipLabel}`.includes(FOOD_LINE_META[l].nameKo)) bad.push(`${tag} 막힌 ${FOOD_LINE_META[l].nameKo} 언급: ${r.ruleId} ${r.chipLabel}`)
+      }
+    }
+    assert.ok(runs >= 1200, `실행 ${runs}회 — 격자가 좁다`)
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length}건:\n${[...new Set(bad)].slice(0, 15).join('\n')}`)
+  })
+
+  it('다음 박스(재제안) — 연어 선호·오리 알레르기에도 연어·막힌 레시피를 말하지 않는다', () => {
+    const bad: string[] = []
+    for (const allergies of [[], ['오리'], ['닭·칠면조', '오리']]) for (const preferredProteins of [[], ['salmon'], ['salmon', 'duck', 'beef']])
+      for (const appetite of [2, 5]) for (const coat of [2, 5]) {
+        const blocked = blockedOf(allergies)
+        const f = decideNextBox({
+          previousFormula: previousFormula(),
+          checkins: [checkin('week_4', { appetite, coat, stool: 4 })],
+          surveyInput: { ...base(), allergies, preferredProteins, availableLines: SOLD },
+          cycleNumber: 2,
+        })
+        for (const s of salmonIn(f.reasoning)) bad.push(`next[${allergies}|${preferredProteins}] 연어: ${s}`)
+        if ((f.lineRatios.skin ?? 0) > 0) bad.push(`next[${allergies}] 연어 비율 ${f.lineRatios.skin}`)
+        for (const l of blocked) if ((f.lineRatios[l] ?? 0) > 0) bad.push(`next[${allergies}] 알레르기 ${FOOD_LINE_META[l].nameKo} ${f.lineRatios[l]}`)
+      }
+    assert.deepEqual([...new Set(bad)].slice(0, 12), [], `${bad.length}건:\n${[...new Set(bad)].slice(0, 12).join('\n')}`)
   })
 })

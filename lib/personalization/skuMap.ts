@@ -102,6 +102,12 @@ export function gateAvailability(
     availableLines?: FoodLine[]
     availableToppers?: TopperAxis[]
     reasoning?: Reasoning[]
+    /**
+     * 알레르기로 막힌 라인 — 대체 대상에서 뺀다. 없던 시절엔 연어 비율을 **알레르기를 보지 않고**
+     * 오리로 옮겨, 오리 알레르기견(펀치)의 처방에 오리가 다시 들어갔다(2026-10-01 사장님 "오리
+     * 알러지인데 왜 오리가"). 마지막 안전장치가 그걸 잡으면 먹을 수 있는 레시피가 있는데도 '상담 필요'로 빠졌다.
+     */
+    blockedLines?: Iterable<FoodLine>
   } = {},
 ): GateResult {
   /**
@@ -130,42 +136,31 @@ export function gateAvailability(
   // ── 라인 게이트 ──
   if (opts.availableLines && opts.availableLines.length > 0) {
     const avail = new Set(opts.availableLines)
+    const blocked = new Set(opts.blockedLines ?? [])
     for (const line of ALL_LINES) {
       if (lines[line] <= 0 || avail.has(line)) continue
       const moved = lines[line]
       lines[line] = 0
-      // fallback 체인: 1순위 대체 → basic → 첫 가용 라인.
-      let target: FoodLine = opts.availableLines[0]!
-      for (const cand of [LINE_FALLBACK[line], 'basic' as FoodLine]) {
-        if (avail.has(cand)) {
-          target = cand
-          break
-        }
-      }
+      // fallback 체인: 1순위 대체 → basic → 가용 라인 순서 — **알레르기로 막힌 라인은 건너뛴다**.
+      // 전부 막혔으면(드묾) 예전처럼 첫 가용 라인 — 라우트의 출고 알레르기 검사가 상담으로 돌린다.
+      const safe: FoodLine | undefined = ([LINE_FALLBACK[line], 'basic', ...opts.availableLines] as FoodLine[]).find(
+        (cand) => avail.has(cand) && !blocked.has(cand),
+      )
+      const target: FoodLine = safe ?? opts.availableLines[0]!
       lines[target] += moved
+      // ★연어(skin)는 판매하지 않는 레시피다 — 고객 문구에 연어를 절대 내지 않는다(사장님 2026-10-01
+      //   "연어라는 멘트 나오면 안 되는 거 알지? 아예 전부 안 나오게"). 대체는 조용히 하고, 예전처럼
+      //   '연어 → 오리' 칩이나 임상 칩 뒤 '※ 연어 레시피는 준비 중…' 덧붙임을 만들지 않는다.
+      //   다른 라인(일시 품절 등 실제 판매 레시피)은 대체 사실을 알린다.
+      if (line === 'skin') continue
       opts.reasoning?.push({
         trigger: `${FOOD_LINE_META[line].nameKo} 레시피 준비중`,
         action: `${FOOD_LINE_META[line].nameKo} 레시피는 준비 중이라 ${FOOD_LINE_META[target].nameKo}로 담았어요. 출시되면 자동으로 반영돼요.`,
         chipLabel: `${FOOD_LINE_META[line].nameKo} → ${FOOD_LINE_META[target].nameKo}`,
         priority: 1,
         ruleId: `gate-line-${line}`,
+        promisedLines: [target],
       })
-
-      // 정직성 — skin(연어) 라인이 임상 룰(피부염·CDS)로 가산됐는데 연어가
-      // 미출시라 오리로 대체될 때, "연어 DHA/오메가-3" 를 약속한 임상 chip 이
-      // 거짓이 되지 않게 그 chip 에 대체·보조 안내를 덧붙인다. 오리는 화식 4종
-      // 중 오메가-3 최다지만 연어보다 낮음 → EPA/DHA(피쉬오일) 보조 권장.
-      if (line === 'skin') {
-        for (const r of opts.reasoning ?? []) {
-          if (
-            r.ruleId === 'chronic-allergy-skin' ||
-            r.ruleId === 'chronic-cognitive-decline'
-          ) {
-            r.action +=
-              ' ※ 연어 레시피는 준비 중이라 지금은 오리로 담겨요. 오리는 화식 중 오메가-3가 가장 높지만 연어보다는 낮아, 피부·인지 케어가 목적이면 EPA/DHA(피쉬오일) 보조를 권장해요. 연어 레시피 출시 시 자동 반영.'
-          }
-        }
-      }
     }
   }
 

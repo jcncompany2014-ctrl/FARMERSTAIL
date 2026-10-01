@@ -45,6 +45,7 @@ import {
   getLineFat,
 } from './lines.ts'
 import { gateAvailability } from './skuMap.ts'
+import { finalizeReasoning } from './reasoning-final.ts'
 import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from './skuModel.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 import { transferToTarget } from './transfers.ts'
@@ -112,7 +113,7 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   applyPregnancyNote(input, reasoning)
 
   // Step 7 — GI 민감도 → 자주/매번이면 메인 단일화.
-  lineRatios = applyGiSensitivity(lineRatios, input, reasoning)
+  lineRatios = applyGiSensitivity(lineRatios, input, reasoning, blocked)
 
   // Step 8 — 선호 단백질 가산점.
   lineRatios = applyPreferredProteinBonus(lineRatios, input, reasoning)
@@ -132,6 +133,8 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     availableLines: input.availableLines,
     availableToppers: input.availableToppers,
     reasoning,
+    // 연어(미판매) 비율을 알레르기 레시피(오리 등)로 옮기지 않는다(2026-10-01 펀치).
+    blockedLines: blocked,
   })
 
   // Step 10.7 — 간식 칼로리 차감. 보호자가 간식을 주면 그만큼 밥(완전식)을
@@ -166,7 +169,9 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     firstBoxLine,
     lineRatios: gated.lineRatios,
     toppers: gated.toppers,
-    reasoning: reasoning.sort((a, b) => a.priority - b.priority),
+    // 연어 언급 제거(lib/personalization/reasoning-final). 약속 레시피↔최종 박스 대조는 첫 박스 1종
+    // 접기 뒤라야 하므로 compute 라우트가 한 번 더 finalizeReasoning(…, 최종 비율).
+    reasoning: finalizeReasoning(reasoning, null, { blockedLines: blocked }).sort((a, b) => a.priority - b.priority),
     transitionStrategy,
     dailyKcal,
     dailyGrams: input.dailyGrams,
@@ -416,6 +421,7 @@ function applyAgeStage(
       chipLabel: '대형견 아기 · 골격 보호',
       priority: 2,
       ruleId: 'age-puppy-large-breed',
+      promisedLines: ['basic'],
     })
   } else if (input.ageMonths < 12) {
     // 일반 (소·중형) puppy — Joint 0, Weight 0, Basic + Premium 위주.
@@ -434,6 +440,8 @@ function applyAgeStage(
       chipLabel: '아기 강아지 · 성장기 맞춤',
       priority: 2,
       ruleId: 'age-puppy',
+      // 첫 박스가 선호(흑돼지 등)로 접히면 "오리·한우 위주"는 거짓 — 최종 박스에 없으면 뺀다.
+      promisedLines: ['basic', 'premium'],
     })
   }
   return ratios
@@ -1583,6 +1591,7 @@ function applyGiSensitivity(
   ratios: Record<FoodLine, Ratio>,
   input: AlgorithmInput,
   reasoning: Reasoning[],
+  blocked: Set<FoodLine> = new Set(),
 ): Record<FoodLine, Ratio> {
   const sensitive =
     input.giSensitivity === 'frequent' ||
@@ -1604,24 +1613,32 @@ function applyGiSensitivity(
   const chronicLines: FoodLine[] = input.chronicConditions.includes('epi')
     ? ['premium', 'joint', 'skin', 'weight']
     : ['joint', 'skin', 'weight']
-  let mainLine: FoodLine = 'basic'
+  // ★중심 라인은 실제로 담을 수 있는 라인만(2026-10-01 펀치). 예전엔 기본값이 무조건 basic(오리)이라
+  //   오리 알레르기로 0% 인 오리에 75% 를 다시 넣고 '위장 민감 · 오리 위주' 칩을 냈다 — 선호 우선이
+  //   덮지 않았다면 오리가 박스에 남아 출고 알레르기 검사가 '상담 필요'로 돌렸을 것이다.
+  //   알레르기 차단·0%·미판매(연어 등 availableLines 밖) 라인은 후보가 아니다.
+  const usable = (l: FoodLine) =>
+    ratios[l] > 0 && !blocked.has(l) && (!input.availableLines || input.availableLines.includes(l))
+  let mainLine: FoodLine | null = usable('basic') ? 'basic' : null
   // chronic 라인이 0.2+ 면 그게 우선
   for (const line of chronicLines) {
-    if (ratios[line] >= 0.2) {
+    if (ratios[line] >= 0.2 && usable(line)) {
       mainLine = line
       break
     }
   }
-  // 아니면 가장 큰 라인
-  if (mainLine === 'basic' && ratios.basic < ratios.premium) {
-    let max = ratios.basic
+  // 아니면 가장 큰 라인 (basic 이 못 쓰이거나 premium 보다 작을 때 — 기존 규칙 유지)
+  if (mainLine === null || (mainLine === 'basic' && ratios.basic < ratios.premium)) {
+    let max = mainLine ? ratios[mainLine] : 0
     for (const line of ALL_LINES) {
-      if (ratios[line] > max) {
+      if (usable(line) && ratios[line] > max) {
         max = ratios[line]
         mainLine = line
       }
     }
   }
+  // 담을 수 있는 라인이 하나도 없으면 손대지 않는다(칩도 없음) — 출고 알레르기 검사가 상담으로 돌린다.
+  if (mainLine === null) return ratios
 
   const intensity =
     input.chronicConditions.includes('ibd')
@@ -1655,6 +1672,7 @@ function applyGiSensitivity(
     chipLabel: `위장 민감 · ${FOOD_LINE_META[mainLine].nameKo} 위주`,
     priority: 6,
     ruleId: 'gi-sensitive',
+    promisedLines: [mainLine],
   })
   return next
 }
@@ -1787,11 +1805,16 @@ function decideTransition(input: AlgorithmInput): TransitionStrategy {
 /** 설문 '잘 먹는 고기' 키 → 한글. 안 파는 단백질(연어·양)도 고객이 고른 그대로 한글로만 보여 준다. */
 const PROTEIN_KO: Record<string, string> = { chicken: '치킨', duck: '오리', beef: '한우', pork: '흑돼지', salmon: '연어', lamb: '양고기' }
 function preferredKo(ps: string[]): string {
-  return ps.map((p) => PROTEIN_KO[p] ?? p).join(', ')
+  // 옛 설문에서 연어를 고른 고객도 있다 — 판매하지 않는 레시피라 고객 문구에서 뺀다(사장님 2026-10-01).
+  return ps
+    .filter((p) => p !== 'salmon')
+    .map((p) => PROTEIN_KO[p] ?? p)
+    .join(', ')
 }
 
 function formatBaseLines(ratios: Record<FoodLine, Ratio>): string {
-  return ALL_LINES.filter((l) => ratios[l] > 0)
+  // 판매하지 않는 연어(skin)는 고객 문구 목록에서 뺀다 — '베이스 레시피: 흑돼지 · 한우 · 연어'였다(2026-10-01).
+  return ALL_LINES.filter((l) => ratios[l] > 0 && l !== 'skin')
     .sort((a, b) => ratios[b] - ratios[a])
     .map((l) => FOOD_LINE_META[l].nameKo)
     .join(' · ')

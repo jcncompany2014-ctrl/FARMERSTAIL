@@ -33,9 +33,10 @@ import type {
   Reasoning,
   TransitionStrategy,
 } from './types.ts'
-import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix } from './lines.ts'
+import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix, PROTEIN_TO_LINE } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
 import { gateAvailability } from './skuMap.ts'
+import { finalizeReasoning } from './reasoning-final.ts'
 
 // firstBox 와 동일 버전 — 둘 다 같은 룰셋/타입을 공유. 분리 버전은 분석/diff 깨짐.
 const ALGORITHM_VERSION = 'v2.0.0'
@@ -369,9 +370,13 @@ function applyAppetiteSignal(
   if (week4.appetiteScore >= 4) return ratios
 
   // appetite <= 3 — 선호 단백질이 있다면 그쪽 ↑. 없으면 기호성 좋은 Premium ↑.
+  // 선호 단백질 중 **실제로 담을 수 있는** 첫 라인 — 알레르기 차단·미판매(연어 등) 라인은 건너뛴다.
+  // 예전엔 첫 선호만 봐서 '잘 먹는 연어 레시피 비중을 올렸어요'를 냈다(2026-10-01).
+  const canServe = (l: FoodLine | null): l is FoodLine =>
+    !!l && !blocked.has(l) && (!surveyInput.availableLines || surveyInput.availableLines.includes(l)) && l !== 'skin'
   const prefLine =
     surveyInput.preferredProteins.length > 0
-      ? lineForProtein(surveyInput.preferredProteins[0]!)
+      ? (surveyInput.preferredProteins.map((p) => lineForProtein(p)).find(canServe) ?? null)
       : 'premium'
   if (!prefLine || blocked.has(prefLine)) return ratios
   const target = Math.min(0.5, ratios[prefLine] + 0.1)
@@ -397,15 +402,11 @@ function applyAppetiteSignal(
   }
 }
 
+// ★정본 대응표(skuModel legacyLine — lines.PROTEIN_TO_LINE)를 쓴다. 여기엔 레시피 재배치(v2.0: 오리=basic,
+//   닭=weight) 이전 표가 그대로 남아 오리를 잘 먹는 강아지에게 **치킨** 비중을 올리고 '잘 먹는 치킨 레시피'를
+//   냈다(2026-10-01 발견). 오리 알레르기 + 오리 선호면 막힌 오리 대신 치킨이 올라갔다.
 function lineForProtein(protein: string): FoodLine | null {
-  const map: Record<string, FoodLine> = {
-    chicken: 'basic',
-    duck: 'weight',
-    salmon: 'skin',
-    beef: 'premium',
-    pork: 'joint',
-  }
-  return map[protein] ?? null
+  return PROTEIN_TO_LINE[protein] ?? null
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -431,6 +432,8 @@ function finalize(
     availableLines: surveyInput.availableLines,
     availableToppers: surveyInput.availableToppers,
     reasoning,
+    // 연어(미판매) 비율을 알레르기 레시피로 옮기지 않는다(2026-10-01 펀치 — firstBox 와 같은 규칙).
+    blockedLines: blocked,
   })
 
   // 전환 전략 — cycle 2+ 는 항상 'gradual' (이미 적응 단계).
@@ -460,7 +463,8 @@ function finalize(
   return {
     lineRatios: gated.lineRatios,
     toppers: gated.toppers,
-    reasoning: reasoning.sort((a, b) => a.priority - b.priority),
+    // 재제안 화면에 그대로 나간다 — 연어 언급·최종 박스에 없는 레시피를 약속하는 문구를 뺀다.
+    reasoning: finalizeReasoning(reasoning, gated.lineRatios, { blockedLines: blocked }).sort((a, b) => a.priority - b.priority),
     transitionStrategy,
     dailyKcal,
     dailyGrams: dailyGramsByMix,

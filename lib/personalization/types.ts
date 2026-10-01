@@ -44,6 +44,12 @@ export type Reasoning = {
   priority: number
   /** 룰 ID — 알고리즘 버전 변경 시 추적. snake_case. */
   ruleId: string
+  /**
+   * 이 문구가 "○○ 위주로 담았어요"처럼 특정 레시피를 약속할 때 그 라인들. 최종 박스(첫 박스 1종 접기·
+   * 선호 우선 뒤)에 하나도 없으면 finalizeReasoning 이 이 문구를 뺀다 — 오리 알레르기견 펀치 화면에
+   * '위장 민감 · 오리 위주'가 떴는데 실제 박스는 흑돼지였다(2026-10-01). 없으면 검사하지 않는다.
+   */
+  promisedLines?: FoodLine[]
 }
 
 /**

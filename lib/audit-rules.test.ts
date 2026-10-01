@@ -5270,3 +5270,24 @@ test('규칙147: 서포터즈 금액은 실제 결제 금액으로 — 어드민
   assert.match(app, /일치 밥이 총 \$\{/, '고객 정기배송 화면이 서포터즈 혜택을 기간·총액으로 말하지 않는다')
   assert.match(app, /borderRadius: V3Radius\.md,/, '정기배송 화면 카드가 둥근 모서리(B안)가 아니다')
 })
+
+test('규칙148: 처방 근거에 연어는 절대 안 나오고, 알레르기 레시피는 대체 대상도·문구도 아니다 — 저장 직전 최종 정리', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "연어라는 멘트 나오면 안 되는 거 알지? 아예 전부 안 나오게" · "오리 알러지인데 왜 오리가")
+   * 오리 알레르기견 펀치 분석 화면 근거에 '연어 → 오리'·'연어 비슷한 단백질 주의'·'위장 민감 · 오리 위주'가 떴다.
+   * 판매 안 하는 연어 몫을 알레르기를 안 보고 오리로 옮겼고(대체 단계), 위장 민감 룰은 기본 중심을 막힌 오리로
+   * 잡았다. 재제안은 옛 대응표(오리→치킨)로 '잘 먹는 치킨'을 냈다. 실행 스윕은 reasonCopy.test.ts.
+   */
+  const route = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'compute', 'route.ts')))
+  assert.match(route, /gateAvailability\(formula\.lineRatios[\s\S]{0,260}blockedLines: allergyBlockedLines/, '처방 저장 경로의 대체 단계가 알레르기 레시피로 옮길 수 있다')
+  assert.match(route, /formula\.reasoning = finalizeReasoning\(formula\.reasoning, formula\.lineRatios, \{ blockedLines: allergyBlockedLines \}\)/, '첫 박스 접기 뒤 근거 최종 정리(연어·막힌 레시피·박스에 없는 약속)가 없다')
+  const first = stripComments(read(join(ROOT, 'lib', 'personalization', 'firstBox.ts')))
+  assert.match(first, /blockedLines: blocked,/, 'firstBox 대체 단계에 알레르기 차단 목록이 없다')
+  const next = stripComments(read(join(ROOT, 'lib', 'personalization', 'nextBox.ts')))
+  assert.match(next, /return PROTEIN_TO_LINE\[protein\] \?\? null/, '재제안이 정본 단백질↔레시피 대응표를 쓰지 않는다(옛 표: 오리→치킨)')
+  assert.match(next, /finalizeReasoning\(reasoning, gated\.lineRatios, \{ blockedLines: blocked \}\)/, '재제안 근거 최종 정리가 없다')
+  const gate = stripComments(read(join(ROOT, 'lib', 'personalization', 'skuMap.ts')))
+  assert.doesNotMatch(gate, /연어 레시피는 준비 중이라/, "대체 단계가 임상 칩에 '연어 레시피는 준비 중' 을 덧붙인다")
+  const fin = stripComments(read(join(ROOT, 'lib', 'personalization', 'reasoning-final.ts')))
+  assert.match(fin, /UNSOLD_RECIPE_WORDS: readonly string\[\] = \['연어'\]/, '판매하지 않는 레시피 목록에서 연어가 빠졌다')
+})

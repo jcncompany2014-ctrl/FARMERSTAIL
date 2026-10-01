@@ -251,12 +251,32 @@ describe('decideNextBox — 식욕 신호', () => {
     const f = decideNextBox({
       previousFormula: prev,
       checkins: [checkin('week_4', { appetite: 2 })],
-      surveyInput: { ...baseSurvey(), preferredProteins: ['salmon'] },
+      surveyInput: { ...baseSurvey(), preferredProteins: ['pork'] },
       cycleNumber: 2,
     })
-    assert.ok(f.lineRatios.skin >= prev.lineRatios.skin)
+    assert.ok(f.lineRatios.joint >= prev.lineRatios.joint)
     const reason = f.reasoning.find((r) => r.ruleId === 'next-appetite-low')
     assert.ok(reason)
+    assert.match(reason.action, /흑돼지/)
+  })
+
+  it('식욕 저하 + 선호가 연어(미판매)·알레르기 → 담을 수 있는 다음 선호로, 연어는 말하지 않는다 (2026-10-01)', () => {
+    const f = decideNextBox({
+      previousFormula: basePreviousFormula(),
+      checkins: [checkin('week_4', { appetite: 2 })],
+      surveyInput: {
+        ...baseSurvey(),
+        preferredProteins: ['salmon', 'duck', 'beef'],
+        allergies: ['오리'],
+        availableLines: ['basic', 'weight', 'premium', 'joint'],
+      },
+      cycleNumber: 2,
+    })
+    const reason = f.reasoning.find((r) => r.ruleId === 'next-appetite-low')
+    assert.ok(reason)
+    assert.match(reason.action, /한우/)
+    assert.ok(!f.reasoning.some((r) => /연어/.test(`${r.trigger}${r.action}${r.chipLabel}`)))
+    assert.equal(f.lineRatios.basic, 0)
   })
 
   it('식욕 4+ → 변화 없음', () => {

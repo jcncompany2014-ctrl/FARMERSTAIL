@@ -82,14 +82,29 @@ describe('gateAvailability — 라인 재분배', () => {
     assert.equal(r.lineRatios.basic, 1.0)
   })
 
-  it('재분배 사유 chip push (gate-line-skin)', () => {
-    const reasoning: Reasoning[] = []
-    gateAvailability(
+  it('연어(skin) 대체는 조용히 — 고객 문구에 연어를 내지 않는다 (사장님 2026-10-01)', () => {
+    const reasoning: Reasoning[] = [
+      { trigger: '알레르기성 피부염', action: '피부·털 보강 쪽 비중을 올렸어요 (오메가-3)', chipLabel: '피부염', priority: 3, ruleId: 'chronic-allergy-skin' },
+    ]
+    const r = gateAvailability(
       { basic: 0.3, weight: 0, skin: 0.7, premium: 0, joint: 0 },
       NO_TOPPER,
       { availableLines: ['basic', 'weight', 'premium', 'joint'], reasoning },
     )
-    assert.ok(reasoning.some((x) => x.ruleId === 'gate-line-skin'))
+    assert.equal(r.lineRatios.basic, 1.0)
+    assert.ok(!reasoning.some((x) => x.ruleId === 'gate-line-skin'), '연어 → 오리 칩')
+    assert.ok(!reasoning.some((x) => /연어/.test(`${x.trigger}${x.action}${x.chipLabel}`)), '연어 언급(임상 칩 덧붙임 포함)')
+  })
+
+  it('대체는 알레르기 레시피로 가지 않는다 — 오리 알레르기면 연어 몫이 오리가 아닌 다른 판매 레시피로 (펀치)', () => {
+    const r = gateAvailability(
+      { basic: 0, weight: 0, skin: 0.3, premium: 0, joint: 0.7 },
+      NO_TOPPER,
+      { availableLines: ['basic', 'weight', 'premium', 'joint'], blockedLines: ['basic', 'weight'] },
+    )
+    assert.equal(r.lineRatios.basic, 0, '오리(알레르기)로 옮겼다')
+    assert.equal(r.lineRatios.weight, 0, '치킨(알레르기)로 옮겼다')
+    assert.ok(Math.abs(r.lineRatios.premium + r.lineRatios.joint - 1) < 1e-9)
   })
 
   it('가용 라인만 있으면 변경 없음', () => {
