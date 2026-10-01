@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
 import { isAdmin } from '@/lib/auth/admin'
 import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
+import { SKU_MODEL } from '@/lib/personalization/skuModel'
 import {
   computeBoxItems,
   subscribableItems,
@@ -665,7 +666,27 @@ export default async function PickingListPage({
    * 할 것' 목록에도 못 넣기 때문이다(비교 대상 자체가 안 생긴다). 설정 문제라
    * 드물지만, 나면 그 라인을 쓰는 **모든 박스**에서 한 종이 통째로 조용히 빠진다.
    */
-  const unknownSlugs = allSlugs.filter((sl) => !productsAll[sl])
+  //
+  // ★출시 보류 레시피(skuModel deferred — 지금은 연어)는 상품 행이 없는 게 정상이다(2026-10-01).
+  //   예전엔 매주 'salmon-skin' 경고가 떠서(사장님 "연어 오류 화면 계속 뜬다") 진짜 경고가 묻혔다.
+  //   연어 몫은 처방 저장 전에 판매 레시피로 옮겨지지만(gateAvailability), 그래도 이번 발송분 처방이
+  //   그 레시피를 실제로 부르면 그때는 경고한다 — 보류라고 통째로 빼면 그 박스가 조용히 덜 담긴다.
+  const deferredSlugs = new Set(
+    Object.values(SKU_MODEL)
+      .filter((s) => s.deferred)
+      .map((s) => s.slug),
+  )
+  const usedLineSlugs = new Set<string>()
+  for (const sub of subs) {
+    const f = sub.dog_id ? formulaByDog[sub.dog_id] : undefined
+    for (const [line, ratio] of Object.entries(f?.formula.lineRatios ?? {})) {
+      const slug = LINE_TO_SLUG[line as keyof typeof LINE_TO_SLUG]
+      if (slug && Number(ratio) > 0) usedLineSlugs.add(slug)
+    }
+  }
+  const unknownSlugs = allSlugs.filter(
+    (sl) => !productsAll[sl] && (!deferredSlugs.has(sl) || usedLineSlugs.has(sl)),
+  )
 
   const prevShip = addDaysKst(shipDate, -7)
   const nextShip = addDaysKst(shipDate, 7)

@@ -5311,3 +5311,71 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 네이
   assert.match(logo, /width: min\(calc\(\(100vh \+ 47px\) \* 0\.365\), 88vw\)/, '로고 크기가 네이티브 스플래시(화면 높이의 36.5%)와 다르다')
   assert.doesNotMatch(css, /ft-splash-logo/, '로고 등장 모션이 돌아왔다 — 네이티브가 걷힐 때 로고가 다시 등장한다')
 })
+
+test('규칙150: 자견은 매달 자동으로 다시 계산되고 알림은 한 달에 한 번 — 자동 갱신은 설문으로 세지 않고, 고객이 그 표식을 못 쓴다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "자동으로 한 달씩 지나면서 계산해 … 무게가 얼마나 달라졌는지 귀찮지 않게 한 달에 한 번 정도만")
+   * 자견 칼로리는 설문한 날의 체중·나이에 고정돼, 4개월에 설문한 강아지가 10개월이 돼도 4개월 몫을 먹었다.
+   * dog-age-update 크론이 30일마다 다시 계산해 분석 행(source growth_auto)을 넣고 알림을 한 번 보낸다.
+   *  · 자동 갱신 행은 '설문'이 아니다 — 재설문 월 3회 한도·직전 설문 비교·리포트·퍼널·어드민 설문 카드는 설문만 센다.
+   *  · 같은 달 체중 알림이 겹치지 않게 체중 측정 리마인더·체중 변화 알림은 성장기 강아지를 뺀다.
+   *  · 추정 체중 행의 mer 은 등록 체중보다 큰 체중 기준이라 처방 타당성 검사는 그 행의 체중을 쓴다 — 그 칸을
+   *    고객이 쓰면 검사가 비켜서므로(규칙2) DB 트리거가 고객 역할의 쓰기를 되돌린다.
+   */
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'dog-age-update', 'route.ts')))
+  assert.match(cron, /await runMonthlyGrowth\(/, '나이 갱신 크론이 자견 월간 재계산을 부르지 않는다')
+  const monthly = stripComments(read(join(ROOT, 'lib', 'growth', 'monthly.ts')))
+  assert.match(monthly, /export const GROWTH_RECOMPUTE_DAYS = 30\b/, '자견 재계산 주기가 한 달(30일)이 아니다')
+  assert.match(monthly, /source: 'growth_auto',/, '자동 갱신 분석 행에 표식(source growth_auto)이 없다 — 설문과 구분이 안 된다')
+  assert.doesNotMatch(monthly, /%|언제든/, '월간 성장 알림 문구에 비율%·"언제든"이 들어갔다(브랜드 보이스)')
+  const run = stripComments(read(join(ROOT, 'lib', 'growth', 'run.ts')))
+  assert.match(run, /if \(insErr\) \{[\s\S]{0,260}continue[\s\S]{0,200}pushToUser\(/, '분석 행 저장이 실패해도 알림이 나간다 — 다음 날 또 보내게 된다(행이 "이번 달 처리함" 표식)')
+  assert.match(run, /\{ category: 'health' \}/, '월간 성장 알림이 건강 알림 설정·조용 시간을 따르지 않는다')
+
+  const surveyPage = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'page.tsx')))
+  assert.equal((surveyPage.match(/\.eq\('source', 'survey'\)/g) ?? []).length, 2, '재설문 화면이 자동 갱신을 설문으로 센다(월 3회 한도·직전 설문 비교)')
+  for (const p of [
+    ['app', '(main)', 'reports', 'page.tsx'],
+    ['app', 'admin', 'surveys', '_data.ts'],
+    ['app', 'admin', 'funnel', 'page.tsx'],
+    ['app', '(main)', 'dogs', '[id]', 'year-in-review', 'page.tsx'],
+  ]) {
+    assert.match(stripComments(read(join(ROOT, ...p))), /\.eq\('source', 'survey'\)/, `${p.join('/')} 가 자견 자동 갱신을 설문 분석으로 센다`)
+  }
+  const history = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'analyses', 'page.tsx')))
+  assert.match(history, /a\.source === 'growth_auto'/, '분석 이력에서 자동 갱신 기록이 설문 결과와 구분되지 않는다')
+
+  const detect = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'weight-change-detect', 'route.ts')))
+  assert.match(detect, /if \(isGrowing\) \{\s*skippedGrowing \+= 1\s*continue/, '체중 변화 알림이 성장기 강아지에게도 간다 — 월간 성장 알림과 겹친다')
+  const reminder = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'weight-reminder', 'route.ts')))
+  assert.match(reminder, /stageFromKR\(latestStage\.get\(t\.id\) \?\? null\) !== 'puppy'/, '체중 측정 리마인더가 성장기 강아지에게도 간다 — 월간 성장 알림과 겹친다')
+
+  const compute = stripComments(read(join(ROOT, 'app', 'api', 'personalization', 'compute', 'route.ts')))
+  assert.equal((compute.match(/isPlausibleMer\(analysis\.mer, plausibilityWeightKg\(dog\.weight, analysis\)\)/g) ?? []).length, 2, '처방 타당성 검사가 자동 갱신 행의 (추정) 체중을 안 본다 — 체중을 몇 달 안 잰 자견의 플랜 화면이 막힌다')
+  const sanity = stripComments(read(join(ROOT, 'lib', 'personalization', 'merSanity.ts')))
+  assert.match(sanity, /if \(analysis\?\.source !== 'growth_auto'\) return dogW/, '등록 체중이 아닌 체중을 자동 갱신 행 밖에서도 믿는다')
+  const lock = read(join(ROOT, 'supabase', 'migrations', '20261001180000_analyses_lock_server_columns.sql'))
+  const lockSql = lock.replace(/--.*$/gm, '')
+  assert.match(lockSql, /if current_user in \('authenticated', 'anon'\) then/, '고객 역할의 source·weight_kg 쓰기를 되돌리는 트리거가 없다 — 타당성 검사가 고객 값으로 비켜선다')
+  assert.match(lockSql, /before insert or update on public\.analyses/, '잠금 트리거가 INSERT·UPDATE 둘 다를 덮지 않는다')
+  assert.doesNotMatch(lockSql, /security definer/i, '잠금 트리거가 DEFINER 면 current_user 가 소유자라 잠금이 풀린다')
+})
+
+test('규칙151: 어드민은 구독 상태를 정본 판정으로 보여주고, 출시 보류 레시피(연어)는 실제로 쓰일 때만 경고한다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "얘는 근데 왜 다음 배송일자가 안 떠" · "여기에 연어 오류 화면 계속 뜬다")
+   * 플랜만 고르고 카드 등록을 안 끝낸 서포터즈(피카) 구독이 어드민에 초록 '구독 중'으로 떠서 배송일이 빈 이유가
+   * 안 보였다 — 배송일은 카드 등록 때 잡힌다. status 칸만 보면 카드 축을 놓친다(lib/subscription-state).
+   * 박스 패킹 화면은 판매 보류인 연어(skuModel deferred)를 매주 '상품 등록이 빠진 레시피'로 빨갛게 띄워 진짜 경고를 묻었다.
+   */
+  const subs = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
+  assert.match(subs, /const STATUS_BADGE: Record<SubState,/, '어드민 상태 배지가 정본 상태(SubState)가 아니라 status 칸 기준이다')
+  assert.match(subs, /needs_card: \{ label: '카드 등록 전'/, "카드 미등록 구독이 '카드 등록 전'으로 구분되지 않는다")
+  assert.match(subs, /return subscriptionState\(\{/, '어드민이 상태를 정본 판정(subscriptionState)으로 내지 않는다')
+  assert.doesNotMatch(subs, /<StatusBadge status=/, '상태 배지가 아직 status 칸만 받는 곳이 있다')
+  assert.match(subs, /failed_charge_count, ' \+/, '상태 판정에 필요한 청구 실패 횟수를 조회하지 않는다')
+  assert.match(subs, /sub\.status === 'active' && stateOf\(sub\) !== 'needs_card' && \(/, '카드 등록 전 구독에 일시정지 버튼이 나온다(유령 일시정지)')
+  const pick = stripComments(read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')))
+  assert.match(pick, /!productsAll\[sl\] && \(!deferredSlugs\.has\(sl\) \|\| usedLineSlugs\.has\(sl\)\)/, '패킹 화면이 출시 보류 레시피를 매주 경고하거나, 보류라고 실제 쓰는 박스까지 경고에서 뺀다')
+  assert.match(pick, /\.filter\(\(s\) => s\.deferred\)/, '보류 레시피 목록이 skuModel(deferred) 정본에서 나오지 않는다')
+})

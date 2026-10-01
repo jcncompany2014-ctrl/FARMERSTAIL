@@ -11,6 +11,7 @@ import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 import { isLiveTrial, supporterViews, type SupporterView } from '@/lib/payments/trial-display'
 import type { TrialState } from '@/lib/payments/trial'
+import { subscriptionState, type SubState } from '@/lib/subscription-state'
 
 type SubscriptionRow = {
   id: string
@@ -34,6 +35,8 @@ type SubscriptionRow = {
    * 영구 거절 시에도 billing_key 는 남으므로 **billing_key 만으로는 판정 불가**.
    */
   requires_billing_key_renewal: boolean | null
+  /** 연속 청구 실패 횟수 — 상태 판정(subscriptionState)의 '결제 실패' 축. */
+  failed_charge_count: number | null
   user_id: string
   status: 'active' | 'paused' | 'cancelled'
   interval_weeks: number
@@ -69,6 +72,8 @@ type SubscriptionRow = {
 const TABS = [
   { value: 'all', label: '전체' },
   { value: 'active', label: '구독 중' },
+  // 플랜은 골랐지만 카드 등록을 안 끝낸 구독 — 결제·배송일이 아직 없다(2026-10-01 사장님 "왜 다음 배송일이 안 떠").
+  { value: 'needs_card', label: '카드 등록 전' },
   { value: 'paused', label: '일시정지' },
   { value: 'cancelled', label: '해지' },
   { value: 'upcoming', label: '📦 배송 예정' },
@@ -77,10 +82,26 @@ const TABS = [
 ]
 
 // 색은 orders/refunds 와 같은 토큰 팔레트(2026-09-05 어드민 개편).
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+// ★키는 status 칸이 아니라 정본 판정(lib/subscription-state)이다 (2026-10-01).
+//   status='active' 인데 카드가 없는 구독(플랜만 고르고 카드 등록을 안 끝냄)이 초록 '구독 중'으로 떠서,
+//   사장님이 "왜 다음 배송일이 안 뜨냐"고 물었다 — 배송일은 카드 등록 때 잡힌다(billing-issue).
+const STATUS_BADGE: Record<SubState, { label: string; cls: string }> = {
   active: { label: '구독 중', cls: 'bg-emerald-100 text-emerald-900 border-transparent' },
+  needs_card: { label: '카드 등록 전', cls: 'bg-sky-100 text-sky-900 border-transparent' },
+  card_failed: { label: '결제 실패', cls: 'bg-red-100 text-red-900 border-transparent' },
   paused: { label: '일시정지', cls: 'bg-amber-100 text-amber-900 border-transparent' },
   cancelled: { label: '해지', cls: 'bg-secondary text-secondary-foreground border-transparent' },
+}
+
+/** 화면이 읽을 상태 — status 칸 + 카드 등록·청구 실패를 합친 정본 판정. */
+function stateOf(sub: SubscriptionRow): SubState {
+  return subscriptionState({
+    status: sub.status,
+    has_billing_key: sub.has_billing_key,
+    next_delivery_date: sub.next_delivery_date,
+    failed_charge_count: sub.failed_charge_count ?? 0,
+    requires_billing_key_renewal: !!sub.requires_billing_key_renewal,
+  })
 }
 
 
@@ -148,7 +169,7 @@ export default function AdminSubscriptionsPage() {
           'next_delivery_date, total_deliveries, ' +
           'recipient_name, recipient_phone, address, ' +
           'address_detail, zip, subtotal, shipping_fee, ' +
-          'total_amount, created_at, dog_id, requires_billing_key_renewal, ' +
+          'total_amount, created_at, dog_id, requires_billing_key_renewal, failed_charge_count, ' +
           'billing_card_brand, has_billing_key, ' +
           'profiles(name, email), subscription_items(*), dogs(id, name)',
         { count: 'exact' },
@@ -181,6 +202,11 @@ export default function AdminSubscriptionsPage() {
       if (diff < 0 || diff > 7) return false
     } else if (tab === 'supporters') {
       if (!isLiveTrial(trials.get(s.user_id))) return false
+    } else if (tab === 'needs_card') {
+      if (stateOf(s) !== 'needs_card') return false
+    } else if (tab === 'active') {
+      // '구독 중' = 실제로 결제·배송이 도는 것(카드 미등록은 '카드 등록 전' 탭).
+      if (s.status !== 'active' || stateOf(s) === 'needs_card') return false
     } else if (tab !== 'all') {
       if (s.status !== tab) return false
     }
@@ -477,14 +503,32 @@ export default function AdminSubscriptionsPage() {
 
 /* ── 행 공통 조각 ──────────────────────────────────────────── */
 
-function StatusBadge({ status }: { status: SubscriptionRow['status'] }) {
-  const badge = STATUS_BADGE[status] ?? STATUS_BADGE.active!
+function StatusBadge({ sub }: { sub: SubscriptionRow }) {
+  const badge = STATUS_BADGE[stateOf(sub)]
   return (
     <Badge className={`gap-1 ${badge.cls}`}>
       <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden />
       {badge.label}
     </Badge>
   )
+}
+
+/** 다음 배송일 — 카드 등록 전이면 빈칸('-') 대신 왜 없는지를 말한다(배송일은 카드 등록 때 잡힌다). */
+function NextDelivery({ sub }: { sub: SubscriptionRow }) {
+  if (sub.next_delivery_date) {
+    return (
+      <>
+        {new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
+          month: 'short',
+          day: 'numeric',
+        })}
+      </>
+    )
+  }
+  if (stateOf(sub) === 'needs_card') {
+    return <span className="text-[11px] font-normal text-muted-foreground">카드 등록 후 잡혀요</span>
+  }
+  return <>-</>
 }
 
 /** 서포터즈 배지 — 상태 배지(초록·노랑)와 겹치지 않는 보라. */
@@ -532,7 +576,9 @@ function RowActions({
     <div
       className={`flex flex-wrap gap-1.5 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
     >
-      {sub.status === 'active' && (
+      {/* 카드 등록 전엔 일시정지가 없다 — 시작도 안 한 구독을 멈추면 카드 없는 '유령 일시정지'가 생긴다
+          (lib/subscription-state 문서, 2026-07-15 실측). 할 수 있는 건 해지·메시지뿐. */}
+      {sub.status === 'active' && stateOf(sub) !== 'needs_card' && (
         <button
           onClick={() => onAction(sub.id, 'paused')}
           disabled={isLoading}
@@ -605,15 +651,10 @@ function SubRow({
         </div>
       </td>
       <td className="px-4 py-3 text-center">
-        <StatusBadge status={sub.status} />
+        <StatusBadge sub={sub} />
       </td>
       <td className="px-4 py-3 text-center text-xs">
-        {sub.next_delivery_date
-          ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
-              month: 'short',
-              day: 'numeric',
-            })
-          : '-'}
+        <NextDelivery sub={sub} />
       </td>
       <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
         <AmountCell sub={sub} supporter={supporter} />
@@ -656,7 +697,7 @@ function SubCard({
             {sub.profiles?.email || ''}
           </p>
         </div>
-        <StatusBadge status={sub.status} />
+        <StatusBadge sub={sub} />
       </div>
       <div className="mt-2.5 text-[12px]">
         {sub.subscription_items.map((item, i) => (
@@ -673,12 +714,7 @@ function SubCard({
         <span className="text-muted-foreground">
           다음 배송{' '}
           <strong className="text-foreground">
-            {sub.next_delivery_date
-              ? new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
-                  month: 'short',
-                  day: 'numeric',
-                })
-              : '-'}
+            <NextDelivery sub={sub} />
           </strong>{' '}
           · 누적 {sub.total_deliveries}회
         </span>
