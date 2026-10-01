@@ -18,8 +18,12 @@
  * 문구를 바꾸면 버전도 올린다 — 어떤 문장에 동의했는지가 기록의 전부다.
  */
 
-/** 동의 문구 버전(날짜). 문구가 바뀌면 함께 바꾼다. */
-export const NO_CANCEL_CONSENT_VERSION = '2026-10-02'
+/**
+ * 동의 문구 버전(날짜). 문구가 바뀌면 함께 바꾼다.
+ *  · 2026-10-02   "결제되면 바로 …몫을 만들기 시작해요" — 서포터즈(발송일 결제)에겐 조리가 결제보다 먼저라 틀렸다.
+ *  · 2026-10-02.2 결제 시점과 무관하게 참인 문장으로(동의 기록 0건일 때 교체).
+ */
+export const NO_CANCEL_CONSENT_VERSION = '2026-10-02.2'
 
 /** 토스 왕복 주소(successUrl)에 싣는 쿼리 이름. */
 export const NO_CANCEL_CONSENT_PARAM = 'ncc'
@@ -32,12 +36,14 @@ export const NO_CANCEL_CONSENT_REQUIRED_MESSAGE = '결제 후 취소 안내를 �
 
 /**
  * 체크박스 아래 안내 — 이 문장이 동의의 내용이다(버전과 짝).
+ * ★결제 시점을 말하지 않는다: 일반 고객은 조리 직전 토요일, 서포터즈 체험 구간은 조리가 끝난 화요일에 결제된다
+ *   (lib/shipping-schedule chargeTimingFor). 어느 쪽이든 참인 사실은 "결제된 박스는 맞춤으로 만들어 그대로 보낸다".
  * @param dogLabel petName 을 거친 이름("콩이"). 없으면 '우리 아이'.
  */
 export function noCancelConsentBody(dogLabel?: string | null): string {
   const who = dogLabel && dogLabel.trim() ? dogLabel.trim() : '우리 아이'
   return (
-    `결제되면 바로 ${who} 몫을 만들기 시작해요. 그래서 결제된 박스는 단순 변심으로 취소·환불할 수 없어요. ` +
+    `결제된 박스는 ${who} 몫으로 맞춤 조리해 그대로 보내드려요. 그래서 결제 후에는 단순 변심으로 취소·환불할 수 없어요. ` +
     '다음 박스는 결제 전까지 정기배송 화면에서 미루거나 해지할 수 있고, 받은 박스에 문제가 있으면 환불해 드려요.'
   )
 }

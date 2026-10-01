@@ -5544,4 +5544,19 @@ test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동
 
   const mig = read(join(ROOT, 'supabase', 'migrations', '20261002120000_subscriptions_no_cancel_consent.sql'))
   assert.match(mig, /add column if not exists no_cancel_consent_at timestamptz/, '동의 기록 칸 마이그레이션이 없다')
+
+  // 동의 문구는 결제 시점을 말하지 않는다 — 서포터즈(발송일 결제)는 조리가 결제보다 먼저다(2026-10-02 교체).
+  assert.doesNotMatch(lib, /결제되면 바로|만들기 시작/, '동의 문구가 "결제되면 바로 만든다"고 말한다 — 서포터즈에겐 거짓')
+
+  // 법정 페이지(2026-10-02 즉시 시행 — 사장님 "바로 해도 돼")가 같은 범위·같은 일정을 말한다.
+  const refund = stripComments(read(join(ROOT, 'app', 'legal', 'refund', 'page.tsx')))
+  const terms = stripComments(read(join(ROOT, 'app', 'legal', 'terms', 'page.tsx')))
+  assert.match(refund, /결제 전에 별도로 안내하고\s+동의를 받은 정기배송 회차는/, '환불정책이 결제 후 취소 제한(동의 회차)을 안 적었다')
+  assert.match(terms, /결제 전에 회사가 그 사실을 별도로 알리고 회원이 동의한 경우/, '약관 제9조 제한 사유에 동의 회차가 없다')
+  assert.match(terms, /직전\s+금요일 밤/, '약관 제8조 마감이 금요일 밤이 아니다(lib/shipping-schedule LEAD_DAYS 4)')
+  for (const [name, src] of [['환불정책', refund], ['약관', terms]] as const) {
+    assert.doesNotMatch(src, /가상계좌|간편결제|에스크로/, `${name}이 없는 결제 수단(가상계좌·간편결제)을 약속한다 — 카드 전용`)
+    assert.doesNotMatch(src, /마이페이지에서 반품 신청/, `${name}이 없는 '마이페이지 반품 신청'을 안내한다`)
+    assert.doesNotMatch(src, /수도권은 다음 날|일요일이며/, `${name}이 옛 일정(일요일 마감·다음 날 도착)을 말한다`)
+  }
 })

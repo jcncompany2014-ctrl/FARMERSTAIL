@@ -37,11 +37,13 @@ describe('결제 후 취소 제한 동의 — 결제 전에 동의한 박스만 
   })
   it('안내 문장 — 결제 후 취소 불가 · 결제 전 미루기/해지 · 하자 환불을 다 말하고, 금지어가 없다', () => {
     const body = noCancelConsentBody('콩이')
-    assert.match(body, /콩이 몫/)
-    assert.match(body, /결제된 박스는 단순 변심으로 취소·환불할 수 없어요/)
+    assert.match(body, /콩이 몫으로 맞춤 조리해 그대로 보내드려요/)
+    assert.match(body, /결제 후에는 단순 변심으로 취소·환불할 수 없어요/)
+    // 결제 시점(조리 전/후)을 말하지 않는다 — 서포터즈는 조리가 끝난 발송일에 결제된다.
+    assert.doesNotMatch(body, /결제되면 바로|만들기 시작|토요일|화요일/)
     assert.match(body, /결제 전까지 정기배송 화면에서 미루거나 해지/)
     assert.match(body, /문제가 있으면 환불/)
     assert.doesNotMatch(body, /언제든|처방|%|연어|수요일/)
-    assert.match(noCancelConsentBody(null), /우리 아이 몫/)
+    assert.match(noCancelConsentBody(null), /우리 아이 몫으로/)
   })
 })
