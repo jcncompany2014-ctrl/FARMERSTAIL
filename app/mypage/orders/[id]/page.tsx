@@ -19,6 +19,7 @@ import {
   paymentMethodLabel,
 } from '@/lib/payments/toss'
 import { carrierLabel } from '@/lib/tracking'
+import { selfCancelBlockedByConsent } from '@/lib/payments/no-cancel-consent'
 import { discountReasonLabel } from '@/lib/commerce/discount-reason'
 
 export const dynamic = 'force-dynamic'
@@ -120,10 +121,25 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     order.payment_status === 'partially_refunded' ||
     order.payment_status === 'cancelled'
   // ★결제된 정기배송 박스는 셀프 취소가 없다(2026-10-01 — 결제 = 조리 시작). 서버(cancel 라우트)도 막는다.
+  //   단 **그 결제 전에 '결제 후 취소 안내'에 동의한 박스만**(2026-10-02 A안 — 판정 정본 lib/payments/no-cancel-consent).
+  //   동의 기록이 없으면 게시된 환불정책대로 취소 버튼을 둔다. 조회 실패면 버튼을 두고 서버가 판정한다.
+  const orderSubId = (order as { subscription_id?: string | null }).subscription_id ?? null
+  let noCancelConsentAt: string | null = null
+  if (orderSubId && order.payment_status === 'paid' && order.order_status === 'preparing') {
+    const { data: consentRow, error: consentErr } = await supabase
+      .from('subscriptions')
+      .select('no_cancel_consent_at')
+      .eq('id', orderSubId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (consentErr) console.error('[mypage/orders] 취소 안내 동의 조회 실패:', consentErr.message)
+    noCancelConsentAt = consentRow?.no_cancel_consent_at ?? null
+  }
   const isPaidSubscriptionBox =
-    !!(order as { subscription_id?: string | null }).subscription_id &&
+    !!orderSubId &&
     order.payment_status === 'paid' &&
-    order.order_status === 'preparing'
+    order.order_status === 'preparing' &&
+    selfCancelBlockedByConsent({ consentAt: noCancelConsentAt, paidAt: order.paid_at ?? order.created_at })
   const isCancellable =
     !isCancelled &&
     !paymentSettled &&

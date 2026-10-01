@@ -7,6 +7,7 @@ import {
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
 import { cancelPayment } from '@/lib/payments/toss'
+import { selfCancelBlockedByConsent } from '@/lib/payments/no-cancel-consent'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
@@ -88,7 +89,7 @@ export async function POST(
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name, subscription_id'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name, subscription_id, paid_at, created_at'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -129,16 +130,41 @@ export async function POST(
    * 해지·미루기는 결제 전(금요일 밤)까지 정기배송 화면에서 하면 그 박스는 결제되지 않는다. 특별한 사정은
    * 사장님이 어드민에서 직접 환불한다(품질·배송 문제 환불은 그대로).
    * 결제 전(pending) 주문은 돈이 오가지 않았으니 지금처럼 취소할 수 있다.
+   *
+   * ★단, **그 결제 전에 '결제 후 취소 안내'에 동의한 박스만** 막는다 (2026-10-02 사장님 A안).
+   *   주문 제작 재화의 청약철회 제한은 그 거래에 대한 별도 고지 + 고객 동의가 요건이고, 게시된 환불정책은 아직
+   *   "출고 전 셀프 취소"를 약속한다. 동의 기록(subscriptions.no_cancel_consent_at — 카드 등록 화면 필수 체크)이
+   *   없는 구독(기존 서포터즈·옛 화면 등록)은 게시된 정책대로 취소된다. 판정 정본 lib/payments/no-cancel-consent.
    */
   if (order.subscription_id && order.order_status === 'preparing' && order.payment_status === 'paid') {
-    return NextResponse.json(
-      {
-        code: 'SUBSCRIPTION_BOX_IN_PRODUCTION',
-        message:
-          '결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.',
-      },
-      { status: 409 }
-    )
+    const { data: consentRow, error: consentErr } = await supabase
+      .from('subscriptions')
+      .select('no_cancel_consent_at')
+      .eq('id', order.subscription_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (consentErr) {
+      // 동의 여부를 모르면 취소도 차단도 단정하지 않는다 — 돈이 걸린 결정이라 다시 시도하게 한다(규칙1).
+      return NextResponse.json(
+        { code: 'LOOKUP_FAILED', message: '잠시 연결이 불안정해요. 조금 뒤 다시 시도해 주세요.' },
+        { status: 503 }
+      )
+    }
+    if (
+      selfCancelBlockedByConsent({
+        consentAt: consentRow?.no_cancel_consent_at ?? null,
+        paidAt: order.paid_at ?? order.created_at,
+      })
+    ) {
+      return NextResponse.json(
+        {
+          code: 'SUBSCRIPTION_BOX_IN_PRODUCTION',
+          message:
+            '결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.',
+        },
+        { status: 409 }
+      )
+    }
   }
 
   const transition = canTransitionOrderStatus(order.order_status, 'cancelled', {

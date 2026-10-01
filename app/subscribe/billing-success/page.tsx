@@ -21,6 +21,7 @@ import {
 } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
+import { NO_CANCEL_CONSENT_PARAM } from '@/lib/payments/no-cancel-consent'
 
 /**
  * /subscribe/billing-success
@@ -105,6 +106,8 @@ function BillingSuccessInner() {
   const customerKey = params.get('customerKey')
   const subscriptionId = params.get('subscriptionId')
   const method = resolveBillingMethod(params.get('method'), billingMethodFlags())
+  // 결제 후 취소 제한 동의 버전 — 등록 화면이 필수 체크를 받고 토스 왕복 주소에 실은 값. 서버가 버전을 다시 검사한다.
+  const noCancelConsent = params.get(NO_CANCEL_CONSENT_PARAM)
 
   // 잘못된 진입을 useState initializer 에서 derive — useEffect 안에서 동기
   // setState 를 부르면 React 19 `react-hooks/set-state-in-effect` 룰이
@@ -168,6 +171,7 @@ function BillingSuccessInner() {
             customerKey,
             subscriptionId,
             method: method.id,
+            ...(noCancelConsent ? { noCancelConsent } : {}),
           }),
           signal: AbortSignal.timeout(25_000),
         })
@@ -281,7 +285,7 @@ function BillingSuccessInner() {
     return () => {
       cancelled = true
     }
-  }, [authKey, customerKey, subscriptionId, isInvalidEntry, method.id])
+  }, [authKey, customerKey, subscriptionId, isInvalidEntry, method.id, noCancelConsent])
 
   return (
     <main

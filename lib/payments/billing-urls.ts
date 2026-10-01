@@ -1,4 +1,5 @@
 import type { BillingMethodId } from './billing-methods'
+import { NO_CANCEL_CONSENT_PARAM } from './no-cancel-consent.ts'
 
 /**
  * 자동결제 등록 왕복 주소 — **순수함수만.** (SDK 를 import 하지 않는다: 그래야
@@ -18,15 +19,21 @@ export function billingRedirectUrls(input: {
   subscriptionId: string
   customerKey: string
   method: BillingMethodId
+  /**
+   * 결제 후 취소 제한(맞춤 제작) 동의 버전 — 화면이 필수 체크를 받았을 때만(lib/payments/no-cancel-consent).
+   * billing-success → billing-issue 가 카드 저장과 같은 쓰기로 기록한다. 없으면 싣지 않는다(옛 호출 무손상).
+   */
+  noCancelConsent?: string
 }): { successUrl: string; failUrl: string } {
-  const { origin, subscriptionId, customerKey, method } = input
+  const { origin, subscriptionId, customerKey, method, noCancelConsent } = input
   return {
     // ★ method 를 실어 보낸다 — 토스페이는 카드사명·카드번호가 안 올 수 있어서
     //   완료 화면과 저장 라벨이 "무엇으로 등록했는지"를 알아야 한다.
     successUrl:
       `${origin}/subscribe/billing-success` +
       `?subscriptionId=${encodeURIComponent(subscriptionId)}` +
-      `&method=${encodeURIComponent(method)}`,
+      `&method=${encodeURIComponent(method)}` +
+      (noCancelConsent ? `&${NO_CANCEL_CONSENT_PARAM}=${encodeURIComponent(noCancelConsent)}` : ''),
     // ★ customerKey 를 failUrl 에도 실어 보낸다 — 실패 페이지의 '다시 시도하기'가
     //   이 키 없이 billing-auth 로 돌아오면 '잘못된 접근' 막다른 길
     //   (2026-07-03 감사에서 실제로 그랬다).

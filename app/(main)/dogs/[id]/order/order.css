@@ -618,6 +618,59 @@
   min-height: 44px;
 }
 
+/* 결제 후 취소 안내 — 필수 체크(2026-10-02). 자동결제 간주 문장과 따로, 눈에 띄게(고지 요건). */
+.ord-consent {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--surface-card-elevated, #fff);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.ord-consent input[type=checkbox] {
+  appearance: none;
+  width: 22px; height: 22px;
+  margin: 0;
+  border: 2px solid var(--rule);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all 120ms;
+}
+.ord-consent input[type=checkbox]:checked {
+  background: var(--moss);
+  border-color: var(--moss);
+}
+.ord-consent input[type=checkbox]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #fff;
+  font-weight: 800;
+}
+.ord-consent input[type=checkbox]:focus-visible {
+  outline: 2px solid var(--terracotta);
+  outline-offset: 2px;
+}
+.ord-consent-text {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  word-break: keep-all;
+}
+.ord-consent-text strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
 .ord-foot {
   margin-top: 12px;
   font-size: 12px;

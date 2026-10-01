@@ -28,6 +28,16 @@ test('★ successUrl 에 subscriptionId 와 method 가 둘 다 실린다', () =>
   assert.ok(successUrl.startsWith('https://www.farmerstail.kr/subscribe/billing-success?'))
 })
 
+test('★ 결제 후 취소 제한 동의는 체크한 화면이 넘길 때만 successUrl 에 실린다 (2026-10-02)', () => {
+  const withConsent = billingRedirectUrls({ ...BASE, method: 'card', noCancelConsent: '2026-10-02' })
+  assert.match(withConsent.successUrl, /[?&]ncc=2026-10-02(&|$)/)
+  // failUrl 엔 싣지 않는다 — 다시 시도할 땐 화면에서 다시 체크한다.
+  assert.doesNotMatch(withConsent.failUrl, /ncc=/)
+  // 넘기지 않으면 예전 주소 그대로(옛 호출부 무손상).
+  const without = billingRedirectUrls({ ...BASE, method: 'card' })
+  assert.doesNotMatch(without.successUrl, /ncc=/)
+})
+
 test('★ failUrl 에 customerKey 가 실린다 — 없으면 재시도가 막다른 길', () => {
   // 2026-07-03 감사: 이 키 없이 billing-auth 로 돌아오면 '잘못된 접근' 이 뜬다.
   const { failUrl } = billingRedirectUrls({ ...BASE, method: 'card' })

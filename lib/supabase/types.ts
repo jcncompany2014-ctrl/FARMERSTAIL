@@ -3072,6 +3072,8 @@ export type Database = {
           mix_ratio: number | null
           next_delivery_date: string | null
           next_retry_at: string | null
+          no_cancel_consent_at: string | null
+          no_cancel_consent_version: string | null
           recipient_name: string
           recipient_phone: string
           reminder_days_before: number
@@ -3114,6 +3116,8 @@ export type Database = {
           mix_ratio?: number | null
           next_delivery_date?: string | null
           next_retry_at?: string | null
+          no_cancel_consent_at?: string | null
+          no_cancel_consent_version?: string | null
           recipient_name: string
           recipient_phone: string
           reminder_days_before?: number
@@ -3156,6 +3160,8 @@ export type Database = {
           mix_ratio?: number | null
           next_delivery_date?: string | null
           next_retry_at?: string | null
+          no_cancel_consent_at?: string | null
+          no_cancel_consent_version?: string | null
           recipient_name?: string
           recipient_phone?: string
           reminder_days_before?: number

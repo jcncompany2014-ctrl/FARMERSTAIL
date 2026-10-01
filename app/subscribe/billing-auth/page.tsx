@@ -17,6 +17,11 @@ import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
 import { weekdayKo } from '@/lib/shipping-schedule'
+import {
+  NO_CANCEL_CONSENT_LABEL,
+  NO_CANCEL_CONSENT_VERSION,
+  noCancelConsentBody,
+} from '@/lib/payments/no-cancel-consent'
 
 /**
  * /subscribe/billing-auth — 자동결제 등록 화면 (카드 전용).
@@ -204,6 +209,39 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
   )
 }
 
+/**
+ * 결제 후 취소 안내 — **필수 체크** (2026-10-02 사장님 A안).
+ *
+ * 주문 제작 재화의 청약철회 제한은 그 거래에 대한 별도 고지 + 고객 동의가 요건이다. 이 화면이 카드 등록(정기결제
+ * 시작) 자리라 여기서 받는다 — 앱 주문 화면이 토스를 못 띄워 이 화면으로 넘어온 경우·카드 재등록도 여기를 거친다.
+ * 문구·버전 정본 lib/payments/no-cancel-consent. 체크해야 등록 버튼이 열리고, 버전이 토스 왕복 주소를 타고
+ * billing-issue 에서 카드 저장과 함께 기록된다.
+ */
+function NoCancelConsentCheck({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label
+      className="mt-4 px-4 py-3 flex items-start gap-2.5 text-left cursor-pointer select-none"
+      style={{ background: 'var(--bg-3)', border: `1px solid ${checked ? 'var(--moss)' : 'var(--rule)'}` }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 shrink-0 cursor-pointer"
+        style={{ width: 20, height: 20, accentColor: 'var(--moss)' }}
+      />
+      <span className="flex flex-col gap-1">
+        <span className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
+          {NO_CANCEL_CONSENT_LABEL}
+        </span>
+        <span className="text-[11.5px] leading-relaxed" style={{ color: 'var(--muted)', wordBreak: 'keep-all' }}>
+          {noCancelConsentBody()}
+        </span>
+      </span>
+    </label>
+  )
+}
+
 function BillingAuthInner() {
   const router = useRouter()
   const isApp = useIsAppContext()
@@ -309,9 +347,15 @@ function BillingAuthInner() {
     isInvalidEntry ? '잘못된 접근이에요' : null,
   )
 
+  /** 결제 후 취소 안내 필수 동의(NoCancelConsentCheck). 기본 해제. */
+  const [noCancelAgreed, setNoCancelAgreed] = useState(false)
+
   /** 버튼 클릭 → 곧바로 토스 창. 이 클릭이 사용자 제스처다(docstring ① 참조). */
   async function launch(methodId: BillingMethodId) {
     if (launchingId) return
+    // 버튼이 막혀 있지만 한 번 더 — 동의 없이 카드 등록으로 넘어가지 않는다.
+    // ⚠️ setError 를 쓰지 않는다: 이 화면의 error 는 화면 전체를 '돌아가기' 막다른 화면으로 바꾼다.
+    if (!noCancelAgreed) return
     setLaunchingId(methodId)
     try {
       // 주문 화면과 **같은 헬퍼**를 쓴다 — successUrl/failUrl 규칙이 두 곳에서
@@ -320,6 +364,7 @@ function BillingAuthInner() {
         subscriptionId: subscriptionId!,
         customerKey: customerKey!,
         method: methodId,
+        noCancelConsent: NO_CANCEL_CONSENT_VERSION,
       })
       // Toss SDK 가 화면을 넘긴다 — 정상 흐름은 여기 도달 안 함.
     } catch (e) {
@@ -472,6 +517,7 @@ function BillingAuthInner() {
                   {termsNoteText(terms)}
                 </p>
               </div>
+              <NoCancelConsentCheck checked={noCancelAgreed} onChange={setNoCancelAgreed} />
               <div className="mt-6 flex flex-col gap-2.5 text-left">
                 {AVAILABLE.map((m) => {
                   // 토스페이는 **토스 브랜드 색**으로 — 카드와 나란히 두면
@@ -484,7 +530,7 @@ function BillingAuthInner() {
                       key={m.id}
                       type="button"
                       onClick={() => void launch(m.id)}
-                      disabled={!!launchingId}
+                      disabled={!!launchingId || !noCancelAgreed}
                       className="w-full px-5 py-4 border text-left transition-opacity active:opacity-70 disabled:opacity-60"
                       style={{
                         borderColor: brand ?? 'var(--rule)',
@@ -543,10 +589,11 @@ function BillingAuthInner() {
               {/* ★법정 고지 — 이 화면이 실제로 카드를 등록하는 자리다.
                   선택 화면에만 있던 고지가 카드 전용 전환 후 도달 불가가 됐다. */}
               <RecurringTerms terms={terms} />
+              <NoCancelConsentCheck checked={noCancelAgreed} onChange={setNoCancelAgreed} />
               <button
                 type="button"
                 onClick={() => void launch(method.id)}
-                disabled={!!launchingId}
+                disabled={!!launchingId || !noCancelAgreed}
                 className="mt-7 w-full py-4 text-[14px] font-bold disabled:opacity-60"
                 style={{
                   background: method.brandColor ?? 'var(--ink)',

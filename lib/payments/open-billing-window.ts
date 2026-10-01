@@ -25,6 +25,8 @@ export async function openBillingWindow(input: {
   subscriptionId: string
   customerKey: string
   method: BillingMethodId
+  /** 결제 후 취소 제한 동의 버전 — 필수 체크를 받은 화면만 넘긴다(billing-urls 참고). */
+  noCancelConsent?: string
 }): Promise<void> {
   const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
   if (!clientKey) {

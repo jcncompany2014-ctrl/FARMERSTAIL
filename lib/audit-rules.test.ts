@@ -5502,3 +5502,46 @@ test('규칙154: 결제된 박스는 그대로 나간다 — 발송일은 결제
   assert.match(dogSub, /inProgress\[sub\.id\]\s*\?\s*`이번 박스는 그대로 보내드리고, 그다음 박스를/, '결제 뒤 미루기 안내가 이번 박스도 미뤄지는 것처럼 말한다')
   assert.match(dogSub, /inProgress\[sub\.id\]\s*\?\s*'이번 박스는 그대로 보내드리고, 그다음부터 쉬어/, '결제 뒤 일시정지 안내가 이번 박스도 멈추는 것처럼 말한다')
 })
+
+test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동의가 있을 때만 — 카드 등록 입구마다 체크, 동의 기록은 서버가 카드와 함께', () => {
+  /**
+   * # 왜 (2026-10-02 사장님 "A가 좋다")
+   * 주문 제작 재화의 청약철회 제한은 그 거래에 대한 **별도 고지 + 고객 동의**가 요건이고(전자상거래법 §17②·시행령 §21),
+   * 게시된 환불정책은 아직 "출고 전 셀프 취소"를 약속한다. 그래서 결제된 박스의 셀프 취소는 **결제 전에 필수 체크로
+   * 동의한 박스만** 막고, 동의 기록이 없는 구독(기존 서포터즈·옛 화면)은 게시된 정책대로 취소된다.
+   */
+  const lib = stripComments(read(join(ROOT, 'lib', 'payments', 'no-cancel-consent.ts')))
+  assert.match(lib, /if \(!input\.consentAt \|\| !input\.paidAt\) return false/, '동의 기록이나 결제 시각을 모르는데 취소를 막는다')
+  assert.match(lib, /return c <= p/, '결제 뒤에 한 동의로 그 전에 결제된 박스까지 막는다')
+
+  // 토스 카드창을 여는 곳은 전부 필수 체크를 거치고 동의 버전을 싣는다.
+  const launchers = walk(join(ROOT, 'app')).filter((f) => /\.tsx?$/.test(f) && /openBillingWindow\(\{/.test(read(f)))
+  assert.ok(launchers.length >= 2, `토스 카드창 입구를 ${launchers.length}곳만 찾았다 — 검사가 헛돈다`)
+  for (const f of launchers) {
+    const src = stripComments(read(f))
+    for (const m of src.matchAll(/openBillingWindow\(\{([\s\S]*?)\}\)/g)) {
+      assert.match(m[1] ?? '', /noCancelConsent: NO_CANCEL_CONSENT_VERSION/, `${f} — 카드창을 열면서 결제 후 취소 동의를 싣지 않는다`)
+    }
+    assert.match(src, /if \(!noCancelAgreed\)/, `${f} — 필수 체크 없이 카드 등록으로 넘어갈 수 있다`)
+  }
+  const auth = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx')))
+  assert.equal((auth.match(/disabled=\{!!launchingId \|\| !noCancelAgreed\}/g) ?? []).length, 2, '카드 등록 화면의 등록 버튼이 동의 전에 열려 있다')
+  assert.doesNotMatch(auth, /setError\(NO_CANCEL/, '동의 안내를 화면 전체 오류(막다른 화면)로 띄운다')
+
+  // 왕복 주소 → 완료 화면 → 서버: 지금 버전일 때만, 카드 저장과 같은 쓰기로.
+  assert.match(stripComments(read(join(ROOT, 'lib', 'payments', 'billing-urls.ts'))), /\$\{NO_CANCEL_CONSENT_PARAM\}=/, '토스 왕복 주소에 동의 버전이 안 실린다')
+  assert.match(stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-success', 'page.tsx'))), /noCancelConsent \? \{ noCancelConsent \} : \{\}/, '완료 화면이 동의 버전을 서버로 넘기지 않는다')
+  const issue = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
+  assert.match(issue, /isCurrentNoCancelConsent\(parsed\.data\.noCancelConsent\)\s*\?\s*\{ no_cancel_consent_at:/, '서버가 버전 검사 없이 동의를 기록하거나 아예 기록하지 않는다')
+  assert.ok(issue.indexOf('no_cancel_consent_at') > issue.indexOf('billing_key: result.billingKey'), '동의 기록이 카드 저장과 같은 쓰기에 있지 않다')
+
+  // 취소를 막는 두 곳은 같은 판정을 쓴다 — 무조건 차단으로 되돌아가면 동의 없는 고객의 권리를 막는다.
+  const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
+  assert.match(cancel, /selfCancelBlockedByConsent\(\{\s*consentAt: consentRow\?\.no_cancel_consent_at \?\? null,\s*paidAt: order\.paid_at \?\? order\.created_at,?\s*\}\)/, '취소 API 가 동의 여부 없이 결제된 박스를 막는다')
+  assert.match(cancel, /if \(consentErr\) \{[\s\S]{0,400}status: 503/, '동의 조회 실패를 동의 없음/있음으로 넘겨짚는다')
+  const orderPage = stripComments(read(join(ROOT, 'app', 'mypage', 'orders', '[id]', 'page.tsx')))
+  assert.match(orderPage, /selfCancelBlockedByConsent\(\{ consentAt: noCancelConsentAt, paidAt: order\.paid_at \?\? order\.created_at \}\)/, '주문 상세가 동의 없는 고객에게서도 취소 버튼을 숨긴다')
+
+  const mig = read(join(ROOT, 'supabase', 'migrations', '20261002120000_subscriptions_no_cancel_consent.sql'))
+  assert.match(mig, /add column if not exists no_cancel_consent_at timestamptz/, '동의 기록 칸 마이그레이션이 없다')
+})

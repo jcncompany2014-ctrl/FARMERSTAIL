@@ -12,6 +12,7 @@ import { nextShipDate, chargeDateFor } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
+import { isCurrentNoCancelConsent, NO_CANCEL_CONSENT_VERSION } from '@/lib/payments/no-cancel-consent'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,6 +47,12 @@ const zBillingIssue = z.object({
    * 돈에는 영향이 없다. 없으면 카드로 낙하(기존 호출 무손상).
    */
   method: z.enum(['card', 'tosspay']).optional(),
+  /**
+   * 결제 후 취소 제한(맞춤 제작) 동의 버전 — 등록 화면 필수 체크를 거쳐 successUrl 로 온 값(2026-10-02).
+   * 지금 버전과 같을 때만 카드 저장과 같은 쓰기로 기록한다(isCurrentNoCancelConsent). 없거나 다르면 기록하지
+   * 않고 등록은 그대로 진행 — 그 구독의 결제된 박스는 게시된 정책대로 발송 전 셀프 취소가 된다.
+   */
+  noCancelConsent: z.string().max(40).optional(),
 })
 
 export async function POST(req: Request) {
@@ -335,6 +342,10 @@ export async function POST(req: Request) {
       last_failed_charge_code: null,
       ...(shouldResume ? { status: 'active' } : {}),
       ...(firstDeliveryIso ? { next_delivery_date: firstDeliveryIso } : {}),
+      // 결제 후 취소 제한 동의 — 카드가 실제로 저장되는 이 쓰기와 함께(동의만 남고 카드가 없는 상태가 없게).
+      ...(isCurrentNoCancelConsent(parsed.data.noCancelConsent)
+        ? { no_cancel_consent_at: new Date().toISOString(), no_cancel_consent_version: NO_CANCEL_CONSENT_VERSION }
+        : {}),
     })
     .eq('id', subscriptionId)
     .eq('user_id', user.id)

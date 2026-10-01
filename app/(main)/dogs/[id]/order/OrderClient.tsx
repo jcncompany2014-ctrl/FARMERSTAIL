@@ -29,6 +29,12 @@ import {
   type BillingMethodId,
 } from '@/lib/payments/billing-methods'
 import { openBillingWindow } from '@/lib/payments/open-billing-window'
+import {
+  NO_CANCEL_CONSENT_LABEL,
+  NO_CANCEL_CONSENT_REQUIRED_MESSAGE,
+  NO_CANCEL_CONSENT_VERSION,
+  noCancelConsentBody,
+} from '@/lib/payments/no-cancel-consent'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { useToast } from '@/components/ui/Toast'
@@ -273,6 +279,8 @@ export default function OrderClient({
   const [addressEdited, setAddressEdited] = useState(false)
   /** 변경 주소를 다음 정기배송에도 사용 (profiles upsert) 옵트인 토글. */
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(true)
+  // 결제 후 취소 제한(맞춤 제작) 필수 동의 — 기본 해제. 체크해야 카드 등록으로 넘어간다(lib/payments/no-cancel-consent).
+  const [noCancelAgreed, setNoCancelAgreed] = useState(false)
   const [recipientName, setRecipientName] = useState(profile.name)
   const [recipientPhone, setRecipientPhone] = useState(profile.phone)
   const [recipientZip, setRecipientZip] = useState(profile.zip)
@@ -506,6 +514,11 @@ export default function OrderClient({
       )
       return
     }
+    // 결제 후 취소 안내 — 그 거래에 대한 별도 고지 + 고객 동의가 있어야 결제된 박스의 취소를 막을 수 있다(2026-10-02).
+    if (!noCancelAgreed) {
+      failValidation(NO_CANCEL_CONSENT_REQUIRED_MESSAGE, 'ord-no-cancel')
+      return
+    }
     setSubmitting(true)
     setErr('')
     try {
@@ -635,6 +648,8 @@ export default function OrderClient({
           subscriptionId: subId,
           customerKey,
           method: payMethod,
+          // 위에서 필수 체크를 확인했다 — 카드 저장과 함께 동의 기록이 남는다(billing-issue).
+          noCancelConsent: NO_CANCEL_CONSENT_VERSION,
         })
         // 토스가 화면을 넘긴다 — 아래로 내려오지 않는다.
       } catch (e) {
@@ -1223,6 +1238,26 @@ export default function OrderClient({
               <span style={{ whiteSpace: 'pre-line' }}>{err}</span>
             </div>
           )}
+
+          {/* 결제 후 취소 안내 — **필수 체크**(2026-10-02 사장님 A안). 주문 제작 재화의 청약철회 제한은 그 거래에
+              대한 별도 고지 + 고객 동의가 요건이라 자동결제 간주 문장과 따로 둔다. 문구·버전 정본
+              lib/payments/no-cancel-consent. 체크 없이 결제하기를 누르면 여기로 스크롤된다(id). */}
+          <label className="ord-consent" htmlFor="ord-no-cancel">
+            <input
+              id="ord-no-cancel"
+              type="checkbox"
+              checked={noCancelAgreed}
+              onChange={(e) => {
+                setNoCancelAgreed(e.target.checked)
+                // 이 체크를 요구하던 안내만 지운다(다른 검증 문구는 남긴다).
+                if (e.target.checked && err === NO_CANCEL_CONSENT_REQUIRED_MESSAGE) setErr('')
+              }}
+            />
+            <span className="ord-consent-text">
+              <strong>{NO_CANCEL_CONSENT_LABEL}</strong>
+              <span>{noCancelConsentBody(petName(dogName))}</span>
+            </span>
+          </label>
 
           {/* R92-S (D7): 정기과금 명시 동의 — 전자상거래법 §13 / 콘텐츠산업
               진흥법 고지 의무. 결제하기 = 자동결제 동의 간주 근거. */}
