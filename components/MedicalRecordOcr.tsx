@@ -160,6 +160,11 @@ export default function MedicalRecordOcr({
             진단명·처방 약·체중 같은 정보를 자동으로 읽어 정리해드려요.
             <span className="text-muted"> 옵션이라 안 올려도 괜찮아요.</span>
           </p>
+          {/* 2026-10-02 — 사진은 AI 판독(Anthropic)으로 그대로 간다(개인정보처리방침 위탁·국외이전 표). 영수증엔
+              보호자 성명·연락처가 흔히 인쇄돼 있어 올리기 전에 가리도록 안내한다(LEGAL_REVISION §1). */}
+          <p className="mt-1 text-[12px] leading-relaxed text-muted">
+            보호자 이름·연락처가 찍혀 있으면 가리고 올려 주세요.
+          </p>
 
           {status.kind === 'idle' && (
             <button

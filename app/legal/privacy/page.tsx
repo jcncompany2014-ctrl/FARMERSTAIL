@@ -32,8 +32,13 @@ export const metadata: Metadata = {
  * 계정과 심사용 계정뿐이라 통지 대상이 없다(사장님 확인). 고객이 생기기 **전에**
  * 방침을 실제 처리와 맞추는 것이 맞으므로 즉시 시행한다.
  * 다음 개정부터는 회원이 있으므로 7일 전 공지를 지켜야 한다.
+ *
+ * ★2026-10-02 개정 — 기재를 실제 처리에 맞춘 정정(docs/LEGAL_REVISION_2026_10.md §1). 사장님 "ㄱㄱ"(실 결제 고객 0명,
+ *   약관·환불정책과 같은 날 즉시 시행). 가입 시 이름·출생연도 · 카드사명·끝 4자리·빌링키 · 반려견 사진·건강기록·
+ *   AI 상담 · Anthropic 전송 범위(진료서·영수증 이미지 포함) · Supabase 저장 위치(서울 리전, get_project 실측) ·
+ *   알림톡(솔라피·카카오) · Sentry 세션 리플레이(마스킹). 다음 개정부터는 다시 7일 전 공지.
  */
-const EFFECTIVE_DATE = '2026-09-01'
+const EFFECTIVE_DATE = '2026-10-02'
 
 /**
  * 개인정보처리방침.
@@ -90,7 +95,9 @@ export default function PrivacyPage() {
                   간편가입 두 곳) 수집항목·위탁·국외이전 어디에도 없었다.
                 개인정보보호법 제30조(기재 정확성) 문제라 실물에 맞춰 고쳤다. */}
             <li>
-              <b>회원가입 시:</b> 이메일, 비밀번호
+              {/* 2026-10-02 — 이메일 가입도 이름·출생연도를 받는다(app/start/join · StartSurvey, 만 14세 확인). */}
+              <b>회원가입 시:</b> 이메일, 비밀번호, 보호자 이름, 출생연도(만
+              14세 이상 확인용)
             </li>
             <li>
               <b>카카오 로그인 시:</b> 카카오 계정 식별자, 이메일, 이름,
@@ -105,9 +112,13 @@ export default function PrivacyPage() {
               우편번호, 배송 요청사항
             </li>
             <li>
-              <b>결제 시:</b> 결제 수단 정보는 토스페이먼츠(주)를 통해
-              처리되며, 회사는 결제 상태, 거래 ID, 결제 금액, 결제
-              방식(카드·가상계좌 등)만 수신·저장합니다.
+              {/* 2026-10-02 — 결제 수단은 카드 전용(토스 빌링)이고, 실제로 저장하는 칸은
+                  subscriptions.billing_card_brand·billing_card_last4·billing_key·no_cancel_consent_at 이다. */}
+              <b>결제 시:</b> 결제는 토스페이먼츠(주)를 통한 신용·체크카드
+              정기결제로 처리되며, 카드번호 전체 등 결제 수단 정보는 회사가
+              저장하지 않습니다. 회사는 결제 상태, 거래 ID, 결제 금액, 카드사명,
+              카드번호 끝 4자리, 정기결제용 빌링키(토스페이먼츠가 발급한
+              식별값), 정기결제 관련 동의 일시를 저장합니다.
             </li>
             <li>
               <b>자동 수집:</b> 접속 IP, 접속 일시, 쿠키, 기기 정보,
@@ -125,6 +136,12 @@ export default function PrivacyPage() {
             <li>
               반려견 프로필: 이름, 견종, 생년월일, 체중, 중성화 여부,
               건강 상태
+            </li>
+            {/* 2026-10-02 — 실제로 저장하는데 빠져 있던 것: dogs.photo_url · dog_diary/dog_checkins(기록·사진) ·
+                medical_records(진료서·영수증 사진) · chatbot_messages(AI 상담). */}
+            <li>
+              반려견 사진, 산책·식사·일기 기록과 사진, 건강 기록(진료서·영수증
+              사진 포함), AI 영양 상담 대화 내용
             </li>
             <li>SMS/이메일 마케팅 수신 동의</li>
           </UL>
@@ -274,7 +291,25 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    카카오 소셜 로그인, 주소 검색 API
+                    카카오 소셜 로그인, 주소 검색 API, 카카오 알림톡 전달(카카오톡
+                    채널)
+                  </td>
+                </tr>
+                {/* 2026-10-02 추가 — 알림톡 발송 대행(lib/notify/alimtalk, 솔라피 SDK). 첫 발송 전에 방침에 있어야
+                    한다(개인정보보호법 §26② 위탁 공개). 받는 사람 휴대폰 번호·이름과 안내 내용이 넘어간다. */}
+                <tr>
+                  <td
+                    className="px-2 py-1.5 font-semibold"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    (주)누리고 (솔라피)
+                  </td>
+                  <td
+                    className="px-2 py-1.5"
+                    style={{ border: '1px solid var(--fd-line)' }}
+                  >
+                    카카오 알림톡·문자 발송 대행 — 받는 분 휴대폰 번호·이름, 주문·결제·배송
+                    안내 내용
                   </td>
                 </tr>
                 <tr>
@@ -377,7 +412,11 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    반려견 영양 분석 AI (Claude) — 익명화된 설문 응답 전송
+                    {/* 2026-10-02 — '익명화된 설문 응답'만이 아니다: AI 상담(app/api/chatbot*)·진료서 판독
+                        (app/api/health/ocr — 영수증 이미지 그대로)도 Claude 로 간다. */}
+                    반려견 영양 분석·AI 상담·진료서 판독 (Claude) — 반려견 정보·설문
+                    응답, AI 상담 대화 내용, 회원이 올린 진료서·영수증 이미지(보호자
+                    성명 등이 포함될 수 있음) 전송
                   </td>
                 </tr>
                 <tr>
@@ -447,13 +486,19 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    미국 (AWS us-east)
+                    {/* 2026-10-02 정정 — 프로젝트 리전 ap-northeast-2(서울, get_project 실측). 운영사가 미국
+                        법인이라 원격 운영·지원 시 접근 가능성을 고지 대상으로 남긴다. */}
+                    데이터 저장: 대한민국 (AWS 서울 리전)
+                    <br />
+                    운영사 소재: 미국
                   </td>
                   <td
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    회원가입·로그인 정보, 주문/결제 메타데이터
+                    회원가입·로그인 정보, 주문/결제 메타데이터, 반려견·건강
+                    기록과 사진 (서울 리전에 저장, 운영사의 원격 운영·지원 시
+                    접근 가능)
                     <br />
                     회원 행위 발생 시점에 상시
                     <br />
@@ -562,10 +607,12 @@ export default function PrivacyPage() {
                     className="px-2 py-1.5"
                     style={{ border: '1px solid var(--fd-line)' }}
                   >
-                    반려견 영양 분석을 위한 익명화된 설문 응답 (이름·연락처
-                    포함하지 않음)
+                    {/* 2026-10-02 정정 — 진료 영수증엔 보호자 성명·연락처가 흔히 인쇄돼 있어 "이름·연락처
+                        포함하지 않음"은 사실이 아니었다. */}
+                    반려견 정보·설문 응답, AI 상담 대화 내용, 회원이 올린
+                    진료서·영수증 이미지(보호자 성명·연락처 등이 포함될 수 있음)
                     <br />
-                    분석 요청 시점
+                    분석·상담·판독 요청 시점
                     <br />
                     HTTPS API 호출, Anthropic 정책상 학습용 미사용
                   </td>
@@ -589,6 +636,11 @@ export default function PrivacyPage() {
                   >
                     오류 발생 시 stack trace, route, 사용자 식별번호
                     (PII 자동 스크러빙)
+                    {/* 2026-10-02 추가 — instrumentation-client replayIntegration(maskAllText·maskAllInputs·
+                        blockAllMedia), 오류 세션만(replaysOnErrorSampleRate 1.0). */}
+                    <br />
+                    오류가 난 세션의 화면 조작 기록(세션 리플레이 — 글자·입력값·사진은
+                    가린 채 기록)
                     <br />
                     오류 발생 시점에만
                     <br />
