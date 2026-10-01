@@ -5174,3 +5174,18 @@ test('규칙142: 크는 자견에게 체중 증가를 이유로 급여량 감량
   assert.match(cron, /\.select\('bcs_score, stage'\)/, '체중 크론이 분석 당시 생애주기를 읽지 않는다')
   assert.match(cron, /decideReweigh\(\{[\s\S]{0,160}isGrowing,/, '체중 크론이 성장기 여부를 판정에 넘기지 않는다')
 })
+
+test('규칙143: 자견 칼로리는 가정견 자견 식(Klein 2019)이다 — 사육장 기준 NRC 130 식·토이 이중 하향으로 돌아가지 않는다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "계수 잘못된 거 아니냐" → 확정 "몰래 바꿔, 우리 오류")
+   * NRC 2006 성장식의 앞 상수 130 은 사육장 활동견 기준이라 가정견 자견을 과대추정했다
+   * (7개월 웨스티 펀치 785kcal ↔ 가정견 실측 식 695 · AAHA 2.0×RER 685). 스펙 문서(M6·T4)에는
+   * 옛 식이 "130 확인" 가드로 남아 있어, 문서를 보고 되돌리기 쉽다.
+   */
+  const nu = stripComments(read(join(ROOT, 'lib', 'nutrition.ts')))
+  assert.match(nu, /\(254\.1 - 135\.0 \* p\) \* Math\.pow\(w, 0\.75\)/, '자견 kcal 이 Klein 가정견 식이 아니다')
+  assert.doesNotMatch(nu, /130 \* Math\.pow\(w, 0\.75\) \* 3\.2/, '사육장 기준 NRC 130 성장식으로 돌아갔다 — 가정견 자견 과대추정')
+  assert.doesNotMatch(nu, /toyOverestimate\) der \*=/, '가정견 실측식에 토이 −15% 를 겹쳐 과소급여한다')
+  // 고객 분석 화면에 그대로 나가는 근거 줄 — 전문용어·비율% 금지(브랜드 보이스)
+  assert.doesNotMatch(nu, /label: `성장기[^`]*(%|NRC|정확식|간이 근사)/, '자견 근거 줄에 전문용어·%가 고객에게 나간다')
+})

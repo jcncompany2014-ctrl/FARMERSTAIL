@@ -470,7 +470,7 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
   // 1단계 연결 범위(사장님 확정 2026-07-12):
   //  - 성견/노령: v2 사다리 (BCS 는 현행 직접선택 값 주입 — 3분해는 2단계)
   //  - BCS≥6: v2 감량 분기 — RER 을 이상체중(IBW)으로 재계산, 계수 1.0 시작
-  //  - 자견: 간이 근사 유지(성견 예상체중 질문 추가 후 NRC 정확식 — 2단계)
+  //  - 자견: Klein 2019 가정견 식(예상 성견체중 있을 때) · 없으면 월령 간이 근사
   //  - 임신/수유: NRC REPLACE 계산 유지 + vetConsult (수의 라우팅 UI = 2단계)
   const ladderBcs = (answers.bcsExact ?? bcs.score) as number
   // 칼로리 v2 4단계 — 견종 플래그 (OB→easy-keeper OR·BRA→활동 억제·TOY→자견 −15%).
@@ -482,29 +482,31 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
         ? dog.expectedAdultWeight
         : null
     if (adultKg) {
-      // 칼로리 v2 2c — NRC 2006 성장 정확식: 130×BW^0.75×3.2×(e^−0.87p−0.1).
-      // ⚠️ 앞 상수 130 (70 이면 ~46% 과소 — 스펙 가드레일 8). factor 는 RER
-      // 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
-      // 토이 견종 −15% 하향은 4단계(견종 플래그)에서.
+      // 자견 에너지 — Klein 2019 가정견 자견 493두 식 (FEDIAF 2025 Table VII-8b 채택):
+      //   ME(kcal/일) = (254.1 − 135.0·p) × BW^0.75,  p = 현재체중 / 예상 성견체중.
+      // (원문 MJ 식 (1.063 − 0.565·p)×BW^0.75 × 239 kcal/MJ. doi 10.1111/jpn.13191)
+      //
+      // 2026-10-01 사장님 확정으로 NRC 2006 식(130×BW^0.75×3.2×(e^−0.87p−0.1))에서 교체.
+      // NRC 앞 상수 130 은 사육장 활동견 기준이라 가정견 자견을 과대추정했다(가정견 실섭취 =
+      // NRC 의 78~83%, Klein 2019). p→1 극한도 1.9×RER 이라 성견 사다리(1.4~1.6)와 어긋났다
+      // (7개월 웨스티 펀치 785 → 695kcal, AAHA 2.0×RER=685 와 수렴). 이 식의 p→1 극한은
+      // 119 kcal/kg^0.75(≈1.7×RER).
+      // 토이 −15% 는 겹쳐 쓰지 않는다 — Klein 은 이미 가정견 실측이고, 요크셔 콜로니 실측
+      // (10주 ≈194 · 52주 ≈120 kcal/kg^0.75, Alexander 2017)과 보정 없이 맞는다.
+      // factor 는 RER 대비 비율로 역산해 기존 MER=RER×factor 파이프라인 유지(MER=round(der)).
       const p = Math.min(1, w / adultKg)
-      let der = 130 * Math.pow(w, 0.75) * 3.2 * (Math.exp(-0.87 * p) - 0.1)
-      // 토이 견종 — NRC 표준식 과대추정 보정 (~15% 하향, 스펙 §6 M6).
-      if (breedFlags.toyOverestimate) der *= 0.85
+      const der = (254.1 - 135.0 * p) * Math.pow(w, 0.75)
       factor = der / RER
       factorBreakdown = [
-        {
-          label: `성장기 정확식 — 성장률 ${Math.round(p * 100)}% (NRC 130${breedFlags.toyOverestimate ? ' · 토이 −15%' : ''})`,
-          delta: +factor.toFixed(2),
-        },
+        // 고객 분석 화면에 그대로 나가는 줄 — 전문용어·비율% 금지(브랜드 보이스).
+        { label: '성장기 기본(크는 몫 포함)', delta: +factor.toFixed(2) },
       ]
     } else {
       // 성견 예상체중 미입력 — 간이 근사 폴백 (나이 단계).
       if (m < 4) factor = 3.0
       else if (m < 8) factor = 2.5
       else factor = 2.0
-      factorBreakdown = [
-        { label: `성장기(${m}개월) — 간이 근사 ×${factor}`, delta: factor },
-      ]
+      factorBreakdown = [{ label: '성장기 기본(크는 몫 포함)', delta: factor }]
     }
   } else if (ladderBcs >= 6) {
     // v2 감량 분기 (M2b·M5) — 과체중은 이상체중 기준 RER × 1.0 에서 시작.

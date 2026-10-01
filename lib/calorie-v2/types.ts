@@ -64,6 +64,11 @@ export type BreedKey =
 /** 견종 플래그 — kcal 계수 아님. 동작 수정용 (스펙 §6 M4b). */
 export interface BreedFlags {
   obeseProne: boolean
+  /**
+   * 토이 견종. 옛 NRC 자견 식의 과대추정 보정(−15%)용이었으나, 2026-10-01 자견 식을 Klein
+   * 가정견 식으로 바꾸며 kcal 에는 쓰지 않는다(이미 가정견 실측 — 겹치면 과소급여).
+   * 견종 분류 정보로만 남긴다.
+   */
   toyOverestimate: boolean
   brachycephalic: boolean
   highDrive: boolean

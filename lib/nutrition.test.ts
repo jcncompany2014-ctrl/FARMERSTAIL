@@ -305,7 +305,7 @@ describe('calculateNutrition — v2 4단계 견종 플래그', () => {
     assert.equal(r.factor, 1.4)
   })
 
-  it('토이 자견(토이푸들) — 정확식 589 × 0.85 = 501 (스펙 T4 완전판)', () => {
+  it('토이 자견(토이푸들) — Klein 가정견 식에 토이 −15% 를 겹치지 않는다 (464, 견종 무관)', () => {
     const r = calculateNutrition(
       baseDog({
         weight: 3,
@@ -316,7 +316,7 @@ describe('calculateNutrition — v2 4단계 견종 플래그', () => {
       }),
       baseAnswers(),
     )
-    assert.equal(r.mer, 501)
+    assert.equal(r.mer, 464)
   })
 
   it('진돗개(HD) — 감산·가산 없음: 중성화 1.4 그대로', () => {
@@ -371,8 +371,8 @@ describe('calculateNutrition — v2 2d 간식 kcal 신고 (10% 캡)', () => {
   })
 })
 
-describe('calculateNutrition — v2 2c 자견 NRC 정확식 (앞 상수 130)', () => {
-  it('3kg 자견 / 성견예상 8kg → 정확식 589 kcal (스펙 T4, 토이 하향 전)', () => {
+describe('calculateNutrition — 자견 Klein 2019 가정견 식 (2026-10-01 NRC 에서 교체)', () => {
+  it('3kg 자견 / 성견예상 8kg → (254.1 − 135×0.375)×3^0.75 = 464 kcal', () => {
     const r = calculateNutrition(
       baseDog({
         weight: 3,
@@ -383,9 +383,26 @@ describe('calculateNutrition — v2 2c 자견 NRC 정확식 (앞 상수 130)', (
       baseAnswers(),
     )
     assert.equal(r.stage, 'puppy')
-    // 130×3^0.75×3.2×(e^(−0.87×0.375)−0.1) = 589.47 → round 589.
-    // (70 이면 317 — 46% 과소. 상수 130 회귀 가드.)
-    assert.equal(r.mer, 589)
+    // 203.475 × 2.2795 = 463.8 → 464. (옛 NRC 130 식이면 589 — 가정견 실섭취의 1.2~1.3배.)
+    assert.equal(r.mer, 464)
+  })
+
+  it('실측 두 마리 (2026-09-30 설문) — 펀치 785→695, 낑콩 236→235', () => {
+    // 펀치: 웨스티 수컷 미중성화 7개월 8.3kg, 예상 10kg, easy-keeper·실내 calm (자견 분기는 활동 무관).
+    const punch = calculateNutrition(
+      baseDog({ weight: 8.3, ageValue: 7, ageUnit: 'months', expectedAdultWeight: 10, breed: '웨스트 하이랜드 화이트 테리어', gender: 'male', neutered: false }),
+      baseAnswers({ isEasyKeeper: true }),
+    )
+    assert.equal(punch.mer, 695)
+    // 낑콩: 말티푸 암컷 4개월 1.5kg, 예상 2.5kg — 토이 보정 없이도 옛 값(NRC×0.85=236)과 같다.
+    const kk = calculateNutrition(
+      baseDog({ weight: 1.5, ageValue: 4, ageUnit: 'months', expectedAdultWeight: 2.5, breed: '말티푸', gender: 'female', neutered: false }),
+      baseAnswers(),
+    )
+    assert.equal(kk.mer, 235)
+    // 고객 화면 근거 줄 — 전문용어·비율% 없이.
+    assert.deepEqual(punch.factorBreakdown.map((l) => l.label), ['성장기 기본(크는 몫 포함)'])
+    assert.doesNotMatch(punch.factorBreakdown[0]?.label ?? '', /%|NRC|Klein|정확식/)
   })
 
   it('성견 예상체중 미입력 → 간이 근사 폴백 (5개월 ×2.5)', () => {
@@ -407,8 +424,8 @@ describe('calculateNutrition — v2 2c 자견 NRC 정확식 (앞 상수 130)', (
       baseAnswers(),
     )
     assert.equal(r.stage, 'puppy')
-    // p 클램프 1 → 130×9^0.75×3.2×(e^−0.87 − 0.1) ≈ 690 (RER×1.9 급 — 성장 tail)
-    assert.ok(r.mer > 600 && r.mer < 780, `mer=${r.mer}`)
+    // p 클램프 1 → 119.1×9^0.75 = 619 (≈1.7×RER — 옛 NRC 극한 1.9 보다 성견 사다리에 가깝다)
+    assert.equal(r.mer, 619)
   })
 })
 

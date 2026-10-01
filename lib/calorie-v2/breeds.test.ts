@@ -9,7 +9,7 @@ describe('견종 플래그 브리지 (M4b)', () => {
     assert.equal(registryCodeFromLabel('골든 리트리버'), 'golden_retriever')
   })
 
-  it('토이 계열 → toyOverestimate (자견 정확식 −15% 대상)', () => {
+  it('토이 계열 → toyOverestimate (견종 분류 — 2026-10-01 부터 kcal 보정엔 안 씀)', () => {
     assert.equal(breedFlagsFromLabel('말티즈').toyOverestimate, true)
     assert.equal(breedFlagsFromLabel('토이푸들').toyOverestimate, true)
     assert.equal(breedFlagsFromLabel('말티푸').toyOverestimate, true)
