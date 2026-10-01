@@ -310,7 +310,11 @@ export async function notifySubscriptionReminder(input: {
   name: string | null
   subscriptionId: string
   items: SubscriptionReminderItem[]
+  /** 발송일(subscriptions.next_delivery_date). */
   nextDeliveryDate: string
+  /** 결제일(lib/shipping-schedule chargeDateFor) — 2026-10-01부터 일반 고객은 발송 3일 전 토요일. */
+  chargeDate: string
+  /** 결제일까지 남은 날. */
   daysBefore: number
   /** 정기결제 사전고지용 실제 청구액(subscriptions.total_amount). */
   chargeAmount?: number | null
@@ -319,6 +323,7 @@ export async function notifySubscriptionReminder(input: {
     recipientName: input.name ?? '보호자',
     items: input.items,
     nextDeliveryDate: input.nextDeliveryDate,
+    chargeDate: input.chargeDate,
     daysBefore: input.daysBefore,
     chargeAmount: input.chargeAmount,
   })
@@ -379,8 +384,10 @@ export async function notifyTrialPriceChange(
   input: {
     userId: string
     nextPhase: 'half' | 'full'
-    /** 다음 결제(=발송)일 'YYYY-MM-DD'. */
+    /** 다음 결제일 'YYYY-MM-DD' — 정상가부터는 발송 전 토요일(2026-10-01). */
     nextChargeDate: string
+    /** 다음 박스 발송일(화). */
+    nextShipDate: string
     nextAmount: number
   },
 ) {
@@ -392,6 +399,7 @@ export async function notifyTrialPriceChange(
     recipientName: recipient.name,
     nextPhase: input.nextPhase,
     nextChargeDate: input.nextChargeDate,
+    nextShipDate: input.nextShipDate,
     nextAmount: input.nextAmount,
   })
   return sendEmail({

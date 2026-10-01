@@ -3,8 +3,9 @@
  *
  * # 왜 하루만 보내나 (고객에게 그대로 말하는 이유)
  * 강아지마다 맞춤 용량으로 만들다 보니 한 번에 많이 만들어두지 않는다. 그래서
- * 발송을 한 날로 모아 그 주에 쓸 원료만 받고, 만들어서 바로 보낸다 — 신선함을
- * 최선으로 유지하는 방법이 이거다.
+ * 발송을 한 날로 모아 그 주에 쓸 원료만 받고, 주말(토·일)에 만들어 월요일에 포장하고
+ * 화요일에 보낸다(2026-10-01 — 예전엔 화요일 하루에 조리·포장·발송을 다 했다).
+ * 결제 시점은 고객마다 다르다: 일반 = 토요일 조리 직전, 서포터즈 체험 구간 = 화요일(chargeDateFor).
  *
  * # 왜 화요일인가 (내부 근거)
  *  · 화 발송 → 수 도착. 금요일 발송이면 토요일 도착이 밀렸을 때 신선식품이
@@ -21,22 +22,113 @@
  *    써놓고 스케줄러가 다른 날을 잡으면 그 자체로 거짓말이 되므로, 화면 카피와
  *    billing-issue 의 next_delivery_date 가 반드시 여기서 나와야 한다.
  */
-import { addDaysKst, todayKstIsoDate } from './datetime-kst.ts'
+import { addDaysKst, kstDateOf, todayKstIsoDate } from './datetime-kst.ts'
 
 /** 발송 요일 — 화요일. JS getUTCDay(): 0=일 … 2=화. */
 export const SHIP_WEEKDAY = 2
 
 /**
- * 주문 마감 리드타임(일). 2 = **일요일까지 주문하면 그 주 화요일 발송**.
+ * 주문 마감 리드타임(일). 4 = **금요일까지 신청하면 다음 화요일 발송**.
  *
- * 월요일에 그 주 주문을 확정해 딱 필요한 만큼만 원료를 받고 손질하기 때문에,
- * 월요일에 들어온 주문을 다음 날 아침 조리분에 밀어넣을 수는 없다(원료가
- * 그만큼 안 들어와 있다). 그래서 마감은 일요일 밤.
+ * ★2026-10-01 일정 변경(사장님 "상식적으로 하루 만에 다 만들고 발송하는 게 말이 안 돼"):
+ *   예전엔 화요일 하루에 조리·포장·발송을 다 했다(마감 일요일, LEAD 2). 이제 **토·일 조리 →
+ *   월 포장 → 화 발송**이다. 토요일 조리 시작 전에 그 박스가 확정돼야 하므로 마감은 금요일 밤.
+ *   (일반 고객은 토요일 아침 조리 직전에 결제된다 — 아래 chargeDateFor.)
  *
- * 대가: 월요일 주문은 첫 박스를 8일 기다린다(가장 나쁜 경우). 물량이 늘어
- * 원료를 여유 있게 받게 되면 1로 낮춰 최대 7일로 줄일 수 있다.
+ * 대가: 토요일 신청은 첫 박스를 10일 기다린다(가장 나쁜 경우).
  */
-const LEAD_DAYS = 2
+const LEAD_DAYS = 4
+
+/**
+ * 결제 시점 — 발송일은 모두 화요일이고, **언제 결제하느냐**만 다르다(2026-10-01 사장님).
+ *  · before_cooking — 발송 3일 전 **토요일 아침, 조리 직전**. 일반 고객의 기본.
+ *    사장님 선택("조리 직전"): 마감을 가장 늦게(금요일 밤) 둘 수 있다. 대가로 결제가 실패한
+ *    박스의 원료는 이미 들어와 있다.
+ *  · ship_day — **발송일(화) 아침**. 서포터즈가 100원·반값 구간에 있는 동안만(원래 약속한 방식).
+ *    정상가 결제부터는 before_cooking 으로 넘어간다 — 그 전까지 서포터즈에게 이 변경을 알리지
+ *    않는다(사장님 "그때까지 아무 알림도 띄우지 마").
+ */
+export type ChargeTiming = 'before_cooking' | 'ship_day'
+
+/** 조리 직전 결제 = 발송(화) 3일 전 토요일. */
+export const CHARGE_BEFORE_SHIP_DAYS = 3
+
+/** 체험 구간(100원·반값)이 남아 있으면 발송일 결제, 아니면 조리 직전 결제. 판정 정본. */
+export function chargeTimingFor(
+  trial: { cheap_remaining: number; half_remaining: number } | null | undefined,
+): ChargeTiming {
+  return trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0) ? 'ship_day' : 'before_cooking'
+}
+
+/** 발송일(화)의 박스를 **언제 결제하는가**. 화면의 '결제 예정'·사전 고지·청구 크론이 모두 이걸 쓴다. */
+export function chargeDateFor(shipIso: string, timing: ChargeTiming): string {
+  return timing === 'ship_day' ? shipIso : addDaysKst(shipIso, -CHARGE_BEFORE_SHIP_DAYS)
+}
+
+/**
+ * 화면용 — 지금 고객에게 말할 '박스' 하나를 정한다(2026-10-01). 홈·강아지 카드·정기배송 화면·마이페이지가
+ * 같은 판정을 쓴다(화면마다 따로 계산하면 또 갈린다).
+ *
+ * 왜 필요한가: 결제가 성공하면 청구 크론이 next_delivery_date 를 **다음 주기**(+14)로 민다. 결제일 = 발송일이던
+ * 시절엔 몇 시간이었지만, 이제 일반 고객은 토요일에 결제되고 화요일에 나가므로 **토~화 사흘 반** 동안
+ * next_delivery_date 가 다음 주기를 가리킨다. 그대로 쓰면 사흘 뒤 나갈 박스를 두고 "D-17 발송"이라고 말한다.
+ *  · in_progress — 결제됐고 아직 안 나간 박스(결제됨 + 발송 대기 주문)가 있다 → 그 박스의 발송일(다음 주기 − 14).
+ *  · charge_check — 결제일 청구 시각이 지났는데 결제 증거가 없다 → 날짜를 약속하지 않고 '결제 확인 중'.
+ *  · upcoming — 아직 결제 전. chargeIso = 결제일(결제 시점을 모르면 null — 서포터즈에게 토요일을 단정하지 않는다).
+ * hasPaidPreparingOrder 를 모르면(조회 실패) false 로 넘긴다 — 그때는 다음 주기를 말하게 되지만 거짓 결제일은 없다.
+ */
+export type UpcomingBox =
+  | { kind: 'in_progress'; shipIso: string }
+  | { kind: 'charge_check'; shipIso: string; chargeIso: string }
+  | { kind: 'upcoming'; shipIso: string; chargeIso: string | null }
+
+export function describeUpcomingBox(i: {
+  nextDeliveryDate: string | null
+  timing: ChargeTiming | null
+  hasPaidPreparingOrder: boolean
+  /** 그 결제된 박스 주문의 paid_at — 주면 결제 뒤 미루기에도 이번 박스 발송일이 맞다(paidBoxShipIso). */
+  paidAt?: string | null
+  /** KST yyyy-mm-dd */
+  today: string
+}): UpcomingBox | null {
+  if (!i.nextDeliveryDate) return null
+  if (i.hasPaidPreparingOrder) {
+    return {
+      kind: 'in_progress',
+      shipIso: i.paidAt ? paidBoxShipIso(i.nextDeliveryDate, i.paidAt) : addDaysKst(i.nextDeliveryDate, -14),
+    }
+  }
+  const chargeIso = i.timing ? chargeDateFor(i.nextDeliveryDate, i.timing) : null
+  if (chargeIso && chargeIso < i.today) return { kind: 'charge_check', shipIso: i.nextDeliveryDate, chargeIso }
+  return { kind: 'upcoming', shipIso: i.nextDeliveryDate, chargeIso }
+}
+
+/**
+ * 결제됐고 아직 안 나간 박스의 **발송일(화)** — 화면·어드민·아침 브리핑 공통 정본(2026-10-02).
+ *
+ * 청구 크론은 결제 성공 시 next_delivery_date 를 '그 박스가 나가는 화요일 + 14'로 민다 → 보통 발송일 = next − 14.
+ * 그런데 그 칸은 고객이 바꿀 수 있다 — 토요일에 결제된 뒤 '2주 미루기'를 누르면 next 가 +14 더 밀리고, next − 14 는
+ * 이미 결제된 이번 박스를 2주 늦게 나가는 것처럼 말한다(실제로는 그대로 나간다 — 사장님 "그대로 발송").
+ * 그래서 결제일 기준 첫 화요일(B)과 맞춰 본다: 제때 결제는 B, 늦은 성공(월요일 이후)은 B+7 이다.
+ * next − 14 가 그 범위 [B, B+7] 안이면 그것, 밖이면(결제 뒤 미루기·해지로 next 가 비거나 움직임) B.
+ * B 쪽으로 떨어지는 건 일부러다 — 어드민 '발송일 지난 미발송' 경보가 늦게 울리지 않는 쪽.
+ */
+export function paidBoxShipIso(nextDeliveryDate: string | null, paidAtIso: string): string {
+  const paidDay = kstDateOf(paidAtIso)
+  const firstShip = addDaysKst(paidDay, (SHIP_WEEKDAY - weekdayOf(paidDay) + 7) % 7)
+  const bumped = nextDeliveryDate ? addDaysKst(nextDeliveryDate, -14) : null
+  if (bumped && bumped >= firstShip && bumped <= addDaysKst(firstShip, 7)) return bumped
+  return firstShip
+}
+
+/**
+ * 이 발송분 박스로 **제때** 결제됐다고 볼 마지막 날. 이 날까지 성공하면 그 화요일에 나가고, 넘기면
+ * 다음 발송 화요일로 밀린다. 조리 직전 결제는 조리 둘째 날(일요일)까지 — 토요일 결제가 실패해
+ * 일요일 재시도로 성공한 박스는 일요일 조리분에 넣는다. 월요일 성공은 이미 조리가 끝났다.
+ */
+export function onTimeChargeDeadline(shipIso: string, timing: ChargeTiming): string {
+  return timing === 'ship_day' ? shipIso : addDaysKst(shipIso, -(CHARGE_BEFORE_SHIP_DAYS - 1))
+}
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const
 
@@ -116,8 +208,13 @@ export function nextCycleDateAligned(dueIso: string, todayIso: string): string {
  * 한 줄만 떠 **결제 2번·박스 1개**가 됐다. 결과 = 발송일+14 라 피킹 리스트의 '오늘 아침 청구분'
  * 판정(next_delivery_date === 발송일+14)과도 맞는다.
  */
-export function nextChargeDateAfterSuccess(dueIso: string, todayIso: string): string {
-  if (todayIso <= dueIso) return nextCycleDateAligned(dueIso, todayIso)
+export function nextChargeDateAfterSuccess(
+  dueIso: string,
+  todayIso: string,
+  // 기본값 = 발송일 결제(옛 동작) — 호출부가 결제 시점을 넘기지 않으면 예전과 똑같이 동작한다.
+  timing: ChargeTiming = 'ship_day',
+): string {
+  if (todayIso <= onTimeChargeDeadline(dueIso, timing)) return nextCycleDateAligned(dueIso, todayIso)
   return nextCycleDateAligned(nextShipDate(todayIso), todayIso)
 }
 
@@ -140,17 +237,20 @@ export type ShipDay = {
  * 사장님 2026-07-15: "각 요일마다 어떤 일을 하는지 원료 입고, 제품 제작 등
  * 그런 걸 더 자세하게 써놔줘."
  */
+// ★2026-10-01 일정 변경 — 토·일 조리 → 월 포장 → 화 발송(사장님). 예전엔 화요일 하루에 조리·포장·
+//   발송을 다 했다. 결제 시점은 고객마다 달라(chargeDateFor) 이 공통 리듬에는 적지 않는다 — 서포터즈는
+//   체험 구간 동안 발송일 결제라, 여기 '토요일 결제'를 적으면 그분들 화면에 거짓이 된다.
+//   목·금 문구(원료 주문·입고 시점)는 사장님 확인 전 초안이다.
+//   사장님 확정(2026-10-01): 목 원료 주문 · 금 입고·손질 · 토·일 조리 · 월 포장 · 화 발송 · 수 위생 점검.
+//   "수요일 도착이라는 말을 쓰지 말고" — 도착은 지역·택배사 사정이라 요일을 약속하지 않는다(shipTimingLabel 원칙).
 export const SHIP_WEEK: ShipDay[] = [
-  { dow: 1, ko: '월', what: '원료 입고 · 손질' },
-  { dow: 2, ko: '화', what: '조리 · 포장 · 발송', isShip: true },
-  { dow: 3, ko: '수', what: '문 앞 도착', isArrive: true },
-  { dow: 4, ko: '목', what: '주방 세척 · 위생 점검' },
-  { dow: 5, ko: '금', what: '농가에 다음 주 원료 주문' },
-  // 토·일 — '쉼' 두 줄은 아무 정보도 주지 않았다(사장님 2026-07-15 "다른 걸로
-  // 채우든가 없애든가"). 지우는 대신, 이 이틀이 **비어 있다는 사실 자체가
-  // 신선함의 근거**라는 걸 말한다. 주말에 만들어 재워두지 않으니까.
-  { dow: 6, ko: '토', what: '만들어 둔 재고 없음', isOff: true },
-  { dow: 0, ko: '일', what: '이날까지 주문하면 화요일 발송', isOff: true },
+  { dow: 1, ko: '월', what: '포장 · 출고 준비' },
+  { dow: 2, ko: '화', what: '발송', isShip: true },
+  { dow: 3, ko: '수', what: '주방 세척 · 위생 점검' },
+  { dow: 4, ko: '목', what: '농가에 원료 주문' },
+  { dow: 5, ko: '금', what: '원료 입고 · 손질 · 이날까지 신청하면 다음 화요일 발송' },
+  { dow: 6, ko: '토', what: '조리' },
+  { dow: 0, ko: '일', what: '조리' },
 ]
 
 /**
@@ -251,4 +351,4 @@ export const STOP_TIMING_COPY =
 
 /** 발송일을 하루로 모으는 이유 — 고객에게 그대로 보여주는 문구. */
 export const SHIP_WHY =
-  '아이마다 맞춤 용량으로 만들다 보니 한 번에 많이 만들어두지 않아요. 그 주에 쓸 원료만 받아서 화요일 하루에 모아 만들고 바로 보내드려요. 요일이 정해져 있어 번거로우실 수 있지만, 가장 신선한 상태로 보내드리려는 방법이라 양해 부탁드려요.'
+  '아이마다 맞춤 용량으로 만들다 보니 한 번에 많이 만들어두지 않아요. 그 주에 쓸 원료만 받아서 주말에 만들고, 화요일에 모아 보내드려요. 요일이 정해져 있어 번거로우실 수 있지만, 가장 신선한 상태로 보내드리려는 방법이라 양해 부탁드려요.'

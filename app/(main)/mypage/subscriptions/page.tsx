@@ -16,7 +16,8 @@ import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { getTrialState } from '@/lib/payments/trial-state'
-import { weekdayKo } from '@/lib/shipping-schedule'
+import { chargeDateFor, weekdayKo } from '@/lib/shipping-schedule'
+import { getChargeTimings } from '@/lib/payments/charge-timing'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { DELIVERY_INTERVAL_DAYS } from '@/lib/personalization/cycle'
@@ -227,14 +228,25 @@ export default async function AppSubscriptionsSummaryPage({
     (a, b) => order[subscriptionState(a)] - order[subscriptionState(b)],
   )
 
-  // ── 다음 결제 = 카드가 걸린 구독 중 가장 가까운 날짜, 금액은 그 날짜 합계.
+  // ── 다음 결제 = 카드가 걸린 구독 중 결제일이 가장 가까운 것, 금액은 그 날 합계.
   //    (강아지가 여러 마리면 같은 날 함께 빠져나가므로 합계가 맞다.)
+  //
+  // ★next_delivery_date 는 **발송일**이다(2026-10-01 일정 변경). 결제일은 결제 시점으로 정한다 —
+  //   일반 = 발송 3일 전 토요일(조리 직전), 서포터즈 체험 구간 = 발송일(chargeDateFor). 예전엔 발송일을 그대로
+  //   '다음 결제'라 불렀다. 결제 시점을 조회하지 못하면(null) 결제일을 지어내지 않는다 — 그때는 '어느 발송분의
+  //   결제인지'만 말한다(서포터즈에게 토요일 결제를 보이면 안 된다 — 사장님).
+  const chargeTimings = await getChargeTimings([user.id])
+  const chargeTiming = chargeTimings ? (chargeTimings.get(user.id) ?? null) : null
+  /** 이 구독의 다음 결제일 — 결제 시점을 모르면 null. */
+  const chargeIsoOf = (s: Subscription): string | null =>
+    s.next_delivery_date && chargeTiming ? chargeDateFor(s.next_delivery_date, chargeTiming) : null
   const chargeable = visible.filter(
     (s) =>
       s.has_billing_key &&
       s.next_delivery_date &&
       subscriptionState(s) === 'active',
   )
+  // 결제 시점은 사용자 단위라 모든 구독에 같다 — 발송일 순서 = 결제일 순서. 묶음도 발송일로 한다.
   const nextDate = chargeable
     .map((s) => s.next_delivery_date!)
     .sort()
@@ -242,6 +254,8 @@ export default async function AppSubscriptionsSummaryPage({
   const dueNext = nextDate
     ? chargeable.filter((s) => s.next_delivery_date === nextDate)
     : []
+  /** 히어로가 말할 결제일 — 모르면 null(발송분으로만 말한다). */
+  const nextChargeIso = dueNext[0] ? chargeIsoOf(dueNext[0]) : null
   const nextSubtotal = dueNext.reduce((sum, s) => sum + (s.total_amount ?? 0), 0)
 
   /**
@@ -509,11 +523,17 @@ export default async function AppSubscriptionsSummaryPage({
           <div className="flex items-center justify-between gap-2">
             <span style={kicker}>다음 결제</span>
             {/* ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07).
-                결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다. */}
+                결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다.
+                ★결제일 = chargeDateFor(발송일, 결제 시점)(2026-10-01). 결제 시점을 모르면 결제 요일을
+                단정하지 않고 "M월 D일 (화) 발송분" — 다음 결제가 어느 박스 몫인지만 말한다. */}
             <span style={pill(V3.ink)}>
-              {nextDate < todayKstIsoDate()
-                ? `${dateLabel(nextDate)} 예정이었어요 · 확인 중`
-                : dateLabel(nextDate)}
+              {nextChargeIso
+                ? nextChargeIso < todayKstIsoDate()
+                  ? `${dateLabel(nextChargeIso)} 예정이었어요 · 확인 중`
+                  : dateLabel(nextChargeIso)
+                : nextDate < todayKstIsoDate()
+                  ? `${dateLabel(nextDate)} 발송분 · 확인 중`
+                  : `${dateLabel(nextDate)} 발송분`}
             </span>
           </div>
           <p
@@ -695,8 +715,17 @@ export default async function AppSubscriptionsSummaryPage({
                       >
                         {krw(s.total_amount)}
                         {s.fresh_ratio ? ` · ${freshTierLabel(s.fresh_ratio)}` : ''}
-                        {s.next_delivery_date
-                          ? ` · ${dateLabel(s.next_delivery_date)}`
+                        {/* 다음 일정 — 진행 중인 구독만(정지 중이면 그 날짜는 다시 시작할 때의 기준일일 뿐).
+                            결제일을 알면 "M월 D일 (토) 결제", 모르면 결제 요일을 단정하지 않고 발송일만. */}
+                        {st === 'active' && s.next_delivery_date
+                          ? (() => {
+                              const c = chargeIsoOf(s)
+                              const today = todayKstIsoDate()
+                              if (c) return c < today ? ' · 결제 확인 중' : ` · ${dateLabel(c)} 결제`
+                              return s.next_delivery_date < today
+                                ? ' · 확인 중'
+                                : ` · ${dateLabel(s.next_delivery_date)} 발송`
+                            })()
                           : ''}
                         {!oneMethod && method ? ` · ${method}` : ''}
                       </span>

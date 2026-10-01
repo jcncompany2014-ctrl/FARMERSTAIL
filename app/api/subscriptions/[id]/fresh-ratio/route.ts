@@ -9,7 +9,7 @@ import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { FRESH_TIERS } from '@/lib/subscription/freshTier'
 import { quoteBox } from '@/lib/subscription/boxQuote'
 import type { Formula } from '@/lib/personalization/types'
-import { SHIP_WEEKDAY, weekdayOf } from '@/lib/shipping-schedule'
+import { SHIP_WEEKDAY, weekdayOf, CHARGE_BEFORE_SHIP_DAYS } from '@/lib/shipping-schedule'
 import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 
@@ -157,10 +157,12 @@ async function loadSubAndFormula(
     todayKst,
     (SHIP_WEEKDAY - weekdayOf(todayKst) + 7) % 7,
   )
-  const sundayDeadline = addDaysKst(upcomingShip, -2)
+  // ★2026-10-01 일정 변경 — 마감 = 조리 시작 전(금요일 밤). 토·일 조리 → 월 포장 → 화 발송이라 토요일부터는
+  //   이번 주 박스가 이미 만들어지는 중이다(예전: 월요일 손질·화요일 조리라 일요일 마감).
+  const cookStart = addDaysKst(upcomingShip, -CHARGE_BEFORE_SHIP_DAYS)
   const dueThisWeek =
     sub.next_delivery_date != null && sub.next_delivery_date <= upcomingShip
-  if ((pendingBoxCount ?? 0) > 0 || (dueThisWeek && todayKst > sundayDeadline)) {
+  if ((pendingBoxCount ?? 0) > 0 || (dueThisWeek && todayKst >= cookStart)) {
     return {
       ok: false,
       status: 409,

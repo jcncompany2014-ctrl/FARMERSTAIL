@@ -355,7 +355,9 @@ function BillingSuccessInner() {
               className="text-[13px] leading-[1.75] mt-5"
               style={{ color: 'var(--text)' }}
             >
-              다음 배송일에 {method.label}로 자동 결제돼요.
+              {/* 결제일은 고객마다 다르다(일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일 —
+                  2026-10-01). 이 화면은 결제 시점을 모르므로 두 경우 모두 참인 "보내기 전"으로만 말한다. */}
+              2주마다 박스를 보내기 전에 {method.label}로 자동 결제돼요.
               <br />
               마이페이지에서 다음 결제 전까지 해지할 수 있어요.
             </p>

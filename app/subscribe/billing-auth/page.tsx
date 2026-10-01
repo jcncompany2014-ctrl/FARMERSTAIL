@@ -16,7 +16,7 @@ import {
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
-import { nextShipDate, weekdayKo } from '@/lib/shipping-schedule'
+import { weekdayKo } from '@/lib/shipping-schedule'
 
 /**
  * /subscribe/billing-auth — 자동결제 등록 화면 (카드 전용).
@@ -62,7 +62,10 @@ type BillingTerms = {
   amount: number | null
   discountLabel: string | null
   listAmount: number | null
+  /** 첫 결제일 — 결제 시점(일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일)을 모르면 null(2026-10-01). */
   firstChargeDate: string | null
+  /** 첫 발송일(화). 결제일을 모를 때 이것만 말한다. */
+  firstShipDate?: string | null
   /** promotion(첫 박스만)·trial(체험 기간만)·tier(계속) — 2026-09-26 */
   discountKind?: 'promotion' | 'trial' | 'tier' | null
   recurringAmount?: number | null
@@ -112,6 +115,24 @@ function termsNoteText(terms: BillingTerms): string {
   return `${deferred}${recurring}레시피가 바뀌어 금액이 달라지면 미리 알려드리고 동의를 받아요.`
 }
 
+/** '2026-10-10' → '10월 10일(토)'. */
+function dateKo(iso: string): string {
+  return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
+}
+
+/**
+ * 첫 결제일 한 줄 (2026-10-01 일정 변경). 결제일은 고객마다 다르다 — 일반 = 발송 3일 전 토요일(조리 직전),
+ * 서포터즈 체험 구간 = 발송일(화). 서버(billing-terms)가 결제 시점을 조회해 실제 결제일을 주고, 모르면 null 이다.
+ * 모를 때 발송일을 '첫 결제'로 부르면 일반 고객에겐 틀린 날짜이고, 결제 요일을 추측하면 서포터즈에게 토요일이
+ * 보일 수 있다 — 그래서 발송일만 말하고 결제는 "발송 전"으로만 말한다.
+ * "이후 2주마다 같은 요일"은 쓰지 않는다 — 서포터즈는 혜택이 끝나면 결제 요일이 바뀐다(그때 따로 알린다).
+ */
+function firstChargeText(terms: BillingTerms): string {
+  if (terms?.firstChargeDate) return `첫 결제 ${dateKo(terms.firstChargeDate)} · 이후 2주마다`
+  if (terms?.firstShipDate) return `첫 박스 ${dateKo(terms.firstShipDate)} 발송 · 결제는 발송 전에 진행돼요`
+  return '첫 결제는 첫 박스를 보내기 전에 진행돼요'
+}
+
 /**
  * 정기결제 고지 — **금액 · 주기 · 첫 결제일**.
  *
@@ -150,11 +171,7 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
         className="text-[11.5px] mt-1.5 leading-relaxed"
         style={{ color: 'var(--muted)' }}
       >
-        {terms?.firstChargeDate
-          ? `첫 결제 ${Number(terms.firstChargeDate.slice(5, 7))}월 ${Number(
-              terms.firstChargeDate.slice(8, 10),
-            )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
-          : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
+        {firstChargeText(terms)}
         <br />
         {termsNoteText(terms)} 다음 결제 전까지 해지할 수 있어요.
       </p>
@@ -247,6 +264,7 @@ function BillingAuthInner() {
             discountLabel?: string | null
             listAmount?: number | null
             firstChargeDate?: string | null
+            firstShipDate?: string | null
             discountKind?: 'promotion' | 'trial' | 'tier' | null
             recurringAmount?: number | null
             oneTimeDeferred?: boolean
@@ -268,7 +286,10 @@ function BillingAuthInner() {
         amount: data.amount ?? null,
         discountLabel: data.discountLabel ?? null,
         listAmount: data.listAmount ?? null,
-        firstChargeDate: data.firstChargeDate ?? nextShipDate(),
+        // ★결제일을 모르면(null) 비워 둔다 — 예전엔 발송일(nextShipDate)로 채워 '첫 결제'라 불렀다.
+        //   2026-10-01 부터 일반 고객은 발송 3일 전 토요일에 결제되므로 그건 틀린 날짜다(firstChargeText).
+        firstChargeDate: data.firstChargeDate ?? null,
+        firstShipDate: data.firstShipDate ?? null,
         discountKind: data.discountKind ?? null,
         recurringAmount: data.recurringAmount ?? null,
         oneTimeDeferred: data.oneTimeDeferred === true,
@@ -446,11 +467,7 @@ function BillingAuthInner() {
                   className="text-[11.5px] mt-1.5 leading-relaxed"
                   style={{ color: 'var(--muted)' }}
                 >
-                  {terms?.firstChargeDate
-                    ? `첫 결제 ${Number(terms.firstChargeDate.slice(5, 7))}월 ${Number(
-                        terms.firstChargeDate.slice(8, 10),
-                      )}일(${weekdayKo(terms.firstChargeDate)}) · 이후 2주마다 같은 요일`
-                    : '첫 결제는 다음 발송일(화요일)에 진행돼요'}
+                  {firstChargeText(terms)}
                   <br />
                   {termsNoteText(terms)}
                 </p>

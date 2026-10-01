@@ -43,6 +43,7 @@ import { formatPhone } from '@/lib/formatters'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import {
+  chargeDateFor,
   nextShipDate,
   weekdayKo,
   SHIP_WEEK,
@@ -385,6 +386,19 @@ export default function OrderClient({
     pricePreview != null &&
     (pricePreview.discountKind === 'promotion' || pricePreview.discountKind === 'trial') &&
     pricePreview.recurringAmount !== pricePreview.firstAmount
+
+  /**
+   * ★첫 결제일 — 결제 시점이 고객마다 다르다(2026-10-01 일정 변경). 일반 = 발송 3일 전 토요일 아침(조리 직전),
+   * 서포터즈 100원·반값 구간 = 발송일(화) 아침(lib/shipping-schedule chargeTimingFor).
+   * 이 화면은 체험 기록을 직접 받지 않는다. 확실히 아는 건 하나뿐이다 — 미리보기가 서포터즈 가격을 돌려줬으면
+   * 체험 구간이 남아 있다는 뜻이고, 그 구간은 발송일 결제다. 그 밖엔 '체험 아님'과 '조회 실패'를 가를 수 없어
+   * 결제 요일을 단정하지 않는다 — 서포터즈에게 토요일 결제를 보이면 안 된다(사장님 2026-10-01).
+   * 정확한 첫 결제일은 다음 화면(카드 등록, billing-terms)이 결제 시점을 조회해 고지한다.
+   */
+  const knownFirstChargeIso =
+    firstShipIso && pricePreview?.discountKind === 'trial'
+      ? chargeDateFor(firstShipIso, 'ship_day')
+      : null
 
   // GA4 begin_checkout — 주문 화면 진입 1회(마운트 시 초기 구성 기준). 가입
   // (sign_up)→주문 진입(begin_checkout)→결제(purchase) 퍼널의 가운데 단계.
@@ -1221,17 +1235,16 @@ export default function OrderClient({
           </p>
           {/* 사장님 2026-08-24: "언제 결제되는지 + 그 전까지 무료 취소" 고지가
               신규 가입 주경로(이 화면)에만 없었다. 버튼이 '결제하기'라 지금 돈이
-              나가는 걸로 읽히는데 실제로는 카드 등록만 되고, 첫 청구는 첫 발송일
-              아침 크론이 한다(subscription-charge, lte(next_delivery_date)). */}
+              나가는 걸로 읽히는데 실제로는 카드 등록만 되고, 첫 청구는 청구 크론이
+              결제일 아침에 한다. 2026-10-01 — 결제일은 고객마다 다르다(위 knownFirstChargeIso).
+              모를 때는 두 경우 모두 참인 "발송 전"으로만 말한다. */}
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            오늘은 카드 등록만 해요 — 첫 결제는{' '}
-            {firstShipIso
-              ? `첫 발송일인 ${Number(firstShipIso.slice(5, 7))}월 ${Number(
-                  firstShipIso.slice(8, 10),
-                )}일(${weekdayKo(firstShipIso)}) 아침에 이뤄져요`
-              : '첫 발송일(화요일) 아침에 이뤄져요'}
-            . 그 전까지는 무료로 취소할 수 있어요.
+            {knownFirstChargeIso
+              ? `오늘은 카드 등록만 해요 — 첫 결제는 첫 발송일인 ${dateKo(knownFirstChargeIso)} 아침에 이뤄져요. 그 전까지는 무료로 취소할 수 있어요.`
+              : firstShipIso
+                ? `오늘은 카드 등록만 해요 — 첫 박스는 ${dateKo(firstShipIso)}에 보내드리고, 결제는 발송 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.`
+                : '오늘은 카드 등록만 해요 — 결제는 첫 박스를 보내기 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.'}
           </p>
           {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 앱은 AppChrome 이
               SiteFooter 를 숨기므로 이 화면에서 약관·청약철회·처리방침으로 가는
@@ -1299,12 +1312,13 @@ export default function OrderClient({
  * 요일을 하루로 조이는 건 고객 입장에선 제약이다. 그 제약을 숨기지 않고 이유와
  * 함께 먼저 보여준다 — 결제 전에 납득시키는 게 결제 후 문의를 받는 것보다 낫다.
  */
+/** '2026-10-13' → '10월 13일(화)'. */
+function dateKo(iso: string): string {
+  return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
+}
+
 function ShipRhythmCard({ firstShipIso }: { firstShipIso: string | null }) {
-  const firstLabel = firstShipIso
-    ? `첫 발송 ${Number(firstShipIso.slice(5, 7))}월 ${Number(
-        firstShipIso.slice(8, 10),
-      )}일(${weekdayKo(firstShipIso)})`
-    : '첫 발송일 계산 중'
+  const firstLabel = firstShipIso ? `첫 발송 ${dateKo(firstShipIso)}` : '첫 발송일 계산 중'
   return (
     // 기본 접힘 — 한 주 리듬은 '읽고 납득하는' 내용이라 결제 전에 한 번 보면
     // 충분하다. 매번 펼쳐두면 배송지까지 스크롤만 길어진다(사장님 2026-07-15).

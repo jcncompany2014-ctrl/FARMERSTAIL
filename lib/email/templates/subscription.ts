@@ -38,9 +38,14 @@ export type SubscriptionReminderItem = {
 export function renderSubscriptionReminder(input: {
   recipientName: string
   items: SubscriptionReminderItem[]
-  /** 'YYYY-MM-DD' 또는 ISO. 한국어 날짜 + 요일로 렌더. */
+  /** **발송일** 'YYYY-MM-DD'(subscriptions.next_delivery_date). 한국어 날짜 + 요일로 렌더. */
   nextDeliveryDate: string
-  /** 0 = 오늘 발송, 1 = 내일, 2-... = D-N. */
+  /**
+   * ★결제일 'YYYY-MM-DD' (2026-10-01 일정 변경 — lib/shipping-schedule chargeDateFor). 일반 고객은 발송 3일 전
+   * 토요일(조리 직전), 서포터즈 체험 구간은 발송일. 없으면 발송일(옛 동작 — 결제일 = 발송일이던 시절).
+   */
+  chargeDate?: string
+  /** 결제일까지 남은 날 — 0 = 오늘 결제, 1 = 내일, 2-... = N일 뒤. */
   daysBefore: number
   /**
    * 실제로 청구될 금액(subscriptions.total_amount). 정기결제는 **결제 전에**
@@ -51,17 +56,22 @@ export function renderSubscriptionReminder(input: {
   chargeAmount?: number | null
 }): { subject: string; html: string } {
   const dateLabel = formatKoDate(input.nextDeliveryDate)
+  const chargeIso = input.chargeDate ?? input.nextDeliveryDate
+  const chargeLabel = formatKoDate(chargeIso)
+  const sameDay = chargeIso === input.nextDeliveryDate
   const itemCountLabel =
     input.items.length > 1
       ? `${escape(input.items[0]!.productName)} 외 ${input.items.length - 1}개`
       : escape(input.items[0]?.productName ?? '')
 
+  // ★이 메일은 **결제 전** 고지다(2026-10-01) — 결제일 기준으로 말한다. 일반 고객은 토요일 결제·화요일 발송이라
+  //   "출발해요"로 쓰면 결제 사실이 묻히고 날짜도 사흘 어긋난다.
   const heading =
     input.daysBefore === 0
-      ? '오늘 정기배송이 출발해요'
+      ? '오늘 다음 박스가 결제돼요'
       : input.daysBefore === 1
-        ? '내일 정기배송이 출발해요'
-        : `D-${input.daysBefore} · 정기배송 알림`
+        ? '내일 다음 박스가 결제돼요'
+        : `${input.daysBefore}일 뒤 다음 박스가 결제돼요`
 
   const subject = `[파머스테일] ${heading}`
 
@@ -77,8 +87,8 @@ export function renderSubscriptionReminder(input: {
           ? '오늘'
           : input.daysBefore === 1
             ? '내일'
-            : `D-${input.daysBefore} 후`
-      } 정기배송이 출발해요.
+            : `${input.daysBefore}일 뒤`
+      } 다음 박스가 결제돼요.
     </p>
     ${block.callout(
       'moss',
@@ -93,20 +103,24 @@ export function renderSubscriptionReminder(input: {
       ${itemRows}
     </table>
     ${
-      // 정기결제 사전고지 — 금액·시점·해지 마감을 한 문단에.
-      // 청구는 발송일 아침 크론이 한다(subscription-charge, KST 09:10)이므로
-      // 결제일 = 발송일이다. 금액을 모르면 금액 문장만 빼고 나머지는 남긴다.
-      typeof input.chargeAmount === 'number' && input.chargeAmount > 0
-        ? block.callout(
-            'terracotta',
-            `<strong>${escape(dateLabel)} 아침에 ${input.chargeAmount.toLocaleString()}원이 결제돼요</strong>` +
-              `<br/>등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
-          )
-        : block.callout(
-            'terracotta',
-            `<strong>${escape(dateLabel)} 아침에 자동 결제돼요</strong>` +
-              `<br/>금액은 정기배송 관리에서 확인할 수 있어요. 그 전까지 미루거나 해지하면 청구되지 않아요.`,
-          )
+      // 정기결제 사전고지 — 금액·시점·해지 마감을 한 문단에. 결제일은 크론과 같은 정본(chargeDateFor)에서 온다.
+      // 일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일. 금액을 모르면 금액 문장만 빼고 나머지는 남긴다.
+      (() => {
+        const when = sameDay
+          ? '결제되면 같은 날 보내드려요. '
+          : '결제는 조리를 시작하기 전에 진행되고, 박스는 위 발송일에 보내드려요. '
+        return typeof input.chargeAmount === 'number' && input.chargeAmount > 0
+          ? block.callout(
+              'terracotta',
+              `<strong>${escape(chargeLabel)} 아침에 ${input.chargeAmount.toLocaleString()}원이 결제돼요</strong>` +
+                `<br/>${when}등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
+            )
+          : block.callout(
+              'terracotta',
+              `<strong>${escape(chargeLabel)} 아침에 자동 결제돼요</strong>` +
+                `<br/>${when}금액은 정기배송 관리에서 확인할 수 있어요. 그 전까지 미루거나 해지하면 청구되지 않아요.`,
+            )
+      })()
     }
     <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
       잠시 멈춤·화식 비율 변경·해지는
@@ -119,7 +133,7 @@ export function renderSubscriptionReminder(input: {
     kicker: 'Subscription · 정기배송',
     heading,
     icon: '🚚',
-    preview: `${dateLabel} 발송 예정 · ${itemCountLabel}`,
+    preview: `${chargeLabel} 결제 · ${dateLabel} 발송 예정 · ${itemCountLabel}`,
     body,
     cta: {
       label: '정기배송 관리하기',
@@ -234,7 +248,7 @@ export function renderSubscriptionChargeFailed(input: {
   } else if (isTransient) {
     const retryLine = input.nextRetryAt
       ? `다음 재시도: <strong>${escape(formatKoDate(input.nextRetryAt))}</strong>`
-      : '내일 새벽 자동으로 다시 시도해드릴게요.'
+      : '내일 아침 자동으로 다시 시도해드릴게요.'
     mainBody = `
       <p style="margin:0 0 14px 0;">
         <strong>${escape(input.productLabel)}</strong> 의 정기배송 결제가 잠시
@@ -268,7 +282,7 @@ export function renderSubscriptionChargeFailed(input: {
     <p style="margin:14px 0 0 0;font-size:12px;color:#7A7A7A;line-height:1.6;">
       ${isTransient
         ? '재시도 전에 미리 다른 카드를 등록해 두셔도 좋아요. 마이페이지에서 가능해요.'
-        : '마이페이지에서 카드 정보를 새로 등록하시면 다음 배송일에 자동으로 다시 결제돼요. 일시중단 상태도 카드 등록 시 자동 해제돼요.'}
+        : '마이페이지에서 카드 정보를 새로 등록하시면 자동으로 다시 결제돼요. 결제가 확인된 박스부터 준비해 보내드리고, 일시중단 상태도 카드 등록 시 자동 해제돼요.'}
     </p>
   `
 
@@ -303,12 +317,16 @@ export function renderTrialPriceChange(input: {
   recipientName: string
   /** 'half' = 100원 구간 종료(다음 박스=반값) · 'full' = 반값 구간 종료(다음 박스=정상가). */
   nextPhase: 'half' | 'full'
-  /** 다음 결제(=발송)일 'YYYY-MM-DD'. */
+  /** 다음 **결제일** 'YYYY-MM-DD' — 정상가부터는 발송 전 토요일(2026-10-01), 반값 구간은 발송일. */
   nextChargeDate: string
+  /** 다음 박스 **발송일**(화) 'YYYY-MM-DD'. 없으면 결제일과 같은 날로 본다(옛 동작). */
+  nextShipDate?: string
   /** 다음 결제 금액(원) — resolveAutoDiscount.chargeAmount. */
   nextAmount: number
 }): { subject: string; html: string } {
   const dateLabel = formatKoDate(input.nextChargeDate)
+  const shipLabel = formatKoDate(input.nextShipDate ?? input.nextChargeDate)
+  const moved = !!input.nextShipDate && input.nextShipDate !== input.nextChargeDate
   const won = `${input.nextAmount.toLocaleString()}원`
   const heading =
     input.nextPhase === 'half' ? '서포터즈 100원 기간이 끝났어요' : '서포터즈 혜택이 모두 끝났어요'
@@ -317,12 +335,18 @@ export function renderTrialPriceChange(input: {
     input.nextPhase === 'half'
       ? `${withHonorific(input.recipientName)}, 서포터즈 100원 박스가 모두 끝났어요. 다음 박스부터는 반값 혜택가로 이어져요.`
       : `${withHonorific(input.recipientName)}, 준비해 드린 서포터즈 혜택이 모두 끝났어요. 다음 박스부터는 원래 가격으로 이어져요.`
+  // ★정상가로 넘어가면 결제가 발송일(화)에서 조리 직전 토요일로 바뀐다(2026-10-01 사장님 — 서포터즈에게는 이
+  //   안내가 그 변경의 첫 고지다. "정상 가격으로 진행될 때 변경, 그때까지 아무 알림도 띄우지 마").
+  const movedLine = moved
+    ? `<br/>박스는 ${escape(shipLabel)}에 보내드려요. 이번부터 결제는 발송일이 아니라 조리를 시작하기 전(발송 전 토요일 아침)에 진행돼요.`
+    : ''
 
   const body = `
     <p style="margin:0 0 14px 0;">${escape(lead)}</p>
     ${block.callout(
       'terracotta',
       `<strong>${escape(dateLabel)} 아침에 ${won}이 결제돼요</strong>` +
+        movedLine +
         `<br/>등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
     )}
     <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">

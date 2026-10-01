@@ -121,6 +121,26 @@ export async function POST(
       { status: 500 }
     )
   }
+  /**
+   * ★결제된 정기배송 박스는 고객이 직접 취소·환불할 수 없다 (2026-10-01 사장님 — "그대로 발송, 자동 환불 없음").
+   *
+   * 일정이 토·일 조리 → 월 포장 → 화 발송으로 바뀌었고, 일반 고객은 **조리 직전 토요일 아침**에 결제된다.
+   * 결제 = 그 아이 몫의 조리 시작이라, 결제 뒤 셀프 취소로 전액 환불하면 맞춤으로 만든 음식이 버려진다.
+   * 해지·미루기는 결제 전(금요일 밤)까지 정기배송 화면에서 하면 그 박스는 결제되지 않는다. 특별한 사정은
+   * 사장님이 어드민에서 직접 환불한다(품질·배송 문제 환불은 그대로).
+   * 결제 전(pending) 주문은 돈이 오가지 않았으니 지금처럼 취소할 수 있다.
+   */
+  if (order.subscription_id && order.order_status === 'preparing' && order.payment_status === 'paid') {
+    return NextResponse.json(
+      {
+        code: 'SUBSCRIPTION_BOX_IN_PRODUCTION',
+        message:
+          '결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.',
+      },
+      { status: 409 }
+    )
+  }
+
   const transition = canTransitionOrderStatus(order.order_status, 'cancelled', {
     payment_status: order.payment_status,
     actor: 'customer',

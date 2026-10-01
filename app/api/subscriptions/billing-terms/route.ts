@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
-import { nextShipDate } from '@/lib/shipping-schedule'
+import { nextShipDate, chargeDateFor } from '@/lib/shipping-schedule'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -127,6 +128,14 @@ export async function GET(req: Request) {
         : chargeAmount
   }
 
+  // ★첫 결제일 = 결제 시점 정본(2026-10-01 일정 변경). 발송일(화)과 결제일이 고객마다 다르다 — 일반 = 발송 3일 전
+  //   토요일(조리 직전), 서포터즈 체험 구간 = 발송일. 이 값이 정기결제 동의 화면의 "첫 결제 M월 D일"이다(법정 고지).
+  //   결제 시점을 모르면(조회 실패) 결제일을 비운다 — 화면은 발송일만 말하고, 틀린 결제일을 고지하지 않는다.
+  //   카드 등록 전 구독은 next_delivery_date 가 null — 첫 발송일은 billing-issue 가 잡는 것과 같은 nextShipDate().
+  const firstShipDate = row.next_delivery_date ?? nextShipDate()
+  const timing = await getChargeTiming(user.id)
+  const firstChargeDate = timing ? chargeDateFor(firstShipDate, timing) : null
+
   return NextResponse.json({
     ok: true,
     /** 실제 출금될 금액(할인 후). */
@@ -141,8 +150,9 @@ export async function GET(req: Request) {
     recurringAmount,
     /** 다른 구독에 1회성 할인이 먼저 쓰일 수 있어 할인 전(보수적) 금액으로 고지했는가. */
     oneTimeDeferred,
-    // 카드 등록 전 구독은 next_delivery_date 가 null — 첫 결제일은 다음
-    // 화요일(billing-issue 가 그렇게 잡는다).
-    firstChargeDate: row.next_delivery_date ?? nextShipDate(),
+    /** 첫 결제일(결제 시점을 모르면 null). */
+    firstChargeDate,
+    /** 첫 발송일(화). */
+    firstShipDate,
   })
 }

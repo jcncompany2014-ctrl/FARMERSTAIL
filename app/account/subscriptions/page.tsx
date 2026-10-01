@@ -9,6 +9,8 @@ import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import SubscriptionsWebClient from './SubscriptionsWebClient'
 import { getTrialState } from '@/lib/payments/trial-state'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { subscriptionState } from '@/lib/subscription-state'
 import type { Subscription } from './types'
 import { recipeName, friendlyChangeReason } from '@/lib/personalization/format'
@@ -140,6 +142,49 @@ export default async function AccountSubscriptionsPage({
   const activeCount = initialSubs.filter(
     (s) => subscriptionState(s) === 'active',
   ).length
+
+  /**
+   * ★지금 말할 박스 재료 (2026-10-01 일정 변경).
+   *  · 결제 시점 — 일반 = 발송 3일 전 토요일(조리 직전), 서포터즈 체험 구간 = 발송일. 조회 실패면 null 이고,
+   *    화면은 그때 결제 요일을 말하지 않는다(서포터즈에게 토요일 결제를 보이면 안 된다 — 사장님).
+   *  · 결제됐고 아직 안 나간 박스 — 결제가 성공하면 청구 크론이 next_delivery_date 를 곧바로 다음 주기로 민다.
+   *    그래서 토~화 사이엔 그 날짜가 다음 주기를 가리키는데 결제된 박스가 따로 나갈 채비 중이다. 이걸 알아야
+   *    날짜 표시(describeUpcomingBox)와 해지 안내("이미 결제된 박스는 그대로 보내드려요")가 맞다.
+   *    조회 실패면 없다고 보고(false) 올린다 — 다음 주기를 말하게 되지만 거짓 결제일은 없다.
+   */
+  const liveSubIds = initialSubs.filter((s) => s.status !== 'cancelled').map((s) => s.id)
+  const paidPreparingSubIds: string[] = []
+  // 구독 id → 그 박스의 결제 시각 — 이번 박스 발송일 정본(paidBoxShipIso). 결제 뒤 미루기에도 맞다(2026-10-02).
+  const paidPreparingAt: Record<string, string> = {}
+  if (liveSubIds.length > 0) {
+    const { data: prepRows, error: prepErr } = await supabase
+      .from('orders')
+      .select('subscription_id, paid_at, created_at')
+      .eq('user_id', user.id)
+      .in('subscription_id', liveSubIds)
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', 'preparing')
+      .order('created_at', { ascending: false })
+    if (prepErr) {
+      captureBusinessEvent('warning', 'subscription.paid_preparing.query_failed', {
+        userId: user.id,
+        surface: 'web',
+        dbError: prepErr.message,
+      })
+    } else {
+      for (const r of (prepRows ?? []) as Array<{
+        subscription_id: string | null
+        paid_at: string | null
+        created_at: string
+      }>) {
+        if (r.subscription_id && !paidPreparingSubIds.includes(r.subscription_id)) {
+          paidPreparingSubIds.push(r.subscription_id)
+          paidPreparingAt[r.subscription_id] = r.paid_at ?? r.created_at
+        }
+      }
+    }
+  }
+  const chargeTiming = await getChargeTiming(user.id)
 
   // 앱(PWA)에선 웹 breadcrumb·FD hero 를 숨기고 앱 톤 헤더로 — 앱 chrome 안에서 웹
   // 마스트헤드가 겹쳐 어색하던 것 정리(사장님 2026-07-16 "앱 디자인 개박살").
@@ -285,6 +330,9 @@ export default async function AccountSubscriptionsPage({
 
           <SubscriptionsWebClient
             trial={await getTrialState(user.id)}
+            chargeTiming={chargeTiming}
+            paidPreparingSubIds={paidPreparingSubIds}
+            paidPreparingAt={paidPreparingAt}
             initialSubs={initialSubs}
             focusSubId={sp.focus ?? null}
             priceProposal={priceProposal}

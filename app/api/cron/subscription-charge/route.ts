@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
-import { nextChargeDateAfterSuccess } from '@/lib/shipping-schedule'
+import {
+  nextChargeDateAfterSuccess,
+  chargeTimingFor,
+  chargeDateFor,
+  CHARGE_BEFORE_SHIP_DAYS,
+  type ChargeTiming,
+} from '@/lib/shipping-schedule'
+import { addDaysKst } from '@/lib/datetime-kst'
 import { chargeBillingKey, cancelPayment, lookupPaymentByOrderId } from '@/lib/payments/toss'
 import { verifyAmbiguousCharges } from '@/lib/payments/ambiguous-charges'
 import { keyMode } from '@/lib/payments/key-mode'
@@ -43,6 +50,10 @@ export const dynamic = 'force-dynamic'
  * GET /api/cron/subscription-charge
  *
  * 매일 오전 (KST 09:10) 실행. 다음 조건의 구독을 자동 결제:
+ *   - ★결제일 ≤ 오늘 (2026-10-01 일정 변경). next_delivery_date 는 **발송일(화)** 이고, 결제일은
+ *     lib/shipping-schedule chargeDateFor 가 정한다 — 일반 = 발송 3일 전 토요일(조리 직전),
+ *     서포터즈 체험 구간(100원·반값) = 발송일. 그래서 조회는 '사흘 뒤 발송분까지' 넓게 하고,
+ *     구독마다 결제일이 아직이면 건너뛴다(notDue).
  *   - status = 'active'
  *   - next_delivery_date **≤ 오늘** (KST) — `=` 이 아니다(2026-07-31 주석 정정).
  *     실제 코드는 `.lte(...)` 다. 크론이 하루 걸러도 다음 실행이 **따라잡는다**;
@@ -349,10 +360,11 @@ function todayKstIsoDate(): string {
  *   ② 여러 주 밀렸어도 결과가 반드시 미래가 되도록 전진 (과거로 잡히면
  *      다음날 크론이 곧바로 또 청구한다)
  */
-function nextDeliveryDate(dueIso: string, todayIso: string): string {
+function nextDeliveryDate(dueIso: string, todayIso: string, timing: ChargeTiming): string {
   // ★2026-09-28 점검 9차 — 늦게 성공(재시도·따라잡기)하면 그 박스는 다음 발송 화요일에 나가므로 다음 청구는
   //   그로부터 +14. 예정일+14 로 두면 T+13 성공 → T+14 또 청구(결제 2번·박스 1개). lib/shipping-schedule 참고.
-  return nextChargeDateAfterSuccess(dueIso, todayIso)
+  // ★2026-10-01 — '제때'의 기준이 결제 시점마다 다르다: 조리 직전 결제는 일요일(조리 둘째 날)까지.
+  return nextChargeDateAfterSuccess(dueIso, todayIso, timing)
 }
 
 export async function GET(req: Request) {
@@ -437,14 +449,15 @@ async function runSubscriptionCharge(): Promise<Response> {
     .eq('status', 'active')
     .eq('requires_billing_key_renewal', false)
     .not('billing_key', 'is', null)
-    .lte('next_delivery_date', today)
+    // 사흘 뒤 발송분까지 — 일반 고객은 발송 3일 전(토)에 결제한다. 결제일 판정은 아래 구독별로.
+    .lte('next_delivery_date', addDaysKst(today, CHARGE_BEFORE_SHIP_DAYS))
     .or(`next_retry_at.is.null,next_retry_at.lte.${nowIso}`)
     // 가장 오래 밀린 것부터, 같은 날은 id 순 — 정렬이 없으면 상한에 걸릴 때 매번
     // 임의로 잘려 같은 고객이 계속 밀릴 수 있었다.
     .order('next_delivery_date', { ascending: true })
     .order('id', { ascending: true })
-    // 한 건 더 읽어 상한을 넘었는지 안다(넘친 건은 이번 실행에서 처리하지 않는다).
-    .limit(MAX_PER_RUN + 1)
+    // 결제일이 아직인 구독(서포터즈 화요일 결제분)이 섞이므로 넉넉히 읽고, 결제일로 거른 뒤 상한을 적용한다.
+    .limit(MAX_PER_RUN * 3 + 1)
 
   if (fetchErr) {
     return NextResponse.json(
@@ -454,8 +467,44 @@ async function runSubscriptionCharge(): Promise<Response> {
   }
 
   // audit #79: SubscriptionRow 가 generated types schema 와 다름 (recipient_zip 등).
-  const fetched = ((subs ?? []) as unknown) as SubscriptionRow[]
-  const overCap = fetched.length > MAX_PER_RUN
+  const fetchedAll = ((subs ?? []) as unknown) as SubscriptionRow[]
+
+  // ── 결제일 판정 (2026-10-01 일정 변경) — 서포터즈 체험 구간이면 발송일, 아니면 발송 3일 전 토요일.
+  //    체험 상태를 모르면 일정을 앞당기지 않는다: 발송일이 오늘 이전인 것(옛 방식)만 청구하고 알린다.
+  //    서포터즈를 토요일에 미리 긁는 것(약속 위반) < 일반 고객 결제가 하루 이틀 늦는 것.
+  const timingByUser = new Map<string, ChargeTiming>()
+  let timingKnown = true
+  {
+    const userIds = [...new Set(fetchedAll.map((x) => x.user_id))]
+    if (userIds.length > 0) {
+      const { data: trialRows, error: trialErr } = await supabase
+        .from('subscription_trials')
+        .select('user_id, cheap_remaining, half_remaining')
+        .in('user_id', userIds)
+      if (trialErr) {
+        timingKnown = false
+        captureBusinessEvent('error', 'subscription.charge.timing_lookup_failed', {
+          dbError: trialErr.message,
+          note: '서포터즈 체험 상태 조회 실패 — 이번 실행은 발송일이 지난 구독만 청구(토요일 선결제 보류)',
+        })
+      } else {
+        for (const r of (trialRows ?? []) as Array<{ user_id: string; cheap_remaining: number; half_remaining: number }>) {
+          timingByUser.set(r.user_id, chargeTimingFor(r))
+        }
+      }
+    }
+  }
+  const timingOf = (x: SubscriptionRow): ChargeTiming => timingByUser.get(x.user_id) ?? chargeTimingFor(null)
+  let notDue = 0
+  const fetched = fetchedAll.filter((x) => {
+    const due = timingKnown ? chargeDateFor(x.next_delivery_date, timingOf(x)) : x.next_delivery_date
+    if (due > today) {
+      notDue++
+      return false
+    }
+    return true
+  })
+  const overCap = fetched.length > MAX_PER_RUN || fetchedAll.length > MAX_PER_RUN * 3
   const targets = fetched.slice(0, MAX_PER_RUN)
   const runStartedAt = Date.now()
   let deferredByTime = 0
@@ -1046,7 +1095,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       // 성공하면 모든 retry/renewal 플래그를 0/false 로 reset (이전에 실패해서
       // 카드 재등록 받은 후 정상화 케이스 포함).
       const successIso = new Date().toISOString()
-      const nextDate = nextDeliveryDate(sub.next_delivery_date, today)
+      const nextDate = nextDeliveryDate(sub.next_delivery_date, today, timingOf(sub))
 
       // R61 — 결제 원장 event (정기구독 자동 결제).
       {
@@ -1295,14 +1344,17 @@ async function runSubscriptionCharge(): Promise<Response> {
                 userId: sub.user_id,
                 subtotal: sub.total_amount,
               })
-              const nextChargeDate = nextDeliveryDate(sub.next_delivery_date, today)
+              const nextShip = nextDeliveryDate(sub.next_delivery_date, today, timingOf(sub))
+              // ★정상가로 넘어가면 결제가 발송일(화)에서 발송 3일 전 토요일(조리 직전)로 바뀐다(2026-10-01 사장님 —
+              //   "정상 가격으로 진행될 때 변경, 그때까지 아무 알림도 띄우지 마"). 이 안내가 그 첫 고지다.
+              //   반값 구간은 아직 체험 중이라 발송일 결제 그대로.
+              const nextChargeDate = chargeDateFor(nextShip, nextPhase === 'full' ? 'before_cooking' : 'ship_day')
               const won = `${nextPricing.chargeAmount.toLocaleString()}원`
-              const [mm, dd] = nextChargeDate.split('-').slice(1)
-              const dateLabel = `${Number(mm)}월 ${Number(dd)}일`
+              const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`
               const body =
                 nextPhase === 'half'
-                  ? `서포터즈 100원 박스가 모두 끝났어요. 다음 박스(${dateLabel})부터는 반값 혜택가 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
-                  : `서포터즈 혜택이 모두 끝났어요. 다음 박스(${dateLabel})부터는 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
+                  ? `서포터즈 100원 박스가 모두 끝났어요. 다음 박스(${md(nextShip)})부터는 반값 혜택가 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
+                  : `서포터즈 혜택이 모두 끝났어요. 다음 박스(${md(nextShip)} 화요일 발송)부터는 ${won}이고, 결제는 조리를 시작하기 전인 ${md(nextChargeDate)} 토요일 아침에 돼요. 그 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
               const pushRes = await pushToUser(
                 sub.user_id,
                 { title: '다음 박스 가격 안내', body, url: '/mypage/subscriptions' },
@@ -1312,6 +1364,7 @@ async function runSubscriptionCharge(): Promise<Response> {
                 userId: sub.user_id,
                 nextPhase,
                 nextChargeDate,
+                nextShipDate: nextShip,
                 nextAmount: nextPricing.chargeAmount,
               }).catch(() => ({ ok: false as const }))
               // 한 채널이라도 나갔으면 고지 성립. 둘 다 0 이면 사람이 알아야 한다 —
@@ -1806,5 +1859,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     mailSkipped: mailSkippedCount,
     failed,
     skipped,
+    // 결제일이 아직인 구독(서포터즈 화요일 결제분 등) — 오늘 건너뛴 게 정상이다.
+    notDue,
+    timingKnown,
   })
 }

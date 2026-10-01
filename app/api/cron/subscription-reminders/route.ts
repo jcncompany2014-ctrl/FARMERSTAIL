@@ -6,6 +6,8 @@ import { trackCron } from '@/lib/cron-tracking'
 import { notifySubscriptionReminder } from '@/lib/email'
 import { pushToUser } from '@/lib/push'
 import { dbError } from '@/lib/api/errors'
+import { getChargeTimings } from '@/lib/payments/charge-timing'
+import { chargeDateFor, weekdayKo } from '@/lib/shipping-schedule'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,7 +19,11 @@ export const dynamic = 'force-dynamic'
  * 알림 메일 발송:
  *   - status = 'active'
  *   - reminder_enabled = true
- *   - next_delivery_date - reminder_days_before = 오늘 (KST)
+ *   - ★**결제일** - reminder_days_before = 오늘 (KST) — 2026-10-01 일정 변경. 결제일은 청구 크론과 같은 정본
+ *     (lib/shipping-schedule chargeDateFor): 일반 = 발송 3일 전 토요일(→ 목요일 알림), 서포터즈 체험 구간 =
+ *     발송일(→ 일요일 알림). 예전엔 발송일 기준이라, 토요일에 이미 결제가 끝난 일반 고객은 사전 고지를
+ *     **한 통도 받지 못했다**(결제 성공이 next_delivery_date 를 다음 주기로 민 뒤라 D-16 으로 보였다).
+ *     결제 시점을 모르면(서포터즈 조회 실패) 아무것도 보내지 않고 빨간불 — 틀린 결제일을 알리느니.
  *
  * 응답: { checked, sent, errors }
  *
@@ -82,20 +88,29 @@ export async function GET(req: Request) {
     return dbError(error, 'cron_subscription_reminders', '정기배송 알림 큐 조회 실패')
   }
 
+  // 결제 시점(서포터즈 체험 구간 = 발송일, 그 외 = 발송 3일 전 토요일) — 모르면 보내지 않는다.
+  const subList = (subs ?? []) as SubscriptionRow[]
+  const timings = await getChargeTimings(subList.map((x) => x.user_id))
+  if (!timings) {
+    return NextResponse.json(
+      { ok: false, reason: 'charge_timing_lookup_failed', note: '결제 시점을 몰라 사전 고지를 보내지 않음 — 내일 다시' },
+      { status: 500 },
+    )
+  }
+
   // 오늘 KST 자정 ms.
   const todayMs = new Date(todayKst).getTime()
-  const dueSubs: Array<{ sub: SubscriptionRow; days: number }> = []
+  const dueSubs: Array<{ sub: SubscriptionRow; days: number; chargeIso: string }> = []
 
-  for (const sub of (subs ?? []) as SubscriptionRow[]) {
+  for (const sub of subList) {
     if (!sub.next_delivery_date) continue
-    // next_delivery_date 는 'YYYY-MM-DD' 형태로 가정.
-    const deliveryMs = new Date(
-      `${sub.next_delivery_date}T00:00:00+09:00`,
-    ).getTime()
-    const daysUntil = Math.round((deliveryMs - todayMs) / (24 * 3600 * 1000))
+    // next_delivery_date 는 **발송일**('YYYY-MM-DD'). 알림은 결제일 기준.
+    const chargeIso = chargeDateFor(sub.next_delivery_date, timings.get(sub.user_id) ?? 'before_cooking')
+    const chargeMs = new Date(`${chargeIso}T00:00:00+09:00`).getTime()
+    const daysUntil = Math.round((chargeMs - todayMs) / (24 * 3600 * 1000))
     // reminder_days_before === daysUntil 이면 오늘 알림 보낼 타이밍.
     if (daysUntil === sub.reminder_days_before) {
-      dueSubs.push({ sub, days: daysUntil })
+      dueSubs.push({ sub, days: daysUntil, chargeIso })
     }
   }
 
@@ -125,7 +140,7 @@ export async function GET(req: Request) {
   let sent = 0
   let errors = 0
   let pushed = 0
-  for (const { sub, days } of dueSubs) {
+  for (const { sub, days, chargeIso } of dueSubs) {
     const profile = profileById.get(sub.user_id)
 
     /**
@@ -153,6 +168,7 @@ export async function GET(req: Request) {
             quantity: it.quantity,
           })),
           nextDeliveryDate: sub.next_delivery_date,
+          chargeDate: chargeIso,
           daysBefore: days,
           chargeAmount,
         })
@@ -173,12 +189,18 @@ export async function GET(req: Request) {
       sub.subscription_items.length > 1
         ? `${sub.subscription_items[0]?.product_name ?? '상품'} 외 ${sub.subscription_items.length - 1}개`
         : sub.subscription_items[0]?.product_name ?? '정기배송 상품'
+    // ★결제 전 고지(2026-10-01) — 결제일 기준으로 말한다. 일반 고객은 토요일 결제·화요일 발송이다.
     const pushTitle =
       days === 0
-        ? '오늘 정기배송이 출발해요 📦'
+        ? '오늘 다음 박스가 결제돼요'
         : days === 1
-          ? '내일 정기배송이 출발해요 🐾'
-          : `D-${days} · 정기배송 알림`
+          ? '내일 다음 박스가 결제돼요'
+          : `${days}일 뒤 다음 박스가 결제돼요`
+    const mdw = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
+    const whenLine =
+      chargeIso === sub.next_delivery_date
+        ? `${mdw(chargeIso)} 아침 결제 · 같은 날 발송`
+        : `${mdw(chargeIso)} 아침 결제 · ${mdw(sub.next_delivery_date)} 발송`
     // ★재실행 dedup — 같은 리마인더가 같은 날 두 번 나가지 않게 (2026-08-19
     //   5라운드 감사). 이메일은 Resend idempotencyKey(sub:date)로 이미 dedup
     //   되는데 푸시만 빠져 있어, 크론이 수동+예약으로 겹치거나 재시도되면 배송
@@ -213,8 +235,8 @@ export async function GET(req: Request) {
             // 한다(2026-09-01 감사: 이전엔 품목명 한 줄뿐이었다).
             body:
               typeof chargeAmount === 'number' && chargeAmount > 0
-                ? `${itemCountLabel} · 발송일 아침 ${chargeAmount.toLocaleString()}원 결제 예정`
-                : itemCountLabel,
+                ? `${itemCountLabel} · ${chargeAmount.toLocaleString()}원 · ${whenLine}`
+                : `${itemCountLabel} · ${whenLine}`,
             // ?focus 로 해당 구독 카드까지 자동 스크롤 + highlight + skip/pause 강조.
             // 결제 전 마지막 컨트롤 권한 — 1탭으로 도달.
             url: `/mypage/subscriptions?focus=${sub.id}`,

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { renderSubscriptionReminder } from './templates/subscription.ts'
+import { renderSubscriptionReminder, renderTrialPriceChange } from './templates/subscription.ts'
 import { renderOrderConfirmation } from './templates/orders.ts'
 
 /**
@@ -115,5 +115,58 @@ describe('메일 렌더 — 실제 출력', () => {
       recipientName: '<script>alert(1)</script>',
     })
     assert.ok(!html.includes('<script>'), 'script 태그가 그대로 실렸다')
+  })
+})
+
+// ── 2026-10-01 일정 변경 — 토·일 조리 → 화 발송, 일반 고객은 토요일(조리 직전) 결제 ────────────────────
+describe('결제 전 고지 · 서포터즈 전환 고지 — 결제일과 발송일을 따로 말한다', () => {
+  it('★토요일 결제·화요일 발송 — 두 날짜를 다 말하고, 결제 사실이 제목에 있다', () => {
+    const { html, subject } = renderSubscriptionReminder({
+      recipientName: '김철수',
+      nextDeliveryDate: '2026-10-13',
+      chargeDate: '2026-10-10',
+      daysBefore: 2,
+      items: [{ productName: '흑돼지 화식', quantity: 14 }],
+      chargeAmount: 32700,
+    })
+    assert.match(subject, /결제/, '제목에 결제 사실이 없다')
+    assert.match(html, /10월 10일 토요일 아침에 32,700원이 결제돼요/, '결제일(토)·금액이 없다')
+    assert.match(html, /10월 13일 화요일 발송 예정/, '발송일(화)이 없다')
+    assert.match(html, /조리를 시작하기 전/, '왜 발송 전에 결제되는지 말하지 않는다')
+    assert.ok(!html.includes('도착'), '도착을 약속했다')
+  })
+  it('서포터즈 체험 구간(결제일 = 발송일) — "같은 날 보내드려요", 토요일 이야기는 없다', () => {
+    const { html } = renderSubscriptionReminder({
+      recipientName: '김철수',
+      nextDeliveryDate: '2026-10-06',
+      chargeDate: '2026-10-06',
+      daysBefore: 2,
+      items: [{ productName: '오리고기 화식', quantity: 14 }],
+      chargeAmount: 100,
+    })
+    assert.match(html, /같은 날 보내드려요/)
+    assert.ok(!html.includes('토요일'), '서포터즈에게 토요일 결제를 말했다(사장님: 정상가 전까지 알리지 않는다)')
+  })
+  it('★서포터즈 정상가 전환 고지 — 결제가 발송 전 토요일로 바뀐다는 사실을 처음 알린다', () => {
+    const { html } = renderTrialPriceChange({
+      recipientName: '김철수',
+      nextPhase: 'full',
+      nextChargeDate: '2026-11-28',
+      nextShipDate: '2026-12-01',
+      nextAmount: 32200,
+    })
+    assert.match(html, /11월 28일 토요일 아침에 32,200원이 결제돼요/)
+    assert.match(html, /12월 0?1일 화요일에 보내드려요/)
+    assert.match(html, /조리를 시작하기 전/)
+  })
+  it('반값 전환 고지(아직 체험 중 — 발송일 결제)엔 결제 시점 변경 문장이 없다', () => {
+    const { html } = renderTrialPriceChange({
+      recipientName: '김철수',
+      nextPhase: 'half',
+      nextChargeDate: '2026-11-03',
+      nextShipDate: '2026-11-03',
+      nextAmount: 16100,
+    })
+    assert.ok(!html.includes('토요일'), '반값 구간 서포터즈에게 토요일 결제를 말했다')
   })
 })

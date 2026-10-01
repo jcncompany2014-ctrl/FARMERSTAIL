@@ -86,8 +86,14 @@ describe('newFormulaAppliedFrom — 새 처방은 다음 박스부터 (그날 �
   it('박스 3 발송일(화) 10:10 크론 — 청구 뒤라 다음 발송일은 +14 → 그날부터', () => {
     assert.equal(newFormulaAppliedFrom('2026-10-13', '2026-10-27'), '2026-10-27')
   })
-  it('박스 4 발송일 아침(청구 전) 승인 — 다음 발송일이 오늘 → 오늘 박스부터', () => {
-    assert.equal(newFormulaAppliedFrom('2026-10-27', '2026-10-27'), '2026-10-27')
+  it('★박스 4 발송일 아침(서포터즈 청구 전) 승인 — 그 박스는 토·일에 이미 옛 처방으로 조리됐다 → 다음 박스부터', () => {
+    // 2026-10-01 일정 변경(토·일 조리 → 화 발송). 예전엔 '오늘 박스부터'였다(화요일 하루 조리 시절).
+    assert.equal(newFormulaAppliedFrom('2026-10-27', '2026-10-27'), '2026-11-10')
+  })
+  it('★조리 시작(토) 이후 승인 → 다음 박스부터, 조리 전(금)까지 승인 → 이번 박스부터', () => {
+    assert.equal(newFormulaAppliedFrom('2026-10-24', '2026-10-27'), '2026-11-10') // 토
+    assert.equal(newFormulaAppliedFrom('2026-10-26', '2026-10-27'), '2026-11-10') // 월
+    assert.equal(newFormulaAppliedFrom('2026-10-23', '2026-10-27'), '2026-10-27') // 금
   })
   it('다음 발송일 없음(구독 없음·일시정지) → 오늘', () => {
     assert.equal(newFormulaAppliedFrom('2026-10-13', null), '2026-10-13')

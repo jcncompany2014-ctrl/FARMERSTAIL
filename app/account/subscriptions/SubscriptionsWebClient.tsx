@@ -28,7 +28,14 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { nextShipDate, nextCycleDate, resumeShipDate } from '@/lib/shipping-schedule'
+import {
+  nextShipDate,
+  nextCycleDate,
+  resumeShipDate,
+  describeUpcomingBox,
+  type ChargeTiming,
+  type UpcomingBox,
+} from '@/lib/shipping-schedule'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import {
   trackSubscriptionPaused,
@@ -55,6 +62,15 @@ import PriceChangeConsentModal, {
 type Props = {
   /** 체험단 가격표 — 금액 표시가 체험가로 바뀐다(청구와 같은 판정) */
   trial?: TrialState | null
+  /**
+   * 결제 시점(서버 getChargeTiming) — 일반 = 발송 3일 전 토요일, 서포터즈 체험 구간 = 발송일(2026-10-01).
+   * null = 조회 실패(모름) → 결제 요일을 말하지 않고 발송일만 말한다.
+   */
+  chargeTiming?: ChargeTiming | null
+  /** 결제됐고 아직 안 나간 박스(결제됨 + 발송 대기 주문)가 있는 구독 id. 조회 실패면 빈 목록. */
+  paidPreparingSubIds?: string[]
+  /** 구독 id → 그 결제된 박스의 결제 시각(이번 박스 발송일 정본 paidBoxShipIso). */
+  paidPreparingAt?: Record<string, string>
   initialSubs: Subscription[]
   focusSubId: string | null
   priceProposal: PriceChangeProposal | null
@@ -87,12 +103,48 @@ function formatKRW(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
 }
 
+/** yyyy-mm-dd → '10월 13일'. */
+function kstMonthDay(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', {
+    // KST 고정 — 해외 기기(UTC 보다 늦은 시간대)에선 화요일 발송일이 월요일로 보였다.
+    timeZone: 'Asia/Seoul',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+/**
+ * 카드 머리의 일정 한 줄 — 판정은 lib/shipping-schedule describeUpcomingBox 정본(2026-10-01).
+ * next_delivery_date 는 **발송일**이고, 결제일은 결제 시점으로 정한다(일반 = 조리 직전 토요일,
+ * 서포터즈 체험 구간 = 발송일). 결제 시점을 모르면(chargeIso null) 결제 요일을 말하지 않는다.
+ *  · in_progress — 결제됐고 아직 안 나간 박스. 정지 중이어도 결제된 박스는 나가므로 상태와 무관하게 말한다.
+ *  · 정지 등 결제가 일어나지 않는 상태(live=false)면 다음 일정을 말하지 않는다 — 그 날짜는 다시 시작할 때의 기준일 뿐이다.
+ *  · 지난 날짜를 "발송"이라 단정하지 않는다(2026-08-07) — 결제가 미끄러지면 날짜가 과거로 흘러간다.
+ */
+function scheduleChip(box: UpcomingBox | null, live: boolean, today: string): string | null {
+  if (!box) return null
+  if (box.kind === 'in_progress') {
+    return box.shipIso < today
+      ? '결제 완료 · 발송 준비 중'
+      : `결제 완료 · ${kstMonthDay(box.shipIso)} 발송`
+  }
+  if (!live) return null
+  if (box.kind === 'charge_check') return '결제 확인 중'
+  if (box.shipIso < today) return `${kstMonthDay(box.shipIso)} 예정 · 확인 중`
+  if (!box.chargeIso) return `${kstMonthDay(box.shipIso)} 발송`
+  if (box.chargeIso === box.shipIso) return `${kstMonthDay(box.shipIso)} 결제·발송`
+  return `${kstMonthDay(box.chargeIso)} 결제 · ${kstMonthDay(box.shipIso)} 발송`
+}
+
 export default function SubscriptionsWebClient({
   initialSubs,
   focusSubId,
   priceProposal,
   isApp,
   trial = null,
+  chargeTiming = null,
+  paidPreparingSubIds = [],
+  paidPreparingAt = {},
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -428,6 +480,13 @@ export default function SubscriptionsWebClient({
       {priceProposal && <PriceChangeConsentModal proposal={priceProposal} />}
       {visibleSubs.map((sub) => {
         const state = subscriptionState(sub)
+        const box = describeUpcomingBox({
+          nextDeliveryDate: sub.next_delivery_date,
+          timing: chargeTiming,
+          hasPaidPreparingOrder: paidPreparingSubIds.includes(sub.id),
+          paidAt: paidPreparingAt[sub.id] ?? null,
+          today: todayKstIsoDate(),
+        })
         const status = {
           label: SUB_STATE_LABEL[state],
           color: STATE_COLOR_FD[state],
@@ -441,6 +500,9 @@ export default function SubscriptionsWebClient({
           !isCancelled &&
           (needsRenewal || (sub.failed_charge_count ?? 0) > 0 || !!sub.next_retry_at)
         const isLoading = actionLoading === sub.id
+        const chip = isCancelled
+          ? null
+          : scheduleChip(box, isActive || state === 'card_failed', todayKstIsoDate())
 
         return (
           <div
@@ -487,19 +549,12 @@ export default function SubscriptionsWebClient({
                   </span>
                 )}
               </div>
-              {sub.next_delivery_date && !isCancelled && (
+              {chip && (
                 <span
                   className="text-[11px] font-mono shrink-0"
                   style={{ color: 'var(--fd-muted)', letterSpacing: '0.04em' }}
                 >
-                  {new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
-                    // KST 고정 — 해외 기기(UTC 보다 늦은 시간대)에선 화요일 발송일이 월요일로 보였다.
-                    timeZone: 'Asia/Seoul',
-                    month: 'long',
-                    day: 'numeric',
-                  })}{' '}
-                  {/* 지난 날짜를 "배송" 이라 단정하지 않는다(2026-08-07). */}
-                  {sub.next_delivery_date < todayKstIsoDate() ? '예정 · 확인 중' : '배송'}
+                  {chip}
                 </span>
               )}
             </div>
@@ -759,6 +814,19 @@ export default function SubscriptionsWebClient({
       {/* 해지 확인 모달 */}
       {cancelSubId && (
         <CancelModal
+          paidBoxShipIso={(() => {
+            const s = subs.find((x) => x.id === cancelSubId)
+            const b = s
+              ? describeUpcomingBox({
+                  nextDeliveryDate: s.next_delivery_date,
+                  timing: chargeTiming,
+                  hasPaidPreparingOrder: paidPreparingSubIds.includes(s.id),
+                  paidAt: paidPreparingAt[s.id] ?? null,
+                  today: todayKstIsoDate(),
+                })
+              : null
+            return b?.kind === 'in_progress' ? b.shipIso : null
+          })()}
           loading={actionLoading === cancelSubId}
           onClose={() => setCancelSubId(null)}
           onConfirm={() => void performCancel(cancelSubId)}
@@ -779,12 +847,15 @@ export default function SubscriptionsWebClient({
 }
 
 function CancelModal({
+  paidBoxShipIso,
   loading,
   onClose,
   onConfirm,
   onPauseInstead,
   onSkipInstead,
 }: {
+  /** 결제됐고 아직 안 나간 박스의 발송일 — 없으면(또는 모르면) null. */
+  paidBoxShipIso: string | null
   loading: boolean
   onClose: () => void
   onConfirm: () => void
@@ -820,9 +891,14 @@ function CancelModal({
             <X className="w-5 h-5" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
           </button>
         </div>
+        {/* ★결제된 박스는 그대로 나간다(사장님 2026-10-01) — 일반 고객은 발송 3일 전 토요일에 결제되므로
+            토~화 사이에 해지하면 그 박스는 이미 결제·조리 중이다. "다음 배송이 진행되지 않아요"는 그때 거짓이었다.
+            결제된 박스를 모르면(조회 실패 포함) 두 경우 모두 참인 문장으로 말한다. */}
         <p className="mt-2.5 text-[13px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
-          해지하면 다음 배송이 진행되지 않아요. 잠시 쉬어가는 거라면 일시정지나
-          2주 미루기를 추천드려요.
+          {paidBoxShipIso
+            ? `이미 결제된 박스는 ${kstMonthDay(paidBoxShipIso)}에 그대로 보내드리고, 그다음 박스부터 결제와 배송이 멈춰요.`
+            : '해지하면 다음 결제부터 결제와 배송이 멈춰요. 이미 결제된 박스가 있다면 그대로 보내드려요.'}{' '}
+          잠시 쉬어가는 거라면 일시정지나 2주 미루기를 추천드려요.
         </p>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -840,7 +916,9 @@ function CancelModal({
                 2주 미루기
               </span>
               <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                다음 배송만 미루고 정기배송은 유지
+                {paidBoxShipIso
+                  ? '결제된 박스는 그대로 보내고, 그다음 박스만 미뤄요'
+                  : '다음 배송만 미루고 정기배송은 유지'}
               </span>
             </span>
             <ChevronRight className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
@@ -857,7 +935,7 @@ function CancelModal({
                 일시정지
               </span>
               <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                언제든 다시 시작할 수 있어요
+                원하실 때 다시 시작할 수 있어요
               </span>
             </span>
             <ChevronRight className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />

@@ -119,9 +119,15 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     order.payment_status === 'refunded' ||
     order.payment_status === 'partially_refunded' ||
     order.payment_status === 'cancelled'
+  // ★결제된 정기배송 박스는 셀프 취소가 없다(2026-10-01 — 결제 = 조리 시작). 서버(cancel 라우트)도 막는다.
+  const isPaidSubscriptionBox =
+    !!(order as { subscription_id?: string | null }).subscription_id &&
+    order.payment_status === 'paid' &&
+    order.order_status === 'preparing'
   const isCancellable =
     !isCancelled &&
     !paymentSettled &&
+    !isPaidSubscriptionBox &&
     (order.order_status === 'pending' || order.order_status === 'preparing')
 
   return (
@@ -596,6 +602,12 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
         <section className="px-5 mt-3">
           <CancelOrderButton orderId={order.id} />
         </section>
+      )}
+      {isPaidSubscriptionBox && (
+        <p className="px-5 mt-3 text-[12px] leading-relaxed text-muted">
+          결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 다음 박스는 정기배송 관리에서 결제 전에
+          미루거나 해지할 수 있어요. 사정이 있으시면 1:1 문의로 알려 주세요.
+        </p>
       )}
     </main>
     </AuthAwareShell>

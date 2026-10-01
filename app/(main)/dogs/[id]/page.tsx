@@ -7,6 +7,9 @@
 import { redirect } from 'next/navigation'
 import { getTrialState } from '@/lib/payments/trial-state'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import type { UpcomingBoxHints } from './_components/SubscriptionCard'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
 import { buildDogInsight } from '@/lib/dog-insight'
@@ -229,6 +232,49 @@ export default async function DogDetailPage({
     }),
   )
 
+  /**
+   * ★구독 카드의 '지금 말할 박스' 재료 (2026-10-01 일정 변경) — 행에 덧붙여 DogDetailClient 를 거쳐
+   *   SubscriptionCard 로 그대로 보낸다(UpcomingBoxHints). 판정은 카드가 describeUpcomingBox 로 한다.
+   *  · 결제 시점 — 일반 = 발송 3일 전 토요일, 서포터즈 체험 구간 = 발송일. 조회 실패면 null(결제 요일을 단정하지 않는다).
+   *  · 결제됐고 아직 안 나간 박스 — 결제가 성공하면 next_delivery_date 가 곧바로 다음 주기로 밀려, 토~화 사이엔
+   *    사흘 뒤 나갈 박스를 두고 "17일 후"라고 말하게 된다. 조회 실패면 없다고 본다(돈·버튼과 무관한 표시).
+   */
+  // 구독 id → 그 박스의 결제 시각(이번 박스 발송일 정본 paidBoxShipIso 의 재료 — 결제 뒤 미루기에도 맞다).
+  const paidPreparing = new Map<string, string>()
+  if (subscriptions.length > 0) {
+    const { data: prepRows, error: prepErr } = await supabase
+      .from('orders')
+      .select('subscription_id, paid_at, created_at')
+      .eq('user_id', user.id)
+      .in(
+        'subscription_id',
+        subscriptions.map((s) => s.id),
+      )
+      .in('payment_status', PAID_STATUSES)
+      .eq('order_status', 'preparing')
+      .order('created_at', { ascending: false })
+    if (prepErr) {
+      console.error('[dogs/[id]] 준비 중 박스 조회 실패:', prepErr.message)
+    } else {
+      for (const r of (prepRows ?? []) as Array<{
+        subscription_id: string | null
+        paid_at: string | null
+        created_at: string
+      }>) {
+        if (r.subscription_id && !paidPreparing.has(r.subscription_id)) {
+          paidPreparing.set(r.subscription_id, r.paid_at ?? r.created_at)
+        }
+      }
+    }
+  }
+  const chargeTiming = subscriptions.length > 0 ? await getChargeTiming(user.id) : null
+  const subscriptionsWithBox: Array<ActiveSubscription & UpcomingBoxHints> = subscriptions.map((s) => ({
+    ...s,
+    charge_timing: chargeTiming,
+    has_paid_preparing_order: paidPreparing.has(s.id),
+    paid_preparing_at: paidPreparing.get(s.id) ?? null,
+  }))
+
   return (
     <DogDetailClient
       trial={await getTrialState(user.id)}
@@ -237,7 +283,7 @@ export default async function DogDetailPage({
       initialWeightLogs={initialWeightLogs}
       currentFormula={currentFormula}
       checkinStatus={checkinStatus}
-      subscriptions={subscriptions}
+      subscriptions={subscriptionsWithBox}
       subsQueryFailed={subsQueryFailed}
       insight={insight}
       aiComment={aiComment}

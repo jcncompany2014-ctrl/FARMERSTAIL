@@ -125,9 +125,16 @@ export function newFormulaAppliedFrom(
 ): string {
   const next = nextDeliveryDate ? nextDeliveryDate.slice(0, 10) : null
   if (!next || !/^\d{4}-\d{2}-\d{2}$/.test(next)) return todayKst
-  if (next <= todayKst) return todayKst
-  const cap = new Date(Date.parse(`${todayKst}T00:00:00Z`) + DELIVERY_INTERVAL_DAYS * 86_400_000)
-    .toISOString()
-    .slice(0, 10)
-  return next > cap ? cap : next
+  if (next < todayKst) return todayKst
+  const plusDays = (iso: string, d: number) =>
+    new Date(Date.parse(`${iso}T00:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10)
+  const cap = plusDays(todayKst, DELIVERY_INTERVAL_DAYS)
+  const first = next > cap ? cap : next
+  // ★조리가 시작된 박스는 옛 처방 그대로 (2026-10-01 일정 변경 — 토·일 조리 → 화 발송). 발송 3일 전 토요일
+  //   (lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS) 이후 승인되면 그 박스는 이미 옛 처방으로 만들어지는 중이라
+  //   새 처방은 **그다음 박스**부터다. 예전엔 발송일 당일 아침(청구 전) 승인도 그날 박스에 실었다(화요일 하루 조리 시절).
+  return todayKst >= plusDays(first, -COOK_START_BEFORE_SHIP_DAYS) ? plusDays(first, DELIVERY_INTERVAL_DAYS) : first
 }
+
+/** 조리 시작 = 발송(화) 3일 전 토요일. lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS 와 같은 값(이 파일은 import 없는 순수 모듈). */
+const COOK_START_BEFORE_SHIP_DAYS = 3
