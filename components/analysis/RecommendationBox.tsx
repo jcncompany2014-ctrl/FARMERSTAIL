@@ -52,6 +52,9 @@ type State =
 // 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
 type TierKey = FreshTierKey
 
+/** 분석 페이지 → 플랜 고르기 카드로 바로 내려가는 주소 값(`?focus=plan`). lib/payments/trial-notify 와 공유. */
+const PLAN_FOCUS_PARAM = 'plan'
+
 export default function RecommendationBox({
   dogId,
   dogName,
@@ -339,8 +342,17 @@ function RecommendationView({
   const selected = FRESH_TIERS.find((t) => t.key === tier) ?? FRESH_TIERS[0]
   const ctaLabel = hasSubscription ? '이 박스로 시작하기' : '첫 박스 시작하기'
 
+  // 알림에서 바로 플랜 고르기로 — `?focus=plan` 으로 들어오면 이 카드로 내려간다(체험단 도장
+  // 알림 "카드 등록해 주세요", 2026-10-01). 추천 박스는 페이지가 뜬 뒤 따로 불러오므로 해시(#)로는
+  // 못 간다 — 카드가 그려진 이 시점에 한 번만 스크롤한다.
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('focus') !== PLAN_FOCUS_PARAM) return
+    rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
+
   return (
-    <div className="fb-totals">
+    <div className="fb-totals" id="plan-select" ref={rootRef}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
         얼마나 화식으로 드릴까요?
       </div>

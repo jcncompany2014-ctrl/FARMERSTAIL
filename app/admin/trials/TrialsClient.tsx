@@ -73,7 +73,7 @@ export default function TrialsClient({ initial }: { initial: TrialRow[] }) {
   async function stamp(c: Candidate) {
     const who = `${c.name ?? '(이름 없음)'} ${c.email ?? ''}`.trim()
     // 찍기는 돈이 걸린 동작 — 대상·조건을 확인받는다(취소에만 있던 확인창, 9차 점검).
-    if (!window.confirm(`${who} 님에게 서포터즈 도장을 찍을까요?\n(${candidateMeta(c)})\n\n다음 결제부터 100원 4회 → 반값 4회 → 정상가로 진행돼요.`)) return
+    if (!window.confirm(`${who} 님에게 서포터즈 도장을 찍을까요?\n(${candidateMeta(c)})\n\n다음 결제부터 100원 4회 → 반값 4회 → 정상가로 진행돼요.\n찍으면 고객에게 "서포터즈 선정 · 카드 등록" 앱 알림이 바로 가요.`)) return
     setBusy(true)
     setMsg(null)
     try {
@@ -97,7 +97,9 @@ export default function TrialsClient({ initial }: { initial: TrialRow[] }) {
       }
       setCandidates([])
       setQ('')
-      setMsg(`${c.name ?? c.email ?? '고객'} 님에게 도장을 찍었어요. 다음 결제부터 100원이에요.`)
+      // 도장 알림 결과(보냄 / 조용한 시간 / 기기 없음 …) — 못 갔으면 직접 연락하도록.
+      const pushLabel = (j as { push?: { label?: string } }).push?.label ?? ''
+      setMsg(`${c.name ?? c.email ?? '고객'} 님에게 도장을 찍었어요. 다음 결제부터 100원이에요. ${pushLabel}`.trim())
       await refresh()
     } finally {
       setBusy(false)

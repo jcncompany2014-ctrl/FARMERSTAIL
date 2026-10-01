@@ -6,6 +6,7 @@ import { dbError } from '@/lib/api/errors'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
 import { recordAdminAction } from '@/lib/admin-audit'
 import { customerHistories, hasPaidBox } from '@/lib/payments/customer-history'
+import { notifyTrialStamp, trialPushLabel } from '@/lib/payments/trial-notify'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -138,7 +139,10 @@ export async function POST(req: Request) {
     diff: { after: { cheap_remaining: cheap, half_remaining: half }, meta: { forced: paid === true } },
     req,
   })
-  return NextResponse.json({ ok: true })
+  // 도장 알림 — "서포터즈로 선정됐어요, 플랜 고르고 카드 등록" → 분석 페이지 플랜 고르기로(사장님 2026-10-01).
+  // 실패해도 도장은 이미 찍혔다 — 결과 한 줄을 관리자 화면에 보여 직접 연락할지 판단하게 한다.
+  const push = await notifyTrialStamp(admin, body.userId, { cheap, half })
+  return NextResponse.json({ ok: true, push: { sent: push.sent, label: trialPushLabel(push) } })
 }
 
 export async function DELETE(req: Request) {

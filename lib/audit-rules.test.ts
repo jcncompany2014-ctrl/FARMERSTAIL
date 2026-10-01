@@ -5228,3 +5228,21 @@ test('규칙145: 분석 화면 화식 비율 카드의 "추천" 배지가 카드
     assert.ok(top >= 16, `${sel} 위 여백 ${top}px — 배지 절반(≈10px)+여유보다 작다`)
   }
 })
+
+test('규칙146: 체험단 도장을 찍으면 보호자에게 앱 알림이 가고, 누르면 분석 페이지 플랜 고르기로 간다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님)
+   * "체험단 도장 찍으면 알림 날라갈 수 있게 … 지금 바로 카드 등록" · "알림 들어가면 바로 분석페이지에
+   * 플랜 선택하는 화면으로". 도장만 찍히고 고객이 모르면 카드를 등록하지 않아 첫 박스가 안 나간다.
+   * 추천 박스는 페이지가 뜬 뒤 따로 불러와 해시(#)로는 못 내려간다 — ?focus=plan 을 카드가 직접 처리.
+   */
+  const route = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'trials', 'route.ts')))
+  assert.match(route, /recordAdminAction[\s\S]{0,400}notifyTrialStamp\(admin, body\.userId,/, '도장을 찍어도 고객에게 알림이 가지 않는다')
+  assert.match(route, /push: \{ sent: push\.sent, label: trialPushLabel\(push\) \}/, '알림이 갔는지 관리자 화면이 모른다(못 가면 직접 연락해야 한다)')
+  const notify = stripComments(read(join(ROOT, 'lib', 'payments', 'trial-notify.ts')))
+  assert.match(notify, /`\/dogs\/\$\{analyzed\.id\}\/analysis\?focus=plan`/, '도장 알림이 분석 페이지 플랜 고르기로 가지 않는다')
+  assert.match(notify, /\{ category: 'order' \}/, "도장 알림 분류가 'order'(서비스 안내)가 아니다 — marketing 이면 야간 차단·기본 거부로 거의 안 간다")
+  const box = stripComments(read(join(ROOT, 'components', 'analysis', 'RecommendationBox.tsx')))
+  assert.match(box, /get\('focus'\) !== PLAN_FOCUS_PARAM\) return\s*rootRef\.current\?\.scrollIntoView/, '?focus=plan 으로 들어와도 플랜 고르기 카드로 내려가지 않는다')
+  assert.match(box, /const PLAN_FOCUS_PARAM = 'plan'/, '플랜 고르기 주소 값이 알림 링크(?focus=plan)와 다르다')
+})
