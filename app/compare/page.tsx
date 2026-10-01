@@ -8,6 +8,7 @@ import {
 } from '@/lib/sku-nutrition-matrix'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import { isAppContextServer } from '@/lib/app-context'
+import AuthAwareShell from '@/components/AuthAwareShell'
 import CompareClient from './CompareClient'
 
 /** 앱에서 웹 상세페이지를 외부 브라우저로 열 때 쓸 절대 URL 베이스. */
@@ -38,6 +39,13 @@ export const metadata: Metadata = {
  *   유일한 입구 = 앱 분석 페이지의 '4종 라인 비교' 카드. 웹 컨텍스트로 들어오면
  *   홈으로 돌려보낸다(직접 URL·옛 링크·검색 유입 방어). sitemap 미포함 +
  *   robots noindex 도 같은 이유. 새 진입점을 만들 땐 이 규칙부터 확인할 것.
+ *
+ * # 앱 chrome (2026-10-02 사장님 "뒤로가기 없음")
+ *   (main) 그룹 밖 최상위 라우트라 chrome 이 하나도 없었다 — 헤더 ←·하단 탭 없이
+ *   iOS 에선 나갈 길이 없었다. /help 처럼 AuthAwareShell 로 감싸 다른 앱 하위
+ *   화면과 같은 AppChrome(← 4종 비교 + 하단 탭)을 쓴다. 웹은 위 redirect 로
+ *   여기까지 오지 않으므로 웹 화면은 그대로다. ← 의 목적지는 AppChrome
+ *   parentForPath — 입구 카드가 실어 보낸 ?dog= 의 분석 화면(없으면 홈).
  */
 export default async function ComparePage() {
   const isApp = await isAppContextServer()
@@ -57,6 +65,7 @@ export default async function ComparePage() {
     //  · w-full: mx-auto(auto 마진)가 교차축 stretch 를 꺼버려서 main 이 내용
     //    크기(max-content)로 부푼다. 가로를 명시해야 375px 에 묶인다.
     // 둘 중 하나만 빠져도 모바일에서 페이지 본문이 통째로 가로 스크롤된다.
+    <AuthAwareShell>
     <main className="pb-20 w-full max-w-5xl mx-auto px-5 pt-6 min-w-0">
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
@@ -184,6 +193,7 @@ export default async function ComparePage() {
         직접 비교해 보고 싶다면 위 차트를 참고하세요.
       </p>
     </main>
+    </AuthAwareShell>
   )
 }
 

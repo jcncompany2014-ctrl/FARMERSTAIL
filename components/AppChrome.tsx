@@ -95,6 +95,8 @@ const DEEP_TITLES: Record<string, string> = {
   '/reports': '건강 리포트',
   '/notifications': '알림',
   '/chat': 'AI 영양 상담',
+  // 앱 전용 4종 비교(app/compare — (main) 밖이라 AuthAwareShell 로 이 chrome 을 쓴다).
+  '/compare': '4종 비교',
 }
 
 function screenTitleForPath(pathname: string): string | null {
@@ -130,7 +132,16 @@ function screenTitleForPath(pathname: string): string | null {
 const UUID_RE =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
-function parentForPath(pathname: string): string {
+function parentForPath(pathname: string, search = ''): string {
+  // /compare(4종 비교) — 유일한 입구가 강아지 분석 화면의 '4종 라인 비교' 카드다
+  // (app/compare/page.tsx 규칙). 경로에 강아지가 없으니 그 카드가 ?dog=<id> 를
+  // 실어 보내고, ← 는 그 분석 화면으로 올라간다(2026-10-02 사장님 "뒤로가기
+  // 없음"). id 가 없거나 형식이 틀리면 다른 모르는 화면처럼 홈으로.
+  if (pathname === '/compare') {
+    const dog = new URLSearchParams(search).get('dog')
+    if (dog && new RegExp(`^${UUID_RE}$`).test(dog)) return `/dogs/${dog}/analysis`
+    return '/dashboard'
+  }
   const dogMatch = pathname.match(new RegExp(`^/dogs/(${UUID_RE})(/.+)?$`))
   if (dogMatch) {
     const dogBase = `/dogs/${dogMatch[1]}`
@@ -486,7 +497,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               {isDeep ? (
                 <button
                   type="button"
-                  onClick={() => router.push(parentForPath(pathname))}
+                  // 쿼리는 누르는 순간에 읽는다 — 렌더에서 읽으면 SSR/하이드레이션이 갈린다.
+                  onClick={() => router.push(parentForPath(pathname, window.location.search))}
                   aria-label="뒤로"
                   className="flex items-center shrink-0 transition active:scale-95"
                   style={{

@@ -508,11 +508,14 @@ export default function AnalysisView({
         />
       )}
 
-      {/* Round C1 (2026-05-20): 5종 SKU 비교 페이지로 CTA. */}
+      {/* Round C1 (2026-05-20): 5종 SKU 비교 페이지로 CTA.
+          ?dog= — /compare 는 강아지 경로 밖이라 앱 헤더 ← 가 어느 분석 화면으로
+          올라갈지 모른다. 이 강아지 id 를 실어 보내 ← 가 여기로 돌아오게 한다
+          (AppChrome parentForPath, 사장님 2026-10-02 "뒤로가기 없음"). */}
       {!isArchive && (
         <section className="px-5 mt-5">
           <Link
-            href="/compare"
+            href={`/compare?dog=${dogId}`}
             className="block rounded border border-rule bg-bg-3 p-4 hover:border-text transition"
           >
             <div className="flex items-center justify-between">

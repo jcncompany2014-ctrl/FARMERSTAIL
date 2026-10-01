@@ -7,6 +7,8 @@ import {
   packageImageForLine,
   bowlImageForLine,
   FRESH_BOWL_IMAGE,
+  studioPouchImage,
+  studioPouchImageForLine,
 } from './packageImage.ts'
 
 const ROOT = join(import.meta.dirname, '..', '..')
@@ -42,6 +44,34 @@ describe('packageImage — 제품 패키지 실사 경로 (사장님 2026-08-25 
         const file = join(ROOT, 'public', url.replace(/^\//, ''))
         assert.ok(existsSync(file), `${url} 파일 없음 — 화면에 깨진 이미지가 뜬다`)
       }
+    }
+  })
+})
+
+describe('studioPouchImage — 스튜디오 파우치 컷 (사장님 2026-10-02 앱 레시피 시트)', () => {
+  test('단백질 → 스튜디오 컷 (pork=흑돼지·beef=한우 파일명)', () => {
+    assert.equal(studioPouchImage('chicken'), '/pouch-chicken.webp')
+    assert.equal(studioPouchImage('duck'), '/pouch-duck.webp')
+    assert.equal(studioPouchImage('pork'), '/pouch-blackpork.webp')
+    assert.equal(studioPouchImage('beef'), '/pouch-hanwoo.webp')
+  })
+  test('라인 → 스튜디오 컷 (skin=연어·null → null)', () => {
+    assert.equal(studioPouchImageForLine('weight'), '/pouch-chicken.webp')
+    assert.equal(studioPouchImageForLine('basic'), '/pouch-duck.webp')
+    assert.equal(studioPouchImageForLine('joint'), '/pouch-blackpork.webp')
+    assert.equal(studioPouchImageForLine('premium'), '/pouch-hanwoo.webp')
+    assert.equal(studioPouchImageForLine('skin'), null)
+    assert.equal(studioPouchImageForLine(null), null)
+    assert.equal(studioPouchImage('salmon'), null)
+  })
+  test('기존 packageImage 반환값은 그대로 (다른 화면이 쓴다)', () => {
+    assert.equal(packageImageForLine('joint', true), '/pkg/pork-wide.webp')
+  })
+  test('★반환 경로의 파일이 실제로 존재한다 (404 방지)', () => {
+    for (const p of ['chicken', 'duck', 'pork', 'beef']) {
+      const url = studioPouchImage(p)!
+      const file = join(ROOT, 'public', url.replace(/^\//, ''))
+      assert.ok(existsSync(file), `${url} 파일 없음`)
     }
   })
 })

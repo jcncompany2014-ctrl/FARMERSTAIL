@@ -43,6 +43,39 @@ export function packageImageForLine(
 }
 
 /**
+ * 파우치 **스튜디오 컷** — 밝은 회색·흰 무지 배경(1200² 정사각, 파우치가 가운데
+ * 가로 ~78%). 웹 랜딩·레시피 상세(`app/recipe/[protein]`)가 쓰는 그 원본이다.
+ *
+ * # 왜 따로 두나 (사장님 2026-10-02)
+ * 앱 레시피 상세 시트의 큰 사진이 폰 스냅샷(`/pkg/{protein}-wide.webp`)이라 "스튜디오 컷으로
+ * 바꾸고 배경에 녹여 달라"는 요청. 위 `packageImageForProtein` 은 다른 화면
+ * (웹 퀵뷰 시트 등)이 그대로 쓰므로 **반환값을 바꾸지 않고** 입구를 하나 더 낸다.
+ * 무지 배경이라 호출부가 `mix-blend-mode: multiply` 로 시트 배경에 녹일 수 있다.
+ */
+const STUDIO_POUCH_BY_PROTEIN: Record<string, string> = {
+  chicken: '/pouch-chicken.webp',
+  duck: '/pouch-duck.webp',
+  pork: '/pouch-blackpork.webp',
+  beef: '/pouch-hanwoo.webp',
+}
+
+/** 단백질 키 → 스튜디오 파우치 컷. 판매 안 하는 단백질·빈 값은 null. */
+export function studioPouchImage(
+  protein: string | null | undefined,
+): string | null {
+  if (!protein) return null
+  return STUDIO_POUCH_BY_PROTEIN[protein] ?? null
+}
+
+/** 라인(FoodLine) → 스튜디오 파우치 컷. skin(연어)은 판매 SKU 가 아니라 null. */
+export function studioPouchImageForLine(
+  line: FoodLine | null | undefined,
+): string | null {
+  if (!line) return null
+  return studioPouchImage(LEGACY_LINE_TO_PROTEIN[line])
+}
+
+/**
  * 완성된 화식 그릇 사진 (원형 크롭·투명 배경) — **레시피별 4종**.
  *
  * # 왜 4종인가 (사장님 2026-08-25)

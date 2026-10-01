@@ -22,7 +22,7 @@ import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
-import { packageImageForLine, bowlImageForLine } from '@/lib/personalization/packageImage'
+import { studioPouchImageForLine, bowlImageForLine } from '@/lib/personalization/packageImage'
 import { cardIngredientNames, fullIngredientNames } from '@/lib/recipe-ingredients'
 import {
   computeBoxItems,
@@ -701,6 +701,7 @@ function RecipeDetail({
   why: string
 }) {
   const meta = FOOD_LINE_META[line]
+  const pouchSrc = studioPouchImageForLine(line)
   const ings = fullIngredients(line)
   // 근거 trigger 앞 기술 접두사 정리(고객 가독성).
   const whyClean = why.replace(/^케어 목표\s*=\s*/, '')
@@ -718,36 +719,48 @@ function RecipeDetail({
     : []
   return (
     <div>
-      {/* 제품 사진 — 사장님 실촬영 패키지(2026-08-25). 사진 없는 라인은 이모지 폴백. */}
+      {/* 제품 사진 — 스튜디오 파우치 컷을 시트 배경에 녹인다(사장님 2026-10-02:
+          폰 스냅샷 + 분홍 틴트 박스 → 스튜디오 컷, 테두리 없이).
+          · 칸 배경 = 시트 자기 배경(var(--bg)) + isolation 으로 블렌드 범위를 칸 안에 가둠
+          · multiply — 무지 배경(밝은 회색 236~249)이 시트 색으로 사라진다
+          · brightness(1.07) — 배경 최저 236 을 255 로 밀어 올려 multiply 후 시트 색과
+            같아지게(시뮬레이션상 가장자리 편차 1~2/255). 파우치는 살짝만 밝아진다
+          · 좌우 9% 마스크 페이드 — 원본 우하단 바닥 그림자 띠가 칸 오른쪽 끝에서
+            잘려 선처럼 보이던 것을 흐려 없앤다(파우치는 가로 11~89% 라 안 닿음)
+          · cover + 52% — 정사각 원본의 위아래 빈 배경만 잘라 375 폰에서 파우치
+            폭 ~255px(contain 이면 ~196px). 잘려 나간 건 녹는 배경뿐이다
+          drop-shadow·회전은 뺐다 — 사각 이미지에 걸면 칸 모양이 드러난다(스튜디오
+          컷엔 바닥 그림자가 이미 있다). lazy 금지 — 안드로이드 WebView 에서 안
+          뜬다(실측). 사진 없는 라인(연어)은 이모지 폴백. */}
       <div
         style={{
           width: '100%',
           aspectRatio: '4 / 3',
-          borderRadius: 14,
-          background: `color-mix(in srgb, ${meta.color} 12%, transparent)`,
-          boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${meta.color} 20%, transparent)`,
+          background: 'var(--bg)',
+          isolation: 'isolate',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 20,
+          marginBottom: 8,
           overflow: 'hidden',
         }}
       >
-        {packageImageForLine(line, true) ? (
-          /* 배경 없이 파우치만 — 살짝 기울이고 자연스러운 그림자(사장님 2026-08-25).
-             그림자는 CSS drop-shadow 라 파우치 실제 윤곽을 따라 떨어진다(사각형
-             그림자 아님). lazy 금지 — 안드로이드 WebView 에서 안 뜬다(실측). */
+        {pouchSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯
           <img
-            src={packageImageForLine(line, true)!}
+            src={pouchSrc}
             alt={`${meta.nameKo} 화식 패키지`}
             style={{
-              width: '86%',
-              height: '86%',
-              objectFit: 'contain',
-              transform: 'rotate(-2.5deg)',
-              borderRadius: 6,
-              filter: 'drop-shadow(0 10px 16px rgba(40,32,20,0.22)) drop-shadow(0 2px 4px rgba(40,32,20,0.12))',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center 52%',
+              mixBlendMode: 'multiply',
+              filter: 'brightness(1.07)',
+              WebkitMaskImage:
+                'linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%)',
+              maskImage:
+                'linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%)',
             }}
             decoding="async"
           />
