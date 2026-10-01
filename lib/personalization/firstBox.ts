@@ -48,6 +48,7 @@ import { gateAvailability } from './skuMap.ts'
 import { finalizeReasoning } from './reasoning-final.ts'
 import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from './skuModel.ts'
 import { quantizeAndNormalize } from './quantize.ts'
+import { clinicallyExcludedLines } from './clinical-exclusions.ts'
 import { transferToTarget } from './transfers.ts'
 import {
   PREGNANCY_RER_MULTIPLIER,
@@ -72,6 +73,9 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
 
   // Step 1 — 알레르기 차단. 0% 가 된 라인은 이후 어떤 룰도 비율 못 줌.
   const blocked = filterByAllergies(input.allergies, reasoning)
+  // 질환 때문에 뺀 레시피(신장·간·요로결석 → 한우 등)도 마지막 단계들에서 알레르기처럼 막는다 — 마른 체형 룰이
+  // '고단백 = 한우'를 다시 올려 신장병 노견 박스가 한우 100% 가 됐다(2026-10-01, lib/personalization/clinical-exclusions).
+  const avoid = new Set<FoodLine>([...blocked, ...clinicallyExcludedLines(input)])
 
   // Step 2 — 시작 라인 비율. v3 베이스 시드(baseRatiosOverride)가 있으면 그걸,
   // 없으면 케어목표 레시피. 어느 쪽이든 이후 임상 안전 룰(Step 3+)이 그 위에서
@@ -113,13 +117,13 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   applyPregnancyNote(input, reasoning)
 
   // Step 7 — GI 민감도 → 자주/매번이면 메인 단일화.
-  lineRatios = applyGiSensitivity(lineRatios, input, reasoning, blocked)
+  lineRatios = applyGiSensitivity(lineRatios, input, reasoning, avoid)
 
   // Step 8 — 선호 단백질 가산점.
   lineRatios = applyPreferredProteinBonus(lineRatios, input, reasoning)
 
   // Step 9 — quantize + 정규화.
-  lineRatios = quantizeAndNormalize(lineRatios, blocked)
+  lineRatios = quantizeAndNormalize(lineRatios, avoid)
 
   // Step 10 — 토퍼 폐지 (사장님 2026-07-13): 야채/육류 토퍼 삭제. 박스는 화식
   // 레시피(최대 2종)만. 토퍼는 메인 라인과 별개 애드온이라 없애도 급여 칼로리
@@ -133,8 +137,8 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
     availableLines: input.availableLines,
     availableToppers: input.availableToppers,
     reasoning,
-    // 연어(미판매) 비율을 알레르기 레시피(오리 등)로 옮기지 않는다(2026-10-01 펀치).
-    blockedLines: blocked,
+    // 연어(미판매) 비율을 알레르기 레시피(오리 등)·질환으로 뺀 레시피로 옮기지 않는다(2026-10-01 펀치).
+    blockedLines: avoid,
   })
 
   // Step 10.7 — 간식 칼로리 차감. 보호자가 간식을 주면 그만큼 밥(완전식)을
@@ -157,7 +161,7 @@ export function decideFirstBox(input: AlgorithmInput): Formula {
   // 첫 박스 단일 단백질 = 선호. collapseToSingle 이 이 값을 우선한다.
   const firstBoxLine = pickPreferredFirstBoxLine(
     gated.lineRatios,
-    blocked,
+    avoid,
     input,
     reasoning,
   )
@@ -248,6 +252,8 @@ function filterByAllergies(
         chipLabel: `${meta.nameKo} 비슷한 단백질 주의`,
         priority: 0,
         ruleId: `cross-react-${line}`,
+        // 그 레시피가 최종 박스에 없으면 관찰할 것도 없다 — 박스에 없는 레시피 이름만 남는다(2026-10-01).
+        promisedLines: [line],
       })
     }
   }
@@ -311,6 +317,8 @@ function applyCareGoal(
     chipLabel: recipe.chipLabel,
     priority: 1,
     ruleId: `goal-${goal}`,
+    // 첫 박스는 이 뒤에 한 가지로 접힌다 — 박스에 남은 레시피만 말하고, 하나도 없으면 뺀다(2026-10-01 피카).
+    promisedLines: baseLines(recipe.ratios),
   })
   return { ...recipe.ratios }
 }
@@ -350,6 +358,8 @@ function applyV3Base(
     chipLabel: '맞춤 베이스',
     priority: 1,
     ruleId: `goal-${goal}`,
+    // 피카(2026-10-01): 엔진 초안 치킨 → 성장기 룰 → 오리 박스인데 '베이스 레시피: 치킨'이 남았다.
+    promisedLines: baseLines(ratios),
   })
   return ratios
 }
@@ -377,6 +387,7 @@ function applyAgeStage(
       chipLabel: '시니어 · 관절 보강',
       priority: 2,
       ruleId: 'age-senior-joint',
+      promisedLines: ['joint'],
     })
   }
   // 12개월 미만 puppy — Joint/Weight 빼고 Basic/Premium 위주 (성장기 단백질 ↑).
@@ -422,6 +433,10 @@ function applyAgeStage(
       priority: 2,
       ruleId: 'age-puppy-large-breed',
       promisedLines: ['basic'],
+      withoutRecipe: {
+        action:
+          '대형견 성장기라 관절·체중 관리·고단백 레시피는 뺐어요 (칼슘·단백질 부담 ↓). Ca:P ≤1.8 + Ca ≤1.8% DM 권장 (AAFCO 2024 Large-size Growth, NRC 2006 ch.15). 수의사 정기 검진 권장.',
+      },
     })
   } else if (input.ageMonths < 12) {
     // 일반 (소·중형) puppy — Joint 0, Weight 0, Basic + Premium 위주.
@@ -547,6 +562,7 @@ function applyBreedPredispose(
             chipLabel: `품종 특성 대비 · ${FOOD_LINE_META[targetLine].nameKo} 보강`,
             priority: 2,
             ruleId: `breed-soft-${entry.breedKey}-${pred}`,
+            promisedLines: [targetLine],
           })
         }
       }
@@ -586,7 +602,7 @@ function applyChronicAdjustments(
       reasoning.push({
         trigger: `만성 신장질환 (IRIS Stage ${stage})`,
         action:
-          '단백질은 정상으로 두고(한우 레시피 유지) 인을 제한해요. 인 binder 권장 — 수의사 처방식 (저인) 상담. 단백질 과제한은 근감소증 위험 (Polzin 2011).',
+          '단백질은 정상으로 두고 인을 제한해요. 인 binder 권장 — 수의사 처방식 (저인) 상담. 단백질 과제한은 근감소증 위험 (Polzin 2011).',
         chipLabel: `신장 케어 ${stage}단계 · 단백질 유지`,
         priority: 3,
         ruleId: 'chronic-kidney-early',
@@ -606,10 +622,11 @@ function applyChronicAdjustments(
       reasoning.push({
         trigger: '만성 신장질환 (IRIS Stage 4 — 심한 azotemia)',
         action:
-          '한우·치킨 레시피는 빼고 오리로 옮겼어요. 단백질 강제한 (≤14% DM), 인 binder 필수. 응급 처방식 (Royal Canin Renal, Hill\'s k/d Early Support) 수의사 상담 필수. IRIS 2019.',
+          '한우·치킨 레시피는 뺐어요. 단백질 강제한 (≤14% DM), 인 binder 필수. 응급 처방식 (Royal Canin Renal, Hill\'s k/d Early Support) 수의사 상담 필수. IRIS 2019.',
         chipLabel: '신장 케어(위급) · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney-stage4',
+        excludedLines: ['premium', 'weight'],
       })
     } else if (stage === 3) {
       // Stage 3 — moderate azotemia. Premium 0 + 단백질 적당 제한.
@@ -622,10 +639,11 @@ function applyChronicAdjustments(
       reasoning.push({
         trigger: '만성 신장질환 (IRIS Stage 3)',
         action:
-          '한우 레시피는 빼고 오리로 옮겼어요. 단백질 적당 제한 + 인 강제한. 수의사 처방식 상담 필수. IRIS 2019.',
+          '한우 레시피는 뺐어요. 단백질 적당 제한 + 인 강제한. 수의사 처방식 상담 필수. IRIS 2019.',
         chipLabel: '신장 케어 · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney-stage3',
+        excludedLines: ['premium'],
       })
     } else {
       // stage 미진단 / invalid — 보수적으로 Stage 3 처방 (premium 0). 정확한
@@ -648,6 +666,7 @@ function applyChronicAdjustments(
         chipLabel: '신장 케어(보수적) · 저단백',
         priority: 3,
         ruleId: 'chronic-kidney',
+        excludedLines: ['premium'],
       })
     }
   }
@@ -668,6 +687,7 @@ function applyChronicAdjustments(
       chipLabel: '요로결석 → 소 제외',
       priority: 3,
       ruleId: 'chronic-urinary-stone',
+      excludedLines: ['premium'],
     })
   }
 
@@ -790,6 +810,7 @@ function applyChronicAdjustments(
       chipLabel: '관절염 · 관절 보강',
       priority: 3,
       ruleId: 'chronic-arthritis',
+      promisedLines: ['joint'],
     })
   }
 
@@ -837,6 +858,10 @@ function applyChronicAdjustments(
       chipLabel: '심장 케어 · 나트륨 낮춤',
       priority: 3,
       ruleId: 'chronic-cardiac',
+      promisedLines: ['premium'],
+      withoutRecipe: {
+        action: '저나트륨 + grain-free 시판 사료 회피 (FDA 2018-2022). 수의 심장 정기 검진 필수.',
+      },
     })
   }
 
@@ -862,6 +887,8 @@ function applyChronicAdjustments(
       chipLabel: '당뇨 → 고섬유',
       priority: 3,
       ruleId: 'chronic-diabetes',
+      promisedLines: ['weight'],
+      withoutRecipe: { action: '야채 토퍼 추가 권장. 인슐린 + 정기 혈당 측정 필수.' },
     })
   }
 
@@ -884,10 +911,11 @@ function applyChronicAdjustments(
     reasoning.push({
       trigger: '간질환 진단',
       action:
-        '한우(소·내장) 레시피는 뺐어요 → 구리 부담 ↓ (Center 2017). 오리·치킨 우선. BCAA 추가 + 수의사 처방식 상담 필수.',
+        '한우(소·내장) 레시피는 뺐어요 → 구리 부담 ↓ (Center 2017). BCAA 추가 + 수의사 처방식 상담 필수.',
       chipLabel: '간 케어 · 구리 제한',
       priority: 3,
       ruleId: 'chronic-hepatic',
+      excludedLines: ['premium'],
     })
   }
 
@@ -937,6 +965,8 @@ function applyChronicAdjustments(
       chipLabel: '스테로이드 · 관절 보강',
       priority: 3,
       ruleId: 'chronic-long-term-steroid',
+      promisedLines: ['joint'],
+      withoutRecipe: { action: 'Ca/P 손실 보충이 필요해요 (Plumb 9e). 체형 / 혈당 정기 모니터링 (의인성 비만/당뇨 위험).' },
     })
   }
 
@@ -965,6 +995,10 @@ function applyChronicAdjustments(
       chipLabel: '소화 효소 부족 · 단백질 보강',
       priority: 3,
       ruleId: 'chronic-epi',
+      promisedLines: ['premium'],
+      withoutRecipe: {
+        action: '흡수율이 낮아 단백질 보충이 필요해요. 췌장염과 다름 — 정상 지방 OK. Pancreatin 효소 + B12 보충 필수 (Westermarck 2012).',
+      },
     })
   }
 
@@ -987,6 +1021,8 @@ function applyChronicAdjustments(
       chipLabel: '갑상선 · 체중 관리',
       priority: 3,
       ruleId: 'chronic-hypothyroid',
+      promisedLines: ['weight'],
+      withoutRecipe: { action: '의인성 체중 ↑ 주의. 레보티록신 복용 + 정기 T4 검사 (Scott-Moncrieff 2007).' },
     })
   }
 
@@ -1010,6 +1046,10 @@ function applyChronicAdjustments(
       chipLabel: '쿠싱 · 체중 관리',
       priority: 3,
       ruleId: 'chronic-cushings',
+      promisedLines: ['weight'],
+      withoutRecipe: {
+        action: '의인성 비만 주의, 단백질은 정상으로 (근감소 회피). 트릴로스탄 복용 + 정기 ACTH 자극 검사 (Behrend 2013 ACVIM consensus).',
+      },
     })
   }
 
@@ -1032,6 +1072,10 @@ function applyChronicAdjustments(
       chipLabel: `${labels[0]} → 체중 관리`,
       priority: 3,
       ruleId: 'chronic-musculoskeletal',
+      promisedLines: ['weight'],
+      withoutRecipe: {
+        action: '비만이 악화 요인이라 체중 관리가 중요해요. 글루코사민·EPA 보조 권장 (Brisson 2010 Vet Clin 40:829, LaFond 2002 JAAHA 38:467).',
+      },
     })
   }
 
@@ -1081,6 +1125,7 @@ function applyBcsAdjustments(
       chipLabel: `체형 ${input.bcs}/9 · 체중 관리`,
       priority: 4,
       ruleId: 'bcs-overweight',
+      promisedLines: ['weight'],
     })
   }
   // BCS 8-9 — 비만. Weight 라인 메인. v1.4 transferToTarget.
@@ -1098,6 +1143,9 @@ function applyBcsAdjustments(
       chipLabel: `체형 ${input.bcs}/9 · 체중 관리 위주`,
       priority: 4,
       ruleId: 'bcs-obese',
+      promisedLines: ['weight'],
+      // 칼로리를 줄인 건 박스 레시피와 상관없이 사실이다.
+      withoutRecipe: { action: '칼로리를 더 줄였어요 (식이섬유 ↑)' },
     })
   }
   // BCS 1 — 응급 (refeeding syndrome 위험). audit #11 fix.
@@ -1125,6 +1173,12 @@ function applyBcsAdjustments(
       chipLabel: '심하게 마른 체형 · 응급 케어',
       priority: 1, // 응급 — 최상위 우선순위 (다른 priority 4보다 높음)
       ruleId: 'bcs-refeeding-risk',
+      promisedLines: ['premium'],
+      withoutRecipe: {
+        action:
+          '⚠️ refeeding syndrome 위험 — 수의사 동행 + 단계적 증량 (1~3일 25%, ' +
+          '4~7일 50%, 8일+ 100%) 필수. 전해질 (K/P/Mg) 모니터링 권장.',
+      },
     })
   } else if (input.bcs <= 3 && ratios.premium < 0.3) {
     // BCS 2-3 — 일반 저체중. Premium (단백질 ↑) 가산.
@@ -1141,6 +1195,7 @@ function applyBcsAdjustments(
       chipLabel: `체형 ${input.bcs}/9 · 고단백`,
       priority: 4,
       ruleId: 'bcs-underweight',
+      promisedLines: ['premium'],
     })
   }
 
@@ -1209,6 +1264,7 @@ function applyWeightTrendAdjustments(
       chipLabel: '증량 추세 · 체중 관리',
       priority: 4,
       ruleId: 'weight-trend-active-gain',
+      promisedLines: ['weight'],
     })
   }
 
@@ -1284,6 +1340,7 @@ function applyActivityAdjustments(
           chipLabel: '활발 · 고단백',
           priority: 4,
           ruleId: 'activity-high-premium',
+          promisedLines: ['premium'],
         })
       }
     }
@@ -1313,6 +1370,7 @@ function applyActivityAdjustments(
           chipLabel: '차분 · 체중 관리',
           priority: 4,
           ruleId: 'activity-low-weight',
+          promisedLines: ['weight'],
         })
       }
     }
@@ -1354,6 +1412,7 @@ function applyIndoorActivityAdjustments(
         chipLabel: '저활동 → 비만 예방',
         priority: 4,
         ruleId: 'indoor-low-prevent',
+        promisedLines: ['weight'],
       })
     }
   }
@@ -1423,6 +1482,7 @@ function applyChronicComboAdjustments(
             chipLabel: '신장+관절 · 관절 보강',
             priority: 3,
             ruleId: 'chronic-combo-ckd-arthritis',
+            promisedLines: ['joint'],
           })
         }
       }
@@ -1468,6 +1528,7 @@ function applyChronicComboAdjustments(
             chipLabel: '췌장+비만 · 체중 관리',
             priority: 3,
             ruleId: 'chronic-combo-pancr-obese',
+            promisedLines: ['weight'],
           })
         }
       }
@@ -1479,6 +1540,7 @@ function applyChronicComboAdjustments(
         chipLabel: '췌장+비만 · 체중 관리(충족)',
         priority: 3,
         ruleId: 'chronic-combo-pancr-obese',
+        promisedLines: ['weight'],
       })
     }
   }
@@ -1768,6 +1830,7 @@ function pickPreferredFirstBoxLine(
     chipLabel: `첫 박스 · 선호 ${FOOD_LINE_META[winner.line].nameKo}`,
     priority: 7,
     ruleId: 'preferred-first-box',
+    promisedLines: [winner.line],
   })
   return winner.line
 }
@@ -1810,6 +1873,11 @@ function preferredKo(ps: string[]): string {
     .filter((p) => p !== 'salmon')
     .map((p) => PROTEIN_KO[p] ?? p)
     .join(', ')
+}
+
+/** 베이스 문구가 말하는 레시피 라인 — formatBaseLines 와 같은 목록(연어 제외). */
+function baseLines(ratios: Record<FoodLine, Ratio>): FoodLine[] {
+  return ALL_LINES.filter((l) => ratios[l] > 0 && l !== 'skin')
 }
 
 function formatBaseLines(ratios: Record<FoodLine, Ratio>): string {

@@ -5282,7 +5282,9 @@ test('규칙148: 처방 근거에 연어는 절대 안 나오고, 알레르기 �
   assert.match(route, /gateAvailability\(formula\.lineRatios[\s\S]{0,260}blockedLines: allergyBlockedLines/, '처방 저장 경로의 대체 단계가 알레르기 레시피로 옮길 수 있다')
   assert.match(route, /formula\.reasoning = finalizeReasoning\(formula\.reasoning, formula\.lineRatios, \{ blockedLines: allergyBlockedLines \}\)/, '첫 박스 접기 뒤 근거 최종 정리(연어·막힌 레시피·박스에 없는 약속)가 없다')
   const first = stripComments(read(join(ROOT, 'lib', 'personalization', 'firstBox.ts')))
-  assert.match(first, /blockedLines: blocked,/, 'firstBox 대체 단계에 알레르기 차단 목록이 없다')
+  // avoid = 알레르기(blocked) + 질환으로 뺀 레시피(규칙152 가 정의를 잠근다) — 알레르기를 포함한다.
+  assert.match(first, /blockedLines: (blocked|avoid),/, 'firstBox 대체 단계에 알레르기 차단 목록이 없다')
+  assert.match(first, /const avoid = new Set<FoodLine>\(\[\.\.\.blocked,/, 'firstBox 대체 단계의 차단 목록이 알레르기를 포함하지 않는다')
   const next = stripComments(read(join(ROOT, 'lib', 'personalization', 'nextBox.ts')))
   assert.match(next, /return PROTEIN_TO_LINE\[protein\] \?\? null/, '재제안이 정본 단백질↔레시피 대응표를 쓰지 않는다(옛 표: 오리→치킨)')
   assert.match(next, /finalizeReasoning\(reasoning, gated\.lineRatios, \{ blockedLines: blocked \}\)/, '재제안 근거 최종 정리가 없다')
@@ -5378,4 +5380,31 @@ test('규칙151: 어드민은 구독 상태를 정본 판정으로 보여주고,
   const pick = stripComments(read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')))
   assert.match(pick, /!productsAll\[sl\] && \(!deferredSlugs\.has\(sl\) \|\| usedLineSlugs\.has\(sl\)\)/, '패킹 화면이 출시 보류 레시피를 매주 경고하거나, 보류라고 실제 쓰는 박스까지 경고에서 뺀다')
   assert.match(pick, /\.filter\(\(s\) => s\.deferred\)/, '보류 레시피 목록이 skuModel(deferred) 정본에서 나오지 않는다')
+})
+
+test('규칙152: 처방 근거는 최종 박스에 있는 레시피만 말하고, 질환으로 뺀 레시피는 뒤 룰이 다시 넣지 못한다', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "'베이스: 치킨' 칩도 지워. 앞으로도 이런 헷갈리는 일 없게")
+   * 피카(오리 100% 박스) 근거에 '맞춤 베이스 · 베이스 레시피: 치킨'이 떴다 — 임상 룰이 여러 레시피 비율을 옮기며 남긴
+   * 설명이 첫 박스를 한 가지로 접은 뒤에도 남았다(조합 9,261개 중 64종). 같은 스윕에서 신장 3단계·간·요로결석 노견이
+   * 마른 체형이면 '한우는 뺐어요' 뒤에 체형 룰이 한우를 다시 올려 박스가 한우 100% 가 되는 처방 버그가 나왔다.
+   * 실행 스윕·피카 재현은 lib/personalization/reasonCopy.test.ts '근거 칩 ↔ 최종 박스'.
+   */
+  const fin = stripComments(read(join(ROOT, 'lib', 'personalization', 'reasoning-final.ts')))
+  assert.match(fin, /return namedSoldLines\(c\)\.every\(\(l\) => inBox\.has\(l\) \|\| excluded\.has\(l\)\)/, '최종 근거가 박스에 없는 레시피 이름을 거르지 않는다')
+  assert.match(fin, /for \(const l of excluded\) if \(inBox\.has\(l\)\) return false/, "'뺐다'는 레시피가 박스에 들어가 있어도 근거가 남는다")
+  assert.match(fin, /if \(r\.withoutRecipe\) \{/, '레시피 문장이 빠질 때 안전 안내만 남기는 경로가 없다')
+  const first = stripComments(read(join(ROOT, 'lib', 'personalization', 'firstBox.ts')))
+  assert.match(first, /const avoid = new Set<FoodLine>\(\[\.\.\.blocked, \.\.\.clinicallyExcludedLines\(input\)\]\)/, '첫 박스가 질환으로 뺀 레시피를 막지 않는다')
+  for (const re of [/applyGiSensitivity\(lineRatios, input, reasoning, avoid\)/, /quantizeAndNormalize\(lineRatios, avoid\)/, /blockedLines: avoid,/, /pickPreferredFirstBoxLine\(\s*gated\.lineRatios,\s*avoid,/]) {
+    assert.match(first, re, `첫 박스 마지막 단계(${re.source.slice(0, 40)})가 질환으로 뺀 레시피를 다시 쓸 수 있다`)
+  }
+  for (const id of ['chronic-diabetes', 'chronic-cardiac', 'bcs-refeeding-risk', 'chronic-epi', 'chronic-hypothyroid', 'chronic-cushings', 'chronic-musculoskeletal', 'chronic-long-term-steroid', 'age-puppy-large-breed']) {
+    assert.match(first, new RegExp(String.raw`ruleId: '${id}',[\s\S]{0,120}withoutRecipe:`), `${id} 의 안전 안내가 레시피 문장과 함께 사라질 수 있다`)
+  }
+  const next = stripComments(read(join(ROOT, 'lib', 'personalization', 'nextBox.ts')))
+  assert.match(next, /\.\.\.clinicallyExcludedLines\(surveyInput\),/, '재제안이 질환으로 뺀 레시피를 막지 않는다')
+  const clin = stripComments(read(join(ROOT, 'lib', 'personalization', 'clinical-exclusions.ts')))
+  assert.match(clin, /if \(stage === 4\) \{\s*out\.add\('premium'\)\s*out\.add\('weight'\)/, '신장 4단계 제외 목록이 질환 룰과 다르다')
+  assert.match(clin, /else if \(stage !== 1 && stage !== 2\) \{\s*out\.add\('premium'\)/, '신장 1·2단계(단백질 정상)를 빼거나 3단계·미진단을 놓친다')
 })

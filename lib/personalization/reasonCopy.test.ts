@@ -19,7 +19,7 @@ import type { AlgorithmInput, Checkin, Formula, Reasoning } from './types.ts'
 import type { FoodLine } from './types.ts'
 import { ALL_LINES, FOOD_LINE_META } from './lines.ts'
 import { collapseToSingle } from './boxComposition.ts'
-import { finalizeReasoning } from './reasoning-final.ts'
+import { finalizeReasoning, namedSoldLines } from './reasoning-final.ts'
 
 // 영문 라인명(대문자) + 설문 키(소문자 — "선호 단백질: beef, salmon, pork, lamb" 처럼 trigger 에 그대로 새던 것).
 const ENGLISH_LINE = /\b(Weight|Joint|Skin|Premium|Basic|Chicken|Duck|Pork|Beef|Salmon|chicken|duck|pork|beef|salmon|lamb)\b/
@@ -243,6 +243,119 @@ describe('연어 비노출 · 알레르기 레시피 비출고 · 근거↔박�
         if ((f.lineRatios.skin ?? 0) > 0) bad.push(`next[${allergies}] 연어 비율 ${f.lineRatios.skin}`)
         for (const l of blocked) if ((f.lineRatios[l] ?? 0) > 0) bad.push(`next[${allergies}] 알레르기 ${FOOD_LINE_META[l].nameKo} ${f.lineRatios[l]}`)
       }
+    assert.deepEqual([...new Set(bad)].slice(0, 12), [], `${bad.length}건:\n${[...new Set(bad)].slice(0, 12).join('\n')}`)
+  })
+})
+
+// ── 2026-10-01 사장님 "박스에 없는 레시피를 말하는 칩은 지워. 앞으로도 이런 헷갈리는 일 없게" ──
+// 피카(3개월 자견, 오리 100% 박스) 근거에 '맞춤 베이스 · 베이스 레시피: 치킨'이 떴다. 임상 룰이 여러 레시피 비율을
+// 옮기며 남긴 설명이, 첫 박스를 한 가지로 접은 뒤에도 남아 있었다(조합 9,261개 중 64종).
+// 최종 근거의 판매 레시피 이름은 박스에 있거나 그 문구가 '뺐다'고 말하는 것이어야 한다.
+// 안전 안내(당뇨·심장·응급 저체중 등)는 레시피 문장이 빠져도 사라지지 않는다.
+const ALLERGY_RULE_ID = /^(next-)?allergy-/
+function boxMismatches(rs: Reasoning[], final: Partial<Record<FoodLine, number>>, tag: string): string[] {
+  const inBox = new Set(ALL_LINES.filter((l) => (final[l] ?? 0) > 0))
+  const out: string[] = []
+  for (const r of rs) {
+    if (ALLERGY_RULE_ID.test(r.ruleId)) continue
+    const excluded = r.excludedLines ?? []
+    for (const l of namedSoldLines(r)) {
+      if (!inBox.has(l) && !excluded.includes(l)) out.push(`${tag} 박스에 없는 ${FOOD_LINE_META[l].nameKo}: ${r.ruleId} | ${r.chipLabel} | ${r.action}`)
+    }
+    for (const l of excluded) if (inBox.has(l)) out.push(`${tag} 뺐다는 ${FOOD_LINE_META[l].nameKo}가 박스에: ${r.ruleId}`)
+  }
+  return out
+}
+/** 레시피 이야기가 빠져도 반드시 남아야 하는 안전 안내 — 이름으로 고정한다(withoutRecipe 를 지우면 검사도 같이 빠지지 않게). */
+const SAFETY_RULES = new Set([
+  'chronic-diabetes', 'chronic-cardiac', 'chronic-epi', 'chronic-hypothyroid', 'chronic-cushings',
+  'chronic-musculoskeletal', 'chronic-long-term-steroid', 'bcs-refeeding-risk', 'age-puppy-large-breed',
+  'chronic-kidney', 'chronic-kidney-early', 'chronic-kidney-stage3', 'chronic-kidney-stage4', 'chronic-hepatic', 'chronic-urinary-stone',
+])
+const V3_SEEDS: Array<Record<FoodLine, number>> = [
+  { basic: 0, weight: 1, skin: 0, premium: 0, joint: 0 },
+  { basic: 0, weight: 0, skin: 0, premium: 1, joint: 0 },
+  { basic: 0, weight: 0, skin: 0, premium: 0, joint: 1 },
+  { basic: 0.5, weight: 0, skin: 0, premium: 0.5, joint: 0 },
+]
+
+describe('근거 칩 ↔ 최종 박스 — 박스에 없는 레시피를 말하지 않는다 (2026-10-01 피카)', () => {
+  it('마지막 그물: 표시(promisedLines)가 없는 새 문구도 박스에 없는 레시피 이름이면 빠지고, 뺐다는 문구·알레르기 문구는 남는다', () => {
+    const box = { basic: 1, weight: 0, skin: 0, premium: 0, joint: 0 }
+    const r = (ruleId: string, action: string, extra: Partial<Reasoning> = {}): Reasoning => ({ trigger: 't', action, chipLabel: 'c', priority: 3, ruleId, ...extra })
+    const out = finalizeReasoning([
+      r('new-rule', '고단백 레시피(한우) 비중을 올렸어요'),
+      r('new-rule-ok', '오리 레시피로 담았어요'),
+      r('chronic-x', '한우 레시피는 뺐어요', { excludedLines: ['premium'] }),
+      r('chronic-y', '치킨 레시피는 뺐어요', { excludedLines: ['basic'] }),
+      r('allergy-premium', '한우 레시피는 제외했어요'),
+      r('goal-x', '베이스 레시피: 치킨 · 오리 · 한우'),
+    ], box)
+    assert.deepEqual(out.map((x) => `${x.ruleId}:${x.action}`), [
+      'new-rule-ok:오리 레시피로 담았어요',
+      'chronic-x:한우 레시피는 뺐어요',
+      'allergy-premium:한우 레시피는 제외했어요',
+      'goal-x:베이스 레시피: 오리',
+    ])
+    // new-rule(박스에 없는 한우를 올렸다) · chronic-y(뺐다는 오리가 박스에 있다)는 빠진다.
+  })
+
+  it('피카 재현: 엔진 초안 치킨 + 3개월 자견 → 오리 박스에 치킨 근거가 없다', () => {
+    const input: AlgorithmInput = { ...base(), ageMonths: 3, weightKg: 5.1, baseRatiosOverride: V3_SEEDS[0], availableLines: SOLD, treatReductionPct: 0.1 }
+    const f = decideFirstBox(input)
+    const final = collapseToSingle(f.lineRatios, f.firstBoxLine ?? null)
+    const rs = finalizeReasoning(f.reasoning, final, { blockedLines: [] })
+    assert.equal(final.basic, 1, '전제: 피카처럼 오리 한 가지 박스')
+    assert.ok(f.reasoning.some((r) => r.chipLabel === '맞춤 베이스' && r.action.includes('치킨')), '전제: 엔진 초안이 치킨 베이스 문구를 낸다')
+    assert.ok(!rs.some((r) => `${r.action}${r.chipLabel}`.includes('치킨')), '오리 박스 근거에 치킨이 남았다')
+    const puppy = rs.find((r) => r.ruleId === 'age-puppy')
+    assert.ok(puppy, '성장기 설명은 남아야 한다')
+    assert.ok(!puppy.action.includes('한우'), `박스에 없는 한우를 말한다: ${puppy.action}`)
+  })
+
+  it('첫 박스 — 라우트 순서(엔진 → 1종 접기 → 최종 정리)로 넓게, 안전 안내는 살아남는다', () => {
+    let runs = 0
+    const bad: string[] = []
+    function* inputs(): Generator<AlgorithmInput> {
+      // 엔진 초안(v3 베이스)을 바꿔 가며 — 같은 임상 룰이어도 첫 박스가 다른 레시피로 접힌다(피카: 치킨 초안 → 오리).
+      for (const i of salmonDuckInputs()) {
+        yield i
+        for (const seed of V3_SEEDS) yield { ...i, baseRatiosOverride: seed }
+      }
+    }
+    for (const input of inputs()) {
+      runs++
+      const blocked = blockedOf(input.allergies)
+      const f = decideFirstBox(input)
+      const final = collapseToSingle(f.lineRatios, f.firstBoxLine ?? null)
+      const rs = finalizeReasoning(f.reasoning, final, { blockedLines: blocked })
+      const tag = `[${input.allergies.join('+') || '-'}|${input.chronicConditions.join('+') || '-'}|${input.ageMonths}m|bcs${input.bcs}]`
+      bad.push(...boxMismatches(rs, final, tag))
+      for (const r of f.reasoning) {
+        if ((r.withoutRecipe || SAFETY_RULES.has(r.ruleId)) && !rs.some((x) => x.ruleId === r.ruleId)) bad.push(`${tag} 안전 안내가 사라졌다: ${r.ruleId}`)
+      }
+    }
+    assert.ok(runs >= 1500, `실행 ${runs}회 — 격자가 좁다`)
+    assert.deepEqual([...new Set(bad)].slice(0, 15), [], `${bad.length}건:\n${[...new Set(bad)].slice(0, 15).join('\n')}`)
+  })
+
+  it('다음 박스(재제안) — 체크인·알레르기·선호 조합에서도 박스에 없는 레시피를 말하지 않는다', () => {
+    const bad: string[] = []
+    let runs = 0
+    for (const stool2 of [3, 6]) for (const stool4 of [3, 6]) for (const appetite of [2, 5]) for (const coat of [2, 5])
+      for (const allergies of [[], ['닭·칠면조'], ['오리']]) for (const preferredProteins of [[], ['pork'], ['duck']]) {
+        const blocked = blockedOf(allergies)
+        const f = decideNextBox({
+          previousFormula: previousFormula(),
+          checkins: [checkin('week_2', { stool: stool2 }), checkin('week_4', { stool: stool4, coat, appetite, satisfaction: 4 })],
+          surveyInput: { ...base(), allergies, preferredProteins, availableLines: SOLD },
+          cycleNumber: 2,
+        })
+        runs++
+        bad.push(...boxMismatches(f.reasoning, f.lineRatios, `next[s${stool2}/${stool4}|a${appetite}|${allergies}|${preferredProteins}]`))
+        for (const r of f.reasoning) for (const l of blocked) if (!ALLERGY_RULE_ID.test(r.ruleId) && `${r.action}${r.chipLabel}`.includes(FOOD_LINE_META[l].nameKo) && !(r.excludedLines ?? []).includes(l)) bad.push(`next 막힌 ${FOOD_LINE_META[l].nameKo}: ${r.ruleId}`)
+      }
+    assert.ok(runs >= 100, `실행 ${runs}회`)
     assert.deepEqual([...new Set(bad)].slice(0, 12), [], `${bad.length}건:\n${[...new Set(bad)].slice(0, 12).join('\n')}`)
   })
 })

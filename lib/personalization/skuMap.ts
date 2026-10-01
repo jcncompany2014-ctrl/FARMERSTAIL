@@ -160,6 +160,8 @@ export function gateAvailability(
         priority: 1,
         ruleId: `gate-line-${line}`,
         promisedLines: [target],
+        // 준비 중인 레시피는 '못 담았다'고 말하는 것 — 박스에 없는 게 맞다(2026-10-01).
+        excludedLines: [line],
       })
     }
   }

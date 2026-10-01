@@ -35,6 +35,7 @@ import type {
 } from './types.ts'
 import { FOOD_LINE_META, ALL_LINES, dailyGramsFromMix, PROTEIN_TO_LINE } from './lines.ts'
 import { quantizeAndNormalize } from './quantize.ts'
+import { clinicallyExcludedLines } from './clinical-exclusions.ts'
 import { gateAvailability } from './skuMap.ts'
 import { finalizeReasoning } from './reasoning-final.ts'
 
@@ -50,7 +51,12 @@ export function decideNextBox(input: NextBoxInput): Formula {
   const reasoning: Reasoning[] = []
 
   // 알레르기는 매 cycle 검증 — 설문이 갱신되어 새 알레르기 추가됐을 수도.
-  const blocked = recomputeBlockedLines(surveyInput.allergies, reasoning)
+  // 질환 때문에 뺀 레시피도 알레르기처럼 매 회차 막는다(2026-10-01, lib/personalization/clinical-exclusions) —
+  // 식욕·변 룰이 그 레시피 비중을 다시 올리지 않게. 알림 문구('계속 제외해요')는 알레르기만 낸다.
+  const blocked = new Set<FoodLine>([
+    ...recomputeBlockedLines(surveyInput.allergies, reasoning),
+    ...clinicallyExcludedLines(surveyInput),
+  ])
 
   // 시작점: 이전 처방. 0% 라인은 그대로 유지 (알레르기 / 위장 민감 등).
   let lineRatios: Record<FoodLine, Ratio> = { ...previousFormula.lineRatios }
@@ -212,6 +218,9 @@ function applyWeek2StoolSignal(
       chipLabel: '2주차 무름 → 지방 ↓',
       priority: 4,
       ruleId: 'next-week2-stool-soft',
+      promisedLines: ['weight'],
+      // 치킨이 박스에 없으면(알레르기·선호) 지방을 낮춘 사실만 말한다.
+      withoutRecipe: { action: '변이 무른 편이라 지방이 적은 쪽으로 조금 옮겼어요' },
     })
     return {
       ...ratios,
@@ -296,6 +305,7 @@ function applyWeek4StoolSignal(
       chipLabel: '지속 무름 → 단일 단백질',
       priority: 3,
       ruleId: 'next-stool-persistent-collapse',
+      promisedLines: [mainLine],
     })
     return collapsed
   }
@@ -310,6 +320,8 @@ function applyWeek4StoolSignal(
       chipLabel: '4주차 무름 → 지방 ↓',
       priority: 4,
       ruleId: 'next-week4-stool-soft',
+      promisedLines: ['weight'],
+      withoutRecipe: { action: '변이 무른 편이라 지방이 적은 쪽으로 조금 옮겼어요' },
     })
     return { ...ratios, skin: ratios.skin - skinShift, weight }
   }
@@ -394,6 +406,7 @@ function applyAppetiteSignal(
     chipLabel: '식욕 ↓ → 선호 ↑',
     priority: 6,
     ruleId: 'next-appetite-low',
+    promisedLines: [prefLine],
   })
   return {
     ...ratios,
