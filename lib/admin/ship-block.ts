@@ -5,8 +5,8 @@
  * 같은 판정이 화면 배지 · 배송 라벨 · CSV · 조리 합계 **네 곳**에 흩어져 있었고,
  * 그래서 실제로 갈라졌다:
  *  · 화면은 "청구 불가 — 발송하지 마세요" 라고 하는데 **라벨은 그대로 인쇄**됐다.
- *  · 청구가 **실패**한 건은 어느 가지에도 안 걸려 "발송일 아침 청구 예정" 으로
- *    떨어져 조리·포장·발송까지 갔다(무료 박스).
+ *  · 청구가 **실패**한 건은 어느 가지에도 안 걸려 "발송일 아침 청구 예정"(당시 문구 —
+ *    결제일 = 발송일이던 시절) 으로 떨어져 조리·포장·발송까지 갔다(무료 박스).
  *  · 고객이 결제 **전에** 멈춘 구독을 "돈은 이미 받았다" 로 단언했다.
  * 판정이 한 곳이면 이런 어긋남이 구조적으로 불가능하다.
  *
@@ -39,9 +39,11 @@ export type ShipBlockInput = {
    */
   overdueNotCharged: boolean
   /**
-   * ★발송일 청구 시각(KST 09:10)이 지났는데 결제된 주문이 없다 (2026-09-25 3차 점검).
+   * ★**결제일** 청구 시각(KST 09:10)이 지났는데 결제된 주문이 없다 (2026-09-25 3차 점검).
+   * 결제일은 구독마다 다르다(2026-10-01 — 일반 = 발송 3일 전 토요일 조리 직전, 서포터즈 체험
+   * 구간 = 발송일 화요일; 아래 chargeRunPassed · lib/shipping-schedule chargeDateFor).
    * 청구 크론이 통째로 실패(키 오류 등)했거나 건너뛴 구독이다. 예전엔 "발송일 아침
-   * 청구 예정" 으로 떨어져 발송 가능으로 판정됐다 — 청구 전 발송.
+   * 청구 예정"(당시 문구) 으로 떨어져 발송 가능으로 판정됐다 — 청구 전 발송.
    */
   notChargedAfterRun: boolean
 }
@@ -88,16 +90,20 @@ export const SHIP_BLOCK_LABEL: Record<
   not_charged_after_run: '청구시각지남-미청구(발송금지)',
 }
 
-/** 발송일 아침 청구 크론 시각(KST). vercel.json `10 0 * * *` = 00:10 UTC = 09:10 KST. */
+/** 청구 크론 시각(KST). vercel.json `10 0 * * *` = 00:10 UTC = 09:10 KST. 매일 돈다. */
 export const CHARGE_RUN_KST_MINUTES = 9 * 60 + 10
 
 /**
- * 발송일(shipDate, KST yyyy-mm-dd)의 청구 시각이 지났는가.
+ * 결제일(chargeDate, KST yyyy-mm-dd)의 청구 시각이 지났는가.
  * 지났으면 "청구 예정"은 더 이상 사실이 아니다 — 결제 증거가 없으면 청구가 안 된 것이다.
+ *
+ * ★2026-10-01 일정 변경 — 결제일은 **구독마다 다르다**(lib/shipping-schedule chargeDateFor):
+ *   일반 = 발송 3일 전 토요일(조리 직전), 서포터즈 체험 구간 = 발송일(화). 예전엔 이 함수에
+ *   발송일을 넣었다(결제일 = 발송일이던 시절). 호출부는 chargeDateFor 로 구한 결제일을 넘긴다.
  */
-export function chargeRunPassed(shipDate: string, now: Date): boolean {
+export function chargeRunPassed(chargeDate: string, now: Date): boolean {
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
   const today = kst.toISOString().slice(0, 10)
-  if (today !== shipDate) return today > shipDate
+  if (today !== chargeDate) return today > chargeDate
   return kst.getUTCHours() * 60 + kst.getUTCMinutes() >= CHARGE_RUN_KST_MINUTES
 }

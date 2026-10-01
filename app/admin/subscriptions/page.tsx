@@ -5,7 +5,15 @@ import { Repeat } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
-import { resumeShipDate } from '@/lib/shipping-schedule'
+import {
+  resumeShipDate,
+  chargeTimingFor,
+  describeUpcomingBox,
+  weekdayKo,
+  type UpcomingBox,
+} from '@/lib/shipping-schedule'
+import { todayKstIsoDate, diffDaysKst } from '@/lib/datetime-kst'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
@@ -126,6 +134,11 @@ export default function AdminSubscriptionsPage() {
   // 못 받으면 서포터즈도 정가로 보이므로 그 사실을 화면에 알린다(규칙1 — 실패를 '없음'으로 위장 금지).
   const [trials, setTrials] = useState<Map<string, TrialState>>(new Map())
   const [trialsError, setTrialsError] = useState(false)
+  // 결제됐고 아직 안 나간 박스가 있는 구독(결제됨 + 발송 대기 주문) — 2026-10-01 일정 변경.
+  //   일반 고객은 토요일에 결제되고 청구 크론이 그 즉시 next_delivery_date 를 다음 주기(+14)로 민다.
+  //   이걸 모르면 토~화엔 사흘 뒤 나갈 박스가 '배송 예정'에서 빠지고 다음 주기 날짜만 보인다.
+  const [paidBoxSubIds, setPaidBoxSubIds] = useState<Set<string>>(new Set())
+  const [paidBoxError, setPaidBoxError] = useState(false)
 
   useEffect(() => {
     void loadAll()
@@ -138,19 +151,40 @@ export default function AdminSubscriptionsPage() {
     //  `billing_key`·`billing_customer_key` 외에 `last_charge_lock_at`·
     //  `next_retry_at`·`last_failed_charge_code` 같은 서버 전용 칸도 함께
     //  빠진다(별표는 그것들까지 전부 내보냈다).
-    const [{ data, error, count }, trialRes] = await Promise.all([
+    const [{ data, error, count }, trialRes, paidRes] = await Promise.all([
       subsQuery().range(0, PER_PAGE - 1),
       fetch('/api/admin/trials')
         .then(async (r) =>
           r.ok ? ((await r.json()) as { ok?: boolean; trials?: Array<TrialState & { user_id: string }> }) : null,
         )
         .catch(() => null),
+      // 결제 증거 = 결제됨(부분환불 포함) + 발송 대기 주문 — 피킹 리스트·ship-block 과 같은 기준.
+      supabase
+        .from('orders')
+        .select('subscription_id')
+        .in('payment_status', [...PAID_STATUSES])
+        .eq('order_status', 'preparing')
+        .not('subscription_id', 'is', null)
+        .limit(2000),
     ])
     if (trialRes?.ok && Array.isArray(trialRes.trials)) {
       setTrials(new Map(trialRes.trials.map((t) => [t.user_id, t])))
       setTrialsError(false)
     } else {
       setTrialsError(true)
+    }
+    // 못 받으면 결제된 박스가 '결제 예정'처럼 보인다 — 화면에 알린다(규칙1).
+    if (paidRes.error) {
+      setPaidBoxError(true)
+    } else {
+      setPaidBoxError(false)
+      setPaidBoxSubIds(
+        new Set(
+          ((paidRes.data ?? []) as Array<{ subscription_id: string | null }>)
+            .map((o) => o.subscription_id)
+            .filter((x): x is string => !!x),
+        ),
+      )
     }
 
     setLoadError(Boolean(error))
@@ -191,15 +225,41 @@ export default function AdminSubscriptionsPage() {
   }
 
   // 필터링
-  const today = new Date().toISOString().split('T')[0] ?? ''
+  // ★KST 날짜(2026-10-01) — 예전엔 UTC(toISOString)라 KST 00~09시엔 '오늘'이 어제였다.
+  const today = todayKstIsoDate()
+
+  /**
+   * 구독마다 '지금 말할 박스' — 발송일과 결제일(2026-10-01 일정 변경, 정본 describeUpcomingBox).
+   * 결제 시점: 서포터즈 체험 구간(100원·반값)이면 발송일(화), 아니면 발송 3일 전 토요일(chargeTimingFor).
+   * 서포터즈 정보를 못 받았으면 결제일을 단정하지 않는다(null) — 일시정지·해지는 결제가 안 일어나므로 null.
+   */
+  const boxOf = (s: SubscriptionRow): UpcomingBox | null =>
+    describeUpcomingBox({
+      nextDeliveryDate: s.next_delivery_date,
+      timing: s.status === 'active' && !trialsError ? chargeTimingFor(trials.get(s.user_id)) : null,
+      hasPaidPreparingOrder: paidBoxSubIds.has(s.id),
+      today,
+    })
+
+  /**
+   * '📦 배송 예정' = 오늘부터 7일 안에 나갈 박스.
+   *  · 결제된 박스(결제됨 + 발송 대기)는 구독 상태와 무관하게 나가야 하므로 넣는다 — 발송일이 지났는데
+   *    안 나간 것도 넣는다(놓치면 안 되는 박스). 해지돼 날짜가 지워진 구독도 결제된 박스가 있으면 넣는다.
+   *  · 아직 결제 전인 박스는 활성 구독만 — 결제가 확인 안 된 것(결제일 지남)도 넣고 표에서 빨갛게 보인다.
+   * 예전엔 next_delivery_date 만 봐서, 토요일 결제 뒤 날짜가 다음 주기로 밀린 박스가 토~화에 빠졌다.
+   */
+  const isUpcoming = (s: SubscriptionRow): boolean => {
+    const box = boxOf(s)
+    if (paidBoxSubIds.has(s.id)) return !box || diffDaysKst(box.shipIso, today) <= 7
+    if (s.status !== 'active' || !box) return false
+    const diff = diffDaysKst(box.shipIso, today)
+    return diff >= 0 && diff <= 7
+  }
+
   const filtered = subs.filter((s) => {
     // 탭 필터
     if (tab === 'upcoming') {
-      if (s.status !== 'active') return false
-      if (!s.next_delivery_date) return false
-      // 오늘 포함 7일 이내 배송 예정
-      const diff = (new Date(s.next_delivery_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
-      if (diff < 0 || diff > 7) return false
+      if (!isUpcoming(s)) return false
     } else if (tab === 'supporters') {
       if (!isLiveTrial(trials.get(s.user_id))) return false
     } else if (tab === 'needs_card') {
@@ -226,12 +286,8 @@ export default function AdminSubscriptionsPage() {
   const supporter = supporterViews(subs, trials)
   const supporterCount = subs.filter((s) => isLiveTrial(trials.get(s.user_id))).length
 
-  // 배송 예정 건수
-  const upcomingCount = subs.filter((s) => {
-    if (s.status !== 'active' || !s.next_delivery_date) return false
-    const diff = (new Date(s.next_delivery_date).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24)
-    return diff >= 0 && diff <= 7
-  }).length
+  // 배송 예정 건수 — 탭과 같은 판정(isUpcoming).
+  const upcomingCount = subs.filter(isUpcoming).length
 
   async function handleStatusChange(subId: string, newStatus: string) {
     // 해지는 되돌리기 어려운 조치 — 모바일 오터치 가드(2026-07-19 검수).
@@ -347,8 +403,9 @@ export default function AdminSubscriptionsPage() {
             </h1>
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-            <Hl>고객들의 정기배송(2주마다 · 화요일 발송)</Hl>을 조회·관리하는
-            곳이에요. 결제와 배송 예약은 자동으로 돌아가서,{' '}
+            <Hl>고객들의 정기배송(2주마다 · 토·일 조리 → 월 포장 → 화요일 발송)</Hl>을 조회·관리하는
+            곳이에요. 결제는 일반 고객이 발송 3일 전 토요일 아침, 서포터즈 체험 구간은 발송일(화) 아침에
+            자동으로 돌아가서,{' '}
             <Em>문제 있는 구독만</Em> 손보면 돼요.
             {/* ★조회가 실패했으면 "전체 0건" 이라고 말하지 않는다 — 배너 바로
                 위에서 숫자가 거짓말하면 배너를 안 읽는다(2026-08-07). */}
@@ -396,6 +453,11 @@ export default function AdminSubscriptionsPage() {
           서포터즈 정보를 불러오지 못했어요 — 지금은 서포터즈 고객도 정가로 보여요. 새로고침해 주세요.
         </p>
       )}
+      {paidBoxError && !loading && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          결제된 박스(발송 대기) 정보를 불러오지 못했어요 — 토요일에 결제된 박스가 &lsquo;배송 예정&rsquo;에서 빠지고 다음 주기 날짜로 보일 수 있어요. 새로고침해 주세요.
+        </p>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
@@ -440,7 +502,7 @@ export default function AdminSubscriptionsPage() {
                     <th className="text-left px-4 py-2.5 font-medium">고객</th>
                     <th className="text-left px-4 py-2.5 font-medium">구성</th>
                     <th className="text-center px-4 py-2.5 font-medium">상태</th>
-                    <th className="text-center px-4 py-2.5 font-medium">다음 배송</th>
+                    <th className="text-center px-4 py-2.5 font-medium">다음 발송 · 결제</th>
                     <th className="text-right px-4 py-2.5 font-medium">회당 금액</th>
                     <th className="text-center px-4 py-2.5 font-medium">누적</th>
                     <th className="text-center px-4 py-2.5 font-medium">관리</th>
@@ -451,6 +513,9 @@ export default function AdminSubscriptionsPage() {
                     <SubRow
                       key={sub.id}
                       sub={sub}
+                      box={boxOf(sub)}
+                      paidBox={paidBoxSubIds.has(sub.id)}
+                      today={today}
                       supporter={supporter.get(sub.id) ?? null}
                       isSupporter={isLiveTrial(trials.get(sub.user_id))}
                       isLoading={actionLoading === sub.id}
@@ -468,6 +533,9 @@ export default function AdminSubscriptionsPage() {
               <SubCard
                 key={sub.id}
                 sub={sub}
+                box={boxOf(sub)}
+                paidBox={paidBoxSubIds.has(sub.id)}
+                today={today}
                 supporter={supporter.get(sub.id) ?? null}
                 isSupporter={isLiveTrial(trials.get(sub.user_id))}
                 isLoading={actionLoading === sub.id}
@@ -513,22 +581,74 @@ function StatusBadge({ sub }: { sub: SubscriptionRow }) {
   )
 }
 
-/** 다음 배송일 — 카드 등록 전이면 빈칸('-') 대신 왜 없는지를 말한다(배송일은 카드 등록 때 잡힌다). */
-function NextDelivery({ sub }: { sub: SubscriptionRow }) {
-  if (sub.next_delivery_date) {
+/** 'yyyy-mm-dd' → '10월 6일(화)'. 문자열 그대로 읽는다 — new Date() 는 기기 시간대를 타서 해외에선 하루 어긋난다. */
+function mdKo(iso: string): string {
+  return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
+}
+
+/**
+ * 다음 발송일 + 결제일 (2026-10-01 일정 변경 — 토·일 조리 → 월 포장 → 화 발송).
+ * 결제일은 고객마다 다르다: 일반 = 발송 3일 전 토요일(조리 직전), 서포터즈 체험 구간 = 발송일(화).
+ * 결제된 박스가 있으면 next_delivery_date(다음 주기)가 아니라 **지금 조리·포장 중인 박스**의 발송일을 말한다.
+ * 카드 등록 전이면 빈칸('-') 대신 왜 없는지를 말한다(배송일은 카드 등록 때 잡힌다).
+ */
+function NextDelivery({
+  sub,
+  box,
+  paidBox,
+  today,
+  layout,
+}: {
+  sub: SubscriptionRow
+  box: UpcomingBox | null
+  paidBox: boolean
+  today: string
+  layout: 'stack' | 'inline'
+}) {
+  if (!box) {
+    // 해지로 날짜가 지워졌어도 결제된 박스는 나간다(결제 후 자동 환불 없음 — 사장님 2026-10-01).
+    if (paidBox) return <span className="text-emerald-700">결제됨 · 발송 대기</span>
+    if (stateOf(sub) === 'needs_card') {
+      return <span className="text-[11px] font-normal text-muted-foreground">카드 등록 후 잡혀요</span>
+    }
+    return <>-</>
+  }
+  let charge: { text: string; cls: string } | null
+  if (box.kind === 'in_progress') {
+    charge =
+      box.shipIso < today
+        ? { text: '결제됨 · 발송일 지남 — 송장 확인', cls: 'text-destructive' }
+        : { text: '결제 완료 · 조리·포장 중', cls: 'text-emerald-700' }
+  } else if (box.kind === 'charge_check') {
+    charge = { text: `결제 ${mdKo(box.chargeIso)} — 결제 확인 필요`, cls: 'text-destructive' }
+  } else if (sub.requires_billing_key_renewal) {
+    charge = { text: '카드 재등록 전엔 결제 안 됨', cls: 'text-destructive' }
+  } else if (box.chargeIso) {
+    charge = {
+      text: `결제 ${box.chargeIso === today ? '오늘' : mdKo(box.chargeIso)} 예정`,
+      cls: 'text-muted-foreground',
+    }
+  } else if (sub.status === 'active') {
+    // 서포터즈 정보를 못 받았다 — 토요일·화요일 중 어느 쪽인지 단정하지 않는다.
+    charge = { text: '결제일 확인 불가', cls: 'text-amber-700' }
+  } else {
+    charge = null // 일시정지 — 다시 시작하기 전엔 결제되지 않는다(상태 배지가 말한다).
+  }
+  const ship = `${mdKo(box.shipIso)} 발송`
+  if (layout === 'inline') {
     return (
       <>
-        {new Date(sub.next_delivery_date).toLocaleDateString('ko-KR', {
-          month: 'short',
-          day: 'numeric',
-        })}
+        {ship}
+        {charge && <span className={`ml-1 text-[11px] font-semibold ${charge.cls}`}>· {charge.text}</span>}
       </>
     )
   }
-  if (stateOf(sub) === 'needs_card') {
-    return <span className="text-[11px] font-normal text-muted-foreground">카드 등록 후 잡혀요</span>
-  }
-  return <>-</>
+  return (
+    <span className="inline-flex flex-col items-center leading-tight">
+      <span>{ship}</span>
+      {charge && <span className={`mt-0.5 text-[10px] font-semibold ${charge.cls}`}>{charge.text}</span>}
+    </span>
+  )
 }
 
 /** 서포터즈 배지 — 상태 배지(초록·노랑)와 겹치지 않는 보라. */
@@ -616,12 +736,18 @@ function RowActions({
 
 function SubRow({
   sub,
+  box,
+  paidBox,
+  today,
   supporter,
   isSupporter,
   isLoading,
   onAction,
 }: {
   sub: SubscriptionRow
+  box: UpcomingBox | null
+  paidBox: boolean
+  today: string
   supporter: SupporterView | null
   isSupporter: boolean
   isLoading: boolean
@@ -654,7 +780,7 @@ function SubRow({
         <StatusBadge sub={sub} />
       </td>
       <td className="px-4 py-3 text-center text-xs">
-        <NextDelivery sub={sub} />
+        <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="stack" />
       </td>
       <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
         <AmountCell sub={sub} supporter={supporter} />
@@ -672,12 +798,18 @@ function SubRow({
 /** 모바일 카드 — 테이블과 같은 정보를 세로로. 가로 스크롤 없음. */
 function SubCard({
   sub,
+  box,
+  paidBox,
+  today,
   supporter,
   isSupporter,
   isLoading,
   onAction,
 }: {
   sub: SubscriptionRow
+  box: UpcomingBox | null
+  paidBox: boolean
+  today: string
   supporter: SupporterView | null
   isSupporter: boolean
   isLoading: boolean
@@ -710,13 +842,13 @@ function SubCard({
           {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
         </p>
       </div>
-      <div className="mt-2.5 flex items-center justify-between border-t border-border pt-2.5 text-[12px]">
-        <span className="text-muted-foreground">
-          다음 배송{' '}
+      {/* 발송일 + 결제일(2026-10-01) — 한 줄에 다 넣으면 폰에서 금액 칸과 겹쳐 두 줄로 나눴다. */}
+      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[12px]">
+        <span className="min-w-0 text-muted-foreground">
           <strong className="text-foreground">
-            <NextDelivery sub={sub} />
-          </strong>{' '}
-          · 누적 {sub.total_deliveries}회
+            <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" />
+          </strong>
+          <span className="block text-[11px]">누적 {sub.total_deliveries}회</span>
         </span>
         <AmountCell sub={sub} supporter={supporter} />
       </div>

@@ -30,6 +30,7 @@ import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
+import { paidBoxShipIso } from '@/lib/shipping-schedule'
 import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { trialPricing, type TrialState } from '@/lib/payments/trial'
@@ -157,6 +158,8 @@ export default async function AdminHome() {
       .gte('created_at', todayStart),
 
     // 배송 대기 (preparing 상태) — 부분 환불된 주문도 박스는 나가야 한다.
+    //   2026-10-01 부터 일반 고객은 토요일 아침에 결제되고 화요일에 나간다(토·일 조리 → 월 포장 →
+    //   화 발송). 그래서 토~화엔 이 숫자가 있는 게 정상이다 — '밀린 것'은 아래 unshipped(발송일 지남).
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -264,13 +267,16 @@ export default async function AdminHome() {
     noCardSubsRes,
     csUnansweredRes,
   ] = await Promise.all([
-    // preparing + 결제됨 + 24h+ → 발송 stale (부분 환불 포함)
+    // preparing + 결제됨 → 박스마다 발송일(화)을 따져 **발송일이 지났는데 안 나간 것**만 stale (부분 환불 포함).
+    //   ★2026-10-01: 예전엔 '결제 후 24시간+'가 stale 이었다. 결제일 = 발송일이던 시절엔 맞았지만, 이제 일반
+    //   고객은 토요일에 결제되고 화요일에 나가므로 토요일 결제분 전부가 일~화 내내 '발송 stale' 로 떴다.
+    //   행을 받아 아래 paidBoxShipIso 로 판정한다(daily-briefing 의 '발송일 지난 미발송'과 같은 판정).
     supabase
       .from('orders')
-      .select('id', { count: 'exact', head: true })
+      .select('id, subscription_id, paid_at, created_at')
       .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing')
-      .lt('created_at', oneDayAgo),
+      .limit(2000),
     // shipping + 7d+ → 배송 stuck (택배사 이슈 가능)
     supabase
       .from('orders')
@@ -359,6 +365,37 @@ export default async function AdminHome() {
     ),
   ).size
 
+  /**
+   * 발송 stale = 결제됐고(결제됨 + preparing) **발송 화요일이 지났는데** 아직 안 나간 박스 (2026-10-01).
+   * 박스의 발송일은 그 구독의 지금 next_delivery_date 로 정한다(아래 paidBoxShipIso) — 해지·정지된 구독도
+   * 결제된 박스는 나가야 하므로 상태와 무관하게 읽는다. 조회가 실패하면 결제일 기준 첫 화요일로만 판정하고
+   * queueLoadFailed 배너로 '못 봄'을 알린다(규칙1).
+   */
+  type PaidPrepRow = { id: string; subscription_id: string | null; paid_at: string | null; created_at: string }
+  const paidPrepRows = (unshippedRes.data ?? []) as PaidPrepRow[]
+  const paidPrepSubIds = [
+    ...new Set(paidPrepRows.map((o) => o.subscription_id).filter((x): x is string => !!x)),
+  ]
+  const paidPrepNextBySub = new Map<string, string | null>()
+  let paidPrepSubsErr: { message: string } | null = null
+  if (paidPrepSubIds.length > 0) {
+    const { data: ppSubs, error: ppSubsErr } = await supabase
+      .from('subscriptions')
+      .select('id, next_delivery_date')
+      .in('id', paidPrepSubIds)
+    paidPrepSubsErr = ppSubsErr
+    for (const s of (ppSubs ?? []) as Array<{ id: string; next_delivery_date: string | null }>) {
+      paidPrepNextBySub.set(s.id, s.next_delivery_date)
+    }
+  }
+  const overdueUnshippedCount = paidPrepRows.filter(
+    (o) =>
+      paidBoxShipIso(
+        o.subscription_id ? (paidPrepNextBySub.get(o.subscription_id) ?? null) : null,
+        o.paid_at ?? o.created_at,
+      ) < todayKst,
+  ).length
+
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
   const { data: foodInfoProducts, error: foodInfoErr } = await supabase
     .from('products')
@@ -409,7 +446,13 @@ export default async function AdminHome() {
     csUnansweredRes,
   ]
   const queueLoadFailed =
-    queueResults.some((r) => r.error) || Boolean(cronRecentErr)
+    queueResults.some((r) => r.error) ||
+    Boolean(cronRecentErr) ||
+    Boolean(paidPrepSubsErr) ||
+    // 상한(2000)에 닿으면 일부만 본 것이다 — 조용히 잘린 숫자를 '전부'라고 하지 않는다.
+    paidPrepRows.length >= 2000
+  if (paidPrepSubsErr)
+    console.error('[admin-home] 발송 대기 주문의 구독 조회 실패:', paidPrepSubsErr.message)
   for (const r of [
     ...statResults,
     ...queueResults,
@@ -659,7 +702,8 @@ export default async function AdminHome() {
           />
         )}
         <ActionsPanel
-          unshippedCount={unshippedRes.count ?? 0}
+          // 발송 화요일이 지났는데 안 나간 결제 박스(위 overdueUnshippedCount — 2026-10-01).
+          unshippedCount={overdueUnshippedCount}
           shippingStuckCount={shippingStuckRes.count ?? 0}
           cardRenewalCount={cardRenewalRes.count ?? 0}
           recentFailedCount={recentFailedChargeRes.count ?? 0}
@@ -693,12 +737,18 @@ export default async function AdminHome() {
             sub={`지금까지 결제 완료 ${totalPaidCount}건`}
             help="가게를 연 뒤 지금까지 결제가 끝난 모든 주문 금액을 더한 값이에요."
           />
+          {/* 2026-10-01 일정 변경 — 토·일 조리 → 월 포장 → 화 발송. 일반 고객은 토요일 아침에 결제되므로
+              토~화엔 이 숫자가 있는 게 정상이다. 빨강은 발송 화요일이 지났는데 안 나간 박스가 있을 때만. */}
           <StatCard
             label="발송할 주문"
             value={`${pendingShipCount}건`}
-            sub="결제됐고 아직 안 보낸 주문"
-            tone={pendingShipCount > 0 ? 'amber' : 'neutral'}
-            help="여기 숫자가 있으면 오늘 택배 발송 준비를 하세요. 0이면 밀린 게 없어요."
+            sub={
+              overdueUnshippedCount > 0
+                ? `결제됐고 아직 안 보낸 박스 · 발송일 지남 ${overdueUnshippedCount}건`
+                : '결제됐고 아직 안 보낸 박스 · 화요일 발송'
+            }
+            tone={overdueUnshippedCount > 0 ? 'red' : pendingShipCount > 0 ? 'amber' : 'neutral'}
+            help="결제된 박스는 토·일 조리 → 월 포장 → 화요일 발송으로 나가요. 일반 고객은 토요일 아침에 결제돼서 토요일부터 화요일까지는 여기 숫자가 있는 게 정상이에요. 화요일이 지나도 남아 있으면 '발송일 지남'으로 빨갛게 바뀌고 처리 대기의 미발송에 떠요 — 그건 바로 확인하세요."
           />
           <StatCard
             label="가입 회원"

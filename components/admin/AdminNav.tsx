@@ -83,7 +83,7 @@ const GROUPS: NavGroup[] = [
       { href: '/admin', icon: LayoutDashboard, label: '대시보드' },
       { href: '/admin/orders', icon: Package, label: '주문 관리' },
       { href: '/admin/subscriptions', icon: Repeat, label: '정기배송' },
-      // 발송 화요일마다 쓰는 핵심 화면.
+      // 매주 토·일 조리 → 월 포장 → 화 발송 내내 쓰는 핵심 화면(2026-10-01 일정).
       { href: '/admin/personalization/picking-list', icon: ChefHat, label: '박스 패킹' },
       { href: '/admin/personalization', icon: ClipboardCheck, label: '레시피 승인' },
       { href: '/admin/users', icon: Users, label: '고객' },

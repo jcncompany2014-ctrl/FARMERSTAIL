@@ -9,7 +9,7 @@
  */
 
 export type ScaleCounts = {
-  /** 활성·카드 있는 구독 수 — 같은 화요일 청구 대상의 상한 근사 */
+  /** 활성·카드 있는 구독 수 — 같은 날 청구 대상(일반 = 토요일, 서포터즈 체험 구간 = 화요일)의 상한 근사 */
   activeBilledSubs: number | null
   /** dog_formulas 행 수 — 재제안 크론 후보 조회 상한 */
   formulas: number | null
@@ -29,12 +29,14 @@ type Limit = {
 /**
  * 한도 정본. warnAt = 실제로 깨지는 지점의 약 60%.
  *  · 청구 크론: MAX_PER_RUN 100 + 시간 예산 240초(건당 약 3초 → 약 80건) — subscription-charge
- *    같은 화요일 대상 ≤ 활성 구독이므로 활성 구독으로 보수적으로 잰다. 사전고지(D-2)는 120초에 약 70건.
+ *    같은 날 대상 ≤ 활성 구독이므로 활성 구독으로 보수적으로 잰다(2026-10-01 부터 결제일은 구독마다 —
+ *    일반 = 발송 3일 전 토요일, 서포터즈 체험 구간 = 발송일 화요일. 대부분이 토요일에 몰린다).
+ *    사전고지(결제일 D-2)는 120초에 약 70건.
  *  · 재제안 크론: 후보 조회 limit 300 을 구독 게이트 **전에** 건다 — personalization-progression
  *  · 대시보드·재무·월 리포트 합계: PostgREST max-rows 1000 에서 조용히 잘린다 — admin/page·finance·reports
  */
 export const SCALE_LIMITS: readonly Limit[] = [
-  { key: 'activeBilledSubs', warnAt: 40, label: '활성 구독', where: '청구·사전고지 크론 처리량(같은 화요일 약 70건)' },
+  { key: 'activeBilledSubs', warnAt: 40, label: '활성 구독', where: '청구·사전고지 크론 처리량(같은 결제일 약 70건)' },
   { key: 'formulas', warnAt: 180, label: '처방 기록', where: '재제안 크론 후보 상한(300)' },
   { key: 'paidOrders', warnAt: 600, label: '결제 주문 누적', where: '대시보드 누적 매출(1,000행 잘림)' },
   { key: 'ledgerRows365d', warnAt: 600, label: '1년 결제 원장', where: '재무 365일 보기(1,000행 잘림)' },

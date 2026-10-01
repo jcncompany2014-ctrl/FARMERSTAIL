@@ -14,7 +14,7 @@ import {
  * 솔로 창업자 운영 hot path — 매일 한 번 보고 처리해야 할 큐.
  *
  * # 표시 항목 (server-side count)
- *  · 미발송 (preparing, paid 24h+) — admin 이 발송 처리해야 함
+ *  · 발송일 지난 미발송 (결제됨 + preparing, 그 박스의 발송 화요일이 지남) — admin 이 발송 처리해야 함
  *  · 배송 stuck (shipping 7d+) — 택배사 이슈 가능성
  *  · 카드 재등록 필요 (정기배송 requires_billing_key_renewal=true)
  *  · 결제 실패 24h (subscription_charges 또는 orders.failed)
@@ -73,7 +73,9 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       //   화면으로 바로 착지시킨다.
       href: '/admin/orders?status=preparing',
       icon: Package,
-      label: '미발송 (24시간+)',
+      // 2026-10-01 일정 변경 — 토요일 결제·화요일 발송이라 '결제 후 24시간'은 정상 대기다. 대시보드가 넘기는 숫자는
+      //   발송 화요일이 지났는데 안 나간 결제 박스(lib/shipping-schedule paidBoxShipIso).
+      label: '발송일 지난 미발송',
       count: props.unshippedCount,
     },
     {

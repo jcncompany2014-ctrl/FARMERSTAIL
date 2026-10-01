@@ -68,7 +68,9 @@ async function runRotation(): Promise<Response> {
   //   같은 UPDATE 문**에서 기록된다(route.ts:975~987). 같은 사건·같은 행·같은
   //   문장이라 두 조건의 시계가 갈라질 수 없고, 새 writer 도 새 실패 모드도
   //   안 생긴다. (배송일이 아니라 청구일 기준이 되지만, 이 저장소에서 배송은
-  //   청구 뒤 고정 주기라 "배송 직후" 창은 그대로 유지된다.)
+  //   청구 뒤 고정 주기라 "배송 직후" 창은 그대로 유지된다.
+  //   2026-10-01 부터 일반 고객은 발송 3일 전 토요일, 서포터즈 체험 구간은 발송일 화요일에
+  //   결제된다 — 이 크론은 화요일 11시라 어느 쪽이든 그 주 결제가 '최근 7일' 안에 든다.)
   const { data: subsRaw, error: subsRawErr } = await admin
     .from('subscriptions')
     .select('id, user_id, dog_id, total_deliveries, last_charged_at')

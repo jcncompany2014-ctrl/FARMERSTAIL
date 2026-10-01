@@ -62,8 +62,10 @@ export type PickingRow = {
   skippedNotCharged: boolean
   /** ★예정일 지남 + 결제 주문 없음(재시도 중) — 발송금지 (2026-09-25). */
   overdueNotCharged: boolean
-  /** ★발송일 청구 시각(09:10) 지남 + 결제 주문 없음 — 발송금지 (2026-09-25). */
+  /** ★결제일 청구 시각(09:10) 지남 + 결제 주문 없음 — 발송금지 (2026-09-25). 결제일은 구독마다(2026-10-01). */
   notChargedAfterRun: boolean
+  /** 이 발송분의 결제 시점 — 일반 = 토요일 조리 직전, 서포터즈 체험 구간 = 발송일(화). lib/shipping-schedule. */
+  chargeTiming: 'before_cooking' | 'ship_day'
   /**
    * 주소 출처 — 'order' = 결제된 주문에 적힌 주소(청구 시점 확정값),
    * 'current' = 아직 청구 전이라 지금 기준(기본 배송지→프로필→신청서)으로 정한 주소.

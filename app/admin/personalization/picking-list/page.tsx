@@ -16,7 +16,7 @@ import { addDaysKst, todayKstIsoDate, kstDateOf } from '@/lib/datetime-kst'
 import { chargeRunPassed, isShippable } from '@/lib/admin/ship-block'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
-import { weekdayOf, weekdayKo, SHIP_WEEKDAY } from '@/lib/shipping-schedule'
+import { weekdayOf, weekdayKo, SHIP_WEEKDAY, chargeTimingFor, chargeDateFor, type ChargeTiming } from '@/lib/shipping-schedule'
 import {
   AdminHeader,
   AdminCard,
@@ -349,7 +349,28 @@ export default async function PickingListPage({
       ]),
     }
   }
-  const afterChargeRun = chargeRunPassed(shipDate, new Date())
+  // ★결제일은 구독마다 다르다(2026-10-01 일정 변경): 일반 = 발송 3일 전 토요일(조리 직전), 서포터즈 체험
+  //   구간 = 발송일(화). 그래서 '청구 시각이 지났는데 결제 증거가 없다' 판정도 구독별 결제일로 한다.
+  //   체험 상태를 모르면 목록을 멈춘다 — 토요일 결제분을 '화요일 청구 예정'으로 잘못 읽으면 결제 안 된
+  //   박스가 조리·발송된다(무료 박스).
+  const nowForCharge = new Date()
+  const timingByUser = new Map<string, ChargeTiming>()
+  {
+    const userIds = [...new Set(subs.map((s) => s.user_id))]
+    if (userIds.length > 0) {
+      const { data: trialRows, error: trialErr } = await createAdminClient()
+        .from('subscription_trials')
+        .select('user_id, cheap_remaining, half_remaining')
+        .in('user_id', userIds)
+      if (trialErr) {
+        throw new Error(`서포터즈 상태 조회 실패 — 결제일을 판정할 수 없어요: ${trialErr.message}`)
+      }
+      for (const t of (trialRows ?? []) as Array<{ user_id: string; cheap_remaining: number; half_remaining: number }>) {
+        timingByUser.set(t.user_id, chargeTimingFor(t))
+      }
+    }
+  }
+  const timingOf = (userId: string): ChargeTiming => timingByUser.get(userId) ?? chargeTimingFor(null)
 
   // 2) 강아지 이름 + 최신 승인 처방 + 제품(정본 계산용) 병렬 로드.
   const allSlugs = [
@@ -587,7 +608,7 @@ export default async function PickingListPage({
       // ★발송일 09:10(청구 시각)이 지났는데 결제 주문이 없다 — 청구 크론 실패·건너뜀.
       //   예전엔 "발송일 아침 청구 예정" 으로 떨어져 발송 가능이었다(2026-09-25).
       notChargedAfterRun:
-        afterChargeRun &&
+        chargeRunPassed(chargeDateFor(shipDate, timingOf(sub.user_id)), nowForCharge) &&
         sub.status === 'active' &&
         sub.next_delivery_date != null &&
         sub.next_delivery_date <= shipDate &&
@@ -602,6 +623,8 @@ export default async function PickingListPage({
       chargeFailedToday:
         sub.last_failed_charge_at != null &&
         kstDateOf(sub.last_failed_charge_at) === todayKstIsoDate(),
+      // 이 발송분의 결제 시점 — 배지 문구('토요일 아침 청구 예정' / '발송일 아침 청구 예정').
+      chargeTiming: timingOf(sub.user_id),
       failedCode: sub.last_failed_charge_code,
       totalAmount: sub.total_amount,
       order: orderBySubId.get(sub.id) ?? null,
@@ -840,11 +863,14 @@ export default async function PickingListPage({
                 ) : r.dateMovedAfterCharge ? (
                   <Badge tone="amber">결제됨 — 발송 대기 주문 있음</Badge>
                 ) : r.charged ? (
-                  <Badge tone="green">오늘 아침 청구 완료</Badge>
+                  // 토요일(조리 직전)에 결제된 박스를 화요일에 보면 '오늘 아침'이 거짓이다(2026-10-01).
+                  <Badge tone="green">결제 완료</Badge>
                 ) : r.overdue ? (
                   <Badge tone="red">청구 지연 — 재시도 중</Badge>
+                ) : r.chargeTiming === 'ship_day' ? (
+                  <Badge tone="amber">서포터즈 — 발송일(화) 아침 청구 예정</Badge>
                 ) : (
-                  <Badge tone="amber">발송일 아침 청구 예정</Badge>
+                  <Badge tone="amber">토요일 아침(조리 전) 청구 예정</Badge>
                 )}
               </div>
 

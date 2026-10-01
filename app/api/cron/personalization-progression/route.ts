@@ -794,9 +794,12 @@ export async function GET(req: Request) {
       // (이전 CYCLE_DAYS=30 은 3번째 박스가 나가는 날[28일]에서 이틀 뒤 끝나
       //  승인이 늦으면 그 구간에 활성 처방이 없는 공백이 났다.)
       // ★시작점은 '오늘'이 아니라 **다음 박스**(newFormulaAppliedFrom — cycle.ts 정본).
-      //   오늘(박스 3 발송일) 09:10 에 옛 처방·옛 금액으로 결제된 박스가 10:10 이후
+      //   오늘(박스 3 결제일) 09:10 에 옛 처방·옛 금액으로 결제된 박스가 10:10 이후
       //   피킹에서 새 처방으로 포장되고, 카운트가 그 박스를 새 회차 1번째로 셌다
       //   (2026-09-26 출시 전 점검 6차). 피킹은 applied_from ≤ 발송일인 처방만 고른다.
+      //   2026-10-01 부터 결제일 ≠ 발송일이다(일반 = 발송 3일 전 토요일, 서포터즈 체험 구간 =
+      //   발송일 화요일). 토요일 10:10 에도 청구 크론이 이미 next_delivery_date 를 박스 4 발송일로
+      //   밀어 두었으므로 시작점 = 박스 4 발송일 — 사흘 뒤 화요일에 나갈 박스 3 은 옛 처방 그대로다.
       const startsOn = newFormulaAppliedFrom(today, billing?.nextDeliveryDate)
       const appliedFrom = requiresApproval ? null : startsOn
       const appliedUntil = requiresApproval

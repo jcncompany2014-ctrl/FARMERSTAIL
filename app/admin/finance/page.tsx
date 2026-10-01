@@ -27,10 +27,12 @@ function sinceIso(days: number): string {
 
 function dayKey(iso: string): string {
   // ★최종감사 #12 (2026-07-29): UTC 그대로 자르면 KST 00:00~08:59 결제가
-  //   전날 버킷에 들어간다. 특히 정기결제는 화요일 새벽 KST 크론이라(= UTC
-  //   월요일 밤) 주력 매출이 매주 월요일로 밀려 기록됐다 — 대시보드(KST)와
-  //   숫자가 안 맞아 "결제가 안 됐나?" 오판을 만든다. admin/page.tsx ·
-  //   reports 와 같은 +9h 방식으로 통일.
+  //   전날 버킷에 들어간다. 당시 정기결제가 화요일 이른 아침 KST 크론이라 주력
+  //   매출이 매주 월요일로 밀려 기록됐다 — 대시보드(KST)와 숫자가 안 맞아
+  //   "결제가 안 됐나?" 오판을 만든다. admin/page.tsx · reports 와 같은 +9h
+  //   방식으로 통일. (2026-10-01 부터 정기결제는 일반 = 발송 3일 전 토요일,
+  //   서포터즈 체험 구간 = 발송일 화요일 — 둘 다 09:10 KST 크론. 주력 매출은
+  //   토요일 막대에 잡힌다.)
   return new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10)

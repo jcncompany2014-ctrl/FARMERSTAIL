@@ -4232,7 +4232,9 @@ test('규칙100: 운영 브리핑·대시보드 — 실패한 자동작업을 �
    */
   const brief = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'daily-briefing', 'route.ts')))
   assert.ok(/from\('cron_health'\)[\s\S]{0,120}\.eq\('status',\s*'error'\)/.test(brief), '브리핑이 실패한 자동작업(cron_health error)을 안 본다')
-  assert.ok(!/n\(todayBoxes\)\s*\+/.test(brief), '발송일 박스 수에 청구 안 된 구독을 더한다')
+  // (2026-10-02) 옛 단언 `!/n\(todayBoxes\)\s*\+/` 는 코드가 nOf(...) 로 바뀐 뒤 아무것도 못 잡았다(카나리아 확인).
+  assert.match(brief, /if \(isShipDay\) \{\s*if \(paidForShip > 0\) items\.push\(`📦 오늘 발송 \$\{paidForShip\}박스`\)/, '발송일 박스 수가 결제된 박스만이 아니다')
+  assert.doesNotMatch(brief, /오늘 발송 \$\{[^}]*(toCharge|notCharged)/, '발송일 박스 수에 청구 안 된 구독을 더한다')
   assert.ok(!/from\('refunds'\)[\s\S]{0,120}'pending'/.test(brief), "브리핑이 refunds.status='pending'(항상 0)을 센다")
   assert.ok(brief.includes("from('payment_refund_queue')"), '브리핑이 환불 큐를 안 센다')
   const dash = stripComments(read(join(ROOT, 'app', 'admin', 'page.tsx')))
@@ -4842,7 +4844,8 @@ test('규칙127: 제품 사실은 확정본대로 · 이벤트 코드 목록 비
   assert.ok(/drop policy if exists promotions_read_open/.test(mig) && /using \(public\.is_admin\(\)\)/.test(mig), '진행 중 이벤트 코드를 누구나 목록으로 받는다')
   // ③ 새 처방 시작 상한 — 고객이 쓰는 next_delivery_date 를 먼 미래로 바꾸면 영원히 시작 안 됨
   const cyc = stripComments(read(join(ROOT, 'lib', 'personalization', 'cycle.ts')))
-  assert.ok(/return next > cap \? cap : next/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
+  // 2026-10-01: 상한을 먼저 걸고(first), 조리가 시작된 박스면 그다음 박스로 넘긴다(규칙153 일정 변경).
+  assert.ok(/const first = next > cap \? cap : next/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
 })
 
 test('규칙128: 보관·알레르기 안내는 라벨·실제 원료대로 (사장님 승인 2026-09-26 — FAQ DB 는 마이그 20260926120000)', () => {
@@ -5072,10 +5075,12 @@ test('규칙140: 같은 돈이 두 번 움직이지 않는다 — 부분환불 �
   assert.ok(/function nextDeliveryDate\([^)]*\)[^{]*\{\s*return nextChargeDateAfterSuccess\(/.test(ch), '청구 성공 뒤 다음 청구일이 예정일+14 그대로다(T+13 성공 → 다음 날 또 청구)')
   // ④ 카드 재등록 — 지난 날짜면 다음 발송 화요일로
   const bi = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
-  assert.ok(/cur\.next_delivery_date < todayKstIsoDate\(\)\)\s*\{\s*firstDeliveryIso = nextShipDate\(\)/.test(bi), '재등록 시 지난 날짜를 그대로 둬 몇 주 전 회차가 다음 날 아침 청구된다')
+  // 2026-10-01: '지난 날짜' = 결제일(조리 직전 토요일 / 서포터즈 발송일) 기준 — chargeDateFor.
+  assert.ok(/chargeDateFor\(cur\.next_delivery_date, \(await getChargeTiming\(user\.id\)\) \?\? 'ship_day'\) < todayKstIsoDate\(\)\s*\)\s*\{\s*firstDeliveryIso = nextShipDate\(\)/.test(bi), '재등록 시 결제일이 지난 회차를 그대로 둬 조리가 끝난 박스를 늦게 청구한다')
   // ⑤ 결과 불명 — 매 실행 맨 앞에서 토스 주문번호 조회로 확정, 모르면 그 구독 청구 금지
   const verifyAt = ch.indexOf('await verifyAmbiguousCharges(supabase')
-  const targetsAt = ch.indexOf(".lte('next_delivery_date', today)")
+  // 2026-10-01: 조회는 사흘 앞 발송분까지(토요일 결제) — 결제일 판정은 구독별(규칙153).
+  const targetsAt = ch.indexOf(".lte('next_delivery_date', addDaysKst(today, CHARGE_BEFORE_SHIP_DAYS))")
   assert.ok(verifyAt > 0 && targetsAt > 0 && verifyAt < targetsAt, '결과 불명 확정이 청구 대상 조회보다 먼저 돌지 않는다')
   assert.ok(ch.includes('ambiguity.unresolvedSubIds.has(sub.id)'), '결과를 모르는 구독을 청구 루프가 건너뛰지 않는다')
   assert.ok(stripComments(read(join(ROOT, 'lib', 'payments', 'toss.ts'))).includes('`/payments/orders/${encodeURIComponent(orderId)}`'), '토스 주문번호 조회 API 가 없다')
@@ -5407,4 +5412,93 @@ test('규칙152: 처방 근거는 최종 박스에 있는 레시피만 말하고
   const clin = stripComments(read(join(ROOT, 'lib', 'personalization', 'clinical-exclusions.ts')))
   assert.match(clin, /if \(stage === 4\) \{\s*out\.add\('premium'\)\s*out\.add\('weight'\)/, '신장 4단계 제외 목록이 질환 룰과 다르다')
   assert.match(clin, /else if \(stage !== 1 && stage !== 2\) \{\s*out\.add\('premium'\)/, '신장 1·2단계(단백질 정상)를 빼거나 3단계·미진단을 놓친다')
+})
+
+test('규칙153: 토·일 조리 → 화 발송 — 결제일은 구독마다(일반 = 토요일 조리 직전, 서포터즈 체험 구간 = 발송일)', () => {
+  /**
+   * # 왜 (2026-10-01 사장님 "상식적으로 하루 만에 다 만들고 발송하는 게 말이 안 돼")
+   * 예전엔 화요일 하루에 결제·조리·포장·발송을 다 했다(next_delivery_date = 결제일 = 발송일). 이제 토·일 조리 →
+   * 월 포장 → 화 발송이고, 결제는 조리 직전 토요일 아침(사장님 선택). 서포터즈는 100원·반값 구간 동안 원래 약속한
+   * 화요일 결제를 지키고, 정상가부터 토요일로 넘어간다 — 그 전까지 서포터즈에게 알리지 않는다(사장님).
+   * next_delivery_date 는 계속 **발송일**이다. 결제일은 lib/shipping-schedule chargeDateFor 한 곳에서만 나온다.
+   */
+  const sched = stripComments(read(join(ROOT, 'lib', 'shipping-schedule.ts')))
+  assert.match(sched, /const LEAD_DAYS = 4\b/, '첫 박스 마감이 금요일 밤(LEAD 4)이 아니다 — 토요일 조리 전에 박스가 확정돼야 한다')
+  assert.match(sched, /export const CHARGE_BEFORE_SHIP_DAYS = 3\b/, '조리 직전 결제가 발송 3일 전 토요일이 아니다')
+  assert.match(sched, /trial\.cheap_remaining > 0 \|\| trial\.half_remaining > 0\) \? 'ship_day' : 'before_cooking'/, '서포터즈 체험 구간 판정(발송일 결제)이 정본에서 빠졌다')
+  // 공통 주간 리듬엔 '결제'를 적지 않는다 — 서포터즈(화요일 결제) 화면에서 거짓이 된다.
+  const week = sched.match(/export const SHIP_WEEK: ShipDay\[\] = \[([\s\S]*?)\]/)?.[1] ?? ''
+  assert.ok(week.length > 0, 'SHIP_WEEK 를 못 찾았다')
+  assert.doesNotMatch(week, /결제/, '공통 주간 리듬에 결제 시점을 적었다 — 결제일은 고객마다 다르다(chargeDateFor)')
+  assert.match(week, /\{ dow: 6, ko: '토', what: '조리' \}/, '주간 리듬에 토요일 조리가 없다')
+
+  const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.match(cron, /\.lte\('next_delivery_date', addDaysKst\(today, CHARGE_BEFORE_SHIP_DAYS\)\)/, '청구 크론이 사흘 앞 발송분(토요일 결제)을 읽지 않는다')
+  assert.match(cron, /chargeDateFor\(x\.next_delivery_date, timingOf\(x\)\)/, '청구 크론이 구독별 결제일로 거르지 않는다')
+  assert.match(cron, /if \(due > today\) \{\s*notDue\+\+/, '결제일이 아직인 구독(서포터즈 화요일분)을 토요일에 긁는다')
+  assert.match(cron, /nextDeliveryDate\(sub\.next_delivery_date, today, timingOf\(sub\)\)/, '늦은 성공 판정이 결제 시점(조리 직전 = 일요일 마감)을 안 본다')
+  assert.match(cron, /chargeDateFor\(nextShip, nextPhase === 'full' \? 'before_cooking' : 'ship_day'\)/, '서포터즈 정상가 전환 안내가 바뀌는 결제일(토요일)을 알리지 않는다')
+
+  const block = stripComments(read(join(ROOT, 'lib', 'admin', 'ship-block.ts')))
+  assert.match(block, /export function chargeRunPassed\(chargeDate: string, now: Date\)/, '발송 금지 판정의 청구 시각 기준이 결제일이 아니다')
+  const pick = stripComments(read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')))
+  assert.match(pick, /chargeRunPassed\(chargeDateFor\(shipDate, timingOf\(sub\.user_id\)\), nowForCharge\)/, '피킹 리스트가 구독별 결제일로 "청구 시각 지남·미청구" 를 판정하지 않는다 — 토요일 미결제 박스가 조리된다')
+  assert.doesNotMatch(pick, /오늘 아침 청구 완료/, '토요일 결제분을 화요일에 "오늘 아침 청구 완료"라고 말한다')
+
+  const dogSub = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.match(dogSub, /const chargeIso = nextShip && timing \? chargeDateFor\(nextShip, timing\) : null/, '정기배송 화면이 발송일을 결제일로 보여준다(결제 시점을 모르면 결제일을 말하지 않는다)')
+})
+
+test('규칙154: 결제된 박스는 그대로 나간다 — 발송일은 결제 시각 기준 정본 하나, 결제 뒤 미루기·정지에도 이번 박스를 늦게 말하지 않는다', () => {
+  /**
+   * # 왜 (2026-10-02)
+   * 사장님 "결제 후 해지 = 그대로 발송, 자동 환불 없음". 토요일에 결제된 뒤 고객이 '2주 미루기'를 누르면
+   * next_delivery_date 가 +14 더 밀리는데, 화면은 이번 박스 발송일을 next − 14 로 세서 **이미 결제돼 사흘 뒤
+   * 나갈 박스를 2주 늦게 나간다고** 말했다. 어드민 3곳은 결제일 기준으로 따로 계산했다(같은 함수 복사 3벌).
+   * → lib/shipping-schedule paidBoxShipIso 하나로 모으고, 결제된 박스 주문의 paid_at 을 모든 화면이 넘긴다.
+   */
+  const sched = stripComments(read(join(ROOT, 'lib', 'shipping-schedule.ts')))
+  assert.match(sched, /export function paidBoxShipIso\(nextDeliveryDate: string \| null, paidAtIso: string\): string/, '결제된 박스 발송일 정본이 없다')
+  assert.match(sched, /bumped >= firstShip && bumped <= addDaysKst\(firstShip, 7\)/, '정본이 결제일 기준 첫 화요일 범위로 next − 14 를 검증하지 않는다 — 결제 뒤 미루기에 2주 늦게 말한다')
+  assert.match(sched, /i\.paidAt \? paidBoxShipIso\(i\.nextDeliveryDate, i\.paidAt\)/, '화면용 박스 판정이 결제 시각을 받아도 쓰지 않는다')
+
+  // 결제된 박스가 있는 화면은 전부 결제 시각을 넘긴다(어드민 제외 — 어드민은 정본을 직접 부른다).
+  const callers: Array<[string[], RegExp]> = [
+    [['app', '(main)', 'dashboard', 'page.tsx'], /paidAt: paidPreparing \? \(paidPreparing\.paid_at \?\? paidPreparing\.created_at\) : null/],
+    [['app', '(main)', 'dashboard', 'page.tsx'], /paidBoxShipIso\(sub\?\.next_delivery_date \?\? null, o\.paid_at \?\? o\.created_at\)/],
+    [['app', '(main)', 'dogs', '[id]', '_components', 'SubscriptionCard.tsx'], /paidAt: hints\.paid_preparing_at \?\? null/],
+    [['app', '(main)', 'dogs', '[id]', 'page.tsx'], /paid_preparing_at: paidPreparing\.get\(s\.id\) \?\? null/],
+    [['app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx'], /paidBoxShipIso\(nextShip, paidAt\)/],
+    [['app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx'], /paidAt: paidPreparingAt\[sub\.id\] \?\? null/],
+    [['app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx'], /paidAt: paidPreparingAt\[s\.id\] \?\? null/],
+  ]
+  for (const [parts, re] of callers) {
+    assert.match(stripComments(read(join(ROOT, ...parts))), re, `${parts.join('/')} 가 결제된 박스 발송일을 결제 시각 없이 센다`)
+  }
+  // 새 화면이 결제된 박스를 판정하면서 paidAt 을 빠뜨리지 않게 — 어드민 밖 describeUpcomingBox 호출 전수.
+  const appFiles = walk(join(ROOT, 'app')).filter((f) => /\.tsx?$/.test(f) && !f.includes(`${sep}admin${sep}`) && !f.includes(`${sep}api${sep}`))
+  let seen = 0
+  for (const f of appFiles) {
+    const src = stripComments(read(f))
+    for (const m of src.matchAll(/describeUpcomingBox\(\{([\s\S]*?)\}\)/g)) {
+      seen++
+      const body = m[1] ?? ''
+      if (/hasPaidPreparingOrder:/.test(body) && !/hasPaidPreparingOrder: false/.test(body)) {
+        assert.match(body, /paidAt:/, `${f} — 결제된 박스를 판정하면서 결제 시각(paidAt)을 안 넘긴다`)
+      }
+    }
+  }
+  assert.ok(seen >= 4, `describeUpcomingBox 호출을 ${seen}개만 찾았다 — 검사가 헛돈다`)
+
+  // 같은 판정의 복사본 금지 — 고치면 한 곳만 고쳐진다.
+  for (const f of walk(join(ROOT, 'app')).filter((x) => /\.tsx?$/.test(x))) {
+    assert.doesNotMatch(read(f), /function paidBoxShipIso\(/, `${f} 에 결제된 박스 발송일 계산 복사본이 있다 — lib/shipping-schedule 정본을 쓴다`)
+  }
+
+  // 결제된 박스는 고객이 직접 취소 못 하고(1:1 문의 → 사장님 수동 환불), 미루기·정지 안내도 '이번 박스는 그대로'.
+  const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
+  assert.match(cancel, /SUBSCRIPTION_BOX_IN_PRODUCTION/, '결제된 정기배송 박스를 고객이 직접 취소할 수 있다(사장님: 그대로 발송)')
+  const dogSub = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.match(dogSub, /inProgress\[sub\.id\]\s*\?\s*`이번 박스는 그대로 보내드리고, 그다음 박스를/, '결제 뒤 미루기 안내가 이번 박스도 미뤄지는 것처럼 말한다')
+  assert.match(dogSub, /inProgress\[sub\.id\]\s*\?\s*'이번 박스는 그대로 보내드리고, 그다음부터 쉬어/, '결제 뒤 일시정지 안내가 이번 박스도 멈추는 것처럼 말한다')
 })
