@@ -59,7 +59,7 @@
 /* 대기 상태 노랑 — hex 를 직접 쓰지 않는다(tokens.ts 원칙 1). 마이페이지 요약
    화면의 '시작 전' 칩과 **같은 값**이어야 한다(2026-07-30 통일). */
 .sub-state.is-wait { color: var(--yellow-ink); }
-.sub-state.is-bad { color: var(--terracotta); }
+.sub-state.is-bad { color: var(--accent-deep); } /* 작은 글자 — accent(3.4:1)는 장식 전용, 글자는 accentDeep(10차 D) */
 .sub-state.is-off { color: var(--muted); }
 
 /* 금액 = 이 카드의 주인공.
@@ -160,7 +160,7 @@
 .sub-tile:disabled { opacity: 0.5; cursor: default; }
 .sub-tile svg { color: var(--terracotta); }
 .sub-tile-label { font-size: 16px; font-weight: 800; color: var(--ink); }
-.sub-tile-sub { font-size: 13px; color: var(--muted); word-break: keep-all; line-height: 1.35; }
+.sub-tile-sub { font-size: 14px; color: var(--muted); word-break: keep-all; line-height: 1.35; }
 .sub-cancel {
   appearance: none; cursor: pointer; font-family: inherit;
   display: block; margin: 14px auto 0; padding: 10px 12px; min-height: 44px;
@@ -174,7 +174,7 @@
   width: 100%; margin: 12px 0 0; padding: 12px; min-height: 48px;
   border: 1px dashed var(--terracotta); border-radius: 12px;
   background: color-mix(in srgb, var(--terracotta) 6%, transparent);
-  color: var(--terracotta); font-size: 16px; font-weight: 700;
+  color: var(--accent-deep); font-size: 16px; font-weight: 700;
 }
 .sub-undo:disabled { opacity: .6; cursor: default; }
 .sub-busy-line {
@@ -220,7 +220,7 @@
 
 .sub-foot {
   margin: 10px 0 0;
-  font-size: 13px; line-height: 1.55; color: var(--muted); word-break: keep-all;
+  font-size: 14px; line-height: 1.55; color: var(--muted); word-break: keep-all;
 }
 
 /* ── 빈 상태 ───────────────────────────────────────────────────────────── */

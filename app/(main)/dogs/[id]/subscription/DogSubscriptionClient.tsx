@@ -86,7 +86,7 @@ import {
 import { generateFallbackCustomerKey } from '@/lib/v3-helpers/subscriptions'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import './subscription.css'
-import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
+import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 
 export type DogSub = SubLike & {
   id: string
@@ -514,7 +514,14 @@ function mdRange(a: string, b: string): string {
  *  · 발송일 결제(서포터즈 체험 구간): 조리(토·일) → 결제(화 아침) → 발송(화) → 도착
  * 도착은 지역에 따라 하루~이틀이라 날짜 없이 '발송 후 1~2일'로만 말한다(shipTimingLabel 원칙).
  */
-function boxSteps(shipIso: string, timing: ChargeTiming, charged: boolean, today: string): Step[] {
+function boxSteps(
+  shipIso: string,
+  timing: ChargeTiming,
+  charged: boolean,
+  today: string,
+  /** 실제 결제된 날(KST) — 있으면 결제 단계에 이 날을 쓴다(10차 점검 A F8: 결제 시점이 바뀐 뒤·늦은 성공을 역산하면 틀린다). */
+  paidDay: string | null = null,
+): Step[] {
   const cookStart = addDaysKst(shipIso, -CHARGE_BEFORE_SHIP_DAYS)
   const cookEnd = addDaysKst(shipIso, -(CHARGE_BEFORE_SHIP_DAYS - 1))
   const chargeIso = chargeDateFor(shipIso, timing)
@@ -522,7 +529,7 @@ function boxSteps(shipIso: string, timing: ChargeTiming, charged: boolean, today
   const pay: Step = {
     key: 'pay',
     label: '결제',
-    when: `${md(chargeIso)} ${weekdayKo(chargeIso)} 아침`,
+    when: charged && paidDay ? `${md(paidDay)} ${weekdayKo(paidDay)}` : `${md(chargeIso)} ${weekdayKo(chargeIso)} 아침`,
     done: charged,
   }
   const cook: Step = {
@@ -644,12 +651,14 @@ function SubCard({
       : null
   // 결제 시점을 모르면 '결제' 단계를 빼고 조리 → 발송 → 도착만(결제 요일을 단정하지 않는다).
   const steps = journeyShip
-    ? boxSteps(journeyShip, timing ?? 'ship_day', inProgress, today).filter((st) => timing || st.key !== 'pay')
+    ? boxSteps(journeyShip, timing ?? 'ship_day', inProgress, today, inProgress && paidAt ? kstDateOf(paidAt) : null).filter((st) => timing || st.key !== 'pay')
     : []
   const currentIdx = steps.findIndex((st) => !st.done)
 
   // 함께한 박스 — total_deliveries 는 결제 성공마다 오른다. 10칸(도장판과 같은 단위)으로 보여준다.
-  const boxes = sub.total_deliveries
+  // ★결제만 되고 아직 안 나간 박스(inProgress)는 '받은' 수에서 뺀다(10차 점검 A F7) — 토요일 결제 직후부터
+  //   "1번째 박스까지 받았어요"라고 하던 것. 같은 카드 위 여정은 그 박스를 조리 중으로 그린다.
+  const boxes = inProgress ? Math.max(0, sub.total_deliveries - 1) : sub.total_deliveries
   const dots = Math.max(8, Math.min(10, boxes + 2))
   const filled = boxes % 10 === 0 && boxes > 0 ? 10 : boxes % 10
 
@@ -1003,7 +1012,7 @@ function CancelSheet({
         <p>
           {started
             ? paidBoxInProgress
-              ? `이미 결제된 박스는 조리가 시작돼 그대로 보내드려요. 해지하면 그다음 박스부터 배송과 결제가 멈춰요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
+              ? `이미 결제된 박스는 맞춤으로 만들어 그대로 보내드려요. 해지하면 그다음 박스부터 배송과 결제가 멈춰요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
               : `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
             : `아직 결제된 게 없어서 그냥 없어져요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 신청할 수 있어요.`}
         </p>

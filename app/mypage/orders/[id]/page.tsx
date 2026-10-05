@@ -626,7 +626,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
       )}
       {isPaidSubscriptionBox && (
         <p className="px-5 mt-3 text-[12px] leading-relaxed text-muted">
-          결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 다음 박스는 정기배송 관리에서 결제 전에
+          결제된 정기배송 박스는 맞춤으로 만들어 그대로 보내드려서 직접 취소할 수 없어요. 다음 박스는 정기배송 관리에서 결제 전에
           미루거나 해지할 수 있어요. 사정이 있으시면 1:1 문의로 알려 주세요.
         </p>
       )}

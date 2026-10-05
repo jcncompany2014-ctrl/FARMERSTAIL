@@ -15,7 +15,23 @@ import {
   CHECKIN_WINDOW_BEFORE,
   CHECKIN_WINDOW_AFTER,
   newFormulaAppliedFrom,
+  boxCountSince,
 } from './cycle.ts'
+
+describe('10차 점검 A — 재제안 박스 카운트 시작·적용 시작일 상한 (2026-10-06)', () => {
+  it('F1: 새 처방 첫 박스의 토요일 결제 주문부터 센다(발송 3일 전 0시)', () => {
+    assert.equal(boxCountSince('2026-10-27', '2026-10-10T01:10:00Z'), '2026-10-24T00:00:00+09:00')
+  })
+  it('F1: cycle 1(applied_from 없음)은 처방 생성 시각 그대로', () => {
+    assert.equal(boxCountSince(null, '2026-10-10T01:10:00Z'), '2026-10-10T01:10:00Z')
+  })
+  it('F2: 토요일 결제 직후(다음 발송이 먼 미래) 상한이 토요일이 아니라 화요일이다', () => {
+    // 오늘 토 10-10, 다음 발송 2099 → 상한 오늘+14 = 10-24(토) → 화요일 10-27.
+    const got = newFormulaAppliedFrom('2026-10-10', '2099-12-29')
+    assert.equal(got, '2026-10-27')
+    assert.equal(new Date(`${got}T00:00:00Z`).getUTCDay(), 2)
+  })
+})
 
 describe('isCycleDue — 배송 회차 만기 판정', () => {
   it('박스가 BOXES_PER_CYCLE 개 미만이면 아직 아님', () => {

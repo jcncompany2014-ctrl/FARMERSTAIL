@@ -38,6 +38,8 @@ describe('홈 박스 진행 카드 — 발송 준비 → 발송 → 배송 중 �
     assert.match(preparingDetail('2026-10-13', '2026-10-11'), /만들고 있어요/) // 일
     assert.match(preparingDetail('2026-10-13', '2026-10-12'), /포장/) // 월
     assert.match(preparingDetail('2026-10-13', '2026-10-13'), /오늘 보내드려요/) // 화
+    // 발송일이 지났는데 아직 준비 중 — '오늘 보내드려요'를 반복하지 않는다(10차 점검 D).
+    assert.equal(preparingDetail('2026-10-13', '2026-10-14'), '발송 일정을 확인하고 있어요') // 수
     assert.equal(preparingDetail(null, '2026-10-10'), '박스를 준비하고 있어요')
   })
   it('도착 요일을 약속하지 않는다', () => {

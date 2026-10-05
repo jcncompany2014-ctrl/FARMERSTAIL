@@ -5077,7 +5077,9 @@ test('규칙140: 같은 돈이 두 번 움직이지 않는다 — 부분환불 �
   const bi = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
   // 2026-10-01: '지난 날짜' = 결제일(조리 직전 토요일 / 서포터즈 발송일) 기준 — chargeDateFor.
   // 2026-10-02: 결제 시점을 한 번 조회해(chargeTiming) 첫 박스 마감에도 쓴다 — 서포터즈 일요일·일반 금요일(규칙157).
-  assert.ok(/chargeDateFor\(cur\.next_delivery_date, chargeTiming \?\? 'ship_day'\) < todayKstIsoDate\(\)\s*\)\s*\{\s*firstDeliveryIso = nextShipDate\(undefined, chargeTiming \?\? 'before_cooking'\)/.test(bi), '재등록 시 결제일이 지난 회차를 그대로 둬 조리가 끝난 박스를 늦게 청구한다')
+  // 2026-10-06 10차 A: 판정은 정본 keepShipDateOnCardRegister(일요일 09:10 전은 제때) — 고지 화면(billing-terms)도 같은 함수.
+  assert.ok(/!keepShipDateOnCardRegister\(cur\.next_delivery_date, chargeTiming \?\? 'ship_day'\)\s*\)\s*\{\s*firstDeliveryIso = nextShipDate\(undefined, chargeTiming \?\? 'before_cooking'\)/.test(bi), '재등록 시 결제일이 지난 회차를 그대로 둬 조리가 끝난 박스를 늦게 청구한다')
+  assert.match(stripComments(read(join(ROOT, 'app', 'api', 'subscriptions', 'billing-terms', 'route.ts'))), /keepShipDateOnCardRegister\(row\.next_delivery_date, timing \?\? 'ship_day'\)/, '정기결제 고지 화면이 재등록 판정과 다른 날짜(지난 결제일)를 고지한다')
   // ⑤ 결과 불명 — 매 실행 맨 앞에서 토스 주문번호 조회로 확정, 모르면 그 구독 청구 금지
   const verifyAt = ch.indexOf('await verifyAmbiguousCharges(supabase')
   // 2026-10-01: 조회는 사흘 앞 발송분까지(토요일 결제) — 결제일 판정은 구독별(규칙153).

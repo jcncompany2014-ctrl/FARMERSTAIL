@@ -69,9 +69,10 @@ export default function BoxProgressCard({ dogLabel, stage, detail, itemLabel, hr
           <span
             className="shrink-0"
             style={{
-              fontSize: 13,
+              // 작은 글자 — accent(3.4:1)는 장식 전용, 글자는 accentDeep(10차 점검 D 대비).
+              fontSize: V3FontSize.sm,
               fontWeight: 700,
-              color: V3.accent,
+              color: V3.accentDeep,
               background: `color-mix(in srgb, ${V3.accent} 12%, transparent)`,
               borderRadius: V3Radius.pill,
               padding: '3px 10px',
@@ -161,7 +162,7 @@ export default function BoxProgressCard({ dogLabel, stage, detail, itemLabel, hr
         </p>
         <span
           className="flex items-center"
-          style={{ marginTop: 8, gap: 2, fontSize: V3FontSize.sm, fontWeight: 700, color: V3.accent }}
+          style={{ marginTop: 8, gap: 2, fontSize: V3FontSize.sm, fontWeight: 700, color: V3.accentDeep }}
         >
           {linkLabel}
           <ChevronRight size={16} strokeWidth={2.4} aria-hidden />

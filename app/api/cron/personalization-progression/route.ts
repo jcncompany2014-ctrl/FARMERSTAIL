@@ -29,6 +29,7 @@ import {
   PRICE_CHANGE_WINDOW_DAYS,
   isCycleDue,
   newFormulaAppliedFrom,
+  boxCountSince,
 } from '@/lib/personalization/cycle'
 import { getAutomationSettings } from '@/lib/automation-settings'
 
@@ -294,10 +295,9 @@ export async function GET(req: Request) {
     const billing = billingByDog.get(dogId)
     if (!billing) continue
 
-    // 이 처방이 적용된 시점 — cycle 1 은 applied_from 이 null 이라 created_at.
-    const since = cur.applied_from
-      ? `${cur.applied_from}T00:00:00+09:00`
-      : cur.created_at
+    // 이 처방이 적용된 시점 — cycle 1 은 applied_from 이 null 이라 created_at. 새 처방의 첫 박스 주문은 결제일(발송
+    // 3일 전 토요일)에 생기므로 그날 0시부터 센다(정본 boxCountSince, 10차 점검 A F1).
+    const since = boxCountSince(cur.applied_from, cur.created_at)
     const { count: boxesShipped, error: boxesErr } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })

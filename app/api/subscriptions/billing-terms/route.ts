@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
-import { nextShipDate, chargeDateFor } from '@/lib/shipping-schedule'
+import { nextShipDate, chargeDateFor, keepShipDateOnCardRegister } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 
 export const runtime = 'nodejs'
@@ -134,7 +134,12 @@ export async function GET(req: Request) {
   //   카드 등록 전 구독은 next_delivery_date 가 null — 첫 발송일은 billing-issue 가 잡는 것과 같은 계산
   //   (nextShipDate + 결제 시점별 마감: 서포터즈 체험 구간 일요일·일반 금요일 밤, 2026-10-02).
   const timing = await getChargeTiming(user.id)
-  const firstShipDate = row.next_delivery_date ?? nextShipDate(undefined, timing ?? 'before_cooking')
+  // ★카드 재등록이면 billing-issue 와 **같은 판정**으로 날짜를 고른다(10차 점검 A F3) — 결제일이 지난 옛 날짜를
+  //   "첫 결제 10월 10일(토)"처럼 지난 날로 고지하던 것. 정본 keepShipDateOnCardRegister.
+  const firstShipDate =
+    row.next_delivery_date && keepShipDateOnCardRegister(row.next_delivery_date, timing ?? 'ship_day')
+      ? row.next_delivery_date
+      : nextShipDate(undefined, timing ?? 'before_cooking')
   const firstChargeDate = timing ? chargeDateFor(firstShipDate, timing) : null
 
   return NextResponse.json({

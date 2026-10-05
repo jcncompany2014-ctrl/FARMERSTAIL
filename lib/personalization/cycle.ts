@@ -128,7 +128,11 @@ export function newFormulaAppliedFrom(
   if (next < todayKst) return todayKst
   const plusDays = (iso: string, d: number) =>
     new Date(Date.parse(`${iso}T00:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10)
-  const cap = plusDays(todayKst, DELIVERY_INTERVAL_DAYS)
+  // 상한은 발송 요일(화)로 맞춘다 — 오늘+14 가 토·일·월이면 "10월 24일(토) 박스부터"처럼 없는 박스 날짜가
+  // 저장·표시됐다(10차 점검 A F2). 오늘+14 이상인 첫 화요일.
+  const capRaw = plusDays(todayKst, DELIVERY_INTERVAL_DAYS)
+  const capDow = new Date(`${capRaw}T00:00:00Z`).getUTCDay()
+  const cap = plusDays(capRaw, (SHIP_WEEKDAY_TUE - capDow + 7) % 7)
   const first = next > cap ? cap : next
   // ★조리가 시작된 박스는 옛 처방 그대로 (2026-10-01 일정 변경 — 토·일 조리 → 화 발송). 발송 3일 전 토요일
   //   (lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS) 이후 승인되면 그 박스는 이미 옛 처방으로 만들어지는 중이라
@@ -138,3 +142,19 @@ export function newFormulaAppliedFrom(
 
 /** 조리 시작 = 발송(화) 3일 전 토요일. lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS 와 같은 값(이 파일은 import 없는 순수 모듈). */
 const COOK_START_BEFORE_SHIP_DAYS = 3
+/** 발송 요일(화=2). lib/shipping-schedule SHIP_WEEKDAY 와 같은 값. */
+const SHIP_WEEKDAY_TUE = 2
+
+/**
+ * 재제안 박스 수를 셀 **시작 시각**(KST) — 새 처방의 첫 박스 주문부터 센다 (10차 점검 A F1, 2026-10-06).
+ *
+ * applied_from 은 그 박스의 **발송일**(화)인데, 주문 행은 청구 크론이 **결제일**에 만든다 — 일반 고객은 발송 3일 전
+ * 토요일. 예전엔 applied_from 0시부터 세어 새 처방의 첫 박스(토요일 생성)가 빠졌고 "박스 3개마다"가 4개가 됐다.
+ * 발송 3일 전 0시부터 센다 — 서포터즈(발송일 결제)도 포함되고, 직전 박스 주문은 그보다 2주 앞이라 섞이지 않는다.
+ * cycle 1(applied_from 없음)은 처방 생성 시각 그대로.
+ */
+export function boxCountSince(appliedFrom: string | null | undefined, createdAt: string): string {
+  if (!appliedFrom || !/^\d{4}-\d{2}-\d{2}$/.test(appliedFrom.slice(0, 10))) return createdAt
+  const d = new Date(Date.parse(`${appliedFrom.slice(0, 10)}T00:00:00Z`) - COOK_START_BEFORE_SHIP_DAYS * 86_400_000)
+  return `${d.toISOString().slice(0, 10)}T00:00:00+09:00`
+}

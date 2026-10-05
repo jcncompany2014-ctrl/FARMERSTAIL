@@ -114,7 +114,7 @@ export async function POST(req: Request) {
   const supabase = createAdminClient()
   // refunded_amount — 부분취소 금액 기반 멱등 판정에 필요(2026-09-05).
   const ORDER_COLS =
-    'id, user_id, order_number, total_amount, refunded_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name'
+    'id, user_id, order_number, total_amount, refunded_amount, payment_status, order_status, paid_at, shipping_fee, recipient_name, subscription_id'
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)
   let { data: order, error: orderErr } = await supabase
@@ -386,6 +386,18 @@ export async function POST(req: Request) {
       if (!paidUpd.data || paidUpd.data.length === 0) {
         // 0행 = 그 사이 다른 흐름이 상태를 바꿨다. 재시도 아닌 정상 skip.
         return NextResponse.json({ ok: true, skipped: 'already_processed' })
+      }
+
+      /**
+       * ★정기결제 주문은 원장·영수증 메일·푸시를 **청구 크론에 맡긴다** (10차 점검 C, 2026-10-06).
+       *   자동결제 DONE 웹훅이 크론의 주문 갱신보다 먼저 오면, 여기서 원장 'paid +X' 를 적고 크론도 같은 걸
+       *   또 적어 원장이 이중이 됐다(payment_events 엔 중복 방지 UNIQUE 가 없다). 게다가 여기 메일은 할인 내역 없이
+       *   나가 서포터즈에게 "상품 51,520원 · 총액 100원" 영수증이 가고, 같은 멱등키라 크론의 올바른 메일이 걸러졌다.
+       *   주문을 '결제됨'으로 바꾸는 것(위)은 그대로 둔다 — 크론이 도중에 멈춰도 결제 흔적이 남아 주문 만료 크론이
+       *   돈 낸 주문을 취소하지 않는다. 크론이 못 끝낸 건은 결과 불명 확인(ambiguous-charges)이 잡는다.
+       */
+      if (order.subscription_id) {
+        return NextResponse.json({ ok: true, marked: 'paid', deferredTo: 'subscription-charge' })
       }
 
       // R60 — 결제 원장 event. 가상계좌 입금 완료 또는 confirm 누락 케이스.

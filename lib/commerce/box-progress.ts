@@ -68,7 +68,10 @@ export function boxStage(o: BoxOrderLike, todayKst: string): BoxStage | null {
 export function preparingDetail(shipIso: string | null, todayKst: string): string {
   if (!shipIso) return '박스를 준비하고 있어요'
   const d = daysBetween(todayKst, shipIso)
-  if (d <= 0) return '오늘 보내드려요'
+  // 발송일이 지났는데 아직 준비 중(화요일 발송이 늦어진 박스) — '오늘 보내드려요'를 매일 반복하지 않는다(10차 점검 D).
+  //   shipTimingLabel 원칙: 지난 약속은 다시 하지 않고 확인 중이라고 말한다.
+  if (d < 0) return '발송 일정을 확인하고 있어요'
+  if (d === 0) return '오늘 보내드려요'
   if (d === 1) return '포장하고 있어요 · 내일 보내드려요'
   if (d <= 3) return `주방에서 만들고 있어요 · ${d}일 뒤 보내드려요`
   return `원료를 준비하고 있어요 · ${d}일 뒤 보내드려요`

@@ -83,6 +83,9 @@ export async function GET(req: Request) {
     .eq('status', 'active')
     .eq('reminder_enabled', true)
     .not('next_delivery_date', 'is', null)
+    // ★카드가 없거나 재등록이 필요한 구독엔 "N일 뒤 결제돼요"를 보내지 않는다 — 청구 크론이 긁지 않는다(10차 점검 B).
+    .not('billing_key', 'is', null)
+    .not('requires_billing_key_renewal', 'is', true)
 
   if (error) {
     return dbError(error, 'cron_subscription_reminders', '정기배송 알림 큐 조회 실패')

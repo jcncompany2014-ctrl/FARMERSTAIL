@@ -144,6 +144,30 @@ export function onTimeChargeDeadline(shipIso: string, timing: ChargeTiming): str
   return timing === 'ship_day' ? shipIso : addDaysKst(shipIso, -(CHARGE_BEFORE_SHIP_DAYS - 1))
 }
 
+/** 청구 크론이 도는 KST 시각(분). vercel.json `10 0 * * *`(UTC 00:10) — 바꾸면 둘 다 바꾼다(규칙161). */
+export const CHARGE_CRON_KST_MINUTES = 9 * 60 + 10
+
+/**
+ * 카드를 (다시) 등록할 때 지금 발송일을 **그대로 둘 수 있나** — 다음 청구 크론이 아직 이 박스를 제때 결제할 수 있으면 true.
+ * 아니면 다음 발송 화요일로 다시 잡아야 한다(옛 날짜를 두면 크론이 늦게 긁고 박스는 한 주 밀리는데, 화면은 옛 날짜를 말한다).
+ *
+ * 10차 점검 A(2026-10-06): billing-issue 는 '결제일 < 오늘'로, 정기결제 고지 화면(billing-terms)은 아무 검사 없이 옛 날짜를
+ * 고지해 둘이 달랐다(F3). 또 일반 고객의 일요일 아침 재등록은 일요일 09:10 크론이 제때 결제할 수 있는데도 한 주 밀렸다(F4).
+ * 둘 다 이 함수 하나로 판정한다. 결제 시점을 모르면 호출부가 'ship_day'(옛 동작: 발송일 기준)를 넘긴다.
+ */
+export function keepShipDateOnCardRegister(
+  shipIso: string,
+  timing: ChargeTiming,
+  now: Date = new Date(),
+): boolean {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  const today = kst.toISOString().slice(0, 10)
+  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  const deadline = onTimeChargeDeadline(shipIso, timing)
+  if (today < deadline) return true
+  return today === deadline && minutes < CHARGE_CRON_KST_MINUTES
+}
+
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const
 
 /** ISO yyyy-mm-dd 의 요일 (0=일 … 6=토). */

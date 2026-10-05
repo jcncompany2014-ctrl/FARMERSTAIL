@@ -8,9 +8,8 @@ import { billingBrandLabel } from '@/lib/payments/billing-methods'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
-import { nextShipDate, chargeDateFor } from '@/lib/shipping-schedule'
+import { nextShipDate, keepShipDateOnCardRegister } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
-import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import { isCurrentNoCancelConsent, NO_CANCEL_CONSENT_VERSION } from '@/lib/payments/no-cancel-consent'
 
@@ -302,10 +301,12 @@ export async function POST(req: Request) {
     firstDeliveryIso = nextShipDate(undefined, chargeTiming ?? 'before_cooking')
   } else if (
     // ★2026-10-01 일정 변경 — 지난 건 '발송일'이 아니라 '결제일'로 본다. 일반 고객은 발송 3일 전 토요일(조리 직전)에
-    //   결제되므로, 토요일 결제가 실패한 뒤 일·월요일에 카드를 다시 등록하면 이번 화요일 박스는 조리가 이미 끝났다.
+    //   결제되므로, 토요일 결제가 실패한 뒤 월요일에 카드를 다시 등록하면 이번 화요일 박스는 조리가 이미 끝났다.
     //   옛 기준(발송일 < 오늘)이면 이번 화요일이 그대로 남아 월요일에 늦게 청구되고 박스가 한 주 밀린다 — 고객은
     //   "결제된 박스부터 보내드려요"라고 안내받는다. 결제 시점을 모르면 발송일 기준(옛 동작)으로 둔다.
-    chargeDateFor(cur.next_delivery_date, chargeTiming ?? 'ship_day') < todayKstIsoDate()
+    //   ★10/6 10차 A: 판정은 정본 keepShipDateOnCardRegister 하나로 — 일요일 09:10 전 재등록은 그날 크론이 제때 긁으므로
+    //   유지하고(F4), 정기결제 고지 화면(billing-terms)도 같은 함수로 같은 날짜를 고지한다(F3).
+    !keepShipDateOnCardRegister(cur.next_delivery_date, chargeTiming ?? 'ship_day')
   ) {
     // ★카드 만료·결제 실패로 멈춰 **결제일이 이미 지난** 재등록(2026-09-28 점검 9차) — 옛 날짜를 두면 다음 날
     //   아침 크론이 지난 회차를 곧바로 청구한다. 다음 발송 화요일로 다시 잡는다(그 박스의 결제일에 청구).

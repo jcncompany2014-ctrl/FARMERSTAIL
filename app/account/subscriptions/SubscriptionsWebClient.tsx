@@ -329,6 +329,21 @@ export default function SubscriptionsWebClient({
       setActionLoading(null)
       return
     }
+    // ★누른 순간 다시 판정한다(10차 점검 B·D) — 버튼은 화면을 연 시각 기준이라, 금요일에 열어 둔 화면으로
+    //   토요일에 누르면 조리 합계에서 빠진 박스가 되살아났다. 앱(DogSubscriptionClient undoSkip)과 같은 처리.
+    const paidAtNow = paidPreparingAt[subId]
+    const stillTo = undoSkipTarget({
+      nextDeliveryDate: fromIso,
+      today: todayKstIsoDate(),
+      timing: chargeTiming,
+      paidBoxShipIso: paidAtNow ? paidBoxShipIso(fromIso, paidAtNow) : null,
+    })
+    if (stillTo !== toIso) {
+      toast.info('신청 마감이 지나 이 박스는 되돌릴 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.')
+      await reload()
+      setActionLoading(null)
+      return
+    }
     const { data: moved, error } = await supabase
       .from('subscriptions')
       .update({ next_delivery_date: toIso })
@@ -794,7 +809,7 @@ export default function SubscriptionsWebClient({
                     disabled={isLoading}
                     onClick={() => handleUndoSkip(sub.id, sub.next_delivery_date!, undoTo)}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ color: 'var(--fd-coral)', boxShadow: 'inset 0 0 0 1px var(--fd-coral)' }}
+                    style={{ color: 'var(--fd-coral-text)', boxShadow: 'inset 0 0 0 1px var(--fd-coral)' }}
                   >
                     <Undo2 className="w-3.5 h-3.5" strokeWidth={2} />
                     미룬 박스 되돌리기 · {kstMonthDay(undoTo)} 발송

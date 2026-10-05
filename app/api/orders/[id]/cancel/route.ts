@@ -188,7 +188,7 @@ export async function POST(
         {
           code: 'SUBSCRIPTION_BOX_IN_PRODUCTION',
           message:
-            '결제된 정기배송 박스는 조리가 시작돼 직접 취소할 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.',
+            '결제된 정기배송 박스는 맞춤으로 만들어 그대로 보내드려서 직접 취소할 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.',
         },
         { status: 409 }
       )

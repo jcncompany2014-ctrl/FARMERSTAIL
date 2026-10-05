@@ -20,6 +20,7 @@ import {
   leadDaysFor,
   shipWeekFor,
   undoSkipTarget,
+  keepShipDateOnCardRegister,
   resumeShipDate,
   nextShipDate,
   nextCycleDate,
@@ -382,5 +383,26 @@ describe('resumeShipDate — 재개가 원래 배송일을 앞당기지 않는�
   })
   it('화요일이 아닌 옛 날짜는 다음 발송 화요일로 스냅', () => {
     assert.equal(resumeShipDate('2026-07-30', WED), nextShipDate(WED))
+  })
+})
+
+describe('keepShipDateOnCardRegister — 카드 (재)등록 때 발송일을 그대로 둘 수 있나 (10차 점검 A F3·F4)', () => {
+  // 발송 화 2026-10-13 · 일반 결제 토 10-10 · 제때 마감 일 10-11 · 서포터즈는 발송일 10-13.
+  const SHIP = '2026-10-13'
+  const kst = (iso: string, hh: number, mm: number) => new Date(`${iso}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00+09:00`)
+  it('일반: 토요일 결제 실패 뒤 토요일 오후 재등록 — 일요일 크론이 제때 긁는다(유지)', () => {
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'before_cooking', kst('2026-10-10', 15, 0)), true)
+  })
+  it('일반: 일요일 아침 09:10 전 재등록 — 그날 크론이 제때 긁는다(유지, F4)', () => {
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'before_cooking', kst('2026-10-11', 8, 30)), true)
+  })
+  it('일반: 일요일 크론이 이미 돈 뒤·월요일 재등록 — 다음 화요일로 다시 잡는다', () => {
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'before_cooking', kst('2026-10-11', 9, 30)), false)
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'before_cooking', kst('2026-10-12', 8, 0)), false)
+  })
+  it('서포터즈: 발송일 아침 09:10 전이면 유지, 그 뒤면 다시 잡는다', () => {
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-13', 9, 0)), true)
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-13', 9, 15)), false)
+    assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-12', 23, 0)), true)
   })
 })

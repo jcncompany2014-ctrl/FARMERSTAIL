@@ -6,6 +6,8 @@ import { trackCron } from '@/lib/cron-tracking'
 import { petName, iGa } from '@/lib/korean'
 import { snapBoxLines } from '@/lib/personalization/boxComposition'
 import type { FoodLine } from '@/lib/personalization/types'
+import { paidBoxShipIso } from '@/lib/shipping-schedule'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 /** 제목 고정부 = dedup 앵커(2026-08-05). 마케팅 푸시라 `(광고)` 가 앞에 붙는다. */
@@ -50,7 +52,8 @@ async function runRotation(): Promise<Response> {
   const admin = supabase as any
 
   const now = Date.now()
-  const sevenDaysAgo = new Date(now - 7 * 86_400_000).toISOString()
+  // 월요일 늦은 성공 박스는 다음 주 화요일에 나가 결제가 8일 전이 된다 — 창을 10일로 두고 아래에서 '오늘 나가는 박스'만 고른다.
+  const sevenDaysAgo = new Date(now - 10 * 86_400_000).toISOString()
   const fourteenDaysAgo = new Date(now - 14 * 86_400_000).toISOString()
 
   // active 정기구독 + 최근 7일 청구 완료 + total_deliveries > 0.
@@ -73,7 +76,7 @@ async function runRotation(): Promise<Response> {
   //   결제된다 — 이 크론은 화요일 11시라 어느 쪽이든 그 주 결제가 '최근 7일' 안에 든다.)
   const { data: subsRaw, error: subsRawErr } = await admin
     .from('subscriptions')
-    .select('id, user_id, dog_id, total_deliveries, last_charged_at')
+    .select('id, user_id, dog_id, total_deliveries, last_charged_at, next_delivery_date')
     .eq('status', 'active')
     .gt('total_deliveries', 0)
     .gte('last_charged_at', sevenDaysAgo)
@@ -94,10 +97,20 @@ async function runRotation(): Promise<Response> {
     dog_id: string | null
     total_deliveries: number
     last_charged_at: string | null
+    next_delivery_date: string | null
   }>
 
   // % 4 == 0 필터
-  const targets = subs.filter((s) => s.total_deliveries % 4 === 0)
+  // ★오늘(화) 실제로 나가는 박스만 — 월요일 늦은 성공 박스는 다음 주 화요일에 나가는데 이번 주에 "벌써 N번째 박스예요"가
+  //   나갔다(10차 점검 A F10). 결제된 박스의 발송일 정본 paidBoxShipIso.
+  const todayIso = todayKstIsoDate()
+  const targets = subs.filter(
+    (s) =>
+      s.total_deliveries % 4 === 0 &&
+      !!s.next_delivery_date &&
+      !!s.last_charged_at &&
+      paidBoxShipIso(s.next_delivery_date, s.last_charged_at) === todayIso,
+  )
 
   let sent = 0
   let skipped = 0

@@ -191,6 +191,17 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     //   FAILURE_KEYS 에 넣으면 잔액부족 고객 한 명이 매일 크론을 빨갛게 만든다.
     'declined',
     'mailSkipped',
+    // ★청구 크론의 운영 신호 (10차 점검 C, 2026-10-06) — 결제 시점 조회 실패(timingKnown=false)·밀린 청구·
+    //   결과 불명 보류가 cron_health 에서 잘려 Sentry 에서만 보였다. 숫자·불리언만이라 PII 없음.
+    'notDue',
+    'timingKnown',
+    'backlog',
+    'deferredByTime',
+    'overCap',
+    'ambiguousChecked',
+    'ambiguousHeld',
+    'ambiguousReleased',
+    'ambiguousUnknown',
   ]
   const out: Record<string, unknown> = {}
   for (const k of allow) {
