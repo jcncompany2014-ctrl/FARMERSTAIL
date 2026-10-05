@@ -477,15 +477,26 @@ async function runSubscriptionCharge(): Promise<Response> {
   {
     const userIds = [...new Set(fetchedAll.map((x) => x.user_id))]
     if (userIds.length > 0) {
-      const { data: trialRows, error: trialErr } = await supabase
-        .from('subscription_trials')
-        .select('user_id, cheap_remaining, half_remaining')
-        .in('user_id', userIds)
-      if (trialErr) {
+      // 순간 오류 한 번에 하루 청구가 통째로 멈추지 않게 한 번 더 시도한다.
+      let trialRows: unknown[] | null = null
+      let trialErrMsg: string | null = null
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data, error } = await supabase
+          .from('subscription_trials')
+          .select('user_id, cheap_remaining, half_remaining')
+          .in('user_id', userIds)
+        if (!error) {
+          trialRows = data ?? []
+          trialErrMsg = null
+          break
+        }
+        trialErrMsg = error.message
+      }
+      if (trialErrMsg != null) {
         timingKnown = false
         captureBusinessEvent('error', 'subscription.charge.timing_lookup_failed', {
-          dbError: trialErr.message,
-          note: '서포터즈 체험 상태 조회 실패 — 이번 실행은 발송일이 지난 구독만 청구(토요일 선결제 보류)',
+          dbError: trialErrMsg,
+          note: '서포터즈 체험 상태 조회 실패 — 이번 실행은 아무도 청구하지 않았다(내일 다시). 서포터즈 정가 결제·일정 밀림 방지',
         })
       } else {
         for (const r of (trialRows ?? []) as Array<{ user_id: string; cheap_remaining: number; half_remaining: number }>) {
@@ -493,6 +504,18 @@ async function runSubscriptionCharge(): Promise<Response> {
         }
       }
     }
+  }
+  /**
+   * ★체험 상태를 모르면 이번 실행은 **아무도 청구하지 않는다** (10차 점검 C, 2026-10-06).
+   *   예전엔 '발송일이 지난 것만 청구'로 이어 갔는데, 다음 날짜 계산(timingOf)이 '체험 아님'으로 떨어져 서포터즈의
+   *   다음 박스가 한 주 밀리고(10-06 결제 → 10-27), 같은 테이블을 읽는 할인 판정까지 실패하면 100원 약속 고객에게
+   *   정가가 나갔다. 하루 멈춤 < 잘못된 금액. 일반 고객은 토요일 실패 → 일요일 재시도가 아직 제때다.
+   */
+  if (!timingKnown) {
+    return NextResponse.json(
+      { ok: false, reason: 'timing_lookup_failed', checked: fetchedAll.length, charged: 0 },
+      { status: 500 },
+    )
   }
   const timingOf = (x: SubscriptionRow): ChargeTiming => timingByUser.get(x.user_id) ?? chargeTimingFor(null)
   let notDue = 0
@@ -647,6 +670,38 @@ async function runSubscriptionCharge(): Promise<Response> {
 
     const { reason: discountReason, discountAmount, chargeAmount, promoClaimed, neighborClaimed } =
       await resolveAutoDiscount({ userId: sub.user_id, subtotal: trustedSubtotal })
+
+    /**
+     * ★서포터즈 체험 구간인데 할인이 체험가가 아니면 **청구하지 않는다** (10차 점검 C, 2026-10-06).
+     *   결제 시점(위 timingByUser)과 할인(getTrialState)은 같은 subscription_trials 를 **따로** 읽는다. 할인 쪽 조회만
+     *   순간 실패하면 '체험 아님'으로 접혀(getTrialState → null) 100원 약속 고객에게 정가(최대 11만 원대)가 나갔다.
+     *   다만 같은 실행에서 한 사람의 다른 구독이 마지막 체험 회차를 먼저 써서 0이 된 경우는 정상 — 지금 상태를
+     *   다시 읽어 남은 회차가 정말 0일 때만 통과시킨다. 다시 읽기마저 실패하면 청구하지 않는다.
+     */
+    if (timingOf(sub) === 'ship_day' && discountReason !== 'trial_cheap' && discountReason !== 'trial_half') {
+      const { data: trialNow, error: trialNowErr } = await supabase
+        .from('subscription_trials')
+        .select('cheap_remaining, half_remaining')
+        .eq('user_id', sub.user_id)
+        .maybeSingle()
+      const stillTrial =
+        trialNowErr != null ||
+        (trialNow != null &&
+          ((trialNow as { cheap_remaining: number }).cheap_remaining > 0 ||
+            (trialNow as { half_remaining: number }).half_remaining > 0))
+      if (stillTrial) {
+        captureBusinessEvent('error', 'subscription.charge.trial_discount_mismatch', {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          discountReason: String(discountReason ?? 'none'),
+          chargeAmount,
+          recheckError: trialNowErr ? String(trialNowErr.message) : '',
+          note: '서포터즈 체험 구간인데 할인 판정이 체험가가 아님 — 정가 청구를 막고 건너뜀(내일 다시). 체험 조회 상태 확인 필요',
+        })
+        skipped += 1
+        continue
+      }
+    }
 
     // ★결제 감사 #7 (2026-07-29): 0원 이하 청구 금지. 100% 프로모션이 허용돼
     //   있어(pct <= 100) chargeAmount 가 0 이 될 수 있는데, 카드 결제는 최소

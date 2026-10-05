@@ -202,7 +202,7 @@ export async function POST(req: Request) {
     // ★failed_charge_count 를 빼면 isPausedByBillingFailure 가 3-strike 를
     //  영영 못 본다(undefined → 0). 판정에 쓰는 칸은 반드시 select 한다.
     .select(
-      'status, requires_billing_key_renewal, failed_charge_count, next_delivery_date, dog_id',
+      'status, requires_billing_key_renewal, failed_charge_count, next_delivery_date, dog_id, no_cancel_consent_at',
     )
     .eq('id', subscriptionId)
     .eq('user_id', user.id)
@@ -237,6 +237,7 @@ export async function POST(req: Request) {
     failed_charge_count?: number | null
     next_delivery_date?: string | null
     dog_id?: string | null
+    no_cancel_consent_at?: string | null
   } | null
 
   /**
@@ -347,7 +348,9 @@ export async function POST(req: Request) {
       ...(shouldResume ? { status: 'active' } : {}),
       ...(firstDeliveryIso ? { next_delivery_date: firstDeliveryIso } : {}),
       // 결제 후 취소 제한 동의 — 카드가 실제로 저장되는 이 쓰기와 함께(동의만 남고 카드가 없는 상태가 없게).
-      ...(isCurrentNoCancelConsent(parsed.data.noCancelConsent)
+      // ★처음 동의한 시각만 남긴다(10차 점검 C). 재등록마다 now() 로 덮으면 결제 직후 카드만 바꿔도 동의 시각이
+      //   결제 뒤로 밀려(consentAt > paidAt) 셀프 취소가 다시 열렸고, 첫 동의라는 증거도 사라졌다.
+      ...(isCurrentNoCancelConsent(parsed.data.noCancelConsent) && !cur?.no_cancel_consent_at
         ? { no_cancel_consent_at: new Date().toISOString(), no_cancel_consent_version: NO_CANCEL_CONSENT_VERSION }
         : {}),
     })

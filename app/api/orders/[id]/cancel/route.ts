@@ -89,7 +89,7 @@ export async function POST(
   const { data: order, error: orderErr } = await supabase
     .from('orders')
     .select(
-      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name, subscription_id, paid_at, created_at'
+      'id, user_id, order_number, payment_status, order_status, payment_key, payment_method, total_amount, recipient_name, subscription_id, paid_at, created_at, shipped_at'
     )
     .eq('id', id)
     .eq('user_id', user.id)
@@ -120,6 +120,34 @@ export async function POST(
     return NextResponse.json(
       { code: 'INVALID_DB_STATE', message: '주문 상태가 손상돼 있어요' },
       { status: 500 }
+    )
+  }
+  /**
+   * ★정기배송 주문이 '결제 대기'면 청구가 진행 중인 순간이다 (10차 점검 C, 2026-10-06). 청구 크론은 주문 행을 만들고
+   *   토스 응답(1~30초)을 기다린 뒤 paid 로 바꾸는데, 그 사이 고객이 취소하면 cancelled 로 바뀌었다가 결제 성공에
+   *   paid/preparing 으로 덮였다 — 고객은 취소한 줄 아는데 돈이 나가고 박스가 발송됐다. 정기배송의 결제 대기 주문은
+   *   셀프 취소 대상이 아니다(멈추려면 정기배송 화면에서 해지·미루기).
+   */
+  if (order.subscription_id && order.payment_status === 'pending') {
+    return NextResponse.json(
+      {
+        code: 'SUBSCRIPTION_CHARGE_IN_PROGRESS',
+        message: '정기배송 결제가 진행되고 있어요. 잠시 후 다시 확인해 주세요. 다음 박스는 정기배송 화면에서 미루거나 해지할 수 있어요.',
+      },
+      { status: 409 }
+    )
+  }
+  /**
+   * ★이미 발송된 박스는 셀프 취소하지 않는다 (10차 점검 C). 어드민이 '배송 중 → 준비 중'으로 되돌리면 상태 FSM 은
+   *   다시 취소를 허용해, 물건이 고객에게 있는데 전액 환불·회차 복원·도장 삭제가 일어날 수 있었다.
+   */
+  if ((order as { shipped_at?: string | null }).shipped_at) {
+    return NextResponse.json(
+      {
+        code: 'ALREADY_SHIPPED',
+        message: '이미 발송된 주문이라 직접 취소할 수 없어요. 1:1 문의로 알려 주시면 확인해 드릴게요.',
+      },
+      { status: 409 }
     )
   }
   /**

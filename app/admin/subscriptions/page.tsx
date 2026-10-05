@@ -11,6 +11,7 @@ import {
   chargeDateFor,
   describeUpcomingBox,
   nextShipDate,
+  paidBoxShipIso,
   weekdayKo,
   type ChargeTiming,
   type UpcomingBox,
@@ -143,6 +144,7 @@ export default function AdminSubscriptionsPage() {
   //   일반 고객은 토요일에 결제되고 청구 크론이 그 즉시 next_delivery_date 를 다음 주기(+14)로 민다.
   //   이걸 모르면 토~화엔 사흘 뒤 나갈 박스가 '배송 예정'에서 빠지고 다음 주기 날짜만 보인다.
   const [paidBoxSubIds, setPaidBoxSubIds] = useState<Set<string>>(new Set())
+  const [paidBoxPaidAt, setPaidBoxPaidAt] = useState<Map<string, string>>(new Map())
   const [paidBoxError, setPaidBoxError] = useState(false)
 
   useEffect(() => {
@@ -166,10 +168,11 @@ export default function AdminSubscriptionsPage() {
       // 결제 증거 = 결제됨(부분환불 포함) + 발송 대기 주문 — 피킹 리스트·ship-block 과 같은 기준.
       supabase
         .from('orders')
-        .select('subscription_id')
+        .select('subscription_id, paid_at, created_at')
         .in('payment_status', [...PAID_STATUSES])
         .eq('order_status', 'preparing')
         .not('subscription_id', 'is', null)
+        .order('created_at', { ascending: false })
         .limit(2000),
     ])
     if (trialRes?.ok && Array.isArray(trialRes.trials)) {
@@ -183,13 +186,18 @@ export default function AdminSubscriptionsPage() {
       setPaidBoxError(true)
     } else {
       setPaidBoxError(false)
-      setPaidBoxSubIds(
-        new Set(
-          ((paidRes.data ?? []) as Array<{ subscription_id: string | null }>)
-            .map((o) => o.subscription_id)
-            .filter((x): x is string => !!x),
-        ),
-      )
+      const paidRows = (paidRes.data ?? []) as Array<{
+        subscription_id: string | null
+        paid_at: string | null
+        created_at: string
+      }>
+      setPaidBoxSubIds(new Set(paidRows.map((o) => o.subscription_id).filter((x): x is string => !!x)))
+      // 구독별 가장 최근 결제 박스의 결제 시각 — 발송일 바꾸기가 그 박스와 같은 회차를 고르지 않게(10차 점검 B).
+      const paidAtMap = new Map<string, string>()
+      for (const o of paidRows) {
+        if (o.subscription_id && !paidAtMap.has(o.subscription_id)) paidAtMap.set(o.subscription_id, o.paid_at ?? o.created_at)
+      }
+      setPaidBoxPaidAt(paidAtMap)
     }
 
     setLoadError(Boolean(error))
@@ -608,7 +616,10 @@ export default function AdminSubscriptionsPage() {
                 <ShipDateModal
                   sub={s}
                   timing={timingOfSub(s)}
-                  paidBox={paidBoxSubIds.has(s.id)}
+                  paidShipIso={
+                    paidBoxPaidAt.has(s.id) ? paidBoxShipIso(s.next_delivery_date, paidBoxPaidAt.get(s.id)!) : null
+                  }
+                  paidUnknown={paidBoxError}
                   today={today}
                   isLoading={actionLoading === s.id}
                   onPick={(iso) => void handleShipDateChange(s.id, iso)}
@@ -758,7 +769,8 @@ function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: Suppo
 function ShipDateModal({
   sub,
   timing,
-  paidBox,
+  paidShipIso,
+  paidUnknown,
   today,
   isLoading,
   onPick,
@@ -766,14 +778,21 @@ function ShipDateModal({
 }: {
   sub: SubscriptionRow
   timing: ChargeTiming | null
-  paidBox: boolean
+  /** 결제됐고 아직 안 나간 박스의 발송일(paidBoxShipIso). 없으면 null. */
+  paidShipIso: string | null
+  /** 결제된 박스 조회 실패 — 같은 회차를 두 번 청구할 수 있으니 바꾸지 않는다. */
+  paidUnknown: boolean
   today: string
   isLoading: boolean
   onPick: (iso: string) => void
   onClose: () => void
 }) {
-  const first = nextShipDate(today, timing ?? 'before_cooking')
-  const options = Array.from({ length: 8 }, (_, i) => addDaysKst(first, i * 7))
+  // ★결제된 박스의 발송일 이하로는 고르지 않는다(10차 점검 B) — 그 화요일을 다시 고르면 같은 박스를 한 번 더 청구한다
+  //   (늦은 성공 박스가 다음 주 화요일에 나가는 경우 첫 선택지가 바로 그 날이었다).
+  const cutoffFirst = nextShipDate(today, timing ?? 'before_cooking')
+  const first = paidShipIso && addDaysKst(paidShipIso, 7) > cutoffFirst ? addDaysKst(paidShipIso, 7) : cutoffFirst
+  const options = paidUnknown ? [] : Array.from({ length: 8 }, (_, i) => addDaysKst(first, i * 7))
+  const paidBox = paidShipIso != null
   const label = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:items-center" onClick={onClose}>
@@ -789,8 +808,13 @@ function ShipDateModal({
         </p>
         <p className="mt-1 text-[12px] text-muted-foreground">
           지금 다음 발송: {sub.next_delivery_date ? label(sub.next_delivery_date) : '없음'}
-          {paidBox ? ' · 결제된 이번 박스는 그대로 나가요(바꾸는 건 그다음 박스)' : ''}
+          {paidBox ? ` · 결제된 박스(${label(paidShipIso!)} 발송)는 그대로 나가요 — 바꾸는 건 그다음 박스` : ''}
         </p>
+        {paidUnknown && (
+          <p className="mt-1 text-[12px] font-bold text-red-700">
+            결제된 박스 정보를 불러오지 못해 지금은 바꿀 수 없어요(같은 박스를 두 번 청구할 수 있어요). 새로고침 후 다시 해 주세요.
+          </p>
+        )}
         <p className="mt-1 text-[11px] text-muted-foreground">
           조리가 시작된 주는 고를 수 없어요(신청 마감 {timing === 'ship_day' ? '일요일 · 서포터즈' : '금요일 밤'}).
           {timing == null ? ' 서포터즈 정보를 못 받아 결제일은 표시하지 않아요.' : ''}

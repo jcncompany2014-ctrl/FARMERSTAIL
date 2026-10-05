@@ -255,12 +255,14 @@
 }
 
 /* ── 해지 확인 시트 ────────────────────────────────────────────────────── */
+/* 층 순서: 앱 헤더·탭바 40 < 시트 55·56 < 토스트 60. 예전엔 시트가 61 이라 시트가 열린 채 뜬 실패·'일정 바뀜'
+   안내(토스트)가 시트 뒤에 가려져, 누르면 아무 반응이 없는 것처럼 보였다(10차 점검 D). */
 .sub-scrim {
-  position: fixed; inset: 0; z-index: 60;
+  position: fixed; inset: 0; z-index: 55;
   background: rgba(22, 20, 15, 0.45);
 }
 .sub-sheet {
-  position: fixed; z-index: 61;
+  position: fixed; z-index: 56;
   left: 50%; bottom: 0; transform: translateX(-50%);
   width: min(520px, 100%);
   background: var(--surface-card-elevated, #fff);
@@ -271,10 +273,12 @@
 .sub-sheet h3 { margin: 0 0 8px; font-size: 16px; font-weight: 800; color: var(--ink); }
 .sub-sheet p { margin: 0; font-size: 14px; line-height: 1.65; color: var(--muted); }
 .sub-sheet-x {
-  position: absolute; top: 14px; right: 14px;
+  /* 누르는 영역 44px(아이콘 16px 그대로, 자리도 그대로 — 위치를 14px 만큼 당겨 보정). 10차 점검 D. */
+  position: absolute; top: 0; right: 0;
+  width: 44px; height: 44px;
   appearance: none; border: 0; background: transparent;
   color: var(--muted); cursor: pointer;
-  display: inline-flex;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .sub-sheet-btns {
   display: flex; gap: 8px; margin-top: 18px;

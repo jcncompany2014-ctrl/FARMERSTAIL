@@ -32,7 +32,7 @@
  * 오늘이 목요일이면 배송일이 목요일이 됐다.
  */
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { trialPricing, type TrialState } from '@/lib/payments/trial'
@@ -143,6 +143,8 @@ export default function DogSubscriptionClient({
   const toast = useToast()
   const [subs, setSubs] = useState<DogSub[]>(initialSubs)
   const [busy, setBusy] = useState<string | null>(null)
+  // 미루기·되돌리기 동시 실행 잠금 — 토스트 [되돌리기] 콜백은 렌더 당시 busy 를 보므로 ref 로 막는다(10차 D).
+  const moveLockRef = useRef(false)
   const [cancelId, setCancelId] = useState<string | null>(null)
   // '2주 미루기' 확인 시트 — 한 번 누르면 바로 밀리던 것(2026-10-06 사장님 "실수로 건너뛰기해 버리면 할 수 있는 게 없더라").
   const [skipId, setSkipId] = useState<string | null>(null)
@@ -192,6 +194,24 @@ export default function DogSubscriptionClient({
       return 'error'
     }
     if (!data || data.length === 0) {
+      // ★"불러왔어요"라고 말했으면 정말 불러온다(10차 점검 D, 2026-10-06). subs 는 useState(initialSubs) 라
+      //   router.refresh() 의 새 props 로는 갱신되지 않는다 — 옛 날짜로 다시 CAS 를 걸어 계속 stale 이 됐다.
+      //   그 행의 날짜·상태를 직접 다시 읽어 넣고, 결제된 박스 여부 같은 props 는 refresh 로 받는다.
+      const { data: fresh, error: freshErr } = await supabase
+        .from('subscriptions')
+        .select('next_delivery_date, status')
+        .eq('id', subId)
+        .eq('user_id', u)
+        .maybeSingle()
+      if (!freshErr && fresh) {
+        setSubs((prev) =>
+          prev.map((s) =>
+            s.id === subId
+              ? { ...s, next_delivery_date: fresh.next_delivery_date, status: fresh.status as DogSub['status'] }
+              : s,
+          ),
+        )
+      }
       toast.info('배송 일정이 방금 바뀌었어요 — 최신 일정을 불러왔어요. 확인 후 다시 눌러 주세요.')
       router.refresh()
       return 'stale'
@@ -247,6 +267,9 @@ export default function DogSubscriptionClient({
 
   /** 건너뛰기 — 다음 배송을 한 번 미룬다(2주). 화요일은 유지된다. 확인 시트(SkipSheet)를 거쳐서만 온다. */
   async function skip(sub: DogSub) {
+    // 같은 동작이 두 경로(시트 버튼·토스트 [되돌리기])에서 겹쳐 돌지 않게 — busy state 는 토스트 콜백에선 옛 값이다.
+    if (moveLockRef.current) return
+    moveLockRef.current = true
     setBusy(sub.id)
     // 기준은 '예정된 배송일'이지 오늘이 아니다. 예전엔 null 이면 오늘로 폴백해
     // 목요일 배송일 같은 게 생겼다(2026-07-15 실측).
@@ -254,8 +277,10 @@ export default function DogSubscriptionClient({
     const seen = sub.next_delivery_date ?? null
     const base = seen ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
     const next = nextCycleDate(base)
-    if ((await moveNextDate(sub.id, seen, next)) === 'ok') {
-      setSkipId(null)
+    const result = await moveNextDate(sub.id, seen, next)
+    // 결과와 상관없이 시트를 닫는다 — 시트가 열려 있으면 실패·'일정 바뀜' 안내(토스트)가 시트 뒤에 가려졌다(10차 D).
+    setSkipId(null)
+    if (result === 'ok') {
       // ★잘못 눌렀으면 바로 되돌린다(2026-10-06) — 원래 회차의 신청 마감 전일 때만(undoSkipTarget 정본).
       const undoTo = undoSkipTarget({
         nextDeliveryDate: next,
@@ -274,6 +299,7 @@ export default function DogSubscriptionClient({
       )
     }
     setBusy(null)
+    moveLockRef.current = false
   }
 
   /**
@@ -281,11 +307,27 @@ export default function DogSubscriptionClient({
    * 화면이 본 날짜(fromIso)가 DB 에서도 그대로일 때만 옮긴다(moveNextDate CAS) — 그 사이 결제·변경이 있었으면 거절.
    */
   async function undoSkip(subId: string, fromIso: string, toIso: string) {
+    if (moveLockRef.current) return
+    // ★누르는 순간의 마감을 다시 본다(10차 D) — 버튼은 마지막 렌더 시각으로 계산돼, 앱을 금요일에 열어 두고
+    //   토요일에 돌아오면 조리가 시작된 회차로 되돌릴 수 있었다.
+    const stillOk = undoSkipTarget({
+      nextDeliveryDate: fromIso,
+      today: todayKstIsoDate(),
+      timing: chargeTiming,
+      paidBoxShipIso: paidShipOf(subId, fromIso),
+    })
+    if (stillOk !== toIso) {
+      toast.info('신청 마감이 지나 이 박스는 되돌릴 수 없어요. 사정이 있으시면 1:1 문의로 알려 주세요.')
+      router.refresh()
+      return
+    }
+    moveLockRef.current = true
     setBusy(subId)
     if ((await moveNextDate(subId, fromIso, toIso)) === 'ok') {
       toast.success(`${dateLabel(toIso)} 발송으로 되돌렸어요.`)
     }
     setBusy(null)
+    moveLockRef.current = false
   }
 
   async function pause(sub: DogSub) {
@@ -386,22 +428,7 @@ export default function DogSubscriptionClient({
           시트는 --fd-* 토큰만 쓰고, 아래 래퍼가 그걸 앱 v3 값으로 스왑한다.
           (복사본을 만들면 금액을 보여주는 곳이 둘이 된다.) */}
       {ratioId && (
-        <>
-          <div className="sub-scrim" onClick={() => setRatioId(null)} />
-          <div
-            className="sub-sheet"
-            style={
-              {
-                '--fd-pine': 'var(--ink)',
-                '--fd-muted': 'var(--muted)',
-                '--fd-line': 'var(--rule)',
-                '--fd-coral': 'var(--terracotta)',
-                '--fd-coral-text': 'var(--terracotta)',
-                '--fd-offwhite': 'var(--bg-2)',
-                '--fd-r-row': '4px',
-              } as React.CSSProperties
-            }
-          >
+        <RatioSheetFrame onClose={() => setRatioId(null)}>
             <FreshRatioSheet
               subscriptionId={ratioId}
               onClose={() => setRatioId(null)}
@@ -421,8 +448,7 @@ export default function DogSubscriptionClient({
                 router.refresh()
               }}
             />
-          </div>
-        </>
+        </RatioSheetFrame>
       )}
 
       {skipId &&
@@ -478,7 +504,8 @@ function md(iso: string): string {
 
 /** 날짜 범위를 짧게 — 같은 달이면 "10/10~11". 좁은 폰(320px)에서 네 칸이 겹치지 않게. */
 function mdRange(a: string, b: string): string {
-  return a.slice(5, 7) === b.slice(5, 7) ? `${md(a)}~${Number(b.slice(8, 10))}` : `${md(a)}~${md(b)}`
+  // 달이 바뀌면 "10/31~11/1" 이 320px 칸(약 55px)에 안 들어가 "11/ | 1" 로 잘렸다(10차 D) — '~' 뒤에 줄바꿈 기회(ZWSP).
+  return a.slice(5, 7) === b.slice(5, 7) ? `${md(a)}~${Number(b.slice(8, 10))}` : `${md(a)}~​${md(b)}`
 }
 
 /**
@@ -492,7 +519,6 @@ function boxSteps(shipIso: string, timing: ChargeTiming, charged: boolean, today
   const cookEnd = addDaysKst(shipIso, -(CHARGE_BEFORE_SHIP_DAYS - 1))
   const chargeIso = chargeDateFor(shipIso, timing)
   // 도착은 지역·택배사 사정이라 요일을 약속하지 않는다(사장님 2026-10-01 "수요일 도착이라는 말을 쓰지 말고").
-  const arriveEnd = addDaysKst(shipIso, 2)
   const pay: Step = {
     key: 'pay',
     label: '결제',
@@ -505,12 +531,15 @@ function boxSteps(shipIso: string, timing: ChargeTiming, charged: boolean, today
     when: mdRange(cookStart, cookEnd),
     done: today > cookEnd,
   }
-  const ship: Step = { key: 'ship', label: '발송', when: `${md(shipIso)} ${weekdayKo(shipIso)}`, done: today > shipIso }
+  // ★발송·도착은 날짜로 '끝남'을 단정하지 않는다(10차 점검 D). 이 여정은 결제됐지만 아직 안 나간 박스(주문 preparing)
+  //   이거나 결제 전 다음 박스만 그린다 — 실제로 나간 박스는 홈 박스 진행 카드(주문 상태 기준)가 맡는다. 화요일 발송이
+  //   늦어진 박스에 날짜만 보고 ✓를 붙이면 "보냈다"고 거짓말하게 된다.
+  const ship: Step = { key: 'ship', label: '발송', when: `${md(shipIso)} ${weekdayKo(shipIso)}`, done: false }
   const arrive: Step = {
     key: 'arrive',
     label: '도착',
     when: '발송 후 1~2일',
-    done: today > arriveEnd,
+    done: false,
   }
   return timing === 'ship_day' ? [cook, pay, ship, arrive] : [pay, cook, ship, arrive]
 }
@@ -824,6 +853,42 @@ function EmptyStart({ name, startHref }: { name: string; startHref: string }) {
   )
 }
 
+// ── 화식 비율 시트 틀 (10차 점검 D, 2026-10-06) ─────────────────────────────────────
+//
+// 예전엔 scrim + div 뿐이라 안드로이드 하드웨어 뒤로가기가 시트를 닫지 않고 **화면을 떠났다**(NativeShellBridge 의
+// 일반 방어는 <dialog open> 만 찾는다). 스크롤 잠금·포커스 트랩·Esc 도 없었다. SkipSheet·CancelSheet 와 같은 훅으로.
+// 시트 안 FreshRatioSheet 는 --fd-* 토큰만 쓴다 — 여기서 앱 v3 값으로 스왑한다. 작은 글자용 --fd-coral-text 는
+// accent(#C86B45, 3.4:1 — 장식 전용)가 아니라 accent-deep(본문 대비 통과)으로(lib/design/contrast).
+function RatioSheetFrame({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useModalA11y({ open: true, onClose, containerRef: ref })
+  return (
+    <>
+      <div className="sub-scrim" onClick={onClose} />
+      <div
+        ref={ref}
+        className="sub-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="화식 비율 바꾸기"
+        style={
+          {
+            '--fd-pine': 'var(--ink)',
+            '--fd-muted': 'var(--muted)',
+            '--fd-line': 'var(--rule)',
+            '--fd-coral': 'var(--terracotta)',
+            '--fd-coral-text': 'var(--accent-deep)',
+            '--fd-offwhite': 'var(--bg-2)',
+            '--fd-r-row': '4px',
+          } as React.CSSProperties
+        }
+      >
+        {children}
+      </div>
+    </>
+  )
+}
+
 // ── 미루기 확인 (2026-10-06) ─────────────────────────────────────────────────────
 //
 // 사장님 "우리 구독 실수로 건너뛰기해 버리면 할 수 있는 게 없더라". 박스가 2주치라 한 번 잘못 누르면 아이가 2주 동안
@@ -853,16 +918,17 @@ function SkipSheet({
   onConfirm: () => void
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
   useModalA11y({ open: true, onClose, containerRef: dialogRef })
   const canUndo = undoUntil >= today
   return (
     <>
       <div className="sub-scrim" onClick={onClose} />
-      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true">
+      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <button type="button" className="sub-sheet-x" onClick={onClose} aria-label="닫기">
           <X size={16} strokeWidth={2.2} />
         </button>
-        <h3>
+        <h3 id={titleId}>
           {md(fromIso)} 박스를 {md(toIso)}로 미룰까요?
         </h3>
         <p>
@@ -919,11 +985,12 @@ function CancelSheet({
   // 파괴적 다이얼로그 — Esc 닫기 + 포커스 트랩 + 스크롤 락 + 닫을 때 포커스 복귀
   // (2026-07-17 a11y). 마운트=열림이므로 open:true.
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
   useModalA11y({ open: true, onClose, containerRef: dialogRef })
   return (
     <>
       <div className="sub-scrim" onClick={onClose} />
-      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true">
+      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <button
           type="button"
           className="sub-sheet-x"
@@ -932,7 +999,7 @@ function CancelSheet({
         >
           <X size={16} strokeWidth={2.2} />
         </button>
-        <h3>정말 {started ? '해지' : '취소'}할까요?</h3>
+        <h3 id={titleId}>정말 {started ? '해지' : '취소'}할까요?</h3>
         <p>
           {started
             ? paidBoxInProgress

@@ -5533,8 +5533,9 @@ test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동
   assert.match(stripComments(read(join(ROOT, 'lib', 'payments', 'billing-urls.ts'))), /\$\{NO_CANCEL_CONSENT_PARAM\}=/, '토스 왕복 주소에 동의 버전이 안 실린다')
   assert.match(stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-success', 'page.tsx'))), /noCancelConsent \? \{ noCancelConsent \} : \{\}/, '완료 화면이 동의 버전을 서버로 넘기지 않는다')
   const issue = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'billing-issue', 'route.ts')))
-  assert.match(issue, /isCurrentNoCancelConsent\(parsed\.data\.noCancelConsent\)\s*\?\s*\{ no_cancel_consent_at:/, '서버가 버전 검사 없이 동의를 기록하거나 아예 기록하지 않는다')
-  assert.ok(issue.indexOf('no_cancel_consent_at') > issue.indexOf('billing_key: result.billingKey'), '동의 기록이 카드 저장과 같은 쓰기에 있지 않다')
+  // 10/6 10차 C: 처음 동의만 기록한다(재등록이 동의 시각을 결제 뒤로 밀어 셀프 취소를 다시 열지 않게).
+  assert.match(issue, /isCurrentNoCancelConsent\(parsed\.data\.noCancelConsent\) && !cur\?\.no_cancel_consent_at\s*\?\s*\{ no_cancel_consent_at:/, '서버가 버전 검사 없이 동의를 기록하거나, 재등록 때 첫 동의 시각을 덮어쓴다')
+  assert.ok(issue.indexOf('{ no_cancel_consent_at:') > issue.indexOf('billing_key: result.billingKey'), '동의 기록이 카드 저장과 같은 쓰기에 있지 않다')
 
   // 취소를 막는 두 곳은 같은 판정을 쓴다 — 무조건 차단으로 되돌아가면 동의 없는 고객의 권리를 막는다.
   const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
@@ -5647,7 +5648,46 @@ test('규칙158: 미루기는 확인을 거치고, 실수로 미뤄도 되돌릴
 
   const admin = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
   assert.match(admin, /function ShipDateModal\(/, '어드민에 발송일 바꾸기가 없다 — 고객이 문의해도 고칠 수 없다')
-  assert.match(admin, /const first = nextShipDate\(today, timing \?\? 'before_cooking'\)/, '어드민 발송일 선택지가 신청 마감을 안 본다(조리 중인 주에 끼운다)')
+  assert.match(admin, /const cutoffFirst = nextShipDate\(today, timing \?\? 'before_cooking'\)/,'어드민 발송일 선택지가 신청 마감을 안 본다(조리 중인 주에 끼운다)')
   assert.match(admin, /fromIso \? q\.eq\('next_delivery_date', fromIso\) : q\.is\('next_delivery_date', null\)/, '어드민 발송일 변경이 화면이 본 날짜를 확인하지 않는다')
   assert.match(admin, /const canSetShipDate = !!sub\.has_billing_key && !sub\.requires_billing_key_renewal/, '카드 없는 구독에 발송일을 박을 수 있다(카드 등록이 첫 배송을 잡는다)')
+})
+
+test('규칙159: 청구·발송일·셀프 취소의 돈 방어 — 서포터즈 정가 청구 차단, 발송일 칸 DB 검사, 결제 진행·발송 후 취소 차단 (10차 점검)', () => {
+  /**
+   * # 왜 (2026-10-06 10차 점검 B·C — 서포터즈 첫 실제 청구 당일 아침에 고침)
+   *  · 할인 판정(getTrialState)만 순간 실패하면 '체험 아님'으로 접혀 100원 약속 고객에게 정가가 나갔다.
+   *  · 결제 시점 조회 실패 시 서포터즈 다음 박스가 한 주 밀리고 위 실패와 겹치면 정가까지.
+   *  · 고객이 next_delivery_date 에 '-infinity' 를 쓰면 RangeError 로 청구 크론 전체가 멈췄다(값 검사 0).
+   *  · 이미 결제된 회차로 날짜를 되돌리면 멱등키가 재생돼 돈 없이 '결제됨' 주문이 생길 수 있었다.
+   *  · 카드 재등록이 동의 시각을 덮어 결제 후 셀프 취소가 다시 열렸다.
+   *  · 청구 진행 중(결제 대기) 정기 주문·이미 발송된 박스를 셀프 취소할 수 있었다.
+   */
+  const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.match(charge, /if \(!timingKnown\) \{\s*return NextResponse\.json\(/, '체험 상태를 모르는데 청구를 이어 간다(서포터즈 정가·일정 밀림)')
+  assert.match(charge, /timingOf\(sub\) === 'ship_day' && discountReason !== 'trial_cheap' && discountReason !== 'trial_half'/, '서포터즈인데 할인이 체험가가 아닐 때 청구를 막지 않는다')
+  const guardAt = charge.indexOf("timingOf(sub) === 'ship_day' && discountReason !== 'trial_cheap'")
+  const chargeRowAt = charge.search(/\.from\('subscription_charges'\)\s*\.insert\(/)
+  assert.ok(guardAt > 0 && chargeRowAt > guardAt, '체험가 불일치 검사가 청구 행 생성보다 뒤에 있다')
+
+  const migs = readdirSync(join(ROOT, 'supabase', 'migrations'))
+  const checkMig = migs.find((f) => f.includes('subscriptions_next_delivery_tuesday_check'))
+  assert.ok(checkMig, '발송일 칸 값 검사(CHECK) 마이그레이션이 없다')
+  const checkSql = read(join(ROOT, 'supabase', 'migrations', checkMig!))
+  assert.match(checkSql, /isfinite\(next_delivery_date\)/, "발송일 CHECK 에 isfinite 가 없다 — 'infinity' 는 isodow 가 NULL 이라 통과한다")
+  assert.match(checkSql, /extract\(isodow from next_delivery_date\) = 2/, '발송일 CHECK 가 화요일을 강제하지 않는다')
+  const trgMig = migs.find((f) => f.includes('guard_customer_next_delivery_date'))
+  assert.ok(trgMig, '고객 발송일 쓰기 규칙(트리거) 마이그레이션이 없다')
+  const trgSql = read(join(ROOT, 'supabase', 'migrations', trgMig!))
+  assert.match(trgSql, /last_charge_lock_at > now\(\) - interval '5 minutes'/, '청구 진행 중 발송일 변경을 막지 않는다')
+  assert.match(trgSql, /\(old\.last_charged_at at time zone 'Asia\/Seoul'\)::date \+ 3/, '이미 결제된 회차로 되돌리는 것을 막지 않는다(멱등키 재생)')
+  assert.match(trgSql, /if auth\.uid\(\) is null then\s*return new;/, '트리거가 크론·서버 쓰기(service_role)까지 막는다')
+
+  const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
+  assert.match(cancel, /order\.subscription_id && order\.payment_status === 'pending'/, '청구 진행 중인 정기 주문을 셀프 취소할 수 있다(크론이 결제됨으로 덮는다)')
+  assert.match(cancel, /\.shipped_at\) \{/, '이미 발송된 박스를 셀프 취소할 수 있다')
+
+  const admin = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
+  assert.match(admin, /paidShipIso && addDaysKst\(paidShipIso, 7\) > cutoffFirst/, '어드민 발송일 선택지가 결제된 박스와 같은 회차를 준다(같은 박스 두 번 청구)')
+  assert.match(admin, /const options = paidUnknown \? \[\]/, '결제된 박스를 모를 때도 어드민이 발송일을 바꿀 수 있다')
 })

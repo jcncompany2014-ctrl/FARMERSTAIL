@@ -140,10 +140,15 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
     order.payment_status === 'paid' &&
     order.order_status === 'preparing' &&
     selfCancelBlockedByConsent({ consentAt: noCancelConsentAt, paidAt: order.paid_at ?? order.created_at })
+  // 정기배송 결제 진행 중(결제 대기)·이미 발송된 주문은 셀프 취소 대상이 아니다 — 취소 API 와 같은 조건(10차 점검 C).
+  const subscriptionChargeInFlight = !!orderSubId && order.payment_status === 'pending'
+  const alreadyShipped = !!(order as { shipped_at?: string | null }).shipped_at
   const isCancellable =
     !isCancelled &&
     !paymentSettled &&
     !isPaidSubscriptionBox &&
+    !subscriptionChargeInFlight &&
+    !alreadyShipped &&
     (order.order_status === 'pending' || order.order_status === 'preparing')
 
   return (
