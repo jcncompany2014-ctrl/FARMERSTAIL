@@ -172,6 +172,36 @@ export function nextShipDate(
 }
 
 /**
+ * '2주 미루기' **되돌리기(2주 앞당기기)** 의 목적지 — 되돌릴 수 없으면 null (2026-10-06 사장님 "실수로 건너뛰기해 버리면
+ * 할 수 있는 게 없더라").
+ *
+ * 박스가 2주치라 실수로 한 번 미루면 아이가 2주 동안 밥이 없다. 그런데 미루기는 한 번 누르면 끝이고, 일시정지→재개도
+ * 아직 오지 않은 날짜를 그대로 두며(resumeShipDate), 어드민에도 날짜를 고치는 곳이 없었다.
+ * 되돌릴 날짜 = 지금 다음 발송일 − 14. 허용은 셋 다 맞을 때만:
+ *  ① 그 날짜가 화요일이다(2주 주기 정렬).
+ *  ② 그 날짜의 **신청 마감 전**이다 — nextShipDate(오늘, 결제 시점) 이상(일반 금요일 밤·서포터즈 일요일). 마감이 지났으면
+ *     조리가 시작됐거나 결제가 진행 중이라 그 회차에 끼울 수 없다.
+ *  ③ 결제된 박스가 그 날짜 이후(같은 날 포함)에 나가는 중이 아니다 — 같은 회차를 두 번 만들지 않는다.
+ * 미루기를 안 했으면 다음 발송일 − 14 는 늘 마감 안쪽이라 null 이 된다(첫 박스·결제 직후·재개 직후 모두).
+ */
+export function undoSkipTarget(i: {
+  nextDeliveryDate: string | null
+  /** KST yyyy-mm-dd */
+  today: string
+  /** 결제 시점. 모르면 일반(금요일 마감) — 더 일찍 막는 쪽. */
+  timing: ChargeTiming | null
+  /** 결제됐고 아직 안 나간 박스의 발송일(paidBoxShipIso). 없으면 null. */
+  paidBoxShipIso?: string | null
+}): string | null {
+  if (!i.nextDeliveryDate) return null
+  const target = addDaysKst(i.nextDeliveryDate, -14)
+  if (weekdayOf(target) !== SHIP_WEEKDAY) return null
+  if (target < nextShipDate(i.today, i.timing ?? 'before_cooking')) return null
+  if (i.paidBoxShipIso && i.paidBoxShipIso >= target) return null
+  return target
+}
+
+/**
  * 일시정지 → **재개**할 때의 다음 배송일(2026-09-28 점검 9차).
  *
  * 예전엔 재개가 무조건 `nextShipDate()` 로 덮어써서, 청구 직후(다음 배송일 = 2주 뒤) 정지했다 곧바로 재개하면

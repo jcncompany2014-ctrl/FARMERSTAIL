@@ -167,6 +167,16 @@
   border: 0; background: transparent; color: var(--muted);
   font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px;
 }
+/* 미룬 박스 되돌리기 — 실수로 미뤘을 때 눈에 띄게(2026-10-06). 타일 아래 한 줄, 누를 수 있는 높이. */
+.sub-undo {
+  appearance: none; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin: 12px 0 0; padding: 12px; min-height: 48px;
+  border: 1px dashed var(--terracotta); border-radius: 12px;
+  background: color-mix(in srgb, var(--terracotta) 6%, transparent);
+  color: var(--terracotta); font-size: 16px; font-weight: 700;
+}
+.sub-undo:disabled { opacity: .6; cursor: default; }
 .sub-busy-line {
   display: flex; align-items: center; gap: 6px; margin: 14px 0 0;
   font-size: 14px; color: var(--muted);
@@ -273,3 +283,5 @@
 /* 시트 안에서는 주 버튼도 나란히 — 전폭 규칙을 끈다. */
 .sub-sheet-btns .sub-btn.is-primary,
 .sub-sheet-btns .sub-btn.is-danger { flex: 1 1 0; }
+/* 카드의 주 버튼 위쪽 여백(16px)이 시트에선 두 버튼 높이를 어긋나게 한다(미루기 확인 시트, 2026-10-06). */
+.sub-sheet-btns .sub-btn.is-primary { margin-top: 0; }

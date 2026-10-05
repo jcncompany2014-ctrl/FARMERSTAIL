@@ -19,6 +19,7 @@ import {
   paidBoxShipIso,
   leadDaysFor,
   shipWeekFor,
+  undoSkipTarget,
   resumeShipDate,
   nextShipDate,
   nextCycleDate,
@@ -95,6 +96,40 @@ describe('nextShipDate — 언제 주문하든 화요일', () => {
       // 조리 직전 결제일이 오늘이거나 지났으면 크론이 이미 돌았거나 조리가 시작된 뒤다.
       assert.ok(chargeDateFor(ship, 'before_cooking') > d, `${d} → 결제 ${chargeDateFor(ship, 'before_cooking')}`)
     }
+  })
+})
+
+// ── 2026-10-06 사장님 "실수로 건너뛰기해 버리면 할 수 있는 게 없더라" — 미루기 되돌리기 ─────────────────────
+describe('undoSkipTarget — 미룬 회차를 마감 전까지만 되돌린다', () => {
+  // 07-21(화) 박스를 07-14(화)에 미뤄 next = 08-04 가 된 상황.
+  it('★미룬 직후(원래 회차 마감 전) — 원래 날짜로 되돌릴 수 있다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: TUE, timing: 'before_cooking' }), '2026-07-21')
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: FRI, timing: 'before_cooking' }), '2026-07-21')
+  })
+  it('★원래 회차의 마감이 지나면(일반 = 토요일부터) 되돌릴 수 없다 — 조리가 시작됐다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: SAT, timing: 'before_cooking' }), null)
+  })
+  it('서포터즈 체험 구간은 마감이 일요일이라 일요일까지 되돌릴 수 있다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: SUN, timing: 'ship_day' }), '2026-07-21')
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: '2026-07-20', timing: 'ship_day' }), null)
+  })
+  it('결제 시점을 모르면 일반 마감(금요일)으로 — 더 일찍 막는다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: SUN, timing: null }), null)
+  })
+  it('★미루지 않았으면 되돌릴 게 없다 — 첫 박스·토요일 결제 직후·서포터즈 결제 직후', () => {
+    // 첫 박스: 금요일 신청 → 07-21
+    assert.equal(undoSkipTarget({ nextDeliveryDate: nextShipDate(FRI), today: FRI, timing: 'before_cooking' }), null)
+    // 07-21 박스가 토요일에 결제돼 next = 08-04
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: SAT, timing: 'before_cooking', paidBoxShipIso: '2026-07-21' }), null)
+    // 서포터즈 07-21 박스가 화요일 아침 결제돼 next = 08-04
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: '2026-07-21', timing: 'ship_day', paidBoxShipIso: '2026-07-21' }), null)
+  })
+  it('결제된 박스와 같은 회차로는 되돌리지 않는다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-04', today: TUE, timing: 'before_cooking', paidBoxShipIso: '2026-07-21' }), null)
+  })
+  it('날짜가 없거나 화요일 정렬이 깨졌으면 없다', () => {
+    assert.equal(undoSkipTarget({ nextDeliveryDate: null, today: TUE, timing: 'before_cooking' }), null)
+    assert.equal(undoSkipTarget({ nextDeliveryDate: '2026-08-05', today: TUE, timing: 'before_cooking' }), null)
   })
 })
 

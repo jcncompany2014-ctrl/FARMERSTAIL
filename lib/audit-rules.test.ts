@@ -5621,3 +5621,33 @@ test('규칙157: 1기 서포터즈 체험 구간은 신청 마감도 원래 방�
   assert.match(order, /pricePreview\?\.discountKind === 'trial' \? 'ship_day' : 'before_cooking'/, '주문 화면이 서포터즈 첫 발송일을 금요일 마감으로 보여준다')
   assert.match(order, /shipWeekFor\(timing\)/, '주문 화면 리듬표가 서포터즈에게 금요일 마감 문구를 보여준다')
 })
+
+test('규칙158: 미루기는 확인을 거치고, 실수로 미뤄도 되돌릴 수 있다 — 고객은 원래 회차 마감 전까지, 사장님은 어드민에서', () => {
+  /**
+   * # 왜 (2026-10-06 사장님 "우리 구독 실수로 건너뛰기해 버리면 할 수 있는 게 없더라")
+   * 앱 '2주 미루기'는 한 번 누르면 바로 밀렸고 되돌리는 길이 없었다. 일시정지→재개도 아직 오지 않은 날짜를 그대로 두고
+   * (resumeShipDate), 어드민에도 발송일을 고치는 곳이 없었다. 박스가 2주치라 실수 한 번 = 아이가 2주 굶는다.
+   */
+  const sched = stripComments(read(join(ROOT, 'lib', 'shipping-schedule.ts')))
+  assert.match(sched, /export function undoSkipTarget\(/, '미루기 되돌리기 정본이 없다')
+  assert.match(sched, /if \(target < nextShipDate\(i\.today, i\.timing \?\? 'before_cooking'\)\) return null/, '되돌리기가 원래 회차의 신청 마감을 보지 않는다 — 조리 중인 주에 박스를 끼운다')
+  assert.match(sched, /if \(i\.paidBoxShipIso && i\.paidBoxShipIso >= target\) return null/, '되돌리기가 결제된 박스와 같은 회차를 만들 수 있다')
+
+  const app = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.match(app, /onSkip=\{\(\) => setSkipId\(sub\.id\)\}/, '앱 미루기가 확인 없이 바로 밀린다')
+  assert.doesNotMatch(app, /onSkip=\{\(\) => skip\(/, '앱 미루기가 확인 시트를 건너뛴다')
+  assert.match(app, /function SkipSheet\(/, '앱 미루기 확인 시트가 없다')
+  assert.match(app, /label: '되돌리기', onClick: \(\) => void undoSkip\(/, '미룬 직후 알림에 되돌리기가 없다')
+  assert.match(app, /const undoTo =\s*state === 'active'\s*\?\s*undoSkipTarget\(/, '앱 카드의 되돌리기가 정본 판정을 쓰지 않는다')
+
+  const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
+  assert.match(web, /async function handleUndoSkip\(subId: string, fromIso: string, toIso: string\)/, '웹에 미루기 되돌리기가 없다')
+  assert.match(web, /\.update\(\{ next_delivery_date: toIso \}\)[\s\S]{0,120}\.eq\('next_delivery_date', fromIso\)/, '웹 되돌리기가 화면이 본 날짜를 확인하지 않는다(그 사이 결제되면 같은 회차를 두 번)')
+  assert.match(web, /undoSkipTarget\(\{/, '웹 되돌리기가 정본 판정을 쓰지 않는다')
+
+  const admin = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
+  assert.match(admin, /function ShipDateModal\(/, '어드민에 발송일 바꾸기가 없다 — 고객이 문의해도 고칠 수 없다')
+  assert.match(admin, /const first = nextShipDate\(today, timing \?\? 'before_cooking'\)/, '어드민 발송일 선택지가 신청 마감을 안 본다(조리 중인 주에 끼운다)')
+  assert.match(admin, /fromIso \? q\.eq\('next_delivery_date', fromIso\) : q\.is\('next_delivery_date', null\)/, '어드민 발송일 변경이 화면이 본 날짜를 확인하지 않는다')
+  assert.match(admin, /const canSetShipDate = !!sub\.has_billing_key && !sub\.requires_billing_key_renewal/, '카드 없는 구독에 발송일을 박을 수 있다(카드 등록이 첫 배송을 잡는다)')
+})

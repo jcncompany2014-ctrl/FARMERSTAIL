@@ -52,6 +52,7 @@ import {
   CookingPot,
   Truck,
   Home,
+  Undo2,
 } from 'lucide-react'
 import FreshRatioSheet from '@/components/subscription/FreshRatioSheet'
 import { createClient } from '@/lib/supabase/client'
@@ -64,6 +65,8 @@ import {
   resumeShipDate,
   chargeDateFor,
   paidBoxShipIso,
+  undoSkipTarget,
+  leadDaysFor,
   CHARGE_BEFORE_SHIP_DAYS,
   STOP_TIMING_COPY,
   type ChargeTiming,
@@ -141,6 +144,8 @@ export default function DogSubscriptionClient({
   const [subs, setSubs] = useState<DogSub[]>(initialSubs)
   const [busy, setBusy] = useState<string | null>(null)
   const [cancelId, setCancelId] = useState<string | null>(null)
+  // '2주 미루기' 확인 시트 — 한 번 누르면 바로 밀리던 것(2026-10-06 사장님 "실수로 건너뛰기해 버리면 할 수 있는 게 없더라").
+  const [skipId, setSkipId] = useState<string | null>(null)
   // 화식 비율 변경 (2026-07-31) — 이 화면 docstring 이 역할에 '화식비율' 을
   // 적어 두고도 실물이 없었다. 웹(/account/subscriptions)과 **같은 시트·같은 API**.
   const [ratioId, setRatioId] = useState<string | null>(null)
@@ -234,21 +239,51 @@ export default function DogSubscriptionClient({
     )
   }
 
-  /** 건너뛰기 — 다음 배송을 한 번 미룬다(2주). 화요일은 유지된다. */
+  /** 결제됐고 아직 안 나간 박스의 발송일(이 구독). 없으면 null. */
+  function paidShipOf(subId: string, nextIso: string | null): string | null {
+    const paidAt = inProgressPaidAt[subId]
+    return inProgress[subId] && paidAt ? paidBoxShipIso(nextIso, paidAt) : null
+  }
+
+  /** 건너뛰기 — 다음 배송을 한 번 미룬다(2주). 화요일은 유지된다. 확인 시트(SkipSheet)를 거쳐서만 온다. */
   async function skip(sub: DogSub) {
     setBusy(sub.id)
     // 기준은 '예정된 배송일'이지 오늘이 아니다. 예전엔 null 이면 오늘로 폴백해
     // 목요일 배송일 같은 게 생겼다(2026-07-15 실측).
     // 마감은 결제 시점별(서포터즈 체험 구간 일요일·일반 금요일 밤, 2026-10-02).
-    const base = sub.next_delivery_date ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
+    const seen = sub.next_delivery_date ?? null
+    const base = seen ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
     const next = nextCycleDate(base)
-    if ((await moveNextDate(sub.id, sub.next_delivery_date ?? null, next)) === 'ok') {
+    if ((await moveNextDate(sub.id, seen, next)) === 'ok') {
+      setSkipId(null)
+      // ★잘못 눌렀으면 바로 되돌린다(2026-10-06) — 원래 회차의 신청 마감 전일 때만(undoSkipTarget 정본).
+      const undoTo = undoSkipTarget({
+        nextDeliveryDate: next,
+        today: todayKstIsoDate(),
+        timing: chargeTiming,
+        paidBoxShipIso: paidShipOf(sub.id, next),
+      })
       // 결제된 이번 박스는 그대로 나간다(사장님 2026-10-01 "그대로 발송") — 미룬 건 그다음 박스다.
       toast.success(
         inProgress[sub.id]
           ? `이번 박스는 그대로 보내드리고, 그다음 박스를 ${dateLabel(next)}로 미뤘어요.`
           : `다음 배송을 ${dateLabel(next)}로 미뤘어요.`,
+        undoTo
+          ? { duration: 8000, action: { label: '되돌리기', onClick: () => void undoSkip(sub.id, next, undoTo) } }
+          : undefined,
       )
+    }
+    setBusy(null)
+  }
+
+  /**
+   * 미루기 되돌리기(2주 앞당기기) — 목적지는 undoSkipTarget 이 정한 날짜만(원래 회차 마감 전·결제된 박스와 안 겹침).
+   * 화면이 본 날짜(fromIso)가 DB 에서도 그대로일 때만 옮긴다(moveNextDate CAS) — 그 사이 결제·변경이 있었으면 거절.
+   */
+  async function undoSkip(subId: string, fromIso: string, toIso: string) {
+    setBusy(subId)
+    if ((await moveNextDate(subId, fromIso, toIso)) === 'ok') {
+      toast.success(`${dateLabel(toIso)} 발송으로 되돌렸어요.`)
     }
     setBusy(null)
   }
@@ -320,7 +355,8 @@ export default function DogSubscriptionClient({
           name={name}
           busy={busy === sub.id}
           onCard={() => goCard(sub)}
-          onSkip={() => skip(sub)}
+          onSkip={() => setSkipId(sub.id)}
+          onUndo={(fromIso, toIso) => void undoSkip(sub.id, fromIso, toIso)}
           onPause={() => pause(sub)}
           onResume={() => resume(sub)}
           onCancel={() => setCancelId(sub.id)}
@@ -388,6 +424,27 @@ export default function DogSubscriptionClient({
           </div>
         </>
       )}
+
+      {skipId &&
+        (() => {
+          const s = subs.find((x) => x.id === skipId)
+          if (!s) return null
+          const fromIso = s.next_delivery_date ?? nextShipDate(undefined, chargeTiming ?? 'before_cooking')
+          return (
+            <SkipSheet
+              name={name}
+              fromIso={fromIso}
+              toIso={nextCycleDate(fromIso)}
+              // 되돌릴 수 있는 마지막 날 = 원래 발송일의 신청 마감(일반 금요일·서포터즈 일요일).
+              undoUntil={addDaysKst(fromIso, -leadDaysFor(chargeTiming ?? 'before_cooking'))}
+              today={todayKstIsoDate()}
+              paidBoxInProgress={!!inProgress[skipId]}
+              busy={busy === skipId}
+              onClose={() => setSkipId(null)}
+              onConfirm={() => void skip(s)}
+            />
+          )
+        })()}
 
       {cancelId && (
         <CancelSheet
@@ -477,6 +534,7 @@ function SubCard({
   busy,
   onCard,
   onSkip,
+  onUndo,
   onPause,
   onResume,
   onCancel,
@@ -496,6 +554,8 @@ function SubCard({
   busy: boolean
   onCard: () => void
   onSkip: () => void
+  /** 미루기 되돌리기 — fromIso(지금 다음 발송일) → toIso(undoSkipTarget). */
+  onUndo: (fromIso: string, toIso: string) => void
   onPause: () => void
   onResume: () => void
   onCancel: () => void
@@ -565,6 +625,17 @@ function SubCard({
   const filled = boxes % 10 === 0 && boxes > 0 ? 10 : boxes % 10
 
   const skipTo = nextShip ? nextCycleDate(nextShip) : null
+  // 미룬 회차를 되돌릴 수 있으면 그 날짜 — 원래 회차 신청 마감 전·결제된 박스와 안 겹칠 때만(undoSkipTarget 정본).
+  //   미루지 않았으면 늘 null 이라 버튼이 안 보인다.
+  const undoTo =
+    state === 'active'
+      ? undoSkipTarget({
+          nextDeliveryDate: nextShip,
+          today,
+          timing,
+          paidBoxShipIso: inProgress && paidAt && nextShip ? paidBoxShipIso(nextShip, paidAt) : null,
+        })
+      : null
 
   return (
     <section className={'sub-card is-' + meta.tone}>
@@ -709,6 +780,14 @@ function SubCard({
         </div>
       )}
 
+      {/* 미룬 박스 되돌리기 — 실수로 미뤄도 원래 회차 마감 전이면 고객이 스스로 되돌린다(2026-10-06). */}
+      {undoTo && nextShip && (
+        <button type="button" className="sub-undo" onClick={() => onUndo(nextShip, undoTo)} disabled={busy}>
+          <Undo2 size={18} strokeWidth={2.4} />
+          미룬 박스 되돌리기 · {md(undoTo)} 발송으로
+        </button>
+      )}
+
       {state !== 'cancelled' && (
         <button type="button" className="sub-cancel" onClick={onCancel} disabled={busy}>
           {/* 결제 이력이 없으면 '해지'가 아니라 '취소'다 (사장님 2026-07-30). */}
@@ -742,6 +821,73 @@ function EmptyStart({ name, startHref }: { name: string; startHref: string }) {
         정기배송 시작하기
       </Link>
     </section>
+  )
+}
+
+// ── 미루기 확인 (2026-10-06) ─────────────────────────────────────────────────────
+//
+// 사장님 "우리 구독 실수로 건너뛰기해 버리면 할 수 있는 게 없더라". 박스가 2주치라 한 번 잘못 누르면 아이가 2주 동안
+// 밥이 없다. 누르기 전에 무엇이 언제로 밀리는지 날짜로 보여주고, 언제까지 되돌릴 수 있는지 함께 말한다.
+function SkipSheet({
+  name,
+  fromIso,
+  toIso,
+  undoUntil,
+  today,
+  paidBoxInProgress,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  name: string
+  /** 지금 다음 발송일(밀릴 박스). */
+  fromIso: string
+  /** 미룬 뒤 발송일. */
+  toIso: string
+  /** 되돌릴 수 있는 마지막 날(원래 발송일의 신청 마감). */
+  undoUntil: string
+  today: string
+  paidBoxInProgress: boolean
+  busy: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalA11y({ open: true, onClose, containerRef: dialogRef })
+  const canUndo = undoUntil >= today
+  return (
+    <>
+      <div className="sub-scrim" onClick={onClose} />
+      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true">
+        <button type="button" className="sub-sheet-x" onClick={onClose} aria-label="닫기">
+          <X size={16} strokeWidth={2.2} />
+        </button>
+        <h3>
+          {md(fromIso)} 박스를 {md(toIso)}로 미룰까요?
+        </h3>
+        <p>
+          {paidBoxInProgress
+            ? `결제된 이번 박스는 그대로 보내드리고, 그다음 박스(${dateLabel(fromIso)} 발송)를 ${dateLabel(toIso)} 발송으로 미뤄요.`
+            : `${dateLabel(fromIso)}에 보낼 박스를 ${dateLabel(toIso)}로 미뤄요. 그 사이 2주는 ${name}에게 박스가 가지 않고, 결제도 그만큼 뒤로 밀려요.`}
+          {canUndo ? ` 잘못 눌렀다면 ${dateLabel(undoUntil)}까지 이 화면에서 되돌릴 수 있어요.` : ''}
+        </p>
+        <div className="sub-sheet-btns">
+          <button type="button" className="sub-btn" onClick={onClose}>
+            그대로 둘게요
+          </button>
+          <button type="button" className="sub-btn is-primary" onClick={onConfirm} disabled={busy}>
+            {busy ? (
+              <Loader2 size={13} strokeWidth={2.4} className="animate-spin" />
+            ) : (
+              <>
+                <SkipForward size={13} strokeWidth={2.6} />
+                2주 미루기
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
 

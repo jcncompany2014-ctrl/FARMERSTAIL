@@ -8,11 +8,14 @@ import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   resumeShipDate,
   chargeTimingFor,
+  chargeDateFor,
   describeUpcomingBox,
+  nextShipDate,
   weekdayKo,
+  type ChargeTiming,
   type UpcomingBox,
 } from '@/lib/shipping-schedule'
-import { todayKstIsoDate, diffDaysKst } from '@/lib/datetime-kst'
+import { todayKstIsoDate, diffDaysKst, addDaysKst } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
@@ -130,6 +133,8 @@ export default function AdminSubscriptionsPage() {
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  // 발송일 바꾸기 창(2026-10-06) — 고객이 실수로 미뤘다고 문의하면 사장님이 직접 고친다.
+  const [shipDateSubId, setShipDateSubId] = useState<string | null>(null)
   // 서포터즈 도장(사용자 단위) — subscription_trials 는 service_role 전용이라 어드민 API 로 받는다.
   // 못 받으면 서포터즈도 정가로 보이므로 그 사실을 화면에 알린다(규칙1 — 실패를 '없음'으로 위장 금지).
   const [trials, setTrials] = useState<Map<string, TrialState>>(new Map())
@@ -394,6 +399,50 @@ export default function AdminSubscriptionsPage() {
     setActionLoading(null)
   }
 
+  /** 이 구독의 결제 시점 — 서포터즈 정보를 못 받았으면 null(결제일을 단정하지 않는다). */
+  const timingOfSub = (s: SubscriptionRow): ChargeTiming | null =>
+    trialsError ? null : chargeTimingFor(trials.get(s.user_id))
+
+  /**
+   * ★발송일 바꾸기 (2026-10-06 사장님 "실수로 건너뛰기해 버리면 할 수 있는 게 없더라").
+   * 고객 화면의 되돌리기는 원래 회차 마감 전까지만 된다 — 그 뒤 문의가 오면 여기서 고친다.
+   * 고를 수 있는 날짜는 ShipDateModal 이 정한다(신청 마감이 안 지난 화요일만 — 조리 중인 주에 끼우지 않는다).
+   * 화면이 본 날짜가 DB 에서도 그대로일 때만 바꾼다 — 그 사이 청구 크론이 결제하며 날짜를 옮겼으면 거절.
+   */
+  async function handleShipDateChange(subId: string, toIso: string) {
+    const target = subs.find((s) => s.id === subId)
+    if (!target) return
+    const who = `${target.profiles?.name || target.recipient_name || '고객'}${target.dogs ? ` · 🐶 ${target.dogs.name}` : ''}`
+    const fromIso = target.next_delivery_date
+    const timing = timingOfSub(target)
+    const label = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
+    const chargeLine = timing
+      ? `· 결제일: ${label(chargeDateFor(toIso, timing))} 아침${timing === 'ship_day' ? ' (서포터즈 — 발송일 결제)' : ''}`
+      : '· 결제일: 서포터즈 정보를 못 받아 확인 못 함'
+    const paidLine = paidBoxSubIds.has(subId)
+      ? '\n· 이미 결제된 이번 박스는 그대로 나가요 — 바꾸는 건 그다음 박스예요'
+      : ''
+    if (
+      !confirm(
+        `${who}\n\n다음 발송일을 ${fromIso ? label(fromIso) : '(없음)'} → ${label(toIso)}로 바꿀까요?\n${chargeLine}${paidLine}`,
+      )
+    ) {
+      return
+    }
+    setActionLoading(subId)
+    const q = supabase.from('subscriptions').update({ next_delivery_date: toIso }).eq('id', subId)
+    const { data: moved, error: upErr } = await (fromIso ? q.eq('next_delivery_date', fromIso) : q.is('next_delivery_date', null)).select('id')
+    if (upErr) {
+      alert(`발송일을 바꾸지 못했어요: ${upErr.message}`)
+    } else if (!moved || moved.length === 0) {
+      alert('그 사이 발송일이 바뀌었어요(결제·고객 변경). 목록을 새로 불러왔어요 — 확인 후 다시 해 주세요.')
+    } else {
+      setShipDateSubId(null)
+    }
+    await loadAll()
+    setActionLoading(null)
+  }
+
   return (
     <div>
       {/* 대개편 v2 T1 — 정기배송 그룹 탭 (구독|캘린더|자동결제) */}
@@ -525,6 +574,7 @@ export default function AdminSubscriptionsPage() {
                       isSupporter={isLiveTrial(trials.get(sub.user_id))}
                       isLoading={actionLoading === sub.id}
                       onAction={handleStatusChange}
+                      onShipDate={setShipDateSubId}
                     />
                   ))}
                 </tbody>
@@ -545,9 +595,27 @@ export default function AdminSubscriptionsPage() {
                 isSupporter={isLiveTrial(trials.get(sub.user_id))}
                 isLoading={actionLoading === sub.id}
                 onAction={handleStatusChange}
+                onShipDate={setShipDateSubId}
               />
             ))}
           </div>
+
+          {shipDateSubId &&
+            (() => {
+              const s = subs.find((x) => x.id === shipDateSubId)
+              if (!s) return null
+              return (
+                <ShipDateModal
+                  sub={s}
+                  timing={timingOfSub(s)}
+                  paidBox={paidBoxSubIds.has(s.id)}
+                  today={today}
+                  isLoading={actionLoading === s.id}
+                  onPick={(iso) => void handleShipDateChange(s.id, iso)}
+                  onClose={() => setShipDateSubId(null)}
+                />
+              )
+            })()}
 
           {totalCount != null && subs.length < totalCount && (
             <div className="mt-4 text-center">
@@ -682,6 +750,84 @@ function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: Suppo
   )
 }
 
+/**
+ * 발송일 바꾸기 창 (2026-10-06) — 고를 수 있는 날짜는 **신청 마감이 안 지난 화요일** 8주치(결제 시점별 마감:
+ * 일반 금요일 밤·서포터즈 일요일 — lib/shipping-schedule nextShipDate). 이미 조리가 시작된 주에 박스를 끼우면
+ * 원료·조리가 없는데 결제만 되므로 선택지에서 뺀다. 각 날짜 옆에 그 회차의 결제일을 같이 보여준다.
+ */
+function ShipDateModal({
+  sub,
+  timing,
+  paidBox,
+  today,
+  isLoading,
+  onPick,
+  onClose,
+}: {
+  sub: SubscriptionRow
+  timing: ChargeTiming | null
+  paidBox: boolean
+  today: string
+  isLoading: boolean
+  onPick: (iso: string) => void
+  onClose: () => void
+}) {
+  const first = nextShipDate(today, timing ?? 'before_cooking')
+  const options = Array.from({ length: 8 }, (_, i) => addDaysKst(first, i * 7))
+  const label = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:items-center" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-sm rounded-xl border border-border bg-card p-4 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-[14px] font-bold">
+          발송일 바꾸기 · {sub.profiles?.name || sub.recipient_name || '고객'}
+          {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
+        </p>
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          지금 다음 발송: {sub.next_delivery_date ? label(sub.next_delivery_date) : '없음'}
+          {paidBox ? ' · 결제된 이번 박스는 그대로 나가요(바꾸는 건 그다음 박스)' : ''}
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          조리가 시작된 주는 고를 수 없어요(신청 마감 {timing === 'ship_day' ? '일요일 · 서포터즈' : '금요일 밤'}).
+          {timing == null ? ' 서포터즈 정보를 못 받아 결제일은 표시하지 않아요.' : ''}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {options.map((iso) => {
+            const current = iso === sub.next_delivery_date
+            return (
+              <button
+                key={iso}
+                type="button"
+                disabled={isLoading || current}
+                onClick={() => onPick(iso)}
+                className="rounded-lg border border-border px-2.5 py-2 text-left transition hover:border-primary disabled:opacity-50"
+              >
+                <span className="block text-[13px] font-bold">
+                  {label(iso)} 발송{current ? ' · 지금' : ''}
+                </span>
+                {timing && (
+                  <span className="block text-[11px] text-muted-foreground">결제 {label(chargeDateFor(iso, timing))}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 w-full rounded-full border border-border px-3 py-2 text-[12px] font-bold text-muted-foreground"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /** 관리 버튼 — 이모지 단독(⏸▶✕) 대신 라벨 버튼(폰 오터치·의미 명확).
  *  정렬: 테이블 셀에선 중앙, 모바일 카드에선 좌측 — 카드 중앙 정렬은
  *  버튼이 붕 떠 보였다(2026-09-05 시각 QA). */
@@ -689,18 +835,31 @@ function RowActions({
   sub,
   isLoading,
   onAction,
+  onShipDate,
   align = 'center',
 }: {
   sub: SubscriptionRow
   isLoading: boolean
   onAction: (id: string, status: string) => void
+  onShipDate: (id: string) => void
   align?: 'center' | 'start'
 }) {
   if (sub.status === 'cancelled') return null
+  // 발송일을 잡을 수 있는 구독만 — 카드 미등록·영구 거절은 날짜가 null 이어야 한다(카드 등록이 첫 배송을 잡는다).
+  const canSetShipDate = !!sub.has_billing_key && !sub.requires_billing_key_renewal
   return (
     <div
       className={`flex flex-wrap gap-1.5 ${align === 'center' ? 'justify-center' : 'justify-start'}`}
     >
+      {canSetShipDate && (
+        <button
+          onClick={() => onShipDate(sub.id)}
+          disabled={isLoading}
+          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition disabled:opacity-50"
+        >
+          발송일
+        </button>
+      )}
       {/* 카드 등록 전엔 일시정지가 없다 — 시작도 안 한 구독을 멈추면 카드 없는 '유령 일시정지'가 생긴다
           (lib/subscription-state 문서, 2026-07-15 실측). 할 수 있는 건 해지·메시지뿐. */}
       {sub.status === 'active' && stateOf(sub) !== 'needs_card' && (
@@ -748,6 +907,7 @@ function SubRow({
   isSupporter,
   isLoading,
   onAction,
+  onShipDate,
 }: {
   sub: SubscriptionRow
   box: UpcomingBox | null
@@ -757,6 +917,7 @@ function SubRow({
   isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
+  onShipDate: (id: string) => void
 }) {
   return (
     <tr
@@ -794,7 +955,7 @@ function SubRow({
         {sub.total_deliveries}회
       </td>
       <td className="px-4 py-3 text-center">
-        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} />
+        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} onShipDate={onShipDate} />
       </td>
     </tr>
   )
@@ -810,6 +971,7 @@ function SubCard({
   isSupporter,
   isLoading,
   onAction,
+  onShipDate,
 }: {
   sub: SubscriptionRow
   box: UpcomingBox | null
@@ -819,6 +981,7 @@ function SubCard({
   isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
+  onShipDate: (id: string) => void
 }) {
   return (
     <div
@@ -858,7 +1021,7 @@ function SubCard({
         <AmountCell sub={sub} supporter={supporter} />
       </div>
       <div className="mt-3">
-        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} align="start" />
+        <RowActions sub={sub} isLoading={isLoading} onAction={onAction} onShipDate={onShipDate} align="start" />
       </div>
     </div>
   )

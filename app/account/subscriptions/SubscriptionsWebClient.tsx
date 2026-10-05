@@ -25,6 +25,7 @@ import {
   Soup,
   X,
   ChevronRight,
+  Undo2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -33,6 +34,8 @@ import {
   nextCycleDate,
   resumeShipDate,
   describeUpcomingBox,
+  undoSkipTarget,
+  paidBoxShipIso,
   type ChargeTiming,
   type UpcomingBox,
 } from '@/lib/shipping-schedule'
@@ -264,8 +267,20 @@ export default function SubscriptionsWebClient({
         setActionLoading(null)
         return
       }
+      // ★잘못 눌렀으면 바로 되돌린다(2026-10-06 사장님) — 원래 회차 신청 마감 전일 때만(undoSkipTarget 정본).
+      const movedTo = update.next_delivery_date as string
+      const paidAt = paidPreparingAt[subId]
+      const undoTo = undoSkipTarget({
+        nextDeliveryDate: movedTo,
+        today: todayKstIsoDate(),
+        timing: chargeTiming,
+        paidBoxShipIso: paidAt ? paidBoxShipIso(movedTo, paidAt) : null,
+      })
       toast.success(
         `다음 배송을 ${weeks}주 미뤘어요.`,
+        undoTo
+          ? { duration: 8000, action: { label: '되돌리기', onClick: () => void handleUndoSkip(subId, movedTo, undoTo) } }
+          : undefined,
       )
       await reload()
       setActionLoading(null)
@@ -295,6 +310,35 @@ export default function SubscriptionsWebClient({
       toast.success(
         `다음 배송을 ${weeks}주 미뤘어요.`,
       )
+    }
+    await reload()
+    setActionLoading(null)
+  }
+
+  /**
+   * 미루기 되돌리기(2주 앞당기기, 2026-10-06) — 목적지는 undoSkipTarget 이 정한 날짜만. 화면이 본 날짜(fromIso)가
+   * DB 에서도 그대로일 때만 옮긴다(건너뛰기와 같은 CAS) — 그 사이 결제·변경이 있었으면 최신 일정을 다시 보여준다.
+   */
+  async function handleUndoSkip(subId: string, fromIso: string, toIso: string) {
+    setActionLoading(subId)
+    const uid = await requireUid()
+    if (!uid) {
+      setActionLoading(null)
+      return
+    }
+    const { data: moved, error } = await supabase
+      .from('subscriptions')
+      .update({ next_delivery_date: toIso })
+      .eq('id', subId)
+      .eq('user_id', uid)
+      .eq('next_delivery_date', fromIso)
+      .select('id')
+    if (error) {
+      toast.error('변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+    } else if (!moved || moved.length === 0) {
+      toast.info('배송 일정이 방금 바뀌었어요 — 최신 일정을 불러왔어요. 확인 후 다시 눌러 주세요.')
+    } else {
+      toast.success(`${kstMonthDay(toIso)} 발송으로 되돌렸어요.`)
     }
     await reload()
     setActionLoading(null)
@@ -488,6 +532,17 @@ export default function SubscriptionsWebClient({
           paidAt: paidPreparingAt[sub.id] ?? null,
           today: todayKstIsoDate(),
         })
+        // 미룬 회차 되돌리기 목적지 — 원래 회차 신청 마감 전·결제된 박스와 안 겹칠 때만(undoSkipTarget, 2026-10-06).
+        const subPaidAt = paidPreparingAt[sub.id]
+        const undoTo =
+          state === 'active'
+            ? undoSkipTarget({
+                nextDeliveryDate: sub.next_delivery_date,
+                today: todayKstIsoDate(),
+                timing: chargeTiming,
+                paidBoxShipIso: subPaidAt ? paidBoxShipIso(sub.next_delivery_date, subPaidAt) : null,
+              })
+            : null
         const status = {
           label: SUB_STATE_LABEL[state],
           color: STATE_COLOR_FD[state],
@@ -726,6 +781,20 @@ export default function SubscriptionsWebClient({
                   >
                     <Pause className="w-3.5 h-3.5" strokeWidth={2} />
                     일시정지
+                  </button>
+                )}
+                {/* 미룬 박스 되돌리기(2026-10-06) — 실수로 미뤄도 원래 회차 마감 전이면 스스로 되돌린다.
+                    시각은 옆 버튼과 같은 클래스 — 웹 톤 보존, 색만 강조(coral). */}
+                {isActive && undoTo && sub.next_delivery_date && (
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleUndoSkip(sub.id, sub.next_delivery_date!, undoTo)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
+                    style={{ color: 'var(--fd-coral)', boxShadow: 'inset 0 0 0 1px var(--fd-coral)' }}
+                  >
+                    <Undo2 className="w-3.5 h-3.5" strokeWidth={2} />
+                    미룬 박스 되돌리기 · {kstMonthDay(undoTo)} 발송
                   </button>
                 )}
                 {/* ★ 정상 구독에도 결제수단 교체 (2026-07-30). 예전엔 카드 미등록·
