@@ -25,6 +25,7 @@
 import { useEffect, useState } from 'react'
 import { Heart } from 'lucide-react'
 import { petName } from '@/lib/korean'
+import { isCustomerSafeAiLine } from '@/lib/nutrition/ai-safe-line'
 
 type AiAnalysisJson = {
   summary?: string
@@ -137,7 +138,7 @@ export default function AiCommentCard({
                 {state.data.summary}
               </p>
 
-              {state.data.nextActions && state.data.nextActions.length > 0 && (
+              {(state.data.nextActions ?? []).filter(isCustomerSafeAiLine).length > 0 && (
                 <div
                   className="mt-4 rounded-[10px] px-4 py-3.5"
                   style={{ background: 'rgba(200, 107, 69, 0.05)' }}
@@ -146,7 +147,7 @@ export default function AiCommentCard({
                     이렇게 해보세요
                   </div>
                   <ul className="space-y-2.5">
-                    {state.data.nextActions.slice(0, 3).map((a, i) => (
+                    {(state.data.nextActions ?? []).filter(isCustomerSafeAiLine).slice(0, 3).map((a, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <span
                           className="mt-[6px] shrink-0 rounded-full"

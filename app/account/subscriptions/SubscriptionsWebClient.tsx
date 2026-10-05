@@ -276,8 +276,11 @@ export default function SubscriptionsWebClient({
         timing: chargeTiming,
         paidBoxShipIso: paidAt ? paidBoxShipIso(movedTo, paidAt) : null,
       })
+      // 결제된 이번 박스는 그대로 나간다 — 미룬 건 그다음 박스다(앱 DogSubscriptionClient 와 같은 안내, 10차 E).
       toast.success(
-        `다음 배송을 ${weeks}주 미뤘어요.`,
+        paidAt
+          ? `이번 박스는 그대로 보내드리고, 그다음 박스를 ${weeks}주 미뤘어요.`
+          : `다음 배송을 ${weeks}주 미뤘어요.`,
         undoTo
           ? { duration: 8000, action: { label: '되돌리기', onClick: () => void handleUndoSkip(subId, movedTo, undoTo) } }
           : undefined,

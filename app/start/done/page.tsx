@@ -310,7 +310,7 @@ export default async function StartDonePage({
             <ul className="mt-6 grid gap-2">
               {[
                 '다음 결제 전까지 해지할 수 있어요.',
-                '첫 박스가 미개봉이면 받은 날부터 7일 안에 환불돼요.',
+                '받은 박스에 문제가 있으면 환불해 드려요.',
                 '배송비는 구독료에 포함이에요.',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-2 text-left">

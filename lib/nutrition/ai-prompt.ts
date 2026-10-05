@@ -16,6 +16,7 @@ import {
   type ChronicConditionKey,
 } from './guidelines.ts'
 import { buildWowAngles } from './wow-angles.ts'
+import { isCustomerSafeAiLine } from './ai-safe-line.ts'
 
 export type AiAnalysisContext = {
   dogName: string
@@ -144,7 +145,7 @@ export function buildAnalysisPrompt(ctx: AiAnalysisContext): {
     `  모든 단어를 완전한 한글로. 알파벳이 한 글자라도 섞이면 안 됩니다.`,
     `- **영양제·보충제·비타민 제품을 절대 권하지 마세요.** 우리는 영양제를 팔지 않습니다. 관절·피부 등이 걱정돼도`,
     `  "영양제를 드세요"가 아니라 "체중 관리가 최고의 관절 케어예요" 처럼 **행동**으로 안내하세요.`,
-    `- 급여량 g·kcal·단백질% 같은 수치를 summary 에 나열하지 마세요(다른 카드가 함).`,
+    `- 급여량 g·kcal·단백질% 같은 수치를 summary·nextActions 어디에도 쓰지 마세요(다른 카드가 함). "단백질 32% 이상 사료"처럼 영양소 비율을 정하는 문장도 금지 — "단백질이 넉넉한 식단"처럼 말로.`,
     `- **BCS·DCM·CKD 같은 의학 약어·전문용어를 쓰지 마세요.** 보호자가 아는 쉬운 말로 풀어 쓰세요 — "BCS"→"체형", "저나트륨"→"나트륨을 줄인", "IBD"→"예민한 장".`,
     `- **근거 없는 정밀한 숫자를 지어내지 마세요.** 운동·간식은 "산책을 조금씩 늘려보세요", "간식을 평소보다 줄여보세요"`,
     `  처럼 **방향**으로 안내하고, "5분 늘리세요" 같은 임의의 분·횟수는 쓰지 마세요(매번 달라져 신뢰를 해칩니다).`,
@@ -367,7 +368,9 @@ export function parseAiAnalysis(text: string): AiAnalysisJson | null {
   }
 
   const nextActions = Array.isArray(o.nextActions)
-    ? (o.nextActions as unknown[]).filter((s): s is string => typeof s === 'string')
+    ? (o.nextActions as unknown[]).filter(
+        (s): s is string => typeof s === 'string' && isCustomerSafeAiLine(s),
+      )
     : []
 
   // R82-G4: citations 검증 — AI 가 임의 key (예: "fake_journal", "nrc2999") 반환

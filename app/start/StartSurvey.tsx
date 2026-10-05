@@ -677,7 +677,7 @@ export default function StartSurvey({ dogName }: { dogName: string }) {
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-muted)' }}>구독가</span>
                 </div>
                 <p style={{ marginTop: 7, fontSize: 13, color: 'var(--fd-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-                  배송 2주마다 · 가입 후 변경 가능. 예상가이며 첫 주문 시 확정돼요.
+                  배송은 2주마다 · 화식 비율은 가입 후에도 바꿀 수 있어요. 예상가이며 첫 주문 시 확정돼요.
                 </p>
               </div>
             )}

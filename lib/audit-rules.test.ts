@@ -5691,3 +5691,65 @@ test('규칙159: 청구·발송일·셀프 취소의 돈 방어 — 서포터즈
   assert.match(admin, /paidShipIso && addDaysKst\(paidShipIso, 7\) > cutoffFirst/, '어드민 발송일 선택지가 결제된 박스와 같은 회차를 준다(같은 박스 두 번 청구)')
   assert.match(admin, /const options = paidUnknown \? \[\]/, '결제된 박스를 모를 때도 어드민이 발송일을 바꿀 수 있다')
 })
+
+test('규칙160: 고객에게 하는 말 = 실제 동작 — 7일 환불·익일 도착·전문용어·영양소 %·없는 기능 약속 (10차 점검 E)', () => {
+  /**
+   * # 왜 (2026-10-06 10차 점검 E)
+   *  10/2 정책(결제 후 취소 제한 동의 · 주말 조리 일정)이 마케팅·온보딩·분석 화면 문구까지 퍼지지 않았다.
+   *  · 웹 16개 페이지 프로모바·가입 완료·플랜·사업자 페이지가 "미개봉 7일 환불"을 약속했다(동의 회차는 제한).
+   *  · /plans FAQ "수도권은 익일" — 사실상 수요일 도착 약속(규칙140 정규식은 '다음 날'만 잡았다).
+   *  · 분석 화면 '이렇게 추천했어요'가 엔진 원문("12개월 미만 puppy", "BCS 정상")을 그대로 그렸다(DB 실재).
+   *  · 췌장염 게이트·AI '이렇게 해보세요'에 정확한 영양소 %("단백질 32% 이상").
+   *  · 체크인 결과 "처방"·"소스 대기열 등록(출시 시 알림)" — 그런 기능이 없다. 온보딩 "레시피도 배송일도 변경".
+   *  · 승인 화면이 금액 변경 제안의 보류(notApproved)를 무시하고 "적용됐어요"라고 말했다.
+   */
+  const noSevenDay: Array<[string, string]> = [
+    ['프로모바', join(ROOT, 'components', 'WebChrome.tsx')],
+    ['가입 완료', join(ROOT, 'app', 'start', 'done', 'page.tsx')],
+    ['플랜', join(ROOT, 'app', 'plans', 'page.tsx')],
+    ['사업자 정보', join(ROOT, 'app', 'business', 'page.tsx')],
+  ]
+  for (const [name, p] of noSevenDay) {
+    const src = stripComments(read(p))
+    assert.doesNotMatch(src, /미개봉[^'"\n]{0,20}7일|7일 이내 단순 변심/, `${name}이 '미개봉 7일 환불'을 약속한다(결제 후 취소 제한 동의 회차와 어긋남)`)
+  }
+  const plans = stripComments(read(join(ROOT, 'app', 'plans', 'page.tsx')))
+  assert.doesNotMatch(plans, /익일|48시간 이내 도착/, '/plans 가 도착 날짜를 약속한다(도착은 "하루나 이틀"로만)')
+  assert.doesNotMatch(plans, /2주(마다| 단위로) 급여량 리뷰/, '/plans 가 2주마다 리뷰를 약속한다(재제안은 박스 3개마다)')
+
+  const box = stripComments(read(join(ROOT, 'components', 'analysis', 'magazine', 'BoxMixCard.tsx')))
+  assert.match(box, /trigger: plainTrigger\(r\.trigger\)/, "분석 화면이 엔진 원문 근거(puppy·BCS …)를 그대로 그린다")
+  const approve = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'approve', 'ApproveClient.tsx')))
+  assert.match(approve, /trigger: plainTrigger\(r\.trigger\)/, '승인 화면이 엔진 원문 근거를 그대로 그린다')
+  assert.match(approve, /isPlainCustomerText\(r\.action\) &&/, '승인 화면이 문헌 인용·DM % 가 든 설명을 그대로 그린다')
+  assert.match(approve, /if \(json\.notApproved\)/, '승인 화면이 서버의 보류(notApproved)를 무시하고 "적용됐어요"라고 말한다')
+  for (const rel of [['app', '(main)', 'dogs', '[id]', 'analysis', 'AnalysisView.tsx'], ['app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx']]) {
+    const src = stripComments(read(join(ROOT, ...rel)))
+    assert.doesNotMatch(src, /\{gateChip\.action\}/, `${rel.at(-1)} 가 췌장염 게이트 저장 문구(정확한 지방 %)를 그린다`)
+    assert.match(src, /\{PANCREATITIS_GATE_COPY\}/, `${rel.at(-1)} 가 췌장염 게이트 안내 정본을 쓰지 않는다`)
+  }
+  const aiCard = stripComments(read(join(ROOT, 'components', 'v3', 'AiCommentCard.tsx')))
+  assert.match(aiCard, /\.filter\(isCustomerSafeAiLine\)\.slice\(0, 3\)/, "AI '이렇게 해보세요'가 영양소 %·약어 줄을 거르지 않는다(저장된 옛 분석)")
+  const aiPrompt = stripComments(read(join(ROOT, 'lib', 'nutrition', 'ai-prompt.ts')))
+  assert.match(aiPrompt, /typeof s === 'string' && isCustomerSafeAiLine\(s\)/, '새 AI 응답의 nextActions 를 거르지 않는다')
+
+  const feedback = stripComments(read(join(ROOT, 'lib', 'personalization', 'v3', 'feedback.ts')))
+  assert.doesNotMatch(feedback, /처방|대기열|출시 시 알림/, "체크인 결과가 '처방'이나 없는 기능(소스 대기열·출시 알림)을 말한다")
+  const onboarding = stripComments(read(join(ROOT, 'components', 'Onboarding.tsx')))
+  assert.doesNotMatch(onboarding, /레시피도 배송일도|배송일 변경/, '온보딩이 없는 기능(레시피·배송일 변경)을 약속한다')
+  const home = stripComments(read(join(ROOT, 'app', 'page.tsx')))
+  assert.doesNotMatch(home, /언제든/, "홈이 금지어 '언제든'을 쓴다")
+
+  // 환불 소요일은 환불정책(영업일 3~7일) 하나로.
+  for (const rel of [
+    ['app', 'mypage', 'orders', '[id]', 'page.tsx'],
+    ['app', 'mypage', 'orders', '[id]', 'CancelOrderButton.tsx'],
+    ['lib', 'email', 'templates', 'orders.ts'],
+    ['lib', 'notify', 'templates.ts'],
+    ['app', 'api', 'orders', '[id]', 'cancel', 'route.ts'],
+    ['app', 'api', 'payments', 'confirm', 'route.ts'],
+  ]) {
+    const src = stripComments(read(join(ROOT, ...rel)))
+    assert.doesNotMatch(src, /3[-~]5 ?영업일|영업일 기준 3~5일/, `${rel.join('/')} 의 환불 소요일이 환불정책(3~7일)과 다르다`)
+  }
+})

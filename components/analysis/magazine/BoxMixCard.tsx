@@ -14,6 +14,7 @@ import { Bone, Droplet, Sparkles, Leaf, ArrowRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Reasoning, FoodLine } from '@/lib/personalization/types'
+import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
 import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import type { MagazinePalette, BoxLineKey } from './palette'
 import { lineColors } from './palette'
@@ -57,8 +58,11 @@ export function BoxMixCard({
 }) {
   const colors = lineColors(p)
   // 'v3 맞춤 베이스' 같은 내부 용어 행은 제외 — 고객에게 의미 없음(사장님 지시).
+  // 10/6 10차 E: 저장된 근거는 임상 표기(puppy·BCS·DCM …)라 쉬운 말로 바꿔 그리고, 바꿔도 영문·인용이 남는 줄은 뺀다.
   const reasons = (reasoning ?? [])
     .filter((r) => !/v3/i.test(r.chipLabel) && !/v3/i.test(r.trigger))
+    .map((r) => ({ ...r, trigger: plainTrigger(r.trigger) }))
+    .filter((r) => isPlainCustomerText(r.trigger) && isPlainCustomerText(r.chipLabel))
     .slice(0, 4)
 
   return (

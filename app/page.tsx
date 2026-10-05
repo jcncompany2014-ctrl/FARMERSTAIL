@@ -643,8 +643,8 @@ function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
 const BENEFITS = [
   { Icon: Truck, t: '배송 포함', d: '배송비는 구독료에 포함, 추가 비용 없어요.' },
   { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
-  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 다음 결제 전까지 언제든 멈추거나 그만둘 수 있어요.' },
-  { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 언제든 답해 드려요.' },
+  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 다음 결제 전까지 멈추거나 그만둘 수 있어요.' },
+  { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 평일 영업일 24시간 이내 답해 드려요.' },
 ]
 
 function PlanBenefits() {

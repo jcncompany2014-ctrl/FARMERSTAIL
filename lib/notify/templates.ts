@@ -130,7 +130,7 @@ export const ALIMTALK_TEMPLATES: Record<AlimtalkTemplateCode, AlimtalkTemplate> 
       '■ 주문번호: #{주문번호}',
       '■ 환불 금액: #{환불금액}원',
       '',
-      '카드사 사정에 따라 환불이 반영되기까지 영업일 기준 3~5일 걸릴 수 있어요.',
+      '카드사 사정에 따라 환불이 반영되기까지 영업일 기준 3~7일 걸릴 수 있어요.',
     ].join('\n'),
     buttons: [{ type: 'WL', name: '주문 내역 보기', url: `${SITE}/mypage/orders` }],
     smsFallback: false,

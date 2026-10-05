@@ -38,6 +38,7 @@ import { optionalSkipped } from '@/lib/survey/refine'
 import AiCommentCard from '@/components/v3/AiCommentCard'
 import AnalysisCTASection from './_components/AnalysisCTASection'
 import VetShareButton from '@/components/VetShareButton'
+import { PANCREATITIS_GATE_COPY } from '@/lib/personalization/plain-reason'
 
 type Analysis = {
   id: string
@@ -642,7 +643,7 @@ export default function AnalysisView({
                     color: 'var(--ink)',
                   }}
                 >
-                  {gateChip.action}
+                  {PANCREATITIS_GATE_COPY}
                 </div>
               )}
 

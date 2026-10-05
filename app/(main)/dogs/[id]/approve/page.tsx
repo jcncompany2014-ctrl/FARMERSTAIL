@@ -24,7 +24,12 @@ import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
 
 type Row = {
-  formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
+  formula: {
+    lineRatios: Formula['lineRatios']
+    toppers: Formula['toppers']
+    /** 몸무게·알레르기·건강 정보 변경으로 생긴 금액 변경 제안(응답 기한 3일). 체크인 재제안엔 없다. */
+    priceChange?: { from: number; to: number; forced: boolean }
+  }
   reasoning: Formula['reasoning']
   transition_strategy: Formula['transitionStrategy']
   algorithm_version: string
@@ -121,6 +126,7 @@ export default async function ApprovePage({
       pending={pending}
       previous={previous}
       pricing={pricing}
+      isPriceChange={!!(pendingRow as unknown as Row | null)?.formula?.priceChange}
     />
   )
 }

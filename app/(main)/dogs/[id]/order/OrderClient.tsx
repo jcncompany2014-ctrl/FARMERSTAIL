@@ -67,6 +67,7 @@ import {
 import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import './order.css'
+import { PANCREATITIS_GATE_COPY } from '@/lib/personalization/plain-reason'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
 
 /**
@@ -790,7 +791,7 @@ export default function OrderClient({
                       color: 'var(--text)',
                     }}
                   >
-                    {gateChip.action}
+                    {PANCREATITIS_GATE_COPY}
                   </span>
                 </div>
               </section>

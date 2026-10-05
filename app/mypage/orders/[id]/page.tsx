@@ -218,7 +218,7 @@ export default async function OrderDetailPage({ params }: { params: Params }) {
                 )}
                 {isPaid && (
                   <p className="text-[10px] text-muted mt-2 leading-relaxed">
-                    결제 금액은 3-5 영업일 내에 원 결제 수단으로 환불돼요.
+                    결제 금액은 3~7 영업일 내에 원 결제 수단으로 환불돼요.
                   </p>
                 )}
               </div>

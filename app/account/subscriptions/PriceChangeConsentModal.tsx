@@ -97,7 +97,7 @@ export default function PriceChangeConsentModal({
       if (decision === 'approve' && b.amountMismatch) {
         toast.info(
           b.message ??
-            '처방은 확정했어요. 금액은 확인 후 다시 안내드릴게요.',
+            '이번 변경은 보류했어요. 확인 후 다시 안내드릴게요.',
         )
       } else {
         toast.success(

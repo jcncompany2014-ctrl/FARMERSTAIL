@@ -32,7 +32,8 @@ export function interpretTwoWeekFeedback(
     if (fb.stoolScore >= 6) {
       addConcerns.push('digestion')
       notes.push(
-        '변이 무른 편이에요 — 소화가 부드러운 단백 위주 + 소화 보완 소스를 대기열에 등록할게요. 2주 더 지켜봐 주세요.',
+        // 10/6 10차 E: '소스 대기열 등록·출시 알림'은 그런 기능이 없어 지킬 수 없는 약속이었다(addConcerns 를 쓰는 곳 0).
+        '변이 무른 편이에요 — 2주 더 지켜봐 주세요. 계속 무르면 다시 분석해 소화가 편한 구성을 함께 살펴봐요.',
       )
       shouldReanalyze = true
     } else if (fb.stoolScore <= 2) {
@@ -56,7 +57,7 @@ export function interpretTwoWeekFeedback(
   if (fb.coatScore !== null && fb.coatScore <= 2) {
     addConcerns.push('skin')
     notes.push(
-      '모질이 아직 아쉬워요 — 피부·모질 보완 소스를 대기열에 등록할게요(출시 시 알림). 피모 변화는 6~8주는 봐야 해요.',
+      '모질이 아직 아쉬워요 — 피모 변화는 6~8주는 지켜봐야 해요. 다음 체크인 때 함께 살펴볼게요.',
     )
   }
 
@@ -64,18 +65,18 @@ export function interpretTwoWeekFeedback(
   if (fb.satisfaction !== null) {
     if (fb.satisfaction <= 2) {
       shouldReanalyze = true
-      notes.push('전반 만족이 낮아요 — 처방을 다시 점검해 재추천해 드릴게요.')
+      notes.push('전반 만족이 낮아요 — 식단 구성을 다시 점검해 볼게요.')
     } else if (
       fb.satisfaction >= 4 &&
       (fb.stoolScore === null || (fb.stoolScore >= 3 && fb.stoolScore <= 5)) &&
       (fb.appetiteScore === null || fb.appetiteScore >= 3)
     ) {
-      notes.push('순조로워요 — 지금 처방을 유지할게요. 잘하고 있어요!')
+      notes.push('순조로워요 — 지금 식단을 그대로 이어 갈게요. 잘하고 있어요!')
     }
   }
 
   if (notes.length === 0) {
-    notes.push('특이 신호가 없어요 — 현재 처방을 유지할게요.')
+    notes.push('특이 신호가 없어요 — 지금 식단을 그대로 이어 갈게요.')
   }
 
   // addConcerns 중복 제거.

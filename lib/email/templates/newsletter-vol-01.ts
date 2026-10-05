@@ -116,7 +116,8 @@ export function renderNewsletterVol01(input: {
   `
 
   const html = renderLayout({
-    preview: 'BCS 점수로 우리 아이 체형 자가 체크 · 오션 오메가 믹스 · 화식 전환법',
+    // 10/6 10차 E: '오션 오메가 믹스'는 판매하지 않는 제품(products.is_active=false) — 본문은 이미 4종으로 고쳤다.
+    preview: 'BCS 점수로 우리 아이 체형 자가 체크 · 레시피 4종 · 화식 전환법',
     kicker: 'Tail Letter · Vol. 01',
     heading: '우리 아이 BCS 점수, 알고 계세요?',
     body,

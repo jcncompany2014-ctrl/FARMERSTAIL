@@ -25,6 +25,7 @@ import { haptic } from '@/lib/haptic'
 import { trackBoxDecision } from '@/lib/analytics'
 import './approve.css'
 import { snapBoxRatios } from '@/lib/personalization/boxComposition'
+import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
 
 type Props = {
   dogId: string
@@ -34,6 +35,11 @@ type Props = {
   previous: Formula | null
   /** 2주 청구액 — 서버가 정본 계산으로 재산정. 불확실하면 null(표시 안 함). */
   pricing: ApprovePricing | null
+  /**
+   * 금액 변경 제안(몸무게·알레르기·건강 정보 변경)인가 — 계기·응답 기한(3일)이 체크인 재제안(5일)과 다르다.
+   * (10차 E, 2026-10-06: 이 화면이 모든 대기 건을 '체크인 응답 분석·5일'로만 안내했다.)
+   */
+  isPriceChange?: boolean
 }
 
 export default function ApproveClient({
@@ -43,6 +49,7 @@ export default function ApproveClient({
   pending,
   previous,
   pricing,
+  isPriceChange = false,
 }: Props) {
   const router = useRouter()
   const toast = useToast()
@@ -62,7 +69,7 @@ export default function ApproveClient({
         body: JSON.stringify({ dogId, cycleNumber, decision }),
       })
       const json = (await res.json()) as
-        | { ok: true; decision: string }
+        | { ok: true; decision: string; notApproved?: boolean; message?: string }
         | { ok?: false; code?: string; message?: string }
       if (!res.ok || !('ok' in json) || json.ok !== true) {
         const msg =
@@ -72,7 +79,10 @@ export default function ApproveClient({
       }
       haptic('confirm')
       trackBoxDecision({ dogId, cycleNumber, decision })
-      if (decision === 'approve') {
+      // 서버가 금액 검산 불일치로 보류하면 ok:true + notApproved — '적용됐어요'라고 말하면 안 된다.
+      if (json.notApproved) {
+        toast.info(json.message ?? '이번 변경은 보류했어요. 확인 후 다시 안내드릴게요.')
+      } else if (decision === 'approve') {
         toast.success('새 비율이 적용됐어요')
       } else {
         toast.success('이전 비율 그대로 유지할게요')
@@ -92,7 +102,7 @@ export default function ApproveClient({
           <p>
             {cycleNumber > 0 ? `${cycleNumber}번째 박스의 ` : ''}동의 대기 건을 찾을 수 없어요.
             <br />
-            이미 응답했거나 5일이 지나 자동 취소됐을 수 있어요.
+            이미 응답했거나 응답 기한이 지나 자동 취소됐을 수 있어요.
           </p>
           <Link href={`/dogs/${dogId}/analysis`} className="ap-empty-cta">
             현재 박스 보기
@@ -117,7 +127,9 @@ export default function ApproveClient({
           비율을 바꿔봐요
         </h1>
         <p className="ap-sub">
-          체크인 응답을 분석해서 비율을 조정해봤어요. 마음에 들면{' '}
+          {isPriceChange
+            ? '알려주신 정보가 바뀌어 다시 계산했어요. 마음에 들면'
+            : '체크인 응답을 분석해서 비율을 조정해봤어요. 마음에 들면'}{' '}
           <strong>적용</strong>, 그대로 두려면 <strong>유지</strong>.
         </p>
       </header>
@@ -158,19 +170,29 @@ export default function ApproveClient({
       <section className="ap-reasoning">
         <div className="ap-sect-lbl">왜 이렇게 제안했어요</div>
         <ul className="ap-reason-list">
-          {pending.reasoning.slice(0, 5).map((r, i) => (
+          {/* 10/6 10차 E: 근거 원문은 임상 표기·문헌 인용(DM 지방 %·FDA 2018 …)이 섞여 있다 — 쉬운 말로 바꾸고,
+              설명(action)은 그대로 보여도 되는 말일 때만 그린다. */}
+          {pending.reasoning
+            .map((r) => ({ ...r, trigger: plainTrigger(r.trigger) }))
+            .filter((r) => isPlainCustomerText(r.trigger) && isPlainCustomerText(r.chipLabel))
+            .slice(0, 5)
+            .map((r, i) => (
             <li key={i} className="ap-reason">
               <span className="ap-reason-num">{i + 1}</span>
               <div className="ap-reason-body">
                 <div className="ap-reason-chip">{r.chipLabel}</div>
                 <div className="ap-reason-detail">
                   <strong>{r.trigger}</strong>
-                  <ArrowRight
-                    size={10}
-                    strokeWidth={2}
-                    style={{ verticalAlign: '-1px', margin: '0 4px' }}
-                  />
-                  {r.action}
+                  {isPlainCustomerText(r.action) && (
+                    <>
+                      <ArrowRight
+                        size={10}
+                        strokeWidth={2}
+                        style={{ verticalAlign: '-1px', margin: '0 4px' }}
+                      />
+                      {r.action}
+                    </>
+                  )}
                 </div>
               </div>
             </li>
@@ -216,7 +238,7 @@ export default function ApproveClient({
 
       <p className="ap-foot">
         <Sparkles size={11} strokeWidth={2} color="var(--terracotta)" />
-        5일 안에 응답 안 하시면 자동으로 이전 비율 유지됩니다.
+        {isPriceChange ? '3일' : '5일'} 안에 응답 안 하시면 자동으로 이전 비율 유지됩니다.
       </p>
     </div>
   )

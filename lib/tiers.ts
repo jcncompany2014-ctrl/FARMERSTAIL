@@ -109,7 +109,7 @@ export const TIERS: TierMeta[] = [
       {
         Icon: 'heart',
         label: '전담 영양 상담 우선',
-        detail: '처방·영양 관련 1:1 상담을 우선으로 응대해 드려요',
+        detail: '식단·영양 1:1 상담을 우선으로 응대해 드려요',
       },
     ],
   },

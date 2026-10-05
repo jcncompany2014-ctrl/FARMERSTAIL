@@ -545,13 +545,13 @@ export async function POST(
   }).catch(() => {})
 
   // R84-C3: 취소 push 알림 추가. 이전엔 메일만 — 사용자가 push 만 켠 경우
-  // 환불 처리 사실 모름. 카드 3-5영업일 / VA 1-3영업일 안내.
+  // 환불 처리 사실 모름. 카드 3~7영업일 / VA 1-3영업일 안내.
   try {
     const { pushToUser } = await import('@/lib/push')
     const refundDays =
       order.payment_method === '가상계좌' || order.payment_method === 'VIRTUAL_ACCOUNT'
         ? '1-3영업일'
-        : '3-5영업일'
+        : '3~7영업일'
     await pushToUser(
       order.user_id,
       {
