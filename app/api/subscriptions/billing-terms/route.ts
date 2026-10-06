@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
-import { nextShipDate, chargeDateFor, keepShipDateOnCardRegister } from '@/lib/shipping-schedule'
+import { nextShipDate, keepShipDateOnCardRegister, firstChargeNoticeDate } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 
 export const runtime = 'nodejs'
@@ -140,7 +140,8 @@ export async function GET(req: Request) {
     row.next_delivery_date && keepShipDateOnCardRegister(row.next_delivery_date, timing ?? 'ship_day')
       ? row.next_delivery_date
       : nextShipDate(undefined, timing ?? 'before_cooking')
-  const firstChargeDate = timing ? chargeDateFor(firstShipDate, timing) : null
+  // 지난 날·오늘 결제 시각이 지난 날을 고지하지 않는다 — 다음 크론이 실제로 도는 날 이후(11차 점검 A#3).
+  const firstChargeDate = timing ? firstChargeNoticeDate(firstShipDate, timing) : null
 
   return NextResponse.json({
     ok: true,

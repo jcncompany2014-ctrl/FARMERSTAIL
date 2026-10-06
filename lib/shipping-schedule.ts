@@ -155,6 +155,25 @@ export const CHARGE_CRON_KST_MINUTES = 9 * 60 + 10
  * 고지해 둘이 달랐다(F3). 또 일반 고객의 일요일 아침 재등록은 일요일 09:10 크론이 제때 결제할 수 있는데도 한 주 밀렸다(F4).
  * 둘 다 이 함수 하나로 판정한다. 결제 시점을 모르면 호출부가 'ship_day'(옛 동작: 발송일 기준)를 넘긴다.
  */
+/** 다음 청구 크론이 실제로 도는 날(KST) — 오늘 09:10 전이면 오늘, 지났으면 내일. */
+export function nextChargeRunDate(now: Date = new Date()): string {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  const today = kst.toISOString().slice(0, 10)
+  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  return minutes < CHARGE_CRON_KST_MINUTES ? today : addDaysKst(today, 1)
+}
+
+/**
+ * 정기결제 동의 화면이 고지하는 **첫 결제일** — 결제 시점 정본(chargeDateFor)과 '다음 크론이 실제로 도는 날' 중 늦은 쪽.
+ * 11차 점검 A(2026-10-06): 토요일 결제가 실패한 뒤 토요일 오후·일요일 아침에 카드를 다시 등록하면 chargeDateFor 는 그 토요일을
+ * 돌려줘 "첫 결제 10월 10일(토)"처럼 **이미 지난 날**을 고지했다(실제 결제는 일요일 09:10).
+ */
+export function firstChargeNoticeDate(shipIso: string, timing: ChargeTiming, now: Date = new Date()): string {
+  const d = chargeDateFor(shipIso, timing)
+  const run = nextChargeRunDate(now)
+  return d > run ? d : run
+}
+
 export function keepShipDateOnCardRegister(
   shipIso: string,
   timing: ChargeTiming,

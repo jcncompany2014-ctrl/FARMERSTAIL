@@ -6,10 +6,11 @@ import {
   chargeTimingFor,
   chargeDateFor,
   CHARGE_BEFORE_SHIP_DAYS,
+  paidBoxShipIso,
   type ChargeTiming,
 } from '@/lib/shipping-schedule'
 import { addDaysKst } from '@/lib/datetime-kst'
-import { chargeBillingKey, cancelPayment, lookupPaymentByOrderId } from '@/lib/payments/toss'
+import { chargeBillingKey, cancelPayment, lookupPaymentByOrderId, fetchPayment, orderPaymentOutcome } from '@/lib/payments/toss'
 import { verifyAmbiguousCharges } from '@/lib/payments/ambiguous-charges'
 import { keyMode } from '@/lib/payments/key-mode'
 import {
@@ -908,6 +909,41 @@ async function runSubscriptionCharge(): Promise<Response> {
       continue
     }
 
+    /**
+     * ★청구 행에 주문을 **토스 호출 전에** 잇는다 (11차 점검 A, 2026-10-06).
+     *   결과 불명 확인(lib/payments/ambiguous-charges)은 `order_id` 가 있는 청구 행만 본다(주문번호로 토스에 묻는다).
+     *   그런데 order_id 를 성공 쓰기에서만 채워서, 타임아웃·실패·함수 중단으로 남은 행은 **한 건도** 확인되지 않았다 —
+     *   실제로 돈이 빠졌는데 우리 장부엔 실패로 남는 바로 그 경우를 놓쳤다. 잇지 못하면 이번엔 긁지 않는다
+     *   (확인 장치 없이 결제하는 것보다 하루 늦는 게 낫다).
+     */
+    {
+      const { error: linkErr } = await supabase
+        .from('subscription_charges')
+        .update({ order_id: orderRow.id })
+        .eq('id', chargeRow!.id)
+      if (linkErr) {
+        captureBusinessEvent('error', 'subscription.charge.order_link_failed', {
+          subscriptionId: sub.id,
+          orderId: orderRow.id,
+          dbError: linkErr.message,
+          note: '청구 행에 주문을 잇지 못해 결과 불명 확인이 불가 — 이번 실행은 청구하지 않음(내일 다시)',
+        })
+        const { error: linkMarkErr } = await supabase
+          .from('subscription_charges')
+          .update({ status: 'failed', error_code: 'ORDER_LINK_FAILED', error_message: linkErr.message, completed_at: new Date().toISOString() })
+          .eq('id', chargeRow!.id)
+        if (linkMarkErr) {
+          captureBusinessEvent('error', 'subscription.charge.mark_failed_write_failed', {
+            subscriptionId: sub.id,
+            code: 'ORDER_LINK_FAILED',
+            dbError: linkMarkErr.message,
+          })
+        }
+        skipped += 1
+        continue
+      }
+    }
+
     // 2-b-2) subscription_items → order_items 복사 (audit fix).
     // 이전: order row 만 만들고 items 누락 → 사용자/admin 이 주문 상세에서
     // 상품 안 보임 + 발송 운영 시 어떤 상품 보낼지 모름.
@@ -1074,22 +1110,43 @@ async function runSubscriptionCharge(): Promise<Response> {
           note: '멱등키 재생 — 토스 결제의 주문번호가 다른(옛) 주문. 옛 주문과 이번 주문 중 하나로 장부 정리 필요',
         })
         /**
-         * ★옛 주문이 이미 '결제됨'(또는 우리가 환불까지 한) 상태면 이 응답은 **새 돈이 아니다** (10차 점검 B#2·C#6, 2026-10-06).
-         *   예전엔 경보만 남기고 그대로 성공 처리해, 같은 결제로 두 번째 '결제됨' 주문·도장·체험 회차 차감·발송이 생겼다
-         *   (발송일을 이미 결제된 회차로 되돌리면 같은 멱등키가 만들어진다 — DB 트리거로도 막았지만 여기서 한 번 더).
-         *   이 주문은 취소하고, 발송일은 그 결제가 이미 덮은 회차 다음으로 옮긴다(그대로 두면 매일 재생되다 토스가 키를
-         *   버리는 15일 뒤엔 같은 회차를 **진짜로** 다시 긁는다). 옛 주문이 실패·만료로 남은 경우(첫 시도가 사실은 성공)는
-         *   이 박스의 돈이 맞으므로 예전처럼 성공 처리한다. 조회가 실패하면 판단하지 않고 예전 동작.
+         * ★재생된 결제가 **지금 실제로 무엇인지**로 판정한다 (10차 B#2·C#6 → 11차 A#1, 2026-10-06).
+         *   옛 주문의 payment_status 글자로는 못 가른다 — 전액 환불된 정기주문도 'cancelled', 돈이 잡힌 채 만료된 주문도
+         *   'cancelled'·'failed' 다. 그래서 토스의 실제 상태와 우리 장부(같은 결제키의 결제됨 주문)를 본다:
+         *   ① 토스에서 환불·중단됨(none) → 새 돈이 없다. 이 주문 취소, 다음 시도는 **새 멱등키**(charge_key_seq+1) — 재생 반복 금지.
+         *   ② 같은 결제키가 이미 결제됨 주문에 있음 → 장부 중복. 이 주문 취소, 발송일은 그 결제가 덮은 회차 다음으로
+         *      (그대로 두면 매일 재생되다 토스가 키를 버리는 15일 뒤 같은 회차를 **진짜로** 다시 긁는다).
+         *   ③ 토스에 잡혀 있고(held) 장부엔 없음 → 첫 시도가 사실은 성공했던 것 = 이 박스의 돈. 예전처럼 성공 처리.
+         *   ④ 조회 실패 → 모른다. 청구 행을 '진행 중 + 결제키'로 남겨 미확정 가드가 다음 청구를 막고 사람이 본다.
          */
-        const { data: prevOrder, error: prevOrderErr } = await supabase
-          .from('orders')
-          .select('id, payment_status')
-          .eq('order_number', result.orderId)
-          .maybeSingle()
-        const prevStatus = (prevOrder as { payment_status?: string } | null)?.payment_status ?? null
-        if (!prevOrderErr && prevStatus && ['paid', 'partially_refunded', 'refunded'].includes(prevStatus)) {
+        // 결제키가 없으면 확인할 길이 없다 — 빈 키로 조회해 '모름'(④)으로 떨어지게 한다.
+        const replayPk = result.paymentKey ?? ''
+        const [tossNow, bookedRes] = await Promise.all([
+          fetchPayment(replayPk || 'missing-payment-key'),
+          supabase
+            .from('orders')
+            .select('id, paid_at')
+            .eq('payment_key', replayPk || 'missing-payment-key')
+            .in('payment_status', ['paid', 'partially_refunded'])
+            .neq('id', orderRow.id)
+            .limit(1),
+        ])
+        const tossOutcome = tossNow.ok ? orderPaymentOutcome(tossNow.data.status) : null
+        const bookedRow = bookedRes.error
+          ? undefined
+          : ((bookedRes.data ?? [])[0] as { id: string; paid_at: string | null } | undefined)
+        const verdict: 'refunded' | 'booked' | 'legit' | 'unknown' =
+          tossOutcome === 'none'
+            ? 'refunded'
+            : bookedRes.error
+              ? 'unknown'
+              : bookedRow
+                ? 'booked'
+                : tossOutcome === 'held'
+                  ? 'legit'
+                  : 'unknown'
+        if (verdict !== 'legit') {
           const nowIsoReplay = new Date().toISOString()
-          const replayNext = nextDeliveryDate(sub.next_delivery_date, today, timingOf(sub))
           const untypedReplay = supabase as unknown as {
             from: (t: string) => {
               update: (r: Record<string, unknown>) => {
@@ -1097,35 +1154,69 @@ async function runSubscriptionCharge(): Promise<Response> {
               }
             }
           }
-          const replayWrites = await Promise.all([
-            untypedReplay
-              .from('orders')
-              .update({
-                payment_status: 'cancelled',
-                order_status: 'cancelled',
-                cancel_reason: '이미 결제된 회차 · 새 결제 없음',
-                cancelled_at: nowIsoReplay,
-              })
-              .eq('id', orderRow.id),
+          let replayNext: string | null = null
+          if (verdict === 'booked') {
+            // 그 결제가 덮은 박스의 발송일 + 14. 늦게 발견했으면(그 날짜가 이미 지남) 오늘 기준 다음 회차.
+            const fromToday = nextDeliveryDate(sub.next_delivery_date, today, timingOf(sub))
+            const bookedShip = bookedRow?.paid_at ? paidBoxShipIso(sub.next_delivery_date, bookedRow.paid_at) : null
+            const fromBooked = bookedShip ? addDaysKst(bookedShip, 14) : null
+            replayNext = fromBooked && fromBooked > fromToday ? fromBooked : fromToday
+          }
+          const writes: Array<Promise<{ error: { message: string } | null }>> = []
+          if (verdict !== 'unknown') {
+            writes.push(
+              untypedReplay
+                .from('orders')
+                .update({
+                  payment_status: 'cancelled',
+                  order_status: 'cancelled',
+                  cancel_reason: verdict === 'booked' ? '이미 결제된 회차 · 새 결제 없음' : '환불된 결제의 재응답 · 새 결제 없음',
+                  cancelled_at: nowIsoReplay,
+                })
+                .eq('id', orderRow.id),
+            )
+          }
+          writes.push(
             untypedReplay
               .from('subscription_charges')
-              .update({
-                status: 'failed',
-                error_code: 'REPLAYED_BOOKED_PAYMENT',
-                error_message: `토스 멱등키 재생 — 옛 주문 ${result.orderId}(${prevStatus})의 결제`,
-                completed_at: nowIsoReplay,
-              })
+              .update(
+                verdict === 'unknown'
+                  ? // 미확정 가드: 진행 중 + 결제키 = 그 구독의 다음 청구를 막고 사람이 본다.
+                    { status: 'pending', payment_key: replayPk || null }
+                  : {
+                      status: 'failed',
+                      error_code: verdict === 'booked' ? 'REPLAYED_BOOKED_PAYMENT' : 'REPLAYED_REFUNDED_PAYMENT',
+                      error_message: `토스 멱등키 재생 — 옛 주문 ${result.orderId}의 결제(${tossNow.ok ? tossNow.data.status : '조회 실패'})`,
+                      completed_at: nowIsoReplay,
+                    },
+              )
               .eq('id', chargeRow!.id),
-            untypedReplay.from('subscriptions').update({ next_delivery_date: replayNext }).eq('id', sub.id),
-          ])
-          captureBusinessEvent('error', 'subscription.charge.replay_already_booked', {
+          )
+          if (verdict === 'booked') {
+            writes.push(untypedReplay.from('subscriptions').update({ next_delivery_date: replayNext }).eq('id', sub.id))
+          } else if (verdict === 'refunded') {
+            writes.push(
+              untypedReplay
+                .from('subscriptions')
+                .update({ charge_key_seq: (sub.charge_key_seq ?? 0) + 1 })
+                .eq('id', sub.id),
+            )
+          }
+          const replayWrites = await Promise.all(writes)
+          captureBusinessEvent('error', `subscription.charge.replay_${verdict}`, {
             subscriptionId: sub.id,
             orderId: orderRow.id,
             prevOrderNumber: result.orderId,
-            prevStatus,
+            tossStatus: tossNow.ok ? tossNow.data.status : `lookup_failed:${tossNow.error.code}`,
+            bookedOrderId: bookedRow?.id ?? null,
             movedNextTo: replayNext,
             writeErrors: replayWrites.map((w) => w?.error?.message ?? '').filter(Boolean).join(' | '),
-            note: '이미 장부에 있는 결제가 재생됨 — 새 주문 취소·발송일 전진. 발송일이 결제된 회차로 되돌려진 경위 확인',
+            note:
+              verdict === 'booked'
+                ? '이미 장부에 있는 결제가 재생됨 — 새 주문 취소·발송일 전진. 발송일이 결제된 회차로 되돌려진 경위 확인'
+                : verdict === 'refunded'
+                  ? '환불된 결제가 재생됨 — 새 주문 취소, 다음 실행은 새 멱등키로 다시 청구'
+                  : '재생 결제 상태를 확인 못 함 — 청구 행을 진행 중+결제키로 보류. 토스 대시보드에서 확인 후 정리',
           })
           skipped += 1
           continue
@@ -1391,7 +1482,7 @@ async function runSubscriptionCharge(): Promise<Response> {
       //   나가는 것이 확정된 자리다. 차감 실패는 고객에게 유리한 방향(100원 한 번 더)
       //   이지만 무음이면 안 되므로 이벤트로 남긴다. 구간이 0 이 되는 결제에서는
       //   다음 박스 가격 예고(전환 고지 의무 — TRIAL_PROGRAM v2 D4)를 보낸다.
-      // 이 주문으로 회차를 **실제로** 차감했는가 — 아래 주문 쓰기가 trial_round_consumed_at 으로 남기고, 환불 트리거는
+      // 이 주문으로 회차를 **실제로** 차감했는가 — 차감 직후 주문에 trial_round_consumed_at 으로 남기고, 환불 트리거는
       // 그 표시가 있을 때만 회차를 되돌린다(10차 점검 C#4 · 마이그레이션 20261006110000).
       let trialRoundConsumed = false
       if (discountReason === 'trial_cheap' || discountReason === 'trial_half') {
@@ -1423,6 +1514,21 @@ async function runSubscriptionCharge(): Promise<Response> {
             .eq(col, before) // 낙관적 잠금 — 동시 차감이면 불일치로 0행
             .select('user_id')
           trialRoundConsumed = !decErr && (decRows?.length ?? 0) > 0
+          // 차감한 **바로 그때** 주문에 표시한다(11차 점검 A#7) — 뒤의 주문 쓰기가 실패해도 환불 때 회차가 돌아오게.
+          if (trialRoundConsumed) {
+            const { error: trcErr } = await supabase
+              .from('orders')
+              .update({ trial_round_consumed_at: new Date().toISOString() })
+              .eq('id', orderRow!.id)
+            if (trcErr) {
+              captureBusinessEvent('error', 'subscription.charge.trial_marker_failed', {
+                subscriptionId: sub.id,
+                orderId: orderRow!.id,
+                dbError: trcErr.message,
+                note: '회차는 차감됐는데 주문 표시를 못 함 — 이 주문을 환불하면 회차가 안 돌아온다. trial_round_consumed_at 수동 기록',
+              })
+            }
+          }
           // ★0행은 성공이 아니다(2026-09-24 점검, AGENTS 규칙1) — 동시 실행·관리자 재도장으로
           //   잠금이 어긋나면 차감이 안 된 채 넘어가 체험가 박스가 조용히 한 번 더 나간다.
           if (!decErr && (decRows?.length ?? 0) === 0) {
@@ -1541,9 +1647,6 @@ async function runSubscriptionCharge(): Promise<Response> {
           order_status: 'preparing',
           payment_key: result.paymentKey,
           paid_at: successIso,
-          // ★이 주문이 올린 것만 환불 때 되돌린다(10차 점검 C#4) — 배송 횟수는 바로 아래 구독 쓰기가 +1 한다.
-          delivery_counted_at: successIso,
-          ...(trialRoundConsumed ? { trial_round_consumed_at: successIso } : {}),
         })
         .eq('id', orderRow.id)
       const subUpd = await supabase
@@ -1552,6 +1655,8 @@ async function runSubscriptionCharge(): Promise<Response> {
           next_delivery_date: nextDate,
           last_charged_at: successIso,
           failed_charge_count: 0,
+          // 청구가 끝났다 — 잠금 표시를 지운다(고객 발송일 트리거가 5분간 미루기를 막지 않게, 11차 점검 A#9).
+          last_charge_lock_at: null,
           next_retry_at: null,
           last_failed_charge_at: null,
           last_failed_charge_reason: null,
@@ -1560,6 +1665,22 @@ async function runSubscriptionCharge(): Promise<Response> {
           total_deliveries: sub.total_deliveries + 1,
         })
         .eq('id', sub.id)
+      // ★배송 횟수를 **실제로 올린 뒤에만** 주문에 표시한다(10차 C#4 → 11차 A#7). 환불 트리거는 이 표시가 있는 주문만
+      //   횟수를 되돌린다 — 구독 쓰기가 실패했는데 표시가 남으면 올린 적 없는 횟수를 깎는다.
+      if (!subUpd.error) {
+        const { error: dcErr } = await supabase
+          .from('orders')
+          .update({ delivery_counted_at: successIso })
+          .eq('id', orderRow.id)
+        if (dcErr) {
+          captureBusinessEvent('error', 'subscription.charge.delivery_marker_failed', {
+            subscriptionId: sub.id,
+            orderId: orderRow.id,
+            dbError: dcErr.message,
+            note: '배송 횟수는 올렸는데 주문 표시를 못 함 — 발송 전 환불 시 횟수가 안 돌아온다. delivery_counted_at 수동 기록',
+          })
+        }
+      }
       const postOk = !ordersUpd.error && !subUpd.error
       // ★결과를 본다 (2026-09-25 3차 점검 — 규칙95 사각지대). 다중행 캐스트 때문에
       //   정규식이 못 봤다. 이 쓰기가 실패하면 행이 pending·payment_key NULL 로 남아
@@ -1731,6 +1852,7 @@ async function runSubscriptionCharge(): Promise<Response> {
 
       const subUpdate: Record<string, unknown> = {
         failed_charge_count: nextFailedCount,
+        last_charge_lock_at: null, // 청구 끝 — 잠금 해제(11차 점검 A#9)
         last_failed_charge_at: nowIso2,
         last_failed_charge_code: errorCode,
         // ★고객 정기배송 화면이 이 칸을 그대로 보여 준다 — 한국어 요약만(2026-09-25).

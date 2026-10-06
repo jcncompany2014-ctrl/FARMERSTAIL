@@ -156,6 +156,8 @@ export default async function AccountSubscriptionsPage({
   const paidPreparingSubIds: string[] = []
   // 구독 id → 그 박스의 결제 시각 — 이번 박스 발송일 정본(paidBoxShipIso). 결제 뒤 미루기에도 맞다(2026-10-02).
   const paidPreparingAt: Record<string, string> = {}
+  // 조회 실패 = 결제된 박스를 모름 — 되돌리기를 숨긴다(11차 점검 A#6).
+  let paidStateUnknown = false
   if (liveSubIds.length > 0) {
     const { data: prepRows, error: prepErr } = await supabase
       .from('orders')
@@ -166,6 +168,7 @@ export default async function AccountSubscriptionsPage({
       .eq('order_status', 'preparing')
       .order('created_at', { ascending: false })
     if (prepErr) {
+      paidStateUnknown = true
       captureBusinessEvent('warning', 'subscription.paid_preparing.query_failed', {
         userId: user.id,
         surface: 'web',
@@ -333,6 +336,7 @@ export default async function AccountSubscriptionsPage({
             chargeTiming={chargeTiming}
             paidPreparingSubIds={paidPreparingSubIds}
             paidPreparingAt={paidPreparingAt}
+            paidStateUnknown={paidStateUnknown}
             initialSubs={initialSubs}
             focusSubId={sp.focus ?? null}
             priceProposal={priceProposal}

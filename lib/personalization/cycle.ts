@@ -128,12 +128,15 @@ export function newFormulaAppliedFrom(
   if (next < todayKst) return todayKst
   const plusDays = (iso: string, d: number) =>
     new Date(Date.parse(`${iso}T00:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10)
-  // 상한은 발송 요일(화)로 맞춘다 — 오늘+14 가 토·일·월이면 "10월 24일(토) 박스부터"처럼 없는 박스 날짜가
-  // 저장·표시됐다(10차 점검 A F2). 오늘+14 이상인 첫 화요일.
+  // 상한은 **이 구독의 2주 주기 날짜**로 맞춘다 — 오늘+14 가 토·일·월이면 "10월 24일(토) 박스부터"처럼 없는 박스 날짜가
+  // 저장·표시됐고(10차 점검 A F2), 화요일로만 맞추면 주기 밖 화요일(박스 없는 주)이 됐다(11차 점검 A#12).
+  // next 에서 14일씩 거슬러 올라가 오늘+14 이상인 가장 이른 날 — next 가 화요일이면(DB CHECK) 결과도 화요일이다.
   const capRaw = plusDays(todayKst, DELIVERY_INTERVAL_DAYS)
-  const capDow = new Date(`${capRaw}T00:00:00Z`).getUTCDay()
-  const cap = plusDays(capRaw, (SHIP_WEEKDAY_TUE - capDow + 7) % 7)
-  const first = next > cap ? cap : next
+  let first = next
+  if (next > capRaw) {
+    const diff = Math.round((Date.parse(`${next}T00:00:00Z`) - Date.parse(`${capRaw}T00:00:00Z`)) / 86_400_000)
+    first = plusDays(next, -DELIVERY_INTERVAL_DAYS * Math.floor(diff / DELIVERY_INTERVAL_DAYS))
+  }
   // ★조리가 시작된 박스는 옛 처방 그대로 (2026-10-01 일정 변경 — 토·일 조리 → 화 발송). 발송 3일 전 토요일
   //   (lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS) 이후 승인되면 그 박스는 이미 옛 처방으로 만들어지는 중이라
   //   새 처방은 **그다음 박스**부터다. 예전엔 발송일 당일 아침(청구 전) 승인도 그날 박스에 실었다(화요일 하루 조리 시절).
@@ -142,8 +145,6 @@ export function newFormulaAppliedFrom(
 
 /** 조리 시작 = 발송(화) 3일 전 토요일. lib/shipping-schedule CHARGE_BEFORE_SHIP_DAYS 와 같은 값(이 파일은 import 없는 순수 모듈). */
 const COOK_START_BEFORE_SHIP_DAYS = 3
-/** 발송 요일(화=2). lib/shipping-schedule SHIP_WEEKDAY 와 같은 값. */
-const SHIP_WEEKDAY_TUE = 2
 
 /**
  * 재제안 박스 수를 셀 **시작 시각**(KST) — 새 처방의 첫 박스 주문부터 센다 (10차 점검 A F1, 2026-10-06).

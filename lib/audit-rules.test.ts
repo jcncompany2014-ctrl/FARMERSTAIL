@@ -4845,7 +4845,8 @@ test('규칙127: 제품 사실은 확정본대로 · 이벤트 코드 목록 비
   // ③ 새 처방 시작 상한 — 고객이 쓰는 next_delivery_date 를 먼 미래로 바꾸면 영원히 시작 안 됨
   const cyc = stripComments(read(join(ROOT, 'lib', 'personalization', 'cycle.ts')))
   // 2026-10-01: 상한을 먼저 걸고(first), 조리가 시작된 박스면 그다음 박스로 넘긴다(규칙153 일정 변경).
-  assert.ok(/const first = next > cap \? cap : next/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
+  // 11차 A#12: 상한은 이 구독의 2주 주기 날짜로(next 에서 14일씩 거슬러 오늘+14 이상 첫 날).
+  assert.ok(/if \(next > capRaw\) \{[\s\S]{0,200}first = plusDays\(next, -DELIVERY_INTERVAL_DAYS \* Math\.floor\(diff \/ DELIVERY_INTERVAL_DAYS\)\)/.test(cyc), '새 처방 시작일에 상한이 없다(청구는 새 금액·포장은 옛 처방)')
 })
 
 test('규칙128: 보관·알레르기 안내는 라벨·실제 원료대로 (사장님 승인 2026-09-26 — FAQ DB 는 마이그 20260926120000)', () => {
@@ -5641,7 +5642,8 @@ test('규칙158: 미루기는 확인을 거치고, 실수로 미뤄도 되돌릴
   assert.doesNotMatch(app, /onSkip=\{\(\) => skip\(/, '앱 미루기가 확인 시트를 건너뛴다')
   assert.match(app, /function SkipSheet\(/, '앱 미루기 확인 시트가 없다')
   assert.match(app, /label: '되돌리기', onClick: \(\) => void undoSkip\(/, '미룬 직후 알림에 되돌리기가 없다')
-  assert.match(app, /const undoTo =\s*state === 'active'\s*\?\s*undoSkipTarget\(/, '앱 카드의 되돌리기가 정본 판정을 쓰지 않는다')
+  // 11차 A#6: 결제된 박스를 모르면(조회 실패) 되돌리기를 숨긴다.
+  assert.match(app, /const undoTo =\s*state === 'active' && !paidUnknown\s*\?\s*undoSkipTarget\(/, '앱 카드의 되돌리기가 정본 판정을 쓰지 않거나 결제 박스를 모를 때도 보인다')
 
   const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
   assert.match(web, /async function handleUndoSkip\(subId: string, fromIso: string, toIso: string\)/, '웹에 미루기 되돌리기가 없다')
@@ -5678,12 +5680,20 @@ test('규칙159: 청구·발송일·셀프 취소의 돈 방어 — 서포터즈
   const checkSql = read(join(ROOT, 'supabase', 'migrations', checkMig!))
   assert.match(checkSql, /isfinite\(next_delivery_date\)/, "발송일 CHECK 에 isfinite 가 없다 — 'infinity' 는 isodow 가 NULL 이라 통과한다")
   assert.match(checkSql, /extract\(isodow from next_delivery_date\) = 2/, '발송일 CHECK 가 화요일을 강제하지 않는다')
-  const trgMig = migs.find((f) => f.includes('guard_customer_next_delivery_date'))
+  // ★가장 최근 정의를 본다(11차 A — v2 가 덮어썼다). 이름순 마지막 = 최신.
+  const trgMig = migs.filter((f) => f.includes('guard_customer_next_delivery_date')).sort().at(-1)
   assert.ok(trgMig, '고객 발송일 쓰기 규칙(트리거) 마이그레이션이 없다')
   const trgSql = read(join(ROOT, 'supabase', 'migrations', trgMig!))
   assert.match(trgSql, /last_charge_lock_at > now\(\) - interval '5 minutes'/, '청구 진행 중 발송일 변경을 막지 않는다')
-  assert.match(trgSql, /\(old\.last_charged_at at time zone 'Asia\/Seoul'\)::date \+ 3/, '이미 결제된 회차로 되돌리는 것을 막지 않는다(멱등키 재생)')
+  // 11차 A#6: 늦은 성공 박스(결제일 + 8 발송)까지 — + 3 이면 그 사이 날짜로 되돌려 같은 박스를 또 청구한다.
+  assert.match(trgSql, /\(old\.last_charged_at at time zone 'Asia\/Seoul'\)::date \+ 8/, '이미 결제된 회차(늦은 성공 박스 포함)로 되돌리는 것을 막지 않는다')
   assert.match(trgSql, /if auth\.uid\(\) is null then\s*return new;/, '트리거가 크론·서버 쓰기(service_role)까지 막는다')
+  // 11차 A#9: 해지(비우기+cancelled)는 잠금보다 먼저 허용 — 일시정지와 같은 결과(크론 재확인이 자동 환불).
+  const cancelAllowAt = trgSql.search(/if new\.next_delivery_date is null and new\.status = 'cancelled' then\s*return new;/)
+  const lockAt = trgSql.indexOf("last_charge_lock_at > now() - interval '5 minutes'")
+  assert.ok(cancelAllowAt > 0 && cancelAllowAt < lockAt, '청구 잠금이 해지를 막는다(같은 순간 일시정지는 통과)')
+  const chargeSrc = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.ok((chargeSrc.match(/last_charge_lock_at: null/g) ?? []).length >= 2, '청구가 끝나도 잠금 표시를 지우지 않는다(5분간 미루기가 막힌다)')
 
   const cancel = stripComments(read(join(ROOT, 'app', 'api', 'orders', '[id]', 'cancel', 'route.ts')))
   assert.match(cancel, /order\.subscription_id && order\.payment_status === 'pending'/, '청구 진행 중인 정기 주문을 셀프 취소할 수 있다(크론이 결제됨으로 덮는다)')
@@ -5768,9 +5778,20 @@ test('규칙161: 10차 점검 나머지 — 되돌리는 건 올린 것만·재�
    */
   const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
   assert.match(charge, /trialRoundConsumed = !decErr && \(decRows\?\.length \?\? 0\) > 0/, '회차를 실제로 차감했는지 기록하지 않는다')
-  assert.match(charge, /delivery_counted_at: successIso,\s*\.\.\.\(trialRoundConsumed \? \{ trial_round_consumed_at: successIso \} : \{\}\)/, '주문에 올린 것(배송 횟수·체험 회차) 표시를 남기지 않는다')
-  assert.match(charge, /\['paid', 'partially_refunded', 'refunded'\]\.includes\(prevStatus\)/, '재생된 결제가 이미 장부에 있어도 새 성공으로 처리한다')
-  assert.match(charge, /'subscription\.charge\.replay_already_booked'/, '재생 결제 보류 분기가 없다')
+  // 11차 A#7: 표시는 **실제로 올린 직후** — 회차는 차감 성공 직후, 배송 횟수는 구독 쓰기 성공 뒤.
+  assert.match(charge, /if \(trialRoundConsumed\) \{\s*const \{ error: trcErr \} = await supabase\s*\.from\('orders'\)\s*\.update\(\{ trial_round_consumed_at:/, '회차 차감 직후 주문에 표시하지 않는다')
+  assert.match(charge, /if \(!subUpd\.error\) \{\s*const \{ error: dcErr \} = await supabase\s*\.from\('orders'\)\s*\.update\(\{ delivery_counted_at: successIso \}\)/, '배송 횟수를 올린 뒤에만 주문에 표시하지 않는다')
+  // 11차 A#1: 재생 판정은 옛 주문 상태 글자가 아니라 토스 실제 상태 + 같은 결제키의 결제됨 주문으로.
+  assert.match(charge, /fetchPayment\(replayPk \|\| 'missing-payment-key'\)/, '재생된 결제의 토스 실제 상태를 보지 않는다(환불된 결제를 새 결제로 처리)')
+  assert.match(charge, /tossOutcome === 'none'\s*\?\s*'refunded'/, '환불된 결제의 재생을 걸러내지 않는다')
+  assert.match(charge, /\.eq\('payment_key', replayPk \|\| 'missing-payment-key'\)\s*\.in\('payment_status', \['paid', 'partially_refunded'\]\)/, '재생된 결제가 이미 장부에 있어도 새 성공으로 처리한다')
+  assert.match(charge, /charge_key_seq: \(sub\.charge_key_seq \?\? 0\) \+ 1 \}\)/, '환불된 결제가 재생되면 다음 시도가 새 멱등키를 쓰지 않는다(매일 재생)')
+  assert.match(charge, /`subscription\.charge\.replay_\$\{verdict\}`/, '재생 결제 보류 분기가 없다')
+  // 11차 A#2: 청구 행에 주문을 토스 호출 전에 잇는다 — 결과 불명 확인이 order_id 있는 행만 본다.
+  assert.match(charge, /\.update\(\{ order_id: orderRow\.id \}\)\s*\.eq\('id', chargeRow!\.id\)/, '청구 행에 주문을 잇지 않아 결과 불명 확인이 실패·중단 건을 못 본다')
+  const linkAt = charge.indexOf('.update({ order_id: orderRow.id })')
+  const tossCallAt = charge.indexOf('chargeBillingKey({')
+  assert.ok(linkAt > 0 && tossCallAt > linkAt, '청구 행-주문 연결이 토스 호출보다 뒤에 있다')
 
   const migs = readdirSync(join(ROOT, 'supabase', 'migrations'))
   const markerMig = migs.find((f) => f.includes('orders_trial_delivery_markers'))
@@ -5862,4 +5883,20 @@ test('규칙162: 옛 앱(Capacitor 8.3.1) 보호·iOS 버전 고정·첫 발송�
   }
   const statusCtl = read(join(ROOT, 'app', 'admin', 'orders', '[id]', 'OrderStatusControl.tsx'))
   assert.match(statusCtl, /고객에게 "배송이 완료됐어요" 알림이 바로 가고, 되돌릴 수 없어요/, "'배송 완료' 확인창이 결과(되돌릴 수 없는 고객 알림)를 말하지 않는다")
+})
+
+test('규칙163: 11차 점검 A — 고지 첫 결제일·재개 CAS·결제 박스 모를 때 되돌리기 숨김·웹훅은 정기주문 상태를 안 올림', () => {
+  // 카드 재등록 고지: 지난 날·오늘 결제 시각이 지난 날을 첫 결제일로 말하지 않는다.
+  const terms = stripComments(read(join(ROOT, 'app', 'api', 'subscriptions', 'billing-terms', 'route.ts')))
+  assert.match(terms, /const firstChargeDate = timing \? firstChargeNoticeDate\(firstShipDate, timing\) : null/, '정기결제 고지 화면이 지난 날을 첫 결제일로 고지한다')
+  // 재개는 본 상태(일시정지 + 본 날짜) 그대로일 때만.
+  const app = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.match(app, /\.update\(\{ status: 'active', next_delivery_date: next \}\)[\s\S]{0,120}\.eq\('status', 'paused'\)/, '앱 재개가 옛 화면 날짜로 덮어쓴다(CAS 없음)')
+  const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
+  assert.match(web, /\.update\(\{ status: 'active', next_delivery_date: nextIso \}\)[\s\S]{0,120}\.eq\('status', 'paused'\)/, '웹 재개가 옛 화면 날짜로 덮어쓴다(CAS 없음)')
+  // 결제된 박스를 모르면 되돌리기를 숨긴다(웹).
+  assert.match(web, /state === 'active' && !paidStateUnknown\s*\?\s*undoSkipTarget\(/, '웹이 결제된 박스를 모를 때도 되돌리기를 보인다')
+  // 웹훅은 정기결제 주문의 주문 상태를 올리지 않는다(발송 대기는 청구 크론 몫).
+  const webhook = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'webhook', 'route.ts')))
+  assert.match(webhook, /order_status: order\.subscription_id\s*\?\s*order\.order_status/, '웹훅이 정기결제 주문을 발송 대기로 올린다')
 })

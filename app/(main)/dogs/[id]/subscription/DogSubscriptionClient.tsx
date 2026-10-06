@@ -288,7 +288,7 @@ export default function DogSubscriptionClient({
     setSkipId(null)
     if (result === 'ok') {
       // ★잘못 눌렀으면 바로 되돌린다(2026-10-06) — 원래 회차의 신청 마감 전일 때만(undoSkipTarget 정본).
-      const undoTo = undoSkipTarget({
+      const undoTo = paidStateUnknown ? null : undoSkipTarget({
         nextDeliveryDate: next,
         today: todayKstIsoDate(),
         timing: chargeTiming,
@@ -316,7 +316,7 @@ export default function DogSubscriptionClient({
     if (moveLockRef.current) return
     // ★누르는 순간의 마감을 다시 본다(10차 D) — 버튼은 마지막 렌더 시각으로 계산돼, 앱을 금요일에 열어 두고
     //   토요일에 돌아오면 조리가 시작된 회차로 되돌릴 수 있었다.
-    const stillOk = undoSkipTarget({
+    const stillOk = paidStateUnknown ? null : undoSkipTarget({
       nextDeliveryDate: fromIso,
       today: todayKstIsoDate(),
       timing: chargeTiming,
@@ -355,7 +355,29 @@ export default function DogSubscriptionClient({
     // 재개하면 다음 화요일부터. '오늘 + 14일' 로 잡으면 오늘 요일로 어긋난다.
     // 단 아직 오지 않은 원래 배송일이 있으면 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
     const next = resumeShipDate(sub.next_delivery_date, undefined, chargeTiming ?? 'before_cooking')
-    if (await patch(sub.id, { status: 'active', next_delivery_date: next })) {
+    // ★본 상태 그대로일 때만(11차 점검 A#10) — 오래 열어 둔 화면의 옛 날짜로 계산해, 그 사이 재개·결제·재정지가 있었으면
+    //   결제된 박스 1주 뒤로 앞당겨 또 청구할 수 있었다. 일시정지 + 본 날짜가 그대로여야 쓴다.
+    const u = await uid()
+    if (!u) {
+      setBusy(null)
+      return
+    }
+    const q = supabase
+      .from('subscriptions')
+      .update({ status: 'active', next_delivery_date: next })
+      .eq('id', sub.id)
+      .eq('user_id', u)
+      .eq('status', 'paused')
+    const { data: resumed, error: resumeErr } = await (
+      sub.next_delivery_date ? q.eq('next_delivery_date', sub.next_delivery_date) : q.is('next_delivery_date', null)
+    ).select('id')
+    if (resumeErr) {
+      toast.error('변경하지 못했어요. 잠시 후 다시 시도해 주세요')
+    } else if (!resumed || resumed.length === 0) {
+      toast.info('정기배송 상태가 방금 바뀌었어요 — 화면을 새로 불러왔어요. 확인 후 다시 눌러 주세요.')
+      router.refresh()
+    } else {
+      setSubs((prev) => prev.map((s) => (s.id === sub.id ? { ...s, status: 'active', next_delivery_date: next } : s)))
       trackSubscriptionResumed({ subscriptionId: sub.id })
       toast.success(`${dateLabel(next)}부터 다시 보내드릴게요.`)
     }
@@ -396,6 +418,7 @@ export default function DogSubscriptionClient({
           timing={chargeTiming}
           inProgress={!!inProgress[sub.id]}
           inTransit={!!inTransit[sub.id]}
+          paidUnknown={paidStateUnknown}
           paidAt={inProgressPaidAt[sub.id] ?? null}
           dogPhoto={dogPhoto}
           preview={chargePreview?.[sub.id] ?? null}
@@ -573,6 +596,7 @@ function SubCard({
   timing,
   inProgress,
   inTransit,
+  paidUnknown,
   paidAt,
   preview,
   busy,
@@ -594,6 +618,8 @@ function SubCard({
   inProgress: boolean
   /** 보냈지만 아직 도착 전인 박스가 있다(배송 중 주문). */
   inTransit: boolean
+  /** 결제된 박스 조회 실패 — 되돌리기를 숨긴다. */
+  paidUnknown: boolean
   /** 그 결제된 박스의 결제 시각. 모르면 null(옛 계산 next − 14). */
   paidAt: string | null
   preview: { chargeAmount: number; label: string | null } | null
@@ -676,8 +702,10 @@ function SubCard({
   const skipTo = nextShip ? nextCycleDate(nextShip) : null
   // 미룬 회차를 되돌릴 수 있으면 그 날짜 — 원래 회차 신청 마감 전·결제된 박스와 안 겹칠 때만(undoSkipTarget 정본).
   //   미루지 않았으면 늘 null 이라 버튼이 안 보인다.
+  // ★결제된 박스를 모르면(조회 실패) 되돌리기를 보이지 않는다(11차 점검 A#6) — 늦게 결제된 박스 날짜로 되돌려 같은 박스를
+  //   두 번 청구할 수 있다.
   const undoTo =
-    state === 'active'
+    state === 'active' && !paidUnknown
       ? undoSkipTarget({
           nextDeliveryDate: nextShip,
           today,

@@ -74,6 +74,8 @@ type Props = {
   paidPreparingSubIds?: string[]
   /** 구독 id → 그 결제된 박스의 결제 시각(이번 박스 발송일 정본 paidBoxShipIso). */
   paidPreparingAt?: Record<string, string>
+  /** 결제된 박스 조회 실패 — 되돌리기를 숨긴다(11차 점검 A#6). */
+  paidStateUnknown?: boolean
   initialSubs: Subscription[]
   focusSubId: string | null
   priceProposal: PriceChangeProposal | null
@@ -148,6 +150,7 @@ export default function SubscriptionsWebClient({
   chargeTiming = null,
   paidPreparingSubIds = [],
   paidPreparingAt = {},
+  paidStateUnknown = false,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -270,7 +273,7 @@ export default function SubscriptionsWebClient({
       // ★잘못 눌렀으면 바로 되돌린다(2026-10-06 사장님) — 원래 회차 신청 마감 전일 때만(undoSkipTarget 정본).
       const movedTo = update.next_delivery_date as string
       const paidAt = paidPreparingAt[subId]
-      const undoTo = undoSkipTarget({
+      const undoTo = paidStateUnknown ? null : undoSkipTarget({
         nextDeliveryDate: movedTo,
         today: todayKstIsoDate(),
         timing: chargeTiming,
@@ -332,7 +335,7 @@ export default function SubscriptionsWebClient({
     // ★누른 순간 다시 판정한다(10차 점검 B·D) — 버튼은 화면을 연 시각 기준이라, 금요일에 열어 둔 화면으로
     //   토요일에 누르면 조리 합계에서 빠진 박스가 되살아났다. 앱(DogSubscriptionClient undoSkip)과 같은 처리.
     const paidAtNow = paidPreparingAt[subId]
-    const stillTo = undoSkipTarget({
+    const stillTo = paidStateUnknown ? null : undoSkipTarget({
       nextDeliveryDate: fromIso,
       today: todayKstIsoDate(),
       timing: chargeTiming,
@@ -397,13 +400,24 @@ export default function SubscriptionsWebClient({
     // 박스가 14일치라 다른 주기는 성립하지 않는다.
     // 아직 오지 않은 원래 배송일은 그대로 — 앞당기면 한 주 만에 또 결제된다(2026-09-28).
     const nextIso = resumeShipDate(sub.next_delivery_date, undefined, chargeTiming ?? 'before_cooking')
-    const { error } = await supabase
+    // ★본 상태 그대로일 때만(11차 점검 A#10) — 옛 화면의 날짜로 계산해 덮어쓰면 결제된 박스 1주 뒤로 앞당겨질 수 있었다.
+    const resumeQ = supabase
       .from('subscriptions')
       .update({ status: 'active', next_delivery_date: nextIso })
       .eq('id', subId)
       .eq('user_id', uid)
+      .eq('status', 'paused')
+    const { data: resumed, error } = await (
+      sub.next_delivery_date ? resumeQ.eq('next_delivery_date', sub.next_delivery_date) : resumeQ.is('next_delivery_date', null)
+    ).select('id')
     if (error) {
       toast.error('다시 시작하지 못했어요. 잠시 후 다시 시도해 주세요')
+      setActionLoading(null)
+      return
+    }
+    if (!resumed || resumed.length === 0) {
+      toast.info('정기배송 상태가 방금 바뀌었어요 — 최신 상태를 불러왔어요. 확인 후 다시 눌러 주세요.')
+      await reload()
       setActionLoading(null)
       return
     }
@@ -553,7 +567,7 @@ export default function SubscriptionsWebClient({
         // 미룬 회차 되돌리기 목적지 — 원래 회차 신청 마감 전·결제된 박스와 안 겹칠 때만(undoSkipTarget, 2026-10-06).
         const subPaidAt = paidPreparingAt[sub.id]
         const undoTo =
-          state === 'active'
+          state === 'active' && !paidStateUnknown
             ? undoSkipTarget({
                 nextDeliveryDate: sub.next_delivery_date,
                 today: todayKstIsoDate(),

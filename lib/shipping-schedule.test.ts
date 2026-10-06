@@ -21,6 +21,7 @@ import {
   shipWeekFor,
   undoSkipTarget,
   keepShipDateOnCardRegister,
+  firstChargeNoticeDate,
   resumeShipDate,
   nextShipDate,
   nextCycleDate,
@@ -404,5 +405,20 @@ describe('keepShipDateOnCardRegister — 카드 (재)등록 때 발송일을 그
     assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-13', 9, 0)), true)
     assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-13', 9, 15)), false)
     assert.equal(keepShipDateOnCardRegister(SHIP, 'ship_day', kst('2026-10-12', 23, 0)), true)
+  })
+})
+
+describe('firstChargeNoticeDate — 정기결제 고지 화면의 첫 결제일 (11차 점검 A#3)', () => {
+  const SHIP = '2026-10-13' // 일반 결제 토 10-10, 서포터즈 화 10-13
+  const kst = (iso: string, hh: number, mm: number) => new Date(`${iso}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00+09:00`)
+  it('토요일 결제가 실패한 뒤 토요일 오후 재등록 — 지난 토요일이 아니라 일요일을 고지', () => {
+    assert.equal(firstChargeNoticeDate(SHIP, 'before_cooking', kst('2026-10-10', 15, 0)), '2026-10-11')
+  })
+  it('일요일 09:10 전 — 그날(일요일)', () => {
+    assert.equal(firstChargeNoticeDate(SHIP, 'before_cooking', kst('2026-10-11', 8, 30)), '2026-10-11')
+  })
+  it('미리 등록하면 결제 시점 정본 그대로', () => {
+    assert.equal(firstChargeNoticeDate(SHIP, 'before_cooking', kst('2026-10-07', 12, 0)), '2026-10-10')
+    assert.equal(firstChargeNoticeDate(SHIP, 'ship_day', kst('2026-10-07', 12, 0)), '2026-10-13')
   })
 })

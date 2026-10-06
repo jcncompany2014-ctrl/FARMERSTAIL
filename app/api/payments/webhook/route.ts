@@ -370,8 +370,13 @@ export async function POST(req: Request) {
           payment_key: paymentKey,
           paid_at: payment.approvedAt ?? new Date().toISOString(),
           // Only promote to "preparing" if we haven't already moved forward.
-          order_status:
-            order.order_status === 'pending' ? 'preparing' : order.order_status,
+          // ★정기결제 주문은 주문 상태를 건드리지 않는다(11차 점검 A#13) — 발송 대기(preparing)로 올리는 건 청구 크론 몫이다.
+          //   여기서 먼저 올리면 '청구 도중 해지 → 자동 환불' 분기가 0행이 되어 해지한 박스가 피킹 리스트에 잡힌다.
+          order_status: order.subscription_id
+            ? order.order_status
+            : order.order_status === 'pending'
+              ? 'preparing'
+              : order.order_status,
           // 가상계좌 입금 완료 시점에야 비로소 Toss가 최종 영수증을
           // 발급하므로 여기서도 업데이트 (카드는 confirm에서 이미 세팅).
           receipt_url: payment.receipt?.url ?? null,
