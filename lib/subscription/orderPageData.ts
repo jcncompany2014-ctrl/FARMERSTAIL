@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { getChargeTiming } from '@/lib/payments/charge-timing'
+import type { ChargeTiming } from '@/lib/shipping-schedule'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { ALL_LINES } from '@/lib/personalization/lines'
 import { ratiosFromPicks, MAX_PICKS } from '@/lib/personalization/boxPicks'
@@ -64,6 +66,11 @@ export type OrderPageData =
       profile: OrderProfileShape
       initialFresh: 30 | 50 | 100
       pickedRecipes: FoodLine[]
+      /**
+       * 결제 시점(서포터즈 체험 구간 = 발송일 · 그 외 = 조리 직전 토요일). 조회 실패 = null(모름).
+       * 주문 화면이 가격 미리보기를 기다리며 첫 발송일·마감 요일을 바꿔 보이던 것(10차 점검 D) — 서버가 먼저 안다.
+       */
+      chargeTiming: ChargeTiming | null
     }
 
 export async function loadOrderPageData(
@@ -252,5 +259,6 @@ export async function loadOrderPageData(
     profile,
     initialFresh,
     pickedRecipes,
+    chargeTiming: await getChargeTiming(user.id),
   }
 }

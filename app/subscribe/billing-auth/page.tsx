@@ -231,14 +231,25 @@ function NoCancelConsentCheck({ checked, onChange }: { checked: boolean; onChang
         style={{ width: 20, height: 20, accentColor: 'var(--moss)' }}
       />
       <span className="flex flex-col gap-1">
-        <span className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
+        <span className="text-[14px] font-bold" style={{ color: 'var(--ink)' }}>
           {NO_CANCEL_CONSENT_LABEL}
         </span>
-        <span className="text-[11.5px] leading-relaxed" style={{ color: 'var(--muted)', wordBreak: 'keep-all' }}>
+        {/* 법정 고지(청약철회 제한) — 11.5px 회색은 시니어 기준 미달이었다(10차 점검 D). 웹·앱 공통 14px. */}
+        <span className="text-[14px] leading-relaxed" style={{ color: 'var(--muted)', wordBreak: 'keep-all' }}>
           {noCancelConsentBody()}
         </span>
       </span>
     </label>
+  )
+}
+
+/** 동의 전엔 등록 버튼이 막혀 있다 — 왜 안 눌리는지 말해 준다(10차 점검 D: 주문 화면은 토스트로 알려 주는데 여기만 무음). */
+function ConsentNeededHint({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <p className="mt-2.5 text-[13px] text-left" style={{ color: 'var(--muted)' }} aria-live="polite">
+      위 안내에 동의하면 카드를 등록할 수 있어요.
+    </p>
   )
 }
 
@@ -558,6 +569,7 @@ function BillingAuthInner() {
                   )
                 })}
               </div>
+              <ConsentNeededHint show={!noCancelAgreed} />
               <button
                 type="button"
                 onClick={close}
@@ -603,6 +615,7 @@ function BillingAuthInner() {
               >
                 {launchingId ? '여는 중이에요...' : `${method.label} 등록하기`}
               </button>
+              <ConsentNeededHint show={!noCancelAgreed} />
               {!onlyOne && !launchingId && (
                 <button
                   type="button"

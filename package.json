@@ -44,11 +44,11 @@
     "cap:assets": "npx -y @capacitor/assets generate --iconBackgroundColor \"#F5F0E6\" --iconBackgroundColorDark \"#171310\" --splashBackgroundColor \"#F5F0E6\" --splashBackgroundColorDark \"#171310\""
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.1",
+    "@capacitor/android": "^8.4.3",
     "@capacitor/app": "^8.1.0",
-    "@capacitor/cli": "^8.3.1",
-    "@capacitor/core": "^8.3.1",
-    "@capacitor/ios": "^8.3.1",
+    "@capacitor/cli": "^8.4.3",
+    "@capacitor/core": "^8.4.3",
+    "@capacitor/ios": "^8.4.3",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/push-notifications": "^8.0.3",
     "@capacitor/share": "^8.0.1",

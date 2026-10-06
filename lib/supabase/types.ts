@@ -1740,6 +1740,8 @@ export type Database = {
           total_amount: number
           tracking_number: string | null
           trial_round_restored_at: string | null
+          trial_round_consumed_at: string | null
+          delivery_counted_at: string | null
           updated_at: string
           user_id: string
           virtual_account_bank: string | null
@@ -1783,6 +1785,8 @@ export type Database = {
           total_amount: number
           tracking_number?: string | null
           trial_round_restored_at?: string | null
+          trial_round_consumed_at?: string | null
+          delivery_counted_at?: string | null
           updated_at?: string
           user_id: string
           virtual_account_bank?: string | null
@@ -1826,6 +1830,8 @@ export type Database = {
           total_amount?: number
           tracking_number?: string | null
           trial_round_restored_at?: string | null
+          trial_round_consumed_at?: string | null
+          delivery_counted_at?: string | null
           updated_at?: string
           user_id?: string
           virtual_account_bank?: string | null

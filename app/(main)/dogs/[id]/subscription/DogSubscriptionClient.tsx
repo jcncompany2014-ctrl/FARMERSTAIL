@@ -121,6 +121,7 @@ export default function DogSubscriptionClient({
   chargeTiming = null,
   inProgress = {},
   inProgressPaidAt = {},
+  paidStateUnknown = false,
   chargePreview = null,
 }: {
   initialSubs: DogSub[]
@@ -133,6 +134,8 @@ export default function DogSubscriptionClient({
   inProgress?: Record<string, boolean>
   /** 그 박스의 결제 시각 — 이번 박스 발송일 정본(paidBoxShipIso). 결제 뒤 미루기에도 발송일이 맞다. */
   inProgressPaidAt?: Record<string, string>
+  /** 결제된 박스 조회 실패 — 시트 문구를 둘 다 참인 말로(10차 점검 D). */
+  paidStateUnknown?: boolean
   /** 체험단 가격표 — 있으면 금액 표시가 체험가로 바뀐다 (청구와 같은 판정) */
   trial?: TrialState | null
   /** 구독별 다음 결제액(서버가 청구와 같은 resolveAutoDiscount 로 계산 — 이벤트·이웃·등급·서포터즈 전부) */
@@ -464,7 +467,7 @@ export default function DogSubscriptionClient({
               // 되돌릴 수 있는 마지막 날 = 원래 발송일의 신청 마감(일반 금요일·서포터즈 일요일).
               undoUntil={addDaysKst(fromIso, -leadDaysFor(chargeTiming ?? 'before_cooking'))}
               today={todayKstIsoDate()}
-              paidBoxInProgress={!!inProgress[skipId]}
+              paidBoxInProgress={paidStateUnknown ? null : !!inProgress[skipId]}
               busy={busy === skipId}
               onClose={() => setSkipId(null)}
               onConfirm={() => void skip(s)}
@@ -476,7 +479,7 @@ export default function DogSubscriptionClient({
         <CancelSheet
           name={name}
           started={(subs.find((s) => s.id === cancelId)?.total_deliveries ?? 0) > 0}
-          paidBoxInProgress={!!inProgress[cancelId]}
+          paidBoxInProgress={paidStateUnknown ? null : !!inProgress[cancelId]}
           busy={busy === cancelId}
           onClose={() => setCancelId(null)}
           onConfirm={() => cancel(cancelId)}
@@ -921,7 +924,8 @@ function SkipSheet({
   /** 되돌릴 수 있는 마지막 날(원래 발송일의 신청 마감). */
   undoUntil: string
   today: string
-  paidBoxInProgress: boolean
+  /** null = 모름(조회 실패). */
+  paidBoxInProgress: boolean | null
   busy: boolean
   onClose: () => void
   onConfirm: () => void
@@ -943,7 +947,9 @@ function SkipSheet({
         <p>
           {paidBoxInProgress
             ? `결제된 이번 박스는 그대로 보내드리고, 그다음 박스(${dateLabel(fromIso)} 발송)를 ${dateLabel(toIso)} 발송으로 미뤄요.`
-            : `${dateLabel(fromIso)}에 보낼 박스를 ${dateLabel(toIso)}로 미뤄요. 그 사이 2주는 ${name}에게 박스가 가지 않고, 결제도 그만큼 뒤로 밀려요.`}
+            : paidBoxInProgress === null
+              ? `${dateLabel(fromIso)} 발송 박스를 ${dateLabel(toIso)} 발송으로 미뤄요. 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요.`
+              : `${dateLabel(fromIso)}에 보낼 박스를 ${dateLabel(toIso)}로 미뤄요. 그 사이 2주는 ${name}에게 박스가 가지 않고, 결제도 그만큼 뒤로 밀려요.`}
           {canUndo ? ` 잘못 눌렀다면 ${dateLabel(undoUntil)}까지 이 화면에서 되돌릴 수 있어요.` : ''}
         </p>
         <div className="sub-sheet-btns">
@@ -952,7 +958,11 @@ function SkipSheet({
           </button>
           <button type="button" className="sub-btn is-primary" onClick={onConfirm} disabled={busy}>
             {busy ? (
-              <Loader2 size={13} strokeWidth={2.4} className="animate-spin" />
+              // 스피너만 남으면 버튼 이름이 사라진다(스크린리더) — 10차 점검 D.
+              <>
+                <Loader2 size={13} strokeWidth={2.4} className="animate-spin" aria-hidden />
+                <span className="sr-only">처리하고 있어요</span>
+              </>
             ) : (
               <>
                 <SkipForward size={13} strokeWidth={2.6} />
@@ -986,7 +996,8 @@ function CancelSheet({
   name: string
   started: boolean
   /** 결제됐지만 아직 안 나간 박스가 있다 — 그 박스는 그대로 보낸다(2026-10-01 사장님 "그대로 발송, 자동 환불 없음"). */
-  paidBoxInProgress: boolean
+  /** null = 모름(조회 실패). */
+  paidBoxInProgress: boolean | null
   busy: boolean
   onClose: () => void
   onConfirm: () => void
@@ -1013,7 +1024,9 @@ function CancelSheet({
           {started
             ? paidBoxInProgress
               ? `이미 결제된 박스는 맞춤으로 만들어 그대로 보내드려요. 해지하면 그다음 박스부터 배송과 결제가 멈춰요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
-              : `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
+              : paidBoxInProgress === null
+                ? `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요. 기록과 분석은 그대로 남아 있어요.`
+                : `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
             : `아직 결제된 게 없어서 그냥 없어져요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 신청할 수 있어요.`}
         </p>
         <div className="sub-sheet-btns">
@@ -1027,7 +1040,11 @@ function CancelSheet({
             disabled={busy}
           >
             {busy ? (
-              <Loader2 size={13} strokeWidth={2.4} className="animate-spin" />
+              // 스피너만 남으면 버튼 이름이 사라진다(스크린리더) — 10차 점검 D.
+              <>
+                <Loader2 size={13} strokeWidth={2.4} className="animate-spin" aria-hidden />
+                <span className="sr-only">처리하고 있어요</span>
+              </>
             ) : (
               <>
                 <Check size={13} strokeWidth={2.6} />

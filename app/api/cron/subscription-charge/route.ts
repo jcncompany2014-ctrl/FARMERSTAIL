@@ -1073,6 +1073,63 @@ async function runSubscriptionCharge(): Promise<Response> {
           paymentKey: result.paymentKey,
           note: '멱등키 재생 — 토스 결제의 주문번호가 다른(옛) 주문. 옛 주문과 이번 주문 중 하나로 장부 정리 필요',
         })
+        /**
+         * ★옛 주문이 이미 '결제됨'(또는 우리가 환불까지 한) 상태면 이 응답은 **새 돈이 아니다** (10차 점검 B#2·C#6, 2026-10-06).
+         *   예전엔 경보만 남기고 그대로 성공 처리해, 같은 결제로 두 번째 '결제됨' 주문·도장·체험 회차 차감·발송이 생겼다
+         *   (발송일을 이미 결제된 회차로 되돌리면 같은 멱등키가 만들어진다 — DB 트리거로도 막았지만 여기서 한 번 더).
+         *   이 주문은 취소하고, 발송일은 그 결제가 이미 덮은 회차 다음으로 옮긴다(그대로 두면 매일 재생되다 토스가 키를
+         *   버리는 15일 뒤엔 같은 회차를 **진짜로** 다시 긁는다). 옛 주문이 실패·만료로 남은 경우(첫 시도가 사실은 성공)는
+         *   이 박스의 돈이 맞으므로 예전처럼 성공 처리한다. 조회가 실패하면 판단하지 않고 예전 동작.
+         */
+        const { data: prevOrder, error: prevOrderErr } = await supabase
+          .from('orders')
+          .select('id, payment_status')
+          .eq('order_number', result.orderId)
+          .maybeSingle()
+        const prevStatus = (prevOrder as { payment_status?: string } | null)?.payment_status ?? null
+        if (!prevOrderErr && prevStatus && ['paid', 'partially_refunded', 'refunded'].includes(prevStatus)) {
+          const nowIsoReplay = new Date().toISOString()
+          const replayNext = nextDeliveryDate(sub.next_delivery_date, today, timingOf(sub))
+          const untypedReplay = supabase as unknown as {
+            from: (t: string) => {
+              update: (r: Record<string, unknown>) => {
+                eq: (c: string, v: string) => Promise<{ error: { message: string } | null }>
+              }
+            }
+          }
+          const replayWrites = await Promise.all([
+            untypedReplay
+              .from('orders')
+              .update({
+                payment_status: 'cancelled',
+                order_status: 'cancelled',
+                cancel_reason: '이미 결제된 회차 · 새 결제 없음',
+                cancelled_at: nowIsoReplay,
+              })
+              .eq('id', orderRow.id),
+            untypedReplay
+              .from('subscription_charges')
+              .update({
+                status: 'failed',
+                error_code: 'REPLAYED_BOOKED_PAYMENT',
+                error_message: `토스 멱등키 재생 — 옛 주문 ${result.orderId}(${prevStatus})의 결제`,
+                completed_at: nowIsoReplay,
+              })
+              .eq('id', chargeRow!.id),
+            untypedReplay.from('subscriptions').update({ next_delivery_date: replayNext }).eq('id', sub.id),
+          ])
+          captureBusinessEvent('error', 'subscription.charge.replay_already_booked', {
+            subscriptionId: sub.id,
+            orderId: orderRow.id,
+            prevOrderNumber: result.orderId,
+            prevStatus,
+            movedNextTo: replayNext,
+            writeErrors: replayWrites.map((w) => w?.error?.message ?? '').filter(Boolean).join(' | '),
+            note: '이미 장부에 있는 결제가 재생됨 — 새 주문 취소·발송일 전진. 발송일이 결제된 회차로 되돌려진 경위 확인',
+          })
+          skipped += 1
+          continue
+        }
       }
       /**
        * ★토스가 실제로 승인한 금액과 우리가 청구하려던 금액을 대조한다
@@ -1334,6 +1391,9 @@ async function runSubscriptionCharge(): Promise<Response> {
       //   나가는 것이 확정된 자리다. 차감 실패는 고객에게 유리한 방향(100원 한 번 더)
       //   이지만 무음이면 안 되므로 이벤트로 남긴다. 구간이 0 이 되는 결제에서는
       //   다음 박스 가격 예고(전환 고지 의무 — TRIAL_PROGRAM v2 D4)를 보낸다.
+      // 이 주문으로 회차를 **실제로** 차감했는가 — 아래 주문 쓰기가 trial_round_consumed_at 으로 남기고, 환불 트리거는
+      // 그 표시가 있을 때만 회차를 되돌린다(10차 점검 C#4 · 마이그레이션 20261006110000).
+      let trialRoundConsumed = false
       if (discountReason === 'trial_cheap' || discountReason === 'trial_half') {
         const col = discountReason === 'trial_cheap' ? 'cheap_remaining' : 'half_remaining'
         const { data: trialRow, error: trialErr } = await supabase
@@ -1362,6 +1422,7 @@ async function runSubscriptionCharge(): Promise<Response> {
             .eq('user_id', sub.user_id)
             .eq(col, before) // 낙관적 잠금 — 동시 차감이면 불일치로 0행
             .select('user_id')
+          trialRoundConsumed = !decErr && (decRows?.length ?? 0) > 0
           // ★0행은 성공이 아니다(2026-09-24 점검, AGENTS 규칙1) — 동시 실행·관리자 재도장으로
           //   잠금이 어긋나면 차감이 안 된 채 넘어가 체험가 박스가 조용히 한 번 더 나간다.
           if (!decErr && (decRows?.length ?? 0) === 0) {
@@ -1480,6 +1541,9 @@ async function runSubscriptionCharge(): Promise<Response> {
           order_status: 'preparing',
           payment_key: result.paymentKey,
           paid_at: successIso,
+          // ★이 주문이 올린 것만 환불 때 되돌린다(10차 점검 C#4) — 배송 횟수는 바로 아래 구독 쓰기가 +1 한다.
+          delivery_counted_at: successIso,
+          ...(trialRoundConsumed ? { trial_round_consumed_at: successIso } : {}),
         })
         .eq('id', orderRow.id)
       const subUpd = await supabase

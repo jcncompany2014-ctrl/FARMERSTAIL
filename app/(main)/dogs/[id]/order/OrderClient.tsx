@@ -225,6 +225,8 @@ export type OrderClientProps = {
    * 계산하고, 금액이 달라져 가입이 거부된다.
    */
   pickedRecipes?: FoodLine[]
+  /** 서버가 조회한 결제 시점 — 모르면 null(가격 미리보기로 추정). lib/payments/charge-timing. */
+  chargeTiming?: ChargeTiming | null
 }
 
 export default function OrderClient({
@@ -237,6 +239,7 @@ export default function OrderClient({
   profile,
   initialFresh,
   pickedRecipes,
+  chargeTiming = null,
 }: OrderClientProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -399,7 +402,10 @@ export default function OrderClient({
   // 첫 발송일 마감 — 서포터즈 체험 구간(미리보기가 체험가)이면 원래 방식 그대로 일요일, 아니면 금요일 밤
   //   (lib/shipping-schedule leadDaysFor, 사장님 2026-10-02 "1기 서포터즈는 포함 아닌 거 아니었어?").
   //   billing-issue 가 카드 등록 때 같은 판정(getChargeTiming)으로 실제 next_delivery_date 를 잡는다.
-  const shipTiming: ChargeTiming = pricePreview?.discountKind === 'trial' ? 'ship_day' : 'before_cooking'
+  //   ★서버가 결제 시점을 알면 그 값을 쓴다(10차 점검 D) — 미리보기를 기다리는 동안 '금요일 마감 날짜 → 일요일 마감 날짜'로
+  //   뒤집히고, 미리보기가 실패하면 서포터즈에게 한 주 늦은 날짜를 단정하던 것. 모를 때만 미리보기로 추정한다.
+  const shipTiming: ChargeTiming =
+    chargeTiming ?? (pricePreview?.discountKind === 'trial' ? 'ship_day' : 'before_cooking')
   useEffect(() => {
     setFirstShipIso(nextShipDate(undefined, shipTiming))
   }, [shipTiming])
@@ -412,8 +418,9 @@ export default function OrderClient({
    * 결제 요일을 단정하지 않는다 — 서포터즈에게 토요일 결제를 보이면 안 된다(사장님 2026-10-01).
    * 정확한 첫 결제일은 다음 화면(카드 등록, billing-terms)이 결제 시점을 조회해 고지한다.
    */
+  const shipDayCharge = chargeTiming ? chargeTiming === 'ship_day' : pricePreview?.discountKind === 'trial'
   const knownFirstChargeIso =
-    firstShipIso && pricePreview?.discountKind === 'trial'
+    firstShipIso && shipDayCharge
       ? chargeDateFor(firstShipIso, 'ship_day')
       : null
 

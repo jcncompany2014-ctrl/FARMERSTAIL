@@ -5755,3 +5755,63 @@ test('규칙160: 고객에게 하는 말 = 실제 동작 — 7일 환불·익일
     assert.doesNotMatch(src, /3[-~]5 ?영업일|영업일 기준 3~5일/, `${rel.join('/')} 의 환불 소요일이 환불정책(3~7일)과 다르다`)
   }
 })
+
+test('규칙161: 10차 점검 나머지 — 되돌리는 건 올린 것만·재생 결제 장부 중복 금지·재등록 날짜 정본·앞당기면 처방도 (2026-10-06)', () => {
+  /**
+   * # 왜 (2026-10-06 10차 점검 A·B·C·D — 서포터즈 첫 청구 후 처리)
+   *  · 환불 트리거가 "결제됨→취소" 전이만 보고 체험 회차 +1·배송 횟수 −1 — 청구 도중 해지·즉시환불 실패 경로는 차감·증가
+   *    전에 빠지므로 쓴 적 없는 100원 박스가 생겼다(C#4).
+   *  · 토스 멱등키 재생 응답을 경보만 남기고 성공 처리 — 이미 장부에 있는 결제로 두 번째 '결제됨' 주문(B#2·C#6).
+   *  · 미루기→새 처방 승인→되돌리기면 새 금액으로 결제·옛 처방으로 포장(B#5).
+   *  · 카드 재등록: 고지 화면(billing-terms)과 저장(billing-issue)이 다른 날짜 · 일요일 아침 재등록이 한 주 밀림(A F3·F4).
+   *  · 웹훅 DONE 이 정기결제 원장·영수증을 크론과 이중으로(C#7) · cron_health 가 청구 신호를 잘랐다(C#12).
+   */
+  const charge = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
+  assert.match(charge, /trialRoundConsumed = !decErr && \(decRows\?\.length \?\? 0\) > 0/, '회차를 실제로 차감했는지 기록하지 않는다')
+  assert.match(charge, /delivery_counted_at: successIso,\s*\.\.\.\(trialRoundConsumed \? \{ trial_round_consumed_at: successIso \} : \{\}\)/, '주문에 올린 것(배송 횟수·체험 회차) 표시를 남기지 않는다')
+  assert.match(charge, /\['paid', 'partially_refunded', 'refunded'\]\.includes\(prevStatus\)/, '재생된 결제가 이미 장부에 있어도 새 성공으로 처리한다')
+  assert.match(charge, /'subscription\.charge\.replay_already_booked'/, '재생 결제 보류 분기가 없다')
+
+  const migs = readdirSync(join(ROOT, 'supabase', 'migrations'))
+  const markerMig = migs.find((f) => f.includes('orders_trial_delivery_markers'))
+  assert.ok(markerMig, '주문 표시 칸 마이그레이션이 없다')
+  const markerSql = read(join(ROOT, 'supabase', 'migrations', markerMig!))
+  assert.match(markerSql, /and old\.trial_round_consumed_at is not null/, '체험 회차 복원이 차감한 주문으로 제한되지 않는다')
+  assert.match(markerSql, /and old\.delivery_counted_at is not null/, '배송 횟수 되돌림이 올린 주문으로 제한되지 않는다')
+  const realignMig = migs.find((f) => f.includes('realign_formula_start_on_pull_earlier'))
+  assert.ok(realignMig, '앞당길 때 처방 시작일을 맞추는 마이그레이션이 없다')
+  const realignSql = read(join(ROOT, 'supabase', 'migrations', realignMig!))
+  assert.match(realignSql, /new\.next_delivery_date < old\.next_delivery_date/, '앞당길 때만 처방을 맞춰야 한다')
+  assert.match(realignSql, /applied_from > new\.next_delivery_date\s*and applied_from <= old\.next_delivery_date/, '처방 시작일 조정 범위가 (새, 옛] 이 아니다')
+
+  // 카드 재등록 날짜 — 크론 시각과 판정 정본.
+  const sched = read(join(ROOT, 'lib', 'shipping-schedule.ts'))
+  assert.match(sched, /export const CHARGE_CRON_KST_MINUTES = 9 \* 60 \+ 10/, '청구 크론 KST 시각 상수가 없다')
+  const vercel = JSON.parse(read(join(ROOT, 'vercel.json'))) as { crons: Array<{ path: string; schedule: string }> }
+  const chargeCron = vercel.crons.find((c) => c.path === '/api/cron/subscription-charge')
+  assert.equal(chargeCron?.schedule, '10 0 * * *', '청구 크론 시각이 바뀌었다 — CHARGE_CRON_KST_MINUTES 도 같이 바꿀 것')
+
+  const webhook = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'webhook', 'route.ts')))
+  assert.match(webhook, /if \(order\.subscription_id\) \{\s*return NextResponse\.json\(\{ ok: true, marked: 'paid', deferredTo: 'subscription-charge' \}\)/, '웹훅이 정기결제 원장·영수증을 크론과 이중으로 남긴다')
+  const tracking = read(join(ROOT, 'lib', 'cron-tracking.ts'))
+  for (const k of ['timingKnown', 'backlog', 'ambiguousHeld']) {
+    assert.ok(tracking.includes(`'${k}'`), `cron_health 요약이 청구 신호 ${k} 를 자른다`)
+  }
+  const progression = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'personalization-progression', 'route.ts')))
+  assert.match(progression, /const since = boxCountSince\(cur\.applied_from, cur\.created_at\)/, '재제안 박스 수를 첫 박스 결제일부터 세지 않는다')
+  const rotation = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'protein-rotation', 'route.ts')))
+  assert.match(rotation, /paidBoxShipIso\(s\.next_delivery_date, s\.last_charged_at\) === todayIso/, '단백질 로테이션 푸시가 오늘 나가지 않는 박스에도 간다')
+  const reminders = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-reminders', 'route.ts')))
+  assert.match(reminders, /\.not\('billing_key', 'is', null\)\s*\.not\('requires_billing_key_renewal', 'is', true\)/, '카드 없는 구독에도 결제 고지를 보낸다')
+
+  // 화면
+  const web = stripComments(read(join(ROOT, 'app', 'account', 'subscriptions', 'SubscriptionsWebClient.tsx')))
+  assert.match(web, /if \(stillTo !== toIso\)/, '웹 되돌리기가 누른 순간 마감을 다시 보지 않는다')
+  const order = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx')))
+  assert.match(order, /chargeTiming \?\? \(pricePreview\?\.discountKind === 'trial' \? 'ship_day' : 'before_cooking'\)/, '주문 화면이 서버가 아는 결제 시점을 쓰지 않는다(첫 발송일이 뒤집혀 보임)')
+  const auth = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx')))
+  assert.ok((auth.match(/<ConsentNeededHint show=\{!noCancelAgreed\} \/>/g) ?? []).length >= 2, '카드 등록 버튼이 막힌 이유를 말하지 않는다')
+  const subClient = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  assert.match(subClient, /const boxes = inProgress \? Math\.max\(0, sub\.total_deliveries - 1\) : sub\.total_deliveries/, "결제만 된 박스를 '받은 박스'로 센다")
+  assert.match(subClient, /paidBoxInProgress=\{paidStateUnknown \? null : !!inProgress\[skipId\]\}/, '결제된 박스를 모를 때 미루기 시트가 "박스가 안 가요"를 단정한다')
+})

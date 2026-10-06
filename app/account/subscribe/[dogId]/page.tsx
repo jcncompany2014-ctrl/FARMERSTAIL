@@ -177,6 +177,7 @@ export default async function WebSubscribePage({
           profile={data.profile}
           initialFresh={data.initialFresh}
           pickedRecipes={data.pickedRecipes}
+          chargeTiming={data.chargeTiming}
         />
         )}
       </div>

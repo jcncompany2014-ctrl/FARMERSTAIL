@@ -43,6 +43,7 @@ export default async function OrderPage({
       profile={data.profile}
       initialFresh={data.initialFresh}
       pickedRecipes={data.pickedRecipes}
+      chargeTiming={data.chargeTiming}
     />
   )
 }

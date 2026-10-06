@@ -66,7 +66,8 @@ export default async function ComparePage() {
     //    크기(max-content)로 부푼다. 가로를 명시해야 375px 에 묶인다.
     // 둘 중 하나만 빠져도 모바일에서 페이지 본문이 통째로 가로 스크롤된다.
     <AuthAwareShell>
-    <main className="pb-20 w-full max-w-5xl mx-auto px-5 pt-6 min-w-0">
+    {/* main 은 AppChrome 이 이미 그린다(main 랜드마크 2개·탭바 여백 위 pb-20 중복 — 10차 점검 D). */}
+    <div className="w-full max-w-5xl mx-auto px-5 pt-6 pb-6 min-w-0">
       <div className="flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
         <h1 className="font-['Archivo_Black'] text-2xl md:text-3xl text-ink">
@@ -192,7 +193,7 @@ export default async function ComparePage() {
         설문 결과에 맞춰 자동으로 추천된 레시피가 주문 단계에 그대로 담겨요.
         직접 비교해 보고 싶다면 위 차트를 참고하세요.
       </p>
-    </main>
+    </div>
     </AuthAwareShell>
   )
 }
