@@ -71,7 +71,16 @@ export default function OrderStatusControl({
   async function updateStatus(next: OrderStatus) {
     if (next === currentOrderStatus) return
     if (!allowed.includes(next)) return
-    if (!confirm(`상태를 "${ORDER_STATUS_LABEL[next]}"(으)로 변경할까요?`)) return
+    // ★결과를 말하는 확인창(11차 점검 B, 2026-10-06 첫 발송일) — '배송 완료'는 고객에게 "잘 도착했어요" 알림이 바로
+    //   가고 되돌릴 수 없는데, '발송 완료'로 착각해 누르기 쉬웠다(9/30 실측: 발송 7초 뒤 배송 완료). '준비 중'으로
+    //   되돌리면 그 박스가 피킹 리스트·라벨에 다시 뜬다.
+    const consequence =
+      next === 'delivered'
+        ? '\n\n⚠ 고객에게 "배송이 완료됐어요" 알림이 바로 가고, 되돌릴 수 없어요.\n고객이 실제로 받은 게 확인됐을 때만 누르세요.\n(택배에 넘긴 건 오른쪽 "발송 처리"의 "배송 시작"이에요.)'
+        : next === 'preparing' && currentOrderStatus === 'shipping'
+          ? '\n\n⚠ 이 박스가 피킹 리스트·라벨에 다시 떠요. 송장을 잘못 넣은 거라면 "운송장 수정"을 쓰세요.'
+          : ''
+    if (!confirm(`상태를 "${ORDER_STATUS_LABEL[next]}"(으)로 변경할까요?${consequence}`)) return
 
     setLoading(true)
     // POST via admin route — FSM 재검증 + 푸시 알림 포함. 직접 table update 하지 않음.

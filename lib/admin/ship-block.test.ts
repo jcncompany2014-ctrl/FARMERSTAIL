@@ -136,3 +136,24 @@ describe('chargeRunPassed — 발송일 KST 09:10 경계', () => {
     assert.equal(chargeRunPassed('2026-09-29', new Date('2026-09-30T01:00:00Z')), true)
   })
 })
+
+describe('already_shipped — 이번 회차에 이미 보낸 박스 (11차 점검 B, 2026-10-06 첫 발송일)', () => {
+  const clean = {
+    cannotCharge: false,
+    chargeFailedToday: false,
+    pausedBeforeCharge: false,
+    skippedNotCharged: false,
+    overdueNotCharged: false,
+    notChargedAfterRun: false,
+  }
+  it('송장을 넣어 보낸 박스는 라벨·조리 합계에서 빠지고, 미결제 경고로 바뀌지 않는다', () => {
+    const shipped = { ...clean, alreadyShipped: { id: 'o', orderNumber: 'FT-1', trackingNumber: '123' } }
+    assert.equal(shipBlockReason(shipped), 'already_shipped')
+    assert.equal(isShippable(shipped), false)
+    assert.equal(SHIP_BLOCK_LABEL.already_shipped, '발송완료(라벨제외)')
+  })
+  it('표시가 없으면 예전과 같다', () => {
+    assert.equal(shipBlockReason({ ...clean, alreadyShipped: null }), null)
+    assert.equal(shipBlockReason({ ...clean, skippedNotCharged: true }), 'skipped_not_charged')
+  })
+})

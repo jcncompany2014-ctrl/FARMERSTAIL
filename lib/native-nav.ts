@@ -21,7 +21,7 @@
  * 생긴 이유가 정확히 그것이다: 3곳에 흩어져 있다가 한 곳만 백슬래시 변형을
  * 놓쳤다).
  */
-import { safeNextPath } from './auth/safe-next.ts'
+import { safeNextPath, hasCapacitorInternalMarker } from './auth/safe-next.ts'
 
 /**
  * WebView 안에서 우리 앱으로 인정하는 호스트.
@@ -42,6 +42,9 @@ export function nativeTargetPath(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
   if (!trimmed) return null
+  // ★Capacitor 내부 경로는 어디에 있든 거부(GHSA-rvm3-566m-v7fv, 11차 점검 C) — 옛 앱(8.3.1)이 그 경로를
+  //   공격자 페이지로 앱 출처에서 연다. safeNextPath 도 막지만 절대 URL 의 호스트 검사 전에 먼저 끊는다.
+  if (hasCapacitorInternalMarker(trimmed)) return null
 
   // 절대 URL — https + 우리 호스트만. `javascript:` · `file:` · `intent:` 는
   // 여기서 프로토콜 검사에 걸려 죽는다.
@@ -90,6 +93,7 @@ export function nativeTargetPath(raw: unknown): string | null {
 export function nativeApiUrl(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
+  if (hasCapacitorInternalMarker(trimmed)) return null
   if (!HAS_SCHEME.test(trimmed)) return null
   let parsed: URL
   try {

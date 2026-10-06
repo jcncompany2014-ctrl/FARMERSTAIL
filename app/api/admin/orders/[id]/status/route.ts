@@ -11,7 +11,7 @@ import {
   isPaymentStatus,
   type OrderStatus,
 } from '@/lib/commerce/order-fsm'
-import { carrierLabel, isCarrierCode } from '@/lib/tracking'
+import { carrierLabel, isCarrierCode, normalizeTrackingNumber } from '@/lib/tracking'
 import {
   notifyOrderCancelled,
   notifyOrderDelivered,
@@ -132,7 +132,7 @@ export async function POST(
     //  있고, 조회할 방법이 없다. 발송은 '발송 처리' 패널에서 송장과 함께 한다.
     const nextTracking =
       trackingNumber !== undefined
-        ? (trackingNumber ?? '').trim()
+        ? normalizeTrackingNumber(trackingNumber)
         : (order.tracking_number ?? '')
     const nextCarrier =
       carrier !== undefined ? (carrier ?? '').trim() : (order.carrier ?? '')
@@ -161,7 +161,7 @@ export async function POST(
       update.carrier = trimmed || null
     }
     if (trackingNumber !== undefined)
-      update.tracking_number = trackingNumber?.trim() || null
+      update.tracking_number = normalizeTrackingNumber(trackingNumber) || null
 
     shipCarrier = nextCarrier
     shipTracking = nextTracking

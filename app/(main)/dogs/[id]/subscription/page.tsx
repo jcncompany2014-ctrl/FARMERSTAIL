@@ -115,15 +115,18 @@ export default async function DogSubscriptionPage({
   // 그 박스의 결제 시각 — 발송일을 next_delivery_date 만으로 세면 결제 뒤 '2주 미루기'에 이번 박스가
   //   2주 늦게 나가는 것처럼 보인다(lib/shipping-schedule paidBoxShipIso, 2026-10-02).
   const inProgressPaidAt: Record<string, string> = {}
+  // 보냈지만 아직 도착 전인 박스가 있나(배송 중) — '받은 박스' 수에서 뺀다.
+  const inTransit: Record<string, boolean> = {}
   // 조회 실패 = 결제된 박스가 있는지 **모름** — 시트가 "그 사이 2주는 박스가 안 가요"를 단정하지 않게(10차 점검 D).
   let paidStateUnknown = false
   if (liveIds.length > 0) {
     const { data: prepRows, error: prepErr } = await supabase
       .from('orders')
-      .select('subscription_id, paid_at, created_at')
+      .select('subscription_id, paid_at, created_at, order_status')
       .in('subscription_id', liveIds)
       .in('payment_status', PAID_STATUSES)
-      .eq('order_status', 'preparing')
+      // 'shipping' = 보냈지만 아직 도착 전 — '받은 박스' 수에서 뺄 때만 쓴다(11차 점검 E).
+      .in('order_status', ['preparing', 'shipping'])
       .order('created_at', { ascending: false })
     if (prepErr) {
       console.error('[dogs/subscription] 준비 중 박스 조회 실패:', prepErr.message)
@@ -133,8 +136,14 @@ export default async function DogSubscriptionPage({
         subscription_id: string | null
         paid_at: string | null
         created_at: string
+        order_status: string
       }>) {
-        if (!r.subscription_id || inProgress[r.subscription_id]) continue
+        if (!r.subscription_id) continue
+        if (r.order_status === 'shipping') {
+          inTransit[r.subscription_id] = true
+          continue
+        }
+        if (inProgress[r.subscription_id]) continue
         inProgress[r.subscription_id] = true
         inProgressPaidAt[r.subscription_id] = r.paid_at ?? r.created_at
       }
@@ -155,6 +164,7 @@ export default async function DogSubscriptionPage({
       chargeTiming={chargeTiming}
       inProgress={inProgress}
       inProgressPaidAt={inProgressPaidAt}
+      inTransit={inTransit}
       paidStateUnknown={paidStateUnknown}
       chargePreview={chargePreview}
     />

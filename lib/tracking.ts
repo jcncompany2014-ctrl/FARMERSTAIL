@@ -105,6 +105,16 @@ export const CARRIER_OPTIONS: ReadonlyArray<{
   label: CARRIERS[code].label,
 }))
 
+/**
+ * 송장번호 정리 — 띄어쓰기·하이픈·점을 뺀다(11차 점검 B, 2026-10-06 첫 발송일).
+ * 택배사 문자·엑셀에서 "6890-1234-5678"처럼 붙여 넣으면 조회 API 가 못 찾아 배송조회 크론이 그 주문만 매일
+ * 조용히 건너뛰었다. 국내 택배사 송장은 숫자라 이것으로 충분하고, 영문이 섞인 번호(해외·특수)는 그대로 둔다.
+ * 화면(ShippingControl)과 서버(status·tracking 라우트)가 같이 쓴다.
+ */
+export function normalizeTrackingNumber(raw: string | null | undefined): string {
+  return (raw ?? '').replace(/[\s\-.]/g, '')
+}
+
 export function isCarrierCode(v: unknown): v is CarrierCode {
   return typeof v === 'string' && CARRIER_CODES.includes(v as CarrierCode)
 }

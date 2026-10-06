@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { pickKakaoBirthYear } from '@/lib/auth/kakaoProfile'
+import { safeNextPath } from '@/lib/auth/safe-next'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -102,14 +103,9 @@ export async function GET(request: Request) {
   // `next=//evil.com` 은 startsWith('/') 도 true 지만 startsWith('//') 도 true →
   // 두 번째 조건이 false 가 되어 fallback. backslash 변형 (`/\evil.com`) 도
   // 함께 차단.
-  const safeNext =
-    next.startsWith('/') &&
-    !next.startsWith('//') &&
-    !next.startsWith('/\\') &&
-    // R101-B: /api 경로 redirect 금지 (인증 직후 GET 으로 부작용 엔드포인트 유도 방어).
-    !next.startsWith('/api')
-      ? next
-      : '/dashboard'
+  // ★정본 safeNextPath 로 통일(11차 점검 C, 2026-10-06) — 여기만 따로 검사해 Capacitor 내부 경로(옛 앱 취약점
+  //   GHSA-rvm3-566m-v7fv)·제어문자·인코딩된 /api 변형이 통과했다. 정본은 //evil · 백슬래시 · /api · _capacitor_ 를 모두 막는다.
+  const safeNext = safeNextPath(next) ?? '/dashboard'
 
   // 만 14세 게이트 — OAuth (카카오/Apple) 가입자는 birth_year 가 비어 있을
   // 수 있다. 개인정보보호법 제22조의2 (만 14세 미만 차단) 강제. 기준 연도

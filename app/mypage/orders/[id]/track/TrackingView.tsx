@@ -32,7 +32,8 @@ type FetchState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'ok'; data: TrackingResult }
-  | { status: 'error'; message: string; code?: string }
+  /** justShipped = 발송 36시간 안 — 집하 스캔 전이라 '못 찾음'이 정상(오류로 말하지 않는다). 응답 받은 순간에 판정. */
+  | { status: 'error'; message: string; code?: string; justShipped?: boolean }
 
 // toLocaleString 시각은 서버·브라우저 ICU 가 오전/AM 을 다르게 내 hydration
 // mismatch 위험(전수검사 2026-07-25) → 결정적 KST 포맷터로 위임.
@@ -89,6 +90,7 @@ export default function TrackingView({
           status: 'error',
           message: data?.message ?? '택배 정보를 불러오지 못했어요',
           code: data?.code,
+          justShipped: shippedAt != null && Date.now() - Date.parse(shippedAt) < 36 * 60 * 60 * 1000,
         })
         return
       }
@@ -99,7 +101,7 @@ export default function TrackingView({
         message: '잠시 네트워크가 불안정한 것 같아요. 다시 시도해 주세요',
       })
     }
-  }, [carrier, trackingNumber, supportsInline])
+  }, [carrier, trackingNumber, supportsInline, shippedAt])
 
   useEffect(() => {
     // Defer to a microtask so the loading-state transition isn't a
@@ -254,6 +256,18 @@ export default function TrackingView({
           ) : fetchState.status === 'loading' ? (
             <div className="flex items-center justify-center py-10">
               <div className="w-6 h-6 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : fetchState.status === 'error' &&
+            fetchState.code === 'TRACKING_NOT_FOUND' &&
+            orderStatus !== 'delivered' &&
+            fetchState.justShipped ? (
+            // ★발송 직후엔 택배사 집하 스캔 전이라 '못 찾음'이 정상이다(11차 점검 B) — 알림을 받고 바로 눌렀는데 빨간
+            //   "송장을 찾을 수 없어요. 송장번호를 확인해 주세요."가 떠서 문의가 올 자리였다. 36시간까지는 오류로 말하지 않는다.
+            <div className="py-6 text-center">
+              <p className="text-[12px] text-muted font-bold">택배사에 접수되는 중이에요</p>
+              <p className="text-[11px] text-muted mt-2">
+                보통 오늘 밤에서 내일 아침 사이부터 조회돼요. 그때 다시 확인해 주세요.
+              </p>
             </div>
           ) : fetchState.status === 'error' ? (
             <div className="py-6 text-center">

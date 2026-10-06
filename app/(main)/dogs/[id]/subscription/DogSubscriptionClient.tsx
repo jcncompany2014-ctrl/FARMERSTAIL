@@ -121,6 +121,7 @@ export default function DogSubscriptionClient({
   chargeTiming = null,
   inProgress = {},
   inProgressPaidAt = {},
+  inTransit = {},
   paidStateUnknown = false,
   chargePreview = null,
 }: {
@@ -134,6 +135,8 @@ export default function DogSubscriptionClient({
   inProgress?: Record<string, boolean>
   /** 그 박스의 결제 시각 — 이번 박스 발송일 정본(paidBoxShipIso). 결제 뒤 미루기에도 발송일이 맞다. */
   inProgressPaidAt?: Record<string, string>
+  /** 보냈지만 아직 도착 전인 박스(배송 중 주문)가 있는 구독 — '받은 박스' 수에서 뺀다. */
+  inTransit?: Record<string, boolean>
   /** 결제된 박스 조회 실패 — 시트 문구를 둘 다 참인 말로(10차 점검 D). */
   paidStateUnknown?: boolean
   /** 체험단 가격표 — 있으면 금액 표시가 체험가로 바뀐다 (청구와 같은 판정) */
@@ -392,6 +395,7 @@ export default function DogSubscriptionClient({
           trial={trial}
           timing={chargeTiming}
           inProgress={!!inProgress[sub.id]}
+          inTransit={!!inTransit[sub.id]}
           paidAt={inProgressPaidAt[sub.id] ?? null}
           dogPhoto={dogPhoto}
           preview={chargePreview?.[sub.id] ?? null}
@@ -568,6 +572,7 @@ function SubCard({
   trial,
   timing,
   inProgress,
+  inTransit,
   paidAt,
   preview,
   busy,
@@ -587,6 +592,8 @@ function SubCard({
   timing: ChargeTiming | null
   /** 결제됐지만 아직 안 나간 박스가 있다(결제됨 + 발송 대기 주문). */
   inProgress: boolean
+  /** 보냈지만 아직 도착 전인 박스가 있다(배송 중 주문). */
+  inTransit: boolean
   /** 그 결제된 박스의 결제 시각. 모르면 null(옛 계산 next − 14). */
   paidAt: string | null
   preview: { chargeAmount: number; label: string | null } | null
@@ -661,7 +668,8 @@ function SubCard({
   // 함께한 박스 — total_deliveries 는 결제 성공마다 오른다. 10칸(도장판과 같은 단위)으로 보여준다.
   // ★결제만 되고 아직 안 나간 박스(inProgress)는 '받은' 수에서 뺀다(10차 점검 A F7) — 토요일 결제 직후부터
   //   "1번째 박스까지 받았어요"라고 하던 것. 같은 카드 위 여정은 그 박스를 조리 중으로 그린다.
-  const boxes = inProgress ? Math.max(0, sub.total_deliveries - 1) : sub.total_deliveries
+  //   ★보냈지만 아직 도착 전인 박스(배송 중)도 뺀다(11차 점검 E) — 발송 처리 직후 "1번째 박스까지 받았어요".
+  const boxes = Math.max(0, sub.total_deliveries - (inProgress ? 1 : 0) - (inTransit ? 1 : 0))
   const dots = Math.max(8, Math.min(10, boxes + 2))
   const filled = boxes % 10 === 0 && boxes > 0 ? 10 : boxes % 10
 

@@ -11,6 +11,8 @@ import {
   shouldHandleLaunchUrl,
   type LaunchUrlStore,
 } from '@/lib/native-nav'
+import { hasCapacitorInternalMarker } from '@/lib/auth/safe-next'
+import * as Sentry from '@sentry/nextjs'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 
 /** sessionStorage 접근 자체가 던질 수 있어(차단된 저장소) 감싼다. */
@@ -73,6 +75,16 @@ export default function NativeShellBridge() {
     }
 
     const go = (raw: unknown) => {
+      // ★Capacitor 내부 경로가 든 링크는 공격 시도다(GHSA-rvm3-566m-v7fv — 옛 앱이 그 경로를 공격자 페이지로
+      //   앱 출처에서 연다). nativeTargetPath 가 이미 거부하지만, 누가 시도했는지 남긴다(11차 점검 C).
+      if (typeof raw === 'string' && hasCapacitorInternalMarker(raw)) {
+        Sentry.captureMessage('security.capacitor_internal_link_blocked', {
+          level: 'warning',
+          tags: { 'business.event': '1' },
+          extra: { url: raw.slice(0, 300) },
+        })
+        return
+      }
       const path = nativeTargetPath(raw)
       if (path) {
         router.push(path)

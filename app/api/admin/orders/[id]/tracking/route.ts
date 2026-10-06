@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { dbError } from '@/lib/api/errors'
-import { isCarrierCode, carrierLabel } from '@/lib/tracking'
+import { isCarrierCode, carrierLabel, normalizeTrackingNumber } from '@/lib/tracking'
 import { pushToUser } from '@/lib/push'
 import { recordAdminAction } from '@/lib/admin-audit'
 
@@ -47,7 +47,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const carrier =
     typeof body.carrier === 'string' ? body.carrier.trim() : ''
   const trackingNumber =
-    typeof body.trackingNumber === 'string' ? body.trackingNumber.trim() : ''
+    typeof body.trackingNumber === 'string' ? normalizeTrackingNumber(body.trackingNumber) : ''
 
   if (!carrier || !isCarrierCode(carrier)) {
     return NextResponse.json(

@@ -5812,6 +5812,54 @@ test('규칙161: 10차 점검 나머지 — 되돌리는 건 올린 것만·재�
   const auth = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx')))
   assert.ok((auth.match(/<ConsentNeededHint show=\{!noCancelAgreed\} \/>/g) ?? []).length >= 2, '카드 등록 버튼이 막힌 이유를 말하지 않는다')
   const subClient = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
-  assert.match(subClient, /const boxes = inProgress \? Math\.max\(0, sub\.total_deliveries - 1\) : sub\.total_deliveries/, "결제만 된 박스를 '받은 박스'로 센다")
+  assert.match(subClient, /const boxes = Math\.max\(0, sub\.total_deliveries - \(inProgress \? 1 : 0\) - \(inTransit \? 1 : 0\)\)/, "결제만 된 박스·배송 중 박스를 '받은 박스'로 센다")
   assert.match(subClient, /paidBoxInProgress=\{paidStateUnknown \? null : !!inProgress\[skipId\]\}/, '결제된 박스를 모를 때 미루기 시트가 "박스가 안 가요"를 단정한다')
+})
+
+test('규칙162: 옛 앱(Capacitor 8.3.1) 보호·iOS 버전 고정·첫 발송일 운영 화면 (11차 점검 B·C, 2026-10-06)', () => {
+  /**
+   * # 왜
+   *  · GHSA-rvm3-566m-v7fv(CVSS 9.3): 8.0.0~8.4.2 안드로이드 앱은 `/_capacitor_http_interceptor_?u=<공격자>` 로 이동하면
+   *    공격자 페이지를 **앱 출처**에서 연다. 우리 앱은 App Links 로 우리 도메인 전 경로를 받아 router.push 로 보내므로 문자
+   *    링크 한 번이 세션 탈취로 이어질 수 있었다. 새 앱 빌드 전까지 옛 앱을 지키는 건 웹 배포뿐 — 모든 목적지 검사가 막는다.
+   *  · iOS 는 SPM 이 GitHub 의 capacitor-swift-pm 을 받는다 — npm 만 올리면 iOS 는 8.3.1 그대로였다.
+   *  · 첫 발송일: 송장을 넣으면 피킹 리스트가 그 박스를 "고객이 미룸 — 보내지 마세요"로 · 택배사 기본값 CJ 가 저장 안 됨 ·
+   *    '배송 완료' 오클릭은 되돌릴 수 없음 · 송장 하이픈은 배송조회가 조용히 건너뜀.
+   */
+  const safeNext = read(join(ROOT, 'lib', 'auth', 'safe-next.ts'))
+  assert.match(safeNext, /if \(hasCapacitorInternalMarker\(raw\)\) return null/, 'safeNextPath 가 Capacitor 내부 경로를 막지 않는다')
+  const nativeNav = stripComments(read(join(ROOT, 'lib', 'native-nav.ts')))
+  assert.ok((nativeNav.match(/if \(hasCapacitorInternalMarker\(trimmed\)\) return null/g) ?? []).length >= 2, '앱 링크(화면·/api) 처리가 Capacitor 내부 경로를 먼저 끊지 않는다')
+  const callback = stripComments(read(join(ROOT, 'app', 'auth', 'callback', 'route.ts')))
+  assert.match(callback, /const safeNext = safeNextPath\(next\) \?\? '\/dashboard'/, '로그인 콜백이 정본 safeNextPath 를 쓰지 않는다(자체 검사는 Capacitor 경로를 통과시켰다)')
+  const bridge = stripComments(read(join(ROOT, 'components', 'NativeShellBridge.tsx')))
+  assert.match(bridge, /'security\.capacitor_internal_link_blocked'/, '차단한 공격 링크를 기록하지 않는다')
+
+  // iOS SPM 고정 버전 = npm @capacitor/ios 버전(잠금 파일).
+  const lock = JSON.parse(read(join(ROOT, 'package-lock.json'))) as { packages: Record<string, { version?: string }> }
+  const iosVer = lock.packages['node_modules/@capacitor/ios']?.version
+  const spm = read(join(ROOT, 'ios', 'App', 'CapApp-SPM', 'Package.swift'))
+  const spmVer = spm.match(/capacitor-swift-pm\.git", exact: "([\d.]+)"/)?.[1]
+  assert.ok(iosVer && spmVer, 'iOS Capacitor 버전을 읽지 못했다')
+  assert.equal(spmVer, iosVer, `iOS Package.swift(capacitor-swift-pm ${spmVer})가 npm @capacitor/ios(${iosVer})와 다르다 — 보안 패치가 iOS 에 안 들어간다`)
+  const pkg = JSON.parse(read(join(ROOT, 'package.json'))) as { dependencies: Record<string, string>; scripts: Record<string, string> }
+  for (const k of ['@capacitor/android', '@capacitor/ios', '@capacitor/core', '@capacitor/cli']) {
+    assert.match(pkg.dependencies[k] ?? '', /^~8\.4\.(3|[4-9]|\d{2,})$/, `${k} 범위가 취약 버전(8.5.0 등)을 허용한다: ${pkg.dependencies[k]}`)
+  }
+  assert.equal(pkg.scripts['cap:sync'], 'node scripts/cap-sync.mjs', '윈도우에서 iOS 까지 sync 하면 Package.swift 경로가 깨진다')
+  assert.match(read(join(ROOT, 'scripts', 'cap-sync.mjs')), /if \(process\.platform === 'darwin'\)/, 'cap-sync 가 iOS 를 맥에서만 돌리지 않는다')
+
+  // 첫 발송일 운영 화면
+  const shipBlock = read(join(ROOT, 'lib', 'admin', 'ship-block.ts'))
+  assert.match(shipBlock, /if \(input\.alreadyShipped\) return 'already_shipped'/, '이미 보낸 박스가 라벨·조리 합계에 다시 들어간다')
+  const picking = stripComments(read(join(ROOT, 'app', 'admin', 'personalization', 'picking-list', 'page.tsx')))
+  assert.match(picking, /const hasPaidOrder = orderBySubId\.has\(sub\.id\) \|\| shipped !== null/, '송장을 넣은 박스가 결제 증거를 잃어 "고객이 미룸"으로 바뀐다')
+  const shipCtl = stripComments(read(join(ROOT, 'app', 'admin', 'orders', '[id]', 'ShippingControl.tsx')))
+  assert.match(shipCtl, /isCarrierCode\(currentCarrier\) \? currentCarrier : ''/, '택배사가 CJ 로 미리 골라져 저장되지 않는다')
+  assert.match(shipCtl, /const trimmed = normalizeTrackingNumber\(trackingNumber\)/, '송장번호 하이픈·공백을 정리하지 않는다')
+  for (const rel of [['app', 'api', 'admin', 'orders', '[id]', 'status', 'route.ts'], ['app', 'api', 'admin', 'orders', '[id]', 'tracking', 'route.ts']]) {
+    assert.match(stripComments(read(join(ROOT, ...rel))), /normalizeTrackingNumber\(/, `${rel.join('/')} 가 송장번호를 정리하지 않는다`)
+  }
+  const statusCtl = read(join(ROOT, 'app', 'admin', 'orders', '[id]', 'OrderStatusControl.tsx'))
+  assert.match(statusCtl, /고객에게 "배송이 완료됐어요" 알림이 바로 가고, 되돌릴 수 없어요/, "'배송 완료' 확인창이 결과(되돌릴 수 없는 고객 알림)를 말하지 않는다")
 })

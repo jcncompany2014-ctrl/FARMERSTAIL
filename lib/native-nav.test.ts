@@ -185,3 +185,25 @@ test('★iOS: 실행 중 appUrlOpen 으로 처리한 링크는 다음 문서의 
   // 저장소가 없어도 던지지 않는다
   markLaunchUrlHandled(emailLink, null)
 })
+
+test('GHSA-rvm3-566m-v7fv — Capacitor 내부 경로가 든 링크는 어떤 모양이든 거부(옛 앱 8.3.1 보호, 11차 점검 C)', () => {
+  const attacks = [
+    'https://www.farmerstail.kr/_capacitor_http_interceptor_?u=https%3A%2F%2Fevil.example',
+    'https://farmerstail.kr/_capacitor_https_interceptor_/x?u=https://evil.example',
+    'https://www.farmerstail.kr/%5Fcapacitor%5Fhttp%5Finterceptor%5F?u=https://evil.example',
+    'https://www.farmerstail.kr/%255Fcapacitor_http_interceptor_?u=x',
+    'https://www.farmerstail.kr/_CAPACITOR_HTTP_INTERCEPTOR_?u=x',
+    'https://www.farmerstail.kr/login?next=%2F_capacitor_http_interceptor_%3Fu%3Dhttps%3A%2F%2Fevil.example',
+    'https://www.farmerstail.kr/dashboard#/_capacitor_http_interceptor_?u=x',
+    '/_capacitor_http_interceptor_?u=https://evil.example',
+    '/_capacitor_file_/data/user/0/x',
+    'https://www.farmerstail.kr/api/x?u=/_capacitor_http_interceptor_',
+  ]
+  for (const a of attacks) {
+    assert.equal(nativeTargetPath(a), null, `통과하면 안 된다: ${a}`)
+    assert.equal(nativeApiUrl(a), null, `/api 경로로도 통과하면 안 된다: ${a}`)
+  }
+  // 정상 링크는 그대로.
+  assert.equal(nativeTargetPath('https://www.farmerstail.kr/mypage/orders/abc?tab=track'), '/mypage/orders/abc?tab=track')
+  assert.equal(nativeApiUrl('https://www.farmerstail.kr/api/newsletter/confirm?token=abc'), 'https://www.farmerstail.kr/api/newsletter/confirm?token=abc')
+})

@@ -46,6 +46,11 @@ export type ShipBlockInput = {
    * 청구 예정"(당시 문구) 으로 떨어져 발송 가능으로 판정됐다 — 청구 전 발송.
    */
   notChargedAfterRun: boolean
+  /**
+   * ★이번 회차에 **이미 송장을 넣어 보낸** 박스 (11차 점검 B, 2026-10-06 첫 발송일). 돈 문제는 아니지만 다시
+   * 인쇄·포장하면 같은 박스가 두 번 나간다 — 라벨·조리 합계·CSV 에서 뺀다. 문제 건수(확인 필요)엔 넣지 않는다.
+   */
+  alreadyShipped?: unknown
 }
 
 export type ShipBlockReason =
@@ -55,6 +60,7 @@ export type ShipBlockReason =
   | 'skipped_not_charged'
   | 'overdue_not_charged'
   | 'not_charged_after_run'
+  | 'already_shipped'
   | null
 
 /**
@@ -63,6 +69,8 @@ export type ShipBlockReason =
  * 고객 미룸). 어느 사유든 공통 = **돈 받은 증거가 없다**.
  */
 export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
+  // 이미 보낸 박스가 맨 앞 — 그 뒤의 미결제 판정은 의미가 없다(결제됐고 나갔다).
+  if (input.alreadyShipped) return 'already_shipped'
   if (input.cannotCharge) return 'cannot_charge'
   if (input.chargeFailedToday) return 'charge_failed_today'
   if (input.pausedBeforeCharge) return 'paused_before_charge'
@@ -88,6 +96,7 @@ export const SHIP_BLOCK_LABEL: Record<
   skipped_not_charged: '고객미룸-미청구(발송금지)',
   overdue_not_charged: '청구지연-미결제(발송금지)',
   not_charged_after_run: '청구시각지남-미청구(발송금지)',
+  already_shipped: '발송완료(라벨제외)',
 }
 
 /** 청구 크론 시각(KST). vercel.json `10 0 * * *` = 00:10 UTC = 09:10 KST. 매일 돈다. */

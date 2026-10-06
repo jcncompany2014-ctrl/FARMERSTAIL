@@ -6,6 +6,7 @@ import {
   CARRIER_OPTIONS,
   type CarrierCode,
   isCarrierCode,
+  normalizeTrackingNumber,
 } from '@/lib/tracking'
 import {
   canTransitionOrderStatus,
@@ -27,6 +28,12 @@ import {
  * 송장을 잘못 넣으면 shipping→preparing→재발송 말고는 방법이 없었다(고객에게
  * 배송 시작 알림이 두 번 갔다).
  */
+/** KST 22시~08시인가 — 고객 알림 조용시간 기본값과 같은 구간. */
+function isNightKst(now: Date = new Date()): boolean {
+  const h = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCHours()
+  return h >= 22 || h < 8
+}
+
 export default function ShippingControl({
   orderId,
   currentOrderStatus,
@@ -41,14 +48,14 @@ export default function ShippingControl({
   currentTrackingNumber: string | null
 }) {
   const router = useRouter()
-  const [carrier, setCarrier] = useState<CarrierCode>(
-    isCarrierCode(currentCarrier) ? currentCarrier : 'cj',
+  // ★저장된 택배사가 없으면 **빈 칸**에서 시작한다(11차 점검 B, 2026-10-06 첫 발송일). 예전엔 'cj' 로 미리 골라 둬서
+  //   화면엔 CJ대한통운이 보이는데, 같은 옵션을 다시 골라도 change 이벤트가 안 나 '택배사를 골라 주세요'가 풀리지 않았다.
+  const [carrier, setCarrier] = useState<CarrierCode | ''>(
+    isCarrierCode(currentCarrier) ? currentCarrier : '',
   )
   const [trackingNumber, setTrackingNumber] = useState(
     currentTrackingNumber ?? '',
   )
-  // 택배사를 사람이 직접 골랐나 — 초기 폴백('cj')과 구분한다.
-  const [carrierTouched, setCarrierTouched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [, startTransition] = useTransition()
@@ -73,24 +80,24 @@ export default function ShippingControl({
    * 저장할 게 있나.
    *
    * ★택배사는 **사람이 실제로 고른 경우에만** 변경으로 친다 (2026-08-07 재감사).
-   * `carrier` 초기값은 저장된 값이 없으면 'cj' 로 떨어지는데, 그걸 그대로
-   * 비교하면 아무것도 안 건드렸는데 버튼이 활성이 된다. 그 상태로 누르면
-   * **사장님이 고르지 않은 CJ** 가 저장되고, 고객에게 "운송장 정보가
-   * 업데이트됐어요 · CJ대한통운" 이 나간다.
+   * 예전엔 저장된 값이 없으면 'cj' 로 미리 골라 둬서, 안 건드려도 버튼이 활성이 되고
+   * **사장님이 고르지 않은 CJ** 가 저장될 수 있었다. 지금은 빈 칸('')에서 시작하므로
+   * 고른 값만 변경으로 친다.
    */
   const dirty =
     trackingNumber.trim() !== (currentTrackingNumber ?? '') ||
-    (carrierTouched && carrier !== currentCarrier)
+    (carrier !== '' && carrier !== currentCarrier)
 
   async function submit() {
-    const trimmed = trackingNumber.trim()
+    // 송장번호는 띄어쓰기·하이픈을 뺀다(11차 점검 B) — 택배사 조회 API 가 하이픈 섞인 번호를 못 찾아
+    // 배송조회 크론이 그 주문만 매일 조용히 건너뛰었다.
+    const trimmed = normalizeTrackingNumber(trackingNumber)
     if (!trimmed) {
       setError('송장번호를 입력해 주세요')
       return
     }
-    // 저장된 택배사가 없는데 고르지도 않았으면, 폴백('cj')이 조용히 저장되고
-    // 그 이름이 고객 알림에 실린다. 명시적으로 고르게 한다.
-    if (!currentCarrier && !carrierTouched) {
+    // 택배사는 반드시 사람이 고른다 — 고르지 않은 이름이 고객 알림에 실리면 안 된다.
+    if (!carrier) {
       setError('택배사를 골라 주세요')
       return
     }
@@ -150,13 +157,15 @@ export default function ShippingControl({
           </span>
           <select
             value={carrier}
-            onChange={(e) => {
-              setCarrier(e.target.value as CarrierCode)
-              setCarrierTouched(true)
-            }}
+            onChange={(e) => setCarrier(e.target.value as CarrierCode | '')}
             disabled={loading}
             className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm disabled:opacity-50"
           >
+            {!isCarrierCode(currentCarrier) && (
+              <option value="" disabled>
+                택배사 선택
+              </option>
+            )}
             {CARRIER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -182,6 +191,14 @@ export default function ShippingControl({
 
         {error && (
           <p className="text-[11px] font-semibold text-destructive">{error}</p>
+        )}
+
+        {/* ★밤 알림 경고(11차 점검 E) — 알림 설정을 안 건드린 고객은 조용시간이 없어, 밤에 누르면 "배송이 시작됐어요"가
+            그 시각에 그대로 간다(9/30 23:29 실측). 막지는 않는다 — 사장님이 판단. */}
+        {!isShipped && isNightKst() && (
+          <p className="text-[11px] font-semibold text-amber-700">
+            지금은 밤이에요 — 누르면 고객에게 지금 바로 &quot;배송이 시작됐어요&quot; 알림이 가요. 급하지 않으면 아침에 눌러 주세요.
+          </p>
         )}
 
         <button

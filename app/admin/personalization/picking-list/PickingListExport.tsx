@@ -14,6 +14,8 @@ import { toCsvWithBom } from '@/lib/csv'
 
 export type PickingRow = {
   subId: string
+  /** 이번 회차에 이미 보낸 주문 — 있으면 라벨·조리 합계 제외(lib/admin/ship-block already_shipped). */
+  alreadyShipped: { id: string; orderNumber: string; trackingNumber: string | null } | null
   dogName: string
   recipientName: string
   phone: string

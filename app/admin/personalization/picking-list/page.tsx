@@ -214,6 +214,46 @@ export default async function PickingListPage({
    * 안 보여준다 — 없는 링크를 만들어 막다른 길을 주는 것보다 낫다.
    */
   const subIds = subs.map((s) => s.id)
+  /**
+   * ★이번 발송분 중 **이미 송장을 넣어 보낸** 주문 (11차 점검 B, 2026-10-06 첫 발송일).
+   * 예전엔 결제 증거를 '결제됨 + preparing' 으로만 찾아서, 송장을 넣는 순간(shipping) 그 박스가 증거를 잃고
+   * 빨간 "고객이 미룸 — 미청구, 보내지 마세요"로 바뀌었다(날짜는 이미 +14 라 skip 판정과 같아진다).
+   * 발송한 박스는 '발송 완료'로 따로 보여 주고 라벨·조리 합계에서는 뺀다(다시 인쇄·포장하지 않게).
+   * 이번 회차만 — 발송일 6일 전 이후에 보낸 것(지난 회차는 14일 전이라 섞이지 않는다).
+   */
+  const shippedBySubId = new Map<
+    string,
+    { id: string; orderNumber: string; trackingNumber: string | null }
+  >()
+  if (subIds.length > 0) {
+    const shippedSince = `${addDaysKst(shipDate, -6)}T00:00:00+09:00`
+    const { data: shippedRows, error: shippedErr } = await supabase
+      .from('orders')
+      .select('id, order_number, subscription_id, tracking_number, shipped_at')
+      .in('subscription_id', subIds)
+      .in('payment_status', PAID_STATUSES)
+      .in('order_status', ['shipping', 'delivered'])
+      .gte('shipped_at', shippedSince)
+      .order('shipped_at', { ascending: false })
+    if (shippedErr) {
+      // 모르면 예전처럼 보인다(발송 완료 박스가 경고로) — 박스가 덜 나가는 쪽이라 화면은 멈추지 않는다.
+      console.error('[picking-list] 발송 완료 주문 조회 실패', shippedErr.message)
+    }
+    for (const o of (shippedRows ?? []) as Array<{
+      id: string
+      order_number: string
+      subscription_id: string | null
+      tracking_number: string | null
+    }>) {
+      if (o.subscription_id && !shippedBySubId.has(o.subscription_id)) {
+        shippedBySubId.set(o.subscription_id, {
+          id: o.id,
+          orderNumber: o.order_number,
+          trackingNumber: o.tracking_number,
+        })
+      }
+    }
+  }
   const orderBySubId = new Map<
     string,
     { id: string; orderNumber: string; shipTo: ShippingTarget | null }
@@ -546,7 +586,9 @@ export default async function PickingListPage({
     }
 
     const { target: shipTo, source: addressSource } = shipToOf(sub)
-    const hasPaidOrder = orderBySubId.has(sub.id)
+    const shipped = shippedBySubId.get(sub.id) ?? null
+    // 결제 증거 = 발송 대기 주문 **또는** 이번 회차에 이미 보낸 주문.
+    const hasPaidOrder = orderBySubId.has(sub.id) || shipped !== null
     return {
       subId: sub.id,
       dogName,
@@ -578,8 +620,10 @@ export default async function PickingListPage({
       //   판정을 추측이 아니라 **증거**로 바꾼다 — orderBySubId 는 이 구독의
       //   '결제됨 + 발송대기(preparing)' 주문이다. 그게 있어야 돈을 받은 것이다.
       pausedAfterCharge: sub.status === 'paused' && orderBySubId.has(sub.id),
+      // 이번 회차에 이미 보낸 박스 — 라벨·조리 합계 제외, '발송 완료'로 표시(11차 점검 B).
+      alreadyShipped: shipped,
       // 청구 전에 고객이 멈춘 건 — 보내면 안 된다(대금 없음).
-      pausedBeforeCharge: sub.status === 'paused' && !orderBySubId.has(sub.id),
+      pausedBeforeCharge: sub.status === 'paused' && !hasPaidOrder,
       // ★청구 후 고객이 일정을 옮겨 날짜 필터 밖으로 나간 건 — 발송 대기
       //   주문 역추적으로 붙었다. 돈은 받았으니 이번 발송에 포함해야 한다.
       dateMovedAfterCharge: movedSubIds.has(sub.id),
@@ -591,13 +635,13 @@ export default async function PickingListPage({
       //   미루기)한 구독도 날짜가 shipDate+14 로 같아 '청구 완료'로 오인됐다.
       //   실제 청구된 구독만 '결제됨+preparing 주문'(orderBySubId)이 있다.
       charged:
-        sub.next_delivery_date === chargedBumpDate && orderBySubId.has(sub.id),
+        sub.next_delivery_date === chargedBumpDate && hasPaidOrder,
       // ★날짜는 청구분처럼 보이는데(chargedBumpDate) 결제 주문이 없는 활성 구독
       //   = 고객이 이번 배송을 미룬 것. 발송하면 무료 박스가 나간다(ship-block).
       skippedNotCharged:
         sub.status === 'active' &&
         sub.next_delivery_date === chargedBumpDate &&
-        !orderBySubId.has(sub.id),
+        !hasPaidOrder,
       overdue:
         sub.next_delivery_date != null && sub.next_delivery_date < shipDate,
       // ★결제 증거 없이 예정일이 지난 건 — 재시도 중. 라벨·조리 합계에서 뺀다(2026-09-25).
@@ -627,7 +671,7 @@ export default async function PickingListPage({
       chargeTiming: timingOf(sub.user_id),
       failedCode: sub.last_failed_charge_code,
       totalAmount: sub.total_amount,
-      order: orderBySubId.get(sub.id) ?? null,
+      order: orderBySubId.get(sub.id) ?? (shipped ? { id: shipped.id, orderNumber: shipped.orderNumber, shipTo: null } : null),
       packs,
       missing,
       boxTotalG: packs.reduce((s, p) => s + p.totalG, 0),
@@ -640,6 +684,7 @@ export default async function PickingListPage({
   //   합계에 넣으면 **그만큼 재료를 사고 조리한다** — 화면 배지가 "보내지
   //   마세요" 라고 말해도 합계가 이미 그 물량을 시켰다. 라벨 필터와 **같은
   //   목록**을 쓴다(판정이 갈리면 또 어긋난다).
+  // 이미 보낸 박스는 다시 인쇄·포장하지 않는다(11차 점검 B).
   const shippable = rows.filter(isShippable)
   const cookTotals = new Map<string, { packs: number; grams: number }>()
   for (const r of shippable) {
@@ -846,7 +891,11 @@ export default async function PickingListPage({
                     else 인 "청구 예정" 으로 떨어져 그대로 발송됐다. 돈을 못 받는
                     사유를 전부 앞에 세우고, 마지막 else 는 진짜 '아직 청구 전'
                     일 때만 남게 한다. */}
-                {r.cannotCharge ? (
+                {r.alreadyShipped ? (
+                  <Badge tone="green">
+                    발송 완료{r.alreadyShipped.trackingNumber ? ` · 송장 ${r.alreadyShipped.trackingNumber}` : ''}
+                  </Badge>
+                ) : r.cannotCharge ? (
                   <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
                 ) : r.chargeFailedToday ? (
                   <Badge tone="red">오늘 청구 실패 — 보내지 마세요</Badge>

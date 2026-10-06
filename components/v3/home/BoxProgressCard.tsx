@@ -64,7 +64,12 @@ export default function BoxProgressCard({ dogLabel, stage, detail, itemLabel, hr
               wordBreak: 'keep-all',
             }}
           >
-            {done ? `${dogLabel} 박스가 도착했어요` : `${dogLabel} 박스가 가고 있어요`}
+            {/* 준비 단계엔 아직 안 나갔다 — "가고 있어요"는 발송 뒤부터(11차 점검 E). */}
+            {done
+              ? `${dogLabel} 박스가 도착했어요`
+              : stage === 'preparing'
+                ? `${dogLabel} 박스를 준비하고 있어요`
+                : `${dogLabel} 박스가 가고 있어요`}
           </span>
           <span
             className="shrink-0"

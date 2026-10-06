@@ -74,3 +74,19 @@ describe('safeNextPath — 돌아갈 경로 검증', () => {
     assert.equal(safeNextPath(undefined), null)
   })
 })
+
+describe('safeNextPath — Capacitor 내부 경로(GHSA-rvm3-566m-v7fv, 11차 점검 C)', () => {
+  it('next 로 Capacitor 프록시 경로를 넘기면 거부한다(인코딩·대소문자 변형 포함)', () => {
+    for (const a of [
+      '/_capacitor_http_interceptor_?u=https://evil.example',
+      '/%5Fcapacitor%5Fhttps%5Finterceptor%5F?u=x',
+      '/dashboard?x=%252F_capacitor_http_interceptor_',
+      '/_Capacitor_File_/x',
+    ]) {
+      assert.equal(safeNextPath(a), null, a)
+    }
+  })
+  it('정상 경로는 그대로', () => {
+    assert.equal(safeNextPath('/mypage/subscriptions?from=push'), '/mypage/subscriptions?from=push')
+  })
+})
