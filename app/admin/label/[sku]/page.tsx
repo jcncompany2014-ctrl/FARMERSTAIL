@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
 import { business as bizInfo } from '@/lib/business'
@@ -94,7 +95,10 @@ export default async function LabelPdfPage({
   if (!meta || !slug) notFound()
 
   // 규칙1 — error 를 버리면 DB 조회 실패가 "제품 미등록(404)"으로 위장한다.
-  const { data: productRow, error: productErr } = await supabase
+  // ★배합비(ingredients)는 service_role 로만 읽힌다 (2026-10-06, 규칙164) — anon·
+  // authenticated 에서 칸 권한을 뺐다(마이그 20261006140000). 위에서 관리자 확인을 끝냈다.
+  const admin = createAdminClient()
+  const { data: productRow, error: productErr } = await admin
     .from('products')
     .select(
       'name, net_weight_g, ingredients, allergens, feeding_guide, ' +

@@ -22,6 +22,8 @@
  * # 배합% 는 여기에 절대 넣지 않는다
  * 배합비는 대외비(영업비밀)이고 어드민 라벨 화면(`/admin/label/[sku]`)만
  * products.ingredients 로 본다. 규칙63 테스트가 숫자 유출을 막는다.
+ * DB 에서도 막혀 있다 — anon·authenticated 는 ingredients 칸 SELECT 권한이 없고
+ * (마이그 20261006140000), 어드민 화면은 관리자 확인 뒤 service_role 로 읽는다(규칙164).
  */
 import type { FoodLine } from './personalization/types.ts'
 

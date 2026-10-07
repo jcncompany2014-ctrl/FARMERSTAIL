@@ -5,7 +5,9 @@ import {
   ShieldAlert,
   CheckCircle2,
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { isAdmin } from '@/lib/auth/admin'
 import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
 import RevenueChart, { type RevenuePoint } from '@/components/admin/RevenueChart'
 import FoodInfoCompletion, {
@@ -105,6 +107,11 @@ function statusBadge(paymentStatus: string, orderStatus: string) {
 
 export default async function AdminHome() {
   const supabase = await createClient()
+  // 페이지에서도 관리자 확인 — 아래 식품정보고시 조회가 service_role 로 배합비를 읽는다(규칙164).
+  // 레이아웃은 클라이언트 이동 때 다시 렌더되지 않으므로 service_role 조회의 가드를 맡기지 않는다.
+  const user = await getRequestUser()
+  if (!user) redirect('/login?next=/admin')
+  if (!(await isAdmin(supabase, user))) redirect('/dashboard')
 
   // 오늘 0시 (KST) — Vercel UTC 환경에서도 KST 자정 경계로 정확히 집계.
   // 이전엔 서버 로컬(UTC) 자정이라 "오늘 매출/주문" 이 KST 09:00 부터 집계되며
@@ -397,7 +404,11 @@ export default async function AdminHome() {
   ).length
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
-  const { data: foodInfoProducts, error: foodInfoErr } = await supabase
+  // ★배합비(ingredients)는 service_role 로만 읽힌다 (2026-10-06, 규칙164) — anon·authenticated
+  // 에서 칸 권한을 뺐다(마이그 20261006140000). 쿠키 클라이언트로 읽으면 이 섹션이 통째로 실패한다.
+  // FoodInfoCompletion 은 서버 컴포넌트라 배합비 문자열이 브라우저로 넘어가지 않는다(채움 여부만 그림).
+  const foodInfoDb = createAdminClient()
+  const { data: foodInfoProducts, error: foodInfoErr } = await foodInfoDb
     .from('products')
     .select(
       `id, name, origin, manufacturer, manufacturer_address,

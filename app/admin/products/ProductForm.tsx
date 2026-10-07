@@ -323,6 +323,8 @@ export default function ProductForm({
       router.push(`/admin/products/${data!.id}`)
       router.refresh()
     } else {
+      // ★저장 뒤 .select() 로 행을 돌려받지 않는다(규칙164) — 배합비(ingredients) 칸은
+      // authenticated 에 SELECT 권한이 없어 RETURNING * 가 permission denied 로 저장 전체를 실패시킨다.
       const { error } = await productsClient
         .from('products')
         .update(payload as Record<string, unknown>)

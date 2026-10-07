@@ -1,6 +1,8 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/auth/admin'
 import ProductForm from '../ProductForm'
 
 export const dynamic = 'force-dynamic'
@@ -14,8 +16,16 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const user = await getRequestUser()
+  if (!user) redirect(`/login?next=/admin/products/${id}`)
+  if (!(await isAdmin(supabase, user))) redirect('/admin')
 
-  const { data: product, error } = await supabase
+  // ★배합비(ingredients)는 service_role 로만 읽힌다 (2026-10-06, 규칙164).
+  // anon·authenticated 에서 칸 권한을 뺐다(마이그 20261006140000) — 쿠키 클라이언트로
+  // select('*') 하면 permission denied. 폼이 배합비를 편집하므로 관리자 확인 뒤 service_role.
+  // 저장(ProductForm)은 쿠키 클라이언트 UPDATE 그대로 — RETURNING 을 받지 않아 칸 권한이 필요 없다.
+  const admin = createAdminClient()
+  const { data: product, error } = await admin
     .from('products')
     .select('*')
     .eq('id', id)

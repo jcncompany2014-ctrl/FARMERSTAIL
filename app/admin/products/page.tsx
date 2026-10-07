@@ -10,11 +10,22 @@ export const dynamic = 'force-dynamic'
 
 const PER_PAGE = 50
 
-// sales_channel 은 마이그레이션 20260719120000 신설 — generated types 재생성
-// 전까지 로컬 확장. own=자사몰 구독(화식), external=외부 채널(스마트스토어·쿠팡).
-type ProductRow = Database['public']['Tables']['products']['Row'] & {
+// sales_channel: own=자사몰 구독(화식), external=외부 채널(스마트스토어·쿠팡).
+type ProductRow = Pick<
+  Database['public']['Tables']['products']['Row'],
+  'id' | 'name' | 'slug' | 'category' | 'price' | 'sale_price' | 'image_url' | 'stock' | 'is_active'
+> & {
   sales_channel: 'own' | 'external'
 }
+
+/**
+ * ★칸 목록 — select('*') 금지 (2026-10-06, 규칙164).
+ * products.ingredients(배합비)는 anon·authenticated 에서 칸 권한을 뺐다
+ * (마이그 20261006140000). 관리자도 쿠키 클라이언트(authenticated)로는 못 읽으므로
+ * '*' 는 permission denied 로 목록 전체가 깨진다. 이 화면은 배합비가 필요 없다.
+ */
+const LIST_COLUMNS =
+  'id, name, slug, category, price, sale_price, image_url, stock, is_active, sort_order, created_at, sales_channel'
 
 type SearchParams = Promise<{
   q?: string
@@ -58,7 +69,7 @@ export default async function AdminProductsPage({
 
   let query = supabase
     .from('products')
-    .select('*', { count: 'exact' })
+    .select(LIST_COLUMNS, { count: 'exact' })
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
     .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)

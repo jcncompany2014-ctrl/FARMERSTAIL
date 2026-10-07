@@ -5900,3 +5900,115 @@ test('규칙163: 11차 점검 A — 고지 첫 결제일·재개 CAS·결제 박
   const webhook = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'webhook', 'route.ts')))
   assert.match(webhook, /order_status: order\.subscription_id\s*\?\s*order\.order_status/, '웹훅이 정기결제 주문을 발송 대기로 올린다')
 })
+
+/**
+ * `start` 부터 한 문장(메서드 체인)의 끝까지를 잘라낸다 — 규칙164 용 작은 파서.
+ * 괄호·문자열 안은 건너뛰고, 깊이 0 에서 `,` `;` 닫는 괄호, 또는 다음 줄이 `.` 로 이어지지
+ * 않는 줄바꿈(앞 줄이 `+`·`=` 로 끝나면 이어짐)에서 멈춘다. 이 저장소는 세미콜론을 안 쓴다.
+ */
+function statementFrom(src: string, start: number): string {
+  let depth = 0
+  let quote: string | null = null
+  for (let i = start; i < src.length; i++) {
+    const ch = src[i]
+    if (quote) {
+      if (ch === '\\') i++
+      else if (ch === quote) quote = null
+      continue
+    }
+    if (ch === "'" || ch === '"' || ch === '`') quote = ch
+    else if (ch === '(' || ch === '{' || ch === '[') depth++
+    else if (ch === ')' || ch === '}' || ch === ']') {
+      if (depth === 0) return src.slice(start, i)
+      depth--
+    } else if (depth === 0 && (ch === ',' || ch === ';')) return src.slice(start, i)
+    else if (depth === 0 && ch === '\n') {
+      if (src.slice(start, i).trim() === '') continue // `= ↵ '…'` 처럼 다음 줄에서 시작
+      const prev = src.slice(start, i).trimEnd().slice(-1)
+      const next = src.slice(i + 1).match(/^\s*(\S)/)?.[1]
+      if (next !== '.' && prev !== '+' && prev !== '=') return src.slice(start, i)
+    }
+  }
+  return src.slice(start)
+}
+
+test('규칙164: 배합비(products.ingredients)는 공개 조회에서 빠져 있고, products 를 * 나 ingredients 로 읽는 곳은 관리자 확인 + service_role 뿐', () => {
+  /**
+   * # 왜 (2026-10-06 운영 DB 실측)
+   * products.ingredients 에 화식 4종의 배합비(%)가 들어 있는데(영업비밀 — lib/recipe-ingredients.ts),
+   * 표 권한이 Supabase 기본값(anon·authenticated 표 전체 SELECT)이라 **공개 anon 키로 REST 조회하면
+   * 누구나 배합비를 읽었다.** RLS 는 행을 거르지 칸을 거르지 않는다(AGENTS 규칙3: 쓸 수 없게/읽을 수
+   * 없게 만드는 층위를 먼저 본다).
+   * 칸 권한을 뺀 뒤에는 쿠키 클라이언트(관리자 포함 authenticated)의 select('*')·ingredients 조회가
+   * permission denied 로 **화면 전체를 깨뜨린다** — 그래서 세 가지를 잠근다:
+   *  ① 마이그레이션이 공개 grant 에서 ingredients 를 빼고, 뒤 마이그레이션이 되돌려주지 않는다.
+   *  ② products 를 '*'·ingredients 로 읽는 곳은 정해진 어드민 3곳뿐이고, 셋 다 관리자 확인 + service_role.
+   *  ③ 다른 표 조회에 products(*)·products(ingredients) 를 끼워 읽지 않는다.
+   */
+  const migDir = join(ROOT, 'supabase', 'migrations')
+  const MIG = '20261006140000_products_hide_ingredients.sql'
+  const sql = read(join(migDir, MIG)).replace(/--.*$/gm, '')
+  assert.match(sql, /revoke select on public\.products from anon, authenticated;/, '표 전체 SELECT 회수가 없다 — 배합비가 공개 조회된다')
+  const grant = sql.match(/grant select \(([\s\S]*?)\) on public\.products to anon, authenticated;/)
+  assert.ok(grant, '칸 단위 공개 grant 가 없다')
+  const cols = (grant?.[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  assert.ok(!cols.includes('ingredients'), '공개 grant 에 ingredients(배합비)가 들어 있다')
+  for (const c of ['id', 'name', 'slug', 'price', 'sale_price', 'image_url', 'stock', 'is_subscribable', 'is_active', 'nutrition_facts', 'net_weight_g', 'sales_channel']) {
+    assert.ok(cols.includes(c), `고객 화면이 읽는 칸 ${c} 가 공개 grant 에서 빠졌다 — 구독 화면이 permission denied`)
+  }
+  assert.match(sql, /has_column_privilege\('anon', 'public\.products', 'ingredients', 'select'\)/, '마이그레이션 자기 검증(적용 직후 권한 대조)이 없다')
+
+  // ① 뒤 마이그레이션이 표 전체 SELECT·ingredients 칸을 공개 역할에 되돌려주지 않는다.
+  const regrants: string[] = []
+  for (const f of readdirSync(migDir).filter((n) => n.endsWith('.sql') && n > MIG)) {
+    const s = read(join(migDir, f)).replace(/--.*$/gm, '').toLowerCase()
+    const pub = String.raw`[^;]*\b(?:anon|authenticated|public)\b`
+    if (
+      new RegExp(String.raw`grant\s+(?:select|all)\b[^;(]*\bon\s+(?:table\s+)?(?:public\.)?products\s+to` + pub).test(s) ||
+      new RegExp(String.raw`grant\s+select\s*\([^)]*\bingredients\b[^)]*\)\s*on\s+(?:table\s+)?(?:public\.)?products\s+to` + pub).test(s) ||
+      new RegExp(String.raw`grant\s+[^;]*\bon\s+all\s+tables\s+in\s+schema\s+public\s+to` + pub).test(s)
+    )
+      regrants.push(f)
+  }
+  assert.deepEqual(regrants, [], `뒤 마이그레이션이 products 표 SELECT(또는 ingredients)를 공개 역할에 되돌려준다 — 배합비가 다시 샌다:\n${regrants.join('\n')}`)
+
+  // ②③ 코드 — products 를 읽는 모든 체인을 해석한다.
+  const readers = new Set<string>()
+  const offenders: string[] = []
+  let scanned = 0
+  for (const f of [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib')), ...walk(join(ROOT, 'components'))]) {
+    const src = stripComments(read(f))
+    if (/\bproducts(?:!\w+)?\s*\(\s*(?:\*|[^)]*\bingredients\b)/.test(src)) offenders.push(`${rel(f)} — 다른 표 조회에 products(*)·products(ingredients) 를 끼워 읽는다`)
+    for (const m of src.matchAll(/\.from\(\s*['"`]products['"`]\s*\)/g)) {
+      const receiver = src.slice(0, m.index).match(/(\w+)\s*$/)?.[1] ?? '(식)'
+      if (receiver === 'storage') continue // 스토리지 버킷 'products' — 표가 아니다
+      scanned++
+      const chain = statementFrom(src, m.index! + m[0].length)
+      const at = chain.indexOf('.select(')
+      if (at === -1) continue // update·delete·insert 만 — 읽지 않는다
+      const args = statementFrom(chain, at + '.select('.length)
+      let first = args.trim()
+      const ident = first.match(/^([A-Za-z_$][\w$]*)$/)?.[1]
+      if (ident) {
+        const def = src.match(new RegExp(String.raw`const ${ident}\s*(?::[^=]+)?=`))
+        first = def ? statementFrom(src, def.index! + def[0].length) : ''
+      }
+      const text = [...first.matchAll(/(['"`])((?:\\.|(?!\1)[\s\S])*)\1/g)].map((x) => x[2]).join('')
+      const star = args.trim() === '' || text.split(',').some((c) => c.trim() === '*')
+      if (!star && !/\bingredients\b/.test(text)) continue
+      readers.add(rel(f))
+      const viaServiceRole = new RegExp(String.raw`const ${receiver}\s*=\s*createAdminClient\(\)`).test(src)
+      const adminChecked = /\bisAdmin\(|\brequireAdmin\(/.test(src)
+      if (!viaServiceRole || !adminChecked)
+        offenders.push(`${rel(f)} — products 를 ${star ? "select('*')" : 'ingredients'} 로 읽는데 ${viaServiceRole ? '' : 'service_role 이 아니다(쿠키·브라우저 클라이언트는 permission denied) '}${adminChecked ? '' : '관리자 확인이 없다'}`)
+    }
+  }
+  assert.ok(scanned >= 20, `products 조회를 ${scanned}곳밖에 못 찾았다 — 스캐너가 망가졌다`)
+  assert.deepEqual(offenders, [], `배합비 보호 위반:\n${offenders.join('\n')}`)
+  // 배합비를 읽는 곳은 화이트리스트다 — 늘리려면 여기서 이유와 함께 추가한다(관리자 확인 + service_role).
+  assert.deepEqual([...readers].sort(), [
+    'app/admin/label/[sku]/page.tsx', // 사료관리법 라벨 — 원료명 및 함량
+    'app/admin/page.tsx', // 식품정보고시 채움률 — 채움 여부만, 문자열은 브라우저로 안 넘어감
+    'app/admin/products/[id]/page.tsx', // 상품 수정 폼 — 배합비 편집
+  ], `products 를 '*'·ingredients 로 읽는 곳이 바뀌었다 — 배합비가 새 화면으로 흐르는지 확인하고 목록을 갱신한다`)
+})
