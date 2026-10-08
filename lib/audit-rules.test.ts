@@ -5328,15 +5328,20 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
    * 기준이었다. 안드로이드 12+ 는 OS 가 **앱 아이콘(도장)** 을 띄우므로 웹(글자 로고)과 그림이 달랐고, 두 화면이
    * 각자 타이머(1.5초·1.8초)로 걷혔다(에뮬레이터 녹화로 확인). 이제 셋 다 같은 도장이고 웹이 폰 화면을 걷는다.
    */
-  // ① 같은 도장·같은 크기: 웹 그림 칸 132 = 안드로이드 레이어 목록 132dp = 아이콘 칸 288 − 78×2.
+  // ① 같은 도장·같은 크기: 웹 그림 칸 132(도장 126) = 안드로이드 레이어 목록 132dp = 앱 아이콘 구조 그대로 그린
+  //    안드로이드 12+ 아이콘(실측 도장 126dp). 아이콘은 크기 숫자 대신 앱 아이콘 앞면·여백을 그대로 쓴다 —
+  //    비트맵에 dp 여백을 준 그림은 시스템이 108dp 칸에 놓고 키워 도장이 점처럼 작아졌다(2026-10-08 실측).
   const splashSrc = read(join(ROOT, 'components', 'AppSplash.tsx'))
   const box = Number(splashSrc.match(/export const SPLASH_STAMP_BOX = (\d+)/)?.[1])
   assert.equal(box, 132, '웹 도장 칸이 132가 아니다 — 안드로이드 12+ 아이콘 도장(실측 지름 126dp)과 크기가 어긋난다')
   const res = join(ROOT, 'android', 'app', 'src', 'main', 'res')
   const layer = read(join(res, 'drawable', 'splash.xml'))
   assert.match(layer, new RegExp(`android:width="${box}dp"[\\s\\S]*android:height="${box}dp"[\\s\\S]*android:gravity="center"`), '옛 방식 폰 화면(drawable/splash)의 도장 크기가 웹과 다르다')
-  const inset = Number(read(join(res, 'drawable', 'splash_icon.xml')).match(/android:inset="(\d+)dp"/)?.[1])
-  assert.equal(288 - inset * 2, box, '안드로이드 12+ 아이콘 칸(288dp) 안의 도장 크기가 웹과 다르다')
+  const launcherFg = read(join(res, 'mipmap-anydpi-v26', 'ic_launcher.xml')).match(/<foreground>\s*<inset android:drawable="([^"]+)" android:inset="([^"]+)"/)
+  const splashIcon = read(join(res, 'drawable-v26', 'splash_icon.xml'))
+  assert.ok(launcherFg && splashIcon.includes('<adaptive-icon') && splashIcon.includes(`<inset android:drawable="${launcherFg[1]}" android:inset="${launcherFg[2]}"`), '안드로이드 12+ 스플래시 아이콘이 앱 아이콘과 같은 앞면·여백의 적응형이 아니다 — 도장 크기(실측 126dp)가 웹과 어긋난다')
+  assert.match(splashIcon, /<background android:drawable="@color\/ft_splash_bg"/, '스플래시 아이콘 뒷면이 스플래시 바탕색이 아니다 — 바탕 위에 옅은 원이 비친다')
+  assert.match(splashSrc, /requestVideoFrameCallback/, '꼬리 영상을 실제 장면이 그려지기 전에 보이게 한다 — 안드로이드 웹뷰에서 빈 영상 칸이 도장을 가린다')
   const pngLeft = readdirSync(res).filter((d) => d.startsWith('drawable') && existsSync(join(res, d, 'splash.png')))
   assert.deepEqual(pngLeft, [], `splash.png 가 다시 생겼다(${pngLeft.join(', ')}) — drawable/splash.xml(도장)을 가리고 글자 로고가 뜬다(npm run cap:assets 뒤 지울 것)`)
   // ② 같은 바탕 = 앱 종이색(--paper). 사장님 10/8 "저 크림색 배경이 맞아? 우리 앱 기본 배경색이랑 다른데" —

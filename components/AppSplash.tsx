@@ -41,6 +41,9 @@ export const IOS_LAUNCH_STAMP_PX = 427
 // 네이티브 호출은 Capacitor 브리지(문서 시작 때 주입)의 nativePromise 로 — 번들 로드를 기다리지 않는다.
 // 안드로이드 StatusBar.getInfo 높이는 dp 를 버림한 정수라(실측 51.8 → 51) 0.5 를 더해 가운데값으로 쓴다
 // (에뮬레이터 실측: 안 더하면 도장이 폰 화면보다 4.5px 아래). iOS 는 소수까지 준다.
+// 영상은 **실제로 장면이 두 번 그려진 뒤**(requestVideoFrameCallback)에야 보이게 한다 — 'playing' 신호로 켰더니
+// 안드로이드 웹뷰가 첫 장면을 그리기 전 1.8초 동안 빈 영상 칸이 정지 도장을 가렸다(새 앱 빌드 녹화 실측).
+// 이 기능이 없는 웹뷰(iOS 15.3 이하 등)는 영상을 아예 안 받고 정지 도장 + 점만 보여 준다.
 const SCRIPT = `(function(){try{
 var el=document.currentScript&&document.currentScript.parentNode;if(!el)return;
 var root=document.documentElement,cap=window.Capacitor;
@@ -60,8 +63,8 @@ info=call('StatusBar','getInfo').then(function(i){if(i&&typeof i.height==='numbe
 var still=el.querySelector('.ft-splash__still'),wag=el.querySelector('.ft-splash__wag');
 still.src=still.getAttribute('data-src');
 var ready=still.decode?still.decode().catch(function(){}):new Promise(function(r){still.onload=still.onerror=r});
-var calm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-if(!calm){wag.muted=true;wag.setAttribute('muted','');wag.src=wag.getAttribute('data-src');wag.addEventListener('playing',function(){el.classList.add('ft-splash--wag')},{once:true})}
+var calm=(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||typeof wag.requestVideoFrameCallback!=='function';
+if(!calm){wag.muted=true;wag.setAttribute('muted','');wag.src=wag.getAttribute('data-src');var frames=0;var onFrame=function(){if(++frames>=2)el.classList.add('ft-splash--wag');else wag.requestVideoFrameCallback(onFrame)};wag.requestVideoFrameCallback(onFrame)}
 var shown=false,gone=false,t0=0;
 var out=function(){if(gone)return;gone=true;el.classList.add('ft-splash--out');setTimeout(function(){el.style.display='none';try{wag.pause();wag.removeAttribute('src');wag.load()}catch(e){}},450)};
 var reveal=function(){if(shown)return;shown=true;t0=Date.now();hideNative();
