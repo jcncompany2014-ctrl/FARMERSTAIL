@@ -5328,9 +5328,10 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
    * 기준이었다. 안드로이드 12+ 는 OS 가 **앱 아이콘(도장)** 을 띄우므로 웹(글자 로고)과 그림이 달랐고, 두 화면이
    * 각자 타이머(1.5초·1.8초)로 걷혔다(에뮬레이터 녹화로 확인). 이제 셋 다 같은 도장이고 웹이 폰 화면을 걷는다.
    */
-  // ① 같은 도장·같은 크기: 웹 그림 칸 132(도장 126) = 안드로이드 레이어 목록 132dp = 앱 아이콘 구조 그대로 그린
-  //    안드로이드 12+ 아이콘(실측 도장 126dp). 아이콘은 크기 숫자 대신 앱 아이콘 앞면·여백을 그대로 쓴다 —
-  //    비트맵에 dp 여백을 준 그림은 시스템이 108dp 칸에 놓고 키워 도장이 점처럼 작아졌다(2026-10-08 실측).
+  // ① 같은 도장·같은 크기: 웹 그림 칸 132(도장 126) = 안드로이드 레이어 목록 132dp = 안드로이드 12+ 아이콘
+  //    (앱 아이콘 앞면을 쓴 적응형, 여백 22% — 에뮬레이터 녹화로 폰 도장 118px · 웹 117px 실측).
+  //    비트맵에 dp 여백을 준 그림은 시스템이 108dp 칸에 놓고 키워 도장이 점처럼 작아졌고, 앱 아이콘 여백(16.7%)
+  //    그대로는 1.19배 컸다(2026-10-08 실측). 여백을 바꾸면 녹화로 다시 재고 여기 숫자도 고칠 것.
   const splashSrc = read(join(ROOT, 'components', 'AppSplash.tsx'))
   const box = Number(splashSrc.match(/export const SPLASH_STAMP_BOX = (\d+)/)?.[1])
   assert.equal(box, 132, '웹 도장 칸이 132가 아니다 — 안드로이드 12+ 아이콘 도장(실측 지름 126dp)과 크기가 어긋난다')
@@ -5339,7 +5340,7 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
   assert.match(layer, new RegExp(`android:width="${box}dp"[\\s\\S]*android:height="${box}dp"[\\s\\S]*android:gravity="center"`), '옛 방식 폰 화면(drawable/splash)의 도장 크기가 웹과 다르다')
   const launcherFg = read(join(res, 'mipmap-anydpi-v26', 'ic_launcher.xml')).match(/<foreground>\s*<inset android:drawable="([^"]+)" android:inset="([^"]+)"/)
   const splashIcon = read(join(res, 'drawable-v26', 'splash_icon.xml'))
-  assert.ok(launcherFg && splashIcon.includes('<adaptive-icon') && splashIcon.includes(`<inset android:drawable="${launcherFg[1]}" android:inset="${launcherFg[2]}"`), '안드로이드 12+ 스플래시 아이콘이 앱 아이콘과 같은 앞면·여백의 적응형이 아니다 — 도장 크기(실측 126dp)가 웹과 어긋난다')
+  assert.ok(launcherFg && splashIcon.includes('<adaptive-icon') && splashIcon.includes(`<inset android:drawable="${launcherFg[1]}" android:inset="22%"`), '안드로이드 12+ 스플래시 아이콘이 앱 아이콘 앞면·여백 22% 의 적응형이 아니다 — 폰 화면 도장 크기가 웹(126dp)과 어긋난다')
   assert.match(splashIcon, /<background android:drawable="@color\/ft_splash_bg"/, '스플래시 아이콘 뒷면이 스플래시 바탕색이 아니다 — 바탕 위에 옅은 원이 비친다')
   assert.match(splashSrc, /requestVideoFrameCallback/, '꼬리 영상을 실제 장면이 그려지기 전에 보이게 한다 — 안드로이드 웹뷰에서 빈 영상 칸이 도장을 가린다')
   const pngLeft = readdirSync(res).filter((d) => d.startsWith('drawable') && existsSync(join(res, d, 'splash.png')))
@@ -5365,9 +5366,14 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
   assert.ok(rgb, 'iOS 런치 화면 바탕색을 못 찾았다')
   const iosHex = '#' + [rgb![1], rgb![2], rgb![3]].map((v) => Math.round(Number(v) * 255).toString(16).padStart(2, '0')).join('').toUpperCase()
   assert.equal(iosHex, splashBg!.toUpperCase(), 'iOS 런치 화면 바탕색이 스플래시 색과 다르다')
-  // ③ 한 번만: 폰 화면은 웹이 걷고(타이머는 안전망), 페이드는 끈다(안드로이드 12+ 는 아이콘만 페이드를 안 따라가 겹쳐 보였다).
+  // ③ 한 번만: 폰 화면은 웹이 걷고(타이머는 안전망), 걷힐 때 0.3~0.8초 페이드 — 안드로이드 12+ 는 그동안 바탕만 흐려지고
+  //    도장은 남아 있다가 끝에 사라져, 웹뷰가 첫 장면을 그리기까지의 빈 틈(실측 ~0.6초)을 덮는다. 0 이면 시스템
+  //    기본 페이드로 도장까지 흐려져 빈 화면이 비쳤다(에뮬레이터 녹화 실측).
   const sp = cap.match(/SplashScreen:\s*\{([\s\S]*?)\n {4}\},/)?.[1] ?? ''
-  assert.match(sp, /launchFadeOutDuration: 0,/, '폰 화면 페이드가 켜졌다 — 안드로이드 12+ 에서 도장이 한 번 더 겹쳐 보인다')
+  const fadeMs = Number(sp.match(/launchFadeOutDuration: (\d+)/)?.[1])
+  assert.ok(fadeMs >= 300 && fadeMs <= 800, `폰 화면 페이드(${fadeMs}ms)가 0.3~0.8초 밖이다 — 짧으면 빈 화면이 비치고 길면 도장 두 개가 겹친다`)
+  assert.match(styles, /parent="Theme\.SplashScreen\.IconBackground"/, '폰 화면 테마가 IconBackground 가 아니다 — 아이콘 뒷면 색이 안 넘어가 도장 크기 규칙이 달라진다')
+  assert.match(styles, /windowSplashScreenIconBackgroundColor">@color\/ft_splash_bg</, '폰 화면 아이콘 뒷면 색이 스플래시 색이 아니다')
   const showMs = Number(sp.match(/launchShowDuration: (\d+)/)?.[1])
   assert.ok(showMs >= 3000, `폰 화면 타이머(${showMs}ms)가 짧다 — 웹이 걷기 전에 먼저 걷혀 사이에 빈 화면이 낀다`)
   assert.match(splashSrc, /call\('SplashScreen','hide'\)/, '웹 로딩 화면이 폰 화면을 걷지 않는다 — 타이머로만 걷혀 다시 두 번 뜬다')
