@@ -1794,6 +1794,30 @@ html.ft-splash-skip .ft-splash {
 .ft-splash--wag .ft-splash__wag {
   opacity: 1;
 }
+/* 옛 아이폰 앱(FtShell/2 이전) 전용 — 그 앱의 런치 화면이 크림 바탕 글자 로고라, 같은 그림·같은 크기·같은 자리·
+   같은 크림으로 이어받는다(사장님 10/8 아이폰 화면: 글자 로고와 도장이 겹쳐 보였다). 크기·자리는 스크립트가 넣는다
+   (--ft-mark-w = 화면 높이 × 1000/2732, 중심 = 웹뷰 기준 화면 높이/2). 업데이트하면 도장으로 바뀐다. */
+.ft-splash__mark {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: var(--ft-stamp-y, 50%);
+  width: var(--ft-mark-w, 0px);
+  height: auto;
+  transform: translate(-50%, -50%);
+}
+html.ft-old-shell-ios .ft-splash {
+  background: #F5F0E6;
+}
+html.ft-old-shell-ios .ft-splash__stamp {
+  display: none;
+}
+html.ft-old-shell-ios .ft-splash__mark {
+  display: block;
+}
+html.ft-old-shell-ios .ft-splash__dots {
+  top: calc(var(--ft-stamp-y, 50%) + var(--ft-mark-w, 0px) * 0.0865 + 36px);
+}
 /* 점 3개 — 도장 바로 아래(도장 지름 아래 33px), 도장 갈색. */
 .ft-splash__dots {
   position: absolute;

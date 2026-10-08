@@ -5376,7 +5376,13 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
   assert.match(styles, /windowSplashScreenIconBackgroundColor">@color\/ft_splash_bg</, '폰 화면 아이콘 뒷면 색이 스플래시 색이 아니다')
   const showMs = Number(sp.match(/launchShowDuration: (\d+)/)?.[1])
   assert.ok(showMs >= 3000, `폰 화면 타이머(${showMs}ms)가 짧다 — 웹이 걷기 전에 먼저 걷혀 사이에 빈 화면이 낀다`)
-  assert.match(splashSrc, /call\('SplashScreen','hide'\)/, '웹 로딩 화면이 폰 화면을 걷지 않는다 — 타이머로만 걷혀 다시 두 번 뜬다')
+  assert.match(splashSrc, /call\('SplashScreen','hide',ios\?\{fadeOutDuration:0\}:\{\}\)/, '웹 로딩 화면이 폰 화면을 걷지 않거나, 아이폰에서 겹쳐 사라지는 효과가 켜졌다 — 옛 글자 로고와 도장이 겹쳐 보인다')
+  // ⑤ 아이폰(사장님 10/8 아이폰 화면): 앱이 다시 띄우는 폰 화면은 웹뷰 맨 위에 화면 크기로 붙어 중심이 웹뷰 기준 화면높이/2 —
+  //    상태바를 빼면 그만큼 어긋난다. 옛 아이폰 앱은 런치 화면이 크림 바탕 글자 로고라 같은 그림·자리·바탕으로 잇는다.
+  assert.match(splashSrc, /if\(ios\)\{place\(0\)/, '아이폰 도장 자리에서 상태바를 뺀다 — 폰 화면(웹뷰 기준 화면높이/2)과 어긋난다')
+  assert.match(splashSrc, /export const SPLASH_MARK_SRC = '\/logo-ink\.png'/, '옛 아이폰 앱 로딩 글자 로고가 런치 화면과 같은 그림이 아니다')
+  assert.match(splashSrc, /export const IOS_LAUNCH_MARK_PX = 1000\b/, '옛 아이폰 런치 화면 글자 로고 폭(2732 중 1000)이 바뀌었다')
+  assert.match(css, /html\.ft-old-shell-ios \.ft-splash \{\s*background: #F5F0E6;/, '옛 아이폰 앱 로딩 바탕이 그 앱 폰 화면(크림)과 다르다')
   assert.match(splashSrc, /call\('StatusBar','getInfo'\)/, '도장 자리를 상태바 높이로 맞추지 않는다 — 폰 화면 도장과 어긋나 튄다')
   // ④ 절대 안 남는다: JS 가 죽어도 CSS 가 걷는다.
   assert.match(css, /html\.ft-standalone \.ft-splash \{[^}]*animation: ft-splash-fallback 0\.45s ease [1-8]s forwards/, '웹 로딩 화면의 비상 걷힘(CSS)이 없다 — 스크립트가 실패하면 화면이 안 걷힌다')
