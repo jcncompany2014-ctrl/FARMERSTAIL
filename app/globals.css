@@ -168,8 +168,10 @@
   --ft-paybar-h: 80px;
   /* 네이티브(Capacitor) 가 상태바·홈바 safe-area 구간을 칠하는 색 = capacitor.config.ts
      backgroundColor. 하단 탭바가 이 색을 써서 홈바 구간과 한 덩어리로 보인다(2026-09-22).
-     값을 바꾸면 capacitor.config.ts 도 같이 — 규칙84 가 두 값을 같게 잠근다. */
-  --ft-native-bg: #F5F0E6;
+     값을 바꾸면 capacitor.config.ts 도 같이 — 규칙84 가 두 값을 같게 잠근다.
+     ★2026-10-08 크림(#F5F0E6) → 앱 종이색(--paper)으로 통일(사장님 "앱 기본 배경색이랑 다른데").
+     옛 아이폰 셸(FtShell/2 이전)은 네이티브가 아직 크림이라 아래 html.ft-old-shell-ios 가 되돌린다. */
+  --ft-native-bg: #F7F5F0;
 
   /* 마커 하이라이트 **배경** 전용. paper 위 글자색으로 쓰면 1.69:1 로 안 보인다. */
   --yellow: #e6b942;
@@ -274,6 +276,11 @@
   --tr-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
   --tr-base: 240ms cubic-bezier(0.16, 1, 0.3, 1);
   --tr-slow: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* 옛 아이폰 셸(네이티브 바탕이 아직 크림 #F5F0E6) — 홈바 구간과 탭바 색을 계속 맞춘다(규칙84의 이유 그대로).
+   app/layout.tsx head 스크립트가 UA 에 FtShell/2 가 없는 iOS 앱에만 붙인다. 업데이트하면 저절로 종이색. */
+html.ft-old-shell-ios [data-ft-chrome="app"] {
+  --ft-native-bg: #F5F0E6;
 }
 
 /* =========================================================================
@@ -1722,46 +1729,32 @@ html[data-theme="dark"] .fiber::after {
   animation: fade-in-up 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
-/* ── 브랜드 로더 — /logo-ink.png 워드마크가 은은하게 숨쉰다 (BrandLoader). */
-@keyframes ft-brand-breathe {
-  0%, 100% { opacity: 0.5; transform: scale(0.97); }
-  50%      { opacity: 1; transform: scale(1.02); }
-}
-
-/* ── 앱 첫 실행 스플래시 (components/AppSplash.tsx) — 로고가 살짝 커지며
-   정착 등장 → 은은히 숨쉬고, 하단 점 3개가 통통 튄다. 설치형 PWA 실행에서만.
-
-   CSS 전용(무 JS): SSR HTML 부터 화면을 덮어 웹 본문 ~0.1s 플래시를 없애고,
-   노출 게이트/자동 종료를 모두 CSS 로 처리한다. 브라우저는 display:none →
-   첫 페인트부터 안 보임. 설치형 PWA 만 media(display-mode: standalone) 또는
-   html.ft-standalone(iOS 레거시 navigator.standalone) 로 노출.
-   prefers-reduced-motion 은 globals 전역 가드가 즉시화(접근성). */
-/* ★네이티브 스플래시(capacitor.config SplashScreen)와 **한 화면처럼** 이어지게(사장님 2026-10-01
-   "굳이 두 번 떠야 하냐 … 위아래 색이 배경색이랑 다른 누런색"). 예전엔 배경이 var(--bg)·로고 210px·
-   등장 모션이라 네이티브(크림 #F5F0E6·큰 로고)가 걷히는 순간 다른 화면이 하나 더 뜨는 것처럼 보였고,
-   상태바(네이티브 #F5F0E6)만 누렇게 띠로 남았다.
-   네이티브 이미지 실측(ios Splash 2732² · android port 960×1600): 배경 #F5F0E6, 로고 폭 = 화면 높이의 36.5%,
-   화면 정중앙. 웹뷰는 상태바 아래에서 시작하므로(overlaysWebView=false) 높이에 상태바(~47px)를 더해
-   크기를 맞추고, 중심을 상태바 절반만큼 올린다. 점 3개만 더해져 "로딩 중"으로 이어진다. */
+/* ── 앱 첫 실행 로딩 (components/AppSplash.tsx) — 꼬리 흔드는 도장 + 점 3개.
+   ★폰이 띄우는 화면(capacitor.config SplashScreen)의 **연장**이다(사장님 2026-10-08 "로딩이 두 번 뜬다").
+   안드로이드 12+ 는 OS 가 앱 아이콘(도장, 실측 지름 126dp)을 화면 정중앙에 띄운다 — 같은 도장을 같은 크기·
+   같은 자리·같은 바탕(#F7F5F0 = 앱 종이색 = SplashScreen·StatusBar backgroundColor)에 놓고, 폰 화면은 이 화면이 그려질
+   준비가 되면 스크립트가 걷는다(SplashScreen.hide). 자리·크기는 스크립트가 --ft-stamp-y·--ft-stamp-size 로
+   넣는다(웹뷰는 상태바 아래에서 시작 → 중심 = 화면 높이/2 − 상태바 높이). 기본값(설치형 PWA)은 화면 가운데.
+   사라지는 것도 스크립트가 정한다(문서 load 뒤, 꼬리 한 번은 보여 주고, 최대 4.5초).
+   ★2026-10-01 교훈 그대로: 바탕·상태바가 다르면 위에 띠가 남고, 그림·크기가 다르면 두 번 뜬 것처럼 보인다.
+   브라우저는 display:none — 첫 페인트부터 안 보이고 그림도 안 받는다. */
 .ft-splash {
   display: none; /* 기본: 웹 브라우저 — 첫 페인트부터 숨김 */
   position: fixed;
   inset: 0;
   z-index: 9999;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #F5F0E6; /* = capacitor.config SplashScreen·StatusBar backgroundColor */
+  background: #F7F5F0; /* = 앱 종이색(--paper) = capacitor.config SplashScreen·StatusBar backgroundColor */
 }
+/* JS 가 죽어도 6초 뒤엔 걷힌다(평소엔 스크립트가 훨씬 먼저 ft-splash--out 으로 걷는다). */
 @media all and (display-mode: standalone) {
   .ft-splash {
-    display: flex;
-    animation: ft-splash-dismiss 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    display: block;
+    animation: ft-splash-fallback 0.45s ease 6s forwards;
   }
 }
 html.ft-standalone .ft-splash {
-  display: flex;
-  animation: ft-splash-dismiss 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  display: block;
+  animation: ft-splash-fallback 0.45s ease 6s forwards;
 }
 /* 스플래시는 앱 실행(세션)당 한 번 — 카드 등록 복귀·소셜 로그인 복귀·'다시 시도'·배포 직후 전체
    로드마다 2.1초 로고가 다시 덮던 것(2026-09-26 점검 8차). layout 인라인 스크립트가 sessionStorage 로
@@ -1769,25 +1762,52 @@ html.ft-standalone .ft-splash {
 html.ft-splash-skip .ft-splash {
   display: none !important;
 }
-.ft-splash__logo {
-  /* 네이티브와 같은 크기·자리 — 등장 모션 없이 그대로 이어받고 은은한 숨쉬기만(scale 1 에서 시작). */
-  width: min(calc((100vh + 47px) * 0.365), 88vw);
-  height: auto;
-  position: relative;
-  top: -23px;
-  animation: ft-splash-breathe 2.4s ease-in-out infinite;
+.ft-splash--out {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s;
 }
+/* 도장 — 등장 모션 없음(폰 화면의 도장을 그대로 이어받는다). 정지 그림 위에 영상이 재생되기 시작하면 덮는다.
+   바깥 가장자리는 바탕으로 녹인다(영상·그림의 크림이 CSS 크림과 1~3 정도 달라도 테두리가 안 보이게). */
+.ft-splash__stamp {
+  position: absolute;
+  left: 50%;
+  top: var(--ft-stamp-y, 50%);
+  width: var(--ft-stamp-size, 132px);
+  height: var(--ft-stamp-size, 132px);
+  transform: translate(-50%, -50%);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 97%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 97%, transparent 100%);
+}
+.ft-splash__still,
+.ft-splash__wag {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.ft-splash__wag {
+  opacity: 0;
+}
+.ft-splash--wag .ft-splash__wag {
+  opacity: 1;
+}
+/* 점 3개 — 도장 바로 아래(도장 지름 아래 33px), 도장 갈색. */
 .ft-splash__dots {
   position: absolute;
-  bottom: calc(84px + env(safe-area-inset-bottom));
+  left: 50%;
+  top: calc(var(--ft-stamp-y, 50%) + var(--ft-stamp-size, 132px) / 2 + 33px);
+  transform: translateX(-50%);
   display: flex;
-  gap: 7px;
+  gap: 9px;
 }
 .ft-splash__dots span {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--terracotta);
+  background: #6D3C32; /* 도장 잉크색 */
   animation: ft-splash-dot 1s ease-in-out infinite;
 }
 .ft-splash__dots span:nth-child(2) {
@@ -1796,6 +1816,7 @@ html.ft-splash-skip .ft-splash {
 .ft-splash__dots span:nth-child(3) {
   animation-delay: 0.32s;
 }
+/* 화면 이동 로딩(BrandLoader)의 도장 숨쉬기. */
 @keyframes ft-splash-breathe {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.035); }
@@ -1804,10 +1825,8 @@ html.ft-splash-skip .ft-splash {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
   50%      { opacity: 1; transform: translateY(-4px); }
 }
-/* 유지(~1.4s)했다가 부드럽게 페이드 → 완전히 비활성(visibility:hidden). */
-@keyframes ft-splash-dismiss {
-  0%, 66% { opacity: 1; visibility: visible; }
-  100%    { opacity: 0; visibility: hidden; }
+@keyframes ft-splash-fallback {
+  to { opacity: 0; visibility: hidden; }
 }
 
 /* ── 공유(web+app) 라우트의 editorial 본문 뒤로가기 링크 — 앱에선 상단 헤더

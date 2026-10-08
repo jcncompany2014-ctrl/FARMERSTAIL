@@ -17,10 +17,11 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <!-- Android 12+ 시스템 스플래시(첫 ~0.5초, 앱아이콘 원형)는 OS 강제라
-             이미지를 못 바꾼다. 배경색만 브랜드 크림으로 맞춰 그 다음
-             풀스크린 스플래시(워드마크)와 이어지게 한다. -->
-        <item name="windowSplashScreenBackground">#F5F0E6</item>
+        <!-- 앱 켤 때 폰 화면 = 크림 바탕 정중앙 도장(2026-10-08). 안드로이드 12+ 는 OS 가 아이콘 칸(288dp)에
+             그리고, 그보다 옛 기종은 drawable/splash(같은 그림)를 쓴다. 웹 로딩 화면(AppSplash)이 같은
+             도장을 같은 자리에 그린 뒤 이 화면을 걷는다 — 로딩이 한 번으로 보인다. -->
+        <item name="windowSplashScreenBackground">@color/ft_splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>

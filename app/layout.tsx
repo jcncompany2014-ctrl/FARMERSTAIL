@@ -12,7 +12,7 @@ import "./globals.css";
 // 적용된다 (같은 모듈 그래프).
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import AppSplash from "@/components/AppSplash";
+import AppSplash, { SPLASH_STILL_SRC } from "@/components/AppSplash";
 import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
@@ -25,7 +25,7 @@ import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
 import AppContextCookieSync from "@/components/AppContextCookieSync";
-import NativeShellBridge from "@/components/NativeShellBridge";
+import NativeShellBridge from "@/components/NativeShellBridge";
 import NativeUpdateNotice from "@/components/NativeUpdateNotice";
 import {
   buildOrganizationJsonLd,
@@ -383,10 +383,16 @@ export default function RootLayout({
           못 보여준다(@capacitor/splash-screen showWithAndroid12API 실측) —
           그 몫을 이 웹 스플래시(로고 모션)가 맡는다. 네이티브 브리지는 문서
           시작 시점에 주입되므로 head 인라인에서 동기적으로 읽을 수 있다.
+
+          ★2026-10-08 — 로딩이 뜰 실행(세션 첫 로드)이면 도장 그림을 head 에서 미리 받기
+          시작한다. 폰 화면(네이티브 스플래시)은 이 그림이 준비돼야 걷히므로(AppSplash) 빠를수록
+          폰 화면이 짧아진다. 웹 브라우저는 받지 않는다.
+          그리고 네이티브 셸 세대(UA 의 FtShell/N, capacitor.config appendUserAgent)를 읽어, 바탕이
+          아직 크림인 옛 아이폰 셸이면 html.ft-old-shell-ios 를 붙인다(탭바가 홈바 구간 색을 따라감).
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');}}catch(e){}}}catch(e){}})();`,
+            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');if(c){var g=/FtShell\\/(\\d+)/.exec(navigator.userAgent||'');if((!g||+g[1]<2)&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='ios'){h.classList.add('ft-old-shell-ios');}}try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');var l=document.createElement('link');l.rel='preload';l.as='image';l.href='${SPLASH_STILL_SRC}';document.head.appendChild(l);}}catch(e){}}}catch(e){}})();`,
           }}
         />
       </head>
@@ -427,7 +433,7 @@ export default function RootLayout({
         <AppContextCookieSync />
         {/* 네이티브 셸 연결 — 푸시 탭 라우팅 · App Links · 하드웨어 뒤로가기.
             웹/PWA 에서는 isNativeApp() 에서 즉시 빠져 아무 일도 안 한다. */}
-        <NativeShellBridge />
+        <NativeShellBridge />
         <NativeUpdateNotice />
         {/* Core Web Vitals beacon — Sentry 로 poor LCP/INP/CLS 알림 전송 */}
         <WebVitalsReporter />

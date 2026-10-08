@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 켤 때 폰 화면 바탕 = capacitor.config.ts SplashScreen·StatusBar backgroundColor
+         = 웹 로딩 화면(app/globals.css .ft-splash) 바탕. 셋이 다르면 한 화면처럼 안 이어진다(규칙149). -->
+    <color name="ft_splash_bg">#F7F5F0</color>
+</resources>

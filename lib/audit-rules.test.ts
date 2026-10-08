@@ -2672,12 +2672,15 @@ test('규칙58: 앱/웹 판정은 isAppRequest 정본을 거치고, UA 표식은
   const capCfg = read(join(ROOT, 'capacitor.config.ts'))
   const appended = capCfg.match(/appendUserAgent:\s*['"]([^'"]+)['"]/)?.[1]
   assert.ok(appended, 'capacitor.config.ts 에 appendUserAgent 가 없다 — 네이티브 첫 요청이 웹으로 렌더된다')
+  // 앞 토큰 = 앱 표식, 뒤 토큰 = 네이티브 셸 세대(FtShell/N, 2026-10-08 — 규칙149).
+  const [uaMarker, ...uaRest] = appended!.split(' ')
   assert.equal(
-    appended,
+    uaMarker,
     marker,
     `UA 표식이 갈라졌다: capacitor.config.ts="${appended}" vs lib="${marker}". ` +
       '둘이 다르면 서버가 앱을 못 알아본다.',
   )
+  assert.ok(uaRest.every((t) => /^FtShell\/\d+$/.test(t)), `UA 뒤 토큰은 셸 세대(FtShell/N)만 — "${uaRest.join(' ')}"`)
 
   // proxy.ts 는 ft_app 쿠키를 직접 읽지 않는다 (fromApp → isAppRequest 경유).
   const proxySrc = stripComments(read(join(ROOT, 'proxy.ts')))
@@ -5303,7 +5306,7 @@ test('규칙148: 처방 근거에 연어는 절대 안 나오고, 알레르기 �
   assert.match(fin, /UNSOLD_RECIPE_WORDS: readonly string\[\] = \['연어'\]/, '판매하지 않는 레시피 목록에서 연어가 빠졌다')
 })
 
-test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 네이티브 스플래시와 같은 배경·로고 크기로 이어진다', () => {
+test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 화면과 같은 바탕·같은 도장·같은 자리로 이어지고 폰 화면을 웹이 걷는다', () => {
   /**
    * # 왜 (2026-10-01 사장님 "앱 처음 들어가면 이렇게 뜨는 거 굳이 두 번 떠야 하냐 … 위아래 색이 배경색이랑 다른 누런색")
    * 네이티브 스플래시(크림 #F5F0E6·큰 로고)가 걷히면 웹 로딩 화면(var(--bg)·210px 로고·커지며 등장)이 다른 화면처럼
@@ -5318,9 +5321,54 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 네이
   const block = css.match(/\.ft-splash \{([^}]*)\}/)?.[1] ?? ''
   assert.ok(block.toUpperCase().includes(`BACKGROUND: ${splashBg!.toUpperCase()}`), `웹 로딩 화면 배경이 네이티브 스플래시(${splashBg})와 다르다 — 두 번 뜨는 것처럼 보인다`)
   assert.equal(splashBg!.toUpperCase(), statusBg!.toUpperCase(), '상태바 배경이 스플래시와 달라 위에 띠가 생긴다')
-  const logo = css.match(/\.ft-splash__logo \{([^}]*)\}/)?.[1] ?? ''
-  assert.match(logo, /width: min\(calc\(\(100vh \+ 47px\) \* 0\.365\), 88vw\)/, '로고 크기가 네이티브 스플래시(화면 높이의 36.5%)와 다르다')
   assert.doesNotMatch(css, /ft-splash-logo/, '로고 등장 모션이 돌아왔다 — 네이티브가 걷힐 때 로고가 다시 등장한다')
+
+  /**
+   * ★2026-10-08 (사장님 "앱 들어가면 로딩이 두 번 뜨는데 왜 그래") — 위 맞춤은 iOS·옛 안드로이드(글자 로고 풀스크린)
+   * 기준이었다. 안드로이드 12+ 는 OS 가 **앱 아이콘(도장)** 을 띄우므로 웹(글자 로고)과 그림이 달랐고, 두 화면이
+   * 각자 타이머(1.5초·1.8초)로 걷혔다(에뮬레이터 녹화로 확인). 이제 셋 다 같은 도장이고 웹이 폰 화면을 걷는다.
+   */
+  // ① 같은 도장·같은 크기: 웹 그림 칸 132 = 안드로이드 레이어 목록 132dp = 아이콘 칸 288 − 78×2.
+  const splashSrc = read(join(ROOT, 'components', 'AppSplash.tsx'))
+  const box = Number(splashSrc.match(/export const SPLASH_STAMP_BOX = (\d+)/)?.[1])
+  assert.equal(box, 132, '웹 도장 칸이 132가 아니다 — 안드로이드 12+ 아이콘 도장(실측 지름 126dp)과 크기가 어긋난다')
+  const res = join(ROOT, 'android', 'app', 'src', 'main', 'res')
+  const layer = read(join(res, 'drawable', 'splash.xml'))
+  assert.match(layer, new RegExp(`android:width="${box}dp"[\\s\\S]*android:height="${box}dp"[\\s\\S]*android:gravity="center"`), '옛 방식 폰 화면(drawable/splash)의 도장 크기가 웹과 다르다')
+  const inset = Number(read(join(res, 'drawable', 'splash_icon.xml')).match(/android:inset="(\d+)dp"/)?.[1])
+  assert.equal(288 - inset * 2, box, '안드로이드 12+ 아이콘 칸(288dp) 안의 도장 크기가 웹과 다르다')
+  const pngLeft = readdirSync(res).filter((d) => d.startsWith('drawable') && existsSync(join(res, d, 'splash.png')))
+  assert.deepEqual(pngLeft, [], `splash.png 가 다시 생겼다(${pngLeft.join(', ')}) — drawable/splash.xml(도장)을 가리고 글자 로고가 뜬다(npm run cap:assets 뒤 지울 것)`)
+  // ② 같은 바탕 = 앱 종이색(--paper). 사장님 10/8 "저 크림색 배경이 맞아? 우리 앱 기본 배경색이랑 다른데" —
+  //    크림(#F5F0E6)은 앱 바탕(#F7F5F0)보다 누래서 로딩이 걷힐 때 색이 바뀌고 상태바가 띠로 남았다.
+  const paper = css.match(/\[data-ft-chrome="app"\] \{[\s\S]*?--paper:\s*(#[0-9A-Fa-f]{6})/)?.[1]
+  assert.equal(splashBg!.toUpperCase(), paper?.toUpperCase(), `폰 화면·로딩 바탕(${splashBg})이 앱 종이색(${paper})과 다르다 — 로딩이 걷힐 때 바탕색이 바뀐다`)
+  assert.equal(splashSrc.match(/export const APP_PAPER = '(#[0-9A-Fa-f]{6})'/)?.[1]?.toUpperCase(), splashBg!.toUpperCase(), 'AppSplash 의 APP_PAPER(안드로이드 상태바를 바로 칠하는 색)가 스플래시 색과 다르다')
+  // 옛 아이폰 셸(네이티브가 아직 크림) 보호 — head 스크립트가 붙이는 이름과 CSS 가 같은 이름이어야 탭바가 홈바 색을 따라간다.
+  const layoutSrc = read(join(ROOT, 'app', 'layout.tsx'))
+  assert.ok(layoutSrc.includes("h.classList.add('ft-old-shell-ios')") && css.includes('html.ft-old-shell-ios [data-ft-chrome="app"]'), '옛 아이폰 셸 표시(ft-old-shell-ios)가 head 스크립트와 CSS 에서 어긋났다')
+  // 안드로이드 색 자원 · 매니페스트 · iOS 런치 화면 · 웹 모두 스플래시 색.
+  const colorXml = read(join(res, 'values', 'ft_splash.xml'))
+  assert.ok(colorXml.toUpperCase().includes(`>${splashBg!.toUpperCase()}<`), '안드로이드 폰 화면 바탕색이 스플래시 색과 다르다')
+  const styles = read(join(res, 'values', 'styles.xml'))
+  assert.match(styles, /windowSplashScreenBackground">@color\/ft_splash_bg</, '안드로이드 12+ 폰 화면 바탕이 색 자원을 안 쓴다')
+  assert.match(styles, /windowSplashScreenAnimatedIcon">@drawable\/splash_icon</, '안드로이드 12+ 폰 화면 아이콘이 도장(splash_icon)이 아니다')
+  const manifest = JSON.parse(read(join(ROOT, 'public', 'manifest.json'))) as { background_color?: string }
+  assert.equal(manifest.background_color?.toUpperCase(), splashBg!.toUpperCase(), '설치형 PWA 시작 화면 바탕이 스플래시 색과 다르다')
+  const story = read(join(ROOT, 'ios', 'App', 'App', 'Base.lproj', 'LaunchScreen.storyboard'))
+  const rgb = story.match(/<color key="backgroundColor" red="([\d.]+)" green="([\d.]+)" blue="([\d.]+)"/)
+  assert.ok(rgb, 'iOS 런치 화면 바탕색을 못 찾았다')
+  const iosHex = '#' + [rgb![1], rgb![2], rgb![3]].map((v) => Math.round(Number(v) * 255).toString(16).padStart(2, '0')).join('').toUpperCase()
+  assert.equal(iosHex, splashBg!.toUpperCase(), 'iOS 런치 화면 바탕색이 스플래시 색과 다르다')
+  // ③ 한 번만: 폰 화면은 웹이 걷고(타이머는 안전망), 페이드는 끈다(안드로이드 12+ 는 아이콘만 페이드를 안 따라가 겹쳐 보였다).
+  const sp = cap.match(/SplashScreen:\s*\{([\s\S]*?)\n {4}\},/)?.[1] ?? ''
+  assert.match(sp, /launchFadeOutDuration: 0,/, '폰 화면 페이드가 켜졌다 — 안드로이드 12+ 에서 도장이 한 번 더 겹쳐 보인다')
+  const showMs = Number(sp.match(/launchShowDuration: (\d+)/)?.[1])
+  assert.ok(showMs >= 3000, `폰 화면 타이머(${showMs}ms)가 짧다 — 웹이 걷기 전에 먼저 걷혀 사이에 빈 화면이 낀다`)
+  assert.match(splashSrc, /call\('SplashScreen','hide'\)/, '웹 로딩 화면이 폰 화면을 걷지 않는다 — 타이머로만 걷혀 다시 두 번 뜬다')
+  assert.match(splashSrc, /call\('StatusBar','getInfo'\)/, '도장 자리를 상태바 높이로 맞추지 않는다 — 폰 화면 도장과 어긋나 튄다')
+  // ④ 절대 안 남는다: JS 가 죽어도 CSS 가 걷는다.
+  assert.match(css, /html\.ft-standalone \.ft-splash \{[^}]*animation: ft-splash-fallback 0\.45s ease [1-8]s forwards/, '웹 로딩 화면의 비상 걷힘(CSS)이 없다 — 스크립트가 실패하면 화면이 안 걷힌다')
 })
 
 test('규칙150: 자견은 매달 자동으로 다시 계산되고 알림은 한 달에 한 번 — 자동 갱신은 설문으로 세지 않고, 고객이 그 표식을 못 쓴다', () => {

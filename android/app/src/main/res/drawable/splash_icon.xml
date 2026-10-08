@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 안드로이드 12+ 시스템 스플래시 아이콘(windowSplashScreenAnimatedIcon). 아이콘 칸은 288dp 이고
+     가운데 132dp 에 도장을 둔다(사방 78dp) — 앱 아이콘이 그리던 도장(실측 지름 126dp)과 같은 크기라
+     웹 로딩 화면(components/AppSplash.tsx, 132)이 그대로 이어받는다. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_stamp"
+    android:inset="78dp" />

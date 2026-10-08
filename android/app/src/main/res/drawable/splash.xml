@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 앱 켤 때 폰 화면(옛 방식) — 크림 바탕 정중앙에 도장 132dp(도장 지름 126dp).
+     웹 로딩 화면(components/AppSplash.tsx)과 같은 그림·크기·자리라 한 화면처럼 이어진다(2026-10-08).
+     예전엔 화면 크기별 splash.png 26장(글자 로고)이었다. 그림 한 장 + 이 목록으로 바꿔 늘어나거나 찌그러지지 않는다.
+     ⚠️ npm run cap:assets 를 돌리면 splash.png 들이 다시 생겨 이 파일을 가린다 — 돌렸다면 splash.png 를 지울 것. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ft_splash_bg" />
+    <item
+        android:width="132dp"
+        android:height="132dp"
+        android:gravity="center"
+        android:drawable="@drawable/splash_stamp" />
+</layer-list>

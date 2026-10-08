@@ -265,6 +265,17 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // 앱 첫 실행 로딩 도장(components/AppSplash.tsx) — 파일 이름에 버전(-v1)을 박아 두었다.
+        // 그림을 바꿀 땐 이름을 -v2 로 올린다(같은 이름으로 덮으면 1년 동안 옛 그림이 남는다).
+        source: '/splash/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // 서비스워커 — 절대 캐시 금지(항상 재검증). sw.js 가 캐시되면 배포해도
         // 옛 버전이 남아 사용자가 업데이트를 영영 못 받는다(PWA staleness 버그).
         source: '/sw.js',
