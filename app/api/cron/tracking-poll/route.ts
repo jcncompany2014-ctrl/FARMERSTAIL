@@ -25,8 +25,8 @@ export const dynamic = 'force-dynamic'
  * # 실행 주기 — 주석이 주장하던 "30분 간격"은 사실이 아니었다
  * 실제 vercel.json 은 **하루 1회**다. Vercel Hobby 플랜이 하루 1회를 넘는 크론을
  * 허용하지 않아 내려온 것이고(넘으면 빌드 시작 자체가 거부된다), 주석만 옛 값에
- * 남아 있었다. Tracker API 는 무료 + 무인증이지만 폭주 방지로 한 번에 50건
- * (MAX_PER_RUN), 호출 사이 200ms 딜레이.
+ * 남아 있었다. Tracker API 는 키 필수(2026-09~, 무료 키는 21일마다 만료 — 아래 키 자가 점검)이고,
+ * 폭주 방지로 한 번에 50건(MAX_PER_RUN), 호출 사이 200ms 딜레이.
  *
  * 시각: **KST 18:30 (UTC 09:30)**. 2026-07-30 에 KST 01:00 에서 옮겼다.
  *  · 01:00 은 조용시간(기본 22–08) 안이라 "배송 완료" 푸시가 영구히 안 나갔다.
@@ -142,6 +142,31 @@ async function runTrackingPoll(): Promise<Response> {
       { status: 500 },
     )
   }
+
+  /**
+   * ★키 자가 점검 (2026-10-09) — 배송 중 주문이 없는 날에도 키가 통하는지 한 번 본다.
+   * 무료 키는 21일마다 만료된다. 배송 중 주문이 있을 때만 키를 쓰면, 만료돼도 다음 발송일
+   * 18:30 까지 아무도 모르고 그동안 고객 배송조회 화면은 택배사 버튼으로만 보인다.
+   * 최근 배송완료 주문의 송장 1건을 **조회만** 한다 — 주문·알림은 건드리지 않는다.
+   * 키가 틀리거나 만료되면 HTTP 200 + UNAUTHENTICATED 로 온다(실측) → 아래와 같은 빨간불.
+   */
+  let keyCheck: KeyCheck | null = null
+  if (targets.length === 0 && authHeader) {
+    keyCheck = await checkTrackerKey(supabase, authHeader)
+    if (keyCheck === 'rejected') {
+      return NextResponse.json(
+        {
+          ok: false,
+          reason: 'TRACKER_AUTH_REJECTED',
+          message:
+            '배송조회 키가 거절됐어요(만료·오입력) — console.tracker.delivery 에서 재발급해 Vercel 환경변수를 바꿔 주세요',
+          keyCheck,
+        },
+        { status: 500 },
+      )
+    }
+  }
+
   let authRejected = false
   let delivered = 0
   let polled = 0
@@ -305,5 +330,49 @@ async function runTrackingPoll(): Promise<Response> {
     polled,
     delivered,
     errors,
+    keyCheck,
   })
+}
+
+type KeyCheck = 'ok' | 'rejected' | 'upstream_error' | 'no_sample' | 'lookup_failed'
+
+/**
+ * 키 자가 점검 — 최근 배송완료 송장 1건을 조회만 해서 키가 받아들여지는지 본다.
+ * 'ok' = 키 통과(송장 결과와 무관). 'rejected' 만 빨간불이고, 일시적인 상류 오류·표본 없음은
+ * 결과 요약(cron_health.result_summary.keyCheck)에만 남긴다 — 매일 헛경보를 만들지 않는다.
+ */
+async function checkTrackerKey(
+  supabase: ReturnType<typeof createAdminClient>,
+  authHeader: string,
+): Promise<KeyCheck> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('carrier, tracking_number')
+    .not('delivered_at', 'is', null)
+    .not('carrier', 'is', null)
+    .not('tracking_number', 'is', null)
+    .order('delivered_at', { ascending: false })
+    .limit(10)
+  if (error) {
+    console.error('[tracking-poll] 키 점검용 송장 조회 실패', error.message)
+    return 'lookup_failed'
+  }
+  const sample = (data ?? [])
+    .map((o) => ({ carrierId: carrierMeta(o.carrier)?.deliveryTrackerId, trackingNumber: o.tracking_number }))
+    .find((o) => o.carrierId && o.trackingNumber)
+  if (!sample) return 'no_sample'
+  try {
+    const res = await fetch(DELIVERY_TRACKER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify({ query: QUERY, variables: sample }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return 'upstream_error'
+    const json = (await res.json()) as DTResponse
+    return isTrackerAuthError(json.errors) ? 'rejected' : 'ok'
+  } catch {
+    return 'upstream_error'
+  }
 }
