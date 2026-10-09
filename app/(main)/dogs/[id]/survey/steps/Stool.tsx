@@ -4,15 +4,11 @@
 // 구성에 쓰임)은 지우지 않고 이 화면의 둘째 줄로(사장님). 건너뛰기는 **명시적으로**
 // "잘 모르겠어요"를 눌러야 넘어간다 — 예전엔 아무것도 안 눌러도 통과라, 어르신이
 // "내가 답한 건가?" 헷갈렸다.
-import {
-  Check,
-  HelpCircle,
-  Meh,
-  AlertTriangle,
-  AlertCircle,
-} from 'lucide-react'
+//
+// 2026-10-09 앱 새 디자인('A 포스터', 시안 E05): 네 칸 2×2(이름 + 색 글자 꼬리표) · 건너뛰기는 밑줄 글자 버튼 ·
+// 둘째 줄은 선택 막대. 답 값(2·4·6·7)·건너뛰기 규칙은 그대로.
 import { petName } from '@/lib/korean'
-import { ScreenShell, SecondLine, ChipRow } from './ScreenShell'
+import { ScreenShell, Segmented, LabelBar, TextLink, CheckIcon } from './ScreenShell'
 
 export type BristolKey = 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type GiSensitivity = 'rare' | 'sometimes' | 'frequent' | 'always' | ''
@@ -25,16 +21,21 @@ export type GiSensitivity = 'rare' | 'sometimes' | 'frequent' | 'always' | ''
 const BRISTOL_OPTIONS: {
   v: BristolKey
   label: string
-  signal: string
   tag: string
   tone: 'good' | 'warn' | 'bad'
-  img: string
 }[] = [
-  { v: 2, label: '딱딱한 편', signal: '수분·섬유가 부족한 신호', tag: '변비', tone: 'bad', img: '/survey/stool/hard.png' },
-  { v: 4, label: '적당해요', signal: '건강한 변이에요', tag: '이상적', tone: 'good', img: '/survey/stool/ideal.png' },
-  { v: 6, label: '조금 무른 편', signal: '식이섬유를 보강하면 좋아요', tag: '무름', tone: 'warn', img: '/survey/stool/soft.png' },
-  { v: 7, label: '물설사 같아요', signal: '잦으면 수의사 상담 권장', tag: '설사', tone: 'bad', img: '/survey/stool/watery.png' },
+  { v: 2, label: '딱딱한 편', tag: '변비', tone: 'bad' },
+  { v: 4, label: '적당해요', tag: '이상적', tone: 'good' },
+  { v: 6, label: '조금 무른 편', tag: '무름', tone: 'warn' },
+  { v: 7, label: '물설사 같아요', tag: '설사', tone: 'bad' },
 ]
+
+const GI_OPTIONS = [
+  { v: 'rare', label: '거의 없음' },
+  { v: 'sometimes', label: '가끔' },
+  { v: 'frequent', label: '자주' },
+  { v: 'always', label: '매번' },
+] as const
 
 export function StoolScreen({
   dogName,
@@ -64,87 +65,63 @@ export function StoolScreen({
           어떤가요?
         </>
       }
-      sub="변 상태는 식이섬유·수분 배합에 반영돼요."
+      sub="변 상태는 식이섬유와 수분 배합에 반영돼요"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {BRISTOL_OPTIONS.map(({ v, label, signal, tag, tone, img }) => {
+      <div className="s-stoolgrid" role="group" aria-label="변 상태" style={{ marginTop: 16 }}>
+        {BRISTOL_OPTIONS.map(({ v, label, tag, tone }) => {
           const active = bristol === v
           return (
             <button
               key={v}
               type="button"
-              className={
-                's-listbtn' +
-                (tone === 'good' ? ' s-listbtn-good' : '') +
-                (v === 7 ? ' s-listbtn-danger' : '')
-              }
+              className="s-stool"
+              data-tone={tone}
               aria-pressed={active}
               onClick={() => {
                 setBristol(active ? null : v)
                 setSkipped(false)
               }}
             >
-              <span className="s-lb-icon s-lb-icon-lg s-lb-icon-bare">
-                <span
-                  className="s-stool-ic"
-                  aria-hidden
-                  style={{
-                    WebkitMaskImage: `url(${img})`,
-                    maskImage: `url(${img})`,
-                    backgroundColor: active
-                      ? '#fff'
-                      : tone === 'good'
-                        ? 'var(--sage)'
-                        : tone === 'warn'
-                          ? '#7A5B1B'
-                          : 'var(--fd-coral)',
-                  }}
-                />
-              </span>
-              <span className="s-lb-body">
-                <span className="s-lb-title">{label}</span>
-                <span className="s-lb-sub">{signal}</span>
-              </span>
-              <span className={'s-tag s-' + tone}>{tag}</span>
+              <span className="s-stool-lb">{label}</span>
+              <span className="s-stool-tag">{tag}</span>
+              {active && (
+                <span className="s-badge" style={{ width: 22, height: 22, top: 10, right: 10 }} aria-hidden="true">
+                  <CheckIcon />
+                </span>
+              )}
             </button>
           )
         })}
-        <div className="s-skip-divider"><span>또는</span></div>
-        <button
-          type="button"
-          className={'s-skipbtn' + (skipped ? ' s-active' : '')}
-          onClick={() => {
-            setBristol(null)
-            setSkipped(true)
-          }}
-          aria-pressed={skipped}
-        >
-          {skipped ? (
-            <>
-              <Check size={16} strokeWidth={2.5} aria-hidden />
-              이번엔 건너뛸게요
-            </>
-          ) : (
-            <>
-              <HelpCircle size={16} strokeWidth={2} aria-hidden />
-              잘 모르겠어요 — 건너뛸게요
-            </>
-          )}
-        </button>
       </div>
+      <TextLink
+        style={{ marginTop: 12 }}
+        pressed={skipped}
+        onClick={() => {
+          setBristol(null)
+          setSkipped(true)
+        }}
+      >
+        {skipped ? (
+          <>
+            <CheckIcon size={14} color="currentColor" />
+            이번엔 건너뛸게요
+          </>
+        ) : (
+          '잘 모르겠어요 · 건너뛸게요'
+        )}
+      </TextLink>
 
-      <SecondLine label="사료를 바꿀 때 변이 자주 무르나요?">
-        <ChipRow
-          options={[
-            { v: 'rare', label: '거의 없음', Icon: Check },
-            { v: 'sometimes', label: '가끔', Icon: Meh },
-            { v: 'frequent', label: '자주', Icon: AlertTriangle },
-            { v: 'always', label: '매번', Icon: AlertCircle },
-          ]}
-          value={giSensitivity}
-          onChange={(v) => setGiSensitivity(v)}
-        />
-      </SecondLine>
+      <LabelBar optional style={{ marginTop: 18 }}>
+        사료 바꿀 때 자주 무르나요?
+      </LabelBar>
+      <Segmented
+        style={{ marginTop: 12 }}
+        options={GI_OPTIONS}
+        value={giSensitivity}
+        onChange={(v) => setGiSensitivity(v)}
+        allowClear
+        ariaLabel="사료 바꿀 때 무른 변"
+      />
     </ScreenShell>
   )
 }

@@ -26,7 +26,8 @@ export const START_ALLERGY_KR: Record<string, string> = {
   beef: '소고기',
   duck: '오리',
   pork: '돼지고기',
-  salmon: '연어·생선',
+  // 2026-10-09 설문 보기 '연어·생선' → '연어'(lib/survey/allergy-options). 옛 라벨도 차단 표에 남아 있다.
+  salmon: '연어',
   lamb: '양고기',
 }
 

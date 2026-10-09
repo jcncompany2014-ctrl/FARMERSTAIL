@@ -8,6 +8,7 @@ import {
   collapseToSingle,
 } from '@/lib/personalization/boxComposition'
 import { FOOD_LINE_META, ALL_LINES } from '@/lib/personalization/lines'
+import { ALLERGY_OPTIONS as SURVEY_ALLERGY_OPTIONS } from '@/lib/survey/allergy-options'
 import type {
   AlgorithmInput,
   Checkin,
@@ -28,17 +29,8 @@ import type {
 
 type Mode = 'first' | 'next'
 
-const ALLERGY_OPTIONS = [
-  '닭·칠면조',
-  '소고기',
-  '양고기',
-  '연어·생선',
-  '돼지고기',
-  '유제품',
-  '계란',
-  '곡물 (밀/옥수수)',
-  '대두',
-]
+// 설문과 같은 보기(정본 lib/survey/allergy-options — 2026-10-09 보기 정리). 라벨이 차단 키라 따로 적지 않는다.
+const ALLERGY_OPTIONS = SURVEY_ALLERGY_OPTIONS
 
 const CHRONIC_OPTIONS = [
   'kidney',

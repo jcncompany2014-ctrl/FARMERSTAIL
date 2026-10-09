@@ -4,9 +4,43 @@
 // 없나?" → 필수가 끝나는 지점에 관문을 하나 두고 두 갈래를 **둘 다 큰 버튼**으로 보인다.
 // '4개 더 답하기'가 첫 번째(정확도), '건너뛰고 결과 보기'가 두 번째. 어느 쪽을 눌러도
 // 잘못이 아니라는 문구.
-import { ArrowRight, Sparkles } from 'lucide-react'
+//
+// 2026-10-09 앱 새 디자인('A 포스터', 시안 E13): 주제 4개 = 번호 줄 목록, 두 갈래 버튼은 카드 아래 버튼 자리
+// (GateButtons — SurveyClient 가 틀의 버튼 자리에 넣는다). "결과 화면에서 언제든 추가로 답할 수 있어요" 줄은
+// 뺐다 — '언제든' 금지어이고, 결과 화면의 추가 답변도 재분석 월 3회 한도 안이라 사실과 다르다(앱시안 결정 3번).
+import { ScreenShell } from './ScreenShell'
 
-export function GateScreen({
+const TOPICS = ['지금 먹는 사료', '산책', '운동·사는 곳', '먹는 약'] as const
+
+export function GateScreen() {
+  return (
+    <ScreenShell
+      kicker="거의 다 됐어요"
+      title={
+        <>
+          여기까지만 답해도
+          <br />
+          결과를 볼 수 있어요
+        </>
+      }
+      sub="4개만 더 답하면 하루 급여량이 더 정확해져요"
+    >
+      <ol className="s-gate-list" aria-label="추가 질문 주제">
+        {TOPICS.map((t, i) => (
+          <li key={t} className="s-gate-row">
+            <span className="s-gate-num ft-num" aria-hidden="true">
+              {i + 1}
+            </span>
+            {t}
+          </li>
+        ))}
+      </ol>
+    </ScreenShell>
+  )
+}
+
+/** 관문 두 갈래 — 위 = 먹색 '4개 더 답하기 · 1분', 아래 = 테두리 '건너뛰고 결과 보기'. */
+export function GateButtons({
   onAnswer,
   onSkip,
   saving,
@@ -16,39 +50,13 @@ export function GateScreen({
   saving: boolean
 }) {
   return (
-    <div className="s-page">
-      <div className="s-kickrow">
-        <span className="s-kicker">거의 다 됐어요</span>
-      </div>
-      <h1 className="s-title">
-        여기까지로도
-        <br />
-        결과를 볼 수 있어요
-      </h1>
-      <p className="s-sub">
-        4개만 더 답하면 하루 급여량 계산이 더 정확해져요. 1분이면 충분해요.
-      </p>
-
-      <div className="s-gate-topics" aria-label="추가 질문 주제">
-        <span>지금 먹는 사료</span>
-        <span>산책</span>
-        <span>운동·사는 곳</span>
-        <span>먹는 약</span>
-      </div>
-
-      <div className="s-gate-btns">
-        <button type="button" className="s-gate-primary" onClick={onAnswer} disabled={saving}>
-          <Sparkles size={20} strokeWidth={2.2} aria-hidden />
-          4개 더 답하기
-          <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
-        </button>
-        <button type="button" className="s-gate-secondary" onClick={onSkip} disabled={saving}>
-          건너뛰고 결과 보기
-        </button>
-      </div>
-      <p className="s-qhint" style={{ textAlign: 'center', marginTop: 14 }}>
-        건너뛰어도 결과 화면에서 언제든 추가로 답할 수 있어요.
-      </p>
-    </div>
+    <>
+      <button type="button" className="s-btn-primary s-gate-primary" onClick={onAnswer} disabled={saving}>
+        4개 더 답하기 · 1분
+      </button>
+      <button type="button" className="s-btn-secondary s-gate-secondary" onClick={onSkip} disabled={saving}>
+        건너뛰고 결과 보기
+      </button>
+    </>
   )
 }

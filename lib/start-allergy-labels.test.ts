@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { START_ALLERGY_KR, translateDraftAllergies } from './start-allergy-labels.ts'
 import { SKU_MODEL } from './personalization/skuModel.ts'
+import { ALLERGY_OPTIONS, LEGACY_ALLERGY_ALIASES } from './survey/allergy-options.ts'
 
 /**
  * 최종감사 #0 (2026-07-29, critical): /start 알레르기가 영문 키 그대로
@@ -33,7 +34,9 @@ test('★ 판매 SKU 의 차단 어휘가 번역 결과에 전부 커버된다',
   // '흰살생선'은 /start 에 선택지 자체가 없다(앱 정밀 설문 전용 항목) — 번역
   // 불가가 정상. 그 외 어휘(판매 4종 + 소고기 SKU 교차차단 양고기 + 연어)는
   // 전부 /start 키에서 도달 가능해야 한다.
-  const START_UNAVAILABLE = new Set(['흰살생선'])
+  // 옛 라벨 별칭('연어·생선' — 2026-10-09 보기 정리 전 저장된 답)은 차단 표에 일부러 남겨 둔 것이다. 새로
+  // 고르는 길은 없고(번역은 '연어'로 저장), 같은 SKU 를 막는지는 survey/allergy-options.test.ts 가 본다.
+  const START_UNAVAILABLE = new Set(['흰살생선', ...Object.keys(LEGACY_ALLERGY_ALIASES)])
   const unreachable = [...gateVocab].filter(
     (v) => !translated.has(v) && !START_UNAVAILABLE.has(v),
   )
@@ -44,18 +47,15 @@ test('★ 판매 SKU 의 차단 어휘가 번역 결과에 전부 커버된다',
   )
 })
 
-test('번역은 앱 설문 정본 라벨과 일치한다 (Allergy.tsx ALLERGY_OPTIONS 부분집합)', () => {
-  // 앱 설문의 단백질 관련 정본 라벨 — Allergy.tsx 와 동기화.
-  const appOptions = new Set([
-    '닭·칠면조', '소고기', '양고기', '연어·생선', '오리', '흰살생선', '돼지고기',
-    '유제품', '계란', '곡물 (밀/옥수수)', '대두', '감자', '견과류',
-  ])
+test('번역은 앱 설문 정본 라벨과 일치한다 (lib/survey/allergy-options ALLERGY_OPTIONS 부분집합)', () => {
+  // 2026-10-09 — 앱 설문 보기를 Allergy.tsx 안 목록에서 정본 모듈로 옮겼다(보기 정리: 계란·곡물 삭제, 연어·생선 → 연어).
+  const appOptions = new Set(ALLERGY_OPTIONS)
   const notCanonical = Object.values(START_ALLERGY_KR).filter((v) => !appOptions.has(v))
   assert.deepEqual(notCanonical, [], `정본에 없는 라벨: ${notCanonical.join(', ')}`)
 })
 
 test('translateDraftAllergies — 알 수 없는 키는 버리지 않고 통과시킨다', () => {
-  assert.deepEqual(translateDraftAllergies(['chicken', 'salmon']), ['닭·칠면조', '연어·생선'])
+  assert.deepEqual(translateDraftAllergies(['chicken', 'salmon']), ['닭·칠면조', '연어'])
   assert.deepEqual(translateDraftAllergies([]), [])
   // 모르는 값은 그대로 — 없어지는 것(차단 완전 소실)보다 남는 게 안전.
   assert.deepEqual(translateDraftAllergies(['tofu']), ['tofu'])
