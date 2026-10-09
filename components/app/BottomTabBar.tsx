@@ -132,11 +132,18 @@ const RIGHT: LinkTab[] = [
     href: '/mypage',
     // 내 정보 메뉴에서 들어가는 화면들(/reports·/notifications·/chat, /account 하위)도 이 탭.
     // 2026-09-23 점검: 알림 설정(/notifications)에 들어가면 탭이 전부 꺼지던 것.
+    // 2026-10-09 앱시안 결정 10번: 고객센터·FAQ·사업자 정보·약관·문의(내 정보 → 고객센터에서 들어간다)도 이 탭을 켠다 —
+    //   예전엔 다섯 칸이 다 꺼져 어디 있는지 잃었다.
     isActive: (p) =>
       (p.startsWith('/mypage') && !p.startsWith('/mypage/subscriptions')) ||
       p.startsWith('/reports') ||
       p.startsWith('/notifications') ||
       p.startsWith('/chat') ||
+      p === '/help' ||
+      p.startsWith('/faq') ||
+      p.startsWith('/business') ||
+      p.startsWith('/legal') ||
+      p.startsWith('/contact') ||
       (p.startsWith('/account') &&
         !p.startsWith('/account/subscriptions') &&
         !p.startsWith('/account/dogs')),
@@ -246,6 +253,8 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
           >
             <span
               aria-hidden
+              // 결과 화면 둘러보기 2단계가 이 원을 가리킨다(components/v3/tour/ResultTour).
+              data-tour="record"
               className="flex items-center justify-center transition-transform duration-150"
               style={{
                 width: 52,

@@ -8,7 +8,7 @@ import type { WeekDay, QuickAction } from '@/components/v3/home/ThisWeekSection'
 import type { DogMetric, DogStatusTone } from '@/components/v3/home/ActiveDogCard'
 import { boxRecipes } from '@/lib/design/pouch'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
-import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
+import ResultTour from '@/components/v3/tour/ResultTour'
 import PushAutoRegister from '@/components/dashboard/PushAutoRegister'
 import {
   computeDailyStreak,
@@ -112,10 +112,11 @@ export default async function DashboardPage() {
     { data: dogSubRatios },
   ] = await Promise.all([
     supabase.rpc('dashboard_user_snapshot', { p_user_id: user.id }),
-    // 가입 후 첫 진입 튜토리얼 노출 여부 — onboarded_at IS NULL 이면 모달 띄움.
+    // 가입 환영 메일 한 통 판정(아래 welcome_email_sent_at). 옛 '첫 진입 튜토리얼'(onboarded_at)은 2026-10-09 결과 화면
+    // 둘러보기로 바뀌어(앱시안 결정 4번) 더 읽지 않는다.
     supabase
       .from('profiles')
-      .select('onboarded_at, welcome_email_sent_at')
+      .select('welcome_email_sent_at')
       .eq('id', user.id)
       .maybeSingle(),
     // 강아지 사진 — snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
@@ -164,9 +165,6 @@ export default async function DashboardPage() {
       .in('status', ['active', 'paused'])
       .order('created_at', { ascending: false }),
   ])
-
-  const showOnboarding =
-    onboardData != null && (onboardData as { onboarded_at: string | null }).onboarded_at === null
 
   // ★가입 환영 메일 — 첫 홈 진입에서 한 통 (2026-09-15). 이 메일은 서비스
   //   시작부터 한 통도 안 나갔다: 템플릿은 있는데 부르는 코드가 없었다.
@@ -635,10 +633,9 @@ export default async function DashboardPage() {
     <>
       {/* 앱이면 푸시 토큰 자동 등록 — 2026-09-15 전까지는 설정 화면에서 직접 켜야만 등록됐다 */}
       <PushAutoRegister />
-      {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL + 강아지 아직 없을 때만.
-          설문 퍼널로 온 유저는 이미 강아지가 등록돼 있어(설문=강아지 등록) '첫
-          아이 등록' 튜토리얼이 중복·혼란 → 강아지 0마리일 때만 노출(2026-07-24). */}
-      {showOnboarding && dogs.length === 0 && <OnboardingTutorial />}
+      {/* 결과 화면 둘러보기 2·3단계(기록 버튼 · 기록이 쌓이는 곳) — 진행 중일 때만 뜬다(components/v3/tour/ResultTour).
+          예전 '가입 후 첫 진입 튜토리얼'(Step 1·NRC·5분 문구)은 이걸로 바뀌었다(앱시안 결정 4번, 2026-10-09). */}
+      <ResultTour place="home" />
       <HomeView model={model} />
     </>
   )

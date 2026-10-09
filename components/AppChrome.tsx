@@ -25,7 +25,9 @@ import BottomTabBar from '@/components/app/BottomTabBar'
  * 액션 집중 라우트 — 상단 header / 하단 nav 모두 hide. 설문 / 체크인 /
  * 처방 승인 같은 step-by-step 흐름에서 시각 부담 ↓. 사용자 피드백 반영.
  */
-const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
+// '/first-checkin' 은 '/checkin' 을 포함하지 않는다('-checkin') — 첫 박스 체크인(시안 S27·S28 — 윗줄·아래 탭 없음)도 몰입 화면으로
+// 따로 적는다(2026-10-09). 예전엔 "< 강아지" + 아래 탭 + 강아지 위 탭이 붙었다.
+const FOCUS_PATHS = ['/survey', '/checkin', '/first-checkin', '/approve']
 
 /**
  * 결제 퍼널(레시피 고르기 /plan → 주문·결제 /order)은 자체 **하단 고정 바**(플랜 담기 /
@@ -34,6 +36,12 @@ const FOCUS_PATHS = ['/survey', '/checkin', '/approve']
  * 헤더(← 뒤로)는 남기고 탭만 숨긴다. 규칙88.
  */
 const CHECKOUT_RE = /\/dogs\/[^/]+\/(plan|order)(\/|$)/
+
+/**
+ * 주문 영수증(시안 M09) — 종이 한 장과 '이미지로 저장' 버튼으로 끝나는 문서 화면이라 아래 탭이 없다(2026-10-09).
+ * 헤더(← 주문 상세)는 그대로. 탭이 없으니 아래 여백도 몰입 화면처럼 safe-area 만.
+ */
+const RECEIPT_RE = /^\/mypage\/orders\/[^/]+\/receipt\/?$/
 
 /**
  * R-feel: 화면별 헤더.
@@ -72,6 +80,12 @@ const DEEP_TITLES: Record<string, string> = {
   '/dogs/:id/health': '건강 기록',
   '/dogs/:id/diary': '일기',
   '/dogs/:id/analysis': '영양 분석',
+  // 2026-10-09 앱 새 디자인 — 아래 셋은 '강아지'(접두 폴백)로 떴다(앱시안 결정 3번 "진료 보고서 윗줄 제목 누락").
+  '/dogs/:id/vet-report': '진료 보고서',
+  // 식단(맞춤 박스) 기록 — 예전 '강아지'(앱시안 결정 16번: 윗줄 이름 "강아지" → "맞춤 박스").
+  '/dogs/:id/formulas': '맞춤 박스',
+  '/dogs/:id/analyses': '분석 기록',
+  '/dogs/:id/analyses/:id': '지난 분석',
   '/dogs/:id/reminders': '건강 관리',
   '/dogs/:id/order': '주문하기',
   '/dogs/:id/plan': '레시피 고르기',
@@ -81,13 +95,24 @@ const DEEP_TITLES: Record<string, string> = {
   '/faq': '자주 묻는 질문',
   '/help': '고객센터',
   '/mypage/orders': '주문 내역',
+  // 주문 상세 아래 두 화면(시안 M09·M10) — 예전엔 접두사 규칙에 걸려 둘 다 '주문 상세'로 떴다(2026-10-09).
+  '/mypage/orders/:id/receipt': '주문 영수증',
+  '/mypage/orders/:id/track': '운송장 조회',
   // 마이페이지 메뉴에서 '주문 내역' 과 합쳐진 화면이라 제목도 같이 간다
   // (2026-07-30). 메뉴 라벨과 헤더가 다르면 잘못 들어온 것처럼 느껴진다.
   '/account/subscriptions': '정기배송',
   '/mypage/addresses': '배송지 관리',
+  // 2026-10-09 앱 새 디자인 묶음④(시안 M01~M03·M20~M22) — 예전엔 제목이 비거나 '내 정보'로 떴다.
+  '/account/profile': '내 프로필',
+  '/mypage/addresses/new': '새 배송지',
+  '/mypage/addresses/:id/edit': '배송지 수정',
+  '/business': '사업자 정보',
+  '/legal': '약관 · 정책',
+  '/legal/terms': '이용약관',
+  '/legal/privacy': '개인정보처리방침',
+  '/legal/refund': '환불 정책',
   '/mypage/membership': '멤버십',
   '/mypage/accuracy': '분석 맞춤도',
-  '/mypage/integrations': '연동',
   '/mypage/cs': '1:1 문의',
   '/mypage/notifications': '알림',
   '/mypage/consent': '알림',
@@ -154,11 +179,22 @@ function parentForPath(pathname: string, search = ''): string {
     if (segs.length >= 2) return `${dogBase}/${segs.slice(0, -1).join('/')}`
     return dogBase
   }
+  // 영수증·운송장 조회 → 그 주문 상세(시안 M09·M10 의 ←). 예전엔 주문 내역 목록까지 두 단계를 건너뛰었다.
+  const orderSub = pathname.match(/^\/mypage\/orders\/([^/]+)\/(receipt|track)\/?$/)
+  if (orderSub) return `/mypage/orders/${orderSub[1]}`
   if (pathname.startsWith('/mypage/orders/')) return '/mypage/orders'
+  // 배송지 새로·수정 → 내 프로필(배송지 묶음이 있는 곳, 시안 M02·M03). 앱시안 결정 3번 '동작': 예전엔 내 정보 첫
+  //   화면으로 튀었다. 아래 '/mypage/' 규칙보다 앞에 있어야 한다.
+  if (/^\/mypage\/addresses\/(new|[^/]+\/edit)\/?$/.test(pathname)) return '/account/profile'
+  // 강아지 등록증 → 멤버십(나무 등급에서 들어가는 곳, 시안 M05·M06).
+  if (pathname.startsWith('/mypage/certificate/')) return '/mypage/membership'
   if (pathname.startsWith('/mypage/')) return '/mypage'
   // 고객센터 허브에서 펼쳐지는 화면들 → 허브로(홈으로 튀지 않게, 2026-07-16).
   if (pathname === '/faq' || pathname === '/business' || pathname === '/contact')
     return '/help'
+  // 약관·정책 — 허브(/legal)는 내 정보 메뉴에서, 각 문서는 허브에서 들어간다(시안 M21·M22).
+  if (pathname === '/legal') return '/mypage'
+  if (pathname.startsWith('/legal/')) return '/legal'
   // 마이페이지에서 진입하는 계정·알림·도움 화면들 → 마이페이지로.
   //  (path 기반이라 개요 '전체 관리' 처럼 다른 진입점에선 완벽하진 않지만,
   //   전부 홈으로 튀던 것보다 예측 가능하다.)
@@ -205,7 +241,8 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     (pathname.includes('/analysis') && fromSurvey)
   // 탭바만 숨기는 화면(결제 퍼널) — 헤더는 그대로.
   const checkout = CHECKOUT_RE.test(pathname)
-  const tabBarHidden = focusMode || checkout
+  const receipt = RECEIPT_RE.test(pathname)
+  const tabBarHidden = focusMode || checkout || receipt
 
   // 내 강아지 목록 — 가운데 기록 버튼이 누구로 기록할지(활성 강아지). 2026-10-09 앱 새 디자인으로 윗줄 칩은 뺐고
   // 고르기는 홈 탭(HomeDogTabs)이 한다 — 여기선 목록과 활성 아이만 들고 있는다.
@@ -422,7 +459,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           paddingTop: 'env(safe-area-inset-top)',
         }}
       >
-        <div className="max-w-md mx-auto" style={{ paddingLeft: isDeep ? 6 : 20, paddingRight: 8 }}>
+        <div
+          className="max-w-md mx-auto"
+          // 오른쪽 여백 — 우리 아이 목록은 '+ 추가' 버튼이 있어 12(시안 T07), 그 밖엔 48px 아이콘 칸이라 8.
+          style={{ paddingLeft: isDeep ? 6 : 20, paddingRight: pathname === '/dogs' ? 12 : 8 }}
+        >
           {/* A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기. */}
           <div
             className="flex items-center justify-between"
@@ -487,8 +528,32 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* ── 오른쪽 — 홈 = 알림 종(안 읽은 알림이 있으면 빨간 점). 탭·깊은 화면은 비운다(시안). ── */}
+            {/* ── 오른쪽 — 홈 = 알림 종(안 읽은 알림이 있으면 빨간 점) · 우리 아이 목록 = '+ 추가'. 그 밖엔 비운다(시안). ── */}
             <div className="flex items-center justify-end shrink-0">
+            {/* 우리 아이 목록(시안 T07·T08) — 아이를 더 등록하는 입구. 목록 안의 옛 '추가' 버튼은 시안대로 뺐으므로
+                이 버튼이 없으면 이미 아이가 있는 보호자는 목록에서 등록할 길이 없다(홈 여러 마리 탭의 '+' 하나뿐). */}
+            {pathname === '/dogs' && (
+              <Link
+                href="/dogs/new"
+                className="flex items-center transition active:scale-95"
+                style={{
+                  height: 44,
+                  padding: '0 16px 0 12px',
+                  borderRadius: 4,
+                  background: 'var(--ink)',
+                  color: '#FFFFFF',
+                  textDecoration: 'none',
+                  fontSize: 16,
+                  fontWeight: 800,
+                  gap: 6,
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden>
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                추가
+              </Link>
+            )}
             {pathname === '/dashboard' && (
               <Link
                 href="/notifications"
@@ -539,7 +604,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
         // 탭 여백을 0으로 하면 마지막 줄이 그 바 밑에 가려진다(2026-09-23 에뮬레이터
         // 실측: 주문 화면 "정기배송가" 줄 59px 가려짐). 바 높이 변수(--ft-paybar-h)만큼 준다.
         className={`max-w-md mx-auto min-w-0 overflow-x-clip ${
-          focusMode
+          focusMode || receipt
             ? 'pb-[env(safe-area-inset-bottom)]'
             : checkout
               ? 'pb-[calc(var(--ft-paybar-h,80px)+16px+env(safe-area-inset-bottom))]'

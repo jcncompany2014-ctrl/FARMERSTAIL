@@ -142,6 +142,10 @@ export function clearAutosignupDraft(): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.removeItem(AUTOSIGNUP_DRAFT_KEY)
+    // 새 첫 화면에서 가입 전에 고른 사진(lib/start-photo 의 'ft_start_photo')도 같은 수명 — 초안을 버릴 때 같이 버린다.
+    // 안 지우면 기존 회원 갈래(새 강아지를 안 만드는 경우)에서 남은 사진이 나중에 다른 강아지에 붙을 수 있다.
+    // (start-photo 를 import 하지 않는 이유: 이 파일은 테스트가 node 로 바로 읽는다 — 키만 같이 지운다.)
+    localStorage.removeItem('ft_start_photo')
   } catch {
     /* noop */
   }

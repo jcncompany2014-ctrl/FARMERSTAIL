@@ -5,7 +5,29 @@ import { POUCH, V3, V3Radius, V3Shadow } from '@/lib/design/tokens'
 import HomeView from '@/components/v3/home/HomeView'
 import { HOME_FIXTURES, SHEET_KEYS, type SheetKey } from './_fixtures'
 import ToastDemo from './ToastDemo'
+import TourDemo from './TourDemo'
 import SheetsDemo from './SheetsDemo'
+import { SUBS_FIXTURES, PRICE_PROPOSALS } from './_fixtures_subs'
+import PriceChangeConsentModal from '@/app/account/subscriptions/PriceChangeConsentModal'
+import SubscriptionsSummaryView, { SubsLoadFailed } from '@/components/v3/subs/SubscriptionsSummaryView'
+import { DOGSUB_FIXTURES } from './_fixtures_dogsub'
+import DogSubscriptionClient from '../dogs/[id]/subscription/DogSubscriptionClient'
+import { PlanView } from '../dogs/[id]/plan/PlanClient'
+import OrderClient from '../dogs/[id]/order/OrderClient'
+import {
+  FUNNEL_PHOTO,
+  ORDER_FORMULA,
+  ORDER_PRODUCTS,
+  ORDER_PROFILE,
+  PLAN_FORMULA,
+  PLAN_PRODUCTS,
+} from './_fixtures_funnel'
+import OrdersAppView from '@/app/mypage/orders/OrdersAppView'
+import OrderDetailAppView from '@/app/mypage/orders/[id]/OrderDetailAppView'
+import ReceiptAppView from '@/app/mypage/orders/[id]/receipt/ReceiptAppView'
+import TrackingView from '@/app/mypage/orders/[id]/track/TrackingView'
+import { ORDERS_LIST, ORDER_DETAILS, RECEIPT, trackFixture } from './_fixtures_orders'
+import { carrierMeta } from '@/lib/tracking'
 import DashboardLoading from '../dashboard/loading'
 import DogsLoading from '../dogs/loading'
 import DogLoading from '../dogs/[id]/loading'
@@ -41,7 +63,98 @@ export default async function DesignCheckPage({
   const sp = await searchParams
   const s = typeof sp.s === 'string' ? sp.s : ''
   const fx = HOME_FIXTURES[s]
-  if (fx) return <HomeView model={fx.model} />
+  // 결과 화면 둘러보기 2·3단계(캔버스 TR2·TR3) — &tour=record|stats 로 홈 위에 띄운다.
+  const tour = typeof sp.tour === 'string' ? sp.tour : ''
+  if (fx)
+    return (
+      <>
+        <HomeView model={fx.model} />
+        {(tour === 'record' || tour === 'stats') && (
+          <TourDemo place="home" step={tour} backHref="/design-check/analysis?s=analysis-after-survey&fromSurvey=1&tour=finish" />
+        )}
+      </>
+    )
+  const sfx = SUBS_FIXTURES[s]
+  if (sfx) return sfx.model === 'error' ? <SubsLoadFailed /> : <SubscriptionsSummaryView model={sfx.model} />
+  // 금액 변경 동의 창 — 실제처럼 정기배송 탭 위에(앱 모양).
+  const pfx = PRICE_PROPOSALS[s]
+  if (pfx) {
+    const base = SUBS_FIXTURES['subs-two']!.model
+    return base === 'error' ? null : (
+      <SubscriptionsSummaryView model={base} after={<PriceChangeConsentModal proposal={pfx.proposal} variant="app" />} />
+    )
+  }
+  // 강아지 정기배송 화면 — 실제 화면과 같은 부품(DogSubscriptionClient)에 예시 값. 창 시안은 그 버튼을 눌러 띄운다.
+  const dfx = DOGSUB_FIXTURES[s]
+  if (dfx) return <DogSubscriptionClient {...dfx.props()} />
+  // 결제 퍼널 — 레시피 고르기(실제와 같은 PlanView 에 예시 처방·가격). 재료 창은 '재료 전체' 를 눌러 띄운다.
+  //   (실제 주소는 AppChrome 이 결제 바 높이만큼 아래를 비우고 탭바를 숨긴다 — 점검 주소는 결제 퍼널이 아니라 여기서 비운다.)
+  if (s === 'plan')
+    return (
+      <div style={{ paddingBottom: 96 }}>
+        <PlanView dogId="d1" dogName="땅콩" dogPhoto={FUNNEL_PHOTO} formula={PLAN_FORMULA} products={PLAN_PRODUCTS} initialFresh={30} />
+      </div>
+    )
+  // 주문하기 — 실제와 같은 OrderClient(앱). 펼침(S32)은 두 줄을 눌러서, 서포터즈(C04)는 가격 미리보기 응답을 예시로 바꿔서 찍는다.
+  if (s === 'order')
+    return (
+      <div style={{ paddingBottom: 96 }}>
+        <OrderClient
+          isApp
+          dogId="d1"
+          userId="u-design-check"
+          dogName="땅콩"
+          formula={ORDER_FORMULA}
+          products={ORDER_PRODUCTS}
+          profile={ORDER_PROFILE}
+          initialFresh={30}
+          pickedRecipes={['weight', 'joint']}
+          chargeTiming="before_cooking"
+        />
+      </div>
+    )
+  // 주문하기 — 추천 박스가 아직 없을 때(시안 I02).
+  if (s === 'order-noformula')
+    return (
+      <OrderClient
+        isApp
+        dogId="d1"
+        userId="u-design-check"
+        dogName="땅콩"
+        formula={null}
+        products={ORDER_PRODUCTS}
+        profile={ORDER_PROFILE}
+        initialFresh={30}
+        pickedRecipes={[]}
+        chargeTiming="before_cooking"
+      />
+    )
+  // 주문 내역·상세·영수증·운송장(묶음④, 시안 M07~M10·I01·I09·I10) — 실제와 같은 부품에 예시 값.
+  if (s === 'orders')
+    return (
+      <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
+        <OrdersAppView orders={ORDERS_LIST} />
+      </main>
+    )
+  const odm = ORDER_DETAILS[s]
+  if (odm) return <OrderDetailAppView m={odm} />
+  if (s === 'receipt') return <ReceiptAppView m={RECEIPT} />
+  const tf = trackFixture(s)
+  if (tf)
+    return (
+      <TrackingView
+        carrier={tf.carrier}
+        carrierLabel="CJ대한통운"
+        trackingNumber={tf.trackingNumber}
+        orderStatus={tf.orderStatus}
+        shippedAt={tf.shippedAt}
+        deliveredAt={tf.deliveredAt}
+        recipientName="보호자"
+        trackerDeepLink={carrierMeta(tf.carrier)?.trackerUrl(tf.trackingNumber) ?? null}
+        supportsInline
+        app={{ orderNumber: 'FT-20260926-K3P9QX' }}
+      />
+    )
   if (s === 'toast-done' || s === 'toast-fail')
     return (
       <>
@@ -72,6 +185,13 @@ function DesignIndex() {
   const items: Array<[string, string, string]> = [
     ['parts', '기본 부품 (색·글꼴·버튼·카드)', '1단계'],
     ...Object.entries(HOME_FIXTURES).map(([k, v]) => [k, v.title, v.mock] as [string, string, string]),
+    ...Object.entries(SUBS_FIXTURES).map(([k, v]) => [k, v.title, v.mock] as [string, string, string]),
+    ...Object.entries(PRICE_PROPOSALS).map(([k, v]) => [k, v.title, v.mock] as [string, string, string]),
+    ['plan', "레시피 고르기 (재료 창은 '재료 전체' 누르기)", 'S29-plan · S30-plan-recipe-sheet'],
+    ['order', "주문하기 (펼침은 '받는 박스'·'배송은' 누르기)", 'S31-order · S32-order-expanded · C04-OrderSupporter'],
+    ...Object.entries(DOGSUB_FIXTURES).map(
+      ([k, v]) => [k, v.press ? `${v.title} — '${v.press}' 누르기` : v.title, v.mock] as [string, string, string],
+    ),
     ['toast-done', '짧은 알림 · 완료', 'B10-ToastDone'],
     ['toast-fail', '짧은 알림 · 실패', 'B11-ToastFail'],
     ['sheet-health', '기록 · 건강·식사', 'T12-SheetHealth'],
@@ -114,6 +234,40 @@ function DesignIndex() {
             >
               <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
               <span style={{ fontSize: 13, color: V3.inkMute, flexShrink: 0 }}>{mock}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {/* 묶음별 점검 화면(각자 목록이 있다). 로그인·가입·새 첫 화면은 앱 틀 밖이라 /design-check-auth. */}
+      <h2 style={{ margin: '28px 0 0', fontSize: 22, lineHeight: 1.2 }}>묶음별 점검</h2>
+      <ul style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'grid', gap: 8 }}>
+        {(
+          [
+            ['/design-check/dogs', '우리 아이'],
+            ['/design-check/analysis', '분석 결과'],
+            ['/design-check/box', '박스·정기배송'],
+            ['/design-check/me', '내 정보'],
+            ['/design-check/survey', '설문'],
+            ['/design-check-auth', '로그인·가입·새 첫 화면'],
+          ] as const
+        ).map(([href, title]) => (
+          <li key={href}>
+            <Link
+              href={href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                minHeight: 56,
+                padding: '10px 14px',
+                borderRadius: 4,
+                background: V3.soft,
+                color: V3.ink,
+                textDecoration: 'none',
+                fontSize: 16,
+                fontWeight: 700,
+              }}
+            >
+              {title}
             </Link>
           </li>
         ))}

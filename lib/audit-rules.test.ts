@@ -1040,12 +1040,8 @@ test('★ 규칙24: fetch 가 없는 API 라우트를 부르지 않는다', () =
    * 스캐너는 `${provider}` 를 X 로 치환하므로 매칭에 실패한다.
    * 값이 늘어나면 그때 라우트도 같이 만들어야 하니, 여기 적어 두고 그때 확인한다.
    */
-  const API_CALL_ALLOWED: Array<{ at: string; why: string }> = [
-    {
-      at: '/api/integrations/X/disconnect',
-      why: "provider 타입이 'tractive' 하나뿐이라 항상 app/api/integrations/tractive/disconnect 로 풀린다 (provider 를 추가하면 라우트도 같이 만들 것)",
-    },
-  ]
+  // (트랙티브 연동 해제 '/api/integrations/X/disconnect' 가 있었다 — 2026-10-09 결정 18번으로 연동째 지웠다.)
+  const API_CALL_ALLOWED: Array<{ at: string; why: string }> = []
 
   const offenders: string[] = []
   for (const file of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
@@ -3689,7 +3685,6 @@ test('규칙85: 앱 화면의 머리말(kicker·Mono·eyebrow)에 영어만 있�
     'app/(main)/reports/page.tsx',
     'app/(main)/notifications/AlertsClient.tsx',
     'app/(main)/dogs/page.tsx',
-    'app/(main)/dogs/compare/page.tsx',
     'app/(main)/dogs/[id]/DogDetailClient.tsx',
     'app/(main)/dogs/[id]/_components/SubscriptionCard.tsx',
     'app/(main)/dogs/[id]/_components/CurrentFormulaCard.tsx',
@@ -3716,7 +3711,6 @@ test('규칙85: 앱 화면의 머리말(kicker·Mono·eyebrow)에 영어만 있�
     'app/(main)/mypage/addresses/AddressesClient.tsx',
     'app/(main)/mypage/certificate/[dogId]/CertificateClient.tsx',
     'app/(main)/mypage/consent/ConsentSettingsClient.tsx',
-    'app/(main)/mypage/integrations/page.tsx',
     'app/(main)/mypage/membership/page.tsx',
     'app/(main)/mypage/notifications/NotificationSettingsClient.tsx',
     'app/(main)/mypage/notifications/PreferencesPanel.tsx',
@@ -3856,7 +3850,8 @@ test('규칙88: 결제 퍼널(/plan·/order)은 하단 탭을 숨기고, 하단 
   assert.match(chrome, /const checkout = CHECKOUT_RE\.test\(pathname\)/, '결제 퍼널 판정(checkout)이 없다')
   assert.match(chrome, /const tabBarHidden = focusMode \|\| checkout/, '탭바 숨김이 결제 퍼널을 포함하지 않는다')
   assert.match(chrome, /hidden=\{tabBarHidden\}/, 'BottomTabBar 에 tabBarHidden 을 넘기지 않는다 — 플랜 담기/결제 버튼이 탭에 가려진다')
-  assert.match(chrome, /focusMode\s*\?\s*'pb-\[env\(safe-area-inset-bottom\)\]'/, 'main 하단 패딩이 몰입 화면과 같이 움직이지 않는다')
+  // 2026-10-09: 주문 영수증(시안 M09)도 탭이 없는 화면이라 같은 갈래(focusMode || receipt) — 규칙168 이 receipt 쪽을 본다.
+  assert.match(chrome, /focusMode(?:\s*\|\|\s*receipt)?\s*\?\s*'pb-\[env\(safe-area-inset-bottom\)\]'/, 'main 하단 패딩이 몰입 화면과 같이 움직이지 않는다')
   // 결제 퍼널은 탭 대신 결제 바가 떠 있다 — 여백 0 이면 마지막 줄이 바 밑에 가려진다(9/23 실측).
   assert.match(chrome, /checkout\s*\?\s*'pb-\[calc\(var\(--ft-paybar-h/, '결제 퍼널 본문 여백이 결제 바 높이(--ft-paybar-h)를 쓰지 않는다')
   assert.match(read(join(ROOT, 'app', 'globals.css')), /--ft-paybar-h:\s*\d+px/, 'globals.css 에 --ft-paybar-h 가 없다')
@@ -5284,9 +5279,12 @@ test('규칙147: 서포터즈 금액은 실제 결제 금액으로 — 어드민
   const view = stripComments(read(join(ROOT, 'lib', 'payments', 'trial-display.ts')))
   assert.match(view, /trialPricing\(state, s\.total_amount\)/, '서포터즈 표시 금액이 청구와 같은 판정(trialPricing)이 아니다')
   const app = stripComments(read(join(ROOT, 'app', '(main)', 'mypage', 'subscriptions', 'page.tsx')))
-  assert.doesNotMatch(app, /번 남았어요/, '고객 정기배송 화면이 서포터즈 혜택을 회차로 말한다 — 기간·총액으로')
-  assert.match(app, /일치 밥이 총 \$\{/, '고객 정기배송 화면이 서포터즈 혜택을 기간·총액으로 말하지 않는다')
-  assert.match(app, /borderRadius: V3Radius\.md,/, '정기배송 화면 카드가 둥근 모서리(B안)가 아니다')
+  // 2026-10-09 앱 새 디자인: 그리기는 SubscriptionsSummaryView(판정은 페이지 그대로)로 옮겼다 — 문구는 거기서 본다.
+  const appView = stripComments(read(join(ROOT, 'components', 'v3', 'subs', 'SubscriptionsSummaryView.tsx')))
+  assert.doesNotMatch(app + appView, /번 남았어요/, '고객 정기배송 화면이 서포터즈 혜택을 회차로 말한다 — 기간·총액으로')
+  assert.match(appView, /일치 밥이 총 \$\{/, '고객 정기배송 화면이 서포터즈 혜택을 기간·총액으로 말하지 않는다')
+  // 10/1 B안(이 화면만 둥근 12)은 앱 전체 모서리 4px 통일(앱 새 디자인 'A 포스터' — 사장님 확정)로 대체됐다.
+  assert.doesNotMatch(appView, /V3Radius\.md/, '정기배송 화면 카드가 새 디자인 모서리(4px)가 아니다 — 앱 전체 통일')
 })
 
 test('규칙148: 처방 근거에 연어는 절대 안 나오고, 알레르기 레시피는 대체 대상도·문구도 아니다 — 저장 직전 최종 정리', () => {
@@ -5601,6 +5599,10 @@ test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동
   }
   const auth = stripComments(read(join(ROOT, 'app', 'subscribe', 'billing-auth', 'page.tsx')))
   assert.equal((auth.match(/disabled=\{!!launchingId \|\| !noCancelAgreed\}/g) ?? []).length, 2, '카드 등록 화면의 등록 버튼이 동의 전에 열려 있다')
+  // 앱 모양(2026-10-09 'A 포스터')의 등록 버튼도 같은 잠금 — 조건을 한 변수로 받아 쓴다(웹 두 곳의 수는 위가 센다).
+  assert.match(auth, /const registerLocked = !!launchingId \|\| !noCancelAgreed/, '앱 카드 등록 버튼의 잠금 조건이 웹과 다르다')
+  assert.equal((auth.match(/disabled=\{registerLocked\}/g) ?? []).length, 1, '앱 카드 등록 버튼이 동의 전에 열려 있다')
+  assert.equal((auth.match(/onClick=\{\(\) => void launch\(/g) ?? []).length, 3, '잠금을 거치지 않는 카드 등록 버튼이 새로 생겼다(웹 2 · 앱 1)')
   assert.doesNotMatch(auth, /setError\(NO_CANCEL/, '동의 안내를 화면 전체 오류(막다른 화면)로 띄운다')
 
   // 왕복 주소 → 완료 화면 → 서버: 지금 버전일 때만, 카드 저장과 같은 쓰기로.
@@ -6127,4 +6129,241 @@ test('규칙166: 앱 바탕 흰색(셸 3세대) 뒤에도 옛 셸은 그 셸 색
   }
   assert.notEqual(srcOf('SPLASH_STILL_SRC'), srcOf('PAPER_SHELL_STILL_SRC'), '흰 바탕 도장과 종이색 도장이 같은 파일이다')
   assert.notEqual(srcOf('SPLASH_WAG_SRC'), srcOf('PAPER_SHELL_WAG_SRC'), '흰 바탕 영상과 종이색 영상이 같은 파일이다')
+})
+
+test('규칙167: 정기배송 상세(앱) — 일시정지·다시 시작은 확인창을 거치고, 해지창은 "그냥 둘게요"가 진하며, 지난 정기배송엔 결제 없는 신청서를 띄우지 않는다', () => {
+  /**
+   * # 왜 (2026-10-09 앱 새 디자인 'A 포스터' · 웹시안_진단/앱시안_결정할것.md 3번 '동작'·13번·15번)
+   * ① 일시정지·다시 시작이 누르는 즉시 바뀌고 토스트만 떴다. 다시 시작은 다음 결제가 잡히는 일이라, 언제 얼마가
+   *    결제되는지 보고 누르게 한다(미루기 확인창 — 규칙158 — 과 같은 틀).
+   * ② 해지 확인창에서 '해지하기'가 진한 버튼이면 실수로 누르기 쉽다 → '그냥 둘게요'를 진하게, 해지는 빨간 테두리.
+   * ③ 카드 등록을 못 마쳐 자동 정리된 신청서가 '지난 정기배송 · 신청 취소'로 떠 헷갈렸다(10/8 실제 해지 2건이 전부 이것,
+   *    두 분 다 다음 날 다시 신청). 정기배송 탭과 같은 기준(isSubscriptionVisibleToUser)으로 거른다.
+   * ④ 앱 화식 비율 창은 비율(%)을 말하지 않는다(브랜드 보이스). 웹 창은 같은 컴포넌트의 기본 모양 그대로.
+   */
+  const src = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx')))
+  // ① 타일·버튼은 확인창을 열 뿐이고, 저장 함수는 확인창의 버튼만 부른다.
+  assert.match(src, /onPause=\{\(\) => setPauseId\(sub\.id\)\}/, '일시정지 타일이 확인창 없이 바로 멈춘다')
+  assert.match(src, /onResume=\{\(\) => setResumeId\(sub\.id\)\}/, '다시 시작 버튼이 확인창 없이 바로 재개한다')
+  assert.match(src, /<PauseSheet[\s\S]{0,400}onConfirm=\{\(\) => void pause\(s\)\}/, '일시정지 확인창이 pause 를 부르지 않는다')
+  assert.match(src, /<ResumeSheet[\s\S]{0,600}onConfirm=\{\(\) => void resume\(s\)\}/, '다시 시작 확인창이 resume 을 부르지 않는다')
+  assert.doesNotMatch(src, /onPause=\{\(\) => pause\(|onResume=\{\(\) => resume\(/, '일시정지·다시 시작을 확인창 없이 부르는 곳이 있다')
+  // ② 해지 확인창 — '그냥 둘게요'가 진한 버튼, 해지는 빨간 테두리.
+  const cancelSheet = src.slice(src.indexOf('function CancelSheet('))
+  assert.match(cancelSheet, /className="sub-sheet-btn is-solid" onClick=\{onClose\}>\s*그냥 둘게요/, "해지 확인창의 '그냥 둘게요'가 진한 버튼이 아니다")
+  assert.match(cancelSheet, /className="sub-sheet-btn is-danger" onClick=\{onConfirm\}/, '해지 버튼이 빨간 테두리(is-danger)가 아니다')
+  // ③ 지난 정기배송 = 사용자에게 보일 구독만.
+  assert.match(
+    src,
+    /const past = subs\.filter\(\(s\) => s\.status === 'cancelled' && isSubscriptionVisibleToUser\(s\)\)/,
+    '지난 정기배송에 결제 없이 해지된 신청서가 뜬다',
+  )
+  // ④ 앱 화식 비율 창 — 앱 모양으로 띄우고, 그 모양은 % 부제를 그리지 않는다.
+  assert.match(src, /<FreshRatioSheet\s+variant="app"/, '앱 화식 비율 창이 앱 모양(variant="app")이 아니다')
+  const ratio = stripComments(read(join(ROOT, 'components', 'subscription', 'FreshRatioSheet.tsx')))
+  const appSub = ratio.match(/const APP_TIER_SUB[\s\S]*?\n\}/)?.[0] ?? ''
+  assert.ok(appSub.includes('light:') && appSub.includes('half:') && appSub.includes('full:'), '앱 부제(APP_TIER_SUB)가 세 티어를 다 갖고 있지 않다')
+  assert.doesNotMatch(appSub, /%/, '앱 화식 비율 부제에 비율(%)이 있다')
+  const appBranch = ratio.slice(ratio.indexOf("if (variant === 'app')"), ratio.indexOf('<div className="flex flex-col gap-3">'))
+  assert.ok(appBranch.length > 500, '앱 화식 비율 분기를 찾지 못했다')
+  assert.match(appBranch, /APP_TIER_SUB\[t\.key\]/, '앱 화식 비율 창이 앱 부제를 그리지 않는다')
+  assert.doesNotMatch(appBranch, /\bt\.sub\b/, '앱 화식 비율 창이 웹 부제(t.sub — "화식 30% · 건사료 70%")를 그린다')
+})
+
+test('규칙168: 주문 영수증·운송장(앱) — 앱 화면으로 그리고, 저장은 그림 저장 정본, ← 는 그 주문 상세 · 레시피 작은 네모는 레시피 색 · 앱 날짜는 오전/오후', () => {
+  /**
+   * 2026-10-09 앱 새 디자인 묶음④(캔버스 M07~M10·I01·I02·I09·I10). 앱시안 결정 3번 '동작':
+   * "영수증이 앱 머리줄 없이 열리고, 인쇄가 새 탭 방식이라 앱에서 안 될 수 있음" — 앱 WebView 엔 새 탭이 없고
+   * 안드로이드 window.print() 는 무반응이다. 그리고 점검 중에 같이 드러난 것들:
+   *  · 서버에서 그리는 toLocaleString('ko-KR') 시각이 이 PC 의 Node(ICU 78)에서 "AM 07:00" 이었다.
+   *  · 레시피 작은 네모·사진 테두리를 파우치 색(흑돼지 #BEBDB6)으로 그렸다 — 시안은 전부 레시피 색(#2E3338).
+   *    파우치 색은 카드 바탕·테두리 전용(boxLines.ts 머리글과 같은 규칙).
+   *  · html2canvas 그림 속 글자가 몇 px 아래로 밀렸다 — Tailwind 의 img block 이 기준선 측정을 틀어서.
+   */
+  const O = ['app', 'mypage', 'orders', '[id]']
+  // ① 영수증 — 앱은 앱 머리줄(AuthAwareShell)이 있는 앱 화면, 저장은 그림 저장 정본(새 탭·인쇄 금지).
+  const rp = stripComments(read(join(ROOT, ...O, 'receipt', 'page.tsx')))
+  assert.match(rp, /if \(await isAppContextServer\(\)\) \{\s*return \(\s*<AuthAwareShell>\s*<ReceiptAppView/, '앱 영수증이 앱 머리줄 없는 웹 영수증으로 뜬다')
+  const rb = stripComments(read(join(ROOT, ...O, 'receipt', 'ReceiptSaveButton.tsx')))
+  assert.ok(rb.includes('captureNodeToCanvas(') && rb.includes('saveCanvasImage('), '앱 영수증 저장이 그림 저장 정본(captureNodeToCanvas·saveCanvasImage)을 안 쓴다')
+  assert.ok(!rb.includes('window.print') && !rb.includes('_blank'), '앱 영수증 저장이 인쇄·새 탭에 기댄다(앱 WebView 에선 안 열린다)')
+  // ② 그림 뜨기 정본은 기준선 보정(1px 측정 그림 inline)을 지금 화면 문서에 건다 — onclone 으로는 안 고쳐진다.
+  const si = stripComments(read(join(ROOT, 'lib', 'save-image.ts')))
+  assert.match(si, /img\[src="\$\{HTML2CANVAS_PROBE_IMG\}"\] \{ display: inline !important; \}/, '그림 뜨기에 글자 기준선 보정이 없다')
+  assert.ok(si.includes('document.head.appendChild(probeFix)') && si.includes('probeFix.remove()'), '기준선 보정을 지금 화면 문서에 걸고 빼지 않는다')
+  // html2canvas 는 정본(lib/save-image)에서만 부른다 — 직접 부르면 보정이 빠진다(영수증·리포트·등록증이 이 정본을 쓴다).
+  const direct: string[] = []
+  for (const f of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')), walk(join(ROOT, 'lib')))) {
+    if (rel(f) === 'lib/save-image.ts') continue
+    if (/import\(\s*['"]html2canvas['"]\s*\)|from\s+['"]html2canvas['"]/.test(stripComments(read(f)))) direct.push(rel(f))
+  }
+  assert.deepEqual(direct, [], `html2canvas 를 직접 부르는 곳(그림 속 글자가 밀린다 — captureNodeToCanvas 로):\n${direct.join('\n')}`)
+  // ③ 운송장 — 앱은 TrackingView 의 앱 화면(웹 머리말 'Tracking' 없음).
+  const tp = stripComments(read(join(ROOT, ...O, 'track', 'page.tsx')))
+  assert.match(tp, /if \(await isAppContextServer\(\)\) \{[\s\S]{0,700}?app=\{\{ orderNumber: order\.order_number \}\}/, '앱 운송장 조회가 웹 화면(영어 머리말)으로 뜬다')
+  const tv = stripComments(read(join(ROOT, ...O, 'track', 'TrackingView.tsx')))
+  assert.match(tv, /if \(app\) \{\s*return \(\s*<TrackingAppView/, 'TrackingView 가 앱 화면으로 갈리지 않는다')
+  // ④ 윗줄 — 제목은 각자 이름, ← 는 그 주문 상세(목록까지 두 단계 건너뛰지 않는다). 영수증엔 아래 탭이 없다(시안 M09).
+  const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
+  assert.ok(chrome.includes("'/mypage/orders/:id/receipt': '주문 영수증'") && chrome.includes("'/mypage/orders/:id/track': '운송장 조회'"), '영수증·운송장 윗줄 제목이 "주문 상세"로 뜬다')
+  assert.ok(chrome.includes('(receipt|track)') && chrome.includes('return `/mypage/orders/${orderSub[1]}`'), '영수증·운송장의 ← 가 주문 상세가 아니라 목록으로 간다')
+  assert.match(chrome, /const tabBarHidden = focusMode \|\| checkout \|\| receipt/, '영수증 화면에 아래 탭이 뜬다(시안 M09 엔 없다)')
+  // ⑤ 앱 날짜 — 서버 ICU 에 맡기지 않는다(오전/오후는 lib/datetime-kst 가 붙인다).
+  for (const f of [join(...O, 'receipt', 'ReceiptAppView.tsx'), join(...O, 'OrderDetailAppView.tsx'), join(...O, 'track', 'TrackingAppView.tsx')]) {
+    assert.doesNotMatch(stripComments(read(join(ROOT, f))), /Date\([^)]*\)\.toLocale(Date|Time)?String\(/, `${f}: 날짜를 toLocaleString 으로 그린다(서버에서 "AM 07:00")`)
+  }
+  assert.ok(stripComments(read(join(ROOT, ...O, 'receipt', 'ReceiptAppView.tsx'))).includes('kstKoDateTimeParts('), '앱 영수증 날짜가 정본(kstKoDateTimeParts)을 안 쓴다')
+  const dp = stripComments(read(join(ROOT, ...O, 'page.tsx')))
+  const appBranchStart = dp.indexOf('if (await isAppContextServer())')
+  const appBranchEnd = dp.indexOf('<OrderDetailAppView m={model} />')
+  assert.ok(appBranchStart > 0 && appBranchEnd > appBranchStart, '주문 상세 앱 분기를 찾지 못했다')
+  const appBranch = dp.slice(appBranchStart, appBranchEnd)
+  assert.ok(!appBranch.includes('formatDateTime(') && appBranch.includes('formatKstKoDateTime('), '주문 상세(앱) 날짜가 toLocaleString 경로(formatDateTime)로 그려진다')
+  // ⑥ 레시피 작은 네모·사진 테두리 = 레시피 색(RECIPE_COLOR). 파우치 색은 카드 바탕·테두리 전용.
+  for (const f of [
+    join(...O, 'OrderDetailAppView.tsx'),
+    join('app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx'),
+    join('app', 'account', 'subscriptions', 'PriceChangeConsentModal.tsx'),
+    join('app', '(main)', 'dogs', '[id]', 'subscription', 'DogSubscriptionClient.tsx'),
+    join('app', '(main)', 'dogs', '[id]', 'plan', 'PlanClient.tsx'),
+    join('components', 'v3', 'subs', 'SubscriptionsSummaryView.tsx'),
+  ]) {
+    const src = stripComments(read(join(ROOT, f)))
+    assert.ok(!src.includes('background: POUCH[') && !src.includes('2px ${POUCH['), `${f}: 레시피 작은 네모·테두리를 파우치 색으로 그린다(시안은 레시피 색 — 흑돼지 #2E3338)`)
+  }
+  // ⑦ 주문하기 추천 없음(시안 I02) — 앱은 회색 안내 카드 + '분석 보러 가기', 머리말에 '–번째 박스'를 안 붙인다.
+  const oc = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'order', 'OrderClient.tsx')))
+  assert.ok(oc.includes('{!formula && isApp && (') && oc.includes('className="ord-empty-app-go"'), '앱 주문하기 추천 없음 카드가 없다')
+  assert.ok(!/isApp \? '맞춤 박스' : 'CUSTOM BOX'\} · \{formula\?\.cycleNumber \?\? '–'\}/.test(oc), "앱 머리말이 추천 없을 때 '맞춤 박스 · –번째 박스'로 뜬다")
+})
+
+test('규칙169: 로그인·가입 앱 화면 — 앱 판정은 서버 틀이 첫 그림부터, 문구는 실제 규칙대로(언제든·이모지·비밀번호 규칙)', () => {
+  /**
+   * 2026-10-09 앱 새 디자인 묶음⑤(캔버스 W06~W13·W18·W22~W27). 이 화면들은 웹·앱이 같이 쓰는 최상위 주소라
+   * AppChrome 밖이다. 클라이언트 훅(useIsAppContext)으로 모양을 고르면 마운트 전 첫 그림이 웹 모양이었다가
+   * 바뀐다 → 서버 레이아웃이 쿠키·UA 로 판정해 ServerAppContextProvider 로 넘기고 화면은 useServerAppContext 로 고른다.
+   */
+  const layoutOk = (segs: string[]) => {
+    const src = stripComments(read(join(ROOT, ...segs)))
+    return src.includes('await isAppContextServer()') && src.includes('<ServerAppContextProvider isApp={isApp}>')
+  }
+  for (const segs of [['app', '(auth)', 'layout.tsx'], ['app', 'onboarding', 'layout.tsx'], ['app', 'offline', 'layout.tsx'], ['app', 'subscribe', 'layout.tsx']]) {
+    assert.ok(layoutOk(segs), `${segs.join('/')}: 앱 판정을 서버가 넘기지 않는다 — 앱 화면이 웹 모양으로 한 번 깜빡인다`)
+  }
+  for (const segs of [
+    ['app', '(auth)', 'login', 'page.tsx'],
+    ['app', '(auth)', 'forgot-password', 'page.tsx'],
+    ['app', '(auth)', 'reset-password', 'page.tsx'],
+    ['app', 'onboarding', 'age-gate', 'page.tsx'],
+    ['app', 'offline', 'page.tsx'],
+  ]) {
+    const src = stripComments(read(join(ROOT, ...segs)))
+    assert.ok(/const appLook = useServerAppContext\(\)/.test(src) && /if \(appLook\)/.test(src), `${segs.join('/')}: 앱 모양을 서버 판정값(useServerAppContext)으로 고르지 않는다`)
+  }
+  // 앱 갈래만 잘라 본다(웹 갈래엔 예전 문구가 그대로 있다 — 웹은 바꾸지 않는다).
+  const appPart = (src: string, start: string, end: string) => {
+    const a = src.indexOf(start)
+    const b = a < 0 ? -1 : src.indexOf(end, a)
+    return a < 0 || b < 0 ? '' : src.slice(a, b)
+  }
+  // 앱 로그인의 소셜 버튼은 같은 크기·모양(4.8 동등 비중) — 카카오만 앱 모양이면 애플이 알약으로 남는다.
+  const login = stripComments(read(join(ROOT, 'app', '(auth)', 'login', 'page.tsx')))
+  const appLogin = appPart(login, 'if (appLook) {', '</AuthAppMain>')
+  assert.ok(appLogin.length > 0, '앱 로그인 갈래를 찾지 못했다')
+  assert.ok(appLogin.includes('<KakaoLoginButton variant="login" next={socialNext} look="app" />') && appLogin.includes('<AppleLoginButton variant="login" next={socialNext} look="app" />'), '앱 로그인의 카카오·애플 버튼 모양이 다르다')
+  assert.ok(!appLogin.includes('언제든'), "앱 로그인 안내에 '언제든'이 있다(고객 문구 금지어)")
+  // 새 비밀번호(앱) 안내 = 실제 규칙(영문·숫자·특수문자 — 가입 화면과 같은 규칙, 사장님 2026-07-22).
+  const reset = stripComments(read(join(ROOT, 'components', 'v3', 'auth', 'ResetPasswordAppView.tsx')))
+  assert.ok(reset.includes('영문·숫자·특수문자 포함 8자 이상'), '앱 새 비밀번호 안내가 가입 규칙(특수문자 포함)과 다르다')
+  // 이메일 인증 결과·오프라인(앱)은 이모지 대신 아이콘(앱시안 결정 3번 '문구').
+  const confirmed = stripComments(read(join(ROOT, 'app', 'auth', 'confirmed', 'page.tsx')))
+  const offline = stripComments(read(join(ROOT, 'app', 'offline', 'page.tsx')))
+  for (const [name, part] of [
+    ['auth/confirmed', appPart(confirmed, 'if (await isAppContextServer())', '</AuthAppMain>')],
+    ['offline', appPart(offline, 'if (appLook)', '</AuthAppMain>')],
+  ] as const) {
+    assert.ok(part.length > 0, `${name}: 앱 갈래를 찾지 못했다`)
+    assert.doesNotMatch(part, /[\u{1F300}-\u{1FAFF}\u{23F0}]/u, `${name}: 앱 화면에 이모지가 있다`)
+  }
+  // 이메일 회원가입(앱 전용)도 같은 소셜 버튼 모양 + 재발송·세션 즉시 발급 처리는 그대로(규칙20·재발송 규칙이 따로 본다).
+  const joinPage = stripComments(read(join(ROOT, 'app', 'start', 'join', 'page.tsx')))
+  assert.ok(joinPage.includes('<KakaoLoginButton variant="signup" next="/start/onboard" look="app" />') && joinPage.includes('<AppleLoginButton variant="signup" next="/start/onboard" look="app" />'), '앱 회원가입의 카카오·애플 버튼 모양이 다르다')
+})
+
+test('규칙170: 새 첫 화면·결과 둘러보기(앱) — 첫 실행은 새 첫 화면, 초안은 "설문은 가입 뒤", 사진은 강아지가 생길 때 붙고, 둘러보기 표식은 짝이 맞는다', () => {
+  /**
+   * 2026-10-09 앱 새 디자인 3단계(캔버스 Y1~Y6·TR0~TR4, 앱시안 결정 4·22번).
+   *  · 앱 첫 실행 = /start 새 첫 화면(FirstScreenFlow) — 옛 /welcome 캐러셀·옛 한 장 입력 폼이 아니다.
+   *  · 새 첫 화면은 설문 답을 모으지 않는다 → 초안에 surveyDeferred 를 단다. 빠지면 첫 단계의 '로그인'으로 나간
+   *    사람의 초안을 로그인 화면이 '설문 끝난 웹 초안'으로 읽어, 답하지 않은 기본값으로 분석을 만든다(점검 중 발견).
+   *  · 가입 전에 고른 사진은 폰에 들고 있다가 강아지가 만들어질 때(createDogFromDraft) 올린다 — 올리기가 설문 입장을
+   *    붙잡지 않게 상한을 둔다. 초안을 버릴 땐 사진도 같이 버린다(남으면 다음에 만드는 강아지에 붙는다).
+   *  · 둘러보기는 data-tour 표식(plan·record·stats)을 비춘다 — 표식이 빠지면 조용히 가운데 카드로만 뜨고, 겹치면
+   *    엉뚱한 곳을 비춘다. 옛 홈 튜토리얼(OnboardingTutorial)과 겹쳐 뜨지 않게 그건 지웠다.
+   */
+  // ① 첫 실행 → /start, 앱 /start = 새 첫 화면.
+  const gate = stripComments(read(join(ROOT, 'components', 'OnboardingGate.tsx')))
+  assert.ok(gate.includes("router.replace('/start')"), '앱 첫 실행이 새 첫 화면(/start)으로 가지 않는다')
+  assert.ok(gate.includes("if (pathname.startsWith('/start')) return"), '첫 실행 관문이 /start 에서도 다시 튕긴다(같은 곳으로 계속 이동)')
+  const startPage = stripComments(read(join(ROOT, 'app', 'start', 'page.tsx')))
+  assert.match(startPage, /if \(isApp\)\s*return \(\s*<Suspense fallback=\{null\}>\s*<FirstScreenFlow \/>/, '앱 /start 가 새 첫 화면(FirstScreenFlow)을 그리지 않는다')
+  // ② 초안 = 설문은 가입 뒤(두 저장 모두) + 로그인 화면은 그 표식이면 강아지만 만들고 설문으로.
+  const flow = stripComments(read(join(ROOT, 'app', 'start', 'first', 'FirstScreenFlow.tsx')))
+  const saves = flow.match(/saveAutosignupDraft\(\{ dog: dogDraft[^)]*\)/g) ?? []
+  assert.ok(saves.length >= 2, `새 첫 화면의 초안 저장을 찾지 못했다(${saves.length}곳)`)
+  for (const s of saves) assert.ok(s.includes('surveyDeferred: true'), `새 첫 화면 초안 저장에 surveyDeferred 가 없다 — 로그인 경로가 기본값으로 분석을 만든다: ${s}`)
+  const login = stripComments(read(join(ROOT, 'app', '(auth)', 'login', 'page.tsx')))
+  assert.match(login, /if \(draft\.surveyDeferred\) \{\s*const deferredDogId = await createDogFromDraft\(/, '로그인 화면이 surveyDeferred 초안을 강아지만 만드는 길로 보내지 않는다')
+  // ③ 사진 — 강아지 insert 뒤에 올리고(상한), 초안을 버릴 때 같은 키로 같이 버린다.
+  const cd = stripComments(read(join(ROOT, 'lib', 'auth', 'createDogFromDraft.ts')))
+  const insertAt = cd.indexOf('.insert(')
+  const uploadAt = cd.indexOf('uploadHeldStartPhoto(supabase, userId, dogId)')
+  assert.ok(insertAt > 0 && uploadAt > insertAt, '새 첫 화면 사진을 강아지가 만들어진 뒤에 올리지 않는다')
+  assert.ok(cd.includes('Promise.race([uploadHeldStartPhoto('), '사진 올리기가 설문 입장을 붙잡는다(기다림 상한 없음)')
+  const photoKey = /const KEY = '([^']+)'/.exec(read(join(ROOT, 'lib', 'start-photo.ts')))?.[1]
+  assert.ok(photoKey, 'lib/start-photo 의 저장 키를 찾지 못했다')
+  const draftSrc = stripComments(read(join(ROOT, 'lib', 'autosignup-draft.ts')))
+  const clearAt = draftSrc.indexOf('export function clearAutosignupDraft')
+  assert.ok(clearAt > 0, 'clearAutosignupDraft 를 찾지 못했다')
+  assert.ok(draftSrc.slice(clearAt, clearAt + 600).includes(`localStorage.removeItem('${photoKey}')`), `초안을 버릴 때 들고 있던 사진(${photoKey})을 같이 버리지 않는다 — 다음에 만드는 강아지에 붙는다`)
+  // ④ 둘러보기 표식 — 각 표식은 정해진 부품 한 곳에만 있고, 둘러보기가 그 표식을 비춘다.
+  //    (JSX 속성만 센다 — 앞이 빈칸. 둘러보기 안의 선택자 문자열 '[data-tour=...]' 은 앞이 '[' 라 안 걸린다.)
+  const expected: Record<string, string> = {
+    plan: 'components/analysis/RecommendationBox.tsx',
+    record: 'components/app/BottomTabBar.tsx',
+    stats: 'components/v3/home/ActiveDogCard.tsx',
+  }
+  const found: Record<string, string[]> = {}
+  for (const f of walk(join(ROOT, 'app')).concat(walk(join(ROOT, 'components')))) {
+    const r = rel(f)
+    if (r.includes('/design-check')) continue
+    for (const m of stripComments(read(f)).matchAll(/\sdata-tour="([a-z-]+)"/g)) {
+      const k = m[1]
+      if (k) (found[k] ??= []).push(r)
+    }
+  }
+  assert.deepEqual(Object.keys(found).sort(), Object.keys(expected).sort(), `둘러보기 표식이 바뀌었다: ${JSON.stringify(found)}`)
+  for (const [k, file] of Object.entries(expected)) {
+    assert.deepEqual(found[k], [file], `data-tour="${k}" 는 ${file} 한 곳에만 있어야 한다(지금: ${(found[k] ?? []).join(', ')})`)
+  }
+  const tour = stripComments(read(join(ROOT, 'components', 'v3', 'tour', 'ResultTour.tsx')))
+  for (const k of Object.keys(expected)) assert.ok(tour.includes(`selector: '[data-tour="${k}"]'`), `둘러보기가 data-tour="${k}" 를 비추지 않는다`)
+  // ⑤ 장착 — 결과 화면(시작·1단계·끝)은 시작 조건 값을 넘기고, 홈(2·3단계)은 진행 중일 때만 뜬다. 옛 튜토리얼은 없다.
+  const av = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'analysis', 'AnalysisView.tsx')))
+  assert.ok(av.includes('<ResultTour place="result" dogName={dog.name} fromSurvey={fromSurvey} analysisCount={totalCount} />'), '결과 화면에 둘러보기가 없다(또는 시작 조건 값 — 설문 직후·분석 수 — 을 안 넘긴다)')
+  const dash = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
+  assert.ok(dash.includes('<ResultTour place="home" />'), '홈에 둘러보기(2·3단계)가 없다 — 결과 화면에서 넘어온 둘러보기가 홈에서 끊긴다')
+  const oldTutorial = walk(join(ROOT, 'app'))
+    .concat(walk(join(ROOT, 'components')))
+    .filter((f) => stripComments(read(f)).includes('OnboardingTutorial'))
+    .map(rel)
+  assert.deepEqual(oldTutorial, [], `옛 홈 튜토리얼이 남아 둘러보기와 겹쳐 뜬다: ${oldTutorial.join(', ')}`)
+  // ⑥ 가입 직후 '가입 완료' 띠(Y7) — 가입하자마자 강아지가 만들어진 두 길만, 방금 만든 계정에만 표식을 붙이고,
+  //    설문은 표식을 읽자마자 주소에서 지운다(새로고침·뒤로가기로 다시 뜨지 않게). 정확도 올리기엔 띄우지 않는다.
+  const onboard = stripComments(read(join(ROOT, 'app', 'start', 'onboard', 'page.tsx')))
+  assert.ok(onboard.includes('router.replace(surveyStartHref(dogId, isFreshAccount(user.created_at)))'), "카카오·애플 가입 직후 설문에 '가입 완료' 표식이 없다(또는 오래된 계정에도 붙는다)")
+  assert.ok(login.includes('router.replace(surveyStartHref(deferredDogId, isFreshAccount(signedIn.created_at)))'), "이메일 가입 뒤 첫 로그인 설문에 '가입 완료' 표식이 없다(또는 오래된 계정에도 붙는다)")
+  const sc = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'SurveyClient.tsx')))
+  assert.ok(sc.includes('q.delete(WELCOME_PARAM)') && sc.includes("window.history.replaceState(null, ''"), "설문이 '가입 완료' 표식을 주소에서 지우지 않는다 — 새로고침·뒤로가기마다 다시 뜬다")
+  assert.ok(sc.includes("if (!refineMode) setWelcome('on')"), "정확도 올리기(추가 답변)에도 '가입 완료' 띠가 뜬다")
 })

@@ -143,7 +143,7 @@ export default function ActiveDogCard({
           )}
         </span>
       </span>
-      <span style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: V3.creamSoft }}>
+      <span data-tour="stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: V3.creamSoft }}>
         {metrics.map((m, i) => (
           <span
             key={m.key}

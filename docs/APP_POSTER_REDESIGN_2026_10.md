@@ -59,6 +59,33 @@
 - 흰 바탕 자산: `public/splash/stamp-v2.webp`·`stamp-wag-v2.mp4`(BT.601 제한 범위 H.264 — 10/8 과 같은 방법), iOS `Splash.imageset`(2732² 흰 바탕), 안드로이드 `ft_splash_bg` 흰색, iOS 런치 화면 흰색, `manifest.json` 바탕 흰색.
 - **v1 그림·영상은 2세대 셸이 남아 있는 동안 지우지 않는다**(규칙166 이 지킨다).
 
+### 2단계 진행 (2026-10-09)
+- ① 홈·기록·공통 — 커밋 2cbd137b.
+- ② 우리 아이·분석 · ③ 정기배송·결제 · ④ 내 정보(주문 내역·상세·영수증·운송장 포함) · ⑤ 로그인·가입 — 시안과 나란히 비교 끝.
+  점검 화면: `/design-check`(홈·정기배송·주문·결제 퍼널) · `/design-check/dogs` · `/design-check/analysis` · `/design-check/box`
+  · `/design-check/me` · `/design-check-auth`(로그인·가입 — 앱 틀 밖이라 (main) 밖에 둔다).
+- ⑥ 설문(새 틀) — 진행 중.
+- 같이 정리한 규칙(감사 규칙 167~169): 레시피 작은 네모·테두리 = `RECIPE_COLOR`(파우치 색은 카드 바탕 전용) ·
+  앱 날짜는 `lib/datetime-kst`(서버 ICU 가 "AM 07:00" 을 냈다) · 그림 저장은 `captureNodeToCanvas`(Tailwind img block 이
+  html2canvas 기준선을 틀어 글자가 밀렸다) · 웹·앱 같이 쓰는 최상위 화면은 서버 틀이 앱 판정을 넘긴다(`ServerAppContextProvider`).
+- 설문 알레르기 보기 정본 = `lib/survey/allergy-options`(계란·곡물 삭제, 연어·생선 → 연어, 옛 답 별칭).
+
+### 3단계 진행 (2026-10-09)
+- 결과 화면 둘러보기(TR0~TR4) — `components/v3/tour/ResultTour` + `lib/result-tour`. 첫 결과 화면(설문 직후 + 그 강아지의
+  첫 분석)에서만 시작, 결과 → 홈 → 결과. 홈의 옛 '첫 진입 튜토리얼'(Step 1·NRC 문구)은 지웠다(결정 4번).
+- 새 첫 화면(Y1~Y6) — `app/start/first/FirstScreenFlow`(앱 /start). 가입 전 사진 보관·가입 뒤 올리기(`lib/start-photo`,
+  createDogFromDraft 에서 올림 — 느린 망에서 설문 입장을 붙잡지 않게 12초 상한) · 휠(`components/v3/flow/WheelPicker`).
+  틀은 설문 새 틀(`survey/steps/Frame` · survey.css 의 `.s-*`)을 같이 쓴다 — 설문 틀을 바꿀 땐 두 화면을 같이 본다.
+  - 이 화면은 설문 답을 모으지 않으므로 초안에 `surveyDeferred` 를 단다. 빠지면 첫 단계 '로그인'으로 나간 사람의 초안을
+    로그인 화면이 '설문 끝난 웹 초안'으로 읽어 답하지 않은 기본값으로 분석을 만든다(점검 중 발견해 고침).
+- Y7 '가입 완료' 띠 — 가입하자마자 강아지가 만들어진 두 길(/start/onboard · 이메일 첫 로그인)이 방금 만든 계정에만
+  `?welcome=1`(`lib/survey/welcome`) → 설문 첫 질문 위 줄 자리에 3.5초 → 위 줄로. 표식은 읽자마자 주소에서 지운다.
+- 규칙170 이 위 전부(첫 실행 → /start · surveyDeferred · 사진 순서·상한·같이 버리기 · 둘러보기 표식 짝 · 장착 · 가입 완료 띠)를 잠근다.
+- 첫 안내 캐러셀(W01~W05)은 앱스토어 사진용으로만 남는다 — 새 첫 화면이 첫 실행을 맡는다.
+- 설문 새 틀(묶음⑥, 시안 36장) — `survey/steps/Frame`·`Sheet`(나가기 확인 = '계속하기'가 진한 위 버튼, 결정 2번)·진행 막대는
+  본 질문 n/본 질문 수(관문·추가 질문 동안 꽉 참, 결정 1번). 몸 상태·지금 먹는 밥 그림은 `public/survey/ai/`(파일 이름 = 답 값).
+  점검 화면 `/design-check/survey`(실제 설문과 같은 부품에 preview 값 — 실제 화면은 preview 를 넘기지 않는다).
+
 ### 사장님 확인 방법
 - 미리보기 주소(가지를 올리면 Vercel 이 만든다) → `/design-check` 는 로그인 없이 바로.
 - 실제 화면(홈·정기배송 등)은 로그인이 필요하다 — 오른쪽 아래 DEV 버튼에서 "앱"을 누른 뒤 사장님 계정으로 로그인.

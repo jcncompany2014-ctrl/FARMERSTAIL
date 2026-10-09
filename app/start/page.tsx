@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import WebChrome from '@/components/WebChrome'
-import StartAppShell from '@/components/start/StartAppShell'
+import { Suspense } from 'react'
+import FirstScreenFlow from './first/FirstScreenFlow'
 import { isAppContextServer } from '@/lib/app-context'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { planHref } from '@/lib/funnel-cta'
@@ -219,78 +220,15 @@ export default async function StartPage() {
       </main>
   )
 
-  // 앱 컨텍스트 본문 — 웹 마케팅 히어로(4/3 사진)·3-step 사진 카드를 걷어낸
-  // 린 앱 톤. 폼(StartClient)은 그대로 재사용하되 FD 토큰만 앱 토큰으로 스코프
-  // 스왑(로직 무손상 · subscriptions 페이지와 동일하게 pine/muted/line 3개만,
-  // offwhite·coral 은 앱/웹 동일 hex). 사장님 B안 "웹 설문을 앱 톤으로 리스킨"
-  // (2026-07-19)의 본문 리스킨 — 셸 분기(StartAppShell)는 이미 됐고, 본문이 웹톤
-  // 으로 남아 "앱 안에 웹 화면" 이던 잔재를 정리(feedback_app_native_feel).
-  // FD 토큰 → 앱 토큰 스코프 스왑(subscriptions 페이지와 동일 3개). 커스텀
-  // 프로퍼티 키는 style 리터럴 직접 지정 시 excess-property 체크에 걸리므로
-  // const 로 빼서 스프레드(스프레드는 EPC 안 탐).
-  const appTokenSwap: Record<`--${string}`, string> = {
-    '--fd-pine': 'var(--ink)',
-    '--fd-muted': 'var(--muted)',
-    '--fd-line': 'var(--rule)',
-  }
-  const appBody = (
-    <main className="px-5 pt-7 pb-20" style={{ ...appTokenSwap }}>
-      <h1
-        className="font-sans"
-        style={{
-          fontSize: 27,
-          fontWeight: 800,
-          color: 'var(--ink)',
-          letterSpacing: '-0.02em',
-          lineHeight: 1.22,
-        }}
-      >
-        우리 아이부터
-        <br />
-        알려주세요
-      </h1>
-      <p
-        className="mt-2.5 text-[15px]"
-        style={{ color: 'var(--muted)', lineHeight: 1.65 }}
-      >
-        2분이면 돼요. 가입은 결과가 마음에 들 때 해도 괜찮아요.
-      </p>
-
-      {/* 진행 표시 — 3단계(웹의 사진 3-step 카드는 앱에서 생략, 스크롤↓). */}
-      <div className="mt-5 flex items-center gap-3" aria-label="진행 단계 1 / 3">
-        <div className="flex-1 flex gap-1.5" aria-hidden="true">
-          {[0, 1, 2].map((s) => (
-            <span
-              key={s}
-              style={{
-                height: 4,
-                flex: 1,
-                borderRadius: 999,
-                background: s === 0 ? 'var(--fd-coral)' : 'var(--rule)',
-              }}
-            />
-          ))}
-        </div>
-        <span
-          className="tnum"
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: 'var(--muted)',
-            fontVariantNumeric: 'lining-nums tabular-nums',
-          }}
-        >
-          1 / 3
-        </span>
-      </div>
-
-      <div className="mt-6">
-        <StartClient isApp />
-      </div>
-    </main>
-  )
-
-  if (isApp) return <StartAppShell>{appBody}</StartAppShell>
+  // ★앱 = 새 첫 화면(앱 새 디자인 'A 포스터', 2026-10-09 캔버스 Y1~Y6 · 앱시안 결정 '새 첫 화면'·22번) — 이름 → 생일 → 견종 →
+  //   성별·중성화 → 몸무게 → 사진 → 도장 '쾅' + 가입 → 바로 설문. 예전 앱 본문(한 장 입력 폼 StartClient isApp)을 대체한다.
+  //   웹은 아래 예전 퍼널 그대로(StartClient — 설문 먼저 → 결과 직전 가입).
+  if (isApp)
+    return (
+      <Suspense fallback={null}>
+        <FirstScreenFlow />
+      </Suspense>
+    )
   // 인앱 브라우저 안내는 이 첫 화면에서만(설문 진입 전 — 초안이 아직 없어 크롬으로
   // 옮겨도 잃을 게 없는 유일한 지점). 웹 분기 전용.
   return (

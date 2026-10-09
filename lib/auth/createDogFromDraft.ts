@@ -10,6 +10,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { isDogDraftComplete, type AutosignupDraft } from '@/lib/autosignup-draft'
+import { uploadHeldStartPhoto } from '@/lib/start-photo'
 
 export async function createDogFromDraft(
   userId: string,
@@ -61,5 +62,12 @@ export async function createDogFromDraft(
     .select('id')
     .single()
   if (error || !inserted) return null
-  return (inserted as { id: string }).id
+  const dogId = (inserted as { id: string }).id
+  // 새 첫 화면에서 가입 전에 고른 사진(있으면) — 방금 만든 강아지 사진으로 올린다(2026-10-09 앱시안 결정 22).
+  // 실패해도 강아지 생성은 그대로(사진은 '정보 수정'에서 다시 올릴 수 있다). 카카오·애플(/start/onboard)·이메일(/login)
+  // 가입이 모두 이 함수로 강아지를 만들어 한 곳에서 붙는다.
+  // 느린 망에서 올리기가 오래 걸려도 설문 입장을 붙잡지 않게 12초까지만 기다린다(올리기는 뒤에서 계속 — 화면 이동은
+  // 같은 앱 안이라 끊기지 않는다). 가입 직후 '준비하고 있어요'에 갇히는 것보다 사진이 조금 늦게 붙는 편이 낫다.
+  await Promise.race([uploadHeldStartPhoto(supabase, userId, dogId), new Promise((resolve) => setTimeout(resolve, 12_000))])
+  return dogId
 }
