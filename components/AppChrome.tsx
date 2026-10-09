@@ -13,13 +13,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Bell,
-  ChevronDown,
-  ArrowLeft,
-  Check,
-  Plus,
-} from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import BottomTabBar from '@/components/app/BottomTabBar'
 
@@ -213,26 +207,19 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const checkout = CHECKOUT_RE.test(pathname)
   const tabBarHidden = focusMode || checkout
 
-  // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
+  // 내 강아지 목록 — 가운데 기록 버튼이 누구로 기록할지(활성 강아지). 2026-10-09 앱 새 디자인으로 윗줄 칩은 뺐고
+  // 고르기는 홈 탭(HomeDogTabs)이 한다 — 여기선 목록과 활성 아이만 들고 있는다.
   const [dogs, setDogs] = useState<
     { id: string; name: string; photoUrl: string | null }[]
   >([])
   const [activeDogId, setActiveDogId] = useState<string | null>(null)
-  // 강아지 전환 드롭다운 — 헤더 칩을 누르면 작게 펼쳐지는 빠른 전환 목록.
-  const [dogMenuOpen, setDogMenuOpen] = useState(false)
-  // fetch 완료 전 '강아지 등록' 칩이 잘못 깜빡이지 않게 — 로드 후에만 렌더.
-  const [dogsLoaded, setDogsLoaded] = useState(false)
-  // 운영자 본인일 때만 강아지 메뉴에 '관리자 모드' 스위치를 띄운다(2026-07-25
-  // 사장님 요청). 판정은 DB is_admin() RPC — role 값을 클라가 들고 있지 않는다.
-  const [isAdmin, setIsAdmin] = useState(false)
-  // 관리자 모드 on/off — 한 번 켜면 끌 때까지 유지(localStorage). 현재 위치가
-  // /admin 이면 켜진 것으로 본다(주소로 직접 들어온 경우도 스위치가 맞게 보임).
-  const [adminModeStored, setAdminModeStored] = useState(false)
-  const adminMode = adminModeStored || pathname.startsWith('/admin')
+  // 홈 알림 종의 빨간 점 — 안 읽은 받은 알림(push_log.read_at 없음)이 있으면(시안 AppHome).
+  const [hasUnread, setHasUnread] = useState(false)
+  // 관리자 모드 스위치는 '내 정보'(components/app/AdminModeRow)로 옮겼다(2026-10-09). 여기엔 '앱 켤 때 한 번
+  // 관리자 화면으로 복귀'만 남는다 — 판정은 DB is_admin() RPC, 선택은 localStorage ft_admin_mode.
   // ↓ 아래 fetchDogs 효과가 관리자 모드 복귀에 쓰므로 **효과보다 위**에서 선언.
   // (앱 실행당 1회 복귀 판정은 ref 가 아니라 sessionStorage 로 한다 — 효과 안 참고)
   const router = useRouter()
-  const dogMenuRef = useRef<HTMLDivElement | null>(null)
 
   // R-feel: 활성 강아지 칩 데이터 — 사용자의 강아지(id/이름/사진) fetch.
   // 마운트 1회 + visibility 복귀 시 invalidate (라우트 전환 무관).
@@ -261,7 +248,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           : null
       const active = list.find((d) => d.id === stored) ?? list[0] ?? null
       setActiveDogId(active?.id ?? null)
-      setDogsLoaded(true)
 
       // 관리자 여부 — 실패하면 조용히 false(헤더가 깨지면 안 됨).
       //
@@ -283,14 +269,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       try {
         const { data: adminFlag } = await supabase.rpc('is_admin')
         if (mounted && adminFlag === true) {
-          setIsAdmin(true)
           let storedOn = false
           try {
             storedOn = window.localStorage.getItem('ft_admin_mode') === '1'
           } catch {
             /* 저장소 접근 불가 — 기본 꺼짐 */
           }
-          setAdminModeStored(storedOn)
 
           // ── 앱을 껐다 켜면 관리자 모드가 풀리던 버그 (2026-07-26 사장님 제보)
           // 앱 시작 경로는 manifest start_url = '/dashboard' 로 **고정**이다.
@@ -368,7 +352,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     return () => cancelAnimationFrame(raf)
   }, [pathname])
 
-  // R-feel: 헤더 우측 강아지 칩 — 활성 강아지 이름 + 전환 드롭다운(없으면 등록).
+  // 활성 강아지 — 가운데 기록 버튼(BottomTabBar)이 이 아이로 기록한다.
   const activeDog = dogs.find((d) => d.id === activeDogId) ?? dogs[0] ?? null
 
   // R-feel: 화면별 헤더 — 깊은 화면이면 ← 뒤로 + 제목(탭 루트면 null).
@@ -376,70 +360,39 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const isDeep = screenTitle !== null
 
 
-  // 강아지 드롭다운 — 라우트 이동 시 자동 닫힘 (뒤로가기 등 외부 내비 포함).
-  // effect 대신 render 중 보정 — react.dev 'Adjusting state when a prop changes' 패턴.
-  const [menuPathname, setMenuPathname] = useState(pathname)
-  if (menuPathname !== pathname) {
-    setMenuPathname(pathname)
-    setDogMenuOpen(false)
-  }
-
-  // 강아지 드롭다운 — 바깥 탭/Escape 로 닫기 (열려 있을 때만 listen).
+  // 홈 탭(HomeDogTabs)에서 아이를 고르면 기록 대상도 바로 바뀐다 — 저장소(localStorage·쿠키)는 탭이 쓴다.
   useEffect(() => {
-    if (!dogMenuOpen) return
-    function onPointerDown(e: PointerEvent) {
-      if (!dogMenuRef.current?.contains(e.target as Node)) setDogMenuOpen(false)
+    function onPick(e: Event) {
+      const id = (e as CustomEvent<string>).detail
+      if (typeof id === 'string') setActiveDogId(id)
     }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setDogMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('ft-active-dog', onPick)
+    return () => window.removeEventListener('ft-active-dog', onPick)
+  }, [])
+
+  // 홈에 올 때마다 안 읽은 알림이 있는지 본다(알림 화면에서 읽고 돌아오면 점이 사라진다).
+  // 조회 실패는 점 없음 — 있는 척하지 않는다. 개수만(head) 받아 가볍게.
+  useEffect(() => {
+    if (pathname !== '/dashboard') return
+    let alive = true
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const uid = session?.user?.id
+      if (!alive || !uid) return
+      const { count, error } = await supabase
+        .from('push_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', uid)
+        .is('read_at', null)
+      if (!alive || error) return
+      setHasUnread((count ?? 0) > 0)
+    })()
     return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
+      alive = false
     }
-  }, [dogMenuOpen])
-
-  // 드롭다운에서 강아지 선택 — 활성 강아지로 기억 + 홈(대시보드)의 표시
-  // 정보를 그 아이로 전환. 강아지 상세로 이동하는 게 아니라, 홈 spotlight
-  // (인사·활성카드·이번주·맞춤 추천 등 firstDog 기반 섹션)가 선택한 아이로 바뀐다.
-  // 홈은 서버 컴포넌트라 localStorage 를 못 읽음 → 쿠키에도 기록해 서버가 읽게 함.
-  function selectDog(id: string) {
-    setActiveDogId(id)
-    try {
-      window.localStorage.setItem('ft_active_dog', id)
-      // path=/ 전역, 1년 보존, lax — 홈 서버 컴포넌트가 활성 강아지 식별.
-      // eslint-disable-next-line react-hooks/immutability -- document.cookie 쓰기는 정당한 부수효과(오탐)
-      document.cookie = `ft_active_dog=${id}; path=/; max-age=31536000; samesite=lax`
-    } catch {
-      /* storage/cookie 불가 환경 — 칩 표시만 전환 */
-    }
-    setDogMenuOpen(false)
-    // 홈으로 이동 + 서버 재렌더(refresh)로 선택한 아이 정보 반영.
-    router.push('/dashboard')
-    router.refresh()
-  }
-
-  /**
-   * 관리자 모드 토글 (2026-07-25 사장님 요청) — 강아지 전환 메뉴에서 켜고 끈다.
-   *
-   * 켜면 관리자 홈으로, 끄면 앱 홈으로 이동한다. 선택은 localStorage 에 남아
-   * **다시 끄기 전까지 유지**된다(앱을 껐다 켜도 그대로). 이 스위치는 화면 전환
-   * 편의일 뿐 권한 경계가 아니다 — /admin 은 서버가 매번 권한을 확인한다.
-   * 운영 알림(아침 브리핑 등)은 이 스위치와 무관하게 항상 온다.
-   */
-  function toggleAdminMode() {
-    const next = !adminMode
-    setAdminModeStored(next)
-    try {
-      window.localStorage.setItem('ft_admin_mode', next ? '1' : '0')
-    } catch {
-      /* 저장 불가 — 이번 세션만 적용 */
-    }
-    setDogMenuOpen(false)
-    router.push(next ? '/admin' : '/dashboard')
-  }
+  }, [pathname, supabase])
 
   return (
     // `phone-frame`: 데스크톱/태블릿(≥md)에서 이 래퍼를 "책상 위 폰"으로
@@ -487,7 +440,21 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                     className="flex items-center justify-center shrink-0 transition active:scale-95"
                     style={{ width: 48, height: 48, background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    <ArrowLeft style={{ width: 26, height: 26, color: 'var(--ink)' }} strokeWidth={2} />
+                    {/* 꺾쇠(<) — 시안의 모든 깊은 화면 뒤로 가기(26px, 선 2). */}
+                    <svg
+                      width="26"
+                      height="26"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      <path d="M15 5l-7 7 7 7" />
+                    </svg>
                   </button>
                   {screenTitle && (
                     <span
@@ -520,267 +487,32 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* ── 오른쪽 — 탭 화면 = 활성 강아지 칩(없으면 등록) · 홈 = 알림 종. 깊은 화면 숨김. ── */}
+            {/* ── 오른쪽 — 홈 = 알림 종(안 읽은 알림이 있으면 빨간 점). 탭·깊은 화면은 비운다(시안). ── */}
             <div className="flex items-center justify-end shrink-0">
-            {!isDeep && dogsLoaded && (
-              dogs.length === 0 ? (
-                <Link
-                  href="/dogs/new"
-                  aria-label="강아지 등록"
-                  className="flex items-center shrink-0 transition active:scale-95"
-                  style={{ gap: 4, marginRight: -8, padding: '6px 8px', borderRadius: 999 }}
-                >
-                  <Plus
-                    style={{ width: 15, height: 15, color: 'var(--ink-mute)' }}
-                    strokeWidth={2}
-                  />
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-sans)',
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: 'var(--ink)',
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    강아지 등록
-                  </span>
-                </Link>
-              ) : (
-                <div ref={dogMenuRef} className="relative flex items-center shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setDogMenuOpen((v) => !v)}
-                    aria-haspopup="menu"
-                    aria-expanded={dogMenuOpen}
-                    aria-label={activeDog ? `${activeDog.name} — 강아지 전환` : '강아지 전환'}
-                    className="flex items-center transition active:scale-95"
-                    style={{
-                      gap: 3,
-                      marginRight: -8,
-                      padding: '6px 8px',
-                      borderRadius: 999,
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 16,
-                        fontWeight: 600,
-                        color: 'var(--ink)',
-                        maxWidth: 110,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '-0.01em',
-                      }}
-                    >
-                      {activeDog?.name}
-                    </span>
-                    <ChevronDown
-                      style={{
-                        width: 15,
-                        height: 15,
-                        color: 'var(--ink-mute)',
-                        flexShrink: 0,
-                        transform: dogMenuOpen ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 200ms ease',
-                      }}
-                      strokeWidth={2}
-                    />
-                  </button>
-
-                  {dogMenuOpen && (
-                    <div
-                      role="menu"
-                      aria-label="내 강아지 목록"
-                      className="ft-dropdown-pop absolute"
-                      style={{
-                        top: 'calc(100% + 6px)',
-                        right: 0,
-                        minWidth: 188,
-                        maxHeight: '55vh',
-                        overflowY: 'auto',
-                        padding: 6,
-                        borderRadius: 12,
-                        background: 'var(--paper-hi)',
-                        border: '1px solid var(--ink-rule, rgba(22,20,15,0.14))',
-                        boxShadow:
-                          '0 18px 44px -16px rgba(22,20,15,0.35), 0 2px 8px rgba(22,20,15,0.08)',
-                      }}
-                    >
-                      {dogs.map((d) => {
-                        const isActive = d.id === activeDog?.id
-                        return (
-                          <button
-                            key={d.id}
-                            type="button"
-                            role="menuitem"
-                            onClick={() => selectDog(d.id)}
-                            className="flex items-center w-full text-left"
-                            style={{
-                              gap: 8,
-                              padding: '11px 12px',
-                              borderRadius: 4,
-                              background: isActive
-                                ? 'color-mix(in srgb, var(--accent) 7%, transparent)'
-                                : 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-sans)',
-                                fontSize: 16,
-                                fontWeight: isActive ? 700 : 500,
-                                color: 'var(--ink)',
-                                maxWidth: 140,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                letterSpacing: '-0.01em',
-                              }}
-                            >
-                              {d.name}
-                            </span>
-                            {isActive && (
-                              <Check
-                                className="shrink-0"
-                                style={{
-                                  width: 15,
-                                  height: 15,
-                                  color: 'var(--accent)',
-                                  marginLeft: 'auto',
-                                }}
-                                strokeWidth={2.5}
-                              />
-                            )}
-                          </button>
-                        )
-                      })}
-                      <div
-                        aria-hidden
-                        style={{
-                          height: 1,
-                          margin: '4px 8px',
-                          background: 'var(--ink-rule, rgba(22,20,15,0.10))',
-                        }}
-                      />
-                      <Link
-                        href="/dogs/new"
-                        role="menuitem"
-                        onClick={() => setDogMenuOpen(false)}
-                        className="flex items-center"
-                        style={{ gap: 7, padding: '11px 12px', borderRadius: 4 }}
-                      >
-                        <Plus
-                          style={{ width: 15, height: 15, color: 'var(--ink-mute)', flexShrink: 0 }}
-                          strokeWidth={2}
-                        />
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-sans)',
-                            fontSize: 16,
-                            fontWeight: 500,
-                            color: 'var(--ink-mute)',
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          강아지 추가
-                        </span>
-                      </Link>
-
-                      {/* 관리자 모드 스위치 — 운영자 본인에게만(2026-07-25).
-                          켜면 관리자 화면으로 이동하고, 끌 때까지 그대로다
-                          (선택은 localStorage ft_admin_mode 에 남는다).
-                          알림은 이 스위치와 무관하게 항상 받는다. */}
-                      {isAdmin && (
-                        <>
-                          <div
-                            aria-hidden
-                            style={{
-                              height: 1,
-                              margin: '4px 8px',
-                              background: 'var(--ink-rule, rgba(22,20,15,0.10))',
-                            }}
-                          />
-                          <button
-                            type="button"
-                            role="menuitemcheckbox"
-                            aria-checked={adminMode}
-                            onClick={toggleAdminMode}
-                            className="flex items-center w-full text-left"
-                            style={{
-                              gap: 8,
-                              padding: '11px 12px',
-                              borderRadius: 4,
-                              background: adminMode
-                                ? 'color-mix(in srgb, var(--accent) 8%, transparent)'
-                                : 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-sans)',
-                                fontSize: 16,
-                                fontWeight: adminMode ? 700 : 500,
-                                color: adminMode ? 'var(--accent)' : 'var(--ink-mute)',
-                                letterSpacing: '-0.01em',
-                              }}
-                            >
-                              관리자 모드
-                            </span>
-                            {/* 미니 스위치 — 켜짐/꺼짐이 한눈에 */}
-                            <span
-                              aria-hidden
-                              style={{
-                                marginLeft: 'auto',
-                                width: 30,
-                                height: 17,
-                                borderRadius: 999,
-                                background: adminMode
-                                  ? 'var(--accent)'
-                                  : 'rgba(22,20,15,0.18)',
-                                position: 'relative',
-                                transition: 'background 160ms ease',
-                                flexShrink: 0,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  position: 'absolute',
-                                  top: 2,
-                                  left: adminMode ? 15 : 2,
-                                  width: 13,
-                                  height: 13,
-                                  borderRadius: 999,
-                                  background: '#fff',
-                                  transition: 'left 160ms ease',
-                                }}
-                              />
-                            </span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
             {pathname === '/dashboard' && (
               <Link
                 href="/notifications"
-                aria-label="알림"
-                className="flex items-center justify-center transition active:scale-95"
+                aria-label={hasUnread ? '받은 알림, 새 알림이 있어요' : '받은 알림'}
+                className="relative flex items-center justify-center transition active:scale-95"
                 style={{ width: 48, height: 48, color: 'var(--ink)' }}
               >
                 <Bell style={{ width: 26, height: 26 }} strokeWidth={2} />
+                {hasUnread && (
+                  <span
+                    aria-hidden
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      width: 9,
+                      height: 9,
+                      borderRadius: 6,
+                      background: 'var(--sale)',
+                      border: '2px solid var(--ft-native-bg)',
+                      boxSizing: 'content-box',
+                    }}
+                  />
+                )}
               </Link>
             )}
             </div>

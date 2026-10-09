@@ -1,228 +1,198 @@
 /**
- * ActiveDogCard — "Now featuring" 활성 강아지 spotlight 카드.
+ * ActiveDogCard — 홈의 "지금 보고 있는 아이" 카드.
  *
- * 핸드오프 패턴:
- *   - 카드: paperHi bg + 1px rule + radius 4 + overflow hidden.
- *   - 상단: Mono accent "Now featuring" + 우측 sage dot · 활성 상태.
- *   - 본문: 68×84 photo + 강아지 이름 34px sans 800 + 메타 12.5.
- *   - 하단: 4-col metric strip — 식사 / 산책 / 체중 / 연속 기록.
- *
- * 강아지 이름의 `.` 악센트는 폐기 (사용자 요청). 그냥 sans bold.
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 AppHome·T02~T04·AppHomeMultiTabs):
+ *   옅은 주황(#FCEFD9) 카드 — 위 줄(머리말 + 정기배송 상태 점), 동그란 사진 76 + 이름(제목 글꼴 32) + 한 줄 정보,
+ *   아래 수치 띠(#FFF7EA) 4칸 = 체중 · 연속 · 오늘 화식 · 배송(큰 숫자 Anton).
+ *   · `core` = 화면의 핵심 카드일 때(위에 박스 카드가 없을 때) 먹색 2px 테두리 + 도장 그림자. 한 화면에 한 곳.
+ *   · `variant='multi'` = 강아지 여러 마리 — 위 탭이 고르기를 맡아 머리말 줄을 빼고, 상태는 이름 아래로.
+ * 상태 점 색: 정기배송 중 = 머스타드 / 정기배송 전·일시정지 = 회색 / 배송 멈춤 = 빨강.
  */
 
+import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { V3, V3FontSize, V3FontWeight } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { V3, V3Shadow } from '@/lib/design/tokens'
 import DogPawMark from '@/components/DogPawMark'
 
-interface DogMetric {
-  /** 라벨 — Mono kicker (식사/산책/체중/연속). */
+export interface DogMetric {
+  /** 라벨 — 체중 / 연속 / 오늘 화식 / 배송. */
   key: string
-  /** 큰 수치. 28px 정도. */
+  /** 큰 수치. */
   value: string
-  /** 보조 단위 — Mono (/ 2, kg, 일 등). */
+  /** 단위 — kg / 일 / g / 일 후 / 예정. */
   sub: string
-  /** 수치 색상 — V3 token key (sage/accent/ink/yellow). */
-  tone?: 'sage' | 'accent' | 'ink' | 'yellow'
 }
+
+export type DogStatusTone = 'active' | 'idle' | 'stopped'
 
 interface ActiveDogCardProps {
-  /** 강아지 이름. */
   dogName: string
-  /** 강아지 메타 — 품종 + 체중 + 나이 + days. 예: "토이푸들 · 4kg · 3살 · 247일 함께" */
+  /** "셸티 · 11.2kg · 247일 함께" */
   metaLine: string
-  /** 강아지 photo URL. 없으면 placeholder. */
   photoUrl?: string | null
-  /** Active 상태 라벨 — "활성" / "쉬는중" 등. 우상단 작은 라벨. */
-  statusLabel?: string
-  /** Active dot tone — 기본 sage. */
-  statusTone?: 'sage' | 'accent' | 'ink'
-  /** 4 metric 또는 그 이하. 부족하면 빈 cell 으로 가운데 정렬. */
+  /** "정기배송 중" / "정기배송 전" / "배송 멈춤" / "일시정지" */
+  statusLabel: string
+  statusTone?: DogStatusTone
   metrics: DogMetric[]
-  /** 카드 클릭 시 이동할 경로. 옵션. */
   href?: string
-  /** XL-9 (#10) — LCP 후보. dashboard 첫 카드면 true 로 우선 로드. */
+  /** LCP 후보 — 홈 첫 카드면 true. */
   priority?: boolean
+  /** 화면의 핵심 카드(도장 그림자). */
+  core?: boolean
+  /** 머리말 — "지금 보고 있는 아이"(박스 카드가 위에 있을 때) / "우리 아이"(핵심 카드일 때). */
+  kicker?: string
+  variant?: 'single' | 'multi'
 }
 
-const TONE_COLOR: Record<NonNullable<DogMetric['tone']>, string> = {
-  sage: V3.sage,
-  accent: V3.accent,
-  ink: V3.ink,
-  yellow: V3.yellow,
+const TONE_DOT: Record<DogStatusTone, string> = {
+  active: V3.mustard,
+  idle: '#9A9A9A',
+  stopped: V3.sale,
+}
+
+function StatusBadge({ label, tone }: { label: string; tone: DogStatusTone }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: V3.ink }}>
+      <span aria-hidden style={{ width: 8, height: 8, borderRadius: 4, background: TONE_DOT[tone], flexShrink: 0 }} />
+      {label}
+    </span>
+  )
 }
 
 export default function ActiveDogCard({
   dogName,
   metaLine,
   photoUrl,
-  statusLabel = '활성',
-  statusTone = 'sage',
+  statusLabel,
+  statusTone = 'active',
   metrics,
   href,
   priority = false,
+  core = false,
+  kicker = '지금 보고 있는 아이',
+  variant = 'single',
 }: ActiveDogCardProps) {
-  const card = (
-    <div
-      className="ft-card-v3"
-      style={{
-        overflow: 'hidden',
-      }}
-    >
-      {/* Top kicker row */}
-      <div
-        className="flex justify-between items-center"
-        style={{ padding: '14px 16px 4px' }}
-      >
-        <Mono color="accent" size="xs" weight={600}>
-          지금 보고 있는 아이
-        </Mono>
+  const multi = variant === 'multi'
+  const body = (
+    <>
+      {!multi && (
         <span
-          className="inline-flex items-center"
           style={{
-            gap: 6,
-            fontFamily: "var(--font-mono, 'IBM Plex Mono'), 'JetBrains Mono', ui-monospace, monospace",
-            fontSize: V3FontSize.xs,
-            color: V3.inkSoft,
+            padding: '16px 16px 0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: V3.cream,
           }}
         >
-          <span
-            aria-hidden
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              background: TONE_COLOR[statusTone],
-            }}
-          />
-          {statusLabel}
+          <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>{kicker}</span>
+          <StatusBadge label={statusLabel} tone={statusTone} />
         </span>
-      </div>
-
-      {/* Photo + name — 2026-05-22: 68×84 (portrait 직사각) → 80×80 (정사각) */}
-      <div
-        className="flex items-end"
-        style={{ padding: '6px 16px 14px', gap: 14 }}
+      )}
+      <span
+        style={{
+          padding: multi ? 16 : '12px 16px 16px',
+          display: 'grid',
+          gridTemplateColumns: '76px 1fr',
+          columnGap: 14,
+          alignItems: 'center',
+          background: V3.cream,
+        }}
       >
-        <div
-          className="relative shrink-0 overflow-hidden"
+        <span
           style={{
-            width: 80,
-            height: 80,
-            borderRadius: 2,
-            background: '#d6c9aa',
-            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.16)',
+            position: 'relative',
+            width: 76,
+            height: 76,
+            borderRadius: 38,
+            overflow: 'hidden',
+            border: '3px solid #FFFFFF',
+            boxSizing: 'border-box',
+            background: V3.soft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           {photoUrl ? (
             <Image
               src={photoUrl}
-              alt={dogName}
+              alt={`${dogName} 사진`}
               fill
-              sizes="80px"
+              sizes="76px"
               className="object-cover"
               priority={priority}
               fetchPriority={priority ? 'high' : 'auto'}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <DogPawMark size={26} color={V3.inkMute} />
-            </div>
+            <DogPawMark size={28} color={V3.inkMute} />
           )}
-        </div>
-        <div className="flex-1 min-w-0" style={{ paddingBottom: 4 }}>
-          <div
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontWeight: V3FontWeight.black,
-              // R23: 34 → 22 (사용자 보고: hero 텍스트 전반 다운) = V3FontSize.lg
-              fontSize: V3FontSize.lg,
-              color: V3.ink,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
-              wordBreak: 'keep-all',
-            }}
-          >
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <span className="ft-poster" style={{ fontSize: 32, lineHeight: 1, wordBreak: 'keep-all' }}>
             {dogName}
-          </div>
-          <div
-            className="ft-clamp-1"
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: V3FontSize.sm,
-              color: V3.inkSoft,
-              marginTop: 6,
-            }}
-          >
+          </span>
+          <span className="ft-clamp-1" style={{ fontSize: 15, color: V3.inkSoft }}>
             {metaLine}
-          </div>
-        </div>
-      </div>
-
-      {/* 4-col metric strip */}
-      <div
-        className="grid"
-        style={{
-          // minmax(0,1fr) — 값이 길어도(예: 배송 D-14) 칸이 늘어나 다른 칸을
-          // 밀지 않게 4등분 고정(사장님 2026-07-14 규격 깨짐 리포트).
-          gridTemplateColumns: `repeat(${Math.max(metrics.length, 4)}, minmax(0, 1fr))`,
-          borderTop: `1px solid ${V3.rule}`,
-        }}
-      >
+          </span>
+          {multi && (
+            <span style={{ marginTop: 2 }}>
+              <StatusBadge label={statusLabel} tone={statusTone} />
+            </span>
+          )}
+        </span>
+      </span>
+      <span style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', background: V3.creamSoft }}>
         {metrics.map((m, i) => (
-          <div
+          <span
             key={m.key}
             style={{
-              padding: '12px 10px',
-              borderLeft: i > 0 ? `1px solid ${V3.rule}` : 'none',
+              padding: i === 0 ? '12px 6px 14px 14px' : '12px 6px 14px 12px',
+              borderLeft: i > 0 ? '1px solid #F0DDBD' : 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
               minWidth: 0,
               overflow: 'hidden',
             }}
           >
-            <Mono color="inkMute" size="xxs" weight={500}>
-              {m.key}
-            </Mono>
-            <div
-              className="flex flex-wrap items-baseline"
-              style={{ marginTop: 6, gap: 4, minWidth: 0 }}
-            >
-              <span
-                className="tabular-nums"
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontWeight: V3FontWeight.black,
-                  fontSize: V3FontSize.lg,
-                  color: m.tone ? TONE_COLOR[m.tone] : V3.ink,
-                  letterSpacing: '-0.025em',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                }}
-              >
+            <span style={{ fontSize: 13, color: V3.inkMute, whiteSpace: 'nowrap' }}>{m.key}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>
+              <span className="ft-num" style={{ fontSize: 26, color: V3.ink }}>
                 {m.value}
               </span>
-              <Mono color="inkMute" size="xs" weight={500} letterSpacing="0.06em">
-                {m.sub}
-              </Mono>
-            </div>
-          </div>
+              <span style={{ fontSize: 13, fontWeight: 700 }}> {m.sub}</span>
+            </span>
+          </span>
         ))}
-      </div>
-    </div>
+      </span>
+    </>
   )
+
+  const frame: CSSProperties = {
+    margin: multi ? '12px 20px 0' : '22px 20px 0',
+    border: core ? `2px solid ${V3.ink}` : 0,
+    boxShadow: core ? V3Shadow.stamp : 'none',
+    borderRadius: 4,
+    overflow: 'hidden',
+    color: V3.ink,
+    textDecoration: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+  }
 
   if (href) {
     return (
-      <section style={{ padding: '0 20px 30px' }}>
-        <Link
-          href={href}
-          aria-label={`${dogName} 상세 보기`}
-          className="block transition-transform active:scale-[0.99]"
-        >
-          {card}
-        </Link>
-      </section>
+      <Link
+        href={href}
+        aria-label={`${dogName} 자세히 보기`}
+        className="transition active:scale-[0.99]"
+        style={frame}
+      >
+        {body}
+      </Link>
     )
   }
-  return <section style={{ padding: '0 20px 30px' }}>{card}</section>
+  return <div style={frame}>{body}</div>
 }

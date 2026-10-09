@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import AppNotFoundScreen from '@/components/v3/system/AppNotFoundScreen'
 
 /**
  * 앱(AppChrome) 안에서의 404.
@@ -14,38 +14,11 @@ import Link from 'next/link'
  *      못 박아 둔 바로 그 실수다.
  *
  * 여기서는 앱 사용자가 실제로 갈 만한 곳만 준다.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 B05) — 화면은 components/v3/system/AppNotFoundScreen
+ * 한 곳에서 그린다. 루트 not-found 의 앱 갈래(앱 요청인데 어떤 라우트에도 안 맞는 주소)도 같은 화면을
+ * 쓴다 — 두 벌이면 한쪽만 고쳐진다. 큰 '404' 머리말은 뺐다(결정: 고객에게 오류 번호를 보이지 않는다).
  */
 export default function AppNotFound() {
-  return (
-    <div className="px-5 py-16 text-center">
-      <p className="kicker" style={{ color: 'var(--muted)' }}>
-        404
-      </p>
-      <h1
-        className="mt-2 font-sans"
-        style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}
-      >
-        화면을 찾지 못했어요
-      </h1>
-      <p className="mt-2 text-[13.5px] text-muted leading-relaxed">
-        주소가 바뀌었거나, 삭제된 기록일 수 있어요.
-      </p>
-
-      <div className="mt-6 flex flex-col items-center gap-2">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center justify-center rounded px-5 py-3 text-[13.5px] font-bold text-white"
-          style={{ background: 'var(--terracotta)' }}
-        >
-          홈으로 가기
-        </Link>
-        <Link
-          href="/dogs"
-          className="text-[12px] font-bold text-muted underline underline-offset-4"
-        >
-          우리 아이 목록 보기
-        </Link>
-      </div>
-    </div>
-  )
+  return <AppNotFoundScreen />
 }

@@ -1,40 +1,39 @@
 /**
- * GreetingSection — v3 홈 화면 상단 Hero greeting.
+ * GreetingSection — 앱 홈 맨 위 인사.
  *
- * 핸드오프 패턴:
- *   - 좌측: accent dot + Mono kicker "Hello · {timeOfDay}"
- *           (사용자 요청 2026-05-25: 사용자 이름 kicker 에서 제거)
- *   - 우측: Signature 블록 ({name}님 + FAMILY · N + 4px ink bar)
- *   - 하단: 14px sub 카피 + yellow Mark 강조
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 AppHome): 머리말 = 머스타드 네모 + 오늘 날짜(강아지가 없으면 "환영해요"),
+ *   제목 = 시간대 인사 + 줄바꿈 + 보호자 이름(제목 글꼴 34), 아래 한 줄 = "오늘도 건강한 한 끼를 정성스럽게."(머스타드 밑줄).
+ *   예전 우상단 서명 블록(이름 + 가족 N명)은 뺐다 — 이름이 제목으로 올라왔다.
  *
  * timeOfDay 는 KST 시간 기준 자동 분기:
  *   05-11 → morning / 12-16 → afternoon / 17-20 → evening / 21-04 → night
  *
  * # 멘트 다양화 (사용자 요청 2026-05-25)
- *
  * 같은 시간대에서도 5가지 멘트 중 day-of-year 기반 deterministic rotation.
  * 새로고침 시 안 바뀜 (혼란 방지). 다음날 자동 변경.
  */
 
-import { V3, V3FontWeight, V3LetterSpacing, V3FontSize } from '@/lib/design/tokens'
-import { Mono, Signature, Mark } from '@/components/v3'
+import { V3 } from '@/lib/design/tokens'
 import { currentKstHour, nowKstMs } from '@/lib/datetime-kst'
 
 interface GreetingSectionProps {
   /** 보호자 이름. */
   userName: string
-  /** 가족(강아지) 수. */
+  /** 가족(강아지) 수 — 0 이면 머리말이 "환영해요". */
   familyCount: number
-  /** 강제 timeOfDay override (테스트용). 일반적으로 prop 안 줌. */
+  /** 머리말을 "환영해요"로 — 주면 familyCount 보다 우선(조회 실패는 0마리가 아니다). */
+  welcome?: boolean
+  /** 강제 timeOfDay override (테스트·점검 화면용). 일반적으로 prop 안 줌. */
   forceTimeOfDay?: TimeOfDay
   /** 멘트 variant override (테스트용). 0-based index. */
   forceVariant?: number
-  /** 하단 yellow-marker 카피. 기본 "오늘도 건강한 한 끼를 정성스럽게." */
+  /** 머리말 날짜 override (점검 화면용 — "10월 7일 수요일"). */
+  forceDateLabel?: string
+  /** 하단 카피. 기본 "오늘도 건강한 한 끼를 정성스럽게." */
   subCopy?: { lead: string; mark: string }
 }
 
-type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
-
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
 
 /**
  * 시간대별 헤딩 5종 — day-of-year mod 5 로 rotation.
@@ -107,107 +106,52 @@ function withHonorific(name: string): string {
 export default function GreetingSection({
   userName,
   familyCount,
+  welcome,
   forceTimeOfDay,
   forceVariant,
+  forceDateLabel,
   subCopy = { lead: '오늘도 건강한 한 끼를 ', mark: '정성스럽게.' },
 }: GreetingSectionProps) {
   const tod = forceTimeOfDay ?? computeTimeOfDay()
   const variants = HEADINGS_BY_TIME[tod]
   const idx = forceVariant ?? dayOfYear() % variants.length
   const headingText = variants[idx] ?? variants[0]!
-  // ★영어 "Hello · good afternoon" → 오늘 날짜(2026-09-22 시니어 사용성). 헤딩이 이미
-  //   시간대 인사를 하니 머리말은 정보(날짜·요일)를 준다. KST 고정.
-  const kickerLabel = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  }).format(new Date())
+  // 머리말 = 오늘 날짜·요일(KST). 강아지가 아직 없으면 "환영해요"(캔버스 T05).
+  const kickerLabel =
+    (welcome ?? familyCount === 0)
+      ? '환영해요'
+      : (forceDateLabel ??
+        new Intl.DateTimeFormat('ko-KR', {
+          timeZone: 'Asia/Seoul',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long',
+        }).format(new Date()))
+  const name = withHonorific(userName)
 
   return (
-    <section
-      style={{
-        padding: '24px 20px 28px',
-        position: 'relative',
-      }}
-    >
-      {/* kicker: accent dot + greeting label (no name) */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 16,
-        }}
+    <section style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
+      <span
+        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: V3.inkMute }}
       >
-        <span
-          aria-hidden
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            background: V3.accent,
-            flexShrink: 0,
-          }}
-        />
-        <Mono color="ink" size="xs" weight={500}>
-          {kickerLabel}
-        </Mono>
-      </div>
-
-      {/* hero heading — R23: 38 → 24 (사용자 보고: 글씨 너무 큼).
-          line-height 1.25 — 한 줄이지만 다음 sub copy 와 호흡. */}
-      <h1
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-sans)',
-          fontWeight: V3FontWeight.black,
-          fontSize: 24,
-          lineHeight: 1.25,
-          letterSpacing: V3LetterSpacing.heading,
-          color: V3.ink,
-          wordBreak: 'keep-all',
-          // 긴 야간 인사말("오늘도 함께해 주셔서 고마워요,")이 우상단 Signature 와
-          // 겹치지 않도록: nowrap 제거(자연 줄바꿈) + Signature 폭만큼 우측 거터 확보.
-          paddingRight: 112,
-        }}
-      >
+        <span aria-hidden style={{ width: 8, height: 8, background: V3.mustard, flexShrink: 0 }} />
+        {kickerLabel}
+      </span>
+      <h1 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.15, color: V3.ink, wordBreak: 'keep-all' }}>
         {headingText}
+        {name && (
+          <>
+            <br />
+            {name}
+          </>
+        )}
       </h1>
-
-      {/* 우상단 signature — R23: size 22 → 15, barHeight 60 → 28
-          (사용자 보고: 우상단 글씨 너무 큼) */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 20,
-          top: 24,
-        }}
-      >
-        <Signature
-          name={withHonorific(userName)}
-          metaKicker={familyCount > 0 ? `가족 ${familyCount}명` : '환영해요'}
-          align="right"
-          size={15}
-          barHeight={28}
-          nameMaxWidth={104}
-        />
-      </div>
-
-      {/* 하단 카피 + yellow marker */}
-      <div style={{ marginTop: 18 }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: V3FontSize.base,
-            color: V3.inkSoft,
-            lineHeight: 1.5,
-          }}
-        >
-          {subCopy.lead}
-          <Mark tone="yellow">{subCopy.mark}</Mark>
-        </span>
-      </div>
+      <p style={{ margin: '10px 0 0', fontSize: 17, color: V3.inkSoft, lineHeight: 1.5 }}>
+        {subCopy.lead}
+        <strong style={{ fontWeight: 800, color: V3.ink, borderBottom: `4px solid ${V3.mustard}` }}>
+          {subCopy.mark}
+        </strong>
+      </p>
     </section>
   )
 }

@@ -9,17 +9,28 @@
  *     ↑ 산책 시간 전용 컬럼은 activity_logs 에만 있음(health_logs 엔 없음).
  *
  * 시간은 항상 기록(기본 30분), 활동량은 선택. **앱(PWA) 전용.**
+ *
+ * 2026-10-09 'A 포스터'(시안 T16): 머리줄(제목·안내 · '닫기') · 산책 시간 = 먹선 네모 [−] ·
+ * 회색 면 큰 숫자(Anton) · [+] · 활동량 네모 선택지 · 먹색 꽉 찬 버튼. 조각은 SheetParts.
  */
 
-import { useRef, useState } from 'react'
-import { Check, Minus, Plus } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { useId, useRef, useState, type CSSProperties } from 'react'
+import { Minus, Plus } from 'lucide-react'
+import { V3, V3Radius } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import {
+  SheetChoiceRow,
+  SheetContent,
+  SheetError,
+  SheetHeader,
+  SheetPrimaryButton,
+  SheetSectionLabel,
+  type SheetOption,
+} from '@/components/v3/sheet/SheetParts'
 
-type Opt = readonly [value: string, label: string]
-const ACTIVITY: Opt[] = [['high', '활발'], ['normal', '보통'], ['low', '적음']]
+const ACTIVITY: SheetOption[] = [['high', '활발'], ['normal', '보통'], ['low', '적음']]
 
 // 산책 시간은 15분 단위(사장님 2026-07-16). 30분 단위는 너무 성겨서 실제 산책과 안 맞음.
 const STEP = 15
@@ -41,6 +52,20 @@ function fmtDuration(min: number): string {
   return m === 0 ? `${h}시간` : `${h}시간 ${m}분`
 }
 
+/** 산책 시간 [−]·[+] — 64px 흰 네모 + 먹선(시안). 끝에 닿으면 흐리게. */
+function stepStyle(disabled: boolean): CSSProperties {
+  return {
+    width: 64,
+    height: 64,
+    padding: 0,
+    borderRadius: V3Radius.sm,
+    background: '#FFFFFF',
+    border: `1.5px solid ${V3.ink}`,
+    cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.35 : 1,
+  }
+}
+
 export default function QuickWalkSheet({
   open,
   onClose,
@@ -56,6 +81,7 @@ export default function QuickWalkSheet({
   // 빠져나가 중복 insert 된다(HealthLogClient savingRef 와 동일 패턴, 2026-07-17).
   const submittingRef = useRef(false)
   const toast = useToast()
+  const durationLabelId = useId()
 
   async function save() {
     if (submittingRef.current) return
@@ -120,6 +146,9 @@ export default function QuickWalkSheet({
     }
   }
 
+  const atMin = duration <= MIN
+  const atMax = duration >= MAX
+
   return (
     <BottomSheet
       open={open}
@@ -128,170 +157,96 @@ export default function QuickWalkSheet({
       dismissOnBackdrop={!busy}
     >
       <BottomSheet.Body>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 24,
-            color: V3.ink,
-            letterSpacing: '-0.02em',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {dogName ? `${dogName} ` : ''}오늘 산책은 어땠나요?
-        </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
-          시간은 15분 단위 · 활동량은 선택
-        </p>
+        <SheetContent>
+          <SheetHeader
+            title={`${dogName ? `${dogName} ` : ''}오늘 산책은 어땠나요?`}
+            sub="시간은 15분 단위 · 활동량은 고르지 않아도 돼요"
+            onClose={onClose}
+          />
 
-        {/* 산책 시간 — 15분 단위 스텝퍼 */}
-        <div style={{ marginTop: 18 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: V3FontWeight.bold,
-              color: V3.inkSoft,
-              marginBottom: 8,
-            }}
-          >
-            산책 시간
-          </div>
-          <div
-            className="flex items-center"
-            style={{
-              gap: 10,
-              background: V3.paperHi,
-              border: `1.5px solid ${V3.ink}`,
-              borderRadius: 4,
-              padding: '10px 12px',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setDuration((d) => Math.max(MIN, d - STEP))}
-              disabled={duration <= MIN}
-              aria-label="15분 줄이기"
-              className="flex items-center justify-center transition active:scale-90"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 4,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
-                cursor: duration <= MIN ? 'default' : 'pointer',
-                opacity: duration <= MIN ? 0.4 : 1,
-              }}
-            >
-              <Minus size={18} color={V3.ink} strokeWidth={2.2} />
-            </button>
+          {/* 산책 시간 — 15분 단위 스텝퍼 */}
+          <div style={{ marginTop: 18 }}>
+            <SheetSectionLabel id={durationLabelId}>산책 시간</SheetSectionLabel>
             <div
-              aria-live="polite"
-              aria-label={`산책 시간 ${fmtDuration(duration)}`}
-              className="tabular-nums flex-1 text-center"
+              role="group"
+              aria-labelledby={durationLabelId}
               style={{
-                fontFamily: 'var(--font-sans)',
-                fontWeight: V3FontWeight.black,
-                fontSize: 26,
-                color: V3.ink,
-                letterSpacing: '-0.02em',
+                display: 'grid',
+                gridTemplateColumns: '64px minmax(0, 1fr) 64px',
+                gap: 10,
+                alignItems: 'center',
               }}
             >
-              {fmtDuration(duration)}
+              <button
+                type="button"
+                onClick={() => setDuration((d) => Math.max(MIN, d - STEP))}
+                disabled={atMin}
+                aria-label="15분 줄이기"
+                className="flex items-center justify-center transition active:scale-95 ft-no-press"
+                style={stepStyle(atMin)}
+              >
+                <Minus size={24} color={V3.ink} strokeWidth={2.4} aria-hidden />
+              </button>
+
+              <div
+                aria-live="polite"
+                aria-atomic="true"
+                className="flex items-center justify-center"
+                style={{
+                  height: 64,
+                  background: V3.soft,
+                  borderRadius: V3Radius.sm,
+                  color: V3.ink,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span className="sr-only">{`산책 시간 ${fmtDuration(duration)}`}</span>
+                {duration < 60 ? (
+                  <span aria-hidden className="flex items-center">
+                    {/* 숫자 글꼴은 .ft-num 이 준다 — fontFamily·fontWeight 를 여기서 주지 않는다. */}
+                    <span className="ft-num" style={{ fontSize: 40, lineHeight: 1 }}>
+                      {duration}
+                    </span>
+                    <span style={{ fontSize: 18, fontWeight: 800, marginLeft: 5 }}>분</span>
+                  </span>
+                ) : (
+                  <span aria-hidden style={{ fontSize: 22, fontWeight: 800 }}>
+                    {fmtDuration(duration)}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDuration((d) => Math.min(MAX, d + STEP))}
+                disabled={atMax}
+                aria-label="15분 늘리기"
+                className="flex items-center justify-center transition active:scale-95 ft-no-press"
+                style={stepStyle(atMax)}
+              >
+                <Plus size={24} color={V3.ink} strokeWidth={2.4} aria-hidden />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setDuration((d) => Math.min(MAX, d + STEP))}
-              disabled={duration >= MAX}
-              aria-label="15분 늘리기"
-              className="flex items-center justify-center transition active:scale-90"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 4,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
-                cursor: duration >= MAX ? 'default' : 'pointer',
-                opacity: duration >= MAX ? 0.4 : 1,
-              }}
-            >
-              <Plus size={18} color={V3.ink} strokeWidth={2.2} />
-            </button>
           </div>
-        </div>
 
-        {/* 활동량 칩 (선택) */}
-        <div style={{ marginTop: 16 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: V3FontWeight.bold,
-              color: V3.inkSoft,
-              marginBottom: 8,
-            }}
-          >
-            활동량
+          {/* 활동량 (고르지 않아도 됨) */}
+          <div style={{ marginTop: 18 }}>
+            <SheetChoiceRow
+              label="활동량"
+              options={ACTIVITY}
+              value={activity}
+              onPick={setActivity}
+            />
           </div>
-          <div className="flex" role="group" aria-label="활동량" style={{ gap: 8 }}>
-            {ACTIVITY.map(([v, label]) => {
-              const active = activity === v
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setActivity(active ? null : v)}
-                  aria-pressed={active}
-                  className="transition active:scale-95 ft-no-press"
-                  style={{
-                    flex: 1,
-                    padding: '14px 4px',
-                    borderRadius: 999,
-                    background: active ? V3.ink : V3.paperHi,
-                    color: active ? V3.paper : V3.ink,
-                    border: `1px solid ${active ? V3.ink : V3.rule}`,
-                    fontFamily: 'var(--font-sans)',
-                    fontWeight: V3FontWeight.bold,
-                    fontSize: 16,
-                    letterSpacing: '-0.01em',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
-              )
-            })}
+
+          <div style={{ marginTop: 20 }}>
+            <SheetError msg={err} />
+            <SheetPrimaryButton onClick={save} disabled={busy} busy={busy}>
+              {busy ? '저장 중...' : `${fmtDuration(duration)} 산책 기록`}
+            </SheetPrimaryButton>
           </div>
-        </div>
+        </SheetContent>
       </BottomSheet.Body>
-
-      <BottomSheet.Footer>
-        {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
-            {err}
-          </p>
-        )}
-        <button
-          onClick={save}
-          disabled={busy}
-          className="flex items-center justify-center transition active:scale-[0.98]"
-          style={{
-            width: '100%',
-            height: 52,
-            borderRadius: 4,
-            background: busy ? V3.inkMute : V3.ink,
-            color: V3.paper,
-            border: 'none',
-            cursor: busy ? 'wait' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: 18,
-            gap: 8,
-          }}
-        >
-          <Check size={18} color={V3.paper} strokeWidth={2.2} />
-          {busy ? '저장 중...' : `${fmtDuration(duration)} 산책 기록`}
-        </button>
-      </BottomSheet.Footer>
     </BottomSheet>
   )
 }

@@ -1,6 +1,16 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { POUCH, V3, V3Radius, V3Shadow } from '@/lib/design/tokens'
+import HomeView from '@/components/v3/home/HomeView'
+import { HOME_FIXTURES, SHEET_KEYS, type SheetKey } from './_fixtures'
+import ToastDemo from './ToastDemo'
+import SheetsDemo from './SheetsDemo'
+import DashboardLoading from '../dashboard/loading'
+import DogsLoading from '../dogs/loading'
+import DogLoading from '../dogs/[id]/loading'
+import MypageLoading from '../mypage/loading'
+import MainLoading from '../loading'
 
 /**
  * /design-check — 앱 새 디자인('A 포스터') 바탕 공사 점검용 화면 (2026-10-09, docs/APP_POSTER_REDESIGN_2026_10.md).
@@ -18,9 +28,101 @@ export const metadata: Metadata = {
 // 경계 안이라 응답이 먼저 시작된 뒤 notFound() 가 그려진다(force-dynamic 으로 바꿔도 같았다). 점검 내용은 안 나가고
 // noindex 라 그대로 둔다. 진짜 404 가 필요해지면 (main) 밖으로 옮길 것.
 
-export default function DesignCheckPage() {
+/**
+ * 화면 고르기 — ?s=<이름>. 홈 상태들은 실제 홈과 같은 HomeView 에 예시 값(_fixtures)을 넣어 그린다.
+ * (2026-10-09 2단계 묶음① — 홈은 로그인해야 열려서, 로그인 없이 시안과 나란히 보려고.)
+ */
+export default async function DesignCheckPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   if (process.env.VERCEL_ENV === 'production') notFound()
+  const sp = await searchParams
+  const s = typeof sp.s === 'string' ? sp.s : ''
+  const fx = HOME_FIXTURES[s]
+  if (fx) return <HomeView model={fx.model} />
+  if (s === 'toast-done' || s === 'toast-fail')
+    return (
+      <>
+        <HomeView model={HOME_FIXTURES['home-multi']!.model} />
+        <ToastDemo kind={s === 'toast-done' ? 'done' : 'fail'} />
+      </>
+    )
+  if ((SHEET_KEYS as readonly string[]).includes(s))
+    return (
+      <>
+        <HomeView model={HOME_FIXTURES['home-one']!.model} />
+        <SheetsDemo which={s as SheetKey} />
+      </>
+    )
+  // 공통 화면(캔버스 B03·B05·B06~B08) — 실제 오류 경계·없는 주소·불러오는 중 뼈대를 그대로 띄운다.
+  if (s === 'error') throw new Error('디자인 점검용 오류(미리보기 전용)')
+  if (s === 'notfound') notFound()
+  if (s === 'load-home') return <DashboardLoading />
+  if (s === 'load-dogs') return <DogsLoading />
+  if (s === 'load-dog') return <DogLoading />
+  if (s === 'load-mypage') return <MypageLoading />
+  if (s === 'load-common') return <MainLoading />
+  if (s === 'parts') return <PartsDemo />
+  return <DesignIndex />
+}
 
+function DesignIndex() {
+  const items: Array<[string, string, string]> = [
+    ['parts', '기본 부품 (색·글꼴·버튼·카드)', '1단계'],
+    ...Object.entries(HOME_FIXTURES).map(([k, v]) => [k, v.title, v.mock] as [string, string, string]),
+    ['toast-done', '짧은 알림 · 완료', 'B10-ToastDone'],
+    ['toast-fail', '짧은 알림 · 실패', 'B11-ToastFail'],
+    ['sheet-health', '기록 · 건강·식사', 'T12-SheetHealth'],
+    ['sheet-weight', '기록 · 체중', 'T13-SheetWeight'],
+    ['sheet-memo', '기록 · 일기 한 줄', 'T14-SheetMemo'],
+    ['sheet-photo', '기록 · 사진', 'T15-SheetPhoto'],
+    ['sheet-walk', '홈 칸 · 산책', 'T16-SheetWalk'],
+    ['sheet-meal', '홈 칸 · 식사', 'T17-SheetMeal'],
+    ['error', '화면 오류 (앱 안)', 'B03-ErrorInApp'],
+    ['notfound', '없는 주소', 'B05-NotFound'],
+    ['load-home', '불러오는 중 · 홈', 'B06-LoadHome'],
+    ['load-dogs', '불러오는 중 · 우리 아이', 'B07-LoadDogs'],
+    ['load-mypage', '불러오는 중 · 내 정보', 'B08-LoadMyInfo'],
+    ['load-dog', '불러오는 중 · 강아지 화면', '—'],
+    ['load-common', '불러오는 중 · 그 외', 'B09-LoadCommon'],
+  ]
+  return (
+    <div style={{ padding: '20px 20px 32px' }}>
+      <h1 style={{ margin: 0, fontSize: 30, lineHeight: 1.2 }}>디자인 점검</h1>
+      <p style={{ margin: '8px 0 0', fontSize: 15, color: V3.inkMute, lineHeight: 1.5 }}>
+        미리보기 전용 화면이에요. 실제 화면과 같은 부품에 예시 값을 넣었어요.
+      </p>
+      <ul style={{ listStyle: 'none', margin: '18px 0 0', padding: 0, display: 'grid', gap: 8 }}>
+        {items.map(([k, title, mock]) => (
+          <li key={k}>
+            <Link
+              href={`/design-check?s=${k}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                minHeight: 56,
+                padding: '10px 14px',
+                borderRadius: 4,
+                background: V3.soft,
+                color: V3.ink,
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
+              <span style={{ fontSize: 13, color: V3.inkMute, flexShrink: 0 }}>{mock}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function PartsDemo() {
   return (
     <div style={{ paddingBottom: 24 }}>
       <section style={{ padding: '24px 20px 0' }}>

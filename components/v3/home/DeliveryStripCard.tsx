@@ -1,102 +1,98 @@
 /**
- * DeliveryStripCard — 다음 정기배송 D-1 가로 strip 카드.
+ * DeliveryStripCard — 박스 사이(결제된 박스가 없을 때) 다음 정기배송 카드.
  *
- * 핸드오프 패턴:
- *   - paperHi card + 1px rule
- *   - 좌측: 38×38 ink square + yellow truck icon
- *   - 본문: D-N accent + "· 정기배송" mute → "내일 새벽 도착 · 닭가슴살 1.5kg"
- *   - 우측: chevron arrow
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 T01): 왼쪽 = "발송까지 N일"(큰 숫자), 세로 선, 오른쪽 =
+ *   "다음 정기배송 / 10월 13일 (화) 발송 / 닭고기 · 흑돼지 화식", 끝에 ›. 카드 색 = 박스 레시피 파우치 색
+ *   (lib/design/pouch — 한 가지 = 그 색 + 먹색 도장 그림자, 두 가지 = 첫째 바탕 + 둘째 테두리·그림자).
+ *
+ * ★ 이 날짜는 **발송일**이다 — `next_delivery_date` 는 발송일(화)이고 도착은 지역에 따라 그 다음 날부터다
+ *   (lib/shipping-schedule). 예전 이름 `arrivalLabel`·"내일 새벽 도착" 이 발송일을 도착일로 말하게 만들었다(2026-07-30 정정).
+ *   날짜가 지났거나 결제를 확인 중이면 발송을 약속하지 않는다 — 숫자 대신 "확인 중"(shipTimingLabel 원칙).
  */
 
 import Link from 'next/link'
-import { Truck, ArrowRight } from 'lucide-react'
-import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { boxCardColors, boxCardFrame, type PouchLine } from '@/lib/design/pouch'
 
 interface DeliveryStripCardProps {
-  /** "D-1" / "D-Day" / "D-3" 등. */
-  dLabel: string
-  /** "정기배송" / "이번 주문" 등. */
-  channelLabel?: string
-  /** 도착 라벨 — "내일 새벽 도착". */
-  /**
-   * 배송 시점 한 줄. **발송 기준**이다 — `next_delivery_date` 는 발송일(화)이고
-   * 도착은 지역에 따라 그 다음 날부터다(lib/shipping-schedule).
-   *
-   * 예전 이름은 `arrivalLabel`, 예시는 "내일 새벽 도착" 이었다. 그 이름 때문에
-   * **발송일을 도착일로 말하는 문구**가 들어갔다(하루 앞당겨 약속 + 우리가 알
-   * 수도 없는 시각을 단정). 2026-07-30 정정 — 문구는 `shipTimingLabel` 정본에서.
-   */
-  timingLabel: string
-  /** 담긴 상품 — "닭가슴살 1.5kg" 등. */
-  itemLabel: string
-  /** 상세로 이동할 href. */
+  /** 발송까지 남은 날(0 = 오늘). 확인 중이면 null. */
+  daysUntil: number | null
+  /** "10월 13일 (화)" — 발송일. 확인 중이면 null. */
+  shipDateLabel: string | null
+  /** 확인 중일 때 한 줄(shipTimingLabel·결제 확인 문구). */
+  checkDetail?: string | null
+  /** 담긴 레시피 — "닭고기 · 흑돼지 화식". */
+  itemLabel: string | null
+  /** 레시피 파우치(표시 순서) — 카드 색. */
+  lines?: readonly PouchLine[]
+  /** 앱 정기배송 정본 = /mypage/subscriptions (웹 /account/subscriptions 로 보내면 앱에 웹 화면이 뜬다). */
   href?: string
 }
 
 export default function DeliveryStripCard({
-  dLabel,
-  channelLabel = '정기배송',
-  timingLabel,
+  daysUntil,
+  shipDateLabel,
+  checkDetail,
   itemLabel,
-  // 앱 정기배송 정본 = /mypage/subscriptions (앱 전용 결제정보 요약 화면,
-  // 2026-07-30 신설). /account/subscriptions 는 **웹 전용**이라 앱에서 열면
-  // 웹 화면이 뜬다 — 그래서 앱 컴포넌트인 여기 기본값은 /mypage 쪽이다.
+  lines = [],
   href = '/mypage/subscriptions',
 }: DeliveryStripCardProps) {
-  const inner = (
-    <div
-      className="ft-card-v3 flex items-center"
-      style={{ padding: '12px 14px', gap: 12 }}
-    >
-      <div
-        className="flex items-center justify-center shrink-0"
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 4,
-          background: V3.ink,
-        }}
-        aria-hidden
-      >
-        <Truck size={18} color={V3.yellow} strokeWidth={1.75} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center" style={{ gap: 6 }}>
-          <Mono color="accent" size="xxs" weight={700}>
-            {dLabel}
-          </Mono>
-          <Mono color="inkMute" size="xxs" weight={500}>
-            · {channelLabel}
-          </Mono>
-        </div>
-        <div
-          className="ft-clamp-1"
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: V3FontSize.base,
-            color: V3.ink,
-            marginTop: 3,
-            letterSpacing: '-0.015em',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {timingLabel} · {itemLabel}
-        </div>
-      </div>
-      <ArrowRight size={14} color={V3.inkMute} strokeWidth={2} />
-    </div>
-  )
+  const colors = boxCardColors(lines)
+  const checking = daysUntil == null || daysUntil < 0 || !shipDateLabel
   return (
-    <section style={{ padding: '0 20px 30px' }}>
-      {href ? (
-        <Link href={href} className="block transition-transform active:scale-[0.99]">
-          {inner}
-        </Link>
-      ) : (
-        inner
-      )}
-    </section>
+    <Link
+      href={href}
+      aria-label="다음 정기배송 보기"
+      className="transition active:scale-[0.99]"
+      style={{
+        margin: '22px 20px 0',
+        padding: 18,
+        borderRadius: 4,
+        textDecoration: 'none',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        columnGap: 16,
+        alignItems: 'center',
+        ...boxCardFrame(colors),
+      }}
+    >
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{checking ? '발송' : daysUntil === 0 ? '오늘' : '발송까지'}</span>
+        {checking ? (
+          <span style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.3, whiteSpace: 'nowrap' }}>확인 중</span>
+        ) : daysUntil === 0 ? (
+          <span style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.3, whiteSpace: 'nowrap' }}>발송</span>
+        ) : (
+          <span style={{ whiteSpace: 'nowrap' }}>
+            <span className="ft-num" style={{ fontSize: 44, lineHeight: 1 }}>
+              {daysUntil}
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 800 }}> 일</span>
+          </span>
+        )}
+      </span>
+      <span
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          paddingLeft: 16,
+          borderLeft: `1px solid ${colors.divider}`,
+          minWidth: 0,
+        }}
+      >
+        <span style={{ fontSize: 14, fontWeight: 700 }}>다음 정기배송</span>
+        {checking ? (
+          <span style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.45, wordBreak: 'keep-all' }}>
+            {checkDetail ?? '발송 일정을 확인하고 있어요.'}
+          </span>
+        ) : (
+          <span style={{ fontSize: 18, fontWeight: 800 }}>{shipDateLabel} 발송</span>
+        )}
+        {itemLabel && <span style={{ fontSize: 15, wordBreak: 'keep-all' }}>{itemLabel}</span>}
+      </span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </Link>
   )
 }

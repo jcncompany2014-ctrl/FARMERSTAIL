@@ -37,6 +37,7 @@ import { Mono, Modal, Badge } from '@/components/v3'
 import DogPawMark from '@/components/DogPawMark'
 import { withHonorific } from '@/lib/korean'
 import { cleanupPushOnLogout } from '@/lib/capacitor'
+import AdminModeRow from '@/components/app/AdminModeRow'
 
 type Profile = {
   name: string | null
@@ -337,6 +338,9 @@ export default function MypageClient({
           last
         />
       </MenuGroup>
+
+      {/* 관리자 모드 — 운영자에게만(2026-10-09 윗줄 강아지 칩 메뉴에서 이리로 옮김) */}
+      <AdminModeRow />
 
       {/* 약관·정책 */}
       <section style={{ padding: '24px 20px 8px' }}>

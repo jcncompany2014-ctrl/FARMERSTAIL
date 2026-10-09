@@ -4784,7 +4784,13 @@ test('규칙125: 실패하면 고객에게 사실대로·다시 할 길과 함�
   assert.ok(/SUBSCRIPTION_CANCELLED'[\s\S]{0,80}'gone'/.test(bs), '취소된 신청에 다시 시도(무한 반복)를 내민다')
   // ④ 조회 실패 ≠ 없음 — 앱 홈·주문 화면·처방 캐시
   const dash = stripComments(read(join(ROOT, 'app', '(main)', 'dashboard', 'page.tsx')))
-  assert.ok(/snapshotErr \? <HomeLoadFailed/.test(dash), '앱 홈이 조회 실패를 "첫 아이를 등록해주세요"로 그린다')
+  // 2026-10-09 앱 새 디자인: 홈 배치를 HomeView(그리기만 — 점검 화면이 예시 값으로 같은 배치를 그린다)로 나눴다.
+  //   판정(조회 실패)은 홈이 loadFailed 로 넘기고, 0마리 자리에서 HomeView 가 실패면 다시 불러오기를 그린다.
+  const homeView = stripComments(read(join(ROOT, 'components', 'v3', 'home', 'HomeView.tsx')))
+  assert.ok(
+    /loadFailed: !!snapshotErr/.test(dash) && /model\.loadFailed \? <HomeLoadFailed/.test(homeView),
+    '앱 홈이 조회 실패를 "첫 아이를 등록해주세요"로 그린다',
+  )
   const opd = stripComments(read(join(ROOT, 'lib', 'subscription', 'orderPageData.ts')))
   assert.ok(/if \(dogErr \|\| formulaErr \|\| profErr\)/.test(opd) && /if \(prodErr\) throw/.test(opd), '주문 화면이 조회 실패를 빈 화면으로 그린다')
   const fc = stripComments(read(join(ROOT, 'lib', 'personalization', 'formulaCache.ts')))

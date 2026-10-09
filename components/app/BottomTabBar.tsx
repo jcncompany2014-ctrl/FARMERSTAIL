@@ -267,12 +267,38 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
           아이콘 원 + 이름 + 한 줄 설명. 여백은 v3 스케일(20/12/16). */}
       <BottomSheet open={menuOpen} onClose={() => setMenuOpen(false)} ariaLabel="기록하기">
         <div className="px-5 pt-2" style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom))' }}>
-          <p style={{ fontSize: 15, fontWeight: 700, color: V3.inkMute }}>
-            {activeDogName ? `${petName(activeDogName)}의 오늘` : '오늘 기록'}
-          </p>
-          <h2 className="mt-1" style={{ fontSize: 26, lineHeight: 1.15, color: V3.ink }}>
-            무엇을 남길까요?
-          </h2>
+          <div className="flex" style={{ alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 15, fontWeight: 700, color: V3.inkMute }}>
+                {activeDogName ? `${petName(activeDogName)}의 오늘` : '오늘 기록'}
+              </p>
+              <h2 className="mt-1" style={{ fontSize: 26, lineHeight: 1.15, color: V3.ink }}>
+                무엇을 남길까요?
+              </h2>
+            </div>
+            {/* 시안 T11 — 오른쪽 '닫기'(기록 시트들과 같은 자리·같은 글자). */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="닫기"
+              className="flex items-center"
+              style={{
+                minWidth: 44,
+                height: 44,
+                justifyContent: 'flex-end',
+                flexShrink: 0,
+                padding: '0 4px',
+                background: 'none',
+                border: 'none',
+                color: V3.ink,
+                fontSize: 16,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              닫기
+            </button>
+          </div>
           <div className="grid grid-cols-2" style={{ marginTop: 18, gap: 10 }}>
             {RECORD_ACTIONS.map((a) => {
               const Icon = a.Icon
@@ -311,25 +337,30 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
 
       {activeDogId && (
         <>
+          {/* 이름을 넘겨야 시트 제목이 "땅콩 오늘 어땠나요?"처럼 나온다(시안 T12~T15 — 예전엔 "오늘 어땠나요?"). */}
           <QuickHealthSheet
             open={sheet === 'health'}
             onClose={() => setSheet(null)}
             dogId={activeDogId}
+            dogName={activeDogName ?? undefined}
           />
           <QuickWeightSheet
             open={sheet === 'weight'}
             onClose={() => setSheet(null)}
             dogId={activeDogId}
+            dogName={activeDogName ?? undefined}
           />
           <QuickMemoSheet
             open={sheet === 'diary'}
             onClose={() => setSheet(null)}
             dogId={activeDogId}
+            dogName={activeDogName ?? undefined}
           />
           <QuickPhotoSheet
             open={sheet === 'photo'}
             onClose={() => setSheet(null)}
             dogId={activeDogId}
+            dogName={activeDogName ?? undefined}
           />
         </>
       )}

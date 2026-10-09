@@ -7,22 +7,30 @@
  * 해당하는 것만 탭(미선택은 저장 안 됨), 최소 1개. health_logs 에 그대로 저장
  * (기존 폼과 동일 컬럼·값) → 기록 호환. 더 적고 싶으면 "자세히"로 풀 폼 이동.
  *
+ * 2026-10-09 'A 포스터'(시안 T12): 머리줄(큰 제목 + 회색 한 줄 · '닫기') · 네모 선택지(고른 것 =
+ * 먹색) · 먹색 꽉 찬 버튼 · 아래 밑줄 링크. 조각은 SheetParts. 고객 문구의 '탭'은 '누르'로.
+ *
  * **앱(PWA) 전용.** 호출자(BottomTabBar 기록 탭)가 dogId 전달 + open/onClose 제어.
  */
 
-import { useId, useRef, useState } from 'react'
-import Link from 'next/link'
-import { Check } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { useRef, useState } from 'react'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import {
+  SheetChoiceRow,
+  SheetContent,
+  SheetError,
+  SheetHeader,
+  SheetPrimaryButton,
+  SheetTextLink,
+  type SheetOption,
+} from '@/components/v3/sheet/SheetParts'
 
-type Opt = readonly [value: string, label: string]
 // 기존 /health 폼과 동일한 값·라벨 (데이터 호환).
-const APPETITE: Opt[] = [['good', '좋음'], ['normal', '보통'], ['low', '적음'], ['none', '거부']]
-const POOP: Opt[] = [['good', '정상'], ['loose', '무름'], ['hard', '단단'], ['diarrhea', '설사']]
-const ACTIVITY: Opt[] = [['high', '활발'], ['normal', '보통'], ['low', '적음']]
+const APPETITE: SheetOption[] = [['good', '좋음'], ['normal', '보통'], ['low', '적음'], ['none', '거부']]
+const POOP: SheetOption[] = [['good', '정상'], ['loose', '무름'], ['hard', '단단'], ['diarrhea', '설사']]
+const ACTIVITY: SheetOption[] = [['high', '활발'], ['normal', '보통'], ['low', '적음']]
 
 interface QuickHealthSheetProps {
   open: boolean
@@ -31,66 +39,6 @@ interface QuickHealthSheetProps {
   dogName?: string
   /** 저장 성공 콜백 (토스트 등). */
   onSaved?: () => void
-}
-
-function ChipRow({
-  title,
-  opts,
-  value,
-  onPick,
-}: {
-  title: string
-  opts: Opt[]
-  value: string | null
-  onPick: (v: string | null) => void
-}) {
-  // 칩 그룹을 제목과 aria-labelledby 로 묶어, 스크린리더가 "식욕 그룹의 좋음"
-  // 처럼 맥락과 함께 읽도록. ChipRow 가 3회 재사용되므로 useId 로 유일 id.
-  const titleId = useId()
-  return (
-    <div style={{ marginTop: 16 }}>
-      <div
-        id={titleId}
-        style={{
-          fontSize: 14,
-          fontWeight: V3FontWeight.bold,
-          color: V3.inkSoft,
-          marginBottom: 8,
-        }}
-      >
-        {title}
-      </div>
-      <div className="flex" role="group" aria-labelledby={titleId} style={{ gap: 8 }}>
-        {opts.map(([v, label]) => {
-          const active = value === v
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => onPick(active ? null : v)}
-              aria-pressed={active}
-              className="transition active:scale-95 ft-no-press"
-              style={{
-                flex: 1,
-                padding: '12px 4px',
-                borderRadius: 999,
-                background: active ? V3.ink : V3.paperHi,
-                color: active ? V3.paper : V3.ink,
-                border: `1px solid ${active ? V3.ink : V3.rule}`,
-                fontFamily: 'var(--font-sans)',
-                fontWeight: V3FontWeight.bold,
-                fontSize: 16,
-                letterSpacing: '-0.01em',
-                cursor: 'pointer',
-              }}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
 }
 
 export default function QuickHealthSheet({
@@ -167,75 +115,31 @@ export default function QuickHealthSheet({
       dismissOnBackdrop={!busy}
     >
       <BottomSheet.Body>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 24,
-            color: V3.ink,
-            letterSpacing: '-0.02em',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {dogName ? `${dogName} ` : ''}오늘 어땠나요?
-        </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
-          해당하는 것만 탭하세요 · 1초면 끝나요
-        </p>
+        <SheetContent>
+          <SheetHeader
+            title={`${dogName ? `${dogName} ` : ''}오늘 어땠나요?`}
+            sub="해당하는 것만 누르세요 · 1초면 끝나요"
+            onClose={onClose}
+          />
 
-        <ChipRow title="식욕" opts={APPETITE} value={appetite} onPick={setAppetite} />
-        <ChipRow title="배변" opts={POOP} value={poop} onPick={setPoop} />
-        <ChipRow title="활동" opts={ACTIVITY} value={activity} onPick={setActivity} />
+          <div style={{ display: 'grid', gap: 18, marginTop: 18 }}>
+            <SheetChoiceRow label="식욕" options={APPETITE} value={appetite} onPick={setAppetite} />
+            <SheetChoiceRow label="배변" options={POOP} value={poop} onPick={setPoop} />
+            <SheetChoiceRow label="활동" options={ACTIVITY} value={activity} onPick={setActivity} />
+          </div>
 
-        <Link
-          href={`/dogs/${dogId}/health`}
-          onClick={onClose}
-          style={{
-            display: 'inline-block',
-            marginTop: 18,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-            letterSpacing: '0.06em',
-            color: V3.accentDeep,
-            fontWeight: 600,
-          }}
-        >
-          기분·메모까지 자세히 기록 →
-        </Link>
+          <div style={{ marginTop: 20 }}>
+            <SheetError msg={err} />
+            <SheetPrimaryButton onClick={save} disabled={busy || empty} busy={busy}>
+              {busy ? '저장 중...' : empty ? '하나 이상 눌러 주세요' : '기록 완료'}
+            </SheetPrimaryButton>
+          </div>
+
+          <SheetTextLink href={`/dogs/${dogId}/health`} onClick={onClose}>
+            기분·메모까지 자세히 기록 →
+          </SheetTextLink>
+        </SheetContent>
       </BottomSheet.Body>
-
-      <BottomSheet.Footer>
-        {err && (
-          <p
-            role="alert"
-            style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}
-          >
-            {err}
-          </p>
-        )}
-        <button
-          onClick={save}
-          disabled={busy || empty}
-          className="flex items-center justify-center transition active:scale-[0.98]"
-          style={{
-            width: '100%',
-            height: 52,
-            borderRadius: 4,
-            background: busy || empty ? V3.inkMute : V3.ink,
-            color: V3.paper,
-            border: 'none',
-            cursor: busy ? 'wait' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: 18,
-            gap: 8,
-          }}
-        >
-          <Check size={18} color={V3.paper} strokeWidth={2.2} />
-          {busy ? '저장 중...' : empty ? '하나 이상 탭해주세요' : '기록 완료'}
-        </button>
-      </BottomSheet.Footer>
     </BottomSheet>
   )
 }

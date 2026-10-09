@@ -3,21 +3,10 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { sendWelcomeEmailOnce } from '@/lib/welcome-email'
-import {
-  GreetingSection,
-  ActiveDogCard,
-  ThisWeekSection,
-  MyDogsSection,
-  JournalSection,
-  DeliveryStripCard,
-  EmptyHomeNoDogs,
-  type DogCardData,
-  type WeekDay,
-  type QuickAction,
-  type JournalEntry,
-} from '@/components/v3/home'
-import { StreakRewards } from '@/components/v3'
-import HomeLoadFailed from '@/components/v3/home/HomeLoadFailed'
+import HomeView, { type HomeBox, type HomeViewModel } from '@/components/v3/home/HomeView'
+import type { WeekDay, QuickAction } from '@/components/v3/home/ThisWeekSection'
+import type { DogMetric, DogStatusTone } from '@/components/v3/home/ActiveDogCard'
+import { boxRecipes } from '@/lib/design/pouch'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import OnboardingTutorial from '@/components/dashboard/OnboardingTutorial'
 import PushAutoRegister from '@/components/dashboard/PushAutoRegister'
@@ -26,17 +15,14 @@ import {
   kstDayKeyFromTs,
 } from '@/lib/dashboard/streaks'
 import { daysSinceIso, isoDaysAgo } from '@/lib/persona'
-import type { Json } from '@/lib/supabase/types'
 // 배송 문구 정본 — next_delivery_date 는 **발송일**이다(도착 아님).
 import { shipTimingLabel, describeUpcomingBox, paidBoxShipIso } from '@/lib/shipping-schedule'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
-import { boxStage, stageDetail, type BoxStage } from '@/lib/commerce/box-progress'
+import { boxStage, stageDetail } from '@/lib/commerce/box-progress'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { petName } from '@/lib/korean'
-import BoxProgressCard from '@/components/v3/home/BoxProgressCard'
 import { subscriptionState } from '@/lib/subscription-state'
-import Link from 'next/link'
 import { dailyPortionTotalG } from '@/lib/personalization/boxPricing'
 import type { FoodLine } from '@/lib/personalization/types'
 import { formatKg } from '@/lib/korean'
@@ -132,13 +118,11 @@ export default async function DashboardPage() {
       .select('onboarded_at, welcome_email_sent_at')
       .eq('id', user.id)
       .maybeSingle(),
-    // Phase D7.4 + D7.5 + P7 — 페르소나 + 맞춤도 계산용 dog meta.
-    // snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
+    // 강아지 사진 — snapshot RPC 가 select 안 하는 컬럼이라 별도 fetch.
+    // (옛 페르소나·맞춤도 칸은 홈에서 쓰지 않아 뺐다 — 맞춤도는 /mypage/accuracy, 2026-06-11.)
     supabase
       .from('dogs')
-      .select(
-        'id, photo_url, allergies_source, weight_method, activity_method, feed_method, weight_measured_at, accuracy_user_boost, user_method_lock',
-      )
+      .select('id, photo_url')
       .eq('user_id', user.id),
     // ── 일별 기록 스트릭/그리드 (2026-07-17) — 식사·산책·체중 중 하나라도 남긴
     // 날을 '완료'로 센다. cycle 체크인(2주마다)이 아니라 실제 일상 기록 기준.
@@ -358,37 +342,35 @@ export default async function DashboardPage() {
   }
   const boxOrders = ((boxOrderRows ?? []) as BoxOrderRow[]).filter((o) => boxStage(o, todayKst) !== null)
   const boxSubIds = [...new Set(boxOrders.map((o) => o.subscription_id).filter((x): x is string => !!x))]
-  const boxSubs = new Map<string, { dog_id: string | null; next_delivery_date: string | null; items: string[] }>()
+  const boxSubs = new Map<
+    string,
+    { dog_id: string | null; next_delivery_date: string | null; items: { name: string; quantity: number | null }[] }
+  >()
   if (boxSubIds.length > 0) {
     const { data: bsRows, error: bsErr } = await supabase
       .from('subscriptions')
-      .select('id, dog_id, next_delivery_date, subscription_items(product_name)')
+      .select('id, dog_id, next_delivery_date, subscription_items(product_name, quantity)')
       .in('id', boxSubIds)
     if (bsErr) console.error('[dashboard] 박스 진행 구독 조회 실패', bsErr.message)
     for (const r of (bsRows ?? []) as Array<{
       id: string
       dog_id: string | null
       next_delivery_date: string | null
-      subscription_items: { product_name: string }[] | null
+      subscription_items: { product_name: string; quantity: number | null }[] | null
     }>) {
       boxSubs.set(r.id, {
         dog_id: r.dog_id,
         next_delivery_date: r.next_delivery_date,
-        items: (r.subscription_items ?? []).map((it) => it.product_name.replace(/\s*\([^)]*\)\s*$/, '')),
+        items: (r.subscription_items ?? []).map((it) => ({ name: it.product_name, quantity: it.quantity })),
       })
     }
   }
   // 구독마다 가장 최근 박스 하나.
   const seenBoxSub = new Set<string>()
-  const boxCards: Array<{
-    key: string
-    dogLabel: string
-    stage: BoxStage
-    detail: string
-    itemLabel: string | null
-    href: string
-    linkLabel: string
-  }> = []
+  // 강아지 사진(박스 카드 줄머리·고르기 탭·강아지 카드). dogs 메타는 위 Promise.all 에서 받았다.
+  const photoOf = (id: string | undefined) =>
+    ((dogMetaData ?? []) as Array<{ id: string; photo_url: string | null }>).find((m) => m.id === id)?.photo_url ?? null
+  const boxCards: HomeBox[] = []
   for (const o of boxOrders) {
     if (!o.subscription_id || seenBoxSub.has(o.subscription_id)) continue
     seenBoxSub.add(o.subscription_id)
@@ -400,14 +382,18 @@ export default async function DashboardPage() {
     const shipIso =
       stage === 'preparing' ? paidBoxShipIso(sub?.next_delivery_date ?? null, o.paid_at ?? o.created_at) : null
     const tracking = !!(o.tracking_number && o.carrier) && stage !== 'preparing'
+    // 레시피 → 한 줄("닭고기 · 흑돼지 화식") + 파우치 색 순서(lib/design/pouch — 팩 많은 레시피가 바탕).
+    const recipes = boxRecipes(sub?.items ?? [])
     boxCards.push({
       key: o.id,
       dogLabel: dog ? petName(dog.name) : '우리 아이',
+      photoUrl: photoOf(dog?.id),
       stage,
       detail: stageDetail(stage, shipIso, todayKst),
-      itemLabel: sub && sub.items.length > 0 ? sub.items.join(' · ') : null,
+      itemLabel: recipes.label,
+      lines: recipes.lines,
       href: tracking ? `/mypage/orders/${o.id}/track` : `/mypage/orders/${o.id}`,
-      linkLabel: tracking ? '실시간 배송 조회' : '주문 자세히 보기',
+      linkLabel: tracking ? '배송 조회' : '자세히',
     })
   }
 
@@ -432,14 +418,15 @@ export default async function DashboardPage() {
           const days = Math.round(
             (Date.parse(`${box.shipIso}T00:00:00Z`) - Date.parse(`${todayKst}T00:00:00Z`)) / 86_400_000,
           )
-          const items = subscription.subscription_items ?? []
-          const productLabel =
-            items.length === 0
-              ? '정기배송'
-              : items.length === 1
-                ? items[0]!.product_name
-                : `${items[0]!.product_name} 외 ${items.length - 1}개`
-          return { daysUntil: days, productLabel, chargeCheck: box.kind === 'charge_check' }
+          // 레시피 → 한 줄 + 파우치 색(lib/design/pouch). 이 조회엔 팩 수가 없어 같은 순서 규칙(닭 → 흑돼지 → 한우 → 오리).
+          const recipes = boxRecipes((subscription.subscription_items ?? []).map((it) => ({ name: it.product_name })))
+          return {
+            daysUntil: days,
+            shipIso: box.shipIso,
+            itemLabel: recipes.label,
+            lines: recipes.lines,
+            chargeCheck: box.kind === 'charge_check',
+          }
         })()
       : null
   // 결제 확인 중이면 발송을 약속하지 않는다.
@@ -517,87 +504,69 @@ export default async function DashboardPage() {
         )
       : null
 
-  // ── Phase D7.4 — 페르소나 추론 + 카드 ──────────────────────────────────
-  // 첫 강아지의 photo / allergies 신호 + 챗봇·일지·체크인·분석 카운트로
-  // 4-페르소나 점수 계산. dominant null 이면 카드 비표시 (신호 부족).
-  type DogMetaRow = {
-    id: string
-    photo_url: string | null
-    allergies_source:
-      | 'self_suspected'
-      | 'vet_diagnosed'
-      | 'unknown'
-      | null
-    weight_method: string | null
-    activity_method: string | null
-    feed_method: string | null
-    weight_measured_at: string | null
-    accuracy_user_boost: number | null
-    user_method_lock: Json | null
-  }
-  const dogMetaList = (dogMetaData ?? []) as DogMetaRow[]
-
   // [2026-06-11] 변수별 맞춤도(AccuracyBreakdown)는 홈에서 분리해 마이페이지
   // 전용 화면(/mypage/accuracy)으로 이동(사장님 지시 — 홈 시각 위계 정리).
   // 계산식은 동일하게 그 페이지에서 활성 강아지 기준으로 수행.
 
-  // ── v3 데이터 매핑 (R3 - 2026-05-21) ───────────────────────────
-  // 위에서 모은 데이터 → 아래 v3 sections 의 props 로 풀어 넣음. 비교
-  // 옛 dashboard 의 NextActionCard/Streak/Persona/Accuracy/Milestone 카드는
-  // 첫 cut 에서 빼고, handoff 의 v3 home sections (Greeting/ActiveDog/Today/
-  // ThisWeek/MyDogs/ForToday/Delivery/Journal/FarmToTail) 로 교체.
+  // ── 화면 값 (앱 새 디자인 'A 포스터', 2026-10-09) ─────────────────────────
+  // 배치는 components/v3/home/HomeView(그리기만) — 여기서는 위에서 판정한 값을 넘긴다.
+  // 점검 화면(/design-check)이 같은 HomeView 에 예시 값을 넣어 로그인 없이 모든 상태를 본다.
 
-  // FAMILY 카드 색 tint — 등록 순서 회전.
-  const DOG_TONES = ['#d6c9aa', '#b7c4ad', '#e4bda0', '#c2b48a']
+  // 강아지 카드 상태 — 정기배송 중 / 배송 멈춤 / 일시정지 / 정기배송 전(구독 전·카드 등록 전).
+  // 결정 문서 3번: 구독 전 상태 이름 "활성" → "정기배송 전".
+  const dogStatus: { label: string; tone: DogStatusTone } = hasActiveSub
+    ? { label: '정기배송 중', tone: 'active' }
+    : attentionState === 'card_failed'
+      ? { label: '배송 멈춤', tone: 'stopped' }
+      : attentionState === 'paused'
+        ? { label: '일시정지', tone: 'idle' }
+        : { label: '정기배송 전', tone: 'idle' }
 
-  const dogCards: DogCardData[] = dogs.map((d, i) => ({
-    id: d.id,
-    name: d.name,
-    breed: d.breed ?? '품종 미입력',
-    weightKg: d.weight ?? null,
-    number: String(i + 1).padStart(2, '0'),
-    toneBg: DOG_TONES[i % DOG_TONES.length] ?? '#d6c9aa',
-    photoUrl: dogMetaList.find((m) => m.id === d.id)?.photo_url ?? null,
-    active: i === 0,
-  }))
-
+  // "247일 함께" — 막 가입한 날은 "0일 함께" 대신 "오늘부터 함께"(결정 문서 3번).
+  const togetherDays = userCreatedAt ? Math.max(0, daysSinceIso(userCreatedAt)) : null
   const activeDogMetaLine = firstDog
     ? [
         firstDog.breed ?? '품종',
         firstDog.weight != null ? formatKg(firstDog.weight) : null,
-        userCreatedAt
-          ? `${Math.max(0, daysSinceIso(userCreatedAt))}일 함께`
-          : null,
+        togetherDays == null ? null : togetherDays === 0 ? '오늘부터 함께' : `${togetherDays}일 함께`,
       ]
         .filter(Boolean)
         .join(' · ')
     : ''
 
-  // ── ThisWeek 7일 그리드 — 일별 기록(recordDayKeys) 기준 (2026-07-17).
-  // 하루 한 번이라도 기록하면 그날 '완료'(full). 옛날엔 cycle 체크인 카운트로
-  // full=2+/partial=1 을 따졌는데, 체크인이 2주마다라 그리드가 늘 비어 무의미했다.
-  // KST 기준으로 오늘~6일 전을 센다(서버 UTC 로 '오늘'이 어긋나던 것도 함께 교정).
+  // 수치 띠 4칸 — 체중 · 연속 · 오늘 화식 · 배송. 배송 칸은 좁아 단위를 줄인다("일 후 발송" → "일 후").
+  const deliveryMetric = deliveryTiming
+    ? {
+        value: deliveryTiming.metric.value,
+        sub: deliveryTiming.metric.unit === '일 후 발송' ? '일 후' : deliveryTiming.metric.unit,
+      }
+    : { value: '--', sub: '예정' }
+  const metrics: DogMetric[] = [
+    { key: '체중', value: firstDog?.weight != null ? String(firstDog.weight) : '--', sub: 'kg' },
+    { key: '연속', value: String(Math.max(0, dailyStreak)), sub: '일' },
+    // 옛 '분석 N/전체'(의미 없던 지표) → '오늘 화식 급여량'(사장님 2026-07-17).
+    { key: '오늘 화식', value: freshFeedGrams != null ? String(freshFeedGrams) : '--', sub: 'g' },
+    // 문구는 lib/shipping-schedule 정본 — 이 날짜는 **발송일**이다(예전 '도착'은 하루 앞당긴 약속, 2026-07-30).
+    { key: '배송', value: deliveryMetric.value, sub: deliveryMetric.sub },
+  ]
+
+  // ── 이번 주 7칸 — 일~토 달력 한 주(KST). 기록한 날 = 완료, 오늘(아직) = 점선, 지난 빈 날 = 미기록, 남은 날 = 예정.
+  // 하루 한 번이라도 기록하면 그날 '완료'(2026-07-17). 제목이 "이번 주"라 지난 7일이 아니라 이번 주로(2026-10-09 시안).
   function makeWeekDays(nowMs: number): WeekDay[] {
     const days: WeekDay[] = []
-    const kstNow = nowMs + 9 * 3600 * 1000
+    const kstNow = new Date(nowMs + 9 * 3600 * 1000)
     // 요일은 한글로 — 영문 약자(M/T/W)는 어르신이 못 읽는다(2026-09-22).
     const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
-    for (let offset = 6; offset >= 0; offset--) {
+    const todayKey = kstNow.toISOString().slice(0, 10)
+    const dow = kstNow.getUTCDay()
+    for (let i = 0; i < 7; i++) {
       // KST 로 시프트한 epoch 를 UTC 로 읽어 KST 달력 날짜를 얻는다(KST 는 DST 없음).
-      const d = new Date(kstNow - offset * 86_400_000)
+      const d = new Date(kstNow.getTime() + (i - dow) * 86_400_000)
       const key = d.toISOString().slice(0, 10)
-      const isToday = offset === 0
+      const isToday = key === todayKey
       const recorded = recordDayKeys.has(key)
-      const status: WeekDay['status'] = recorded
-        ? 'full'
-        : isToday
-          ? 'today'
-          : 'miss'
-      days.push({
-        date: d.getUTCDate(),
-        weekday: WEEKDAY_LABELS[d.getUTCDay()] ?? '·',
-        status,
-      })
+      const status: WeekDay['status'] = recorded ? 'full' : isToday ? 'today' : key > todayKey ? 'future' : 'miss'
+      days.push({ date: d.getUTCDate(), weekday: WEEKDAY_LABELS[d.getUTCDay()] ?? '·', status, isToday })
     }
     return days
   }
@@ -605,197 +574,74 @@ export default async function DashboardPage() {
   const weekDays = makeWeekDays(Date.now())
 
   const quickActions: QuickAction[] = [
-    {
-      label: '식사',
-      sub: firstDog ? '오늘 기록' : '아이 등록 후',
-      kind: 'meal',
-      tone: 'sage',
-      href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
-    },
-    {
-      label: '산책',
-      sub: firstDog ? '오늘 기록' : '아이 등록 후',
-      kind: 'walk',
-      tone: 'accent',
-      href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new',
-    },
-    {
-      label: '체중',
-      sub: firstDog?.weight != null ? formatKg(firstDog.weight) : '미입력',
-      kind: 'weight',
-      tone: 'ink',
-      href: firstDog ? `/dogs/${firstDog.id}?weight=open` : '/dogs/new',
-    },
+    { label: '식사', sub: firstDog ? '오늘 기록' : '아이 등록 후', kind: 'meal', href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new' },
+    { label: '산책', sub: firstDog ? '오늘 기록' : '아이 등록 후', kind: 'walk', href: firstDog ? `/dogs/${firstDog.id}/health` : '/dogs/new' },
+    { label: '체중', sub: firstDog ? '오늘 기록' : '아이 등록 후', kind: 'weight', href: firstDog ? `/dogs/${firstDog.id}?weight=open` : '/dogs/new' },
   ]
 
-  // [2026-06-11] 홈 "○○를 위한 추천" 제품 섹션(ForTodaySection)은 사장님
-  // 지시로 제거. 배송 D-day 정보는 아래 DeliveryStripCard 로 단독 노출.
+  // 다음 정기배송 카드 — 결제된 박스가 움직이는 중이면 같은 이야기라 숨긴다.
+  const nextDelivery: HomeViewModel['nextDelivery'] =
+    upcomingDelivery && deliveryTiming && boxCards.length === 0
+      ? upcomingDelivery.chargeCheck || upcomingDelivery.daysUntil < 0
+        ? {
+            daysUntil: null,
+            shipDateLabel: null,
+            checkDetail: deliveryTiming.detail,
+            itemLabel: upcomingDelivery.itemLabel,
+            lines: upcomingDelivery.lines,
+          }
+        : {
+            daysUntil: upcomingDelivery.daysUntil,
+            // "10월 13일 (화)" — 발송일(도착 아님).
+            shipDateLabel: (() => {
+              const d = new Date(`${upcomingDelivery.shipIso}T00:00:00Z`)
+              const wd = ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()]
+              return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${wd})`
+            })(),
+            checkDetail: null,
+            itemLabel: upcomingDelivery.itemLabel,
+            lines: upcomingDelivery.lines,
+          }
+      : null
 
-  // Journal 엔트리 — first cut 에서는 비활성 (dog_diary fetch 는 R6 phase).
-  const journalEntries: JournalEntry[] = []
+  const model: HomeViewModel = {
+    userName: userName ?? '보호자',
+    dogCount: dogs.length,
+    // ★조회 실패를 '0마리'로 그리지 않는다 — 구독 고객에게 "첫 아이를 등록해주세요"가 떴다(2026-09-26).
+    loadFailed: !!snapshotErr,
+    billingAlert: billingAlert
+      ? { ...billingAlert, tone: attentionState === 'paused' ? 'notice' : 'danger' }
+      : null,
+    boxes: boxCards,
+    nextDelivery,
+    dogTabs: dogs.map((d) => ({ id: d.id, name: d.name, photoUrl: photoOf(d.id) })),
+    activeDog: firstDog
+      ? {
+          id: firstDog.id,
+          name: firstDog.name,
+          metaLine: activeDogMetaLine,
+          photoUrl: photoOf(firstDog.id),
+          statusLabel: dogStatus.label,
+          statusTone: dogStatus.tone,
+          metrics,
+        }
+      : null,
+    streak: dailyStreak,
+    weekDays,
+    quickActions,
+  }
 
   return (
-    // ft-stagger: 홈 섹션들이 위에서 순서대로 떠오르는 진입 연출 (B9).
-    <div className="pb-8 ft-stagger">
+    <>
+      {/* 앱이면 푸시 토큰 자동 등록 — 2026-09-15 전까지는 설정 화면에서 직접 켜야만 등록됐다 */}
+      <PushAutoRegister />
       {/* 가입 후 첫 진입 튜토리얼 — onboarded_at IS NULL + 강아지 아직 없을 때만.
           설문 퍼널로 온 유저는 이미 강아지가 등록돼 있어(설문=강아지 등록) '첫
           아이 등록' 튜토리얼이 중복·혼란 → 강아지 0마리일 때만 노출(2026-07-24). */}
-      {/* 앱이면 푸시 토큰 자동 등록 — 2026-09-15 전까지는 설정 화면에서 직접 켜야만 등록됐다 */}
-      <PushAutoRegister />
       {showOnboarding && dogs.length === 0 && <OnboardingTutorial />}
-
-      {/* 1. Greeting hero — 54px display + signature */}
-      <GreetingSection
-        userName={userName ?? '보호자'}
-        familyCount={dogs.length}
-      />
-
-      {/* ★결제가 멈췄으면 홈에서 먼저 말한다 (2026-08-07).
-          예전엔 홈에 결제 상태를 알려주는 자리가 한 곳도 없어서, 카드가
-          깨진 고객이 "활성 · 정기배송" 만 보고 박스가 오는 줄 알았다. */}
-      {billingAlert && (
-        <div className="px-5 mt-1">
-          <Link
-            href="/mypage/subscriptions"
-            className="flex items-center gap-2 rounded px-4 py-3 active:opacity-70"
-            style={{
-              background: 'color-mix(in srgb, var(--sale) 10%, var(--paper))',
-              border: '1px solid color-mix(in srgb, var(--sale) 35%, transparent)',
-            }}
-          >
-            <span className="min-w-0 flex-1">
-              <span
-                className="block text-[13px] font-bold"
-                style={{ color: 'var(--ink)' }}
-              >
-                {billingAlert.text}
-              </span>
-              <span
-                className="block text-[11.5px] mt-0.5"
-                style={{ color: 'var(--sale)' }}
-              >
-                {billingAlert.cta} →
-              </span>
-            </span>
-          </Link>
-        </div>
-      )}
-
-      {/* 결제된 박스가 움직이는 중이면 맨 위에(2026-10-01 사장님 — 발송 준비 → 발송 → 배송 중 → 배송 완료). */}
-      {boxCards.map((b) => (
-        <BoxProgressCard
-          key={b.key}
-          dogLabel={b.dogLabel}
-          stage={b.stage}
-          detail={b.detail}
-          itemLabel={b.itemLabel}
-          href={b.href}
-          linkLabel={b.linkLabel}
-        />
-      ))}
-
-      {/* 2. ActiveDog 카드 — 첫 강아지 spotlight */}
-      {firstDog && (
-        <ActiveDogCard
-          dogName={firstDog.name}
-          metaLine={activeDogMetaLine}
-          photoUrl={
-            dogMetaList.find((m) => m.id === firstDog.id)?.photo_url ?? null
-          }
-          statusLabel={hasActiveSub ? '활성 · 정기배송' : '활성'}
-          statusTone="sage"
-          metrics={[
-            {
-              key: '체중',
-              value: firstDog.weight != null ? String(firstDog.weight) : '--',
-              sub: 'kg',
-              tone: 'ink',
-            },
-            {
-              key: '연속',
-              value: dailyStreak > 0 ? String(dailyStreak) : '0',
-              sub: '일',
-              tone: 'yellow',
-            },
-            {
-              // 옛 '분석 N/전체'(의미 없던 지표) → '오늘 화식 급여량'(사장님 2026-07-17).
-              // 4칸 mono 라벨이 좁아 'g' 단위와 함께 '오늘 화식'으로 표기.
-              key: '오늘 화식',
-              value: freshFeedGrams != null ? String(freshFeedGrams) : '--',
-              sub: 'g',
-              tone: 'sage',
-            },
-            {
-              // 값+단위로 분리 — "D-14 예정"(4+2글자)이 metric 칸을 넘쳐 규격이
-              // 깨지던 문제(사장님 2026-07-14).
-              // 문구는 lib/shipping-schedule 정본 — 이 날짜는 **발송일**이다
-              // (예전엔 '도착'이라고 써서 하루 앞당겨 약속했다, 2026-07-30).
-              key: '배송',
-              value: deliveryTiming ? deliveryTiming.metric.value : '--',
-              sub: deliveryTiming ? deliveryTiming.metric.unit : '예정',
-              tone: 'accent',
-            },
-          ]}
-          href={`/dogs/${firstDog.id}`}
-          priority
-        />
-      )}
-
-      {/* R15-C28: Streak rewards — 7일 이상 연속일 때만 노출.
-          R19: section spacing 통일 — 다른 home sections 와 동일 padding. */}
-      {firstDog && dailyStreak >= 7 && (
-        <section style={{ padding: '0 20px 30px' }}>
-          <StreakRewards currentStreak={dailyStreak} />
-        </section>
-      )}
-
-      {/* 4. 이번 주 7일 그리드 + Quick Actions */}
-      {firstDog && (
-        <ThisWeekSection
-          dogId={firstDog.id}
-          dogName={firstDog.name}
-          streak={dailyStreak}
-          days={weekDays}
-          quickActions={quickActions}
-          recordTodayHref={`/dogs/${firstDog.id}/health`}
-        />
-      )}
-
-      {/* 5. 내 아이들 — 2마리 이상일 때만 (1마리면 위 spotlight 와 중복).
-          강아지 0 이면 EmptyHomeNoDogs 안내. */}
-      {dogs.length > 1 ? (
-        <MyDogsSection
-          dogs={dogCards}
-          viewAllHref="/dogs"
-          addDogHref="/dogs/new"
-        />
-      ) : dogs.length === 0 ? (
-        // ★조회 실패를 '0마리'로 그리지 않는다 — 구독 고객에게 "첫 아이를 등록해주세요"가 떴다(2026-09-26).
-        snapshotErr ? <HomeLoadFailed /> : <EmptyHomeNoDogs addDogHref="/dogs/new" />
-      ) : null}
-
-      {/* 다음 배송 D-N strip (구독 활성 시). 박스 진행 카드가 떠 있으면 같은 이야기라 숨긴다. */}
-      {upcomingDelivery && deliveryTiming && boxCards.length === 0 && (
-        <DeliveryStripCard
-          dLabel={deliveryTiming.dLabel}
-          channelLabel="정기배송"
-          // ★ 이 날짜는 발송일이다. 예전 문구("내일 새벽 도착")는 하루를 앞당기고
-          //   우리가 알 수 없는 시각까지 단정했다 — 도착은 지역에 따라 다르다.
-          timingLabel={deliveryTiming.detail}
-          itemLabel={upcomingDelivery.productLabel}
-          href="/mypage/subscriptions"
-        />
-      )}
-
-      {/* 8. 저널 (현재 비활성 — dog_diary fetch 는 R6 phase) */}
-      {firstDog && journalEntries.length > 0 && (
-        <JournalSection
-          dogName={firstDog.name}
-          entries={journalEntries}
-        />
-      )}
-
-    </div>
+      <HomeView model={model} />
+    </>
   )
+
 }
 

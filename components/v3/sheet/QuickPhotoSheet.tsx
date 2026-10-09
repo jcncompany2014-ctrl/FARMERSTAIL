@@ -8,17 +8,27 @@
  * 버킷 업로드 → 1년 signed URL → dog_diary insert(note 없음). 다이어리 타임라인에
  * 그대로 보임. 메모까지 같이 쓰려면 "사진+메모"로 /diary.
  *
+ * 2026-10-09 'A 포스터'(시안 T15): 머리줄(제목·안내 · '닫기') · 4칸 네모 사진(빼기 버튼은 사진
+ * 안 오른쪽 위) + 점선 칸(+ · 'N / 4') · 먹색 꽉 찬 버튼 · 아래 밑줄 링크. 조각은 SheetParts.
+ * 안내 문구는 실제 동작대로 — 예전 "고르면 바로 저장돼요"는 틀렸다(저장 버튼을 눌러야 저장).
+ *
  * **앱(PWA) 전용.** 호출자가 dogId + open/onClose 제어.
  */
 
 import { useRef, useState } from 'react'
-import Link from 'next/link'
-import { Camera, X, Check, Plus } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { X, Plus } from 'lucide-react'
+import { V3, V3Radius } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { petName } from '@/lib/korean'
+import {
+  SheetContent,
+  SheetError,
+  SheetHeader,
+  SheetPrimaryButton,
+  SheetTextLink,
+} from '@/components/v3/sheet/SheetParts'
 
 interface QuickPhotoSheetProps {
   open: boolean
@@ -159,148 +169,123 @@ export default function QuickPhotoSheet({
       dismissOnBackdrop={!busy}
     >
       <BottomSheet.Body>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 24,
-            color: V3.ink,
-            letterSpacing: '-0.02em',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 컷
-        </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
-          최대 {MAX}장 · 고르면 바로 저장돼요
-        </p>
+        <SheetContent>
+          <SheetHeader
+            title={`${dogName ? `${petName(dogName)}의 ` : ''}오늘 한 컷`}
+            sub={`최대 ${MAX}장 · 고른 뒤 저장을 눌러 주세요`}
+            onClose={handleClose}
+          />
 
-        <div
-          className="grid"
-          style={{
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 8,
-            marginTop: 16,
-          }}
-        >
-          {previews.map((src, i) => (
-            <div
-              key={src}
-              style={{
-                position: 'relative',
-                aspectRatio: '1 / 1',
-                borderRadius: 4,
-                backgroundImage: `url(${src})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                border: `1px solid ${V3.rule}`,
-              }}
-            >
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: 8,
+              marginTop: 18,
+            }}
+          >
+            {previews.map((src, i) => (
+              <div
+                key={src}
+                style={{
+                  position: 'relative',
+                  aspectRatio: '1 / 1',
+                  borderRadius: V3Radius.sm,
+                  // 회색 면은 사진이 그려지기 전 자리.
+                  backgroundColor: V3.soft,
+                  backgroundImage: `url(${src})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              >
+                {/* 보이는 원은 26px(사진 안 오른쪽 위 4px — 시안), 누르는 자리는 34px. */}
+                <button
+                  type="button"
+                  onClick={() => removeAt(i)}
+                  aria-label="사진 빼기"
+                  className="flex items-center justify-center ft-no-press"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 34,
+                    height: 34,
+                    padding: 0,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="flex items-center justify-center"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: 'rgba(20,20,20,0.7)',
+                    }}
+                  >
+                    <X size={14} color="#FFFFFF" strokeWidth={2.4} />
+                  </span>
+                </button>
+              </div>
+            ))}
+
+            {files.length < MAX && (
               <button
                 type="button"
-                onClick={() => removeAt(i)}
-                aria-label="사진 빼기"
-                className="flex items-center justify-center"
+                onClick={() => inputRef.current?.click()}
+                aria-label="사진 고르기"
+                className="flex flex-col items-center justify-center transition active:scale-95 ft-no-press"
                 style={{
-                  position: 'absolute',
-                  top: -6,
-                  right: -6,
-                  width: 22,
-                  height: 22,
-                  borderRadius: 999,
-                  background: V3.ink,
-                  border: 'none',
+                  aspectRatio: '1 / 1',
+                  gap: 4,
+                  padding: 0,
+                  borderRadius: V3Radius.sm,
+                  background: '#FFFFFF',
+                  border: `1.5px dashed ${V3.inkFaint}`,
+                  color: V3.ink,
                   cursor: 'pointer',
                 }}
               >
-                <X size={13} color={V3.paper} strokeWidth={2.4} />
+                <Plus size={24} color={V3.ink} strokeWidth={2.4} aria-hidden />
+                <span style={{ fontSize: 13, fontWeight: 700 }}>
+                  {`${files.length} / ${MAX}`}
+                </span>
               </button>
-            </div>
-          ))}
+            )}
+          </div>
 
-          {files.length < MAX && (
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              aria-label="사진 고르기"
-              className="flex flex-col items-center justify-center transition active:scale-95"
-              style={{
-                aspectRatio: '1 / 1',
-                borderRadius: 4,
-                background: V3.paperHi,
-                border: `1.5px dashed ${V3.rule}`,
-                cursor: 'pointer',
-                gap: 4,
-              }}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={pick}
+            className="hidden"
+          />
+
+          <div style={{ marginTop: 20 }}>
+            <SheetError msg={err} />
+            <SheetPrimaryButton
+              onClick={save}
+              disabled={busy || files.length === 0}
+              busy={busy}
             >
-              {previews.length === 0 ? (
-                <Camera size={20} color={V3.inkMute} strokeWidth={1.8} />
-              ) : (
-                <Plus size={20} color={V3.inkMute} strokeWidth={1.8} />
-              )}
-            </button>
-          )}
-        </div>
+              {busy
+                ? '저장 중...'
+                : files.length === 0
+                  ? '사진을 골라 주세요'
+                  : `사진 ${files.length}장 저장`}
+            </SheetPrimaryButton>
+          </div>
 
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={pick}
-          className="hidden"
-        />
-
-        <Link
-          href={`/dogs/${dogId}/diary`}
-          onClick={handleClose}
-          style={{
-            display: 'inline-block',
-            marginTop: 16,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-            letterSpacing: '0.06em',
-            color: V3.accentDeep,
-            fontWeight: 600,
-          }}
-        >
-          사진 + 메모 함께 기록 →
-        </Link>
+          <SheetTextLink href={`/dogs/${dogId}/diary`} onClick={handleClose}>
+            사진 + 메모 함께 기록 →
+          </SheetTextLink>
+        </SheetContent>
       </BottomSheet.Body>
-
-      <BottomSheet.Footer>
-        {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
-            {err}
-          </p>
-        )}
-        <button
-          onClick={save}
-          disabled={busy || files.length === 0}
-          className="flex items-center justify-center transition active:scale-[0.98]"
-          style={{
-            width: '100%',
-            height: 52,
-            borderRadius: 4,
-            background: busy || files.length === 0 ? V3.inkMute : V3.ink,
-            color: V3.paper,
-            border: 'none',
-            cursor: busy ? 'wait' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: 18,
-            gap: 8,
-          }}
-        >
-          <Check size={18} color={V3.paper} strokeWidth={2.2} />
-          {busy
-            ? '저장 중...'
-            : files.length === 0
-              ? '사진을 골라주세요'
-              : `사진 ${files.length}장 저장`}
-        </button>
-      </BottomSheet.Footer>
     </BottomSheet>
   )
 }
