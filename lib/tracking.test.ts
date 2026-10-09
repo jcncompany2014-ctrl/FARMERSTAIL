@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { isTrackerAuthError, mapTrackerStatusCode, trackerAuthHeader } from './tracking.ts'
+import { isTrackerAuthError, mapTrackerStatusCode, trackerAuthHeader, trackerKeyMalformed } from './tracking.ts'
 
 /**
  * 2026-09-25 출시 전 점검 3차 — tracker.delivery 가 키를 요구하게 바뀌었는데
@@ -15,6 +15,18 @@ test('trackerAuthHeader: 둘 다 있어야 헤더를 만든다 (문서 형식 �
   assert.equal(trackerAuthHeader(undefined, 'xyz'), null)
   assert.equal(trackerAuthHeader('abc', ''), null)
   assert.equal(trackerAuthHeader('  ', 'xyz'), null)
+})
+
+test('trackerKeyMalformed: 붙여넣기 사고(가운데 줄바꿈·공백·보이지 않는 문자)만 잡는다', () => {
+  assert.equal(trackerKeyMalformed('AA53V6YumcosJ6lgC5FMqWsc', 'abc+/=_-.XYZ09'), false)
+  assert.equal(trackerKeyMalformed(' AA53V6 \n', '\tabc '), false) // 앞뒤 공백은 trackerAuthHeader 가 자른다
+  assert.equal(trackerKeyMalformed('AA53V6', 'abc\ndef'), true) // 가운데 줄바꿈
+  assert.equal(trackerKeyMalformed('AA53V6', 'abc def'), true) // 가운데 공백
+  assert.equal(trackerKeyMalformed('AA53V6​', 'abc'), true) // 보이지 않는 문자
+  assert.equal(trackerKeyMalformed('AA53V6', 'ab　c'), true) // 가운데 전각 공백
+  assert.equal(trackerKeyMalformed('AA53V6', 'abc　'), false) // 끝 전각 공백은 trim 이 지운다(헤더도 같은 trim)
+  assert.equal(trackerKeyMalformed('AA53V6', '비밀'), true) // 한글
+  assert.equal(trackerKeyMalformed(undefined, undefined), false) // 없음은 '미설정'이지 '깨짐'이 아니다
 })
 
 test('isTrackerAuthError: 실측된 키 누락 응답을 인증 오류로 본다', () => {
@@ -47,6 +59,10 @@ test('tracking-poll: 배송 중 주문이 없는 날에도 키를 조회만으�
   const fn = src.slice(src.indexOf('async function checkTrackerKey('))
   assert.ok(fn.length > 100, '키 점검 함수를 못 찾았다')
   assert.match(fn, /return isTrackerAuthError\(json\.errors\) \? 'rejected' : 'ok'/, '키 점검이 인증 거절을 가려내지 않는다')
+  assert.match(fn, /if \(!res\.ok\) return `upstream_http_\$\{res\.status\}`/, '상류 실패에 HTTP 상태를 안 남긴다 — 원인을 못 가린다')
+  assert.match(fn, /return `upstream_\$\{e instanceof Error \? e\.name : 'unknown'\}`/, '예외에 오류 이름을 안 남긴다')
+  assert.doesNotMatch(fn, /e\.message|console\.\w+\([^)]*\be\b/, '예외 메시지를 남긴다 — 헤더 검증 오류 문구에 키 값이 들어간다')
+  assert.match(src, /if \(authHeader && trackerKeyMalformed\(env\.DELIVERY_TRACKER_CLIENT_ID, env\.DELIVERY_TRACKER_CLIENT_SECRET\)\) \{\s*return NextResponse\.json\(\s*\{\s*ok: false,\s*reason: 'TRACKER_KEY_MALFORMED'[\s\S]{0,400}?\{ status: 500 \}/, '붙여넣기 사고 키를 빨간불로 올리지 않는다')
   assert.doesNotMatch(fn, /\.update\(|\.insert\(|\.delete\(|pushToUser|notifyOrder/, '키 점검이 조회 말고 다른 일을 한다 — 고객에게 닿는다')
   assert.match(src, /keyCheck,\n\s*\}\)\n\}/, '정상 결과 요약에 keyCheck 가 없다 — cron_health 로 확인할 수 없다')
   // 응답에 넣어도 cron_health 기록은 허용 목록(pickSummary)만 남긴다 — 첫 배포에서 실제로 잘려 나갔다.

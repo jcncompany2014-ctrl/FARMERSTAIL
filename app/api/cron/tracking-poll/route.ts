@@ -6,6 +6,7 @@ import {
   isTrackerAuthError,
   mapTrackerStatusCode,
   trackerAuthHeader,
+  trackerKeyMalformed,
 } from '@/lib/tracking'
 import { env } from '@/lib/env'
 import { pushToUser } from '@/lib/push'
@@ -138,6 +139,19 @@ async function runTrackingPoll(): Promise<Response> {
         reason: 'TRACKER_NOT_CONFIGURED',
         message: `배송조회 키(DELIVERY_TRACKER_CLIENT_ID/SECRET)가 없어 자동 배송완료를 못 해요 — 배송 중 ${targets.length}건`,
         pending: targets.length,
+      },
+      { status: 500 },
+    )
+  }
+  // 붙여넣기 사고(가운데 줄바꿈·공백·보이지 않는 문자)는 조회해 볼 것도 없이 틀린 키다 — 값은 남기지 않는다.
+  if (authHeader && trackerKeyMalformed(env.DELIVERY_TRACKER_CLIENT_ID, env.DELIVERY_TRACKER_CLIENT_SECRET)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: 'TRACKER_KEY_MALFORMED',
+        message:
+          '배송조회 키에 줄바꿈·공백 같은 글자가 섞였어요 — Vercel 환경변수 DELIVERY_TRACKER_CLIENT_ID·SECRET 를 다시 붙여넣어 주세요',
+        keyCheck: 'malformed',
       },
       { status: 500 },
     )
@@ -334,12 +348,15 @@ async function runTrackingPoll(): Promise<Response> {
   })
 }
 
-type KeyCheck = 'ok' | 'rejected' | 'upstream_error' | 'no_sample' | 'lookup_failed'
+type KeyCheck = 'ok' | 'rejected' | 'no_sample' | 'lookup_failed' | `upstream_${string}`
 
 /**
  * 키 자가 점검 — 최근 배송완료 송장 1건을 조회만 해서 키가 받아들여지는지 본다.
  * 'ok' = 키 통과(송장 결과와 무관). 'rejected' 만 빨간불이고, 일시적인 상류 오류·표본 없음은
  * 결과 요약(cron_health.result_summary.keyCheck)에만 남긴다 — 매일 헛경보를 만들지 않는다.
+ * 상류 실패는 종류를 붙인다(upstream_http_<상태> · upstream_<오류 이름>) — 첫 운영 실행이
+ * 'upstream_error' 한 단어라 원인을 못 가렸다(2026-10-09). 오류 **메시지**는 남기지 않는다:
+ * 헤더 검증 오류 문구에 키 값이 그대로 들어간다.
  */
 async function checkTrackerKey(
   supabase: ReturnType<typeof createAdminClient>,
@@ -369,10 +386,10 @@ async function checkTrackerKey(
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     })
-    if (!res.ok) return 'upstream_error'
+    if (!res.ok) return `upstream_http_${res.status}`
     const json = (await res.json()) as DTResponse
     return isTrackerAuthError(json.errors) ? 'rejected' : 'ok'
-  } catch {
-    return 'upstream_error'
+  } catch (e) {
+    return `upstream_${e instanceof Error ? e.name : 'unknown'}`
   }
 }
