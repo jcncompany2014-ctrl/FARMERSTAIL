@@ -15,6 +15,13 @@ type Props = {
   variant?: 'login' | 'signup'
   /** 리다이렉트 직전 1회 — GA 계측 등. 예외는 삼켜진다. */
   onBeforeRedirect?: () => void
+  /**
+   * 겉모양만 — 'app' = 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W06·W27): 모서리 4 · 높이 56 · 17px 800.
+   * 기본(웹)은 예전 알약 모양 그대로. 로그인 동작은 같다.
+   */
+  look?: 'web' | 'app' | 'flow'
+  /** 버튼 글자 바꾸기 — 새 첫 화면 '카카오로 가입하고 시작'(시안 Y6). 없으면 variant 글자. */
+  label?: string
 }
 
 /**
@@ -25,6 +32,8 @@ export default function KakaoLoginButton({
   next = '/dashboard',
   variant = 'login',
   onBeforeRedirect,
+  look = 'web',
+  label: labelOverride,
 }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -102,7 +111,46 @@ export default function KakaoLoginButton({
   }
 
   const label =
-    variant === 'signup' ? '카카오로 가입하기' : '카카오로 시작하기'
+    labelOverride ?? (variant === 'signup' ? '카카오로 가입하기' : '카카오로 시작하기')
+
+  // 'flow' = 새 첫 화면(시안 Y6) — 같은 노랑, 둥근 알약(높이 58 · 모서리 29). 'app' = 로그인·가입(모서리 4 · 높이 56).
+  if (look === 'app' || look === 'flow') {
+    const flow = look === 'flow'
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={loading}
+          className="active:opacity-80 disabled:opacity-60"
+          style={{
+            width: '100%',
+            height: flow ? 58 : 56,
+            border: 0,
+            borderRadius: flow ? 29 : 4,
+            background: '#FEE500',
+            color: flow ? '#191600' : '#191919',
+            fontFamily: 'inherit',
+            fontSize: 17,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <KakaoMark size={20} />
+          {loading ? '연결 중...' : label}
+        </button>
+        {error && (
+          <p role="alert" style={{ margin: '8px 0 0', fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: '#B23624' }}>
+            {error}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -124,12 +172,12 @@ export default function KakaoLoginButton({
   )
 }
 
-function KakaoMark() {
+function KakaoMark({ size = 16 }: { size?: number }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       fill="currentColor"
       aria-hidden="true"
     >

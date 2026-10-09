@@ -1,6 +1,49 @@
 'use client'
 
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import { AuthAppMain, AuthIconBox, AuthPrimaryButton, AuthResultPanel } from '@/components/v3/auth/AuthAppParts'
+
 export default function OfflinePage() {
+  const appLook = useServerAppContext()
+  // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W18) — 앱이면 앱 모양(이모지 📡 대신 아이콘, 앱시안 결정 3번 '문구').
+  //   판정 = offline/layout 의 서버 값. 웹은 아래 예전 화면 그대로.
+  if (appLook) {
+    return (
+      <AuthAppMain>
+        <AuthResultPanel
+          icon={
+            <AuthIconBox>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.5 9a14 14 0 0 1 19 0" />
+                <path d="M5.5 12.5a9.5 9.5 0 0 1 13 0" />
+                <path d="M8.7 16a5 5 0 0 1 6.6 0" />
+                <circle cx="12" cy="19.5" r="1" fill="#141414" />
+                <path d="M3 3l18 18" stroke="#C63D2A" strokeWidth="2.4" />
+              </svg>
+            </AuthIconBox>
+          }
+          title="오프라인 상태예요"
+          titleSize={40}
+          body={
+            <>
+              인터넷 연결이 끊어진 것 같아요.
+              <br />
+              Wi-Fi나 모바일 데이터를 확인해 주세요.
+            </>
+          }
+          action={
+            <AuthPrimaryButton onClick={() => window.location.reload()}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+                <path d="M20 4v4.5h-4.5" />
+              </svg>
+              다시 시도하기
+            </AuthPrimaryButton>
+          }
+        />
+      </AuthAppMain>
+    )
+  }
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center px-6 py-12">
       <div className="text-center max-w-sm md:max-w-xl">

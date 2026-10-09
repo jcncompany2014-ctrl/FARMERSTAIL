@@ -17,13 +17,24 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle } from 'lucide-react'
 import StartAppShell from '@/components/start/StartAppShell'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
 import { createClient } from '@/lib/supabase/client'
 import { saveAutosignupDraft } from '@/lib/autosignup-draft'
 import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
+import type { CSSProperties } from 'react'
+import { V3 } from '@/lib/design/tokens'
+import {
+  AuthErrorBox,
+  AuthIconBox,
+  AuthInput,
+  AuthLabel,
+  AuthOrDivider,
+  AuthPasswordInput,
+  AuthPrimaryButton,
+  AuthPrimaryLink,
+} from '@/components/v3/auth/AuthAppParts'
 
 const emailValid = (e: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
@@ -137,107 +148,72 @@ export default function StartJoinPage() {
     setSaving(false)
   }
 
+  // ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 W27) — 이 화면은 앱 전용(StartClient 가 앱 컨텍스트에서만 보낸다)이라
+  //   갈래 없이 새 모양. 가입 처리(handleEmailSignup)·검증(emailFormValid)·재발송은 위 그대로.
+  const hint = (text: string, error = false) => (
+    <p
+      role={error ? 'alert' : undefined}
+      style={{ margin: 0, fontSize: 14, fontWeight: error ? 700 : 400, lineHeight: 1.5, color: error ? '#B23624' : V3.inkMute }}
+    >
+      {text}
+    </p>
+  )
+  const field: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
+
   // ── 메일 인증 안내 ──
   if (emailSent) {
     return (
       <StartAppShell>
-        <main className="px-5 pt-10 pb-20">
-          <h1
-            className="font-sans"
-            style={{
-              fontSize: 25,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.25,
-            }}
-          >
-            가입 메일을 보냈어요
-          </h1>
-          <p
-            className="mt-3 text-[15px]"
-            style={{ color: 'var(--muted)', lineHeight: 1.7 }}
-          >
-            <b style={{ color: 'var(--ink)' }}>{email.trim()}</b> 로 보낸 인증
-            링크를 눌러 가입을 완료해 주세요. 인증 후 로그인하면 우리 아이 맞춤
-            설문으로 바로 이어져요.
+        <main data-ft-chrome="app" style={{ padding: '36px 20px 32px', display: 'flex', flexDirection: 'column', color: V3.ink, lineHeight: 'normal' }}>
+          <AuthIconBox size={64}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={V3.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="1.5" />
+              <path d="M3.5 6l8.5 7 8.5-7" />
+            </svg>
+          </AuthIconBox>
+          <h1 style={{ margin: '20px 0 0', fontSize: 36, lineHeight: 1.15 }}>가입 메일을 보냈어요</h1>
+          <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.65, color: V3.inkSoft, overflowWrap: 'anywhere' }}>
+            <strong style={{ fontWeight: 800, color: V3.ink }}>{email.trim()}</strong> 로 보낸 인증 링크를 눌러 가입을 완료해 주세요. 인증 후
+            로그인하면 우리 아이 맞춤 설문으로 바로 이어져요.
           </p>
-          <p className="mt-2 text-[14px]" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
-            메일이 안 보이면 스팸함도 확인해 주세요.
-          </p>
-          <ResendConfirmationButton email={email} color="var(--muted)" className="mt-2 text-[14px]" />
-          <Link
-            href="/login"
-            className="mt-7 block text-center font-bold text-[16px]"
-            style={{
-              padding: '15px 24px',
-              borderRadius: 9999,
-              background: 'var(--fd-coral)',
-              color: '#fff',
-            }}
-          >
+          <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkMute }}>메일이 안 보이면 스팸함도 확인해 주세요.</p>
+          <ResendConfirmationButton email={email} color={V3.inkSoft} className="mt-2 text-[15px]" />
+          <AuthPrimaryLink href="/login" style={{ marginTop: 22 }}>
             로그인하러 가기
-          </Link>
+          </AuthPrimaryLink>
         </main>
       </StartAppShell>
     )
   }
 
-  const inputCls =
-    'w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition'
-  const inputStyle = {
-    borderColor: 'var(--rule)' as const,
-    background: '#FFFFFF',
-    color: 'var(--ink)',
-  }
-  const labelCls = 'block text-[13px] font-bold mb-1.5'
+  const pwWeak = !!password && !passwordStrong(password)
+  const yearBad = !!birthYear && !birthYearValid
 
   return (
     <StartAppShell>
-      <main className="px-5 pt-8 pb-20">
-        <h1
-          className="font-sans"
-          style={{
-            fontSize: 27,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.22,
-          }}
-        >
+      <main data-ft-chrome="app" style={{ padding: '26px 20px 32px', display: 'flex', flexDirection: 'column', color: V3.ink, lineHeight: 'normal' }}>
+        <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.12 }}>
           회원가입하고
           <br />
           분석 이어가기
         </h1>
-        <p
-          className="mt-2.5 text-[15px]"
-          style={{ color: 'var(--muted)', lineHeight: 1.65 }}
-        >
-          가입하면 우리 아이 맞춤 분석을 이어갈 수 있어요. 몇 가지 설문만 더
-          답하면 끝이에요.
+        <p style={{ margin: '12px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft }}>
+          가입하면 우리 아이 맞춤 분석을 이어갈 수 있어요. 몇 가지 설문만 더 답하면 끝이에요.
         </p>
 
         {/* 카카오·애플 — 원탭·이름 자동. 복귀 착지 = /start/onboard(강아지 생성→설문). */}
-        <div className="mt-6 space-y-3">
-          <KakaoLoginButton variant="signup" next="/start/onboard" />
-          <AppleLoginButton variant="signup" next="/start/onboard" />
+        <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <KakaoLoginButton variant="signup" next="/start/onboard" look="app" />
+          <AppleLoginButton variant="signup" next="/start/onboard" look="app" />
         </div>
 
-        <div className="flex items-center gap-4 my-6">
-          <div className="flex-1 h-px" style={{ background: 'var(--rule)' }} />
-          <span style={{ color: 'var(--muted)', fontSize: 14, fontWeight: 600 }}>
-            또는 이메일로 가입
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--rule)' }} />
-        </div>
+        <AuthOrDivider label="또는 이메일로 가입" style={{ margin: '22px 0' }} />
 
         {/* 이메일 회원가입 — 수집 항목·조건이 한 화면에(카카오 심사 근거). */}
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="join-guardian-name" className={labelCls} style={{ color: 'var(--ink)' }}>
-              보호자 이름
-            </label>
-            <input
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={field}>
+            <AuthLabel htmlFor="join-guardian-name">보호자 이름</AuthLabel>
+            <AuthInput
               id="join-guardian-name"
               type="text"
               value={guardianName}
@@ -246,15 +222,11 @@ export default function StartJoinPage() {
               autoComplete="name"
               enterKeyHint="next"
               onChange={(e) => setGuardianName(e.target.value)}
-              className={inputCls}
-              style={inputStyle}
             />
           </div>
-          <div>
-            <label htmlFor="join-email" className={labelCls} style={{ color: 'var(--ink)' }}>
-              이메일
-            </label>
-            <input
+          <div style={field}>
+            <AuthLabel htmlFor="join-email">이메일</AuthLabel>
+            <AuthInput
               id="join-email"
               type="email"
               value={email}
@@ -266,85 +238,39 @@ export default function StartJoinPage() {
               spellCheck={false}
               enterKeyHint="next"
               onChange={(e) => setEmail(e.target.value)}
-              className={inputCls}
-              style={inputStyle}
             />
           </div>
-          <div>
-            <label htmlFor="join-password" className={labelCls} style={{ color: 'var(--ink)' }}>
-              비밀번호
-            </label>
-            <input
+          <div style={field}>
+            <AuthLabel htmlFor="join-password">비밀번호</AuthLabel>
+            <AuthPasswordInput
               id="join-password"
-              type="password"
               value={password}
-              placeholder="영문·숫자·특수문자 포함 8자 이상"
+              placeholder="비밀번호"
               autoComplete="new-password"
               enterKeyHint="next"
+              aria-invalid={pwWeak || undefined}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputCls}
-              style={{
-                ...inputStyle,
-                borderColor:
-                  password && !passwordStrong(password)
-                    ? 'var(--sale)'
-                    : 'var(--rule)',
-              }}
             />
-            {password && !passwordStrong(password) && (
-              <p
-                role="alert"
-                className="mt-1 flex items-center gap-1"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--fd-coral-text)',
-                }}
-              >
-                <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
-                영문·숫자·특수문자를 포함해 8자 이상이어야 해요
-              </p>
-            )}
+            {pwWeak ? hint('영문·숫자·특수문자를 포함해 8자 이상이어야 해요', true) : hint('영문·숫자·특수문자 포함 8자 이상')}
           </div>
-          <div>
-            <label htmlFor="join-password-confirm" className={labelCls} style={{ color: 'var(--ink)' }}>
-              비밀번호 확인
-            </label>
-            <input
+          <div style={field}>
+            <AuthLabel htmlFor="join-password-confirm">비밀번호 확인</AuthLabel>
+            <AuthPasswordInput
               id="join-password-confirm"
-              type="password"
               value={confirmPassword}
               placeholder="비밀번호를 한 번 더 입력"
               autoComplete="new-password"
               enterKeyHint="next"
+              aria-invalid={passwordMismatch || undefined}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={inputCls}
-              style={{
-                ...inputStyle,
-                borderColor: passwordMismatch ? 'var(--sale)' : 'var(--rule)',
-              }}
             />
-            {passwordMismatch && (
-              <p
-                role="alert"
-                className="mt-1 flex items-center gap-1"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--fd-coral-text)',
-                }}
-              >
-                <AlertCircle className="w-3 h-3" strokeWidth={2.5} />
-                비밀번호가 일치하지 않아요
-              </p>
-            )}
+            {passwordMismatch && hint('비밀번호가 일치하지 않아요', true)}
           </div>
-          <div>
-            <label htmlFor="join-birth-year" className={labelCls} style={{ color: 'var(--ink)' }}>
-              보호자 출생연도{' '}
-              <span style={{ color: 'var(--muted)' }}>(만 14세 이상)</span>
-            </label>
-            <input
+          <div style={field}>
+            <AuthLabel htmlFor="join-birth-year">
+              보호자 출생연도 <span style={{ fontWeight: 600, color: V3.inkMute }}>(만 14세 이상)</span>
+            </AuthLabel>
+            <AuthInput
               id="join-birth-year"
               type="text"
               inputMode="numeric"
@@ -353,122 +279,97 @@ export default function StartJoinPage() {
               value={birthYear}
               placeholder={`예: ${currentYear - 30}`}
               enterKeyHint="done"
-              onChange={(e) =>
-                setBirthYear(e.target.value.replace(/[^0-9]/g, ''))
-              }
-              className={inputCls}
-              style={{
-                ...inputStyle,
-                borderColor:
-                  birthYear && !birthYearValid ? 'var(--sale)' : 'var(--rule)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
+              aria-invalid={yearBad || undefined}
+              className={birthYear ? 'ft-num' : undefined}
+              style={birthYear ? { fontSize: 24, fontWeight: 400 } : undefined}
+              onChange={(e) => setBirthYear(e.target.value.replace(/[^0-9]/g, ''))}
             />
-            {birthYear && !birthYearValid && (
-              <p
-                role="alert"
-                className="mt-1 flex items-center gap-1"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--fd-coral-text)',
-                }}
-              >
-                <AlertCircle className="w-3 h-3" strokeWidth={2.5} />만 14세
-                이상만 가입할 수 있어요
-              </p>
-            )}
+            {yearBad && hint('만 14세 이상만 가입할 수 있어요', true)}
           </div>
 
-          <div
-            className="rounded-lg px-4 py-3.5 space-y-2.5"
-            style={{
-              background: 'var(--paper-hi, #FCFBF7)',
-              boxShadow: 'inset 0 0 0 1px var(--rule)',
-            }}
-          >
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreeRequired}
-                onChange={(e) => setAgreeRequired(e.target.checked)}
-                className="mt-0.5 w-4 h-4"
-                style={{ accentColor: 'var(--fd-coral)' }}
-              />
-              <span
-                style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)' }}
-              >
-                <b style={{ color: 'var(--fd-coral)' }}>[필수]</b> 만 14세
-                이상이며,{' '}
-                <Link
-                  href="/legal/terms"
-                  target="_blank"
-                  className="underline underline-offset-2 font-bold"
-                  style={{ color: 'var(--ink)' }}
-                >
+          {/* 동의 — 회색 면 안 두 줄(시안 W27). 진짜 체크박스는 숨기고 네모만 그린다(누르는 칸 = 줄 전체). */}
+          <div style={{ padding: '6px 16px', borderRadius: 4, background: V3.soft, display: 'flex', flexDirection: 'column' }}>
+            <label style={{ ...CONSENT_ROW, borderBottom: `1px solid ${V3.rule}` }}>
+              <input type="checkbox" checked={agreeRequired} onChange={(e) => setAgreeRequired(e.target.checked)} style={HIDDEN_CHECK} />
+              <CheckSquare on={agreeRequired} />
+              <span style={{ fontSize: 16, lineHeight: 1.55 }}>
+                <b style={{ fontWeight: 800, color: V3.sale }}>[필수]</b> 만 14세 이상이며,{' '}
+                <Link href="/legal/terms" target="_blank" style={CONSENT_LINK}>
                   이용약관
                 </Link>
                 ·
-                <Link
-                  href="/legal/privacy"
-                  target="_blank"
-                  className="underline underline-offset-2 font-bold"
-                  style={{ color: 'var(--ink)' }}
-                >
+                <Link href="/legal/privacy" target="_blank" style={CONSENT_LINK}>
                   개인정보처리방침
                 </Link>
                 에 동의합니다
               </span>
             </label>
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreeMarketing}
-                onChange={(e) => setAgreeMarketing(e.target.checked)}
-                className="mt-0.5 w-4 h-4"
-                style={{ accentColor: 'var(--muted)' }}
-              />
-              <span
-                style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--muted)' }}
-              >
-                <span className="font-bold">[선택]</span> 혜택·이벤트 소식 수신에
-                동의합니다
+            <label style={CONSENT_ROW}>
+              <input type="checkbox" checked={agreeMarketing} onChange={(e) => setAgreeMarketing(e.target.checked)} style={HIDDEN_CHECK} />
+              <CheckSquare on={agreeMarketing} />
+              <span style={{ fontSize: 16, lineHeight: 1.55, color: V3.inkSoft }}>
+                <b style={{ fontWeight: 800 }}>[선택]</b> 혜택·이벤트 소식 수신에 동의합니다
               </span>
             </label>
           </div>
 
-          {signupError && (
-            <div
-              role="alert"
-              className="flex items-start gap-2"
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: 'var(--fd-coral-text)',
-              }}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={2.5} />
-              <span>{signupError}</span>
-            </div>
-          )}
+          {signupError && <AuthErrorBox>{signupError}</AuthErrorBox>}
 
-          <button
-            type="button"
-            onClick={handleEmailSignup}
-            disabled={!emailFormValid || saving}
-            className="w-full font-bold text-[16px] active:translate-y-[1px] transition-all"
-            style={{
-              height: 54,
-              borderRadius: 9999,
-              background: 'var(--fd-coral)',
-              color: '#fff',
-              opacity: emailFormValid && !saving ? 1 : 0.5,
-            }}
-          >
+          <AuthPrimaryButton onClick={handleEmailSignup} disabled={!emailFormValid || saving} style={{ marginTop: 4 }}>
             {saving ? '가입 중...' : '이메일로 가입하기'}
-          </button>
+          </AuthPrimaryButton>
         </div>
       </main>
     </StartAppShell>
+  )
+}
+
+const CONSENT_ROW: CSSProperties = {
+  position: 'relative',
+  minHeight: 56,
+  padding: '10px 0',
+  boxSizing: 'border-box',
+  display: 'grid',
+  gridTemplateColumns: '26px 1fr',
+  columnGap: 12,
+  alignItems: 'start',
+  cursor: 'pointer',
+}
+
+// 화면에선 숨기되 키보드·읽기 프로그램은 그대로 쓰는 체크박스.
+const HIDDEN_CHECK: CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: 0,
+  opacity: 0,
+  pointerEvents: 'none',
+}
+
+const CONSENT_LINK: CSSProperties = { fontWeight: 800, color: V3.ink, textDecoration: 'underline', textUnderlineOffset: 3 }
+
+function CheckSquare({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        marginTop: 1,
+        width: 24,
+        height: 24,
+        boxSizing: 'border-box',
+        borderRadius: 4,
+        border: on ? 0 : '1.5px solid #8E8C8D',
+        background: on ? V3.ink : '#FFFFFF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {on && (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      )}
+    </span>
   )
 }

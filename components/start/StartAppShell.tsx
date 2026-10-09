@@ -23,30 +23,43 @@ export default function StartAppShell({
     <div
       style={{
         minHeight: '100dvh',
-        // --fd-offwhite(#F7F5F0)는 전역 토큰이고 앱 --paper 와 값이 동일(globals.css:
-        // "paper=웹 offwhite"). StartAppShell 은 data-ft-chrome="app" 스코프 밖이라
-        // --paper 를 쓰면 미정의(투명)로 깨진다 — 반드시 전역 --fd-offwhite 사용.
-        background: 'var(--fd-offwhite)',
+        // 2026-10-09 앱 새 디자인('A 포스터', 캔버스 W27·W28): 흰 바탕. 예전엔 종이색(--fd-offwhite — 이 셸은
+        // data-ft-chrome="app" 스코프 밖이라 앱 변수 --paper 가 미정의). 이 셸은 앱 갈래에서만 쓴다.
+        background: '#FFFFFF',
         display: 'flex',
         flexDirection: 'column',
+        paddingTop: 'env(safe-area-inset-top)',
       }}
     >
+      {/* 윗줄(시안 W27): 높이 64 · 작은 로고(17) · '나가기' 15/700 회색 · 아래 1px 선. */}
       <header
         style={{
+          height: 64,
+          flexShrink: 0,
+          boxSizing: 'border-box',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 18px',
-          borderBottom: '1px solid var(--fd-line)',
+          padding: '0 8px 0 20px',
+          borderBottom: '1px solid #E5E5E5',
         }}
       >
         <Link href="/dashboard" aria-label="파머스테일 홈" className="inline-flex">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-ink.png" alt="Farmer's Tail" style={{ height: 21, width: 'auto' }} />
+          <img src="/logo-ink.png" alt="Farmer's Tail" style={{ height: 17, width: 'auto', display: 'block' }} />
         </Link>
         <Link
           href="/login"
-          style={{ fontSize: 14, fontWeight: 700, color: 'var(--fd-muted)', textDecoration: 'none' }}
+          style={{
+            minHeight: 48,
+            padding: '0 12px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: 15,
+            fontWeight: 700,
+            color: '#595959',
+            textDecoration: 'none',
+          }}
         >
           나가기
         </Link>

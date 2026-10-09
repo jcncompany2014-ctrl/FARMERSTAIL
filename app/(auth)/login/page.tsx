@@ -15,6 +15,7 @@ import {
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
 import { createDogFromDraft } from '@/lib/auth/createDogFromDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
+import { isFreshAccount, surveyStartHref } from '@/lib/survey/welcome'
 import {
   loadAutosignupDraft,
   isDogDraftComplete,
@@ -24,6 +25,18 @@ import { trackSignUp } from '@/lib/analytics'
 import { safeNextPath } from '@/lib/auth/safe-next'
 import { isEmailNotConfirmed } from '@/lib/auth/resend-confirmation'
 import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import { V3 } from '@/lib/design/tokens'
+import {
+  AuthAppMain,
+  AuthErrorBox,
+  AuthInput,
+  AuthNoticeBox,
+  AuthOrDivider,
+  AuthOutlineLink,
+  AuthPasswordInput,
+  AuthPrimaryButton,
+} from '@/components/v3/auth/AuthAppParts'
 
 /**
  * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
@@ -100,6 +113,8 @@ function LoginInner() {
   //   • Web (브라우저)         → /mypage/orders (주문 확인 — 웹 접근 가능 surface)
   // useIsAppContext 가 SSR 시 null 이라도 OK — handleLogin 은 client 이벤트.
   const isApp = useIsAppContext()
+  // 모양 판정(앱 새 디자인) — 서버가 첫 그림부터 넘긴 값. 위 isApp 은 로그인 뒤 갈 곳(동작)에만 쓴다.
+  const appLook = useServerAppContext()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -240,7 +255,8 @@ function LoginInner() {
             if (deferredDogId) {
               clearAutosignupDraft()
               setLoading(false)
-              router.replace(`/dogs/${deferredDogId}/survey`)
+              // 방금 가입한 계정(메일 인증 뒤 첫 로그인)이면 설문 첫 질문에 '가입 완료' 띠(시안 Y7, lib/survey/welcome).
+              router.replace(surveyStartHref(deferredDogId, isFreshAccount(signedIn.created_at)))
               return
             }
           }
@@ -285,6 +301,99 @@ function LoginInner() {
     }
     router.push(destination)
     router.refresh()
+  }
+
+  // ★앱 새 디자인('A 포스터', 2026-10-09 캔버스 W06·W22·W23·W24) — 앱이면 앱 모양으로 그린다. 판정은 서버 레이아웃
+  //   ((auth)/layout.tsx)이 넘긴 값이라 첫 그림부터 맞다. 로그인 처리(handleLogin)·소셜 목적지·안내 판정은 위 그대로.
+  if (appLook) {
+    const notice = justReset || justDeleted
+    return (
+      <AuthAppMain>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-ink.png" alt="파머스테일" width={98} height={17} style={{ marginTop: 44, alignSelf: 'flex-start', height: 17, width: 'auto', display: 'block' }} />
+        <h1 style={{ margin: `${notice ? 16 : 26}px 0 0`, fontSize: 48, lineHeight: 1.05 }}>환영해요!</h1>
+        <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.5, color: V3.inkSoft }}>로그인하고 우리 아이 식단 이어가기</p>
+        {justReset && (
+          <AuthNoticeBox title="비밀번호가 변경됐어요" style={{ marginTop: 16 }}>
+            새 비밀번호로 로그인해 주세요.
+          </AuthNoticeBox>
+        )}
+        {/* "언제든 다시 찾아 주세요" — '언제든' 금지(고객 문구 규칙) → 시안 W24 문구. */}
+        {justDeleted && (
+          <AuthNoticeBox title="탈퇴가 완료됐어요" style={{ marginTop: 16 }}>
+            그동안 파머스테일을 이용해 주셔서 감사해요. 또 찾아 주시면 반갑게 맞을게요.
+          </AuthNoticeBox>
+        )}
+        <div style={{ marginTop: notice ? 14 : 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <KakaoLoginButton variant="login" next={socialNext} look="app" />
+          <AppleLoginButton variant="login" next={socialNext} look="app" />
+        </div>
+        <AuthOrDivider style={{ margin: notice ? '16px 0' : '20px 0' }} />
+        <form onSubmit={handleLogin} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <AuthInput
+            type="email"
+            required
+            aria-label="이메일"
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="이메일"
+          />
+          <AuthPasswordInput
+            required
+            aria-label="비밀번호"
+            autoComplete="current-password"
+            enterKeyHint="go"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호"
+          />
+          {error && <AuthErrorBox>{error}</AuthErrorBox>}
+          {unconfirmedEmail && formError && (
+            <ResendConfirmationButton email={unconfirmedEmail} className="text-center text-[12.5px]" />
+          )}
+          <AuthPrimaryButton type="submit" disabled={loading} style={{ marginTop: 4 }}>
+            {loading ? '로그인 중...' : '로그인'}
+          </AuthPrimaryButton>
+        </form>
+        <Link
+          href="/forgot-password"
+          style={{
+            alignSelf: 'center',
+            marginTop: 6,
+            minHeight: 48,
+            padding: '0 8px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: 15,
+            fontWeight: 700,
+            color: V3.inkSoft,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          비밀번호를 잊으셨나요?
+        </Link>
+        <div
+          style={{
+            marginTop: 'auto',
+            padding: notice ? '16px 0 26px' : '18px 0 30px',
+            borderTop: `1px solid ${V3.rule}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 16, fontWeight: 800, textAlign: 'center' }}>파머스테일이 처음이세요?</span>
+          <AuthOutlineLink href="/start">무료 맞춤 분석 시작하기</AuthOutlineLink>
+        </div>
+      </AuthAppMain>
+    )
   }
 
   return (

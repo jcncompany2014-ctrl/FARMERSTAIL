@@ -1,0 +1,33 @@
+/* 로그인·가입 앱 화면 입력칸(앱 새 디자인 'A 포스터', 캔버스 W06~W13·W27) — AuthAppParts 의 .ft-auth-input 만 대상이라
+   웹 화면엔 닿지 않는다. 포커스 = 먹선, 자리표시 글자 = #767676(시안). */
+.ft-auth-input {
+  width: 100%;
+  height: 56px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  border: 1.5px solid #8e8c8d;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #141414;
+  font-family: inherit;
+  font-size: 17px;
+  /* 적은 글자는 굵게(시안 W22·W27 — 채운 칸), 자리표시는 보통 굵기. */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+.ft-auth-input::placeholder {
+  color: #767676;
+  font-weight: 400;
+}
+.ft-auth-input:focus {
+  border-color: #141414;
+}
+.ft-auth-input[aria-invalid='true'] {
+  border-color: #c63d2a;
+  border-width: 2px;
+}
+.ft-auth-input.has-eye {
+  padding-right: 56px;
+}

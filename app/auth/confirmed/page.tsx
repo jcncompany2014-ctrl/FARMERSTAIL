@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { isAppContextServer } from '@/lib/app-context'
+import { AuthAppMain, AuthIconBox, AuthPrimaryLink, AuthResultPanel } from '@/components/v3/auth/AuthAppParts'
 
 /**
  * 이메일 인증 결과 화면 — `/auth/confirmed` (성공) · `?error=expired|missing` (실패)
@@ -15,6 +17,55 @@ export default async function ConfirmedPage({
 }) {
   const { error } = await searchParams
   const failed = Boolean(error)
+
+  // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W11·W12) — 앱에서 열리면(앱 링크) 앱 모양. 이모지(🎉⏰) 대신 아이콘
+  //   (앱시안 결정 3번 '문구'). 웹(메일앱·브라우저에서 열림 — 대부분)은 아래 예전 카드 그대로.
+  if (await isAppContextServer()) {
+    return (
+      <AuthAppMain>
+        <AuthResultPanel
+          icon={
+            failed ? (
+              <AuthIconBox>
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="13" r="8" />
+                  <path d="M12 9v4l2.5 2M9.5 2.5h5" />
+                </svg>
+              </AuthIconBox>
+            ) : (
+              <AuthIconBox filled>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+              </AuthIconBox>
+            )
+          }
+          title={
+            failed ? (
+              <>
+                링크가 더 이상
+                <br />
+                유효하지 않아요
+              </>
+            ) : (
+              <>
+                이메일 인증이
+                <br />
+                완료됐어요!
+              </>
+            )
+          }
+          body={
+            failed
+              ? '인증 링크는 1시간 동안만 쓸 수 있어요. 로그인 화면에서 다시 받아 주세요.'
+              : '이제 로그인해서 우리 아이의 식단을 시작할 수 있어요.'
+          }
+          action={<AuthPrimaryLink href="/login">로그인하기</AuthPrimaryLink>}
+          // 시안의 "앱에서 가입하셨다면 앱으로 돌아가 로그인해 주세요."는 뺐다 — 이 갈래는 이미 앱 안이다.
+        />
+      </AuthAppMain>
+    )
+  }
 
   return (
     <main

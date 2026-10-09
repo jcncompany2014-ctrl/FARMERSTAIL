@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import AuthHero from '@/components/auth/AuthHero'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import ResetPasswordAppView from '@/components/v3/auth/ResetPasswordAppView'
 
 /**
  * /reset-password — Supabase recovery 세션에서 새 비밀번호 설정 (R89-E D7).
@@ -30,6 +32,7 @@ import AuthHero from '@/components/auth/AuthHero'
  * - 약한 비밀번호: 인라인 메시지
  */
 export default function ResetPasswordPage() {
+  const appLook = useServerAppContext()
   const router = useRouter()
   const supabase = createClient()
 
@@ -184,6 +187,26 @@ export default function ResetPasswordPage() {
     setTimeout(() => {
       router.push('/login?reset=1')
     }, 3000)
+  }
+
+  // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W09·W10·W25) — 앱이면 앱 화면 부품으로 그린다(판정 = (auth)/layout 의
+  //   서버 값). 증표 확인·변경·로그아웃·이동은 위 그대로 — 상태만 넘긴다.
+  if (appLook) {
+    return (
+      <ResetPasswordAppView
+        status={exchanging ? 'checking' : exchangeError ? 'expired' : done ? 'done' : 'form'}
+        expiredMessage={exchangeError}
+        password={password}
+        onPasswordChange={setPassword}
+        confirm={confirm}
+        onConfirmChange={setConfirm}
+        mismatch={mismatch}
+        updating={updating}
+        updateError={updateError}
+        canSubmit={!(updating || mismatch || password.length < 8)}
+        onSubmit={handleUpdate}
+      />
+    )
   }
 
   return (
