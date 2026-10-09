@@ -11,12 +11,16 @@ import AddressesClient from '@/app/(main)/mypage/addresses/AddressesClient'
 import { rowToAddress, type AddressRow } from '@/lib/commerce/addresses'
 import { isAppContextServer } from '@/lib/app-context'
 import { Eyebrow } from '@/components/web/fd/ui'
+import ProfileAppView from '@/components/v3/me/ProfileAppView'
 
 /**
  * /account/profile — 기본 프로필 편집.
  *
  * /account 의 hub 에서 진입. 로그인 필수. 이름/휴대폰을 편집할 수 있음.
  * (견주 생일 입력 폐기 2026-06-27 — 생일 할인은 강아지 생일 기준.)
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M01): 앱이면 ProfileAppView 를 그린다(조회는 아래 그대로 공유).
+ * 웹 마크업은 이 파일 아래쪽 그대로 — 한 픽셀도 바꾸지 않았다(AGENTS.md R14).
  */
 
 export const dynamic = 'force-dynamic'
@@ -58,6 +62,21 @@ export default async function ProfileEditPage() {
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: false })
   const addresses = ((addrRows ?? []) as AddressRow[]).map(rowToAddress)
+
+  if (isApp) {
+    return (
+      <AuthAwareShell>
+        <ProfileAppView
+          profile={profile ?? null}
+          email={user.email ?? null}
+          addresses={addresses}
+          // 가입 방식 판정은 기존 정본(auth/callback·age-gate 의 app_metadata.provider) 그대로 — 새로 만들지 않는다.
+          // 소셜(카카오·애플) 가입자는 비밀번호가 없어 재설정 메일 카드를 숨긴다(사장님 결정).
+          canResetPassword={((user.app_metadata?.provider as string | undefined) ?? '') === 'email'}
+        />
+      </AuthAwareShell>
+    )
+  }
 
   return (
     <AuthAwareShell>

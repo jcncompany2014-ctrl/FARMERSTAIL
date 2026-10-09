@@ -2,11 +2,19 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import AuthAwareShell from "@/components/AuthAwareShell"
 import LegalDocument, {
-  Article,
-  OL,
-  UL,
+  Article as WebArticle,
+  OL as WebOL,
+  UL as WebUL,
 } from '@/components/LegalDocument'
 import { business } from '@/lib/business'
+import { isAppContextServer } from '@/lib/app-context'
+import {
+  APP_LEGAL_LINK,
+  AppArticle,
+  AppLegalDocument,
+  AppOL,
+  AppUL,
+} from '@/components/v3/me/AppLegal'
 
 export const metadata: Metadata = {
   title: '이용약관',
@@ -37,15 +45,19 @@ const EFFECTIVE_DATE = '2026-10-02'
  * 표준약관(공정위 고시)을 기반으로 파머스테일 사업 특성(반려견 식품
  * 정기배송 D2C)에 맞춰 변경한 초안. 법률 검토 전 사용 시 반드시
  * 자문을 받을 것.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M22): 앱이면 같은 법문을 앱 모양 틀(components/v3/me/AppLegal)에 담는다.
+ * 조항·목록 부품만 고르고(Article·OL·UL), 법문 글자는 한 자도 바꾸지 않았다. 웹은 예전과 같은 부품·같은 props 다.
  */
-export default function TermsPage() {
-  return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
-      <LegalDocument
-        eyebrow="Terms of Service"
-        title="이용약관"
-        effectiveDate={EFFECTIVE_DATE}
-        summary={
+export default async function TermsPage() {
+  const isApp = await isAppContextServer()
+  const Article = isApp ? AppArticle : WebArticle
+  const OL = isApp ? AppOL : WebOL
+  const UL = isApp ? AppUL : WebUL
+  const linkClass = isApp ? undefined : 'font-bold hover:underline'
+  const linkStyle = isApp ? APP_LEGAL_LINK : { color: 'var(--fd-coral)' }
+
+  const summary = (
           <>
             파머스테일 서비스 이용 시 적용되는 기본 규칙입니다. 결제는
             토스페이먼츠 카드 정기결제로 처리되고, 정기배송은 결제 전까지
@@ -55,23 +67,25 @@ export default function TermsPage() {
             교환·환불을 보장합니다.{' '}
             <Link
               href="/legal/refund"
-              className="font-bold hover:underline"
-                style={{ color: 'var(--fd-coral)' }}
+              className={linkClass}
+                style={linkStyle}
             >
               환불 정책 전문
             </Link>
             과{' '}
             <Link
               href="/legal/privacy"
-              className="font-bold hover:underline"
-                style={{ color: 'var(--fd-coral)' }}
+              className={linkClass}
+                style={linkStyle}
             >
               개인정보처리방침
             </Link>
             을 함께 확인해 주세요.
           </>
-        }
-      >
+  )
+
+  const body = (
+      <>
         <Article number={1} title="목적">
           <p>
             본 약관은 {business.companyName}(이하 &ldquo;회사&rdquo;)이
@@ -296,8 +310,8 @@ export default function TermsPage() {
               진행됩니다. 상세 절차는{' '}
               <Link
                 href="/legal/refund"
-                className="font-bold hover:underline"
-                style={{ color: 'var(--fd-coral)' }}
+                className={linkClass}
+                style={linkStyle}
               >
                 환불 정책
               </Link>
@@ -348,8 +362,8 @@ export default function TermsPage() {
               탈퇴할 수 있습니다. 탈퇴 시 개인정보는{' '}
               <Link
                 href="/legal/privacy"
-                className="font-bold hover:underline"
-                style={{ color: 'var(--fd-coral)' }}
+                className={linkClass}
+                style={linkStyle}
               >
                 개인정보처리방침
               </Link>
@@ -379,8 +393,8 @@ export default function TermsPage() {
                 href="https://ecrb.kca.go.kr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold hover:underline"
-                style={{ color: 'var(--fd-coral)' }}
+                className={linkClass}
+                style={linkStyle}
               >
                 전자거래분쟁조정위원회
               </a>
@@ -398,6 +412,28 @@ export default function TermsPage() {
             본 약관은 {EFFECTIVE_DATE}부터 시행합니다.
           </p>
         </Article>
+      </>
+  )
+
+  if (isApp) {
+    return (
+      <AuthAwareShell>
+        <AppLegalDocument effectiveDate={EFFECTIVE_DATE} summary={summary}>
+          {body}
+        </AppLegalDocument>
+      </AuthAwareShell>
+    )
+  }
+
+  return (
+    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
+      <LegalDocument
+        eyebrow="Terms of Service"
+        title="이용약관"
+        effectiveDate={EFFECTIVE_DATE}
+        summary={summary}
+      >
+        {body}
       </LegalDocument>
     </div></AuthAwareShell>
   )

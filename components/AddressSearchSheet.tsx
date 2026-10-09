@@ -145,9 +145,13 @@ export function AddressSearchSheet({
   }, [open])
 
   if (!open) return null
+  // 2026-10-09 앱 새 디자인('A 포스터', 시안 M04): 틀만 시안대로 — 바탕 막 rgba(20,20,20,.42) · 위 68 에서 시작 ·
+  // 위 모서리 12 · 머리 높이 60(제목 19 굵게 · 닫기 48×48). 안쪽 검색칸·결과는 Daum 위젯(iframe)이라 손댈 수 없다.
+  // 이 시트는 설치된 앱(standalone)에서만 열린다 — 배송지 폼과 주문 화면이 같이 쓴다.
   return (
     <div
-      className="fixed inset-0 z-[120] bg-black/45"
+      className="fixed inset-0 z-[120]"
+      style={{ background: 'rgba(20, 20, 20, 0.42)' }}
       role="dialog"
       aria-modal="true"
       aria-label="주소 검색"
@@ -155,11 +159,23 @@ export function AddressSearchSheet({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="absolute inset-x-0 bottom-0 top-[8dvh] flex flex-col rounded-t-[12px] bg-white overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-black/10">
-          <span className="text-[16px] font-bold">주소 검색</span>
-          <button type="button" onClick={onClose} aria-label="닫기" className="p-2 -m-2">
-            <X className="w-5 h-5" strokeWidth={2} />
+      <div
+        className="absolute inset-x-0 bottom-0 flex flex-col rounded-t-[12px] bg-white overflow-hidden"
+        style={{ top: 68, boxShadow: '0 -8px 28px rgba(20, 20, 20, 0.16)' }}
+      >
+        <div
+          className="flex items-center justify-between shrink-0"
+          style={{ height: 60, boxSizing: 'border-box', padding: '0 8px 0 20px', borderBottom: '1px solid #E5E5E5' }}
+        >
+          <span style={{ fontSize: 19, fontWeight: 800, color: '#141414', lineHeight: 'normal' }}>주소 검색</span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="닫기"
+            className="flex items-center justify-center"
+            style={{ width: 48, height: 48, border: 0, background: 'transparent', color: '#141414', cursor: 'pointer' }}
+          >
+            <X style={{ width: 24, height: 24 }} strokeWidth={2.2} />
           </button>
         </div>
         <div ref={hostRef} className="flex-1 min-h-0" />

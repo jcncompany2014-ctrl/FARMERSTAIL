@@ -1,414 +1,559 @@
 /* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
    CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
+/* 2026-10-09 앱 새 디자인('A 포스터', 시안 S23-checkin-week2 · S24-checkin-week4 · S25-checkin-answered ·
+   S26-checkin-result) — 옛 placeholder 디자인을 전면 교체. 값은 시안 원본 HTML 그대로(흰 바탕·먹 글자·모서리 4px).
+   제목(.ft-poster·h1)·숫자(.ft-num) 글꼴은 전역 규칙. CSS 선언이라 앱 글자 크기 맞춤(text-[Npx] 매핑)이 닿지 않는다 —
+   크기는 시안 px 그대로 적는다. 버튼은 border-box(시안 버튼과 같다), 테두리 있는 span 은 시안처럼 content-box. */
 /* =========================================================================
-   Checkin form — 자체 placeholder 디자인 (클로드 디자인 핸드오프 받으면 교체)
+   Checkin form — `.ck-` 접두 (checkin)
    ========================================================================= */
 
 .ck-page {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px 22px 96px;
-  background: var(--bg);
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* 시안 HTML 은 줄 높이를 따로 안 준 곳이 기본값(normal)이다 — 앱 바탕(1.5)을 이어받으면 칸마다 몇 px 씩 길어진다. */
+  line-height: normal;
+  /* 몰입 화면(윗줄·아래 탭 없음) — 아래 버튼이 짧은 화면에서도 맨 아래에 붙게. */
+  min-height: calc(100dvh - env(safe-area-inset-bottom, 0px));
+  background: #FFFFFF;
+  color: #141414;
+  word-break: keep-all;
 }
-
-.ck-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  margin-bottom: 18px;
-}
-.ck-back:hover { color: var(--ink); }
 
 /* Hero */
-.ck-hero { margin-bottom: 24px; }
+.ck-hero {
+  padding: 36px 20px 0;
+  display: flex;
+  flex-direction: column;
+}
 /* 2026-09-22: mono 대문자(WEEK 2) → 한글 산세리프(2주차). 시니어 사용성 2단계. */
 .ck-kicker {
-  font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-size: 13px; letter-spacing: -0.01em;
-  color: var(--terracotta);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
   font-weight: 700;
-  margin-bottom: 10px;
-  display: flex; align-items: center; gap: 10px;
+  letter-spacing: -0.02em;
+  color: #595959;
 }
 .ck-cycle {
-  background: var(--bg-2);
-  color: var(--ink);
-  padding: 3px 8px;
-  border-radius: 99px;
-  font-size: 14px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 4px;
+  border: 1.5px solid #141414;
+  box-sizing: content-box;
+  color: #141414;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 }
 .ck-hero h1 {
-  font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 26px;
-  /* R26: 1.18 → 1.25 — heading 호흡 통일 */
-  line-height: 1.25;
-  color: var(--ink);
-  letter-spacing: -.025em;
-  margin: 0 0 12px;
+  margin: 14px 0 0;
+  font-size: 34px;
+  line-height: 1.15;
+  color: #141414;
 }
 .ck-hero p {
-  font-size: 13px;
-  color: var(--muted);
+  margin: 12px 0 0;
+  font-size: 17px;
   line-height: 1.6;
-  margin: 0;
+  color: #3D3D3D;
 }
 
-/* Photo upload section */
-.ck-photo-section { margin-top: 4px; }
+/* Progress indicator — hero 아래 응답 진행률 */
+.ck-progress {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ck-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #EFEDEE;
+  display: flex;
+}
+.ck-progress-bar i {
+  display: block;
+  height: 100%;
+  background: #D4A24C;
+}
+.ck-progress-lbl {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ck-progress-lbl .ft-num { font-size: 16px; }
+
+/* 이미 받은 응답 — 이 화면의 도장 그림자 한 곳(머스타드 카드) */
+.ck-existing {
+  margin: 22px 20px 0;
+  padding: 16px;
+  border: 2px solid #141414;
+  box-shadow: 4px 4px 0 #141414;
+  border-radius: 4px;
+  background: #D4A24C;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ck-existing-head {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 8px;
+}
+.ck-existing-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ck-existing-text strong {
+  font-size: 17px;
+  font-weight: 800;
+}
+.ck-existing-text span {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #141414;
+}
+/* 탭 높이는 넉넉히 — 예전 7px 패딩은 ~27px 라 오탭 위험이 있었다(2026-07-17, 그때 40px 로 올림). 지금은 시안대로 50px. */
+.ck-edit-btn {
+  appearance: none;
+  cursor: pointer;
+  height: 50px;
+  border-radius: 4px;
+  border: 1.5px solid #141414;
+  background: #FFFFFF;
+  color: #141414;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Section — 질문마다 위 2px 먹선 + 제목 */
+.ck-section {
+  margin: 28px 20px 0;
+  padding: 18px 0 0;
+  min-width: 0;
+  border: 0;
+  border-top: 2px solid #141414;
+  display: flex;
+  flex-direction: column;
+}
+.ck-sect-lbl {
+  padding: 0;
+  float: left;
+  width: 100%;
+}
+.ck-sect-title { font-size: 24px; }
+.ck-sect-title.is-small { font-size: 22px; }
+.ck-optional {
+  font-size: 15px;
+  font-weight: 700;
+  color: #595959;
+}
+.ck-sect-hint {
+  clear: both;
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: #3D3D3D;
+}
+
+/* Stool grid — 2칸 · 숫자 + 이름 + 설명, 8번째 칸 = 잘 모르겠어요 */
+.ck-stool-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.ck-stool {
+  appearance: none;
+  cursor: pointer;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1.5px solid #D5D3D4;
+  background: #FFFFFF;
+  color: #141414;
+  font-family: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: 6px;
+  align-items: center;
+}
+.ck-stool-num {
+  font-size: 18px;
+  color: #595959;
+}
+.ck-stool-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ck-stool-lbl {
+  font-size: 16px;
+  font-weight: 800;
+}
+.ck-stool-hint {
+  font-size: 14px;
+  color: #595959;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ck-stool-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #D4A24C;
+}
+.ck-stool.on {
+  border: 2px solid #141414;
+  background: #141414;
+  color: #FFFFFF;
+}
+.ck-stool.on .ck-stool-num,
+.ck-stool.on .ck-stool-hint { color: #FFFFFF; }
+
+/* 5-scale */
+.ck-five {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.ck-five-btn {
+  appearance: none;
+  cursor: pointer;
+  min-height: 68px;
+  padding: 6px 2px;
+  border-radius: 4px;
+  border: 1.5px solid #D5D3D4;
+  background: #FFFFFF;
+  color: #141414;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.ck-five-btn .num { font-size: 20px; }
+.ck-five-btn .lbl {
+  font-size: 13px;
+  color: #595959;
+  white-space: nowrap;
+}
+.ck-five-btn.on {
+  border: 2px solid #141414;
+  background: #141414;
+  color: #FFFFFF;
+}
+.ck-five-btn.on .lbl {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+/* Skip — 잘 모르겠어요(점선 칸). 고르면 2px 먹선 + 회색 면 + 체크 */
+.ck-skip {
+  appearance: none;
+  cursor: pointer;
+  margin-top: 6px;
+  height: 48px;
+  border-radius: 4px;
+  border: 1.5px dashed #D5D3D4;
+  background: #FFFFFF;
+  color: #595959;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.ck-skip.ck-skip-cell {
+  margin-top: 0;
+  height: auto;
+  min-height: 64px;
+}
+.ck-skip.on {
+  border: 2px solid #141414;
+  background: #F6F4F5;
+  color: #141414;
+  font-weight: 800;
+}
+
+/* 읽기 전용(이미 받은 응답) — 고르지 않은 칸은 흐리게, 고른 칸은 그대로 먹색(시안 S25) */
+.ck-section[disabled] button { pointer-events: none; }
+.ck-section[disabled] .ck-stool:not(.on),
+.ck-section[disabled] .ck-five-btn:not(.on) {
+  border-color: #E5E5E5;
+  color: #9A9A9A;
+}
+.ck-section[disabled] .ck-stool:not(.on) .ck-stool-num { color: #595959; }
+.ck-section[disabled] .ck-skip:not(.on) {
+  border-color: #E5E5E5;
+  color: #9A9A9A;
+}
+
+/* Textarea */
+.ck-textarea {
+  clear: both;
+  margin-top: 12px;
+  width: 100%;
+  height: 108px;
+  box-sizing: border-box;
+  padding: 14px;
+  border-radius: 4px;
+  border: 1.5px solid #D5D3D4;
+  background: #FFFFFF;
+  color: #141414;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  outline: 0;
+  resize: none;
+}
+.ck-textarea:focus { border-color: #141414; }
+.ck-textarea::placeholder { color: #8A8A8A; }
+.ck-section[disabled] .ck-textarea {
+  background: #F6F4F5;
+  color: #3D3D3D;
+  -webkit-text-fill-color: #3D3D3D;
+  opacity: 1;
+}
+.ck-charcount {
+  margin-top: 6px;
+  align-self: flex-end;
+  font-size: 13px;
+  color: #595959;
+}
+
+/* Photo upload section — 위 1px 회색 선(선택 항목) */
+.ck-section.ck-photo-section {
+  margin-top: 20px;
+  border-top: 1px solid #E5E5E5;
+}
+.ck-photo-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+.ck-sect-hint.ck-photo-hint {
+  font-size: 15px;
+  line-height: 1.55;
+}
 .ck-photo-grid {
+  margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  margin-bottom: 10px;
 }
+.ck-photo-grid.ck-photo-grid-ro { clear: both; }
 .ck-photo-thumb {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 4px;
   overflow: hidden;
-  background: var(--bg-2);
-  border: 1px solid var(--rule);
+  background: #F6F4F5;
+  border: 1.5px solid #E5E5E5;
 }
 .ck-photo-img {
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
 .ck-photo-loading {
-  display: flex; align-items: center; justify-content: center;
-  width: 100%; height: 100%;
-  font-size: 18px; color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 18px;
+  color: #595959;
 }
 .ck-photo-del {
-  position: absolute; top: 4px; right: 4px;
-  appearance: none; border: 0;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: rgba(46, 31, 20, .72);
-  display: flex; align-items: center; justify-content: center;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  appearance: none;
+  border: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(20, 20, 20, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 120ms;
 }
-.ck-photo-del:hover { background: rgba(160, 69, 46, .9); }
 .ck-photo-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 14px;
-  background: var(--bg-2);
-  color: var(--ink);
-  border-radius: 99px;
-  font-size: 14px;
-  font-weight: 700;
+  margin-top: 12px;
+  height: 52px;
+  border-radius: 4px;
+  border: 1.5px solid #141414;
+  background: #FFFFFF;
+  color: #141414;
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  transition: background 120ms;
 }
-.ck-photo-btn:hover { background: var(--rule); }
 .ck-photo-btn.busy {
   opacity: 0.6;
   cursor: progress;
 }
 
-/* Progress indicator — hero 아래 응답 진행률 */
-.ck-progress {
-  display: flex; align-items: center; gap: 10px;
-  margin-top: 14px;
-}
-.ck-progress-bar {
-  flex: 1;
-  height: 4px; border-radius: 99px;
-  background: var(--rule);
-  overflow: hidden;
-}
-.ck-progress-bar i {
-  display: block; height: 100%;
-  background: linear-gradient(90deg, var(--moss), var(--terracotta));
-  border-radius: 99px;
-  transition: width 320ms cubic-bezier(.32, .72, 0, 1);
-}
-.ck-progress-lbl {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-  letter-spacing: .04em;
-  flex-shrink: 0;
-}
-
-/* Existing response banner */
-.ck-existing {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: rgba(160, 69, 46, 0.06);
-  border: 1px solid rgba(160, 69, 46, 0.18);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 24px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text);
-}
-.ck-existing strong { color: var(--ink); }
-.ck-edit-btn {
-  appearance: none; border: 0; cursor: pointer;
-  /* R26: ink → terracotta — primary 액션 accent */
-  background: var(--terracotta);
-  color: #fff;
-  /* 탭 높이 40px(HIG 근접) — 예전 7px 패딩은 ~27px 로 오탭 위험(2026-07-17). */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 8px 16px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 700;
-  margin-left: auto;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-/* Section */
-.ck-section {
-  border: 0;
-  padding: 0;
-  margin: 0 0 28px;
-}
-.ck-section[disabled] { opacity: 0.7; }
-.ck-section[disabled] button { pointer-events: none; }
-.ck-sect-lbl {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  /* R26: 0.22 → 0.16em (V3LetterSpacing.kicker) */
-  letter-spacing: 0.16em;
-  font-weight: 700;
-  color: var(--ink);
-  text-transform: uppercase;
-  margin: 0 0 6px;
-  padding: 0;
-  display: block;
-}
-.ck-sect-hint {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0 0 12px;
-  line-height: 1.5;
-}
-
-/* Stool grid */
-.ck-stool-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-.ck-stool {
-  appearance: none;
-  border: 0; cursor: pointer;
-  /* R26: #fff → var(--surface-card), 14 → 12 (V3Radius.md) */
-  background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
-  border-radius: 12px;
-  padding: 12px 12px 11px;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  transition: all 180ms cubic-bezier(.2, .7, .2, 1);
-  font-family: inherit;
-  color: var(--ink);
-}
-.ck-stool:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
-.ck-stool.on {
-  /* R26: ink → terracotta accent (카트 grammar 호응) */
-  background: var(--terracotta);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px var(--terracotta),
-              0 6px 20px -8px rgba(220, 83, 42, 0.45);
-  transform: translateY(-1px);
-}
-.ck-stool-num {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.6;
-}
-.ck-stool-lbl {
-  font-size: 14px;
-  font-weight: 700;
-}
-.ck-stool-hint {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-top: 2px;
-  opacity: 0.7;
-}
-.ck-stool.good .ck-stool-hint { color: var(--sage); }
-.ck-stool.warn .ck-stool-hint { color: #7A5B1B; }
-.ck-stool.bad .ck-stool-hint { color: var(--terracotta); }
-.ck-stool.on .ck-stool-hint { color: #fff; opacity: 0.85; }
-
-/* 5-scale */
-.ck-five {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-.ck-five-btn {
-  appearance: none; border: 0; cursor: pointer;
-  /* R26: #fff → var(--surface-card) */
-  background: var(--surface-card);
-  box-shadow: inset 0 0 0 1px var(--rule);
-  border-radius: 12px;
-  padding: 11px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  transition: all 180ms cubic-bezier(.2, .7, .2, 1);
-  font-family: inherit;
-  color: var(--ink);
-}
-.ck-five-btn:hover { box-shadow: inset 0 0 0 1px var(--rule-2); }
-.ck-five-btn.on {
-  /* R26: ink → terracotta accent */
-  background: var(--terracotta);
-  color: #fff;
-  box-shadow: inset 0 0 0 1px var(--terracotta), 0 6px 20px -8px rgba(220, 83, 42, 0.4);
-}
-.ck-five-btn .num {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 17px;
-  font-weight: 700;
-}
-.ck-five-btn .lbl {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  font-weight: 600;
-  opacity: 0.85;
-}
-
-/* Skip */
-.ck-skip {
-  appearance: none;
-  border: 0;
-  cursor: pointer;
-  background: transparent;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 10px;
-  padding: 8px 0;
-  font-family: inherit;
-}
-.ck-skip:hover { color: var(--terracotta); }
-.ck-skip.on { color: var(--terracotta); }
-
-/* Textarea */
-.ck-textarea {
-  width: 100%;
-  /* R26: #fff → var(--surface-card) */
-  background: var(--surface-card);
-  border: 0;
-  box-shadow: inset 0 0 0 1px var(--rule);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--ink);
-  outline: 0;
-  resize: none;
-  line-height: 1.55;
-  transition: box-shadow 160ms;
-}
-.ck-textarea:focus { box-shadow: inset 0 0 0 1.5px var(--ink); }
-.ck-textarea::placeholder { color: var(--ink-faint); }
-.ck-charcount {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
-  text-align: right;
-  margin-top: 4px;
-}
-
-/* Photo hint */
-.ck-photo-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: var(--bg-2);
-  border: 1px dashed var(--rule-2);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 24px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.ck-photo-hint strong { color: var(--ink); font-weight: 700; }
-
 /* Error */
 .ck-err {
-  background: #FFF5F2;
-  color: var(--accent-deep);
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  margin: 20px 20px 0;
+  padding: 12px 14px;
+  border-radius: 4px;
+  border: 1.5px solid #C63D2A;
+  color: #C63D2A;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
   display: flex;
-  align-items: center;
-  gap: 7px;
-  box-shadow: inset 0 0 0 1px rgba(160, 69, 46, .18);
-  margin-bottom: 16px;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* CTA sticky */
 .ck-cta {
   position: sticky;
   bottom: 0;
-  background: linear-gradient(to top, var(--bg) 70%, transparent);
-  padding: 14px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  margin-top: auto;
+  padding: 22px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, #FFFFFF 75%, rgba(255, 255, 255, 0));
 }
 .ck-submit {
   appearance: none;
   cursor: pointer;
-  /* R26: ink → terracotta — 카트 sticky CTA grammar 통일 */
-  background: var(--terracotta);
-  color: #fff;
-  font-size: 14px;
+  width: 100%;
+  height: 60px;
+  border: 0;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 17px;
   font-weight: 800;
-  padding: 14px 22px;
-  border-radius: 99px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  font-family: inherit;
-  border: 1px solid rgba(178, 58, 26, 0.6);
-  box-shadow:
-    0 8px 22px -6px rgba(220, 83, 42, 0.48),
-    0 2px 8px rgba(220, 83, 42, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  transition: transform 120ms;
 }
-.ck-submit:active { transform: scale(0.98); }
-.ck-submit:disabled { opacity: 0.4; box-shadow: none; cursor: not-allowed; }
+.ck-submit:disabled {
+  background: #595959;
+  cursor: default;
+}
+.ck-end { height: 40px; }
 
-/* Loading state */
+/* 결과(맞춤 피드백, S26) — 사진 · 머스타드 도장 카드 · 아래 큰 버튼 + 밑줄 링크 */
+.ck-result-photo {
+  margin: 22px 20px 0;
+  width: calc(100% - 40px);
+  height: 220px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+.ck-result-card {
+  margin: 16px 20px 0;
+  padding: 18px;
+  border: 2px solid #141414;
+  box-shadow: 4px 4px 0 #141414;
+  border-radius: 4px;
+  background: #D4A24C;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ck-result-note {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  column-gap: 10px;
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: #141414;
+}
+.ck-result-actions {
+  margin-top: auto;
+  padding: 28px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ck-primary {
+  appearance: none;
+  cursor: pointer;
+  height: 60px;
+  border: 0;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ck-text-link {
+  height: 52px;
+  color: #3D3D3D;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: underline;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Loading / load error */
 .ck-state {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: var(--muted);
-  padding: 60px 0;
   justify-content: center;
+  gap: 10px;
+  padding: 80px 20px;
+  font-size: 16px;
+  color: #595959;
+}
+.ck-state.ck-state-error {
+  flex-direction: column;
+  gap: 14px;
+}
+.ck-state-error p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3D3D3D;
+  text-align: center;
+}
+.ck-retry {
+  appearance: none;
+  cursor: pointer;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 4px;
+  border: 1.5px solid #141414;
+  background: #FFFFFF;
+  color: #141414;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
 }

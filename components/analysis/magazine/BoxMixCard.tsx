@@ -1,52 +1,48 @@
-'use client'
-
 /**
- * Magazine BoxMixCard — 첫 박스 "레시피 구성" 카드 (스택 바 + 라인 행).
+ * 추천 레시피 카드 — "땅콩이의 추천 레시피"(레시피 비율 띠 + 레시피 줄 + 이렇게 추천했어요).
  *
- * 2026-07-13 갈아엎기(사장님 지시): 기간(1/2/4주분) 토글 제거 — 배송은 무조건
- * 2주마다 고정이라 기간은 선택 개념이 아님. 화식 비율 선택(곁들임/반반/완전)은
- * 아래 RecommendationBox 로 이동. 행도 시끄러운 스텐실 라벨·카운터·큰 % 를 빼고
- * 하루 g·kcal 만 차분하게 — % 수치는 노출 안 함(스택 바가 비율을 시각화).
+ * 2026-07-13 갈아엎기(사장님 지시): 기간(1/2/4주분) 토글 제거 — 배송은 무조건 2주마다 고정이라 기간은 선택
+ * 개념이 아님. 화식 비율 선택(곁들임/반반/완전)은 아래 RecommendationBox 로 이동. 행도 시끄러운 스텐실 라벨·
+ * 카운터·큰 % 를 빼고 하루 g·kcal 만 차분하게 — % 수치는 노출 안 함(비율 띠가 비율을 보여 준다).
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 D08): 흰 카드 → 먹선 2px 로 여는 섹션. 제목 글꼴 26 ·
+ *   레시피 색 띠(12px) · 줄마다 레시피 팩 스튜디오 사진 52 + 이름(레시피 색 네모) + 하루 g·kcal.
+ *   레시피 이름은 박스·주문과 같은 말("닭고기 레시피") — 엔진 부제("프레시 치킨 레시피")가 아니다.
  */
 
 import Image from 'next/image'
-import { Bone, Droplet, Sparkles, Leaf, ArrowRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
+import { V3 } from '@/lib/design/tokens'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Reasoning, FoodLine } from '@/lib/personalization/types'
 import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
-import { bowlImageForLine } from '@/lib/personalization/packageImage'
-import type { MagazinePalette, BoxLineKey } from './palette'
-import { lineColors } from './palette'
-import { Reveal, useReveal } from './primitives'
-import { ReportCard, SectionHeader } from './ReportCard'
+import { bowlImageForLine, studioPouchImageForLine } from '@/lib/personalization/packageImage'
+import { recipeColorOfLine } from '../display'
 
 export interface BoxMixItem {
-  key: BoxLineKey
+  key: FoodLine
   /** 영문 라벨 (레거시 — 현재 행에는 미표시, boxItems 빌더 호환 위해 유지). */
   name: string
-  /** 한국어 이름 + 단백. ex: '닭 · 균형식' */
+  /** 화면 이름. ex: '닭고기 레시피' */
   ko: string
-  /** 부제. ex: '단일 단백원 · 소화 부담 낮음' */
+  /** 부제. ex: '고단백 · 브로콜리 · 체중 관리에' */
   sub: string
-  /** 비율 % — 스택 바 폭 산정용(수치 자체는 미표시). */
+  /** 비율 % — 비율 띠 폭 산정용(수치 자체는 미표시). */
   pct: number
   /** 하루 평균 kcal */
   kcal: number
   /** 하루 평균 g */
   g: number
-  /** 누끼 제품 사진 URL — 있으면 원형 슬롯에 표시, 없으면 아이콘 placeholder. */
+  /** 사진 URL — 없으면 레시피 팩 스튜디오 사진. */
   photoUrl?: string | null
 }
 
 export function BoxMixCard({
-  p,
   dogName,
   items,
   loading = false,
   reasoning,
 }: {
-  p: MagazinePalette
   dogName: string
   items: BoxMixItem[]
   /** dog 별 lineRatios(formula) 아직 로딩 중 — 가짜 placeholder 대신 스켈레톤.
@@ -56,7 +52,6 @@ export function BoxMixCard({
    *  추천 레시피 밑에서 딱 보여야 함). 접이식 X. */
   reasoning?: Reasoning[]
 }) {
-  const colors = lineColors(p)
   // 'v3 맞춤 베이스' 같은 내부 용어 행은 제외 — 고객에게 의미 없음(사장님 지시).
   // 10/6 10차 E: 저장된 근거는 임상 표기(puppy·BCS·DCM …)라 쉬운 말로 바꿔 그리고, 바꿔도 영문·인용이 남는 줄은 뺀다.
   const reasons = (reasoning ?? [])
@@ -66,123 +61,103 @@ export function BoxMixCard({
     .slice(0, 4)
 
   return (
-    <Reveal delay={80}>
-      <ReportCard p={p}>
-        <SectionHeader
-          p={p}
-          eyebrow="맞춤 식단"
-          title={`${petName(dogName)}의 추천 레시피`}
-          tail={loading ? '레시피 구성 중' : `화식 ${items.length}종 레시피`}
-        />
+    <section
+      aria-label="추천 레시피"
+      style={{
+        margin: '28px 20px 0',
+        borderTop: `2px solid ${V3.ink}`,
+        paddingTop: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        color: V3.ink,
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>맞춤 식단</span>
+        <span style={{ fontSize: 14, fontWeight: 800 }}>
+          {loading ? '레시피 구성 중' : `화식 ${items.length}종 레시피`}
+        </span>
+      </span>
+      {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다. */}
+      <h2 style={{ margin: '8px 0 0', fontSize: 26, lineHeight: 1.15, wordBreak: 'keep-all' }}>
+        {petName(dogName)}의 추천 레시피
+      </h2>
 
-        {loading ? (
-          <BoxSkeleton p={p} />
-        ) : (
-          <>
-            {/* 2종 이상일 때만 비율 바 — 1종이면 100% 단색이라 불필요. */}
-            {items.length >= 2 && (
-              <div style={{ marginTop: 16 }}>
-                <StackedBar items={items} colors={colors} />
-              </div>
-            )}
-
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {loading ? (
+        <BoxSkeleton />
+      ) : (
+        <>
+          {/* 2종 이상일 때만 비율 띠 — 1종이면 한 색이라 불필요. */}
+          {items.length >= 2 && (
+            <div
+              aria-hidden
+              style={{
+                marginTop: 14,
+                height: 12,
+                display: 'grid',
+                gridTemplateColumns: items.map((it) => `${Math.max(1, it.pct)}fr`).join(' '),
+                gap: 2,
+              }}
+            >
               {items.map((it) => (
-                <BoxRow key={it.key} p={p} item={it} color={colors[it.key]} />
+                <span key={it.key} style={{ background: recipeColorOfLine(it.key) }} />
               ))}
             </div>
+          )}
 
-            {/* 왜 이렇게 추천했는지 — 레시피 바로 밑에서 접지 않고 노출. */}
-            {reasons.length > 0 && (
-              <div
-                style={{
-                  marginTop: 14,
-                  paddingTop: 13,
-                  borderTop: `1px solid ${p.line}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                    fontSize: 12,
-                    letterSpacing: '0.16em',
-                    textTransform: 'uppercase',
-                    color: p.muted,
-                    fontWeight: 600,
-                    marginBottom: 9,
-                  }}
-                >
-                  Why · 이렇게 추천했어요
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {reasons.map((r, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 14,
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      <span style={{ flex: 1, minWidth: 0, color: p.muted }}>
-                        {r.trigger}
-                      </span>
-                      <ArrowRight
-                        size={11}
-                        strokeWidth={2.2}
-                        color={p.muted}
-                        style={{ flexShrink: 0, opacity: 0.7 }}
-                        aria-hidden
-                      />
-                      <span
-                        style={{
-                          flexShrink: 0,
-                          color: p.ink,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {r.chipLabel}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </ReportCard>
-    </Reveal>
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
+            {items.map((it) => (
+              <BoxRow key={it.key} item={it} />
+            ))}
+          </div>
+
+          {/* 왜 이렇게 추천했는지 — 레시피 바로 밑에서 접지 않고 노출. */}
+          {reasons.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: V3.inkMute }}>이렇게 추천했어요</span>
+              {reasons.map((r, i) => (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, lineHeight: 1.45 }}>
+                  <span style={{ flex: 1, minWidth: 0, color: V3.inkSoft }}>{r.trigger}</span>
+                  <span aria-hidden style={{ color: V3.inkMute }}>
+                    →
+                  </span>
+                  <strong style={{ fontWeight: 800, flexShrink: 0 }}>{r.chipLabel}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 
-/** 로딩 스켈레톤 — 실제 바+행 레이아웃과 동일 치수로 CLS 없이 shimmer. */
-function BoxSkeleton({ p }: { p: MagazinePalette }) {
+/** 로딩 스켈레톤 — 실제 띠+줄 치수와 같게(CLS 없이). */
+function BoxSkeleton() {
   return (
     <>
-      <div style={{ marginTop: 16 }}>
-        <Skeleton className="h-4 w-full" rounded="full" />
+      <div style={{ marginTop: 14 }}>
+        <Skeleton className="h-3 w-full" rounded="none" />
       </div>
-      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
         {[0, 1].map((i) => (
           <div
             key={i}
             style={{
-              display: 'flex',
+              minHeight: 76,
+              borderBottom: `1px solid ${V3.rule}`,
+              display: 'grid',
+              gridTemplateColumns: '52px 1fr auto',
+              columnGap: 12,
               alignItems: 'center',
-              gap: 12,
-              padding: '12px 14px',
-              background: p.cardSoft,
-              borderRadius: 8,
             }}
           >
-            <Skeleton className="w-12 h-12 shrink-0" rounded="full" />
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Skeleton className="h-3.5 w-1/2" />
-              <Skeleton className="h-2.5 w-3/4" />
+            <Skeleton className="w-[52px] h-[52px]" rounded="full" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-3/4" />
             </div>
-            <Skeleton className="h-3 w-10 shrink-0" />
+            <Skeleton className="h-4 w-20" />
           </div>
         ))}
       </div>
@@ -190,128 +165,46 @@ function BoxSkeleton({ p }: { p: MagazinePalette }) {
   )
 }
 
-function StackedBar({
-  items,
-  colors,
-}: {
-  items: BoxMixItem[]
-  colors: ReturnType<typeof lineColors>
-}) {
-  const [ref, shown] = useReveal({ threshold: 0.3 })
-  return (
-    <div
-      ref={ref}
-      style={{
-        height: 16,
-        borderRadius: 999,
-        overflow: 'hidden',
-        display: 'flex',
-        background: 'rgba(0,0,0,0.04)',
-      }}
-    >
-      {items.map((it, i) => (
-        <div
-          key={it.key}
-          style={{
-            width: shown ? `${it.pct}%` : '0%',
-            background: colors[it.key],
-            transition: `width 900ms cubic-bezier(.2,.7,.2,1) ${100 + i * 90}ms`,
-            borderRight: i < items.length - 1 ? '1px solid rgba(255,255,255,0.35)' : 'none',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-function BoxRow({
-  p,
-  item,
-  color,
-}: {
-  p: MagazinePalette
-  item: BoxMixItem
-  color: string
-}) {
-  const IconComp =
-    item.key === 'skin'
-      ? Droplet
-      : item.key === 'joint'
-        ? Sparkles
-        : item.key === 'weight'
-          ? Leaf
-          : Bone
-  /**
-   * 원형 슬롯 사진 — 라인별 화식 그릇 실사(사장님 2026-08-25).
-   *
-   * 이 자리는 `photoUrl` 이 오면 사진, 없으면 아이콘 placeholder 였는데
-   * **photoUrl 을 넣어주는 호출부가 한 곳도 없었다** — 그래서 분석 화면에서
-   * 흑돼지 옆에 Sparkles(✨), 닭 옆에 Leaf 가 뜨고 있었다(사장님 제보:
-   * "이상한 스파클 이모티콘"). 이제 라인이 있으면 그릇 사진을 기본으로 쓰고,
-   * 아이콘은 사진이 없는 라인(연어 등)에만 남는다.
-   */
-  const photo = item.photoUrl ?? bowlImageForLine(item.key as FoodLine)
+function BoxRow({ item }: { item: BoxMixItem }) {
+  // 레시피 팩 스튜디오 컷(시안 D08) — 판매하지 않는 라인(연어)은 그릇 사진, 그것도 없으면 레시피 색 원.
+  const photo = item.photoUrl ?? studioPouchImageForLine(item.key) ?? bowlImageForLine(item.key)
+  const color = recipeColorOfLine(item.key)
   return (
     <div
       style={{
-        display: 'flex',
+        minHeight: 76,
+        borderBottom: `1px solid ${V3.rule}`,
+        display: 'grid',
+        gridTemplateColumns: '52px 1fr auto',
+        columnGap: 12,
         alignItems: 'center',
-        gap: 12,
-        padding: '12px 14px',
-        background: p.cardSoft,
-        borderRadius: 8,
       }}
     >
-      {/* 원형 제품사진 슬롯 — 누끼 제품 사진 자리. photoUrl 있으면 원형 안에 표시,
-          없으면 라인색 틴트 원 + 아이콘 placeholder. */}
-      <div
+      <span
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: '50%',
-          background: `color-mix(in srgb, ${color} 12%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${color} 28%, transparent)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          overflow: 'hidden',
           position: 'relative',
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          overflow: 'hidden',
+          background: photo ? V3.soft : color,
         }}
       >
-        {photo ? (
-          <Image
-            src={photo}
-            alt={item.ko}
-            fill
-            sizes="48px"
-            /* 그릇이 정사각 프레임을 꽉 채운 이미지라 cover — contain 이면
-               원형 안에 사각 여백이 생긴다(플랜·주문 화면과 같은 규칙). */
-            style={{ objectFit: 'cover' }}
-          />
-        ) : (
-          <IconComp size={22} color={color} strokeWidth={1.9} />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: p.ink }}>{item.ko}</div>
-        <div style={{ fontSize: 12, color: p.muted, marginTop: 2 }}>{item.sub}</div>
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div
-          style={{
-            fontSize: 12,
-            color: p.muted,
-            fontWeight: 600,
-            letterSpacing: '0.1em',
-          }}
-        >
-          하루
-        </div>
-        <div style={{ fontSize: 14, color: p.ink, fontWeight: 700, marginTop: 1 }}>
+        {photo && <Image src={photo} alt={`${item.ko} 팩`} fill sizes="52px" style={{ objectFit: 'cover' }} />}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 17, fontWeight: 800 }}>
+          <span aria-hidden style={{ width: 10, height: 10, background: color, flexShrink: 0 }} />
+          {item.ko}
+        </span>
+        <span style={{ fontSize: 14, color: V3.inkMute, wordBreak: 'keep-all' }}>{item.sub}</span>
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 13, color: V3.inkMute }}>하루</span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>
           {Math.round(item.g)}g · {Math.round(item.kcal)}kcal
-        </div>
-      </div>
+        </span>
+      </span>
     </div>
   )
 }

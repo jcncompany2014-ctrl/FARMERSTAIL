@@ -1,16 +1,18 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import Image from 'next/image'
-import { ChevronRight, AlertTriangle, Receipt, CheckCircle2, CreditCard } from 'lucide-react'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
-import { V3, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import {
   subscriptionState,
   isSubscriptionVisibleToUser,
   SUB_STATE_LABEL,
   type SubState,
 } from '@/lib/subscription-state'
+import SubscriptionsSummaryView, {
+  SubsLoadFailed,
+  type SubsSummaryModel,
+  type TrialInfo,
+} from '@/components/v3/subs/SubscriptionsSummaryView'
+import { boxRecipes } from '@/lib/design/pouch'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
 import { billingAuthFallbackHref } from '@/lib/payments/billing-urls'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
@@ -55,6 +57,10 @@ import PriceChangeConsentModal, {
  * 못 받는 상태가 된다. 그래서 같은 컴포넌트를 그대로 재사용한다(로직 복제
  * 금지). 그 모달은 웹 FD 토큰(`--fd-*`)을 쓰므로 앱 톤으로 스코프 스왑해서
  * 감싼다 — `/account/subscriptions/page.tsx` 가 쓰는 것과 같은 방식이다.
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터', 캔버스 AppSubList·S11~S15·C03)
+ * 그리기는 components/v3/subs/SubscriptionsSummaryView 로 옮겼다(점검 화면이 예시 값으로 같은 배치를 그린다).
+ * 이 파일은 조회·판정만 — 금액·할인·결제일·서포터즈 회차 계산은 한 줄도 바꾸지 않았다.
  */
 
 export const dynamic = 'force-dynamic'
@@ -71,40 +77,6 @@ function dateLabel(iso: string): string {
 
 function krw(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
-}
-
-/**
- * 히어로 금액 — 숫자와 단위('원')를 나눠 그린다.
- *
- * `tabular-nums` 를 **쓰지 않는다**: 그건 숫자를 열로 정렬할 때 쓰는 것이고,
- * 큰 금액 하나에 쓰면 좁은 '1' 이 '0' 만큼 자리를 먹어 "153,100" 앞이 벌어진다
- * (사장님 2026-07-30 "숫자부분이 좀 어색"). '원' 은 단위라 작고 가볍게 —
- * 같은 크기면 숫자와 경쟁한다.
- */
-function HeroAmount({ value }: { value: number }) {
-  return (
-    <span>
-      {value.toLocaleString('ko-KR')}
-      <span
-        style={{ fontSize: '0.58em', fontWeight: 700, marginLeft: 2 }}
-      >
-        원
-      </span>
-    </span>
-  )
-}
-
-// 라벨은 lib/subscription-state 정본. 여기선 색만 고른다.
-// yellow(마커 배경색)를 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 →
-// yellowInk(4.64:1). 강아지 구독 탭의 '시작 전'과 **같은 값**이다(2026-07-30).
-// ★cancelled 에 inkFaint(1.9:1) 를 쓰던 것도 고쳤다 — AGENTS.md 가 "텍스트
-//  금지"라 못 박은 색이고, 10px 칩이 배경에 그대로 녹았다(2026-08-07).
-const STATE_COLOR: Record<SubState, string> = {
-  needs_card: V3.yellowInk,
-  active: V3.sage,
-  paused: V3.inkMute,
-  card_failed: V3.sale,
-  cancelled: V3.inkMute,
 }
 
 export default async function AppSubscriptionsSummaryPage({
@@ -141,7 +113,7 @@ export default async function AppSubscriptionsSummaryPage({
   //   말해서 어르신은 그 화면을 못 찾았다. 분석(승인된 맞춤 식단)이 없으면
   //   설문부터 — /plan 은 식단이 있어야 레시피를 고를 수 있다.
   const [{ data: myDogs }, { data: formulaDogs }] = await Promise.all([
-    supabase.from('dogs').select('id, name').eq('user_id', user.id).order('created_at'),
+    supabase.from('dogs').select('id, name, photo_url').eq('user_id', user.id).order('created_at'),
     supabase.from('dog_formulas').select('dog_id').eq('user_id', user.id),
   ])
   const dogsWithFormula = new Set((formulaDogs ?? []).map((f) => f.dog_id))
@@ -156,40 +128,7 @@ export default async function AppSubscriptionsSummaryPage({
    * 이 화면은 상태를 보는 곳이므로, 못 읽었으면 **못 읽었다고 말한다.**
    */
   if (subsErr) {
-    return (
-      <main className="px-5 pt-4 pb-10" style={{ background: V3.paper }}>
-        <section
-          className="px-5 py-6"
-          style={{
-            background: V3.paperHi,
-            border: `1px solid ${V3.sale}`,
-            borderRadius: V3Radius.sm,
-          }}
-        >
-          <p className="text-[13px] font-bold" style={{ color: V3.ink }}>
-            정기배송 정보를 불러오지 못했어요
-          </p>
-          <p
-            className="mt-1.5 text-[12px] leading-relaxed"
-            style={{ color: V3.inkMute }}
-          >
-            잠시 뒤에 다시 열어봐 주세요. 계속 이러면 알려주세요 — 진행 중인
-            정기배송은 그대로 있어요.
-          </p>
-          <Link
-            href="/mypage/orders"
-            className="inline-block mt-4 px-4 py-2.5 text-[12.5px] font-bold"
-            style={{
-              background: V3.ink,
-              color: V3.paper,
-              borderRadius: V3Radius.sm,
-            }}
-          >
-            결제·주문 내역 보기
-          </Link>
-        </section>
-      </main>
-    )
+    return <SubsLoadFailed />
   }
 
   // ★`as unknown as` — has_billing_key 는 PostgREST **계산 컬럼**(20260808000100)
@@ -352,443 +291,173 @@ export default async function AppSubscriptionsSummaryPage({
     }
   }
 
-  // ── 2026-10-01 사장님 B안: 이 화면 카드는 전부 둥글게(12). 바로 앞 분석·플랜 화면이 둥근
-  //    카드라 각진 카드면 결제 직후 다른 앱 같았다. 앱 전체 모서리 통일은 결정 목록.
-  const card: React.CSSProperties = {
-    background: V3.paperHi,
-    border: `1px solid ${V3.rule}`,
-    borderRadius: V3Radius.md,
-  }
-  // 머리말 — 한글·13px·굵게(AGENTS 규칙85).
-  const kicker: React.CSSProperties = {
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: '-0.01em',
-    color: V3.inkMute,
-  }
-  // 알약 표시(상태·할인·날짜) — 글자색과 같은 계열 옅은 바탕.
-  const pill = (color: string): React.CSSProperties => ({
-    color,
-    background: `color-mix(in srgb, ${color} 12%, transparent)`,
-    borderRadius: V3Radius.pill,
-    padding: '2px 9px',
-    fontSize: 13,
-    fontWeight: 700,
-    whiteSpace: 'nowrap',
-  })
+  // ── 화면 값 (앱 새 디자인 'A 포스터', 2026-10-09) ─────────────────────────
+  // 배치는 components/v3/subs/SubscriptionsSummaryView(그리기만). 위 판정 값을 그대로 넘긴다.
+  // 점검 화면(/design-check)이 같은 배치에 예시 값을 넣어 모든 상태를 로그인 없이 시안과 비교한다.
 
   // ── 서포터즈 혜택 — 회차가 아니라 **기간·총액**으로(사장님 2026-10-01 "56일치 밥이 총 400원").
   //    숫자는 청구와 같은 판정(lib/payments/trial — 100원 구간 먼저, 단가 최소 100원).
   const trialLive = !!trial && (trial.cheap_remaining > 0 || trial.half_remaining > 0)
-  const trialBlock = trialLive && trial ? (() => {
-    const cheap = trial.cheap_remaining
-    const half = trial.half_remaining
-    const price = Math.max(100, Math.trunc(trial.cheap_price))
-    const segs = [
-      ...Array.from({ length: cheap }, () => 'cheap' as const),
-      ...Array.from({ length: half }, () => 'half' as const),
-    ]
-    return (
-      <div>
-        <p style={kicker}>서포터즈 혜택</p>
-        <p
-          className="mt-1 font-bold"
-          style={{ fontSize: V3FontSize.base, color: V3.ink, lineHeight: 1.4, wordBreak: 'keep-all' }}
-        >
-          {cheap > 0
-            ? `남은 ${cheap * DELIVERY_INTERVAL_DAYS}일치 밥이 총 ${(cheap * price).toLocaleString('ko-KR')}원이에요`
-            : `남은 ${half * DELIVERY_INTERVAL_DAYS}일치 밥은 반값이에요`}
-        </p>
-        {/* 남은 박스(2주치) 하나 = 막대 한 칸. 첫 칸 = 다음 결제. */}
-        <div className="mt-2.5 flex items-center" style={{ gap: 3 }} aria-hidden>
-          {segs.map((ph, i) => (
-            <span
-              key={i}
-              style={{
-                flex: 1,
-                height: 8,
-                borderRadius: V3Radius.pill,
-                marginLeft: i === cheap && cheap > 0 ? 6 : 0,
-                background:
-                  i === 0
-                    ? V3.accent
-                    : ph === 'cheap' || cheap === 0
-                      ? `color-mix(in srgb, ${V3.accent} 35%, transparent)`
-                      : V3.paperDeep,
-              }}
-            />
-          ))}
-        </div>
-        <div
-          className="mt-1.5 flex justify-between gap-2"
-          style={{ fontSize: V3FontSize.xs, color: V3.inkMute, wordBreak: 'keep-all' }}
-        >
-          {cheap > 0 && <span>{price.toLocaleString('ko-KR')}원 · {cheap * DELIVERY_INTERVAL_DAYS}일</span>}
-          {half > 0 && <span>반값 · {half * DELIVERY_INTERVAL_DAYS}일</span>}
-          <span>그다음 정상가</span>
-        </div>
-        <p className="mt-2" style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}>
-          가격이 바뀌기 전에 미리 알려드릴게요
-        </p>
-      </div>
-    )
-  })() : null
+  const trialInfo: TrialInfo | null =
+    trialLive && trial
+      ? {
+          cheap: trial.cheap_remaining,
+          half: trial.half_remaining,
+          price: Math.max(100, Math.trunc(trial.cheap_price)),
+          intervalDays: DELIVERY_INTERVAL_DAYS,
+        }
+      : null
+
+  const today = todayKstIsoDate()
+  // ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07). 결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다.
+  // ★결제일 = chargeDateFor(발송일, 결제 시점)(2026-10-01). 결제 시점을 모르면 결제 요일을 단정하지 않고
+  //  "M월 D일 (화) 발송분" — 다음 결제가 어느 박스 몫인지만 말한다.
+  const heroDateText = nextDate
+    ? nextChargeIso
+      ? nextChargeIso < today
+        ? `${dateLabel(nextChargeIso)} 예정이었어요 · 확인 중`
+        : dateLabel(nextChargeIso)
+      : nextDate < today
+        ? `${dateLabel(nextDate)} 발송분 · 확인 중`
+        : `${dateLabel(nextDate)} 발송분`
+    : ''
+  // 할인 한 줄 — 서포터즈는 "서포터즈 혜택으로 77,700원 할인"(결정 문서 3번: 예전 "서포터즈 100원 −77,700원"은
+  // 할인 이름에 결제 금액이 섞여 헷갈렸다). 그 밖의 할인은 "이름 −금액". 비율(%)은 쓰지 않는다(브랜드 보이스).
+  const trialDiscount = discounts.some((d) => d.reason === 'trial_cheap' || d.reason === 'trial_half')
+  const discountText =
+    nextDiscount > 0
+      ? trialDiscount
+        ? `서포터즈 혜택으로 ${krw(nextDiscount)} 할인`
+        : `${discountLabel ?? '할인'} −${krw(nextDiscount)}`
+      : null
+
+  const model: SubsSummaryModel = {
+    justStarted: sp.new === '1',
+    // 조치가 필요한 것 — 어느 강아지인지 이름을 붙여 바로 보낸다.
+    alerts: rows
+      .filter((s) => {
+        const st = subscriptionState(s)
+        return st === 'card_failed' || st === 'needs_card'
+      })
+      .map((s) => {
+        const st = subscriptionState(s)
+        // ★ 강아지 화면을 거치지 않고 **바로 등록 화면**으로 보낸다
+        //   (사장님 2026-07-30 "등록하기 누르면 또 넘어가 너무 비효율적").
+        //   customerKey 가 없으면 등록 화면이 '잘못된 접근' 으로 막히므로
+        //   그때만 강아지 화면(키를 새로 발급해 주는 곳)으로 우회한다.
+        const href = s.billing_customer_key
+          ? billingAuthFallbackHref({
+              subscriptionId: s.id,
+              customerKey: s.billing_customer_key,
+            })
+          : s.dog_id
+            ? `/dogs/${s.dog_id}/subscription`
+            : '/mypage/orders'
+        return {
+          key: `alert-${s.id}`,
+          kind: st === 'needs_card' ? ('needs_card' as const) : ('card_failed' as const),
+          dogLabel: s.dogs?.name ? petName(s.dogs.name) : '우리 아이',
+          href,
+        }
+      }),
+    hero: nextDate
+      ? {
+          dateText: heroDateText,
+          amount: nextAmount,
+          subtotal: nextSubtotal,
+          discount: nextDiscount,
+          discountText,
+          // 강아지가 여러 마리면 같은 날 함께 빠져나간다 — 이름별 금액(구독별 할인 반영 = 청구와 같은 계산).
+          breakdown:
+            dueNext.length >= 2
+              ? dueNext.map((s, i) => ({
+                  name: s.dogs?.name ?? '우리 아이',
+                  amount: discounts[i]?.chargeAmount ?? s.total_amount ?? 0,
+                }))
+              : [],
+          methodLine: oneMethod ?? '구독별로 결제수단이 달라요',
+          trial: trialInfo,
+        }
+      : null,
+    // 결제 예정이 없을 때. '시작 전' 구독이 아래 목록에 뜨고 위에 조치 배너도 있으므로 짧게만 말한다 —
+    // 예전엔 이 자리가 통째로 빈 화면이 되어 버튼 하나만 남았다(사장님 제보).
+    empty: nextDate
+      ? null
+      : {
+          title: rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요',
+          sub: rows.length > 0 ? '결제수단을 등록하면 첫 결제일이 정해져요.' : '아래 버튼으로 바로 시작할 수 있어요.',
+        },
+    trialCard: nextDate ? null : trialInfo,
+    // ★하단 탭 "정기배송" 의 첫 화면(2026-09-21) — 구독이 없는 강아지에게 바로 시작 버튼. 분석이 없으면 설문부터.
+    startable: (() => {
+      const liveDogIds = new Set(rows.map((r) => r.dog_id).filter(Boolean))
+      return ((myDogs ?? []) as Array<{ id: string; name: string; photo_url: string | null }>)
+        .filter((d) => !liveDogIds.has(d.id))
+        .map((d) => {
+          const ready = dogsWithFormula.has(d.id)
+          return {
+            id: d.id,
+            label: ready ? `${petName(d.name)} 정기배송 시작하기` : `${petName(d.name)} 설문하고 시작하기`,
+            ready,
+            href: ready ? `/dogs/${d.id}/plan` : `/dogs/${d.id}/survey`,
+            photoUrl: d.photo_url ?? null,
+          }
+        })
+    })(),
+    // 구독별 한 줄 — 관리는 강아지 화면에서.
+    rows: rows.map((s) => {
+      const st = subscriptionState(s)
+      const method = billingMethodSummary({
+        registered: !!s.has_billing_key,
+        brand: s.billing_card_brand,
+        last4: s.billing_card_last4,
+      })
+      // 다음 일정 — 진행 중인 구독만(정지 중이면 그 날짜는 다시 시작할 때의 기준일일 뿐).
+      // 결제일을 알면 "M월 D일 (토) 결제", 모르면 결제 요일을 단정하지 않고 발송일만.
+      const schedule =
+        st === 'active' && s.next_delivery_date
+          ? (() => {
+              const c = chargeIsoOf(s)
+              if (c) return c < today ? '결제 확인 중' : `${dateLabel(c)} 결제`
+              return s.next_delivery_date < today ? '확인 중' : `${dateLabel(s.next_delivery_date)} 발송`
+            })()
+          : null
+      const line = [
+        krw(s.total_amount),
+        s.fresh_ratio ? freshTierLabel(s.fresh_ratio) : null,
+        schedule,
+        !oneMethod && method ? method : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+      const items = ((s as unknown as { subscription_items?: Array<{ product_name: string; quantity?: number | null }> })
+        .subscription_items ?? []).map((it) => ({ name: it.product_name, quantity: it.quantity ?? null }))
+      return {
+        id: s.id,
+        dogName: s.dogs?.name ?? '정기배송',
+        photoUrl: (s.dogs as { photo_url?: string | null } | null)?.photo_url ?? null,
+        state: st,
+        stateLabel: SUB_STATE_LABEL[st],
+        line,
+        href: s.dog_id ? `/dogs/${s.dog_id}/subscription` : '/mypage/orders',
+        focused: sp.focus === s.id,
+        lines: boxRecipes(items).lines,
+      }
+    }),
+  }
 
   return (
-    <main className="px-5 pt-4 pb-10" style={{ background: V3.paper }}>
-      {sp.new === '1' && (
-        <div
-          className="mb-3 flex items-center gap-2.5 px-4 py-3"
-          style={{
-            background: `color-mix(in srgb, ${V3.sage} 12%, transparent)`,
-            borderRadius: V3Radius.md,
-          }}
-        >
-          <CheckCircle2 className="shrink-0" size={22} strokeWidth={2.2} style={{ color: V3.sage }} aria-hidden />
-          <span>
-            <span className="block font-bold" style={{ fontSize: V3FontSize.base, color: V3.sage }}>
-              정기배송이 시작됐어요
-            </span>
-            <span className="block" style={{ fontSize: V3FontSize.sm, color: V3.sage }}>
-              다음 결제일에 자동으로 결제돼요
-            </span>
-          </span>
-        </div>
-      )}
-
-      {/* ── 조치가 필요한 것 — 어느 강아지인지 이름을 붙여 바로 보낸다 ── */}
-      {rows
-        .filter((s) => {
-          const st = subscriptionState(s)
-          return st === 'card_failed' || st === 'needs_card'
-        })
-        .map((s) => {
-          const st = subscriptionState(s)
-          const dog = s.dogs?.name ? petName(s.dogs.name) : '우리 아이'
-          // ★ 강아지 화면을 거치지 않고 **바로 등록 화면**으로 보낸다
-          //   (사장님 2026-07-30 "등록하기 누르면 또 넘어가 너무 비효율적").
-          //   customerKey 가 없으면 등록 화면이 '잘못된 접근' 으로 막히므로
-          //   그때만 강아지 화면(키를 새로 발급해 주는 곳)으로 우회한다.
-          const href = s.billing_customer_key
-            ? billingAuthFallbackHref({
-                subscriptionId: s.id,
-                customerKey: s.billing_customer_key,
-              })
-            : s.dog_id
-              ? `/dogs/${s.dog_id}/subscription`
-              : '/mypage/orders'
-          return (
-            <Link
-              key={`alert-${s.id}`}
-              href={href}
-              className="flex items-start gap-2.5 mb-3 px-4 py-3.5 active:opacity-70"
-              style={{ ...card, borderColor: V3.sale }}
-            >
-              <AlertTriangle
-                className="w-5 h-5 shrink-0 mt-px"
-                strokeWidth={2.4}
-                style={{ color: V3.sale }}
-              />
-              <span className="flex-1 min-w-0">
-                <span
-                  className="block font-bold"
-                  style={{ fontSize: V3FontSize.base, color: V3.ink }}
-                >
-                  {st === 'needs_card'
-                    ? `${dog} 정기배송은 아직 시작 전이에요`
-                    : `${dog} 결제가 되지 않았어요`}
-                </span>
-                <span
-                  className="block mt-0.5 leading-relaxed"
-                  style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}
-                >
-                  {st === 'needs_card'
-                    ? '결제수단을 등록하면 첫 배송일이 잡혀요.'
-                    : '결제수단을 다시 등록하면 정기배송이 이어져요.'}
-                </span>
-              </span>
-              <ChevronRight
-                className="w-5 h-5 shrink-0 mt-px"
-                strokeWidth={2.4}
-                style={{ color: V3.inkFaint }}
-              />
-            </Link>
-          )
-        })}
-
-      {/* ── 주인공: 결제 정보 (+ 서포터즈 혜택을 같은 카드 안에) ──
-          예전엔 서포터즈 카드와 결제 카드가 간격 없이 붙어 테두리가 겹쳐 보였다(사장님 캡처). */}
-      {nextDate ? (
-        <section className="px-4 py-5" style={card}>
-          <div className="flex items-center justify-between gap-2">
-            <span style={kicker}>다음 결제</span>
-            {/* ★지난 날짜를 "다음 결제" 로 보여주지 않는다 (2026-08-07).
-                결제가 미끄러지면 next_delivery_date 가 갱신되지 않는다.
-                ★결제일 = chargeDateFor(발송일, 결제 시점)(2026-10-01). 결제 시점을 모르면 결제 요일을
-                단정하지 않고 "M월 D일 (화) 발송분" — 다음 결제가 어느 박스 몫인지만 말한다. */}
-            <span style={pill(V3.ink)}>
-              {nextChargeIso
-                ? nextChargeIso < todayKstIsoDate()
-                  ? `${dateLabel(nextChargeIso)} 예정이었어요 · 확인 중`
-                  : dateLabel(nextChargeIso)
-                : nextDate < todayKstIsoDate()
-                  ? `${dateLabel(nextDate)} 발송분 · 확인 중`
-                  : `${dateLabel(nextDate)} 발송분`}
-            </span>
-          </div>
-          <p
-            className="mt-1.5 font-black"
-            style={{ fontSize: 34, color: V3.ink, letterSpacing: '-0.02em', lineHeight: 1.1 }}
-          >
-            <HeroAmount value={nextAmount} />
-          </p>
-          {/* 할인이 있으면 무엇이 빠졌는지 한 줄. 원래 금액은 취소선으로 —
-              비율(%)은 쓰지 않는다(사장님 브랜드 보이스 규칙). */}
-          {nextDiscount > 0 && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span
-                style={{
-                  fontSize: V3FontSize.sm,
-                  color: V3.inkMute,
-                  textDecoration: 'line-through',
-                }}
-              >
-                {krw(nextSubtotal)}
-              </span>
-              <span style={pill(V3.sage)}>
-                {discountLabel ?? '할인'} −{krw(nextDiscount)}
-              </span>
-            </div>
-          )}
-          <p
-            className="mt-3 flex items-center gap-1.5"
-            style={{ fontSize: V3FontSize.sm, color: V3.inkSoft }}
-          >
-            <CreditCard className="w-[18px] h-[18px] shrink-0" strokeWidth={2} style={{ color: V3.inkMute }} aria-hidden />
-            {oneMethod ?? '구독별로 결제수단이 달라요'}
-          </p>
-          {trialBlock && (
-            <>
-              <div className="my-4" style={{ borderTop: `1px dashed ${V3.rule}` }} />
-              {trialBlock}
-            </>
-          )}
-        </section>
-      ) : (
-        /* 결제 예정이 없을 때. '시작 전' 구독이 아래 목록에 뜨고 위에 조치
-           배너도 있으므로 여기서는 짧게만 말한다 — 예전엔 이 자리가 통째로
-           빈 화면이 되어 버튼 하나만 남았다(사장님 제보). */
-        <>
-          <section className="px-5 py-6" style={card}>
-            <p className="font-bold" style={{ fontSize: V3FontSize.base, color: V3.ink }}>
-              {rows.length > 0 ? '아직 결제 예정이 없어요' : '진행 중인 정기배송이 없어요'}
-            </p>
-            <p className="mt-1.5" style={{ fontSize: V3FontSize.sm, color: V3.inkMute }}>
-              {rows.length > 0
-                ? '결제수단을 등록하면 첫 결제일이 정해져요.'
-                : '아래 버튼으로 바로 시작할 수 있어요.'}
-            </p>
-          </section>
-          {/* 서포터즈인데 아직 카드 등록 전 — 혜택이 기다리고 있다는 걸 먼저 보여 준다. */}
-          {trialBlock && (
-            <section className="mt-3 px-4 py-5" style={card}>
-              {trialBlock}
-            </section>
-          )}
-        </>
-      )}
-
-      {/* ── 구독 없는 강아지 — 큰 시작 버튼 (하단 탭 "정기배송" 의 핵심) ── */}
-      {(() => {
-        const liveDogIds = new Set(rows.map((r) => r.dog_id).filter(Boolean))
-        const startable = (myDogs ?? []).filter((d) => !liveDogIds.has(d.id))
-        if (startable.length === 0) return null
-        return (
-          <section className="mt-4 px-5 py-5" style={card}>
-            <p className="font-bold" style={{ fontSize: V3FontSize.md, color: V3.ink }}>
-              정기배송 시작하기
-            </p>
-            <p className="mt-1 leading-relaxed" style={{ fontSize: V3FontSize.base, color: V3.inkMute }}>
-              분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나
-              그만둘 수 있어요.
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              {startable.map((d) => {
-                const ready = dogsWithFormula.has(d.id)
-                return (
-                  <Link
-                    key={d.id}
-                    href={ready ? `/dogs/${d.id}/plan` : `/dogs/${d.id}/survey`}
-                    className="flex items-center justify-between px-5"
-                    style={{
-                      borderRadius: V3Radius.md,
-                      minHeight: 56,
-                      background: ready ? V3.accent : V3.paperDeep,
-                      color: ready ? V3.paper : V3.ink,
-                      border: ready ? 'none' : `1px solid ${V3.rule}`,
-                      fontSize: V3FontSize.md,
-                      fontWeight: 800,
-                    }}
-                  >
-                    <span>
-                      {ready
-                        ? `${petName(d.name)} 정기배송 시작하기`
-                        : `${petName(d.name)} 설문하고 시작하기`}
-                    </span>
-                    <ChevronRight size={22} strokeWidth={2.4} aria-hidden />
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )
-      })()}
-
-      {/* ── 구독별 한 장 — 관리는 강아지 화면에서 ── */}
-      {rows.length > 0 && (
-        <>
-          <p className="mt-7 mb-2 px-1" style={kicker}>
-            정기배송 {rows.length}건
-          </p>
-          <ul className="flex flex-col gap-2">
-            {rows.map((s) => {
-              const st = subscriptionState(s)
-              const chipColor = STATE_COLOR[st]
-              const focused = sp.focus === s.id
-              const method = billingMethodSummary({
-                registered: !!s.has_billing_key,
-                brand: s.billing_card_brand,
-                last4: s.billing_card_last4,
-              })
-              const dogName = s.dogs?.name ?? '정기배송'
-              const photo = (s.dogs as { photo_url?: string | null } | null)?.photo_url ?? null
-              return (
-                <li
-                  key={s.id}
-                  style={{
-                    ...card,
-                    // 푸시·메일이 ?focus=<id> 로 보낸 그 구독을 눈에 띄게.
-                    boxShadow: focused ? `0 0 0 2px ${V3.accent}` : undefined,
-                  }}
-                >
-                  <Link
-                    href={
-                      s.dog_id
-                        ? `/dogs/${s.dog_id}/subscription`
-                        : '/mypage/orders'
-                    }
-                    className="flex items-center gap-3 px-4 py-3.5 active:opacity-70"
-                  >
-                    <span
-                      className="relative shrink-0 flex items-center justify-center overflow-hidden font-bold"
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: '50%',
-                        background: V3.paperDeep,
-                        color: V3.inkMute,
-                        fontSize: V3FontSize.base,
-                      }}
-                      aria-hidden
-                    >
-                      {photo ? (
-                        <Image src={photo} alt="" fill sizes="44px" className="object-cover" unoptimized />
-                      ) : (
-                        dogName.slice(0, 1)
-                      )}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="font-bold truncate"
-                          style={{ fontSize: V3FontSize.base, color: V3.ink }}
-                        >
-                          {dogName}
-                        </span>
-                        <span className="shrink-0" style={pill(chipColor)}>
-                          {SUB_STATE_LABEL[st]}
-                        </span>
-                      </span>
-                      <span
-                        className="block mt-1 leading-snug"
-                        style={{ fontSize: V3FontSize.sm, color: V3.inkMute, wordBreak: 'keep-all' }}
-                      >
-                        {krw(s.total_amount)}
-                        {s.fresh_ratio ? ` · ${freshTierLabel(s.fresh_ratio)}` : ''}
-                        {/* 다음 일정 — 진행 중인 구독만(정지 중이면 그 날짜는 다시 시작할 때의 기준일일 뿐).
-                            결제일을 알면 "M월 D일 (토) 결제", 모르면 결제 요일을 단정하지 않고 발송일만. */}
-                        {st === 'active' && s.next_delivery_date
-                          ? (() => {
-                              const c = chargeIsoOf(s)
-                              const today = todayKstIsoDate()
-                              if (c) return c < today ? ' · 결제 확인 중' : ` · ${dateLabel(c)} 결제`
-                              return s.next_delivery_date < today
-                                ? ' · 확인 중'
-                                : ` · ${dateLabel(s.next_delivery_date)} 발송`
-                            })()
-                          : ''}
-                        {!oneMethod && method ? ` · ${method}` : ''}
-                      </span>
-                    </span>
-                    <ChevronRight
-                      className="w-5 h-5 shrink-0"
-                      strokeWidth={2.4}
-                      style={{ color: V3.inkFaint }}
-                    />
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </>
-      )}
-
-      <Link
-        href="/mypage/orders"
-        className="flex items-center gap-2.5 mt-3 px-4 py-3.5 active:opacity-70"
-        style={card}
-      >
-        <Receipt
-          className="w-5 h-5 shrink-0"
-          strokeWidth={2.2}
-          style={{ color: V3.inkMute }}
-        />
-        <span className="flex-1 font-bold" style={{ fontSize: V3FontSize.base, color: V3.ink }}>
-          결제·주문 내역
-        </span>
-        <ChevronRight
-          className="w-5 h-5 shrink-0"
-          strokeWidth={2.4}
-          style={{ color: V3.inkFaint }}
-        />
-      </Link>
-
-      {/* 동의 모달은 웹 FD 토큰을 쓰므로 앱 톤으로 스코프 스왑해 감싼다
-          (/account/subscriptions/page.tsx 와 같은 방식). 로직은 손대지 않는다.
-
-          ★ radius 토큰을 **빠짐없이** 준다 (2026-07-30 수정).
-          색 토큰(--fd-coral·--fd-cream·--fd-coral-ink)은 globals.css 의 :root 에
-          있어 앱에서도 해석되지만, **radius 4종은 :root 에 없다** — 웹 페이지가
-          자기 래퍼 div 에서 선언한다. 처음엔 --fd-r-sheet 하나만 줘서 모달 안의
-          행(row)이 `border-radius: var(--fd-r-row)` → 정의 없음으로 떨어졌다.
-          앱은 radius 4 가 서명값이므로(AGENTS.md 'sm signature') 전부 4 로. */}
-      {priceProposal && (
-        <div
-          style={
-            {
-              '--fd-pine': V3.ink,
-              '--fd-muted': V3.inkMute,
-              '--fd-line': V3.rule,
-              '--fd-r-card': '4px',
-              '--fd-r-row': '4px',
-              '--fd-r-thumb': '4px',
-              '--fd-r-sheet': '12px',
-            } as React.CSSProperties
-          }
-        >
-          <PriceChangeConsentModal proposal={priceProposal} />
-        </div>
-      )}
-    </main>
+    <SubscriptionsSummaryView
+      model={model}
+      after={
+        /* 금액 변경 동의 창 — 웹(/account/subscriptions)과 **같은 컴포넌트·같은 API·같은 판정**.
+           앱은 variant="app" 으로 모양만 시안(S16·S17)대로 그린다(2026-10-09 앱 새 디자인).
+           예전엔 웹 FD 토큰(--fd-*)을 이 자리에서 앱 톤으로 스코프 스왑해 감쌌다 — radius 4종이 :root 에 없어
+           하나라도 빠뜨리면 모달 안 행의 모서리가 정의 없음으로 떨어졌다(2026-07-30). 앱 모양은 토큰을 직접 쓰므로
+           그 스왑이 필요 없다. */
+        priceProposal && <PriceChangeConsentModal proposal={priceProposal} variant="app" />
+      }
+    />
   )
+
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { TrackingResult } from '@/lib/tracking'
 import { formatKstShortDateTime } from '@/lib/datetime-kst'
+import TrackingAppView, { type TrackingFetchState } from './TrackingAppView'
 
 type Props = {
   carrier: string | null
@@ -26,14 +27,11 @@ type Props = {
   recipientName: string
   trackerDeepLink: string | null
   supportsInline: boolean
+  /** 앱 화면(앱 새 디자인 'A 포스터', 캔버스 M10·I09·I10)으로 그린다 — 조회·복사·새로고침은 아래 그대로. 웹은 넘기지 않는다. */
+  app?: { orderNumber: string }
 }
 
-type FetchState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ok'; data: TrackingResult }
-  /** justShipped = 발송 36시간 안 — 집하 스캔 전이라 '못 찾음'이 정상(오류로 말하지 않는다). 응답 받은 순간에 판정. */
-  | { status: 'error'; message: string; code?: string; justShipped?: boolean }
+type FetchState = TrackingFetchState
 
 // toLocaleString 시각은 서버·브라우저 ICU 가 오전/AM 을 다르게 내 hydration
 // mismatch 위험(전수검사 2026-07-25) → 결정적 KST 포맷터로 위임.
@@ -72,6 +70,7 @@ export default function TrackingView({
   recipientName,
   trackerDeepLink,
   supportsInline,
+  app,
 }: Props) {
   const [fetchState, setFetchState] = useState<FetchState>({ status: 'idle' })
   const [copied, setCopied] = useState(false)
@@ -120,6 +119,27 @@ export default function TrackingView({
     } catch {
       /* ignore — fallback is native selection */
     }
+  }
+
+  if (app) {
+    return (
+      <TrackingAppView
+        orderNumber={app.orderNumber}
+        carrierLabel={carrierLabel}
+        trackingNumber={trackingNumber}
+        hasTracking={!!trackingNumber && !!carrier}
+        recipientName={recipientName}
+        orderStatus={orderStatus}
+        shippedAt={shippedAt}
+        deliveredAt={deliveredAt}
+        trackerDeepLink={trackerDeepLink}
+        supportsInline={supportsInline}
+        fetchState={fetchState}
+        copied={copied}
+        onCopy={copyTracking}
+        onReload={reload}
+      />
+    )
   }
 
   // 아직 송장이 안 들어온 경우

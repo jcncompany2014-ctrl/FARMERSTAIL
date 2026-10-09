@@ -61,6 +61,9 @@ export default async function MyPage() {
       profile={profile}
       orderCount={orderCountRes.count ?? 0}
       subCount={subCountRes.count ?? 0}
+      // 2026-10-09 앱 새 디자인: 가입 방식 판정은 기존 정본(auth/callback·age-gate 의 app_metadata.provider) 그대로 —
+      // 소셜(카카오·애플) 가입자에겐 비밀번호가 없어 '프로필 / 비밀번호' 대신 '프로필' 로 안내한다.
+      emailSignup={((user.app_metadata?.provider as string | undefined) ?? '') === 'email'}
     />
   )
 }

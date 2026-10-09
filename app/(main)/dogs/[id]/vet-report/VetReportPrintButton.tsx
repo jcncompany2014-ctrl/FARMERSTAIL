@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useSyncExternalStore } from 'react'
-import { Printer, Copy, Check } from 'lucide-react'
 import { isStandaloneApp } from '@/lib/standalone'
+import { V3 } from '@/lib/design/tokens'
 
 /**
  * 수의사 리포트 저장 버튼.
@@ -19,6 +19,8 @@ import { isStandaloneApp } from '@/lib/standalone'
  *    브라우저에서 열도록 안내한다. 거기서 인쇄·PDF 저장이 된다.
  *    (링크로 수의사에게 바로 보내는 길은 강아지 상세의 '수의사 공유'가 따로
  *     맡는다 — 이 버튼은 "내가 종이/PDF 로 갖는다"가 목적이다.)
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 D22): 먹색 네모 버튼(높이 48, 모서리 4) + 내려받기 아이콘.
  */
 /** display-mode 는 설치·해제로 바뀔 수 있다 — 바뀌면 라벨도 따라가게 구독한다. */
 function subscribeToDisplayMode(onChange: () => void): () => void {
@@ -26,6 +28,18 @@ function subscribeToDisplayMode(onChange: () => void): () => void {
   const mq = window.matchMedia('(display-mode: standalone)')
   mq.addEventListener('change', onChange)
   return () => mq.removeEventListener('change', onChange)
+}
+
+const ICON = {
+  width: 17,
+  height: 17,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2.2,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+  'aria-hidden': true,
 }
 
 export default function VetReportPrintButton() {
@@ -58,15 +72,32 @@ export default function VetReportPrintButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
       <button
         type="button"
         onClick={handleClick}
-        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full bg-ink text-white text-[11.5px] font-bold active:scale-[0.98] transition"
+        className="transition active:scale-[0.98]"
+        style={{
+          height: 48,
+          padding: '0 14px',
+          border: 0,
+          borderRadius: 4,
+          background: V3.ink,
+          color: '#FFFFFF',
+          fontSize: 15,
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          whiteSpace: 'nowrap',
+          cursor: 'pointer',
+        }}
       >
         {copied ? (
           <>
-            <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <svg {...ICON}>
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
             주소 복사됨
           </>
         ) : inApp ? (
@@ -75,12 +106,19 @@ export default function VetReportPrintButton() {
                 는 **수단**을 이름에 박은 문구다 — 보호자가 원하는 건 저장이고,
                 브라우저를 거친다는 사정은 눌렀을 때 안내로 알려주면 된다.
                 (아래 hint 가 그 역할을 이미 한다.) */}
-            <Copy className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <svg {...ICON}>
+              <path d="M12 4v11M7 10l5 5 5-5" />
+              <path d="M5 20h14" />
+            </svg>
             저장하기
           </>
         ) : (
           <>
-            <Printer className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <svg {...ICON}>
+              <path d="M6 9V3h12v6" />
+              <rect x="4" y="9" width="16" height="8" rx="1.5" />
+              <path d="M7 14h10v7H7z" />
+            </svg>
             인쇄 / PDF 저장
           </>
         )}
@@ -88,7 +126,7 @@ export default function VetReportPrintButton() {
       {hint && (
         <p
           role="status"
-          className="text-[10.5px] text-muted text-right max-w-[220px] leading-relaxed"
+          style={{ margin: 0, maxWidth: 220, textAlign: 'right', fontSize: 13, lineHeight: 1.5, color: V3.inkMute }}
         >
           {hint}
         </p>

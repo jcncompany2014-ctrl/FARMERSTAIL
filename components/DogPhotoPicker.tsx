@@ -1,12 +1,24 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Camera, X, Lightbulb, HelpCircle } from 'lucide-react'
-import DogPawMark from '@/components/DogPawMark'
+import { Lightbulb, HelpCircle } from 'lucide-react'
 import { MAX_PHOTO_BYTES, type PhotoState } from '@/lib/dogPhotos'
 import PhotoFrameGuide from './PhotoFrameGuide'
 import { isAdvancedUiEnabled } from '@/lib/ui-flags'
 import { Modal, Cropper } from '@/components/v3'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { CameraIcon, PawFillIcon } from '@/components/v3/dog/DogIcons'
+import { IDLE_BORDER } from '@/components/v3/dog/DogFormParts'
+
+/**
+ * DogPhotoPicker — 강아지 등록(/dogs/new)·정보 수정(/dogs/[id]/edit) 전용 사진 고르기(앱).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 D11·D13): 왼쪽 사진 동그라미 88(사진 없으면 회색 면 + 발바닥) +
+ * 오른쪽 아래 먹색 사진기 표시(32) · 오른쪽에 안내 한 줄 + 네모 버튼(먹선 '사진 고르기'/'바꾸기', 옅은 테두리 '지우기').
+ * 바깥 칸(등록 = 점선, 수정 = 회색 면)은 부르는 화면이 그린다. 영어 머리말('Photo')은 뺐고,
+ * "탭해서 사진을 변경할 수 있어요" → "눌러서 사진을 바꿀 수 있어요"(시안·'탭' 대신 '누르').
+ * 고르기·자르기·용량 검사·되돌리기 동작은 그대로다.
+ */
 
 const ACCEPTED = 'image/jpeg,image/png,image/webp,image/gif'
 
@@ -15,7 +27,7 @@ type Props = {
   currentUrl: string | null
   /** Fires when the user picks, replaces, removes, or reverts. */
   onChange: (state: PhotoState) => void
-  /** Size in pixels (square). Default 96. */
+  /** Size in pixels (square). Default 88(시안). */
   size?: number
   /**
    * R15-C29: 사용자가 파일 선택 후 Cropper modal 띄워 정사각 crop.
@@ -24,10 +36,29 @@ type Props = {
   enableCrop?: boolean
 }
 
+/** 오른쪽 네모 버튼(높이 40). */
+function smallButton(primary: boolean): React.CSSProperties {
+  return {
+    height: 40,
+    padding: '0 14px',
+    boxSizing: 'border-box',
+    border: `1.5px solid ${primary ? V3.ink : IDLE_BORDER}`,
+    borderRadius: V3Radius.sm,
+    background: '#FFFFFF',
+    color: primary ? V3.ink : V3.inkSoft,
+    fontFamily: 'inherit',
+    fontSize: 15,
+    fontWeight: primary ? 800 : 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  }
+}
+
 export default function DogPhotoPicker({
   currentUrl,
   onChange,
-  size = 96,
+  size = 88,
   enableCrop = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -124,81 +155,91 @@ export default function DogPhotoPicker({
   const canRemove = state.action === 'replace' || (state.action === 'keep' && !!currentUrl)
 
   return (
-    <div className="flex items-center gap-4">
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `${size}px 1fr`,
+        columnGap: 16,
+        alignItems: 'center',
+        lineHeight: 'normal',
+      }}
+    >
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="relative group shrink-0"
-        style={{ width: size, height: size }}
-        aria-label="사진 업로드"
+        style={{ position: 'relative', width: size, height: size, padding: 0, border: 0, background: 'transparent', cursor: 'pointer' }}
+        aria-label={displayUrl ? '사진 바꾸기' : '사진 올리기'}
       >
-        {/* Circular image mask — overflow clips the image only, not the badge */}
+        {/* 동그라미 — 사진만 잘린다(아래 사진기 표시는 바깥이라 안 잘림). */}
         <span
-          className="absolute inset-0 rounded-full overflow-hidden bg-bg border border-rule group-hover:border-terracotta transition block"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: size / 2,
+            overflow: 'hidden',
+            background: V3.soft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           {displayUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={displayUrl}
-              alt="강아지 사진"
-              className="w-full h-full object-cover"
-            />
+            <img src={displayUrl} alt="강아지 사진" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           ) : (
-            <span className="w-full h-full flex items-center justify-center">
-              <DogPawMark className="w-8 h-8 text-muted" />
-            </span>
+            <PawFillIcon size={Math.round(size * 0.43)} color="#9A9A9A" />
           )}
-          {/* Camera overlay (inside mask) */}
-          <span className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center pointer-events-none">
-            <span className="w-8 h-8 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-              <Camera className="w-4 h-4 text-white" strokeWidth={2} />
-            </span>
-          </span>
         </span>
-        {/* Always-visible camera badge — lives on the outer wrapper so it can
-            sit on the circle's edge without being clipped by overflow-hidden. */}
-        <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-terracotta border-2 border-white flex items-center justify-center shadow-sm md:group-hover:scale-110 transition z-10">
-          <Camera className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            right: -2,
+            bottom: -2,
+            width: 32,
+            height: 32,
+            boxSizing: 'border-box',
+            borderRadius: 16,
+            background: V3.ink,
+            border: '2px solid #FFFFFF',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CameraIcon size={16} strokeWidth={2.4} />
         </span>
       </button>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-semibold text-muted uppercase tracking-[0.2em]">
-          Photo
-        </div>
-        <div className="text-[12px] text-text/70 mt-0.5 leading-relaxed">
-          {state.action === 'replace'
-            ? '저장하면 새 사진이 적용돼요'
-            : state.action === 'remove'
-            ? '저장하면 사진이 제거돼요'
-            : displayUrl
-            ? '탭해서 사진을 변경할 수 있어요'
-            : '강아지 사진을 올려주세요 (최대 3MB)'}
-        </div>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+        <span style={{ fontSize: displayUrl ? 15 : 16, lineHeight: 1.45, color: V3.inkSoft }}>
+          {state.action === 'replace' ? (
+            '저장하면 새 사진이 적용돼요'
+          ) : state.action === 'remove' ? (
+            '저장하면 사진이 제거돼요'
+          ) : displayUrl ? (
+            '눌러서 사진을 바꿀 수 있어요'
+          ) : (
+            <>
+              강아지 사진을 올려주세요
+              <br />
+              <span style={{ fontSize: 14, color: V3.inkMute }}>3MB까지</span>
+            </>
+          )}
+        </span>
         {/* 발명 모듈 B 안내 — 참조 객체 함께 촬영 시 절대 크기 보정.
             voice-guidelines §11 사진은 옵션. 강제 X.
             초기 단계 — ui-flag 'photo_tips' OFF 면 hide. */}
         {showPhotoTips && !displayUrl && state.action !== 'remove' && (
-          <div
-            className="mt-2 inline-flex items-start gap-1.5 text-[10.5px] leading-relaxed"
-            style={{ color: 'var(--terracotta)' }}
-          >
-            <Lightbulb
-              className="w-3 h-3 shrink-0 mt-0.5"
-              strokeWidth={2}
-              aria-hidden
-            />
+          <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 6, fontSize: 14, lineHeight: 1.5, color: V3.inkSoft }}>
+            <Lightbulb size={14} strokeWidth={2} aria-hidden style={{ flexShrink: 0, marginTop: 3 }} />
             <span>신용카드를 같이 찍으면 맞춤도가 더 정확해요</span>
-          </div>
+          </span>
         )}
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rule bg-white text-[11px] font-bold text-text hover:border-terracotta hover:text-terracotta transition"
-          >
-            <Camera className="w-3 h-3" strokeWidth={2} />
-            {displayUrl ? '변경' : '선택'}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => inputRef.current?.click()} style={smallButton(true)}>
+            {displayUrl ? '바꾸기' : '사진 고르기'}
           </button>
           {/* 촬영 가이드 — 모달 트리거. 작은 보조 링크라 강제감 없음.
               ui-flag 'photo_tips' OFF 면 hide. */}
@@ -206,39 +247,45 @@ export default function DogPhotoPicker({
             <button
               type="button"
               onClick={() => setGuideOpen(true)}
-              className="inline-flex items-center gap-1 px-2 py-1.5 text-[11px] font-bold text-muted hover:text-terracotta transition"
               aria-label="촬영 가이드 보기"
+              style={{ ...smallButton(false), border: 0, padding: '0 6px', gap: 4 }}
             >
-              <HelpCircle className="w-3 h-3" strokeWidth={2} />
+              <HelpCircle size={14} strokeWidth={2} aria-hidden />
               촬영 팁
             </button>
           )}
           {canRemove && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rule bg-white text-[11px] font-bold text-muted hover:border-sale hover:text-sale transition"
-            >
-              <X className="w-3 h-3" strokeWidth={2.5} />
-              제거
+            <button type="button" onClick={handleRemove} style={smallButton(false)}>
+              지우기
             </button>
           )}
           {state.action === 'remove' && currentUrl && (
             <button
               type="button"
               onClick={() => update({ action: 'keep' })}
-              className="text-[11px] font-bold text-muted underline hover:text-text"
+              style={{
+                minHeight: 40,
+                padding: '0 4px',
+                border: 0,
+                background: 'transparent',
+                color: V3.inkSoft,
+                fontFamily: 'inherit',
+                fontSize: 15,
+                fontWeight: 700,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+              }}
             >
               되돌리기
             </button>
           )}
-        </div>
+        </span>
         {error && (
-          <div role="alert" className="text-[11px] font-semibold text-sale mt-1.5">
+          <span role="alert" style={{ fontSize: 14, fontWeight: 700, color: V3.sale }}>
             {error}
-          </div>
+          </span>
         )}
-      </div>
+      </span>
 
       <input
         ref={inputRef}

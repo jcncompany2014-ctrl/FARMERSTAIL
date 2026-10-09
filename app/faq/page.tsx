@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, MessageCircle } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import { buildFaqJsonLd, buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { createClient } from '@/lib/supabase/server'
@@ -9,6 +9,9 @@ import { isAppContextServer } from '@/lib/app-context'
 import StickyCta from '@/components/web/fd/StickyCta'
 import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import { planHref } from '@/lib/funnel-cta'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { MeCss, SCREEN_ROOT } from '@/components/v3/me/MeParts'
+import { MinusIcon, PlusIcon, TalkIcon } from '@/components/v3/me/MeIcons'
 
 /**
  * /faq — 자주 묻는 질문 (farm v6 = FD 톤 리스타일, 2026-06-13).
@@ -33,6 +36,10 @@ import { planHref } from '@/lib/funnel-cta'
  *    앱 고객센터 허브(/help)로. (이전엔 앱에서도 웹 FD 히어로를 그려 제목 중복 +
  *    문의하기가 웹으로 튀는 '반쪽 분기' 였다.)
  * faqs 데이터 로딩은 공유, 렌더만 isApp 으로 분기.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M19): 앱 본문을 그룹 제목(제목 글꼴 22) + 위 2px 먹선 목록 + 펼치면 회색 면
+ * (+ → −)으로. 그리고 코드 폴백 답변의 화식 비율 %("곁들임(화식 30%)" 등)를 뺐다(앱시안 결정 — 고객 문구에 비율 %
+ * 금지). 실제 화면은 DB FAQ 라 DB 는 건드리지 않았다.
  */
 export const revalidate = 3600
 
@@ -92,7 +99,7 @@ const FALLBACK_GROUPS: Group[] = [
       },
       {
         q: '사료에서 화식으로 바로 바꿔도 되나요?',
-        a: '갑자기 바꾸면 장에 부담이 될 수 있어요. 처음엔 기존 사료에 우리 화식을 조금씩 섞어 일주일에 걸쳐 천천히 늘려가는 걸 권해요. 파머스테일 화식 비율은 ‘곁들임 · 반반 · 완전 화식’ 세 단계라, 낮은 ‘곁들임’(화식 30%)부터 부담 없이 시작해 아이가 잘 적응하면 ‘반반’(50%)을 거쳐 ‘완전 화식’(100%)까지 편하게 올릴 수 있어요. 첫 박스를 시작하면 우리 아이에게 맞춘 7일 전환 가이드도 함께 안내해 드려요.',
+        a: '갑자기 바꾸면 장에 부담이 될 수 있어요. 처음엔 기존 사료에 우리 화식을 조금씩 섞어 일주일에 걸쳐 천천히 늘려가는 걸 권해요. 파머스테일 화식 비율은 ‘곁들임 · 반반 · 완전 화식’ 세 단계라, 낮은 ‘곁들임’부터 부담 없이 시작해 아이가 잘 적응하면 ‘반반’을 거쳐 ‘완전 화식’까지 편하게 올릴 수 있어요. 첫 박스를 시작하면 우리 아이에게 맞춘 7일 전환 가이드도 함께 안내해 드려요.',
       },
       {
         q: '알레르기가 있는 아이는 어떻게 해야 하나요?',
@@ -245,21 +252,20 @@ function FaqItem({ q, a, last }: { q: string; a: string; last: boolean }) {
  *     앱 토큰(bg-bg-3·rounded-[12px]·text-text/muted)로 /help 와 같은 톤.
  *  3. 문의하기가 웹 /contact 로 튀던 걸 앱 고객센터 허브(/help)로 — 앱 안에서 해결.
  */
-function FaqItemApp({ q, a, last }: { q: string; a: string; last: boolean }) {
+function FaqItemApp({ q, a }: { q: string; a: string }) {
+  // 접힘/펼침 모양(회색 면 · 굵기 · + ↔ −)은 details[open] 선택자로 — MeCss 의 .ft-me-faq 규칙.
   return (
-    <details className={`group ${last ? '' : 'border-b border-rule'}`}>
-      <summary className="flex items-start justify-between gap-3 cursor-pointer list-none px-4 py-3.5">
-        <span className="flex-1 text-[13.5px] font-bold text-text leading-snug">
-          {q}
+    <details className="ft-me-faq">
+      <summary>
+        {q}
+        <span aria-hidden className="ft-me-faq-closed">
+          <PlusIcon size={22} strokeWidth={2.4} />
         </span>
-        <span
-          aria-hidden
-          className="shrink-0 mt-0.5 transition-transform group-open:rotate-45 text-[18px] leading-none text-terracotta"
-        >
-          +
+        <span aria-hidden className="ft-me-faq-open">
+          <MinusIcon size={22} strokeWidth={2.4} />
         </span>
       </summary>
-      <p className="px-4 pb-4 -mt-0.5 whitespace-pre-line text-[12.5px] text-muted leading-relaxed">
+      <p className="whitespace-pre-line" style={{ margin: 0, padding: '0 0 18px', fontSize: 16, lineHeight: 1.7, color: V3.inkSoft }}>
         {a}
       </p>
     </details>
@@ -269,52 +275,72 @@ function FaqItemApp({ q, a, last }: { q: string; a: string; last: boolean }) {
 function FaqAppView({ groups }: { groups: Group[] }) {
   return (
     <AuthAwareShell>
-      <main className="pb-16" style={{ minHeight: '72vh' }}>
+      <main style={SCREEN_ROOT}>
+        <MeCss />
         {/* AppChrome 헤더가 '자주 묻는 질문'을 이미 보여줘 본문엔 중복 제목 없이 안내만. */}
-        <section className="px-5 pt-5">
-          <p className="text-[12px] text-muted leading-relaxed">
-            식단 · 배송 · 결제 · 정기배송 — 자주 나오는 질문을 모았어요.
-          </p>
-        </section>
+        <p style={{ margin: '20px 20px 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>
+          식단 · 배송 · 결제 · 정기배송 — 자주 나오는 질문을 모았어요.
+        </p>
 
-        {groups.map((g) => (
-          <section key={g.title} className="px-5 mt-5">
-            <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted mb-2 px-1">
+        {groups.map((g, i) => (
+          <section
+            key={g.title}
+            aria-labelledby={`faq-g${i}`}
+            style={{ padding: `${i === 0 ? 22 : 30}px 20px 0`, display: 'flex', flexDirection: 'column' }}
+          >
+            <h2 id={`faq-g${i}`} style={{ margin: 0, fontSize: 22, lineHeight: 'normal' }}>
               {g.title}
-            </div>
-            <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden">
-              {g.items.map((it, i) => (
-                <FaqItemApp
-                  key={it.q}
-                  q={it.q}
-                  a={it.a}
-                  last={i === g.items.length - 1}
-                />
+            </h2>
+            <div style={{ marginTop: 10, borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
+              {g.items.map((it) => (
+                <FaqItemApp key={it.q} q={it.q} a={it.a} />
               ))}
             </div>
           </section>
         ))}
 
         {/* 문의하기 — 웹 /contact 로 안 튀고 앱 고객센터 허브(/help)로. */}
-        <section className="px-5 mt-5">
-          <Link
-            href="/help"
-            className="flex items-center gap-3 w-full rounded-[12px] bg-bg-3 border border-rule px-4 py-3.5 transition hover:bg-bg/40"
+        <Link
+          href="/help"
+          style={{
+            margin: '32px 20px 0',
+            minHeight: 76,
+            padding: '0 16px',
+            boxSizing: 'content-box',
+            borderRadius: V3Radius.sm,
+            display: 'grid',
+            gridTemplateColumns: '44px 1fr 14px',
+            columnGap: 14,
+            alignItems: 'center',
+            color: V3.ink,
+            textDecoration: 'none',
+            background: V3.soft,
+            borderLeft: `6px solid ${V3.mustard}`,
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              background: V3.ink,
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <span className="w-8 h-8 rounded-full bg-bg flex items-center justify-center shrink-0">
-              <MessageCircle className="w-4 h-4 text-terracotta" strokeWidth={2} />
-            </span>
-            <span className="flex-1 min-w-0 text-left">
-              <span className="block text-[13.5px] font-bold text-text">
-                원하는 답이 없나요?
-              </span>
-              <span className="block text-[10.5px] text-muted mt-0.5">
-                고객센터로 문의하기
-              </span>
-            </span>
-            <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
-          </Link>
-        </section>
+            <TalkIcon size={21} />
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{ fontSize: 17, fontWeight: 800 }}>원하는 답이 없나요?</span>
+            <span style={{ fontSize: 15, color: V3.inkMute }}>고객센터로 문의하기</span>
+          </span>
+          <span aria-hidden style={{ fontSize: 20 }}>
+            ›
+          </span>
+        </Link>
       </main>
     </AuthAwareShell>
   )

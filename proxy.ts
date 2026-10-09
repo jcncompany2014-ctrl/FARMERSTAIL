@@ -178,7 +178,7 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   '/mypage/cs',
   '/mypage/membership',
   '/mypage/accuracy',
-  '/mypage/integrations',
+  // (/mypage/integrations — 트랙티브 연동 화면은 2026-10-09 결정 18번으로 지웠다.)
   '/mypage/privacy',
   '/mypage/certificate',
   '/chat',
@@ -187,18 +187,8 @@ const APP_ONLY_PREFIXES: readonly string[] = [
   // /mypage/delete 는 웹도 들어와야 한다 — 개인정보처리방침이 약속한 탈퇴
   //   경로다(2026-07-31). 앱 전용으로 두면 웹 방문자가 앱 설치 벽을 맞는다.
   //
-  // /tools/* — 2026-08-02 검수에서 **공개돼 있는 것을 발견**해 추가.
-  //   /tools/raw-calculator · /tools/elimination-diet 두 페이지는 애초에 앱
-  //   화면으로 만들어졌다(둘 다 "대시보드"(=/dashboard, 앱 전용)로 돌아가는
-  //   링크를 달고 있다). 그런데 이 목록에 없어서 **비로그인 웹 방문자에게 그대로
-  //   열려 있었다.** 거기 적힌 내용이 문제다:
-  //     · "영양성 이차 상피소체 항진증(NSH)", "부갑상선 호르몬 항진 → 골다공증"
-  //     · Krook 1971/2010 · FEDIAF 2024 · Jackson 2024 · Olivry 2015 논문 인용
-  //     · "8주 단독 급여 프로토콜", "식이 처방 상담"
-  //   고객 문구에서 처방·전문용어를 쓰지 않는다는 원칙과 정반대고, 우리가 파는
-  //   건 수비드 화식인데 **집에서 raw 만드는 계산기**를 열어 두고 있었다.
-  //   어디에서도 링크되지 않아(내비·사이트맵 모두 없음) 눈에 안 띄었을 뿐이다.
-  '/tools',
+  // /tools/* — 2026-08-02 비로그인 웹에 열려 있던 생식 계산기·제거식 도구(처방·논문·전문용어 문구)를 여기 넣어
+  //   막았었다. 2026-10-09 결정 18번으로 화면째 지워 없는 주소가 됐으니 목록에서도 뺐다(matcher 도 같이 — 규칙30).
 ]
 
 /** Web 가 진입 가능한 mypage exception — 정확 매치 (prefix 아님). */
@@ -465,13 +455,9 @@ export const config = {
     '/mypage/:path*',
     // audit #65: vet share rate limit
     '/vet/:path*',
-    // ★2026-08-02: /tools 를 APP_ONLY_PREFIXES 에 넣고도 페이지가 **그대로 열려
-    //   있었다.** 이 matcher 가 별도의 허용목록이라, 여기 없는 경로는 미들웨어가
-    //   아예 안 돈다 — 가드 목록만 고치면 조용히 무효가 된다.
-    //   (그 사이 감사 테스트는 초록이었다. 브라우저로 실제 요청을 해보고서야
-    //    알았다. 규칙 30 이 이제 두 목록의 일치를 지킨다.)
-    '/tools',
-    '/tools/:path*',
+    // ★2026-08-02 교훈: 이 matcher 는 APP_ONLY_PREFIXES 와 **별도의 허용목록**이라, 가드 목록만 고치면 미들웨어가
+    //   아예 안 돌아 조용히 무효가 된다(/tools 가 그랬다 — 규칙 30 이 두 목록의 일치를 지킨다).
+    //   /tools 는 2026-10-09 결정 18번으로 화면째 지워 여기서도 뺐다.
     // 2026-09-23: (main) 앱 화면인데 APP_ONLY_PREFIXES 에도 matcher 에도 없던 경로 — 둘 다 넣는다(규칙30).
     '/chat',
     '/chat/:path*',

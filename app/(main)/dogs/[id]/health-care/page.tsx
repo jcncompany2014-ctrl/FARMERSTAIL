@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { petName } from '@/lib/korean'
 import HealthCareClient from './HealthCareClient'
 import { type Reminder } from '../reminders/RemindersClient'
 
@@ -14,8 +13,11 @@ export const metadata: Metadata = {
 
 /**
  * 건강 관리 통합 페이지 — 복약 · 예방접종 · 리마인더 (2026-07-16).
- * 헤더는 여기서 한 번만 렌더하고, 세 기능은 HealthCareClient 의 탭이 담당한다.
+ * 세 기능은 HealthCareClient 의 탭이 담당한다.
  * ?tab= 로 딥링크(옛 /medications·/vaccinations·/reminders 가 여기로 리다이렉트).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 D14): 화면 머리("{이름}의 건강 관리")는 HealthCareClient 로 옮겼다 —
+ * 점검 화면(/design-check/dogs)이 같은 부품으로 그리게. 조회(강아지·리마인더)는 그대로 여기서 한다.
  */
 export default async function HealthCarePage({
   params,
@@ -53,32 +55,11 @@ export default async function HealthCarePage({
     .order('next_date', { ascending: true })
 
   return (
-    <>
-      <section className="px-5 pt-6 pb-1">
-        <span className="kicker mt-3 block">건강 관리</span>
-        <h1
-          className="font-sans mt-1.5"
-          style={{
-            fontSize: 32,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-          }}
-        >
-          건강 관리
-        </h1>
-        <p className="text-[10.5px] text-muted mt-1">
-          {petName(dog.name)}의 복약·예방접종·리마인더를 한곳에서
-        </p>
-      </section>
-
-      <HealthCareClient
-        dogId={dog.id}
-        dogName={dog.name}
-        initialReminders={(reminders ?? []) as Reminder[]}
-        initialTab={tab}
-      />
-    </>
+    <HealthCareClient
+      dogId={dog.id}
+      dogName={dog.name}
+      initialReminders={(reminders ?? []) as Reminder[]}
+      initialTab={tab}
+    />
   )
 }

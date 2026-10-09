@@ -5,6 +5,9 @@ import { business } from '@/lib/business'
 import { paymentMethodLabel } from '@/lib/payments/toss'
 import ReceiptAutoPrint from './ReceiptAutoPrint'
 import { discountReasonLabel } from '@/lib/commerce/discount-reason'
+import AuthAwareShell from '@/components/AuthAwareShell'
+import { isAppContextServer } from '@/lib/app-context'
+import ReceiptAppView from './ReceiptAppView'
 
 export const dynamic = 'force-dynamic'
 
@@ -156,6 +159,37 @@ export default async function ReceiptPage({
     console.error(
       '[receipt] 합계 불일치가 반올림 범위를 넘는다 — 데이터 확인 필요:',
       { orderId: o.id, orderNumber: o.order_number, diff: rounding },
+    )
+  }
+
+  // ★앱은 앱 화면으로(앱 새 디자인 'A 포스터', 2026-10-09, 캔버스 M09) — 예전엔 앱에서도 머리줄 없는 웹 영수증이
+  //   떴고, '인쇄 / PDF 저장'(새 탭 + window.print)은 앱 WebView 에서 막혀 있었다. 금액·판정은 위 그대로 넘기고,
+  //   저장은 그림 저장(ReceiptSaveButton). 아래 웹 영수증은 손대지 않는다.
+  if (await isAppContextServer()) {
+    return (
+      <AuthAwareShell>
+        <ReceiptAppView
+          m={{
+            orderNumber: o.order_number,
+            createdAt: o.created_at,
+            paidAt: o.paid_at,
+            recipientName: o.recipient_name,
+            recipientPhone: o.recipient_phone,
+            zip: o.zip,
+            address: o.address,
+            addressDetail: o.address_detail,
+            deliveryMemo: o.delivery_memo,
+            items: o.order_items ?? [],
+            subtotal,
+            shipping,
+            discount: discount > 0 ? { label: discountReasonLabel(o.discount_reason), amount: discount } : null,
+            rounding: rounding !== 0 && roundingExplainable ? rounding : null,
+            total: o.total_amount,
+            refunded,
+            paymentMethodText: o.payment_method ? paymentMethodLabel(o.payment_method) : null,
+          }}
+        />
+      </AuthAwareShell>
     )
   }
 

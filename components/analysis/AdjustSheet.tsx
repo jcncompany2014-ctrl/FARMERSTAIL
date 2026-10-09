@@ -3,15 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
 import {
-  X,
-  Check,
-  RotateCcw,
-  AlertCircle,
-  CalendarClock,
-  Sparkles,
-  Plus,
-} from 'lucide-react'
-import {
   FOOD_LINE_META,
   ALL_LINES,
   lineDailyGrams,
@@ -32,6 +23,7 @@ import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { trackBoxAdjusted } from '@/lib/analytics'
+import { recipeChipOfLine, recipeColorOfLine, recipeNameOfLine } from './display'
 
 /**
  * AdjustSheet — 박스에 담을 레시피 고르기.
@@ -53,6 +45,11 @@ import { trackBoxAdjusted } from '@/lib/analytics'
  * # 저장
  * POST /api/personalization/adjust → user_adjusted=true. 보내는 lineRatios 는
  * 이미 스냅된 값(0.5/0.5 또는 1.0)이라 서버 스냅과 화면이 100% 일치한다.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 D09): 흰 시트(위 모서리 12) · 회색 면 칸 + 왼쪽 레시피 색 띠 ·
+ *   고른 칸 = 먹색 동그라미 체크 · 주 버튼 먹색. 화면 글자에서 비율 %·영양소 %를 뺐다(사장님 결정 목록):
+ *   칸 위 "50%" → "반반", 영양 구성 "단백질 49% 이상" → 막대, "kcal/100g" → "100g당 열량".
+ *   계산(lineDailyGrams·computeNutrientPanel·저장 값)은 그대로다.
  */
 
 /** 판매 중인 레시피만. 연어(skin)는 준비중 — 사장님 2026-07-13.
@@ -210,7 +207,9 @@ export default function AdjustSheet({
 
   if (!open) return null
 
+  // 칸 위 글자 — 비율 % 대신 말로(사장님 결정 목록: 고객 문구에서 비율 % 빼기). 계산은 아래 pct 그대로.
   const pct = picks.length === 1 ? 100 : 50
+  const shareLabel = picks.length === 1 ? '한 가지' : '반반'
 
   return (
     <>
@@ -221,7 +220,7 @@ export default function AdjustSheet({
         style={{ transform: `translateY(${dragY}px)` }}
         role="dialog"
         aria-modal="true"
-        aria-label="레시피 고르기"
+        aria-labelledby="adj-title"
       >
         {/* drag handle */}
         <div
@@ -238,7 +237,8 @@ export default function AdjustSheet({
         <div className="adj-head">
           <div className="adj-titles">
             <div className="adj-kicker">레시피</div>
-            <h2>레시피 고르기</h2>
+            {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다. */}
+            <h2 id="adj-title">레시피 고르기</h2>
             <div className="adj-sub">
               {/* 친근형(petName)으로 감싸 받침 유무와 무관히 조사 정확 —
                   모음명 "나우"→"나우의"(기존 "나우이의"✗), 받침명 "푸린"→"푸린이의". */}
@@ -251,7 +251,9 @@ export default function AdjustSheet({
             onClick={onClose}
             aria-label="닫기"
           >
-            <X size={16} strokeWidth={2.2} />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         </div>
 
@@ -264,24 +266,25 @@ export default function AdjustSheet({
               if (!line) {
                 return (
                   <div className="adj-slot empty" key={i}>
-                    <Plus size={13} strokeWidth={2.4} />
                     <span>한 가지 더</span>
                     <small>골라도 되고, 안 골라도 돼요</small>
                   </div>
                 )
               }
-              const meta = FOOD_LINE_META[line]
+              const color = recipeColorOfLine(line)
+              const name = recipeNameOfLine(line)
               return (
                 <button
                   type="button"
-                  className="adj-slot filled"
+                  className="adj-slot filled ft-no-press"
                   key={i}
-                  style={{ ['--c' as string]: meta.color }}
+                  style={{ ['--c' as string]: color }}
                   onClick={() => onPick(line)}
-                  aria-label={`${meta.nameKo} 빼기`}
+                  aria-label={`${name} 빼기`}
                 >
-                  <span className="adj-slot-pct">{pct}%</span>
-                  <span className="adj-slot-name">{meta.nameKo}</span>
+                  <span className="adj-slot-band" aria-hidden />
+                  <span className="adj-slot-pct">{shareLabel}</span>
+                  <span className="adj-slot-name">{name}</span>
                   <small className="adj-slot-amt">
                     {/* 비율은 칼로리에 적용 — 무게를 반반으로 쪼개면 안 된다.
                         레시피마다 kcal/100g 가 달라(115 vs 120) 같은 50%라도
@@ -298,6 +301,7 @@ export default function AdjustSheet({
             ratios={ratios}
             formula={formula}
             isSenior={isSenior}
+            picks={picks}
           />
 
           {/* 레시피 4종 */}
@@ -318,24 +322,26 @@ export default function AdjustSheet({
                   type="button"
                   key={line}
                   className={
-                    'adj-pick' +
+                    'adj-pick ft-no-press' +
                     (isPicked ? ' on' : '') +
                     (isBlocked ? ' blocked' : '') +
                     (shakeId === line ? ' shake' : '')
                   }
-                  style={{ ['--c' as string]: meta.color }}
+                  style={{ ['--c' as string]: recipeColorOfLine(line), ['--chip' as string]: recipeChipOfLine(line) }}
                   aria-pressed={isPicked}
                   onClick={() => onPick(line)}
                 >
                   <span className="adj-pick-top">
                     <span className="adj-pick-dot" />
-                    <span className="adj-pick-name">{meta.nameKo}</span>
-                    {isPicked && (
-                      <span className="adj-pick-check">
-                        <Check size={11} strokeWidth={3} />
-                      </span>
-                    )}
+                    <span className="adj-pick-name">{recipeNameOfLine(line)}</span>
                   </span>
+                  {isPicked && (
+                    <span className="adj-pick-check" aria-hidden>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12.5l4.5 4.5L19 7.5" />
+                      </svg>
+                    </span>
+                  )}
                   <span className="adj-pick-sub">
                     {isBlocked
                       ? `${meta.blockingAllergies[0] ?? '알레르기'} 때문에 못 담아요`
@@ -361,43 +367,38 @@ export default function AdjustSheet({
               8~12주 엄격한 제거식이가 필요하고 우리 박스는 그걸 대체하지 못한다.
               "원인을 좁히기 쉽다" 선에서 멈춘다. */}
           {picks.length === 1 ? (
-            <div className="adj-single-note is-good">
-              <strong>처음엔 한 가지로 시작하는 게 좋아요.</strong>
+            <p className="adj-single-note is-good">
+              <strong>처음엔 한 가지로 시작하는 게 좋아요.</strong>{' '}
               새 음식에 무른 변이나 가려움 같은 반응이 나타나도, 단백질이 하나면
               원인을 좁히기 쉬워요. 잘 맞는 걸 확인한 다음에 늘려도 늦지 않아요.
-            </div>
+            </p>
           ) : (
-            <div className="adj-single-note">
+            <p className="adj-single-note">
               <strong>두 가지를 함께 담으면</strong> 혹시 반응이 나타났을 때 어느
               쪽 때문인지 가리기 어려워요. 아직 화식이 처음이라면 한 가지로
               시작해 보시는 걸 권해요.
-            </div>
+            </p>
           )}
 
           {/* 전환 전략 */}
-          <div className="adj-sect-lbl">
-            <div className="l">
-              <CalendarClock size={11} strokeWidth={2} color="var(--ink)" />
-              언제부터
-            </div>
-          </div>
           <div className="adj-strategy">
-            <div className="l">이 변경을 언제부터 적용할까요?</div>
-            <div className="adj-seg">
-              <div
-                className="adj-seg-thumb"
-                style={{ left: strategy === 'next' ? '3px' : 'calc(50% + 0px)' }}
-              />
+            <span className="adj-strategy-t">언제부터</span>
+            <span className="l">이 변경을 언제부터 적용할까요?</span>
+            <div className="adj-seg" role="radiogroup" aria-label="적용 시점">
               <button
                 type="button"
-                className={strategy === 'next' ? 'on' : ''}
+                role="radio"
+                aria-checked={strategy === 'next'}
+                className={'ft-no-press' + (strategy === 'next' ? ' on' : '')}
                 onClick={() => setStrategy('next')}
               >
                 다음 박스부터
               </button>
               <button
                 type="button"
-                className={strategy === 'now' ? 'on' : ''}
+                role="radio"
+                aria-checked={strategy === 'now'}
+                className={'ft-no-press' + (strategy === 'now' ? ' on' : '')}
                 onClick={() => setStrategy('now')}
               >
                 이번 박스 즉시
@@ -406,21 +407,18 @@ export default function AdjustSheet({
           </div>
 
           {/* footer note */}
-          <div className="adj-footer-note">
-            <div className="ic">
-              <Sparkles size={13} strokeWidth={2} color="#3C725E" />
-            </div>
-            <div>
+          <p className="adj-footer-note">
+            <span className="ic" aria-hidden />
+            <span>
               직접 고르면 <b>&apos;직접 고른 레시피&apos;</b>로 저장돼요. 다음
               추천을 만들 때 이 선택을 참고해요.
-            </div>
-          </div>
+            </span>
+          </p>
 
           {err && (
-            <div className="adj-err" role="alert">
-              <AlertCircle size={13} strokeWidth={2} />
+            <p className="adj-err" role="alert">
               {err}
-            </div>
+            </p>
           )}
         </div>
 
@@ -432,7 +430,10 @@ export default function AdjustSheet({
             onClick={onReset}
             disabled={!changed}
           >
-            <RotateCcw size={13} strokeWidth={2} />
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 5v5h5" />
+              <path d="M4.5 10A8 8 0 1 1 6 16.5" />
+            </svg>
             추천으로
           </button>
           <button
@@ -442,7 +443,9 @@ export default function AdjustSheet({
             onClick={onSave}
           >
             {saving ? '저장 중...' : '저장'}
-            <Check size={14} strokeWidth={2.6} color="#fff" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
           </button>
         </div>
       </div>
@@ -451,8 +454,33 @@ export default function AdjustSheet({
 }
 
 /**
- * 고른 레시피의 영양 단면 (DM%) + 임상 권고 위반 chip.
- * "이 선택이 영양적으로 어떤 의미" 를 즉시 보여주고, 췌장염 fat 16% 초과 같은
+ * 영양 막대의 끝 — 단백질·지방을 **같은 자**로 잰다(시안 D09: 단백질 막대가 지방보다 길다). 끝 값 55 는
+ * 4종 비교 화면 단백질 축과 같은 눈금(lib/sku-nutrition-matrix RADAR_AXIS_MAX.protein_pct).
+ * 정확한 % 를 글자로 쓰지 않고 막대 길이로만 보여 준다(성분% 노출 금지).
+ */
+const NUTRIENT_BAR_MAX = 55
+const PROTEIN_BAR_MAX = NUTRIENT_BAR_MAX
+const FAT_BAR_MAX = NUTRIENT_BAR_MAX
+
+/**
+ * 임상 권고 경고 — 엔진 라벨(nutrientPanel)은 운영용 약어·기준 출처(AAFCO·CKD·Ca:P·DM %)가 섞여 있어
+ * 고객 화면에선 같은 뜻의 쉬운 말로 바꿔 보여 준다. 판정(clinicalCheckForPanel)은 그대로다.
+ */
+const WARN_PLAIN: Record<string, string> = {
+  'protein-low': '단백질이 기준보다 적은 조합이에요',
+  'fat-low': '지방이 기준보다 적은 조합이에요',
+  'senior-protein-high': '노령견에게는 단백질이 많은 조합이에요',
+  'senior-fat-high': '노령견에게는 지방이 많은 조합이에요',
+  'pancreatitis-fat-high': '췌장염이 있는 아이에게는 지방이 많은 조합이에요',
+  'large-puppy-ca-p': '자라는 대형견에게는 칼슘이 많은 조합이에요',
+  'ca-p-low': '칼슘보다 인이 많은 조합이에요',
+  'cardiac-sodium-high': '심장이 약한 아이에게는 나트륨이 많은 조합이에요',
+  'ckd-protein-high': '신장이 약한 아이에게는 단백질이 많은 조합이에요',
+}
+
+/**
+ * 고른 레시피의 영양 단면 + 임상 권고 위반 안내.
+ * "이 선택이 영양적으로 어떤 의미" 를 즉시 보여주고, 췌장염 지방 상한 초과 같은
  * 위반이 생기면 경고.
  *
  * context 는 formula.reasoning 의 ruleId 에서 추론:
@@ -467,10 +495,12 @@ function NutrientLivePreview({
   ratios,
   formula,
   isSenior = false,
+  picks,
 }: {
   ratios: Record<FoodLine, number>
   formula: Formula
   isSenior?: boolean
+  picks: FoodLine[]
 }) {
   const panel = useMemo(() => computeNutrientPanel(ratios), [ratios])
 
@@ -505,53 +535,60 @@ function NutrientLivePreview({
     [panel, clinicalContext],
   )
 
+  const codes = new Set(check.warnings.map((w) => w.code))
+  const proteinWord = codes.has('protein-low')
+    ? '적음'
+    : [...codes].some((c) => c.endsWith('protein-high'))
+      ? '많음'
+      : '넉넉함'
+  const fatWord = codes.has('fat-low')
+    ? '적음'
+    : [...codes].some((c) => c.endsWith('fat-high'))
+      ? '많음'
+      : '알맞음'
+  const proteinW = Math.max(0, Math.min(100, (panel.proteinPctDM / PROTEIN_BAR_MAX) * 100))
+  const fatW = Math.max(0, Math.min(100, (panel.fatPctDM / FAT_BAR_MAX) * 100))
+
   return (
     <div className="adj-live">
-      {/* 담긴 레시피 stacked bar — 1칸이면 통짜, 2칸이면 반반. */}
-      <div className="adj-live-bar">
+      {/* 담긴 레시피 띠 — 1칸이면 통짜, 2칸이면 반반. */}
+      <div
+        className="adj-live-bar"
+        aria-hidden
+        style={{ gridTemplateColumns: picks.map(() => '1fr').join(' ') || '1fr' }}
+      >
         {ALL_LINES.map((k) => {
           const v = ratios[k] ?? 0
           if (v === 0) return null
-          return (
-            <i
-              key={k}
-              style={{ width: `${v * 100}%`, background: FOOD_LINE_META[k].color }}
-              title={`${FOOD_LINE_META[k].nameKo} ${Math.round(v * 100)}%`}
-            />
-          )
+          return <i key={k} style={{ background: recipeColorOfLine(k) }} />
         })}
       </div>
-      <div className="adj-live-nutri">
-        <div className="adj-live-nutri-label">영양 구성</div>
-        <div className="adj-live-nutri-grid">
-          {/* 보증성분 규칙(2026-07-18 사장님): 정확한 % 노출 금지 → 방향 보증만.
-              단백질=이상(floor), 지방=이하(ceil). [[feedback_no_exact_nutrient_percent]] */}
-          <span>
-            <small>단백질</small>
-            <b>{Math.floor(panel.proteinPctDM)}% 이상</b>
-          </span>
-          <span>
-            <small>지방</small>
-            <b>{Math.ceil(panel.fatPctDM)}% 이하</b>
-          </span>
-          <span>
-            <small>kcal/100g</small>
-            <b>{panel.kcalPer100g}</b>
-          </span>
-        </div>
-        {check.warnings.length > 0 && (
-          <div className="adj-live-warn">
-            {check.warnings.map((w) => (
-              <div key={w.code} className="adj-live-warn-row">
-                <AlertCircle size={11} strokeWidth={2.4} color="#b83a2e" />
-                <span className="adj-live-warn-label">{w.label}</span>
-                <span className="adj-live-warn-actual">{w.actual}</span>
-                <span className="adj-live-warn-target">{w.target}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="adj-live-nutri-label">영양 구성</div>
+      {/* 보증성분 규칙(2026-07-18 사장님): 정확한 % 노출 금지 → 막대로만. [[feedback_no_exact_nutrient_percent]] */}
+      <div className="adj-live-nutri-grid">
+        <span className="k">단백질</span>
+        <span className="bar" aria-label={`단백질 ${proteinWord}`}>
+          <i style={{ width: `${proteinW}%` }} />
+        </span>
+        <span className="k">지방</span>
+        <span className="bar" aria-label={`지방 ${fatWord}`}>
+          <i style={{ width: `${fatW}%` }} />
+        </span>
       </div>
+      <div className="adj-live-kcal">
+        <span>100g당 열량</span>
+        <strong>{panel.kcalPer100g}kcal</strong>
+      </div>
+      {check.warnings.length > 0 && (
+        <div className="adj-live-warn" role="note">
+          {check.warnings.map((w) => (
+            <p key={w.code} className="adj-live-warn-row">
+              {WARN_PLAIN[w.code] ?? w.label}
+            </p>
+          ))}
+          <p className="adj-live-warn-foot">이 조합으로 바꾸기 전에 수의사와 한 번 상의해 주세요.</p>
+        </div>
+      )}
     </div>
   )
 }

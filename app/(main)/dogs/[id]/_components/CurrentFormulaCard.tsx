@@ -1,13 +1,15 @@
 import Link from 'next/link'
-import { Heart, Bell, Check } from 'lucide-react'
 import { type CurrentFormula, type CheckinStatus } from './types'
 import {
   checkinDueDayOffset,
   isCheckinLinkVisible,
 } from '@/lib/personalization/cycle'
-import { recipeName } from '@/lib/personalization/format'
+import { ALL_LINES } from '@/lib/personalization/lines'
+import { recipeColorOfLine, recipeNameOfLine } from '@/components/analysis/display'
 import { todayKstIsoDate, diffDaysKst, addDaysKst } from '@/lib/datetime-kst'
 import type { Formula } from '@/lib/personalization/types'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { CheckIcon } from '@/components/v3/dog/DogIcons'
 
 /**
  * 맞춤 영양 처방 카드 — 분석 기반 **추천** 비율 + cycle 체크인.
@@ -17,7 +19,53 @@ import type { Formula } from '@/lib/personalization/types'
  * dog_formulas 의 알고리즘 추천이라, 재고·SKU 스냅으로 실제 박스와 다를 수 있다.
  * 그래서 예전 "현재 박스" 표기를 "맞춤 영양 처방(추천)"으로 고쳤다. 이 카드의 진짜
  * 역할은 ① 새 비율 승인(pending) ② cycle 체크인 D-Day 안내다.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 AppDog '맞춤 식단'): 위 2px 먹선 + 머리줄(회색 머리말 · 오른쪽
+ * 밑줄 링크 '히스토리'·'상세 →') → 레시피 색 네모 + 레시피 이름(제목 글꼴 24) → "9월 30일 시작 · 8일째"
+ * → 체크인 줄(회색 면 + 왼쪽 6px 머스타드 띠, D-N 은 숫자 글꼴) → 안내 한 줄(13px 회색).
+ * 레시피 색은 분석 화면과 같은 정본(components/analysis/display RECIPE_COLOR — 시안 닭 #D4A24C · 흑돼지 #2E3338).
  */
+
+/** 체크인 D-Day 글자 — 오늘 / N일 지남 / D-N. */
+function dueText(dueIn: number): string {
+  return dueIn === 0 ? '오늘' : dueIn < 0 ? `${-dueIn}일 지남` : `D-${dueIn}`
+}
+
+/** 체크인 한 줄 — 회색 면 + 왼쪽 머스타드 띠(시안). */
+function CheckinRow({ href, label, dueIn }: { href: string; label: string; dueIn: number }) {
+  const text = dueText(dueIn)
+  return (
+    <Link
+      href={href}
+      style={{
+        height: 52,
+        boxSizing: 'border-box',
+        padding: '0 14px',
+        borderRadius: V3Radius.sm,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: 16,
+        fontWeight: 800,
+        color: V3.ink,
+        textDecoration: 'none',
+        background: V3.soft,
+        borderLeft: `6px solid ${V3.mustard}`,
+      }}
+    >
+      <span>
+        {label}{' '}
+        {text.startsWith('D-') ? (
+          <span className="ft-num">{text}</span>
+        ) : (
+          <span>{text}</span>
+        )}
+      </span>
+      <span aria-hidden>→</span>
+    </Link>
+  )
+}
+
 export default function CurrentFormulaCard({
   formula,
   checkinStatus,
@@ -50,134 +98,141 @@ export default function CurrentFormulaCard({
 
   const isPending = formula.approval_status === 'pending_approval'
 
+  // 레시피 — 비율 큰 것부터 두 가지(lib/personalization/format recipeName 과 같은 순서·같은 '맞춤' 폴백).
+  // 이름은 박스·주문·분석 화면과 같은 말(닭고기·오리·흑돼지·한우 — components/analysis/display 정본).
+  // 예전 recipeName 은 엔진 이름('치킨')을 썼다 — 시안·박스 이름은 '닭고기'.
+  const ratios = (formula.formula as unknown as Formula).lineRatios ?? {}
+  const lines = ALL_LINES.filter((l) => (ratios[l] ?? 0) > 0)
+    .sort((a, b) => (ratios[b] ?? 0) - (ratios[a] ?? 0))
+    .slice(0, 2)
+  const recipeLabel = `${lines.length > 0 ? lines.map(recipeNameOfLine).join('·') : '맞춤'} 레시피`
+
   return (
-    <section className="px-5 mt-3">
-      <div
-        className={`rounded p-5 ${
-          isPending
-            ? 'bg-terracotta/5 border-2 border-terracotta/30'
-            : 'bg-bg-3 border border-rule'
-        }`}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Heart
-              className={`w-3.5 h-3.5 ${isPending ? 'text-terracotta' : 'text-moss'}`}
-              strokeWidth={2}
-            />
-            <span className="kicker">
-              {isPending
-                ? '동의 필요 · 새 박스'
-                : // 회차 번호는 박스 번호가 아니다(회차 1개 = 박스 3개) — '번째 식단'.
-                  `맞춤 식단 · ${formula.cycle_number}번째 식단`}
+    <section
+      aria-label="맞춤 식단"
+      style={{
+        margin: '26px 20px 0',
+        borderTop: `2px solid ${V3.ink}`,
+        paddingTop: 14,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: isPending ? V3.sale : V3.inkMute }}>
+            {isPending
+              ? '동의 필요 · 새 박스'
+              : // 회차 번호는 박스 번호가 아니다(회차 1개 = 박스 3개) — '번째 식단'.
+                `맞춤 식단 · ${formula.cycle_number}번째 식단`}
+          </span>
+          {formula.user_adjusted && (
+            <span
+              style={{
+                height: 24,
+                padding: '0 7px',
+                borderRadius: V3Radius.sm,
+                background: V3.soft,
+                fontSize: 13,
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              직접 조정
             </span>
-            {formula.user_adjusted && (
-              <span className="text-[9px] font-bold text-terracotta px-1.5 py-0.5 rounded-full bg-terracotta/10">
-                직접 조정
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/dogs/${dogId}/formulas`}
-              className="text-[10.5px] text-muted hover:text-text"
-            >
-              히스토리
-            </Link>
-            <Link
-              href={`/dogs/${dogId}/analysis`}
-              className="text-[10.5px] font-bold text-terracotta"
-            >
-              상세 →
-            </Link>
-          </div>
-        </div>
+          )}
+        </span>
+        <span style={{ display: 'flex', gap: 14, fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+          <Link href={`/dogs/${dogId}/formulas`} style={{ color: V3.ink, textDecoration: 'underline' }}>
+            히스토리
+          </Link>
+          <Link href={`/dogs/${dogId}/analysis`} style={{ color: V3.ink, textDecoration: 'underline' }}>
+            상세 →
+          </Link>
+        </span>
+      </div>
 
-        {/* 추천 식단임을 명시 — 실제 받는 박스와 헷갈리지 않게. */}
-        <p className="text-[10px] text-muted mb-2 leading-snug">
-          {isPending
-            ? '새로 추천된 맞춤 식단이에요'
-            : '분석 기반 추천 식단 · 실제 받는 박스는 아래 정기배송 카드에서 확인하세요'}
-        </p>
+      {/* 원물 레시피명(박스=2종 반반, %·라인명 없이 — 알림/이메일과 톤 통일).
+          사장님 2026-07-23 Option A. */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {lines.length > 0 && (
+          <span aria-hidden style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+            {lines.map((l) => (
+              <span key={l} style={{ width: 14, height: 14, background: recipeColorOfLine(l) }} />
+            ))}
+          </span>
+        )}
+        <span className="ft-poster" style={{ fontSize: 24, wordBreak: 'keep-all' }}>
+          {recipeLabel}
+        </span>
+      </span>
 
-        {/* 원물 레시피명(박스=2종 반반, %·라인명 없이 — 알림/이메일과 톤 통일).
-            사장님 2026-07-23 Option A. */}
-        <p className="text-[14px] font-bold text-ink mt-1 mb-3 leading-snug">
-          {recipeName(formula.formula as unknown as Formula)}
-        </p>
-
-        {/* 다음 액션 — pending 우선, 그 다음 checkin D-Day */}
-        {isPending ? (
+      {/* 다음 액션 — pending 우선, 그 다음 checkin D-Day */}
+      {isPending ? (
+        <>
+          <span style={{ fontSize: 15, color: V3.inkSoft }}>새로 추천된 맞춤 식단이에요</span>
           <Link
             href={`/dogs/${dogId}/approve?cycle=${formula.cycle_number}`}
-            className="block w-full py-3 px-4 rounded bg-terracotta text-white text-[12px] font-bold text-center transition-transform active:scale-[0.98]"
+            style={{
+              height: 52,
+              borderRadius: V3Radius.sm,
+              background: V3.ink,
+              color: '#FFFFFF',
+              fontSize: 16,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+            }}
           >
             새 비율 확인하기 →
           </Link>
-        ) : (
-          <div className="space-y-1.5">
-            {/* 예전 '다음 박스 D-N'은 식단 적용 **종료일**(42일 뒤)까지를 셌다 — 실제 다음
-                박스는 정기배송 카드가 보여준다. 여기선 이 식단이 언제 시작하는지만. */}
-            {daysIntoCycle !== null && startLabel !== null && (
-              <div className="flex items-center justify-between text-[10.5px] py-1.5 px-3 rounded-lg bg-bg">
-                <span className="text-muted">
-                  {formula.cycle_number}번째 식단
-                </span>
-                <span className="font-bold text-text">
-                  {daysIntoCycle < 0
-                    ? `${startLabel} 박스부터 시작`
-                    : `${startLabel} 시작 · ${daysIntoCycle + 1}일째`}
-                </span>
-              </div>
-            )}
-            {week2DueIn !== null && isCheckinLinkVisible(week2DueIn) && (
-              <Link
-                href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_2`}
-                className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-moss/8 hover:bg-moss/14 transition-colors"
-              >
-                <span className="font-bold text-moss inline-flex items-center gap-1.5">
-                  <Bell className="w-3 h-3" strokeWidth={2.5} />
-                  2주차 체크인
-                </span>
-                <span className="text-[10.5px] text-moss font-bold">
-                  {week2DueIn === 0
-                    ? '오늘'
-                    : week2DueIn < 0
-                      ? `${-week2DueIn}일 지남`
-                      : `D-${week2DueIn}`}{' '}
-                  →
-                </span>
-              </Link>
-            )}
-            {week4DueIn !== null && isCheckinLinkVisible(week4DueIn) && (
-              <Link
-                href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_4`}
-                className="flex items-center justify-between text-[12px] py-2 px-3 rounded-lg bg-terracotta/8 hover:bg-terracotta/14 transition-colors"
-              >
-                <span className="font-bold text-terracotta inline-flex items-center gap-1.5">
-                  <Bell className="w-3 h-3" strokeWidth={2.5} />
-                  4주차 종합 체크인
-                </span>
-                <span className="text-[10.5px] text-terracotta font-bold">
-                  {week4DueIn === 0
-                    ? '오늘'
-                    : week4DueIn < 0
-                      ? `${-week4DueIn}일 지남`
-                      : `D-${week4DueIn}`}{' '}
-                  →
-                </span>
-              </Link>
-            )}
-            {checkinStatus.week_2 && checkinStatus.week_4 && (
-              <div className="flex items-center justify-center text-[10.5px] py-1.5 text-muted">
-                <Check className="w-3 h-3 text-moss mr-1" strokeWidth={2.5} />
-                이번 박스 체크인 모두 완료
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        </>
+      ) : (
+        <>
+          {/* 예전 '다음 박스 D-N'은 식단 적용 **종료일**(42일 뒤)까지를 셌다 — 실제 다음
+              박스는 정기배송 카드가 보여준다. 여기선 이 식단이 언제 시작하는지만. */}
+          {daysIntoCycle !== null && startLabel !== null && (
+            <span style={{ fontSize: 15, color: V3.inkSoft }}>
+              {daysIntoCycle < 0 ? (
+                `${startLabel} 박스부터 시작`
+              ) : (
+                <>
+                  {startLabel} 시작 · <strong style={{ fontWeight: 800, color: V3.ink }}>{daysIntoCycle + 1}일째</strong>
+                </>
+              )}
+            </span>
+          )}
+          {week2DueIn !== null && isCheckinLinkVisible(week2DueIn) && (
+            <CheckinRow
+              href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_2`}
+              label="2주차 체크인"
+              dueIn={week2DueIn}
+            />
+          )}
+          {week4DueIn !== null && isCheckinLinkVisible(week4DueIn) && (
+            <CheckinRow
+              href={`/dogs/${dogId}/checkin?cycle=${formula.cycle_number}&checkpoint=week_4`}
+              label="4주차 종합 체크인"
+              dueIn={week4DueIn}
+            />
+          )}
+          {checkinStatus.week_2 && checkinStatus.week_4 && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: V3.inkSoft }}>
+              <CheckIcon size={16} />
+              이번 박스 체크인 모두 완료
+            </span>
+          )}
+          {/* 추천 식단임을 명시 — 실제 받는 박스와 헷갈리지 않게. */}
+          <span style={{ fontSize: 13, lineHeight: 1.5, color: V3.inkMute }}>
+            분석으로 고른 식단이에요. 실제로 받는 박스는 아래 정기배송에서 확인하세요.
+          </span>
+        </>
+      )}
     </section>
   )
 }
-

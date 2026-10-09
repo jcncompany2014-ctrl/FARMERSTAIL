@@ -1,16 +1,7 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import {
-  Database,
-  Download,
-  FileText,
-  Shield,
-  AlertTriangle,
-} from 'lucide-react'
-import { business } from '@/lib/business'
-import ConsentLevelCard from '@/components/ConsentLevelCard'
+import PrivacyView from './PrivacyView'
 
 export const metadata: Metadata = {
   title: '내 데이터 (개인정보 열람권)',
@@ -30,6 +21,10 @@ export const dynamic = 'force-dynamic'
  *   3) "수정·삭제" — profile / addresses / dogs 등 편집 페이지로 직링크
  *   4) "처리정지·탈퇴" — /mypage/delete 안내
  *   5) "DPO 연락처" — 직접 문의가 필요할 때
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M15): 그리는 부분을 PrivacyView 로 뺐다(점검 화면이 예시 값으로 같은
+ * 화면을 그린다). 그리고 폐지된 포인트(2026-07-16 전면 폐기)의 '포인트 이력' 개수를 목록에서 뺐다(앱시안 결정) —
+ * 쌓일 곳이 없는 항목을 '가지고 있는 내 정보'로 세지 않는다. 내려받기 파일(/api/privacy/export)은 그대로다.
  */
 export default async function PrivacyDashboardPage() {
   const supabase = await createClient()
@@ -50,7 +45,6 @@ export default async function PrivacyDashboardPage() {
       ['addresses', 'addresses'],
       ['orders', 'orders'],
       ['subscriptions', 'subscriptions'],
-      ['point_ledger', 'point_ledger'],
       ['consent_log', 'consent_log'],
     ].map(async ([table, label]) => {
       // audit #79: dynamic table 이름 → typed from() 호환 X. untyped cast.
@@ -73,8 +67,6 @@ export default async function PrivacyDashboardPage() {
     }),
   )
 
-  const totalRows = counts.reduce((s, c) => s + c.count, 0)
-
   // P13 — 현재 동의 단계 fetch
   const { data: profileRow } = await supabase
     .from('profiles')
@@ -84,180 +76,5 @@ export default async function PrivacyDashboardPage() {
   const consentLevel = ((profileRow as { consent_level?: number } | null)
     ?.consent_level ?? 1) as 1 | 2 | 3 | 4
 
-  return (
-    <div className="px-5 pb-24 pt-4 max-w-2xl mx-auto">
-      <div className="flex items-center gap-2 mb-1">
-        <Shield className="w-3.5 h-3.5 text-terracotta" strokeWidth={2} />
-        <span className="kicker">개인정보</span>
-      </div>
-      <p
-        className="text-[13.5px] mt-1.5 leading-relaxed"
-        style={{ color: 'var(--muted-strong)' }}
-      >
-        개인정보보호법 제35조에 따라 회원님의 개인정보 처리 현황을 열람·다운로드·
-        정정·삭제하실 수 있어요.
-      </p>
-
-      {/* P13 — 단계적 동의 4단계 UI (B-92, B-94) */}
-      <div className="mt-6">
-        <ConsentLevelCard initialLevel={consentLevel} />
-      </div>
-
-      {/* 보유 항목 카운트 */}
-      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Database className="w-3.5 h-3.5 text-text" strokeWidth={2} />
-          <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
-            보유 항목 ({totalRows.toLocaleString()}건)
-          </h2>
-        </div>
-        <ul className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1.5">
-          {counts.map((c) => (
-            <li
-              key={c.label}
-              className="flex items-baseline justify-between text-[12px]"
-            >
-              <span className="text-text">{TABLE_LABEL[c.label] ?? c.label}</span>
-              <span className="font-mono text-muted tabular-nums">
-                {c.count}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* JSON 다운로드 */}
-      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Download className="w-3.5 h-3.5 text-text" strokeWidth={2} />
-          <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
-            전체 데이터 다운로드
-          </h2>
-        </div>
-        <p
-          className="text-[12px] leading-relaxed mb-4"
-          style={{ color: 'var(--text)' }}
-        >
-          제 정보를 JSON 파일로 한 번에 다운로드할 수 있어요. 결제 토큰 등 보안
-          민감 항목은 자동으로 제외돼요.
-        </p>
-        <a
-          href="/api/privacy/export"
-          download
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-ink text-white text-[12px] font-bold active:scale-[0.98] transition"
-        >
-          <Download className="w-3.5 h-3.5" strokeWidth={2.5} />
-          JSON 파일 받기
-        </a>
-        <p
-          className="text-[10.5px] mt-3 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          ※ 다운로드는 분당 1회로 제한돼요 (서버 보호).
-        </p>
-      </section>
-
-      {/* 정정 · 삭제 — 정보 편집 직링크 */}
-      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <FileText className="w-3.5 h-3.5 text-text" strokeWidth={2} />
-          <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
-            정정·삭제 (제36조)
-          </h2>
-        </div>
-        <ul className="space-y-2">
-          {EDIT_LINKS.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-bg hover:bg-bg-2 transition"
-              >
-                <span className="text-[12px] font-bold text-text">
-                  {link.label}
-                </span>
-                <span className="text-[10.5px] text-muted">→</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* 처리정지 / 탈퇴 */}
-      <section className="mt-4 bg-bg-3 rounded border border-rule p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className="w-3.5 h-3.5 text-sale" strokeWidth={2} />
-          <h2 className="text-[12px] font-bold uppercase tracking-widest text-muted">
-            처리정지·탈퇴 (제37조)
-          </h2>
-        </div>
-        <p
-          className="text-[12px] leading-relaxed mb-3"
-          style={{ color: 'var(--text)' }}
-        >
-          모든 데이터 처리 중단 + 탈퇴는 한 번에 진행할 수 있어요. 전자상거래법
-          제6조에 따라 거래 기록은 5년간 보관됨을 안내드려요.
-        </p>
-        <Link
-          href="/mypage/delete"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-sale text-sale text-[12px] font-bold hover:bg-sale hover:text-white transition"
-        >
-          탈퇴 절차로 이동
-        </Link>
-      </section>
-
-      {/* DPO */}
-      <section className="mt-4 bg-bg-2 rounded p-5">
-        <p
-          className="text-[10.5px] uppercase tracking-widest font-bold mb-2"
-          style={{ color: 'var(--muted)' }}
-        >
-          DPO · 개인정보 보호책임자
-        </p>
-        <p
-          className="text-[12px] leading-relaxed"
-          style={{ color: 'var(--text)' }}
-        >
-          {business.privacyOfficer} ·{' '}
-          <a
-            href={`mailto:${business.privacyOfficerEmail}`}
-            className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--terracotta)' }}
-          >
-            {business.privacyOfficerEmail}
-          </a>
-          {business.phone ? ` · ${business.phone}` : ''}
-        </p>
-        <p
-          className="text-[10.5px] mt-2 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          위 화면에서 해결되지 않는 요청 (제3자 제공 내역, 가족 사망 시 처리,
-          분쟁조정 등) 은 책임자에게 직접 연락해 주세요.
-        </p>
-      </section>
-    </div>
-  )
+  return <PrivacyView counts={counts} consentLevel={consentLevel} />
 }
-
-const TABLE_LABEL: Record<string, string> = {
-  dogs: '반려견 프로필',
-  surveys: '설문 응답',
-  analyses: '영양 분석',
-  weight_logs: '체중 기록',
-  health_logs: '건강 기록',
-  dog_reminders: '리마인더',
-  addresses: '저장된 주소',
-  orders: '주문 내역',
-  subscriptions: '정기배송',
-  reviews: '작성한 리뷰',
-  point_ledger: '포인트 이력',
-  consent_log: '마케팅 동의 이력',
-}
-
-const EDIT_LINKS = [
-  { href: '/account/profile', label: '프로필 수정 (이름·전화·생일)' },
-  { href: '/mypage/addresses', label: '저장된 배송지 관리' },
-  { href: '/dogs', label: '반려견 정보 수정 / 삭제' },
-  { href: '/mypage/consent', label: '마케팅 수신 동의 변경' },
-  { href: '/mypage/notifications', label: '알림 설정 (푸시·이메일)' },
-] as const

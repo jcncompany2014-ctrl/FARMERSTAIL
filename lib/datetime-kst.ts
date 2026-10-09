@@ -133,6 +133,45 @@ export function formatKstShortDateTime(iso: string | null | undefined): string {
   return `${p.month}.${p.day} ${p.hour}:${p.minute}`
 }
 
+/**
+ * 숫자만 뽑는 포맷터(KST, 24시간). '오전/오후' 는 여기서 붙인다 —
+ *
+ * # 왜 (2026-10-09 앱 영수증 점검)
+ * `toLocaleString('ko-KR', { hour: '2-digit' })` 의 오전/오후 글자는 실행 환경 ICU 가 정한다. 이 PC 의
+ * Node(ICU 78)는 **"AM 07:00"** 을 냈다 — 서버에서 그리는 영수증·주문 상세에 영어가 섞인다. 브라우저는
+ * "오전" 을 내서 같은 화면이 서버/클라이언트로 갈리기도 한다(위 KST_DATETIME_FMT 를 만든 이유와 같다).
+ * hourCycle 'h23' — hour12:false 는 엔진에 따라 자정을 "24" 로 낸 적이 있다.
+ */
+const KST_NUM_FMT = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** ISO → KST { date: "2026. 09. 26.", time: "오전 07:00" } — 영수증·주문 상세(앱)의 한국어 날짜. 잘못된 값은 null. */
+export function kstKoDateTimeParts(iso: string | null | undefined): { date: string; time: string } | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const p = kstParts(KST_NUM_FMT, d)
+  const h = Number(p.hour) % 24
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return {
+    date: `${p.year}. ${p.month}. ${p.day}.`,
+    time: `${h < 12 ? '오전' : '오후'} ${String(h12).padStart(2, '0')}:${p.minute}`,
+  }
+}
+
+/** ISO → KST "2026. 09. 26. 오전 07:00". null/invalid → '-'. */
+export function formatKstKoDateTime(iso: string | null | undefined): string {
+  const p = kstKoDateTimeParts(iso)
+  return p ? `${p.date} ${p.time}` : '-'
+}
+
 /** ISO timestamp → KST "yyyy.mm.dd". null/invalid → '-'. */
 export function formatKstDate(iso: string | null | undefined): string {
   if (!iso) return '-'

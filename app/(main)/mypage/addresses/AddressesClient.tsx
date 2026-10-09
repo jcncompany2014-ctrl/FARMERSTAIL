@@ -5,6 +5,12 @@
  *
  * 비즈니스 로직(낙관적 update + 기본 설정/삭제) 그대로.
  * 시각: paperHi 카드 + Mono kicker (기본 vs Saved) + 1px rule footer 액션.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 M01 배송지): 웹 프로필(/account/profile 웹 화면)도 이 부품을 쓰므로
+ *   **isApp 일 때만** 새 모양으로 그린다 — 웹(isApp=false)은 아래 옛 마크업 그대로(한 픽셀도 안 바뀜).
+ *   · 기본 배송지 = 회색 면 + 왼쪽 6px 머스타드 띠 + "기본 배송지" 먹색 표, 나머지 = 1px 회색 테두리.
+ *   · 삭제 확인 = 공용 확인 창(useConfirm 의 ConfirmSheet, 시안 D03) — 이 화면은 (main) 밖이라 ConfirmProvider 가
+ *     없어서 그리는 부분만 가져다 쓴다. 저장·삭제·기본 설정 로직은 두 모양이 같은 함수를 쓴다.
  */
 
 import { useState, useTransition } from 'react'
@@ -15,6 +21,9 @@ import type { Address } from '@/lib/commerce/addresses'
 import { useToast } from '@/components/ui/Toast'
 import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
 import { Mono, Modal, Badge } from '@/components/v3'
+import { ConfirmSheet } from '@/components/v3/useConfirm'
+import { Chip } from '@/components/v3/me/MeParts'
+import { PencilIcon, TrashIcon } from '@/components/v3/me/MeIcons'
 
 /**
  * `isApp=false` 로 렌더되면 편집 링크를 **앱 안내로** 바꾼다 (2026-07-31).
@@ -80,6 +89,24 @@ export default function AddressesClient({
       setBusyId(null)
       setDeleting(null)
     }
+  }
+
+  if (isApp) {
+    return (
+      <AppList
+        list={list}
+        busyId={busyId}
+        pending={pending}
+        deleting={deleting}
+        onSetDefault={handleSetDefault}
+        onAskDelete={setDeleting}
+        onCancelDelete={() => {
+          if (busyId === deleting?.id) return
+          setDeleting(null)
+        }}
+        onConfirmDelete={() => deleting && void performDelete(deleting.id)}
+      />
+    )
   }
 
   return (
@@ -299,5 +326,137 @@ export default function AddressesClient({
         </Modal.Footer>
       </Modal>
     </section>
+  )
+}
+
+/** 앱 모양 배송지 목록(시안 M01) — 상태·동작은 위 AddressesClient 가 들고 넘긴다. */
+function AppList({
+  list,
+  busyId,
+  pending,
+  deleting,
+  onSetDefault,
+  onAskDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  list: Address[]
+  busyId: string | null
+  pending: boolean
+  deleting: Address | null
+  onSetDefault: (id: string) => void
+  onAskDelete: (a: Address) => void
+  onCancelDelete: () => void
+  onConfirmDelete: () => void
+}) {
+  const action = {
+    height: 52,
+    boxSizing: 'border-box' as const,
+    border: 0,
+    background: 'transparent',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 800,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    textDecoration: 'none',
+    cursor: 'pointer',
+  }
+  const divider = `1px solid ${V3.rule}`
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {list.map((a) => {
+        const busy = busyId === a.id || pending
+        return (
+          <article
+            key={a.id}
+            style={
+              a.isDefault
+                ? {
+                    borderRadius: V3Radius.sm,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: V3.soft,
+                    borderLeft: `6px solid ${V3.mustard}`,
+                  }
+                : { border: divider, borderRadius: V3Radius.sm, display: 'flex', flexDirection: 'column' }
+            }
+          >
+            <div style={{ padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {(a.isDefault || a.label) && (
+                <span style={{ display: 'flex', gap: 6 }}>
+                  {a.isDefault && <Chip tone="ink">기본 배송지</Chip>}
+                  {a.label && <Chip tone={a.isDefault ? 'white' : 'soft'}>{a.label}</Chip>}
+                </span>
+              )}
+              <span style={{ marginTop: 4, fontSize: 18, fontWeight: 800 }}>{a.recipientName}</span>
+              <span style={{ fontSize: 15, color: V3.inkMute }}>{a.phone}</span>
+              <span style={{ fontSize: 16, lineHeight: 1.55 }}>
+                [{a.zip}] {a.address}
+                {a.addressDetail && (
+                  <>
+                    <br />
+                    {a.addressDetail}
+                  </>
+                )}
+              </span>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${a.isDefault ? 2 : 3}, minmax(0, 1fr))`,
+                borderTop: divider,
+              }}
+            >
+              {!a.isDefault && (
+                <button
+                  type="button"
+                  onClick={() => onSetDefault(a.id)}
+                  disabled={busy}
+                  style={{ ...action, borderRight: divider, color: V3.ink, opacity: busy ? 0.5 : 1 }}
+                >
+                  기본으로
+                </button>
+              )}
+              <Link href={`/mypage/addresses/${a.id}/edit`} style={{ ...action, borderRight: divider, color: V3.ink }}>
+                <PencilIcon size={17} />
+                수정
+              </Link>
+              <button
+                type="button"
+                onClick={() => onAskDelete(a)}
+                disabled={busy}
+                style={{ ...action, color: V3.sale, opacity: busy ? 0.5 : 1 }}
+              >
+                <TrashIcon size={17} />
+                삭제
+              </button>
+            </div>
+          </article>
+        )
+      })}
+
+      {/* R10-3b: 배송지 삭제 확인 — confirm() 대체. 공용 확인 창(D03)과 같은 모양. */}
+      <ConfirmSheet
+        open={deleting !== null}
+        title="배송지를 삭제할까요?"
+        body={
+          deleting ? (
+            <>
+              <strong style={{ fontWeight: 800, color: V3.ink }}>{deleting.label || deleting.address}</strong> 삭제 후에는
+              되돌릴 수 없어요.
+            </>
+          ) : undefined
+        }
+        confirmLabel="삭제"
+        tone="destructive"
+        busy={busyId !== null && busyId === deleting?.id}
+        busyLabel="삭제 중…"
+        onCancel={onCancelDelete}
+        onConfirm={onConfirmDelete}
+      />
+    </div>
   )
 }

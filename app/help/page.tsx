@@ -12,6 +12,18 @@ import {
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { business } from '@/lib/business'
 import { isAppContextServer } from '@/lib/app-context'
+import type { ReactNode } from 'react'
+import { V3 } from '@/lib/design/tokens'
+import { SCREEN_ROOT } from '@/components/v3/me/MeParts'
+import {
+  BuildingIcon,
+  ExternalIcon,
+  MailIcon,
+  PhoneIcon,
+  QuestionIcon,
+  TalkIcon,
+  TermsIcon,
+} from '@/components/v3/me/MeIcons'
 
 /**
  * /help — 고객센터 허브 (토스식, 2026-07-16 사장님).
@@ -19,6 +31,10 @@ import { isAppContextServer } from '@/lib/app-context'
  * 이전엔 마이페이지 '고객센터' 가 /business(사업자 정보) 로 바로 튀었다. 대신 여기에
  * "무엇을 도와드릴까요?" 허브를 두고 ① 자주 묻는 질문 ② 문의 ③ 사업자 정보를
  * 그 안의 요소로 모은다. AuthAwareShell 로 앱에선 앱 chrome(웹으로 안 넘어감).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M18): 앱이면 HelpAppView — 큰 제목(제목 글꼴 32) + 위 2px 먹선 목록
+ * (줄 높이 76 · 동그라미 그림 44). 카카오톡 문의는 먹색 동그라미 + '앱 밖으로 열려요' 그림. 문의 창구 분기(아래)는 그대로.
+ * 웹 마크업은 그대로 — 한 픽셀도 바꾸지 않았다(AGENTS.md R14).
  */
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +89,14 @@ export default async function HelpPage() {
   const kakaoUrl = business.kakaoChannelUrl
   const inquiryToKakao = isApp && !!kakaoUrl
   const inquiryHref = inquiryToKakao ? kakaoUrl! : '/contact'
+
+  if (isApp) {
+    return (
+      <AuthAwareShell>
+        <HelpAppView inquiryHref={inquiryHref} inquiryToKakao={inquiryToKakao} />
+      </AuthAwareShell>
+    )
+  }
 
   return (
     <AuthAwareShell>
@@ -149,5 +173,161 @@ export default async function HelpPage() {
         </section>
       </main>
     </AuthAwareShell>
+  )
+}
+
+/** 고객센터 — 앱 모양(시안 M18). */
+function HelpAppView({ inquiryHref, inquiryToKakao }: { inquiryHref: string; inquiryToKakao: boolean }) {
+  return (
+    <main style={SCREEN_ROOT}>
+      <section style={{ padding: '26px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <h2 style={{ margin: 0, fontSize: 32, lineHeight: 1.15 }}>무엇을 도와드릴까요?</h2>
+        <p style={{ margin: 0, fontSize: 16, color: V3.inkSoft }}>영업일에는 24시간 안에 답변드려요.</p>
+      </section>
+
+      {/* 상담 없이 해결 */}
+      <section aria-labelledby="help-self" style={{ padding: '30px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h3 id="help-self" style={{ margin: 0, fontSize: 15, fontWeight: 800, color: V3.inkMute }}>
+          상담 없이 해결할 수 있어요
+        </h3>
+        <div style={{ marginTop: 10, borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
+          <HelpRow href="/faq" icon={<QuestionIcon size={21} color={V3.ink} />} label="자주 묻는 질문" sub="식단 · 배송 · 결제 · 정기배송" />
+        </div>
+      </section>
+
+      {/* 문의 */}
+      <section aria-labelledby="help-ask" style={{ padding: '30px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h3 id="help-ask" style={{ margin: 0, fontSize: 15, fontWeight: 800, color: V3.inkMute }}>
+          직접 문의하기
+        </h3>
+        <div style={{ marginTop: 10, borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
+          <HelpRow
+            href={inquiryHref}
+            external={inquiryToKakao}
+            dark={inquiryToKakao}
+            icon={<TalkIcon size={21} />}
+            label={inquiryToKakao ? '카카오톡으로 문의' : '1:1 문의 남기기'}
+            sub={inquiryToKakao ? '카카오톡 채널로 바로 연결돼요' : undefined}
+          />
+          <HelpRow
+            href={`tel:${business.phone.replace(/[^0-9]/g, '')}`}
+            external
+            icon={<PhoneIcon size={20} color={V3.ink} />}
+            label="전화 문의"
+            sub={business.phone}
+          />
+          <HelpRow
+            href={`mailto:${business.email}`}
+            external
+            icon={<MailIcon size={20} color={V3.ink} />}
+            label="이메일 문의"
+            sub={business.email}
+          />
+        </div>
+      </section>
+
+      {/* 하단 — 사업자정보 · 약관 */}
+      <nav aria-label="회사·약관" style={{ margin: '30px 20px 0', borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
+        <FootRow href="/business" icon={<BuildingIcon size={22} />} label="사업자 정보" />
+        <FootRow href="/legal" icon={<TermsIcon size={22} />} label="이용약관 · 개인정보처리방침" />
+      </nav>
+    </main>
+  )
+}
+
+function HelpRow({
+  href,
+  icon,
+  label,
+  sub,
+  external,
+  dark,
+}: {
+  href: string
+  icon: ReactNode
+  label: string
+  sub?: string
+  /** 앱 밖(카카오톡·전화·메일)으로 나가는 줄 — <a>. 카카오톡만 '앱 밖으로 열려요' 그림을 단다(dark). */
+  external?: boolean
+  dark?: boolean
+}) {
+  const style = {
+    minHeight: 76,
+    boxSizing: 'content-box' as const,
+    borderBottom: `1px solid ${V3.rule}`,
+    display: 'grid',
+    gridTemplateColumns: dark ? '44px 1fr 18px' : '44px 1fr 14px',
+    columnGap: 14,
+    alignItems: 'center',
+    color: V3.ink,
+    textDecoration: 'none',
+  }
+  const inner = (
+    <>
+      <span
+        aria-hidden
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          background: dark ? V3.ink : V3.soft,
+          color: dark ? '#FFFFFF' : V3.ink,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <span style={{ fontSize: 17, fontWeight: 800 }}>{label}</span>
+        {sub && <span style={{ fontSize: 15, color: V3.inkMute }}>{sub}</span>}
+      </span>
+      {dark ? (
+        <span role="img" aria-label="앱 밖으로 열려요">
+          <ExternalIcon size={18} />
+        </span>
+      ) : (
+        <span aria-hidden style={{ fontSize: 20 }}>
+          ›
+        </span>
+      )}
+    </>
+  )
+  return external ? (
+    <a href={href} style={style}>
+      {inner}
+    </a>
+  ) : (
+    <Link href={href} style={style}>
+      {inner}
+    </Link>
+  )
+}
+
+function FootRow({ href, icon, label }: { href: string; icon: ReactNode; label: string }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        minHeight: 64,
+        boxSizing: 'content-box',
+        borderBottom: `1px solid ${V3.rule}`,
+        display: 'grid',
+        gridTemplateColumns: '24px 1fr 14px',
+        columnGap: 12,
+        alignItems: 'center',
+        fontSize: 17,
+        fontWeight: 800,
+        color: V3.ink,
+        textDecoration: 'none',
+      }}
+    >
+      {icon}
+      {label}
+      <span aria-hidden style={{ fontSize: 20, fontWeight: 400 }}>
+        ›
+      </span>
+    </Link>
   )
 }

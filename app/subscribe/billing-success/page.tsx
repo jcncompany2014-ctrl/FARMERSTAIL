@@ -22,6 +22,9 @@ import {
 import { useIsAppContext } from '@/lib/app-context-client'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 import { NO_CANCEL_CONSENT_PARAM } from '@/lib/payments/no-cancel-consent'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import AppResultScreen, { PayMethodChip, ResultAction } from '@/components/v3/billing/AppResultScreen'
+import { V3 } from '@/lib/design/tokens'
 
 /**
  * /subscribe/billing-success
@@ -101,7 +104,9 @@ function BillingSuccessInner() {
   // 웹/앱 목적지가 다르다 — 앱 전용 경로로 보내면 웹 사용자가 '/app-required'
   // 벽을 맞는다(등록은 끝났는데 확인할 데가 없어진다).
   const isApp = useIsAppContext()
-  const subsHref = billingReturnHref(isApp)
+  // 모양만 — 서버 판정(app/subscribe/layout.tsx). 이동 주소도 함께 본다(클라이언트 판정은 마운트 직후 잠깐 false).
+  const appLook = useServerAppContext()
+  const subsHref = billingReturnHref(isApp || appLook)
   const authKey = params.get('authKey')
   const customerKey = params.get('customerKey')
   const subscriptionId = params.get('subscriptionId')
@@ -286,6 +291,94 @@ function BillingSuccessInner() {
       cancelled = true
     }
   }, [authKey, customerKey, subscriptionId, isInvalidEntry, method.id, noCancelConsent])
+
+  // 실패 화면의 첫째 버튼 — 원인별(아래 웹 화면과 같은 판정·같은 주소, 2026-08-14 4라운드 감사).
+  const failPrimary: { href: string; label: string } =
+    failKind === 'auth'
+      ? {
+          href:
+            subscriptionId && customerKey
+              ? `/login?next=${encodeURIComponent(billingAuthFallbackHref({ subscriptionId, customerKey }))}`
+              : '/login',
+          label: '로그인하고 이어서 등록하기',
+        }
+      : failKind === 'gone'
+        ? { href: isApp || appLook ? '/dogs' : '/account/dogs', label: '다시 신청하기' }
+        : failKind === 'already'
+          ? { href: subsHref, label: '등록된 결제수단 확인하기' }
+          : {
+              href: subscriptionId && customerKey ? billingAuthFallbackHref({ subscriptionId, customerKey }) : subsHref,
+              label: '다시 시도하기',
+            }
+
+  if (appLook) {
+    // ── 앱 모양(캔버스 S34·S35·S36) — 상태·판정·주소는 위 그대로. ──────────────────────────
+    if (status === 'exchanging') {
+      return (
+        <AppResultScreen
+          mark="spin"
+          title="등록 처리 중이에요"
+          body={
+            <>
+              잠시만 기다려 주세요.
+              <br />
+              <strong style={{ fontWeight: 800, color: V3.ink }}>페이지를 닫지 마세요.</strong>
+            </>
+          }
+        />
+      )
+    }
+    if (status === 'succeeded') {
+      const chipText = [card?.brand, card?.last4 ? `····${card.last4}` : null].filter(Boolean).join(' ')
+      return (
+        <AppResultScreen
+          mark="done"
+          title={method.doneTitle}
+          chip={chipText ? <PayMethodChip text={chipText} /> : undefined}
+          body={
+            <>
+              {/* 결제일은 고객마다 다르다 — 웹과 같이 두 경우 모두 참인 "보내기 전"으로만. 앱엔 '마이페이지'가 없다
+                  (앱시안 결정 3번 '동작') — 하단 탭 이름 '정기배송'으로. */}
+              2주마다 박스를 보내기 전에
+              <br />
+              {method.label}로 자동 결제돼요.
+              <br />
+              정기배송 화면에서 다음 결제 전까지 해지할 수 있어요.
+            </>
+          }
+          actions={
+            <ResultAction primary arrow onClick={() => router.push(`${subsHref}?new=1`)}>
+              내 정기배송 보기
+            </ResultAction>
+          }
+        />
+      )
+    }
+    return (
+      <AppResultScreen
+        alert
+        mark="fail"
+        title={
+          failKind === 'auth'
+            ? '로그인이 풀렸어요'
+            : failKind === 'already'
+              ? '이미 등록돼 있어요'
+              : failKind === 'gone'
+                ? '신청이 만료됐어요'
+                : '등록에 실패했어요'
+        }
+        body={errorMsg ?? '잠시 후 다시 시도해 주세요.'}
+        actions={
+          <>
+            <ResultAction primary href={failPrimary.href}>
+              {failPrimary.label}
+            </ResultAction>
+            {failKind !== 'already' && <ResultAction href={subsHref}>나중에 등록할게요</ResultAction>}
+          </>
+        }
+      />
+    )
+  }
 
   return (
     <main
@@ -485,17 +578,19 @@ function BillingSuccessInner() {
 }
 
 export default function BillingSuccessPage() {
+  // 불러오는 동안도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
+  const appLook = useServerAppContext()
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: 'var(--bg)' }}
+          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: 'var(--terracotta)',
+              borderColor: appLook ? V3.ink : 'var(--terracotta)',
               borderTopColor: 'transparent',
             }}
           />

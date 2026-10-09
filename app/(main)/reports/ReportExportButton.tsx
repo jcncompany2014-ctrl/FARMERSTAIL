@@ -6,11 +6,14 @@
  * html2canvas 로 .ft-report-capture 노드 → canvas → PNG blob → download.
  * jspdf 없이도 사용자가 인쇄 / 공유 가능. 진짜 PDF 가 필요하면 후속에서
  * jspdf 도입.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 A11): 흰 바탕 1.5px 먹선 네모 버튼(높이 48) + 내려받기 아이콘.
+ *   그림 바탕색도 새 종이색(흰색)으로.
  */
 
 import { useState } from 'react'
-import { Download } from 'lucide-react'
-import { saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
+import { captureNodeToCanvas, saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
+import { V3 } from '@/lib/design/tokens'
 
 export default function ReportExportButton({ monthLabel }: { monthLabel: string }) {
   const [exporting, setExporting] = useState(false)
@@ -24,12 +27,8 @@ export default function ReportExportButton({ monthLabel }: { monthLabel: string 
     try {
       const node = document.querySelector<HTMLElement>('.ft-report-capture')
       if (!node) throw new Error('capture-target-missing')
-      const { default: html2canvas } = await import('html2canvas')
-      const canvas = await html2canvas(node, {
-        backgroundColor: '#fbf6ec',
-        scale: 2,
-        useCORS: true,
-      })
+      // 글자 기준선 보정이 들어간 정본(lib/save-image) — 직접 html2canvas 를 부르면 그림 속 글자가 아래로 밀린다.
+      const canvas = await captureNodeToCanvas(node)
       const result = await saveCanvasImage(canvas, `farmerstail-report-${monthLabel}.png`)
       if (result === 'unsupported') setNotice(SAVE_IMAGE_UNSUPPORTED_MESSAGE)
     } catch (e) {
@@ -42,20 +41,37 @@ export default function ReportExportButton({ monthLabel }: { monthLabel: string 
 
   return (
     <>
-    <button
-      type="button"
-      onClick={handleExport}
-      disabled={exporting}
-      className="inline-flex items-center gap-1.5 px-3 py-2 rounded border border-rule bg-bg-3 text-[12px] font-bold text-text active:scale-[0.99] disabled:opacity-50 transition"
-    >
-      <Download className="w-3.5 h-3.5" strokeWidth={2.5} />
-      {exporting ? '내보내는 중…' : '이미지로 저장'}
-    </button>
-    {notice && (
-      <p role="status" className="mt-2 text-[12px] text-muted">
-        {notice}
-      </p>
-    )}
+      <button
+        type="button"
+        onClick={handleExport}
+        disabled={exporting}
+        className="transition active:scale-[0.99]"
+        style={{
+          height: 48,
+          padding: '0 16px',
+          border: `1.5px solid ${V3.ink}`,
+          borderRadius: 4,
+          background: '#FFFFFF',
+          color: V3.ink,
+          fontSize: 16,
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: exporting ? 'wait' : 'pointer',
+          opacity: exporting ? 0.6 : 1,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+        </svg>
+        {exporting ? '내보내는 중…' : '이미지로 저장'}
+      </button>
+      {notice && (
+        <p role="status" style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: V3.inkMute }}>
+          {notice}
+        </p>
+      )}
     </>
   )
 }

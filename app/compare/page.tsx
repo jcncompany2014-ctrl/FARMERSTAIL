@@ -1,15 +1,10 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
-import {
-  SKU_NUTRITION,
-  FEDIAF_REFERENCE,
-  type SkuPersona,
-} from '@/lib/sku-nutrition-matrix'
-import { SKU_META, type SkuKey } from '@/lib/allergy-sku-matrix'
+import type { SkuPersona } from '@/lib/sku-nutrition-matrix'
+import type { SkuKey } from '@/lib/allergy-sku-matrix'
 import { isAppContextServer } from '@/lib/app-context'
 import AuthAwareShell from '@/components/AuthAwareShell'
-import CompareClient from './CompareClient'
+import CompareView from './CompareView'
 
 /** 앱에서 웹 상세페이지를 외부 브라우저로 열 때 쓸 절대 URL 베이스. */
 const SITE_URL =
@@ -27,173 +22,46 @@ export const metadata: Metadata = {
  * /compare — 레시피 4종 영양 비교 (앱 분석 페이지 전용 — 2026-07-15).
  *
  * # 카드
- *   1. 4종 영양 매트릭스 표 (단백·지방·Ca:P·EPA/DHA·Se)
- *   2. 4종 스파이더 차트 (Recharts Radar)
- *   3. 페르소나별 추천 — 입문·노령·알레르기·활동多·소화민감
+ *   1. 4종 영양 비교 — 레시피마다 단백질·지방 막대 + 국제 최소 기준 눈금(2026-10-09 표 → 막대)
+ *   2. 4종 레이더(거미줄) 차트
+ *   3. 페르소나별 추천 — 입문·다이어트·알레르기·활동 많음·소화민감·기호성
  *
  * # 데이터
- *   lib/sku-nutrition-matrix.ts (자사 R&D 명세 + FEDIAF 교차검증).
+ *   lib/sku-nutrition-matrix.ts (자사 R&D 명세 + 국제 기준 교차검증).
  *
  * # ⛔ 앱 전용 (사장님 2026-07-15 "compare 페이지는 다른 어느 곳에서도 안 뜨고
  *   무조건 앱 내 분석 페이지에서만 뜬다")
- *   유일한 입구 = 앱 분석 페이지의 '4종 라인 비교' 카드. 웹 컨텍스트로 들어오면
+ *   유일한 입구 = 앱 분석 페이지의 '4종 비교' 카드. 웹 컨텍스트로 들어오면
  *   홈으로 돌려보낸다(직접 URL·옛 링크·검색 유입 방어). sitemap 미포함 +
  *   robots noindex 도 같은 이유. 새 진입점을 만들 땐 이 규칙부터 확인할 것.
  *
  * # 앱 chrome (2026-10-02 사장님 "뒤로가기 없음")
- *   (main) 그룹 밖 최상위 라우트라 chrome 이 하나도 없었다 — 헤더 ←·하단 탭 없이
- *   iOS 에선 나갈 길이 없었다. /help 처럼 AuthAwareShell 로 감싸 다른 앱 하위
+ *   (main) 그룹 밖 최상위 라우트라 chrome 이 하나도 없었다 — 헤더 ←·하단 탭
+ *   없이 iOS 에선 나갈 길이 없었다. /help 처럼 AuthAwareShell 로 감싸 다른 앱 하위
  *   화면과 같은 AppChrome(← 4종 비교 + 하단 탭)을 쓴다. 웹은 위 redirect 로
  *   여기까지 오지 않으므로 웹 화면은 그대로다. ← 의 목적지는 AppChrome
  *   parentForPath — 입구 카드가 실어 보낸 ?dog= 의 분석 화면(없으면 홈).
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터', 캔버스 A10)
+ *   그리는 부분은 CompareView(+CompareClient) 로 옮겼다 — 점검 화면(/design-check/analysis)이 같은 컴포넌트를 쓴다.
+ *   웹 화면은 원래 없다(위 redirect) — 웹 픽셀 변화 없음.
  */
 export default async function ComparePage() {
   const isApp = await isAppContextServer()
   if (!isApp) redirect('/')
 
   const skus: SkuKey[] = ['C01', 'D02', 'P04', 'B05']
-  const matrixRows = skus.map((sku) => ({
-    sku,
-    meta: SKU_META[sku],
-    nutrition: SKU_NUTRITION[sku],
-  }))
 
   return (
     // w-full + min-w-0 — body 가 flex(column) 컨테이너라 main 은 flex item 이다.
     //  · min-w-0: flex item 의 기본 min-width:auto 는 내용의 min-content 아래로
-    //    줄어들지 않아, 아래 표의 min-w-[460px] 가 위로 전파된다.
+    //    줄어들지 않아, 넓은 내용이 위로 전파된다.
     //  · w-full: mx-auto(auto 마진)가 교차축 stretch 를 꺼버려서 main 이 내용
     //    크기(max-content)로 부푼다. 가로를 명시해야 375px 에 묶인다.
     // 둘 중 하나만 빠져도 모바일에서 페이지 본문이 통째로 가로 스크롤된다.
     <AuthAwareShell>
-    {/* main 은 AppChrome 이 이미 그린다(main 랜드마크 2개·탭바 여백 위 pb-20 중복 — 10차 점검 D). */}
-    <div className="w-full max-w-5xl mx-auto px-5 pt-6 pb-6 min-w-0">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-moss" strokeWidth={2} />
-        <h1 className="font-['Archivo_Black'] text-2xl md:text-3xl text-ink">
-          4종 라인 비교
-        </h1>
-      </div>
-      <p className="text-[12.5px] md:text-[13.5px] text-muted mt-1.5 leading-relaxed">
-        치킨·오리·흑돼지·한우 4종 화식의 단백질·지방·칼슘/인·오메가3·셀레늄을 한
-        화면에. 4종 모두 AAFCO 2024 · FEDIAF 국제 기준을 충족해요.
-      </p>
-
-      {/* 영양 매트릭스 표 */}
-      <section className="mt-6 rounded-2xl border border-rule bg-white p-5">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-3">
-          영양 매트릭스 (DM 기준)
-        </h2>
-        {/* 모바일에서 6열이 안 들어간다 — w-full 로 욱여넣으면 '49.5' 가 두 줄로
-            쪼개져 숫자가 뭉갠다. min-w 를 줘서 뭉개는 대신 옆으로 스크롤시킨다. */}
-        <div className="overflow-x-auto -mx-1 px-1">
-          <table className="w-full min-w-[460px] text-[11.5px] md:text-[12.5px] whitespace-nowrap">
-            <thead>
-              <tr className="text-left text-muted border-b border-rule">
-                <th className="py-2 pr-3 font-bold">레시피</th>
-                <th className="py-2 px-2 font-bold text-right">단백질</th>
-                <th className="py-2 px-2 font-bold text-right">지방</th>
-                <th className="py-2 px-2 font-bold text-right">Ca:P</th>
-                <th className="py-2 px-2 font-bold text-right">EPA+DHA</th>
-                <th className="py-2 px-2 font-bold text-right">셀레늄</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matrixRows.map(({ sku, meta, nutrition }) => (
-                <tr key={sku} className="border-b border-rule/40">
-                  {/* 내부 코드(FT-C01)·'novel' 배지 제거 — 고객이 못 알아듣는
-                      말은 쓰지 않는다(사장님 2026-07-14). 표시명만 남긴다. */}
-                  <td className="py-2 pr-3">
-                    <div className="text-[12px] font-bold text-ink">
-                      {meta.name_ko}
-                    </div>
-                  </td>
-                  {/* 보증성분 규칙(2026-07-18): 정확 % 금지 → 방향 보증만.
-                      단백=floor+이상, 지방=ceil+이하(라벨 컨벤션), Ca:P/EPA/Se는
-                      정성. floor/ceil은 v3.1·v4.0 양쪽서 유효한 보증.
-                      [[feedback_no_exact_nutrient_percent]] */}
-                  <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {Math.floor(nutrition.protein_pct)}% 이상
-                  </td>
-                  <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    {Math.ceil(nutrition.fat_pct)}% 이하
-                  </td>
-                  <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    안전구간
-                  </td>
-                  <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    충족
-                  </td>
-                  <td className="py-2 px-2 text-right font-mono tabular-nums text-ink">
-                    충족
-                  </td>
-                </tr>
-              ))}
-              {/* 국제 기준 행 — 단백·지방은 '최소'다. 예전엔 '18-35' 처럼 범위로
-                  적어서, 우리 수치(49.5)가 상한을 넘긴 것처럼 읽혔다. 실제로는
-                  AAFCO/FEDIAF 가 단백·지방에 상한을 두지 않는다(사장님 2026-07-15
-                  "오히려 우리가 충족을 안 해 다 오바하지?" → 아니고, 최소치를
-                  넉넉히 넘긴 것). 진짜 범위가 있는 Ca:P·셀레늄만 범위로 적는다. */}
-              <tr className="bg-bg/50">
-                <td className="py-2 pr-3 text-[10.5px] font-bold uppercase tracking-wider text-muted">
-                  국제 영양 기준
-                </td>
-                <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.protein_pct.min} 이상
-                </td>
-                <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.fat_pct.min} 이상
-                </td>
-                <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.ca_p_ratio.min}-
-                  {FEDIAF_REFERENCE.ca_p_ratio.max}
-                </td>
-                <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.epa_dha_pct.min} 이상
-                </td>
-                <td className="py-2 px-2 text-right text-[10.5px] text-muted tabular-nums">
-                  {FEDIAF_REFERENCE.selenium_mcg_per_kg.min}-
-                  {FEDIAF_REFERENCE.selenium_mcg_per_kg.max}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-3 rounded-xl bg-moss/[0.07] border border-moss/25 px-3.5 py-3">
-          <p className="text-[11.5px] font-bold text-ink leading-relaxed">
-            4종 모두 AAFCO 2024 · FEDIAF 기준을 충족해요.
-          </p>
-          <p className="text-[10.5px] text-muted mt-1.5 leading-relaxed">
-            단백질과 지방은 <strong>최소 기준</strong>만 정해져 있어요(상한 없음).
-            파머스테일 화식이 기준보다 높은 건 고기가 그만큼 많이 들어가서예요.
-            과하면 해로운 영양소(비타민 D·셀레늄·칼슘:인)는 정해진 범위 안에서
-            관리하고 있어요.
-          </p>
-        </div>
-        {/* 수치의 출처를 정확히 밝힌다 (사장님 2026-07-15).
-            · 옛 문구 "자사 R&D 시제품 분석 결과" 는 **과장**이었다 — 실제로는
-              레시피 설계값에서 유도한 값(sheet3 목표 × sheet7 충족률)이고 오메가는
-              USDA 추정치다. 실험실 분석은 출시 후 자가품질검사로 예정돼 있다.
-              (skuModel.ts 근거 주석 참고) 하지도 않은 시험을 했다고 적으면
-              표시광고 문제가 된다.
-            · 사장님이 가져온 타사 문구의 "칼로리 기반 환산치" 는 뺐다 — 우리 표는
-              DM(건조중량) 기준이라 그대로 쓰면 거짓이 된다. */}
-        <p className="text-[10.5px] text-muted mt-2 leading-relaxed">
-          ※ DM = Dry Matter(수분을 제외한 건조 중량) 기준이에요. 영양 기준치는
-          투입되는 각 재료의 영양성분을 분석한 추정치예요. 자사 레시피 명세를
-          AAFCO 2024 · FEDIAF 기준과 교차검증했고, 정식 출시 후 자가품질검사
-          결과로 갱신해요.
-        </p>
-      </section>
-
-      {/* 5종 스파이더 + 페르소나 인터랙션 */}
-      <CompareClient skus={skus} isApp siteUrl={SITE_URL} />
-
-      <p className="text-[10.5px] text-muted mt-8 text-center leading-relaxed">
-        설문 결과에 맞춰 자동으로 추천된 레시피가 주문 단계에 그대로 담겨요.
-        직접 비교해 보고 싶다면 위 차트를 참고하세요.
-      </p>
-    </div>
+      {/* main 은 AppChrome 이 이미 그린다(main 랜드마크 2개·탭바 여백 위 pb-20 중복 — 10차 점검 D). */}
+      <CompareView skus={skus} isApp siteUrl={SITE_URL} />
     </AuthAwareShell>
   )
 }

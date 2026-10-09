@@ -17,8 +17,33 @@
  */
 
 import { POUCH, V3 } from './tokens.ts'
+import type { FoodLine } from '../personalization/types'
 
 export type PouchLine = keyof typeof POUCH
+
+/**
+ * 레시피 라인(FoodLine) → 파우치. lib/personalization/skuModel 의 LEGACY_LINE_TO_PROTEIN 과 같은 짝이다
+ * (weight=닭 · basic=오리 · premium=한우 · joint=흑돼지). 연어(skin)는 판매 레시피가 아니라 없다.
+ * 레시피 고르기·주문하기가 이름 앞 네모·사진 테두리 색을 여기서 읽는다.
+ */
+export const FOOD_LINE_POUCH: Partial<Record<FoodLine, PouchLine>> = {
+  weight: 'chicken',
+  basic: 'duck',
+  premium: 'beef',
+  joint: 'pork',
+}
+
+/**
+ * 앱 화면의 레시피 이름 — 상품 이름(products.name "닭고기 화식")·캔버스 시안과 같은 말.
+ * 엔진 표시명(FOOD_LINE_META.nameKo '치킨', 2026-07-15)과 갈려 있어서, 앱 새 디자인(2026-10-09)은 시안을 따라
+ * 한 화면 안에서 '닭고기'로 맞춘다(홈·정기배송은 상품 이름을 그대로 써서 이미 '닭고기'). 웹은 손대지 않았다.
+ */
+export const POUCH_NAME: Record<PouchLine, string> = {
+  chicken: '닭고기',
+  duck: '오리',
+  pork: '흑돼지',
+  beef: '한우',
+}
 
 /** 같은 팩 수일 때의 순서(시안: 닭+흑돼지 = 닭 바탕, 한우+오리 = 한우 바탕). */
 const LINE_ORDER: readonly PouchLine[] = ['chicken', 'pork', 'beef', 'duck']

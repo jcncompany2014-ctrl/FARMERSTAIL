@@ -1,285 +1,299 @@
 /* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
    CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
+/* 2026-10-09 앱 새 디자인('A 포스터', 시안 S20-formulas · S21-formulas-pending · I03-FormulasEmpty) — 전면 교체.
+   값은 시안 원본 HTML 그대로(흰 바탕·먹 글자·모서리 4px). 맨 위 카드의 레시피 파우치 색(바탕·테두리·그림자)은
+   FormulasView 가 인라인으로 준다(lib/design/pouch). 제목 글꼴(.ft-poster·h1)·숫자 글꼴(.ft-num)은 전역 규칙.
+   CSS 선언이라 앱 글자 크기 맞춤(text-[Npx] 매핑)이 닿지 않는다 — 크기는 시안 px 그대로 적는다. */
 /* =========================================================================
    Formula history timeline — `.fh-` 접두 (formula history).
-   토큰: globals.css 의 --bg/--ink/--rule/--terracotta/--moss 재사용.
    ========================================================================= */
 
 .fh-page {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px 22px 80px;
-  background: var(--bg);
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* 시안 HTML 은 줄 높이를 따로 안 준 곳이 기본값(normal)이다 — 앱 바탕(1.5)을 이어받으면 칸마다 몇 px 씩 길어진다. */
+  line-height: normal;
+  background: #FFFFFF;
+  color: #141414;
+  word-break: keep-all;
 }
 
-.fh-state {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 13px; color: var(--muted);
-  justify-content: center;
-  padding: 60px 22px;
+/* 머리 — 머리말(8px 머스타드 네모 + 회색 글자) · 제목 32 · 설명 16 */
+.fh-hero {
+  padding: 24px 20px 0;
+  display: flex;
+  flex-direction: column;
 }
-
-.fh-back {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12px; font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  margin-bottom: 18px;
-  transition: color 120ms;
-}
-.fh-back:hover { color: var(--terracotta); }
-
-/* Hero */
-.fh-hero { margin-bottom: 24px; }
 .fh-kicker {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  /* R26: 0.22 → 0.16em (V3LetterSpacing.kicker) */
-  font-size: 12px; letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--terracotta);
-  font-weight: 600;
-  margin-bottom: 10px;
-  display: inline-block;
-}
-.fh-hero h1 {
-  font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-weight: 800; font-size: 24px;
-  /* R26: 1.18 → 1.25 — 홈/카탈로그 heading 통일 */
-  line-height: 1.25;
-  color: var(--ink);
-  letter-spacing: -0.025em;
-  margin: 0 0 12px;
-}
-.fh-hero p {
-  font-size: 14px; color: var(--muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* Empty */
-.fh-empty {
-  background: var(--bg-2);
-  border: 1px solid var(--rule);
-  /* R26: 16 → 12 (V3Radius.md) */
-  border-radius: 12px;
-  padding: 28px 24px;
-  margin-top: 24px;
-  text-align: center;
-}
-.fh-empty p {
-  font-size: 13px;
-  color: var(--text);
-  margin: 0 0 16px;
-}
-.fh-empty-cta {
-  display: inline-block;
-  padding: 11px 20px;
-  background: var(--terracotta);
-  color: #fff;
-  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  text-decoration: none;
+  color: #595959;
 }
-
-/* Timeline */
-.fh-timeline {
-  list-style: none;
-  margin: 0; padding: 0;
-  display: flex; flex-direction: column; gap: 0;
-}
-.fh-card {
-  display: flex; gap: 14px;
-  padding: 0 0 14px;
-  position: relative;
-}
-.fh-card:last-child { padding-bottom: 0; }
-
-/* Marker (dot + line) */
-.fh-marker {
+.fh-kicker-mark {
+  width: 8px;
+  height: 8px;
   flex-shrink: 0;
-  width: 12px;
-  position: relative;
-  display: flex; flex-direction: column; align-items: center;
-  padding-top: 22px;
+  background: #D4A24C;
 }
-.fh-marker-dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: var(--ink);
-  z-index: 1;
+.fh-hero h1 {
+  margin: 10px 0 0;
+  font-size: 32px;
+  line-height: 1.15;
+  color: #141414;
 }
-.fh-card.fh-latest .fh-marker-dot {
-  background: var(--terracotta);
-  box-shadow: 0 0 0 4px rgba(160, 69, 46, 0.18);
-}
-.fh-card.fh-pending .fh-marker-dot { background: var(--terracotta); }
-.fh-card.fh-declined .fh-marker-dot { background: var(--muted); }
-.fh-marker-line {
-  position: absolute;
-  top: 30px; bottom: -14px; left: 50%;
-  width: 1px;
-  background: var(--rule);
-  transform: translateX(-50%);
+.fh-hero p {
+  margin: 12px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3D3D3D;
 }
 
-/* Card body */
-.fh-body {
-  flex: 1; min-width: 0;
-  /* R26: #fff → var(--surface-card), 14 → 12 */
-  background: var(--surface-card);
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  padding: 14px;
-  transition: border-color 120ms;
+/* 비었을 때(I03) — 회색 면 · 상자 그림 · 큰 먹 버튼 */
+.fh-empty {
+  margin: 24px 20px 0;
+  padding: 22px 18px 20px;
+  border-radius: 4px;
+  background: #F6F4F5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
-.fh-card.fh-pending .fh-body {
-  border-color: var(--terracotta);
-  background: rgba(160, 69, 46, 0.04);
+.fh-empty-title {
+  margin: 6px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.4;
 }
-.fh-card.fh-declined .fh-body {
-  background: var(--bg-2);
-  border-style: dashed;
+.fh-empty-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3D3D3D;
 }
-
-/* Card head */
-.fh-head {
-  display: flex; align-items: baseline; justify-content: space-between;
+.fh-empty-cta {
+  margin-top: 14px;
+  align-self: stretch;
+  height: 56px;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 800;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
+}
+.fh-empty-cta:hover { color: #FFFFFF; }
+
+/* 타임라인 — 왼쪽 22px 칸(점 + 2px 회색 줄) + 카드 */
+.fh-timeline {
+  margin: 26px 20px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.fh-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 12px;
+}
+.fh-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fh-dot {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  box-sizing: border-box;
+  background: #141414;
+}
+.fh-dot.is-first { margin-top: 20px; }
+.fh-dot.is-pending { background: #C63D2A; }
+.fh-dot.is-declined { background: #595959; }
+.fh-dot.is-hollow {
+  background: #FFFFFF;
+  border: 2px solid #141414;
+}
+.fh-line {
+  width: 2px;
+  background: #D5D3D4;
+}
+.fh-line.is-top { height: 20px; flex-shrink: 0; }
+.fh-line.is-rest { flex: 1; }
+
+/* 카드 — 맨 위는 파우치 색(인라인), 지난 것은 흰 바탕 + 1.5px 회색 테두리 */
+.fh-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fh-card.is-past {
+  border: 1.5px solid #D5D3D4;
+  background: #FFFFFF;
+  color: #141414;
+}
+.fh-card.is-declined { border-style: dashed; }
+.fh-card.is-later { margin-top: 20px; }
+
+.fh-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 .fh-head-left {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
+  min-width: 0;
 }
-.fh-cycle-tag {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px; font-weight: 700;
-  color: var(--ink);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
+.fh-cycle { font-size: 22px; }
+.fh-card.is-past .fh-cycle { color: #3D3D3D; }
 .fh-tag {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 1.5px 7px;
-  border-radius: 99px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 }
-.fh-tag-latest { background: var(--moss); color: #fff; }
-.fh-tag-adjusted { background: var(--terracotta); color: #fff; }
-.fh-tag-pending { background: var(--terracotta); color: #fff; }
-.fh-tag-declined { background: var(--muted); color: #fff; }
+.fh-tag.is-pending { background: #C63D2A; }
+.fh-tag.is-declined { background: #595959; }
+.fh-tag.is-adjusted {
+  background: transparent;
+  color: inherit;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
 .fh-date {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fh-card.is-past .fh-date { color: #595959; }
+
+/* 박스 막대 + 범례 — 비율 % 글자는 없다(막대 폭만) */
+.fh-bar {
+  height: 14px;
+  display: flex;
+  gap: 2px;
+}
+.fh-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.fh-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fh-legend-mark {
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
 }
 
-/* Bar */
-.fh-bar {
+/* 하루 열량·양 띠 */
+.fh-stats {
+  padding: 10px 12px;
+  border-radius: 4px;
   display: flex;
-  height: 10px;
-  border-radius: 99px;
-  overflow: hidden;
-  background: var(--rule);
-  margin-bottom: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  white-space: nowrap;
 }
-.fh-bar i {
-  height: 100%;
-  transition: width 360ms cubic-bezier(.32, .72, .0, 1);
+.fh-card.is-past .fh-stats { background: #F6F4F5; }
+.fh-stat-num { font-size: 22px; }
+.fh-stat-unit {
+  font-size: 14px;
+  font-weight: 700;
 }
-
-/* Legend */
-.fh-legend {
-  display: flex; flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-.fh-legend-item {
-  display: inline-flex; align-items: center; gap: 3px;
-}
-.fh-legend-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.fh-legend-name { color: var(--muted); }
-.fh-legend-pct { font-weight: 700; color: var(--ink); }
-
-/* Meta — kcal, g, topper */
-.fh-meta {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-}
-.fh-meta b, .fh-meta strong { color: var(--ink); font-weight: 600; }
-.fh-divider {
-  width: 1px; height: 8px;
-  background: var(--rule-2);
-  display: inline-block;
+.fh-stat-div {
+  width: 1px;
+  height: 16px;
+  align-self: center;
+  background: #D5D3D4;
 }
 
-/* Chips (reasoning) */
+/* 근거 칩 — 1.5px 먹선 네모(시안: 높이 30 + 테두리) */
 .fh-chips {
-  display: flex; flex-wrap: wrap; gap: 4px;
-  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .fh-chip {
-  display: inline-block;
-  padding: 3px 8px;
-  background: var(--bg-2);
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
+  height: 30px;
+  box-sizing: content-box;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1.5px solid currentColor;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
 }
 .fh-chip-more {
-  background: transparent;
-  color: var(--muted);
-  font-family: var(--font-mono), monospace;
-}
-
-/* CTA — pending 강조 */
-.fh-cta {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 8px 12px;
-  background: var(--terracotta);
-  color: #fff;
-  border-radius: 99px;
-  font-size: 12px;
+  height: 33px;
+  padding: 0 4px;
+  font-size: 14px;
   font-weight: 700;
-  text-decoration: none;
-  margin-bottom: 8px;
-  transition: transform 120ms;
+  display: flex;
+  align-items: center;
 }
-.fh-cta:active { transform: scale(0.97); }
 
-/* Foot — algorithm version + approval status */
+/* 동의 필요 — 큰 먹 버튼 */
+.fh-cta {
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 800;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.fh-cta:hover { color: #FFFFFF; }
+.fh-cta-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 아래 줄 — 적용 방식(자동 적용 · 사용자 승인 · 이전 유지 선택) */
 .fh-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--muted);
+  padding-top: 10px;
+  border-top: 1px solid #E5E5E5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #3D3D3D;
 }
-.fh-version {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  letter-spacing: 0.04em;
-}
-.fh-status {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-weight: 600;
-}
-.fh-status-auto { color: var(--muted); }
-.fh-status-approved { color: var(--moss); }
-.fh-status-declined { color: var(--muted); }
+
+.fh-end { height: 32px; }

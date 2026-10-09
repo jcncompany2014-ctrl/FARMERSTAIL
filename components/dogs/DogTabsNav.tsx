@@ -3,7 +3,7 @@
 /**
  * 강아지 detail 탭 nav.
  *
- * sub-route 들을 4개 그룹으로 묶어 사용자가 한 페이지 안에서 길 잃지 않게.
+ * sub-route 들을 3개 그룹으로 묶어 사용자가 한 페이지 안에서 길 잃지 않게.
  *
  *   개요  — /dogs/{id}                              (강아지 정보 / 다음 일정)
  *   기록  — /dogs/{id}/diary                        (사진·컨디션·체중 로그)
@@ -18,68 +18,82 @@
  * 직결해 1차 목적지를 '결과+박스 일체' 페이지로. 박스 cycle 이력(/formulas)·
  * survey·analyses(히스토리)·approve 는 전부 '분석' 그룹으로 하이라이트. 5탭→4탭.
  *
- * 별도 유지 (탭에 노출 X): /edit, /reminders, /checkin (액션-driven sub-route).
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 AppDog·D01·D05·D08):
+ *   · 모양 — 높이 52 · 3칸 · 아래 1.5px 먹선. 아이콘 없이 글자만(17px). 켜진 칸 = 먹색 800 + 아래 4px 먹선,
+ *     꺼진 칸 = 회색(#595959) 600. 바탕은 흰색(반투명·블러 없음).
+ *   · 어느 칸이 켜지나 — 예전엔 건강 관리·정보 수정·진료 보고서에서 셋 다 꺼져 있었다(사장님 결정 목록
+ *     "아무것도 안 켜짐"). 그리고 '/analysis' 로 시작하는지만 봐서 분석 히스토리(/analyses)도 꺼졌다
+ *     ('analyses' 는 'analysis' 로 시작하지 않는다). 이제 하위 화면마다 갈 곳을 표(SECTION_OF)로 정한다 —
+ *     모든 하위 화면이 셋 중 하나를 켠다. 기준은 그 화면의 ← 가 올라가는 곳과 들어오는 입구:
+ *       개요 = 정보 수정·건강 관리(복약·예방접종·리마인더)·진료 보고서·정기배송 — 전부 개요에서 들어가고 ← 가 개요.
+ *       기록 = 일기·건강일지·체크인·연말 결산(한 해 기록 돌아보기).
+ *       분석 = 분석·분석 히스토리·식단 기록·설문·승인·레시피 고르기·주문하기(분석 → 추천 박스 흐름).
  *
- * 디자인: 강아지 page chrome 상단에 sticky bar 로 붙임. 5개 칸 균등 grid,
- * 활성 탭은 terracotta underline + bold. 모바일 친화 — 한 손 엄지.
+ * 디자인: 강아지 page chrome 상단에 sticky bar 로 붙임. 3칸 균등 grid. 모바일 친화 — 한 손 엄지.
  */
 
-import { useSyncExternalStore, type ComponentType, type CSSProperties } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Camera, BarChart3 } from 'lucide-react'
-import DogPawMark from '@/components/DogPawMark'
+import { V3 } from '@/lib/design/tokens'
+
+type Section = 'overview' | 'records' | 'analysis'
 
 type Tab = {
+  key: Section
   href: (id: string) => string
-  isActive: (path: string, id: string) => boolean
   label: string
-  // lucide 아이콘 + 커스텀 DogPawMark(개요 발바닥) 둘 다 받도록 느슨하게.
-  Icon: ComponentType<{
-    className?: string
-    strokeWidth?: number
-    style?: CSSProperties
-  }>
 }
 
 const TABS: readonly Tab[] = [
-  {
-    href: (id) => `/dogs/${id}`,
-    isActive: (path, id) => path === `/dogs/${id}`,
-    label: '개요',
-    Icon: DogPawMark,
-  },
-  {
-    // 기록 = 사진 일기 (매일 retention 핵심). 컨디션·체중 등 health log 는
-    // diary 페이지에서 별도 link 로 진입.
-    href: (id) => `/dogs/${id}/diary`,
-    isActive: (path, id) =>
-      path.startsWith(`/dogs/${id}/diary`) ||
-      path.startsWith(`/dogs/${id}/health`) ||
-      path.startsWith(`/dogs/${id}/checkin`),
-    label: '기록',
-    Icon: Camera,
-  },
-  {
-    // 분석 = 영양 분석 결과 + 추천 박스(인라인). /analysis(매거진 결과)가 1차
-    // 목적지. survey·analyses(히스토리)·formulas(박스 cycle 이력)·approve 전부
-    // 이 그룹으로 하이라이트. ('/analysis' startsWith 는 '/analyses' 도 매칭)
-    href: (id) => `/dogs/${id}/analysis`,
-    isActive: (path, id) =>
-      path.startsWith(`/dogs/${id}/analysis`) ||
-      path.startsWith(`/dogs/${id}/survey`) ||
-      path.startsWith(`/dogs/${id}/formulas`) ||
-      path.startsWith(`/dogs/${id}/approve`),
-    label: '분석',
-    Icon: BarChart3,
-  },
+  { key: 'overview', href: (id) => `/dogs/${id}`, label: '개요' },
+  // 기록 = 사진 일기 (매일 retention 핵심). 컨디션·체중 등 health log 는 같은 '기록' 허브의 둘째 칸.
+  { key: 'records', href: (id) => `/dogs/${id}/diary`, label: '기록' },
+  // 분석 = 영양 분석 결과 + 추천 박스(인라인). /analysis(매거진 결과)가 1차 목적지.
+  { key: 'analysis', href: (id) => `/dogs/${id}/analysis`, label: '분석' },
 ] as const
+
+/**
+ * /dogs/{id}/<첫 칸> → 켤 탭. 표에 없는 새 하위 화면은 개요(← 가 올라가는 곳)로 본다 — 셋 다 꺼진 화면을
+ * 다시 만들지 않는다.
+ */
+const SECTION_OF: Record<string, Section> = {
+  edit: 'overview',
+  'health-care': 'overview',
+  medications: 'overview',
+  vaccinations: 'overview',
+  reminders: 'overview',
+  'vet-report': 'overview',
+  subscription: 'overview',
+  diary: 'records',
+  health: 'records',
+  checkin: 'records',
+  'first-checkin': 'records',
+  'year-in-review': 'records',
+  analysis: 'analysis',
+  analyses: 'analysis',
+  formulas: 'analysis',
+  survey: 'analysis',
+  approve: 'analysis',
+  plan: 'analysis',
+  order: 'analysis',
+}
+
+function sectionFor(path: string, id: string): Section {
+  const base = `/dogs/${id}`
+  if (path === base || path === `${base}/`) return 'overview'
+  if (!path.startsWith(`${base}/`)) return 'overview'
+  const first = path.slice(base.length + 1).split('/')[0] ?? ''
+  return SECTION_OF[first] ?? 'overview'
+}
 
 /**
  * 액션 중심 sub-route (survey/checkin/approve) 에서는 tab nav 자체를 숨김.
  * 사용자가 흐름에 집중할 수 있게 시각 부담 ↓. 사용자 피드백 반영.
  */
-const HIDE_ON_PATHS = ['/survey', '/checkin', '/approve']
+// '/first-checkin'(첫 박스 체크인 — 몰입 화면, AppChrome FOCUS_PATHS 와 같이)·'/formulas'(맞춤 박스 기록 — 시안 S20·S21 에
+// 강아지 위 탭이 없다)도 숨긴다(2026-10-09).
+const HIDE_ON_PATHS = ['/survey', '/checkin', '/first-checkin', '/approve', '/formulas']
 
 /**
  * 설문 직후(fromSurvey=1) 결과 진입 감지 — AppChrome 의 focusMode 와 동일 신호.
@@ -96,8 +110,16 @@ function useFromSurvey(): boolean {
   )
 }
 
-export default function DogTabsNav({ dogId }: { dogId: string }) {
-  const pathname = usePathname()
+export default function DogTabsNav({
+  dogId,
+  previewPath,
+}: {
+  dogId: string
+  /** 점검 화면(/design-check/dogs) 전용 — 주소 대신 이 경로로 켤 탭을 정한다. 실제 화면은 넘기지 않는다. */
+  previewPath?: string
+}) {
+  const routePath = usePathname()
+  const pathname = previewPath ?? routePath
   const fromSurvey = useFromSurvey()
   if (HIDE_ON_PATHS.some((p) => pathname.includes(p))) return null
   // 설문 직후 분석 결과(focus 흐름) — AppChrome 헤더가 이미 숨겨져 있어(focusMode),
@@ -106,48 +128,41 @@ export default function DogTabsNav({ dogId }: { dogId: string }) {
   // '빈 공간 + 탭 스트립 겹침'으로 깨진다(사장님 리포트 2026-07-12).
   if (pathname.includes('/analysis') && fromSurvey) return null
 
+  const current = sectionFor(pathname, dogId)
+
   return (
     <nav
-      className="sticky z-30 bg-bg/95 backdrop-blur-xl border-b border-rule"
+      className="sticky z-30"
       // A5: 60px 하드코딩 → 헤더 높이 변수 + 노치 safe-area 보정. 하드코딩
       // 시절엔 노치 기기에서 헤더와 겹쳤음.
-      style={{ top: 'calc(var(--ft-header-h, 64px) + env(safe-area-inset-top))' }}
+      style={{
+        top: 'calc(var(--ft-header-h, 64px) + env(safe-area-inset-top))',
+        background: V3.paper,
+        borderBottom: `1.5px solid ${V3.ink}`,
+      }}
       aria-label="강아지 메뉴"
     >
-      {/* audit #47: 아이콘 18→20px, 라벨 10.5→11px, py-2→py-2.5, underline w-8→w-10
-          — 시니어 사용자 / iOS HIG 권장 24px 에 한 단계 가까워지고 터치 row
-          height 48px 이상 확보. AppChrome top h-14→h-[60px] 와 sticky top 동기화. */}
-      <div className="grid grid-cols-3">
-        {TABS.map(({ href, isActive, label, Icon }) => {
-          const active = isActive(pathname, dogId)
+      <div className="grid grid-cols-3" style={{ height: 52 }}>
+        {TABS.map(({ key, href, label }) => {
+          const active = key === current
           return (
             <Link
-              key={label}
+              key={key}
               href={href(dogId)}
-              className="relative flex flex-col items-center justify-center py-3 transition active:scale-[0.97]"
+              className="flex items-center justify-center ft-no-press"
               aria-current={active ? 'page' : undefined}
+              style={{
+                boxSizing: 'border-box',
+                // 켜진 칸의 4px 먹선은 nav 의 1.5px 먹선 위에 겹친다(시안: margin-bottom −1.5).
+                marginBottom: active ? -1.5 : 0,
+                borderBottom: active ? `4px solid ${V3.ink}` : 0,
+                fontSize: 17,
+                fontWeight: active ? 800 : 600,
+                color: active ? V3.ink : V3.inkMute,
+                textDecoration: 'none',
+              }}
             >
-              <Icon
-                className={`w-6 h-6 transition ${
-                  active ? 'text-text' : 'text-muted'
-                }`}
-                strokeWidth={active ? 2 : 1.5}
-              />
-              <span
-                className={`mt-1 font-bold tracking-tight ${
-                  active ? 'text-text' : 'text-muted'
-                }`}
-                style={{ fontSize: 14 }}
-              >
-                {label}
-              </span>
-              {active && (
-                <span
-                  aria-hidden
-                  className="absolute -bottom-px left-1/2 -translate-x-1/2 h-0.5 w-10 rounded-full"
-                  style={{ background: 'var(--terracotta)' }}
-                />
-              )}
+              {label}
             </Link>
           )
         })}

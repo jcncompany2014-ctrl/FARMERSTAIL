@@ -16,6 +16,33 @@ import { nativeBuildInfo, buildAtLeast, NATIVE_FEATURE_MIN_BUILD } from '@/lib/n
 
 export type SaveImageResult = 'downloaded' | 'shared' | 'cancelled' | 'unsupported'
 
+/**
+ * html2canvas 가 글자 기준선을 잴 때 쓰는 1px 투명 GIF(라이브러리 내부 상수 SMALL_IMAGE, 1.4.1).
+ * 이 그림에만 맞는 규칙을 걸기 위해 그대로 적어 둔다 — 화면의 다른 img 는 이 주소를 쓰지 않는다.
+ */
+const HTML2CANVAS_PROBE_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+/**
+ * 화면 한 덩어리를 그림(canvas)으로 뜬다 — html2canvas 는 이때 불러온다(큰 라이브러리, 첫 진입 비용 없음).
+ *
+ * ★그림 속 글자가 몇 px 아래로 그려지던 것(2026-10-09 영수증 저장 실측 — 표 머리글이 밑줄에 붙었다):
+ *  Tailwind 기본 스타일(preflight)이 img 를 display:block 으로 바꾼다. html2canvas 는 글자 기준선을
+ *  '숨은 1px img 를 글자 옆에 붙여' 재는데, 그 img 가 block 이면 다음 줄로 떨어져 기준선이 줄 높이만큼 커진다.
+ *  재는 곳은 복제본이 아니라 **지금 화면 문서**라(new FontMetrics(document)) onclone 으로는 안 고쳐진다 —
+ *  뜨는 동안만 그 1px 그림에 inline 을 돌려주고 바로 뺀다. 다른 img 는 이 규칙에 걸리지 않아 화면은 그대로다.
+ */
+export async function captureNodeToCanvas(node: HTMLElement): Promise<HTMLCanvasElement> {
+  const { default: html2canvas } = await import('html2canvas')
+  const probeFix = document.createElement('style')
+  probeFix.textContent = `img[src="${HTML2CANVAS_PROBE_IMG}"] { display: inline !important; }`
+  document.head.appendChild(probeFix)
+  try {
+    return await html2canvas(node, { backgroundColor: '#FFFFFF', scale: 2, useCORS: true })
+  } finally {
+    probeFix.remove()
+  }
+}
+
 type FileShareNavigator = Navigator & {
   canShare?: (data: { files: File[] }) => boolean
   share?: (data: { files: File[]; title?: string }) => Promise<void>

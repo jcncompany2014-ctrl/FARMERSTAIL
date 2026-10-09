@@ -2,24 +2,19 @@
 
 // audit #101 — NotificationsClient: filter / mark-read / click navigation 만
 // client. page.tsx (server) 가 auth + 최근 100개 push_log 를 prefetch.
+//
+// ★2026-10-09 앱 새 디자인('A 포스터', 시안 M11 받은 알림 · M14 비었을 때 · I13 고른 칸이 비었을 때):
+//   "안 읽은 알림 N개" + '모두 읽음' 단추 → 네모 거르기 단추(전체·안 읽음·주문·건강·광고 + 개수) → 날짜 묶음
+//   (위 2px 먹선 목록). 안 읽은 알림 = 빨간 점 + 굵은 제목. 영어 머리말("NOTIFICATIONS")·알약 모양·색 꼬리표는 뺐다.
+//   읽음 처리·이동 로직은 그대로.
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Bell,
-  Check,
-  Inbox,
-  ArrowRight,
-  Package,
-  RefreshCcw,
-  Megaphone,
-  Calendar,
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Spinner } from '@/components/ui/Spinner'
-import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
-import { Tabs } from '@/components/v3'
-import './notifications.css'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { Chip, IconDisc, PlainTitle, primaryButton } from '@/components/v3/me/MeParts'
+import { BellIcon, BoxIcon, CheckIcon, HeartIcon, InboxIcon, MegaphoneIcon } from '@/components/v3/me/MeIcons'
 
 export type Row = {
   id: string
@@ -38,12 +33,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   order: '주문',
   health: '건강',
   marketing: '광고',
-}
-
-const CATEGORY_COLOR: Record<string, string> = {
-  order: V3.sage,
-  health: V3.accent,
-  marketing: V3.yellow,
 }
 
 const FILTERS = [
@@ -107,6 +96,14 @@ export default function NotificationsClient({
     ].filter((g) => g.items.length > 0)
   }, [filtered])
 
+  function countFor(key: FilterKey): number {
+    if (key === 'all') return rows.length
+    if (key === 'unread') return unreadCount
+    if (key === 'order') return rows.filter((r) => r.category === 'order' || r.category === 'restock').length
+    if (key === 'health') return rows.filter((r) => r.category === 'health').length
+    return rows.filter((r) => r.category === 'marketing' || r.category === 'cart').length
+  }
+
   async function markAllRead() {
     setMarking(true)
     try {
@@ -150,152 +147,156 @@ export default function NotificationsClient({
     )
   }
 
-  return (
-    <div className="nt-page">
-      <header className="nt-hero">
-        {!embedded && (
-          <>
-            <div className="nt-kicker">
-              <Bell size={11} strokeWidth={2.4} />
-              NOTIFICATIONS
-              {unreadCount > 0 && (
-                <span className="nt-unread-badge">{unreadCount}</span>
-              )}
-            </div>
-            <h1>알림 센터</h1>
-            <p>최근 100개 알림. 클릭하면 자동으로 읽음 처리돼요.</p>
-          </>
-        )}
+  // UX audit #19: 아무 알림도 없으면 알림 설정으로 가는 길을 준다(시안 M14).
+  if (rows.length === 0) {
+    return (
+      <section
+        style={{
+          margin: embedded ? '48px 20px 0' : '24px 20px 0',
+          padding: '36px 20px 32px',
+          border: '1.5px dashed #BDBDBD',
+          borderRadius: V3Radius.sm,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}
+      >
+        <IconDisc size={64}>
+          <InboxIcon size={30} color={V3.inkMute} strokeWidth={1.8} />
+        </IconDisc>
+        <h2 style={{ margin: '18px 0 0', fontSize: 24, lineHeight: 'normal' }}>아직 받은 알림이 없어요</h2>
+        <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>
+          체크인, 박스 도착, 식단 변경 동의
+          <br />
+          알림이 여기 모여요.
+        </p>
+        <Link href="/mypage/notifications" style={{ ...primaryButton(54, 16), width: 'auto', marginTop: 22, padding: '0 24px' }}>
+          알림 설정 보기
+        </Link>
+      </section>
+    )
+  }
 
+  return (
+    <div>
+      <div style={{ padding: '16px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: V3.inkSoft }}>
+          안 읽은 알림{' '}
+          <strong className="ft-num" style={{ fontWeight: 400, fontSize: 20, color: V3.ink }}>
+            {unreadCount}
+          </strong>
+          개
+        </span>
         {unreadCount > 0 && (
           <button
             type="button"
             onClick={markAllRead}
             disabled={marking}
-            className="nt-mark-all"
+            style={{
+              height: 44,
+              padding: '0 12px',
+              boxSizing: 'border-box',
+              borderRadius: V3Radius.sm,
+              border: `1.5px solid ${V3.ink}`,
+              background: '#FFFFFF',
+              color: V3.ink,
+              fontFamily: 'inherit',
+              fontSize: 15,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              opacity: marking ? 0.6 : 1,
+            }}
           >
             {marking ? (
-              <Spinner size={11} />
+              <Loader2 className="animate-spin" style={{ width: 16, height: 16 }} strokeWidth={2.4} />
             ) : (
-              <Check size={11} strokeWidth={2.6} />
+              <CheckIcon size={16} strokeWidth={2.8} />
             )}
             모두 읽음
           </button>
         )}
-      </header>
+      </div>
 
-      {rows.length > 0 && (
-        <div style={{ margin: '8px 0 0' }}>
-          <Tabs
-            value={filter}
-            onChange={(k) => setFilter(k as FilterKey)}
-            options={FILTERS.map((f) => ({
-              key: f.key,
-              label: f.label,
-              count:
-                f.key === 'all'
-                  ? rows.length
-                  : f.key === 'unread'
-                    ? unreadCount
-                    : f.key === 'order'
-                      ? rows.filter(
-                          (r) =>
-                            r.category === 'order' ||
-                            r.category === 'restock',
-                        ).length
-                      : f.key === 'health'
-                        ? rows.filter((r) => r.category === 'health').length
-                        : rows.filter(
-                            (r) =>
-                              r.category === 'marketing' ||
-                              r.category === 'cart',
-                          ).length,
-            }))}
-          />
-        </div>
-      )}
+      <div
+        role="group"
+        aria-label="알림 거르기"
+        style={{ marginTop: 14, padding: '0 20px', display: 'flex', gap: 6, overflowX: 'auto', whiteSpace: 'nowrap' }}
+      >
+        {FILTERS.map((f) => {
+          const active = f.key === filter
+          return (
+            <button
+              key={f.key}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilter(f.key)}
+              style={{
+                flexShrink: 0,
+                height: 42,
+                boxSizing: 'border-box',
+                padding: '0 12px',
+                borderRadius: V3Radius.sm,
+                border: active ? 0 : `1.5px solid ${V3.ink}`,
+                background: active ? V3.ink : '#FFFFFF',
+                color: active ? '#FFFFFF' : V3.ink,
+                fontFamily: 'inherit',
+                fontSize: 15,
+                fontWeight: active ? 800 : 700,
+                cursor: 'pointer',
+              }}
+            >
+              {f.label} {countFor(f.key)}
+            </button>
+          )
+        })}
+      </div>
 
-      {rows.length === 0 ? (
-        // UX audit #19: empty state CTA — 알림 설정 진입 안내.
-        <div className="nt-empty">
-          <Inbox size={28} strokeWidth={1.5} color="var(--muted)" />
-          <p>아직 받은 알림이 없어요.</p>
-          <p className="nt-empty-sub">
-            체크인 / 박스 도착 / 새 비율 동의 알림이 여기 모여요.
-          </p>
-          <Link
-            href="/mypage/notifications"
-            className="inline-flex items-center"
-            style={{
-              marginTop: 16,
-              gap: 4,
-              padding: '8px 18px',
-              borderRadius: V3Radius.pill,
-              fontSize: V3FontSize.sm,
-              fontWeight: V3FontWeight.bold,
-              background: V3.ink,
-              color: V3.paperHi,
-              textDecoration: 'none',
-            }}
-          >
-            알림 설정 보기
-          </Link>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="nt-empty">
-          <Inbox size={28} strokeWidth={1.5} color="var(--muted)" />
-          <p>이 카테고리는 비어 있어요</p>
-          <p className="nt-empty-sub">다른 카테고리를 골라 보세요</p>
-        </div>
+      {filtered.length === 0 ? (
+        <section
+          aria-label="알림 없음"
+          style={{
+            margin: '22px 20px 0',
+            padding: '22px 18px 20px',
+            borderRadius: V3Radius.sm,
+            background: V3.soft,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 6,
+          }}
+        >
+          <BellIcon size={30} color={V3.inkMute} strokeWidth={1.8} />
+          <p style={{ margin: '6px 0 0', fontSize: 18, fontWeight: 800, lineHeight: 1.4 }}>이 카테고리는 비어 있어요</p>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>다른 카테고리를 골라 보세요.</p>
+        </section>
       ) : (
-        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {groups.map((g) => (
-            <div key={g.label}>
-              <div
-                className="flex items-center"
-                style={{ gap: 6, marginBottom: 8, paddingLeft: 2 }}
-              >
-                <Calendar size={11} color={V3.inkMute} strokeWidth={2} />
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                    fontSize: V3FontSize.xs,
-                    fontWeight: 700,
-                    letterSpacing: '0.16em',
-                    wordSpacing: '-0.12em',
-                    textTransform: 'uppercase',
-                    color: V3.ink,
+        groups.map((g, gi) => (
+          <section
+            key={g.label}
+            aria-label={`${g.label} 알림`}
+            style={{ padding: `${gi === 0 ? 22 : 26}px 20px 0`, display: 'flex', flexDirection: 'column' }}
+          >
+            <PlainTitle size={16} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              {g.label} <span style={{ fontWeight: 600, color: V3.inkMute }}>{g.items.length}</span>
+            </PlainTitle>
+            <ol style={{ margin: '10px 0 0', padding: 0, listStyle: 'none', borderTop: `2px solid ${V3.ink}` }}>
+              {g.items.map((row) => (
+                <NotificationCard
+                  key={row.id}
+                  row={row}
+                  onClick={() => {
+                    if (row.read_at === null) void markOneRead(row.id)
+                    if (row.url) router.push(row.url)
                   }}
-                >
-                  {g.label}
-                </span>
-                <span
-                  className="tabular-nums"
-                  style={{
-                    fontSize: V3FontSize.xs,
-                    color: V3.inkMute,
-                    fontFamily: "var(--font-mono, 'IBM Plex Mono'), monospace",
-                    fontWeight: 500,
-                  }}
-                >
-                  {g.items.length}
-                </span>
-              </div>
-              <ol className="nt-list">
-                {g.items.map((row) => (
-                  <NotificationCard
-                    key={row.id}
-                    row={row}
-                    onClick={() => {
-                      if (row.read_at === null) void markOneRead(row.id)
-                      if (row.url) router.push(row.url)
-                    }}
-                  />
-                ))}
-              </ol>
-            </div>
-          ))}
-        </div>
+                />
+              ))}
+            </ol>
+          </section>
+        ))
       )}
     </div>
   )
@@ -313,75 +314,78 @@ function NotificationCard({
   const catLabel = row.category
     ? CATEGORY_LABEL[row.category] ?? row.category
     : null
-  const catColor = row.category
-    ? CATEGORY_COLOR[row.category] ?? 'var(--muted)'
-    : 'var(--muted)'
 
   const Icon =
     row.category === 'order' || row.category === 'checkin'
-      ? Package
+      ? BoxIcon
       : row.category === 'restock'
-        ? RefreshCcw
+        ? BoxIcon
         : row.category === 'marketing' || row.category === 'cart'
-          ? Megaphone
-          : Bell
+          ? MegaphoneIcon
+          : row.category === 'health'
+            ? HeartIcon
+            : BellIcon
 
   return (
     <li>
       <button
         type="button"
         onClick={onClick}
-        className={'nt-card ' + (isUnread ? 'nt-unread' : '')}
+        style={{
+          width: '100%',
+          padding: '14px 0',
+          border: 0,
+          borderBottom: `1px solid ${V3.rule}`,
+          background: 'transparent',
+          color: V3.ink,
+          fontFamily: 'inherit',
+          textAlign: 'left',
+          display: 'grid',
+          gridTemplateColumns: '40px 1fr',
+          columnGap: 12,
+          cursor: 'pointer',
+        }}
       >
-        <div className="flex items-start gap-3">
-          <div
-            className="shrink-0 flex items-center justify-center"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              background: `color-mix(in srgb, ${catColor} 14%, ${V3.paperHi})`,
-              border: `1px solid ${V3.rule}`,
-            }}
-            aria-hidden
-          >
-            <Icon size={14} color={catColor} strokeWidth={2} />
-          </div>
-
-          <div className="flex-1 min-w-0 text-left">
-            <div className="nt-card-head">
-              <div className="nt-card-title-row">
-                {isUnread && <span className="nt-dot" />}
-                <span className="nt-title">{row.title}</span>
-              </div>
-              <span className="nt-time">{timeAgo}</span>
-            </div>
-            {row.body && <p className="nt-body">{row.body}</p>}
-            <div className="nt-foot">
-              {catLabel && (
+        <IconDisc size={40}>
+          <Icon size={19} color={V3.ink} />
+        </IconDisc>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+            {isUnread ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 17, fontWeight: 800, lineHeight: 1.35 }}>
                 <span
-                  className="nt-tag"
-                  style={{
-                    background: `color-mix(in srgb, ${catColor} 8%, white)`,
-                    color: catColor,
-                    border: `1px solid color-mix(in srgb, ${catColor} 30%, white)`,
-                  }}
-                >
-                  {catLabel}
-                </span>
-              )}
-              {row.sent_count === 0 && (
-                <span className="nt-tag nt-tag-warn">미발송</span>
-              )}
-              {row.url && (
-                <span className="nt-go">
-                  열기
-                  <ArrowRight size={10} strokeWidth={2.4} />
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+                  role="img"
+                  aria-label="안 읽음"
+                  style={{ flexShrink: 0, width: 8, height: 8, borderRadius: 4, background: V3.sale }}
+                />
+                {row.title}
+              </span>
+            ) : (
+              <span style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.35 }}>{row.title}</span>
+            )}
+            <span style={{ flexShrink: 0, fontSize: 14, color: V3.inkMute }}>{timeAgo}</span>
+          </span>
+          {row.body && (
+            <span style={{ fontSize: 15, lineHeight: 1.5, color: isUnread ? V3.inkSoft : V3.inkMute }}>{row.body}</span>
+          )}
+          {(catLabel || row.sent_count === 0 || row.url) && (
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ display: 'flex', gap: 6 }}>
+                {catLabel && (
+                  <Chip tone="soft" height={24}>
+                    {catLabel}
+                  </Chip>
+                )}
+                {row.sent_count === 0 && (
+                  <Chip tone="soft" height={24} style={{ color: V3.sale }}>
+                    미발송
+                  </Chip>
+                )}
+              </span>
+              {row.url && <span style={{ fontSize: 14, fontWeight: 800 }}>열기 →</span>}
+            </span>
+          )}
+        </span>
       </button>
     </li>
   )
