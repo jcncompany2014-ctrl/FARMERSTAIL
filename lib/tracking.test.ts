@@ -49,6 +49,11 @@ test('tracking-poll: 배송 중 주문이 없는 날에도 키를 조회만으�
   assert.match(fn, /return isTrackerAuthError\(json\.errors\) \? 'rejected' : 'ok'/, '키 점검이 인증 거절을 가려내지 않는다')
   assert.doesNotMatch(fn, /\.update\(|\.insert\(|\.delete\(|pushToUser|notifyOrder/, '키 점검이 조회 말고 다른 일을 한다 — 고객에게 닿는다')
   assert.match(src, /keyCheck,\n\s*\}\)\n\}/, '정상 결과 요약에 keyCheck 가 없다 — cron_health 로 확인할 수 없다')
+  // 응답에 넣어도 cron_health 기록은 허용 목록(pickSummary)만 남긴다 — 첫 배포에서 실제로 잘려 나갔다.
+  const tracking = readFileSync(join(process.cwd(), 'lib', 'cron-tracking.ts'), 'utf8').replace(/\r\n/g, '\n')
+  const allow = tracking.slice(tracking.indexOf('function pickSummary('), tracking.indexOf('const out: Record<string, unknown> = {}'))
+  assert.ok(allow.length > 50, 'pickSummary 허용 목록을 못 찾았다')
+  assert.match(allow, /^\s*'keyCheck',$/m, "cron_health 기록 허용 목록에 'keyCheck' 가 없다 — 키 점검 결과가 잘려 나간다")
 })
 
 test('isTrackerAuthError: 송장 없음은 인증 오류가 아니다', () => {
