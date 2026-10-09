@@ -6077,3 +6077,48 @@ test('규칙164: 배합비(products.ingredients)는 공개 조회에서 빠져 �
     'app/admin/products/[id]/page.tsx', // 상품 수정 폼 — 배합비 편집
   ], `products 를 '*'·ingredients 로 읽는 곳이 바뀌었다 — 배합비가 새 화면으로 흐르는지 확인하고 목록을 갱신한다`)
 })
+
+test('규칙166: 앱 바탕 흰색(셸 3세대) 뒤에도 옛 셸은 그 셸 색으로 잇는다 — 윗줄·탭바·로딩 바탕·상태바·도장 그림', () => {
+  /**
+   * # 왜 (2026-10-09 앱 새 디자인 'A 포스터' — 사장님 "흰색, 시안대로")
+   * 앱 바탕을 흰색으로 바꾸면 웹 배포는 모든 설치 버전에 바로 닿지만, 네이티브 색(폰 화면·상태바·홈바 구간)은 스토어
+   * 업데이트로만 바뀐다. 2세대 셸(FtShell/2 — 네이티브 종이색 #F7F5F0)에서 웹만 흰색이면
+   *   ① 아이폰은 상태바·홈바 구간이 종이색 띠로 남고(contentInset 'always' — 규칙84 의 이유),
+   *   ② 폰 화면(종이색) → 웹 로딩(흰색)으로 넘어갈 때 바탕색이 바뀌고, 흰 바탕에 구운 도장이 종이색 위에 뜬다(규칙149 의 이유).
+   * 그래서 head 스크립트가 FtShell/3 미만 셸에 html.ft-paper-shell 을 붙이고(1세대 아이폰은 ft-old-shell-ios),
+   * 그 셸에선 윗줄·탭바(--ft-native-bg)·로딩 바탕·안드로이드 상태바를 종이색으로, 도장 그림·영상은 종이색 위에 구운 v1 로 잇는다.
+   * 옛 셸이 남아 있는 동안 v1 그림·영상을 지우면 그 셸의 로딩이 빈다.
+   */
+  const cap = read(join(ROOT, 'capacitor.config.ts'))
+  const gen = Number(cap.match(/appendUserAgent:\s*'FarmerstailApp FtShell\/(\d+)'/)?.[1])
+  assert.equal(gen, 3, '셸 세대가 3이 아니다 — 흰 바탕 셸의 표식을 바꾸면 head 스크립트의 옛 셸 판정(gen<3)도 같이 고칠 것')
+
+  const layoutSrc = read(join(ROOT, 'app', 'layout.tsx'))
+  assert.match(layoutSrc, /var gen=g\?\+g\[1\]:0;if\(gen<2&&/, 'head 스크립트가 셸 세대를 숫자로 읽지 않는다')
+  assert.match(layoutSrc, /else if\(gen<3\)\{h\.classList\.add\('ft-paper-shell'\);\}/, 'head 스크립트가 옛 셸(FtShell/3 미만)에 ft-paper-shell 을 안 붙인다')
+  assert.match(layoutSrc, /l\.href=h\.classList\.contains\('ft-paper-shell'\)\?'\$\{PAPER_SHELL_STILL_SRC\}':'\$\{SPLASH_STILL_SRC\}'/, '옛 셸이 흰 바탕 도장을 미리 받는다(그 셸이 쓰는 건 종이색 도장)')
+
+  const css = stripComments(read(join(ROOT, 'app', 'globals.css')))
+  assert.match(css, /html\.ft-paper-shell \[data-ft-chrome="app"\] \{\s*--ft-native-bg: #F7F5F0;/, '옛 셸에서 윗줄·탭바가 네이티브 종이색을 안 따른다 — 아이폰 상태바·홈바 구간에 띠가 생긴다')
+  assert.match(css, /html\.ft-paper-shell \.ft-splash \{\s*background: #F7F5F0;/, '옛 셸 로딩 바탕이 그 셸 폰 화면(종이색)과 다르다')
+
+  const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
+  assert.match(chrome, /<header[\s\S]{0,120}background: 'var\(--ft-native-bg\)'/, '윗줄이 상태바 구간 색(--ft-native-bg)을 안 쓴다 — 옛 아이폰 셸에서 위에 띠가 생긴다')
+
+  const splash = read(join(ROOT, 'components', 'AppSplash.tsx'))
+  assert.equal(splash.match(/export const PAPER_SHELL_BG = '(#[0-9A-Fa-f]{6})'/)?.[1], '#F7F5F0', '옛 셸 바탕색이 2세대 네이티브 종이색이 아니다')
+  assert.match(splash, /var paperShell=root\.classList\.contains\('ft-paper-shell'\);/, '로딩 스크립트가 옛 셸을 가려내지 않는다')
+  assert.match(splash, /color:paperShell\?'\$\{PAPER_SHELL_BG\}':'\$\{APP_PAPER\}'/, '안드로이드 옛 셸의 상태바를 흰색으로 칠한다 — 종이색 윗줄 위에 흰 띠가 생긴다')
+  assert.match(splash, /pic\.src=\(paperShell&&pic\.getAttribute\('data-src-paper'\)\)\|\|pic\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 도장 그림을 띄운다')
+  assert.match(splash, /wag\.src=\(paperShell&&wag\.getAttribute\('data-src-paper'\)\)\|\|wag\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 꼬리 영상을 띄운다')
+  assert.match(splash, /data-src-paper=\{PAPER_SHELL_STILL_SRC\}/, '정지 도장에 종이색 그림 주소가 없다')
+  assert.match(splash, /data-src-paper=\{PAPER_SHELL_WAG_SRC\}/, '꼬리 영상에 종이색 영상 주소가 없다')
+  // 두 벌의 그림·영상이 실제로 있고 서로 다른 파일이다.
+  const srcOf = (k: string) => splash.match(new RegExp('export const ' + k + " = '([^']+)'"))?.[1] ?? ''
+  for (const k of ['SPLASH_STILL_SRC', 'SPLASH_WAG_SRC', 'PAPER_SHELL_STILL_SRC', 'PAPER_SHELL_WAG_SRC']) {
+    const src = srcOf(k)
+    assert.ok(src && existsSync(join(ROOT, 'public', ...src.split('/').filter(Boolean))), k + '(' + src + ') 파일이 없다')
+  }
+  assert.notEqual(srcOf('SPLASH_STILL_SRC'), srcOf('PAPER_SHELL_STILL_SRC'), '흰 바탕 도장과 종이색 도장이 같은 파일이다')
+  assert.notEqual(srcOf('SPLASH_WAG_SRC'), srcOf('PAPER_SHELL_WAG_SRC'), '흰 바탕 영상과 종이색 영상이 같은 파일이다')
+})

@@ -41,14 +41,15 @@ export const metadata: Metadata = {
 
 /**
  * B8 — 앱 라우트 상태바 색. 루트의 themeColor 는 웹 시그니처 terracotta 인데,
- * 앱 헤더는 paper(#f4ede0) 라 상태바만 주황 띠로 떠 보였음. (main) 스코프
+ * 앱 헤더는 바탕색이라 상태바만 주황 띠로 떠 보였음. (main) 스코프
  * override 로 상태바가 헤더에 자연스럽게 녹아들게 한다 (웹은 루트 값 유지).
  * 나머지 viewport 키(viewportFit 등)는 루트에서 shallow-merge 상속.
  */
 export const viewport: Viewport = {
   // 다크 분기 제거(2026-08-05) — 앱 화면은 [data-ft-chrome="app"] 이 항상
   // 라이트로 고정하는데 상태바만 다크였다.
-  themeColor: '#f4ede0',
+  // 2026-10-09 앱 새 디자인 — 윗줄이 흰색(--paper #FFFFFF). 옛 값 #f4ede0 은 종이색 시절보다도 옛 색이었다.
+  themeColor: '#FFFFFF',
 }
 
 export default function MainLayout({

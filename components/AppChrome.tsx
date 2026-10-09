@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  User,
+  Bell,
   ChevronDown,
   ArrowLeft,
   Check,
@@ -52,6 +52,13 @@ const CHECKOUT_RE = /\/dogs\/[^/]+\/(plan|order)(\/|$)/
 // 구독전환: /cart·/products 폐지(redirect). 탭 루트 = 홈·강아지·내정보만.
 // 2026-09-21 하단 탭 복귀: 정기배송(/mypage/subscriptions)도 탭 루트 — ← 없이 기본 헤더.
 const TAB_ROOTS = new Set(['/dashboard', '/dogs', '/mypage', '/mypage/subscriptions'])
+
+/** 탭 화면 윗줄 제목(앱 새 디자인 2026-10-09 — 탭 화면은 화면 이름만). 홈은 제목 대신 로고. */
+const TAB_TITLES: Record<string, string> = {
+  '/dogs': '우리 아이',
+  '/mypage/subscriptions': '정기배송',
+  '/mypage': '내 정보',
+}
 
 /**
  * 앱을 켰을 때 처음 떨어지는 화면. public/manifest.json 의 `start_url` 과
@@ -97,6 +104,8 @@ const DEEP_TITLES: Record<string, string> = {
   '/chat': 'AI 영양 상담',
   // 앱 전용 4종 비교(app/compare — (main) 밖이라 AuthAwareShell 로 이 chrome 을 쓴다).
   '/compare': '4종 비교',
+  // 앱 새 디자인 바탕 공사 점검 화면(미리보기·로컬 전용, 실제 사이트 404).
+  '/design-check': '디자인 점검',
 }
 
 function screenTitleForPath(pathname: string): string | null {
@@ -204,7 +213,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   const checkout = CHECKOUT_RE.test(pathname)
   const tabBarHidden = focusMode || checkout
 
-  const [scrolled, setScrolled] = useState(false)
   // R-feel: 상단 우측에 '활성 강아지 칩' — 알림/장바구니 대신.
   const [dogs, setDogs] = useState<
     { id: string; name: string; photoUrl: string | null }[]
@@ -331,17 +339,6 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     // router 는 App Router 에서 안정 참조라 재구독을 유발하지 않는다.
   }, [supabase, router])
 
-  // Top header gets a hairline + shadow once the user scrolls past the
-  // viewport top — subtle separation from content without a heavy border
-  // when the page is at rest.
-  useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 4)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   // 뒤로/앞으로(POP) 내비 감지. POP 은 브라우저가 이전 스크롤 위치를 복원하므로
   // 아래 강제 top 을 스킵한다 — 안 그러면 복원 위치→0 으로 튀어 '깜빡'인다
   // (사장님 리포트 2026-07-12). PUSH(링크·상위 이동)만 top 확정.
@@ -457,114 +454,74 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       // 타이밍 무관 — nav 가 속한 하위 레이아웃이 늦게 뜨거나 실패해도 숨겨짐.
       data-focus={focusMode ? 'true' : undefined}
     >
-      {/* 상단 헤더 v3 — 3-zone grid (좌 내정보/← · 중앙 로고(logo-ink.png) · 우 강아지 칩).
+      {/* 상단 헤더 — 앱 새 디자인('A 포스터', 2026-10-09): 흰 바탕 + 아래 1px 회색 선, 높이 64.
+          홈 = 왼쪽 작은 로고 + 오른쪽 알림 종 / 탭 화면 = 화면 이름 / 깊은 화면 = ← + 이름.
+          사람 아이콘·가운데 큰 로고는 뺐다(아래 탭 '내 정보'와 겹침 — 시안 결정).
           focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (
       <header
-        className="sticky top-0 z-40 transition-all duration-200"
+        className="sticky top-0 z-40"
         style={{
-          // R-feel: 항상 살짝 블러 + 떠 있는 그림자(스크롤 시 진해짐). 하단 헤어라인
-          // 제거 — 선 대신 그림자로 본문과 분리해 '앱 헤더가 떠 있는' 느낌.
-          background: scrolled
-            ? 'color-mix(in srgb, var(--paper) 84%, transparent)'
-            : 'var(--paper)',
-          backdropFilter: 'blur(14px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-          boxShadow: scrolled
-            ? '0 6px 22px -10px rgba(22,20,15,0.30), 0 1px 1px rgba(22,20,15,0.04)'
-            : '0 2px 14px -12px rgba(22,20,15,0.22)',
-          transition: 'box-shadow 220ms ease, background 220ms ease',
+          // 상태바 구간 색(--ft-native-bg)과 같은 색 — 새 셸은 흰색(= --paper), 옛 2세대 셸은 네이티브가 상태바를
+          // 종이색으로 칠하므로 윗줄도 종이색이 돼 위에 띠가 안 생긴다(html.ft-paper-shell — 규칙166).
+          background: 'var(--ft-native-bg)',
+          borderBottom: '1px solid var(--rule)',
           paddingTop: 'env(safe-area-inset-top)',
         }}
       >
-        <div className="max-w-md mx-auto" style={{ paddingLeft: 20, paddingRight: 20 }}>
-          {/* ── Main row — 좌 내정보/← · 중앙 logo · 우 강아지 칩 (3-zone grid) ── */}
+        <div className="max-w-md mx-auto" style={{ paddingLeft: isDeep ? 6 : 20, paddingRight: 8 }}>
+          {/* A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기. */}
           <div
-            className="grid items-center"
-            // A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기.
-            // Phase P (FD 헤더): 3-zone grid (좌 1fr · 중앙 auto · 우 1fr) —
-            // 로고를 센터에. 로고 40→48px(h-12) 키우면서 padding 12→8 로 64 유지.
-            style={{
-              gridTemplateColumns: '1fr auto 1fr',
-              paddingTop: 8,
-              paddingBottom: 8,
-              minHeight: 64,
-              boxSizing: 'border-box',
-            }}
+            className="flex items-center justify-between"
+            style={{ minHeight: 64, gap: 8, boxSizing: 'border-box' }}
           >
-            {/* ── 좌측 zone — 깊은화면 ←(+제목) / 그 외 = 내 정보 진입 ── */}
-            <div className="flex items-center justify-start min-w-0">
+            {/* ── 왼쪽 — 깊은 화면 ← + 이름 / 홈 로고 / 탭 화면 이름 ── */}
+            <div className="flex items-center justify-start min-w-0" style={{ gap: 4 }}>
               {isDeep ? (
-                <button
-                  type="button"
-                  // 쿼리는 누르는 순간에 읽는다 — 렌더에서 읽으면 SSR/하이드레이션이 갈린다.
-                  onClick={() => router.push(parentForPath(pathname, window.location.search))}
-                  aria-label="뒤로"
-                  className="flex items-center shrink-0 transition active:scale-95"
-                  style={{
-                    gap: 4,
-                    marginLeft: -8,
-                    padding: '4px 6px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <ArrowLeft
-                    style={{ width: 23, height: 23, color: 'var(--ink)' }}
-                    strokeWidth={2}
-                  />
+                <>
+                  <button
+                    type="button"
+                    // 쿼리는 누르는 순간에 읽는다 — 렌더에서 읽으면 SSR/하이드레이션이 갈린다.
+                    onClick={() => router.push(parentForPath(pathname, window.location.search))}
+                    aria-label="뒤로"
+                    className="flex items-center justify-center shrink-0 transition active:scale-95"
+                    style={{ width: 48, height: 48, background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    <ArrowLeft style={{ width: 26, height: 26, color: 'var(--ink)' }} strokeWidth={2} />
+                  </button>
                   {screenTitle && (
                     <span
-                      style={{
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 17,
-                        fontWeight: 700,
-                        color: 'var(--ink)',
-                        letterSpacing: '-0.02em',
-                      }}
+                      className="ft-poster truncate"
+                      style={{ fontSize: 22, lineHeight: 1.2, color: 'var(--ink)' }}
                     >
                       {screenTitle}
                     </span>
                   )}
-                </button>
-              ) : (
-                /* 홈 허브형: 탭루트(홈·우리아이·내정보)에서 좌측 = 내 정보 진입. */
+                </>
+              ) : pathname === '/dashboard' ? (
                 <Link
-                  href="/mypage"
-                  aria-label="내 정보"
-                  className="flex items-center justify-center transition active:scale-95"
-                  style={{ marginLeft: -8, padding: 8 }}
+                  href="/dashboard"
+                  aria-label="파머스테일 홈"
+                  className="flex items-center transition active:scale-95"
+                  style={{ height: 48 }}
                 >
-                  <User
-                    style={{ width: 22, height: 22, color: 'var(--ink)' }}
-                    strokeWidth={1.8}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logo-ink.png"
+                    alt="파머스테일"
+                    style={{ height: 17, width: 'auto', display: 'block' }}
+                    fetchPriority="high"
                   />
                 </Link>
+              ) : (
+                <span className="ft-poster truncate" style={{ fontSize: 26, lineHeight: 1.15, color: 'var(--ink)' }}>
+                  {TAB_TITLES[pathname] ?? ''}
+                </span>
               )}
             </div>
 
-            {/* ── 중앙 zone — 탭루트 로고(센터) / 깊은화면 빈칸 ── */}
-            {isDeep ? (
-              <span aria-hidden />
-            ) : (
-              <Link
-                href="/dashboard"
-                aria-label="홈"
-                className="flex items-center justify-center transition active:scale-95"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo-ink.png"
-                  alt="Farmer's Tail"
-                  className="h-8 w-auto"
-                  fetchPriority="high"
-                />
-              </Link>
-            )}
-
-            {/* ── 우측 zone — 탭루트 = 활성 강아지 칩(없으면 등록). 깊은 화면 숨김. ── */}
-            <div className="flex items-center justify-end min-w-0">
+            {/* ── 오른쪽 — 탭 화면 = 활성 강아지 칩(없으면 등록) · 홈 = 알림 종. 깊은 화면 숨김. ── */}
+            <div className="flex items-center justify-end shrink-0">
             {!isDeep && dogsLoaded && (
               dogs.length === 0 ? (
                 <Link
@@ -815,6 +772,16 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
               )
+            )}
+            {pathname === '/dashboard' && (
+              <Link
+                href="/notifications"
+                aria-label="알림"
+                className="flex items-center justify-center transition active:scale-95"
+                style={{ width: 48, height: 48, color: 'var(--ink)' }}
+              >
+                <Bell style={{ width: 26, height: 26 }} strokeWidth={2} />
+              </Link>
             )}
             </div>
           </div>

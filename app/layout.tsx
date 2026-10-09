@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import {
+  Anton,
   Archivo_Black,
+  Black_Han_Sans,
   Bungee,
   Gaegu,
   JetBrains_Mono,
@@ -12,7 +14,7 @@ import "./globals.css";
 // 적용된다 (같은 모듈 그래프).
 import "@/lib/forms/zod-ko";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import AppSplash, { SPLASH_STILL_SRC } from "@/components/AppSplash";
+import AppSplash, { PAPER_SHELL_STILL_SRC, SPLASH_STILL_SRC } from "@/components/AppSplash";
 import DevContextToggle from "@/components/DevContextToggle";
 import SentryUserSync from "@/components/SentryUserSync";
 import UtmCapture from "@/components/UtmCapture";
@@ -159,6 +161,25 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-mono",
+});
+
+// 앱 새 디자인('A 포스터', 2026-10-09) — 제목·레시피 이름 = Black Han Sans, 큰 숫자 = Anton.
+// next/font 가 빌드 때 받아 우리 도메인에서 내준다(CSP font-src 'self' 통과). Black Han Sans 는 한글
+// 조각(unicode-range)으로 나뉘어 화면에 쓴 글자 조각만 받는다. preload 끔 — 웹 화면엔 쓰지 않으므로
+// 모든 주소가 미리 받지 않게(Cormorant 와 같은 이유). 앱 범위 CSS(.ft-poster · .ft-num · h1/h2)가 쓴다.
+const blackHanSans = Black_Han_Sans({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-poster",
+  preload: false,
+});
+const anton = Anton({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--font-num",
+  preload: false,
 });
 
 // R72 — fallback www. (Vercel primary). NEXT_PUBLIC_SITE_URL env 우선.
@@ -316,7 +337,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${bungee.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable}`}
+      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${bungee.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable} ${blackHanSans.variable} ${anton.variable}`}
     >
       <head>
         {/*
@@ -389,10 +410,12 @@ export default function RootLayout({
           폰 화면이 짧아진다. 웹 브라우저는 받지 않는다.
           그리고 네이티브 셸 세대(UA 의 FtShell/N, capacitor.config appendUserAgent)를 읽어, 바탕이
           아직 크림인 옛 아이폰 셸이면 html.ft-old-shell-ios 를 붙인다(탭바가 홈바 구간 색을 따라감).
+          ★2026-10-09 — 셸 3세대(흰 바탕, 앱 새 디자인)부터는 흰색. 그보다 옛 셸(2세대 종이색 등)은
+          html.ft-paper-shell 을 붙여 윗줄·탭바·로딩을 그 셸의 종이색으로 잇고, 종이색 도장(v1)을 미리 받는다(규칙166).
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');if(c){var g=/FtShell\\/(\\d+)/.exec(navigator.userAgent||'');if((!g||+g[1]<2)&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='ios'){h.classList.add('ft-old-shell-ios');}}try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');var l=document.createElement('link');l.rel='preload';l.as='image';l.href='${SPLASH_STILL_SRC}';document.head.appendChild(l);}}catch(e){}}}catch(e){}})();`,
+            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');if(c){var g=/FtShell\\/(\\d+)/.exec(navigator.userAgent||'');var gen=g?+g[1]:0;if(gen<2&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='ios'){h.classList.add('ft-old-shell-ios');}else if(gen<3){h.classList.add('ft-paper-shell');}}try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');var l=document.createElement('link');l.rel='preload';l.as='image';l.href=h.classList.contains('ft-paper-shell')?'${PAPER_SHELL_STILL_SRC}':'${SPLASH_STILL_SRC}';document.head.appendChild(l);}}catch(e){}}}catch(e){}})();`,
           }}
         />
       </head>
@@ -448,7 +471,8 @@ export default function RootLayout({
         <JsonLd id="ld-organization" data={buildOrganizationJsonLd()} />
         <JsonLd id="ld-website" data={buildWebSiteJsonLd()} />
         {/* 🛠️ 개발 전용 웹↔앱 토글 (우하단). production 엔 렌더 안 됨. 삭제: 이 줄 + components/DevContextToggle.tsx */}
-        {process.env.NODE_ENV !== 'production' && <DevContextToggle />}
+        {/* 미리보기(Vercel preview) 주소에서도 켠다 — 앱 새 디자인을 실제 사이트에 내기 전 미리보기에서 앱 화면으로 보려고(2026-10-09). */}
+        {(process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview') && <DevContextToggle />}
       </body>
     </html>
   );
