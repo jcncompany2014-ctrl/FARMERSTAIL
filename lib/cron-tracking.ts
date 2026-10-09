@@ -202,6 +202,9 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     'ambiguousHeld',
     'ambiguousReleased',
     'ambiguousUnknown',
+    // ★배송조회 키 자가 점검 결과(tracking-poll, 2026-10-09) — 'ok'·'upstream_error'·'no_sample' 등 글자 하나.
+    //   빠져 있으면 키가 통했는지·아예 안 읽혔는지가 cron_health 에서 구분되지 않는다(실제로 그랬다).
+    'keyCheck',
   ]
   const out: Record<string, unknown> = {}
   for (const k of allow) {

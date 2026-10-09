@@ -201,6 +201,19 @@ export function trackerAuthHeader(
 }
 
 /**
+ * 키에 붙여넣기 사고 글자(가운데 공백·줄바꿈·전각/보이지 않는 문자)가 섞였나 (2026-10-09).
+ * 앞뒤 공백은 trackerAuthHeader 가 잘라 주지만 가운데 글자는 그대로 헤더에 들어가,
+ * fetch 가 요청을 만들지 못하고 던지거나(줄바꿈·한글 등) 거절된다. 발급 키는 영숫자·기호뿐이다.
+ * 값은 어디에도 출력하지 않는다 — 참/거짓만.
+ */
+export function trackerKeyMalformed(
+  clientId: string | undefined,
+  clientSecret: string | undefined,
+): boolean {
+  return [clientId, clientSecret].some((v) => /[^\x21-\x7E]/.test(v?.trim() ?? ''))
+}
+
+/**
  * 상류 GraphQL 오류가 **우리 쪽 인증 문제**인가 — 키 없음·틀림·만료.
  * 이건 "송장을 못 찾음"이 아니다. 고객 탓으로 말하면 안 되고, 크론은 실패로 올려야 한다.
  */
