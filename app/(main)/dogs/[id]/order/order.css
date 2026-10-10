@@ -1012,3 +1012,485 @@
   line-height: 1.6;
   color: var(--muted);
 }
+
+/* ══ 앱 새 디자인('A 포스터', 2026-10-09 캔버스 S31·S32·C04) ════════════════════════════════════
+   OrderClient 가 앱일 때만 루트에 .is-app 을 붙인다 — 아래는 전부 `.ord-page.is-app` 안이라 웹 주문 화면
+   (/account/subscribe, isApp=false)은 한 픽셀도 바뀌지 않는다. 위 규칙들은 웹이 그대로 쓴다.
+   흰 바탕 · 먹색 · 모서리 4 · 도장 그림자는 이 화면에 한 곳(결제 요약). 치수는 시안 원본 HTML 그대로.
+   제목(h1·h2)은 앱 틀 규칙이 Black Han Sans 로, 큰 숫자는 .ft-num(Anton) — 여기서 그 글꼴을 다시 주지 않는다.
+   본문 아래 여백은 AppChrome 이 결제 바 높이(--ft-paybar-h)만큼 준다(규칙88) — 여기선 바 자리를 따로 비우지 않는다. */
+
+.ord-page.is-app {
+  max-width: none;
+  margin: 0;
+  padding: 0 20px 12px;
+  background: var(--paper);
+  min-height: 0;
+  color: var(--ink);
+  /* 시안 원본은 기본 줄 높이(normal) — 앱 기본 1.5 면 제목·줄마다 몇 px 씩 길어진다. 여러 줄 문구는 규칙마다 따로. */
+  line-height: normal;
+}
+
+/* 머리말 · 제목 · 한 줄 */
+.ord-page.is-app .ord-hero { margin: 22px 0 0; }
+.ord-page.is-app .ord-kicker {
+  font-family: inherit;
+  font-size: 14px; font-weight: 700; letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--ink-mute);
+  margin: 0;
+}
+.ord-page.is-app .ord-hero h1 {
+  font-size: 30px; line-height: 1.2;
+  margin: 10px 0 0;
+  color: var(--ink);
+}
+.ord-page.is-app .ord-hero p {
+  margin: 10px 0 0;
+  font-size: 17px; line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* 추천 없음(시안 I02) — 앱은 .ord-empty 대신 이 회색 안내 카드를 그린다(OrderClient). */
+.ord-page.is-app .ord-empty-app {
+  margin-top: 24px;
+  padding: 22px 18px 20px;
+  border-radius: 4px;
+  background: var(--soft);
+  color: var(--ink-mute);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+}
+.ord-page.is-app .ord-empty-app-title {
+  margin: 6px 0 0;
+  font-size: 18px; font-weight: 800; line-height: 1.4;
+  color: var(--ink);
+}
+.ord-page.is-app .ord-empty-app-body {
+  margin: 0;
+  font-size: 16px; line-height: 1.6;
+  color: var(--ink-soft);
+}
+.ord-page.is-app .ord-empty-app-go {
+  margin-top: 14px;
+  align-self: stretch;
+  height: 56px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 17px; font-weight: 800;
+  text-decoration: none;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── 접는 줄 두 개(받는 박스 · 배송 요일) — 위 먹선 2px 한 묶음, 줄마다 아래 회색 선 ─────────── */
+.ord-page.is-app .ord-boxcard.ord-fold,
+.ord-page.is-app .ord-rhythm.ord-fold {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+.ord-page.is-app .ord-boxcard.ord-fold {
+  margin-top: 20px;
+  border-top: 2px solid var(--ink);
+}
+.ord-page.is-app .ord-fold-sum {
+  min-height: 72px;
+  padding: 0;
+  gap: 10px;
+  border-radius: 0;
+}
+.ord-page.is-app .ord-fold-sum:active { background: transparent; opacity: 0.7; }
+/* 줄 앞 아이콘(상자·달력)은 시안에 없다 — 펼침 화살표(.ord-fold-more 안)는 남긴다. */
+.ord-page.is-app .ord-fold-sum > svg { display: none; }
+.ord-page.is-app .ord-fold-txt { gap: 3px; }
+.ord-page.is-app .ord-fold-txt b { font-size: 17px; font-weight: 800; color: var(--ink); }
+.ord-page.is-app .ord-fold-desc {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 15px; color: var(--ink-soft);
+}
+.ord-page.is-app .ord-fold-squares { display: flex; gap: 2px; flex-shrink: 0; }
+.ord-page.is-app .ord-fold-squares > span { width: 9px; height: 9px; }
+.ord-page.is-app .ord-fold-more { font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+.ord-page.is-app .ord-fold-body {
+  margin: 0;
+  padding: 4px 0 18px;
+  border-top: 0;
+}
+
+/* 받는 박스 펼침 — 담긴 레시피 */
+.ord-page.is-app .ord-boxcard-head {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.ord-page.is-app .ord-boxcard-title { font-size: 15px; font-weight: 700; color: var(--ink-mute); }
+.ord-page.is-app .ord-boxcard-edit {
+  min-height: 44px;
+  font-size: 15px; font-weight: 800; color: var(--ink);
+  text-decoration: underline; text-underline-offset: 3px;
+  gap: 4px;
+}
+.ord-page.is-app .ord-boxcard-recipes { padding: 0; }
+.ord-page.is-app .ord-recipe {
+  min-height: 68px;
+  padding: 10px 0;
+  box-sizing: border-box;
+  gap: 12px;
+  border-top: 1px solid #EFEDEE;
+  border-bottom: 0;
+}
+.ord-page.is-app .ord-recipe-slot { width: 48px; height: 48px; }
+.ord-page.is-app .ord-recipe-name { font-size: 17px; font-weight: 800; }
+.ord-page.is-app .ord-recipe-sub { font-size: 14px; color: var(--ink-mute); }
+.ord-page.is-app .ord-recipe-plbl { font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--ink-mute); }
+.ord-page.is-app .ord-recipe-pval { font-size: 16px; font-weight: 800; font-variant-numeric: normal; }
+.ord-page.is-app .ord-recipe-offtag { border-radius: 4px; background: var(--soft); color: var(--ink-soft); font-size: 13px; }
+/* 사진 안내는 .ord-foot 도 달고 있다 — 아래 .ord-foot(아이콘 칸 그리드)보다 세게 잡아 한 덩어리 글로. */
+.ord-page.is-app .ord-foot.ord-photo-note {
+  display: block;
+  margin: 8px 0 0;
+  text-align: left;
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink-mute);
+}
+
+/* 얼마나 화식으로 — 세 칸 막대. 고른 칸 = 먹색 바탕 흰 글자. */
+.ord-page.is-app .ord-fresh {
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.ord-page.is-app .ord-fresh-lbl { font-size: 15px; font-weight: 700; color: var(--ink-mute); margin-bottom: 8px; }
+.ord-page.is-app .ord-fresh-seg { gap: 6px; }
+.ord-page.is-app .ord-fresh-btn {
+  height: 52px;
+  padding: 0 4px;
+  justify-content: center;
+  border: 1.5px solid #D5D3D4;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.ord-page.is-app .ord-fresh-btn.is-on {
+  padding: 0 4px;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.ord-page.is-app .ord-fresh-btn-name { font-size: 16px; font-weight: 700; color: inherit; }
+.ord-page.is-app .ord-fresh-btn.is-on .ord-fresh-btn-name { font-weight: 800; }
+.ord-page.is-app .ord-fresh-btn-sub { font-size: 13px; color: inherit; opacity: 0.8; }
+.ord-page.is-app .ord-fresh-btn.is-on .ord-fresh-btn-sub { color: inherit; }
+
+/* 배송 요일 펼침 — 한 주 7줄. 발송일(화)만 먹색 띠. */
+.ord-page.is-app .ord-week { border-top: 1.5px solid var(--ink); }
+.ord-page.is-app .ord-day {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 0;
+  min-height: 46px;
+  padding: 8px 0;
+  box-sizing: border-box;
+  border-radius: 0;
+  border-bottom: 1px solid #EFEDEE;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+}
+.ord-page.is-app .ord-day + .ord-day { margin-top: 0; }
+.ord-page.is-app .ord-day:last-child { border-bottom: 0; }
+/* 요일 글자 = 제목 글꼴(시안 .d) — 동그라미 없이. */
+.ord-page.is-app .ord-day-ko {
+  width: auto; height: auto;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-poster), var(--font-sans), sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: -0.01em;
+  font-size: 18px;
+  color: var(--ink);
+  justify-content: flex-start;
+}
+.ord-page.is-app .ord-day-what { font-size: 15px; font-weight: 400; line-height: 1.5; color: var(--ink-soft); }
+.ord-page.is-app .ord-day-what strong { font-weight: 800; color: var(--ink); }
+.ord-page.is-app .ord-day.is-ship {
+  min-height: 52px;
+  margin: 0 -10px;
+  padding: 0 10px;
+  border-bottom: 0;
+  background: var(--ink);
+  box-shadow: none;
+}
+.ord-page.is-app .ord-day.is-ship .ord-day-ko { background: transparent; color: var(--paper); }
+.ord-page.is-app .ord-day.is-ship .ord-day-what { font-size: 16px; font-weight: 800; color: var(--paper); }
+.ord-page.is-app .ord-rhythm-why {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-top: 0;
+  border-radius: 4px;
+  background: var(--soft);
+  font-size: 15px; line-height: 1.65;
+  color: var(--ink-soft);
+}
+.ord-page.is-app .ord-rhythm-cycle { margin: 10px 0 0; font-size: 15px; color: var(--ink-soft); }
+.ord-page.is-app .ord-rhythm-cycle b { font-weight: 800; color: var(--ink); }
+
+/* ── 배송지 · 결제수단 — 카드 테두리 없이, 제목은 큰 제목 글꼴 ─────────────────────────── */
+.ord-page.is-app .ord-section {
+  margin: 28px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.ord-page.is-app .ord-section-h {
+  font-size: 24px;
+  text-transform: none;
+  margin: 0;
+  color: var(--ink);
+}
+.ord-page.is-app .ord-section-h > svg { display: none; }
+.ord-page.is-app .ord-prefill-hint {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: var(--soft);
+  font-size: 15px; font-weight: 400; line-height: 1.5;
+  color: var(--ink-soft);
+}
+.ord-page.is-app .ord-prefill-hint svg { flex-shrink: 0; margin-top: 4px; width: 15px; height: 15px; color: var(--ink); stroke: var(--ink); }
+.ord-page.is-app .ord-form { gap: 14px; margin-top: 14px; }
+.ord-page.is-app .ord-form-row { grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.ord-page.is-app .ord-label {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.ord-page.is-app .ord-label-opt { font-size: 15px; font-weight: 600; color: var(--ink-mute); opacity: 1; margin-left: 2px; }
+/* 꼭 채우는 칸(이름·연락처·주소) = 먹선, 선택 칸(상세 주소·요청사항) = 옅은 선(시안). */
+.ord-page.is-app .ord-input {
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  font-size: 17px;
+}
+.ord-page.is-app .ord-input-detail { margin-top: 6px; border-color: #D5D3D4; }
+.ord-page.is-app .ord-textarea {
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1.5px solid #D5D3D4;
+  border-radius: 4px;
+  background: var(--paper);
+  font-size: 16px; line-height: 1.5;
+}
+.ord-page.is-app .ord-input::placeholder,
+.ord-page.is-app .ord-textarea::placeholder { color: #8A8A8A; }
+.ord-page.is-app .ord-input:focus,
+.ord-page.is-app .ord-textarea:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.12);
+}
+.ord-page.is-app .ord-addr-search {
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  gap: 10px;
+}
+.ord-page.is-app .ord-addr-search:hover { border-color: var(--ink); }
+.ord-page.is-app .ord-addr-search:focus-visible { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.12); }
+.ord-page.is-app .ord-addr-search-val {
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 17px; font-weight: 600; line-height: 1.4;
+}
+/* 우편번호 = 숫자 글꼴(시안 .n) — 뱃지 없이 회색 한 줄. */
+.ord-page.is-app .ord-addr-zip {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-num), var(--font-sans), sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0.02em;
+  font-size: 14px;
+  color: var(--ink-mute);
+}
+.ord-page.is-app .ord-addr-search-ph { font-size: 17px; color: #8A8A8A; }
+.ord-page.is-app .ord-addr-search-icon {
+  width: 24px; height: 24px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+.ord-page.is-app .ord-addr-search-icon svg { width: 20px; height: 20px; }
+.ord-page.is-app .ord-save-toggle { font-size: 15px; color: var(--ink-soft); gap: 8px; margin-top: 2px; }
+.ord-page.is-app .ord-save-toggle input[type=checkbox] {
+  width: 20px; height: 20px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+}
+.ord-page.is-app .ord-save-toggle input[type=checkbox]:checked { background: var(--ink); border-color: var(--ink); }
+.ord-page.is-app .ord-save-toggle input[type=checkbox]:checked::after { font-size: 13px; }
+
+/* ── 결제 요약 — 이 화면의 핵심 카드(머스타드 + 도장 그림자) ─────────────────────────────── */
+.ord-page.is-app .ord-summary {
+  margin: 28px 0 0;
+  padding: 18px;
+  gap: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: var(--stamp-shadow);
+  background: var(--mustard);
+  color: var(--ink);
+}
+.ord-page.is-app .ord-summary > .ord-section-h { margin: 0 0 2px !important; }
+.ord-page.is-app .ord-summary-row { gap: 10px; font-size: 16px; color: var(--ink); align-items: baseline; }
+.ord-page.is-app .ord-summary-row > span { color: var(--ink) !important; opacity: 1 !important; }
+.ord-page.is-app .ord-summary-row strong {
+  font-family: inherit;
+  font-size: 16px; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.ord-page.is-app .ord-summary-strong-sm {
+  font-family: inherit !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: var(--ink) !important;
+}
+.ord-page.is-app .ord-summary-divide { height: 1.5px; margin: 4px 0 2px; background: var(--ink); }
+/* 나눔선 바로 아래 할인 줄(서포터즈 혜택·이벤트 할인)의 금액은 굵게(시안 C04). 합계 줄은 strong 이라 안 걸린다. */
+.ord-page.is-app .ord-summary-divide + .ord-summary-row > span:last-child { font-weight: 800; }
+/* 2주 결제(또는 첫 결제) — 큰 숫자. */
+.ord-page.is-app .ord-summary-total > span { font-size: 17px; font-weight: 800; }
+.ord-page.is-app .ord-summary-total strong { white-space: nowrap; }
+.ord-page.is-app .ord-summary-total .ft-num { font-size: 34px; line-height: 1; }
+.ord-page.is-app .ord-summary-won { font-size: 17px; font-weight: 800; }
+/* 서포터즈·이벤트가 끝난 뒤 금액 — 반투명 흰 칸에 두 줄(시안 C04). */
+.ord-page.is-app .ord-summary-after {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.ord-page.is-app .ord-summary-after > span:first-child { font-size: 15px; line-height: 1.5; color: var(--ink-soft) !important; }
+.ord-page.is-app .ord-summary-after > span:last-child { font-size: 17px; font-weight: 800; white-space: nowrap; }
+.ord-page.is-app .ord-summary-info {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  justify-content: flex-start;
+  margin-top: 0;
+}
+.ord-page.is-app .ord-summary-info > svg { display: none; }
+.ord-page.is-app .ord-summary-warn,
+.ord-page.is-app .ord-summary-warn > span { color: var(--ink) !important; font-weight: 800; }
+
+/* 오류 */
+.ord-page.is-app .ord-err {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  border: 1.5px solid #C63D2A;
+  border-radius: 4px;
+  background: #FBF1EF;
+  font-size: 15px; font-weight: 700; line-height: 1.5;
+  color: var(--ink);
+  align-items: flex-start;
+}
+.ord-page.is-app .ord-err svg { color: #C63D2A; margin-top: 3px; flex-shrink: 0; }
+
+/* 결제 후 취소 안내(필수 체크) — 먹선 칸, 네모 체크(시안). */
+.ord-page.is-app .ord-consent {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: 10px;
+  margin: 22px 0 0;
+  padding: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+}
+.ord-page.is-app .ord-consent input[type=checkbox] {
+  width: 24px; height: 24px;
+  margin-top: 1px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+}
+.ord-page.is-app .ord-consent input[type=checkbox]:checked { background: var(--ink); border-color: var(--ink); }
+.ord-page.is-app .ord-consent input[type=checkbox]:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; }
+.ord-page.is-app .ord-consent-text { gap: 6px; font-size: 15px; line-height: 1.6; color: var(--ink-soft); }
+.ord-page.is-app .ord-consent-text strong { font-size: 17px; font-weight: 800; color: var(--ink); }
+
+/* 아래 안내 — 가운데 정렬 회색 → 왼쪽 정렬 본문(시안). 체크 아이콘 줄은 아이콘 칸 20. */
+.ord-page.is-app .ord-foot {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+  gap: 0;
+  margin: 8px 0 0;
+  text-align: left;
+  font-size: 15px; line-height: 1.55;
+  color: var(--ink-soft);
+}
+.ord-page.is-app .ord-foot > svg { width: 15px; height: 15px; margin-top: 4px; color: var(--ink); stroke: var(--ink); }
+.ord-page.is-app .ord-foot strong { font-weight: 800; color: var(--ink); }
+.ord-page.is-app .ord-foot-consent { display: block; margin-top: 16px; opacity: 1; }
+.ord-page.is-app .ord-foot-legal {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--ink-mute);
+}
+.ord-page.is-app .ord-foot-legal a { color: var(--ink-mute); }
+
+/* ── 결제 바 — 먹색 띠, 흰 버튼, 금액은 숫자 글꼴 ───────────────────────────────────────── */
+.ord-page.is-app .ord-paybar {
+  max-width: none;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  gap: 10px;
+  background: var(--ink);
+}
+.ord-page.is-app .ord-paybar-cap { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.75); }
+.ord-page.is-app .ord-paybar-price { align-items: center; gap: 6px; margin-top: 2px; white-space: nowrap; }
+.ord-page.is-app .ord-paybar-num { font-size: 26px; line-height: 1.1; color: #FFFFFF; }
+.ord-page.is-app .ord-paybar-won { font-size: 15px; font-weight: 800; color: #FFFFFF; }
+.ord-page.is-app .ord-paybar-badge {
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: var(--ink);
+  font-size: 12px; font-weight: 800;
+  display: inline-flex; align-items: center;
+}
+.ord-page.is-app .ord-paybar-btn {
+  height: 52px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: var(--ink);
+  font-size: 17px; font-weight: 800;
+  gap: 4px;
+}
+.ord-page.is-app .ord-paybar-btn svg { width: 18px; height: 18px; }

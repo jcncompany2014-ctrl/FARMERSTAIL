@@ -1,18 +1,17 @@
 /* 2026-09-23 시니어 글자 기준: 12px 미만 → 12, 12~12.9 → 14 로 일괄 상향(app 스코프 클래스 매핑이
    CSS 선언엔 안 미쳐 이 화면들만 작게 남아 있었다). 13px 이상은 그대로. */
 /* =========================================================================
-   AdjustSheet — Claude Design 핸드오프 #3 (sheet) 적용 컴포넌트 CSS
-   ---------------------------------------------------------------------------
-   접두 `.adj-` (adjust). 토큰은 globals.css 의 --bg/--ink/--rule/--terracotta/
-   --moss 재사용.
+   AdjustSheet — 레시피 고르기 시트 CSS. 접두 `.adj-` (adjust).
+
+   ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 D09): 값은 시안 원본 그대로.
+   흰 시트(위 모서리 12, 화면 위에서 56px) · 뒤 rgba(20,20,20,0.42) · 회색 면 칸 + 왼쪽 레시피 색 띠 ·
+   고른 칸 = 먹색 동그라미 체크 · 주 버튼 먹색 56 · 보조 버튼 1.5px 먹선 · 알약 모양 없음.
    ========================================================================= */
 
 /* Scrim */
 .adj-scrim {
   position: fixed; inset: 0;
-  background: rgba(46, 31, 20, 0.42);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(20, 20, 20, 0.42);
   z-index: 80;
   opacity: 0;
   transition: opacity 240ms cubic-bezier(.2, .7, .2, 1);
@@ -24,311 +23,268 @@
 .adj-sheet {
   position: fixed; left: 0; right: 0; bottom: 0;
   z-index: 81;
-  height: 90vh;
+  height: calc(100dvh - 56px - env(safe-area-inset-top, 0px));
   max-width: 560px; margin: 0 auto;
-  background: var(--bg);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  box-shadow: 0 -16px 60px -8px rgba(46, 31, 20, .32);
+  background: #FFFFFF;
+  color: #141414;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -8px 30px rgba(20, 20, 20, 0.12);
   transform: translateY(100%);
   transition: transform 380ms cubic-bezier(.32, .72, .0, 1);
   display: flex; flex-direction: column;
   overflow: hidden;
   touch-action: pan-y;
+  word-break: keep-all;
+  /* 줄 높이는 시안과 같은 기본값 — 앱 기본 1.5 면 칸마다 몇 px 씩 커진다. */
+  line-height: normal;
 }
 .adj-sheet.adj-open { transform: translateY(0%); }
 
 /* Drag handle */
 .adj-handle {
   flex: 0 0 auto;
-  padding: 10px 0 4px;
+  padding: 10px 0 0;
   display: flex; justify-content: center;
   cursor: grab;
 }
 .adj-handle:active { cursor: grabbing; }
 .adj-handle i {
-  width: 42px; height: 5px; border-radius: 99px;
-  background: var(--rule-2);
+  width: 40px; height: 4px; border-radius: 2px;
+  background: #D5D3D4;
 }
 
 /* Head */
 .adj-head {
   flex: 0 0 auto;
-  padding: 6px 22px 14px;
+  padding: 12px 10px 0 20px;
   display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid var(--rule);
+  gap: 12px;
 }
-.adj-titles { min-width: 0; }
+.adj-titles { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* 한글 머리말 — 대문자 변환·모노 글꼴·넓은 자간 금지(규칙85). */
 .adj-kicker {
-  font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-size: 13px; letter-spacing: -0.01em; color: var(--terracotta);
+  font-size: 14px; letter-spacing: -0.01em; color: #595959;
   font-weight: 700;
-  margin-bottom: 4px;
 }
+/* 제목 글꼴(Black Han Sans)은 앱 틀의 h2 규칙이 준다 — 여기선 크기만. */
 .adj-head h2 {
-  font-family: var(--font-sans), 'Pretendard', sans-serif;
-  font-weight: 800; letter-spacing: -.025em;
-  font-size: 22px; line-height: 1.2; color: var(--ink);
-  margin: 0 0 4px;
-  white-space: nowrap;
+  font-size: 28px; line-height: 1.1;
+  margin: 0;
 }
 .adj-sub {
-  font-size: 12px; color: var(--muted);
-  letter-spacing: .01em;
+  font-size: 16px; color: #3D3D3D;
 }
-.adj-sub strong { color: var(--ink); font-weight: 700; }
+.adj-sub strong { color: #141414; font-weight: 800; }
 .adj-x {
   appearance: none; border: 0; cursor: pointer;
-  width: 32px; height: 32px; border-radius: 99px;
-  background: var(--bg-2); color: var(--ink);
+  width: 48px; height: 48px;
+  background: transparent; color: #141414;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  transition: background 120ms;
 }
-.adj-x:hover { background: var(--rule); }
 
 /* Scrolling body */
 .adj-body {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 18px 22px 24px;
+  padding: 18px 20px 18px;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Live bar */
-.adj-live {
-  background: #fff;
-  border: 1px solid var(--rule);
-  border-radius: 16px;
-  padding: 14px 16px 16px;
-  margin-bottom: 18px;
-  box-shadow: 0 1px 2px rgba(46, 31, 20, .04);
-}
-.adj-live-bar {
-  height: 16px; border-radius: 99px;
-  overflow: hidden;
-  display: flex;
-  background: var(--rule);
-  box-shadow: inset 0 1px 2px rgba(46, 31, 20, .06);
-}
-.adj-live-bar i {
-  height: 100%;
-  transition: width 360ms cubic-bezier(.32, .72, .0, 1);
-}
-
-/* 영양 단면 live preview — 슬라이더 조정 시 실시간 protein/fat/kcal */
-.adj-live-nutri {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--rule);
-}
-.adj-live-nutri-label {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px; letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.adj-live-nutri-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.adj-live-nutri-grid span {
-  display: flex; flex-direction: column;
-  background: var(--bg);
-  border-radius: 8px;
-  padding: 6px 8px;
-}
-.adj-live-nutri-grid small {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-  letter-spacing: .04em;
-}
-.adj-live-nutri-grid b {
-  font-family: var(--font-serif), 'Fraunces', serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -.01em;
-  margin-top: 1px;
-  transition: color 200ms;
-}
-
-/* 임상 권고 위반 chip — adjust 시 즉시 경고 */
-.adj-live-warn {
-  margin-top: 10px;
-  padding: 8px 10px;
-  background: rgba(184, 58, 46, .06);
-  border: 1px solid rgba(184, 58, 46, .25);
-  border-radius: 10px;
-  display: flex; flex-direction: column; gap: 5px;
-}
-.adj-live-warn-row {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px;
-  color: var(--ink);
-  flex-wrap: wrap;
-}
-.adj-live-warn-label {
-  font-weight: 700;
-  color: #b83a2e;
-  flex-shrink: 0;
-}
-.adj-live-warn-actual {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--ink);
-  background: #fff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-.adj-live-warn-target {
-  font-size: 12px;
-  color: var(--muted);
-  font-style: italic;
-}
-
-/* Section labels */
-.adj-sect-lbl {
-  display: flex; align-items: center; justify-content: space-between;
-  margin: 6px 0 10px;
-}
-.adj-sect-lbl .l {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px; letter-spacing: .18em; color: var(--ink);
-  font-weight: 600; text-transform: uppercase;
-  display: flex; align-items: center; gap: 6px;
-}
-.adj-sect-lbl .r {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px; color: var(--muted); font-weight: 500;
-}
-.adj-sect-lbl .r b { color: var(--ink); font-weight: 600; }
-
 /* ── 박스 2칸 (2026-07-15 재설계) ─────────────────────────────────────────
    실제 박스가 1종 100% / 2종 50:50 뿐이라 슬라이더를 전부 걷어내고 '칸을
-   채우는' 모델로 바꿨다. 옛 .adj-line / .adj-range-* 는 여기서 삭제. */
+   채우는' 모델로 바꿨다. */
 .adj-slots {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 12px;
 }
 .adj-slot {
-  min-height: 92px;
-  border-radius: 16px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
-  text-align: left;
-  transition: transform 120ms, box-shadow 200ms;
-}
-.adj-slot.filled {
-  background: color-mix(in srgb, var(--c) 12%, #fff);
-  border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent);
-  cursor: pointer;
-}
-.adj-slot.filled:active { transform: scale(.98); }
-.adj-slot.empty {
-  background: var(--bg-2);
-  border: 1.5px dashed var(--rule-2, var(--rule));
-  color: var(--muted);
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.adj-slot.empty span { font-size: 14px; font-weight: 700; }
-.adj-slot.empty small { font-size: 12px; opacity: .8; }
-.adj-slot-pct {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 20px; font-weight: 600;
-  color: var(--c);
-  line-height: 1;
-}
-.adj-slot-name {
-  font-size: 14px; font-weight: 800; color: var(--ink);
-  margin-top: 2px;
-}
-.adj-slot-amt {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-size: 12px; color: var(--muted); letter-spacing: .02em;
-}
-
-/* ── 레시피 고르기 그리드 ─────────────────────────────────────────────── */
-.adj-pick-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.adj-pick {
-  position: relative;
+  min-height: 96px;
+  box-sizing: border-box;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  padding: 12px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1.5px solid var(--rule);
   text-align: left;
-  transition: border-color 160ms, background 160ms, transform 120ms;
+  font-family: inherit;
+  overflow: hidden;
 }
-.adj-pick:active { transform: scale(.98); }
+.adj-slot.filled {
+  appearance: none; cursor: pointer;
+  padding: 0 0 12px;
+  border: 0;
+  border-left: 6px solid var(--c);
+  background: #F6F4F5;
+  color: #141414;
+}
+.adj-slot-band { align-self: stretch; height: 8px; background: var(--c); }
+.adj-slot.empty {
+  padding: 12px;
+  border: 1.5px dashed #D5D3D4;
+  color: #595959;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.adj-slot.empty span { font-size: 15px; font-weight: 800; color: #3D3D3D; }
+.adj-slot.empty small { font-size: 13px; }
+.adj-slot-pct {
+  padding: 6px 12px 0;
+  font-size: 13px; font-weight: 800; color: #595959;
+}
+.adj-slot-name {
+  padding: 0 12px;
+  font-family: var(--font-poster), var(--font-sans), sans-serif;
+  font-weight: 400; font-synthesis: none;
+  font-size: 22px; line-height: 1.2; letter-spacing: -0.01em;
+}
+.adj-slot-amt {
+  padding: 0 12px;
+  font-size: 14px; color: #3D3D3D; white-space: nowrap;
+}
+/* 팩 영어 이름(사장님 2026-10-10) — 글꼴은 .ft-num(팩과 같은 좁은 대문자), 칸이 좁아 크기만 낮춘다. 아래 회색 = 한글 상품 이름. */
+.adj-slot-name.adj-en { font-size: 19px; line-height: 1.1; letter-spacing: 0.02em; }
+.adj-slot-ko { padding: 0 12px; font-size: 14px; color: #595959; }
+.adj-pick-name.adj-en { font-size: 18px; font-weight: 400; letter-spacing: 0.02em; line-height: 1.08; }
+/* 영어 이름은 칸이 좁아 두 줄이 되기도 한다 — 색 네모를 첫 줄에 맞춘다(가운데면 두 줄 사이에 떠 보인다). */
+.adj-pick-top:has(.adj-en) { align-items: flex-start; }
+.adj-pick-top:has(.adj-en) .adj-pick-dot { margin-top: 5px; }
+.adj-pick-ko { font-size: 14px; font-weight: 700; color: #595959; }
+
+/* 영양 단면 — 고른 레시피의 단백질·지방 막대 + 100g당 열량 */
+.adj-live {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 4px;
+  background: #F6F4F5;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.adj-live-bar {
+  height: 10px;
+  display: grid;
+  gap: 2px;
+}
+.adj-live-bar i { display: block; height: 100%; }
+.adj-live-nutri-label {
+  font-size: 14px; font-weight: 800; color: #595959;
+}
+.adj-live-nutri-grid {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 10px; row-gap: 8px;
+  align-items: center;
+  font-size: 15px;
+}
+.adj-live-nutri-grid .k { font-weight: 700; }
+.adj-live-nutri-grid .bar {
+  position: relative; display: block;
+  height: 8px; border-radius: 4px; background: #E0DDDE;
+}
+.adj-live-nutri-grid .bar i {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 4px; background: #D4A24C;
+  transition: width 360ms cubic-bezier(.32, .72, .0, 1);
+}
+.adj-live-kcal {
+  padding-top: 8px; border-top: 1px solid #E0DDDE;
+  display: flex; justify-content: space-between;
+  font-size: 15px;
+}
+.adj-live-kcal span { color: #595959; }
+.adj-live-kcal strong { font-weight: 800; }
+
+/* 임상 권고 위반 안내 — 고른 조합이 아이 상태에 맞지 않을 때 */
+.adj-live-warn {
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: #FBE7E2;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.adj-live-warn-row {
+  margin: 0;
+  font-size: 15px; font-weight: 700; line-height: 1.5;
+  color: #7A2A1E;
+}
+.adj-live-warn-foot {
+  margin: 2px 0 0;
+  font-size: 14px; line-height: 1.5; color: #7A2A1E;
+}
+
+/* Section labels */
+.adj-sect-lbl {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px;
+  margin-top: 22px;
+}
+.adj-sect-lbl .l { font-size: 17px; font-weight: 800; }
+.adj-sect-lbl .r { font-size: 14px; color: #595959; white-space: nowrap; }
+.adj-sect-lbl .r b { color: #141414; font-weight: 800; }
+
+/* ── 레시피 고르기 그리드 ─────────────────────────────────────────────── */
+.adj-pick-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.adj-pick {
+  appearance: none; cursor: pointer; font-family: inherit;
+  position: relative;
+  min-height: 104px;
+  box-sizing: border-box;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  border: 1.5px solid #D5D3D4;
+  color: #141414;
+  text-align: left;
+}
 .adj-pick.on {
-  border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 8%, #fff);
+  border: 0;
+  border-left: 6px solid var(--c);
+  background: #F6F4F5;
 }
-.adj-pick-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+.adj-pick-top { display: flex; align-items: center; gap: 6px; padding-right: 28px; }
 .adj-pick-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--c);
+  width: 10px; height: 10px;
+  background: var(--chip, var(--c));
   flex-shrink: 0;
 }
-.adj-pick-name {
-  font-size: 13.5px; font-weight: 800; color: var(--ink);
-}
+.adj-pick-name { font-size: 17px; font-weight: 800; }
 .adj-pick-check {
-  margin-left: auto;
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: var(--c); color: #fff;
-  flex-shrink: 0;
+  position: absolute; top: 8px; right: 8px;
+  width: 24px; height: 24px; border-radius: 12px;
+  background: #141414; color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center;
 }
 .adj-pick-sub {
-  font-size: 12px; line-height: 1.45; color: var(--muted);
+  font-size: 14px; line-height: 1.45; color: #3D3D3D;
 }
 .adj-pick-rec {
-  position: absolute; top: 8px; right: 8px;
-  padding: 2px 6px; border-radius: 99px;
-  font-size: 12px; font-weight: 800; letter-spacing: .04em;
-  background: rgba(60, 114, 94, .1);
-  color: #3C725E;
+  height: 22px; padding: 0 7px; box-sizing: border-box;
+  border-radius: 4px;
+  background: #F6F4F5;
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center;
 }
-.adj-pick.on .adj-pick-rec { display: none; }
+.adj-pick.on .adj-pick-rec { background: #FFFFFF; }
 
 /* 알레르기 차단 — 고를 수 없다. 왜 못 고르는지는 sub 문구가 말한다. */
 .adj-pick.blocked {
-  opacity: .6;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--bg-2) 0 5px,
-    #fff 5px 10px
-  );
   cursor: not-allowed;
+  background: #FFFFFF;
+  border: 1.5px dashed #D5D3D4;
 }
-.adj-pick.blocked .adj-pick-dot { background: var(--rule-2, var(--rule)); }
-.adj-pick.blocked .adj-pick-name { color: var(--muted); }
-.adj-pick.blocked .adj-pick-sub { color: var(--terracotta); font-weight: 600; }
+.adj-pick.blocked .adj-pick-dot { background: #D5D3D4; }
+.adj-pick.blocked .adj-pick-name { color: #595959; }
+.adj-pick.blocked .adj-pick-sub { color: #C63D2A; font-weight: 700; }
 .adj-pick.shake { animation: adj-chipshake 380ms ease; }
 @keyframes adj-chipshake {
   0%, 100% { transform: translateX(0); }
@@ -338,132 +294,94 @@
   80% { transform: translateX(1px); }
 }
 .adj-pick-hint {
-  margin: 8px 2px 10px;
-  font-size: 12px; line-height: 1.5; color: var(--muted);
+  margin: 10px 0 0;
+  font-size: 14px; line-height: 1.5; color: #595959;
 }
 
-/* 단일 단백질 안내 — 왜 한 가지를 권하는지. 경고가 아니라 설명이라
-   중립 톤(1종일 때만 초록으로 '지금 좋은 상태'임을 표시). */
+/* 단일 단백질 안내 — 왜 한 가지를 권하는지(경고가 아니라 설명). */
 .adj-single-note {
-  margin: 0 0 18px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--bg-2);
-  font-size: 12px; line-height: 1.6; color: var(--muted);
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 4px solid #D4A24C;
+  background: #F6F4F5;
+  font-size: 15px; line-height: 1.6; color: #3D3D3D;
 }
-.adj-single-note strong { color: var(--ink); font-weight: 700; }
-.adj-single-note.is-good {
-  background: rgba(60, 114, 94, .07);
-  box-shadow: inset 0 0 0 1px rgba(60, 114, 94, .18);
-}
-.adj-single-note.is-good strong { color: #3C725E; }
+.adj-single-note strong { color: #141414; font-weight: 800; }
+.adj-single-note.is-good { border-left-color: #141414; }
 
-/* Strategy toggle */
+/* 언제부터 — 두 칸 고르기(고른 것 = 흰 칸 + 먹선) */
 .adj-strategy {
-  background: #fff;
-  border: 1px solid var(--rule);
-  border-radius: 14px;
-  padding: 13px 14px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(46, 31, 20, .04);
+  margin-top: 22px;
+  display: flex; flex-direction: column; gap: 10px;
 }
-.adj-strategy .l {
-  font-size: 12px; color: var(--muted); letter-spacing: .04em;
-  margin-bottom: 8px;
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  text-transform: uppercase;
-}
+.adj-strategy-t { font-size: 17px; font-weight: 800; }
+.adj-strategy .l { font-size: 15px; color: #3D3D3D; }
 .adj-seg {
-  display: flex;
-  background: var(--bg-2); border-radius: 99px;
-  padding: 3px;
-  position: relative;
+  padding: 4px;
+  border-radius: 4px;
+  background: #F6F4F5;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
 }
 .adj-seg button {
-  appearance: none; border: 0; cursor: pointer; background: transparent;
-  flex: 1; padding: 8px 10px;
-  font-size: 14px; font-weight: 600; color: var(--muted);
-  border-radius: 99px;
-  transition: color 200ms;
-  position: relative;
-  z-index: 1;
-  line-height: 1.2;
-  font-family: inherit;
+  appearance: none; cursor: pointer; font-family: inherit;
+  height: 48px; box-sizing: border-box;
+  border: 0; border-radius: 4px;
+  background: transparent; color: #595959;
+  font-size: 16px; font-weight: 600;
 }
-.adj-seg button.on { color: #fff; }
-.adj-seg-thumb {
-  position: absolute; top: 3px; bottom: 3px;
-  width: calc(50% - 3px);
-  background: var(--ink);
-  border-radius: 99px;
-  transition: left 320ms cubic-bezier(.32, .72, .0, 1);
+.adj-seg button.on {
+  border: 1.5px solid #141414;
+  background: #FFFFFF; color: #141414;
+  font-weight: 800;
 }
 
 /* Footer note */
 .adj-footer-note {
-  margin-top: 6px;
-  padding: 12px 14px;
-  background: rgba(60, 114, 94, .07);
-  border: 1px solid rgba(60, 114, 94, .18);
-  border-radius: 12px;
-  display: flex; gap: 10px; align-items: flex-start;
-  font-size: 12px; color: var(--text);
-  line-height: 1.55;
+  margin: 16px 0 0;
+  display: flex; gap: 8px;
+  font-size: 14px; line-height: 1.55; color: #3D3D3D;
 }
 .adj-footer-note .ic {
-  flex-shrink: 0; margin-top: 1px; color: #3C725E;
+  flex-shrink: 0; width: 6px; height: 6px; margin-top: 8px; background: #141414;
 }
-.adj-footer-note b { color: var(--ink); font-weight: 600; }
+.adj-footer-note b { color: #141414; font-weight: 800; }
 
-/* Error toast inside body */
+/* 저장 실패 문구 */
 .adj-err {
-  margin-top: 12px;
-  padding: 9px 12px;
-  background: #FFF5F2;
-  color: #b83a2e;
-  border-radius: 10px;
-  font-size: 12px; font-weight: 600;
-  display: flex; align-items: center; gap: 7px;
-  box-shadow: inset 0 0 0 1px rgba(184, 58, 46, .18);
+  margin: 12px 0 0;
+  font-size: 14px; line-height: 1.4; color: #C63D2A;
 }
 
 /* Sticky CTA bar */
 .adj-cta-bar {
   flex: 0 0 auto;
-  padding: 14px 18px calc(22px + env(safe-area-inset-bottom, 0px));
-  background: var(--bg);
-  border-top: 1px solid var(--rule);
-  display: flex; gap: 10px;
-  box-shadow: 0 -8px 16px -10px rgba(46, 31, 20, .06);
+  padding: 12px 20px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: #FFFFFF;
+  border-top: 1px solid #E5E5E5;
+  display: grid; grid-template-columns: 124px 1fr; gap: 8px;
 }
 .adj-ghost {
-  appearance: none; border: 0; cursor: pointer;
-  flex: 0 0 auto;
-  padding: 13px 16px;
-  border-radius: 999px;
-  background: var(--bg-2);
-  color: var(--ink);
-  font-size: 13px; font-weight: 600;
-  display: flex; align-items: center; gap: 6px;
-  transition: background 120ms;
-  font-family: inherit;
+  appearance: none; cursor: pointer; font-family: inherit;
+  height: 56px; box-sizing: border-box;
+  border: 1.5px solid #141414;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #141414;
+  font-size: 16px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.adj-ghost:hover { background: var(--rule); }
+.adj-ghost:disabled { border-color: #D5D3D4; color: #9A9A9A; cursor: default; }
 .adj-save {
-  appearance: none; border: 0; cursor: pointer;
-  flex: 1;
-  padding: 13px 18px;
-  border-radius: 999px;
-  background: var(--terracotta);
-  color: #fff;
-  font-size: 14px; font-weight: 700;
+  appearance: none; border: 0; cursor: pointer; font-family: inherit;
+  height: 56px;
+  border-radius: 4px;
+  background: #141414;
+  color: #FFFFFF;
+  font-size: 17px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background 120ms, opacity 200ms;
-  letter-spacing: .01em;
-  font-family: inherit;
 }
 .adj-save:disabled {
-  background: var(--rule-2); color: var(--muted);
+  background: #595959;
   cursor: not-allowed;
 }
-.adj-save:hover:not(:disabled) { background: #782E22; }

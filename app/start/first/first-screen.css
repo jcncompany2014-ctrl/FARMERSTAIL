@@ -1,0 +1,432 @@
+/* =========================================================================
+   새 첫 화면(앱 /start) — 2026-10-09 앱 새 디자인('A 포스터'), 캔버스 '새 첫 화면' Y1~Y6 · Y5b·Y5c.
+   틀(빛 바탕·위 줄·고정 카드·같은 자리 버튼·선택 막대·머리띠)은 설문 새 틀과 같다 → survey.css 의 .s-* 를 같이 쓰고,
+   여기엔 첫 화면에만 있는 것(가운데 아이콘 머리·이름 칸·견종 목록·6칸 진행 막대·사진 원·도장 카드)만 둔다.
+   값은 시안 원본 HTML 그대로. 접두어 `fs-` = first screen.
+   ========================================================================= */
+
+.fs-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #ffffff;
+}
+
+/* 위 줄 6칸 진행 막대(시안: 칸 사이 6 · 높이 5 · 모서리 3). */
+.fs-segbar {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.fs-segbar > i {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(20, 20, 20, 0.12);
+  transition: background 0.2s ease;
+}
+.fs-segbar > i.is-on {
+  background: #141414;
+}
+.fs-back-spacer {
+  flex: none;
+  width: 44px;
+}
+
+/* 가운데 아이콘 머리 — 아이콘 52(모서리 16) · 제목 28 · 설명 16. */
+.fs-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.fs-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #141414;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fs-title {
+  margin: 16px 0 0;
+  font-size: 28px;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.fs-sub {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #6b675f;
+  text-wrap: balance;
+}
+
+/* 이름 칸(시안 Y1: 높이 60 · 모서리 16 · 2px 먹선 · 22/800). */
+.fs-name {
+  margin-top: 24px;
+  width: 100%;
+  height: 60px;
+  box-sizing: border-box;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 2px solid #d6d3cf;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #141414;
+  outline: none;
+}
+.fs-name:focus,
+.fs-name[data-filled='true'] {
+  border-color: #141414;
+}
+.fs-name::placeholder {
+  color: #a8a49e;
+  font-weight: 600;
+}
+
+/* 휠 아래 한 줄·글자 링크 자리. */
+.fs-note {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 15.5px;
+  color: #6b675f;
+}
+.fs-note strong {
+  color: #141414;
+}
+.fs-center-link {
+  margin-top: 10px;
+  align-self: center;
+}
+
+/* 견종 — 밑줄 검색 칸 + 줄 목록(시안 Y3). */
+.fs-search {
+  margin-top: 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 2px solid #141414;
+}
+.fs-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #141414;
+}
+.fs-search input::placeholder {
+  color: #a8a49e;
+  font-weight: 600;
+}
+.fs-breeds {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+.fs-breed {
+  box-sizing: border-box;
+  min-height: 58px;
+  padding: 9px 12px;
+  margin: 0 -12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  color: #141414;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+.fs-breed[aria-checked='true'] {
+  background: #f4f3f0;
+}
+.fs-breed-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+.fs-breed[aria-checked='true'] .fs-breed-name {
+  font-weight: 800;
+}
+.fs-breed-alias {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #6b675f;
+}
+.fs-radio {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1.5px solid #d6d3cf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fs-breed[aria-checked='true'] .fs-radio {
+  border: 0;
+  background: #141414;
+  color: #ffffff;
+}
+.fs-breed-sep {
+  height: 1px;
+  margin: 0 2px;
+  background: #eeece9;
+}
+.fs-hint {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #6b675f;
+}
+
+/* 사진(시안 Y5b·Y5c) — 점선 원(고르기 전) · 사진 원 + 체크(고른 뒤). */
+.fs-photo-pick {
+  margin: 24px auto 0;
+  width: 176px;
+  height: 176px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px dashed #c9c5bf;
+  background: #f7f6f3;
+  color: #6b675f;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.fs-photo-chosen {
+  position: relative;
+  margin: 24px auto 0;
+  width: 176px;
+  height: 176px;
+}
+.fs-photo-chosen img {
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 0 0 4px #ffffff, 0 0 0 6px #141414;
+}
+.fs-photo-check {
+  position: absolute;
+  right: 4px;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background: #141414;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px #ffffff;
+}
+.fs-photo-cap {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #141414;
+}
+
+/* 도장 카드(시안 Y6) — 설문 카드와 같은 자리·크기지만 도장이 모서리 밖으로 나와 overflow 를 막지 않는다. */
+.fs-stampcard {
+  position: relative;
+  flex: 0 1 600px;
+  min-height: 420px;
+  margin: 28px 16px 0;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, 0.05), 0 14px 36px rgba(20, 20, 20, 0.09);
+}
+.fs-dog {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.fs-dog-photo {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 30px;
+  object-fit: cover;
+  background: #f2f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a867f;
+}
+.fs-dog-kicker {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b675f;
+}
+.fs-dog-name {
+  font-size: 28px;
+  line-height: 1;
+}
+.fs-facts {
+  margin-top: 16px;
+  border-top: 2px solid #141414;
+}
+.fs-fact {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #f0eeeb;
+}
+.fs-fact dt {
+  font-size: 14.5px;
+  color: #8a867f;
+}
+.fs-fact dd {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fs-ready-title {
+  margin: 24px 0 0;
+  font-size: 28px;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.fs-ready-sub {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #6b675f;
+}
+.fs-join {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fs-join-email {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #4a4640;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 도장 '쾅' — 한 번만(시안의 3.8초 반복은 보드 미리보기용). 떨어짐 → 고리 퍼짐 → 먼지 → 카드 살짝 흔들림 → 글·버튼이 올라옴. */
+.fs-stamp,
+.fs-ring {
+  position: absolute;
+  right: -14px;
+  top: -40px;
+  width: 150px;
+  height: 150px;
+  pointer-events: none;
+}
+.fs-stamp {
+  background: url(/logo-stamp.png) center / contain no-repeat;
+  mix-blend-mode: multiply;
+  transform: rotate(-14deg);
+  opacity: 0.94;
+  animation: fsDrop 1.1s cubic-bezier(0.2, 0.8, 0.25, 1) 0.25s both;
+}
+.fs-ring {
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 6px solid #6e3b2c;
+  opacity: 0;
+  animation: fsRing 1.1s ease-out 0.25s both;
+}
+.fs-dust {
+  position: absolute;
+  border-radius: 50%;
+  background: #6e3b2c;
+  opacity: 0;
+  pointer-events: none;
+  animation: fsDust 1.1s ease-out 0.25s both;
+}
+.fs-shake {
+  animation: fsShake 1.1s ease-out 0.25s both;
+}
+.fs-up {
+  animation: fsUp 1.1s ease-out 0.25s both;
+}
+@keyframes fsDrop {
+  0% { transform: rotate(-26deg) scale(3.1); opacity: 0; filter: blur(6px); }
+  18% { opacity: 0.25; }
+  55% { transform: rotate(-13deg) scale(0.88); opacity: 1; filter: blur(0); }
+  68% { transform: rotate(-14deg) scale(1.07); }
+  82% { transform: rotate(-14deg) scale(0.98); }
+  100% { transform: rotate(-14deg) scale(1); opacity: 0.94; filter: blur(0); }
+}
+@keyframes fsRing {
+  0%, 50% { transform: scale(0.55); opacity: 0; }
+  57% { opacity: 0.55; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes fsDust {
+  0%, 52% { transform: scale(0.4); opacity: 0; }
+  62% { opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes fsShake {
+  0%, 52%, 78%, 100% { transform: translate(0, 0) rotate(0); }
+  57% { transform: translate(-4px, 3px) rotate(-0.4deg); }
+  64% { transform: translate(3px, -2px) rotate(0.3deg); }
+  71% { transform: translate(-2px, 1px); }
+}
+@keyframes fsUp {
+  0%, 68% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-stamp,
+  .fs-ring,
+  .fs-dust,
+  .fs-shake,
+  .fs-up {
+    animation: none;
+  }
+  .fs-ring,
+  .fs-dust {
+    display: none;
+  }
+}

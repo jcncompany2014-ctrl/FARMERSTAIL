@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import AuthAwareShell from "@/components/AuthAwareShell"
-import LegalDocument, {
-  Section,
-  UL,
-} from '@/components/LegalDocument'
+import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
+import { isAppContextServer } from '@/lib/app-context'
+import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
 import { business } from '@/lib/business'
 
 export const metadata: Metadata = {
@@ -30,10 +29,16 @@ const EFFECTIVE_DATE = '2026-10-02'
  * 근거한 소비자 보호 조항을 명시한다. 식품류 특성상 일부 제한이
  * 있음을 분명히 표시한다.
  */
-export default function RefundPage() {
+// 2026-10-09 앱 새 디자인('A 포스터', 이용약관 M22 와 같은 틀): 앱이면 바깥 틀·장 제목·목록만 앱 부품으로 고른다
+// (components/v3/me/AppLegal). 법문 글자는 한 자도 바꾸지 않았다. 웹은 LegalFrame 의 웹 갈래 = 예전 마크업 그대로.
+export default async function RefundPage() {
+  const isApp = await isAppContextServer()
+  const Section = isApp ? AppSection : WebSection
+  const UL = isApp ? AppUL : WebUL
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
-      <LegalDocument
+    <AuthAwareShell>
+      <LegalFrame
+        isApp={isApp}
         eyebrow="Refund Policy"
         title="환불 정책"
         effectiveDate={EFFECTIVE_DATE}
@@ -273,7 +278,7 @@ export default function RefundPage() {
             에서 확인하실 수 있습니다.
           </p>
         </Section>
-      </LegalDocument>
-    </div></AuthAwareShell>
+      </LegalFrame>
+    </AuthAwareShell>
   )
 }

@@ -26,6 +26,7 @@ import { useEffect, useState } from 'react'
 import { Heart } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { isCustomerSafeAiLine } from '@/lib/nutrition/ai-safe-line'
+import { V3 } from '@/lib/design/tokens'
 
 type AiAnalysisJson = {
   summary?: string
@@ -94,81 +95,55 @@ export default function AiCommentCard({
 
   if (state.kind === 'hidden') return null
 
+  // ── 앱 새 디자인('A 포스터', 2026-10-09 캔버스 AppDog·D08) — 옅은 주황 면 한 장 + 흰 칸 '이렇게 해보세요'.
+  //    우리 아이 개요와 분석 화면이 같이 쓴다. 불러오기·숨김 규칙(위)은 그대로다.
+  const actions = state.kind === 'ready' ? (state.data.nextActions ?? []).filter(isCustomerSafeAiLine).slice(0, 3) : []
   return (
-    <section className="px-5 mt-2.5">
-      <div
-        className="rounded-[14px] overflow-hidden"
-        style={{
-          background: 'var(--paper-hi, #FFFFFF)',
-          border: '1px solid var(--rule)',
-          boxShadow: '0 1px 3px rgba(120, 46, 34, 0.05)',
-        }}
-      >
-        {/* 헤더 밴드 — 하트 뱃지 + 라벨. 얇은 테라코타 워시로 편지 느낌. */}
-        <div
-          className="flex items-center gap-2.5 px-5 pt-4 pb-3.5"
-          style={{ background: 'rgba(200, 107, 69, 0.05)' }}
-        >
-          <span
-            className="inline-flex items-center justify-center rounded-full shrink-0"
-            style={{ width: 28, height: 28, background: 'var(--terracotta)' }}
-          >
-            <Heart className="w-3.5 h-3.5" strokeWidth={2.4} color="#fff" fill="#fff" />
-          </span>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[12.5px] font-bold text-terracotta tracking-[0.01em]">
-              보호자님께
-            </span>
-            <span className="text-[10px] text-muted mt-0.5">
-              {petName(dogName)} 이야기를 담았어요
-            </span>
-          </div>
+    <section
+      aria-label="보호자님께"
+      style={{
+        margin: '26px 20px 0',
+        padding: 18,
+        borderRadius: 4,
+        background: V3.cream,
+        color: V3.ink,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800 }}>
+        <Heart size={16} strokeWidth={2.4} fill="currentColor" aria-hidden />
+        보호자님께
+      </span>
+      <span className="ft-poster" style={{ fontSize: 22, lineHeight: 1.2 }}>
+        {petName(dogName)} 이야기를 담았어요
+      </span>
+      {state.kind === 'loading' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '2px 0' }} aria-hidden>
+          <div className="animate-pulse" style={{ height: 12, borderRadius: 2, background: 'rgba(20,20,20,0.08)', width: '100%' }} />
+          <div className="animate-pulse" style={{ height: 12, borderRadius: 2, background: 'rgba(20,20,20,0.08)', width: '85%' }} />
+          <div className="animate-pulse" style={{ height: 12, borderRadius: 2, background: 'rgba(20,20,20,0.08)', width: '60%' }} />
         </div>
-
-        <div className="px-5 pt-4 pb-5">
-          {state.kind === 'loading' ? (
-            <div className="space-y-2 py-1" aria-hidden>
-              <div className="h-3 rounded bg-black/5 w-full animate-pulse" />
-              <div className="h-3 rounded bg-black/5 w-[85%] animate-pulse" />
-              <div className="h-3 rounded bg-black/5 w-[60%] animate-pulse" />
+      ) : (
+        <>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: V3.inkSoft, whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
+            {state.data.summary}
+          </p>
+          {actions.length > 0 && (
+            <div style={{ marginTop: 2, padding: 14, borderRadius: 4, background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <strong style={{ fontSize: 15, fontWeight: 800 }}>이렇게 해보세요</strong>
+              {actions.map((a, i) => (
+                <span key={i} style={{ display: 'flex', gap: 8, fontSize: 15, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                  <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 8, background: V3.mustard }} />
+                  {a}
+                </span>
+              ))}
             </div>
-          ) : (
-            <>
-              <p className="text-[13.5px] leading-[1.72] text-text whitespace-pre-line">
-                {state.data.summary}
-              </p>
-
-              {(state.data.nextActions ?? []).filter(isCustomerSafeAiLine).length > 0 && (
-                <div
-                  className="mt-4 rounded-[10px] px-4 py-3.5"
-                  style={{ background: 'rgba(200, 107, 69, 0.05)' }}
-                >
-                  <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-terracotta mb-2.5">
-                    이렇게 해보세요
-                  </div>
-                  <ul className="space-y-2.5">
-                    {(state.data.nextActions ?? []).filter(isCustomerSafeAiLine).slice(0, 3).map((a, i) => (
-                      <li key={i} className="flex items-start gap-2.5">
-                        <span
-                          className="mt-[6px] shrink-0 rounded-full"
-                          style={{
-                            width: 5,
-                            height: 5,
-                            background: 'var(--terracotta)',
-                          }}
-                        />
-                        <span className="text-[12.5px] leading-snug text-text/90">
-                          {a}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
           )}
-        </div>
-      </div>
+        </>
+      )}
     </section>
   )
 }
+

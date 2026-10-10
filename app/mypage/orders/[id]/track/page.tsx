@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import { carrierMeta } from '@/lib/tracking'
+import { isAppContextServer } from '@/lib/app-context'
 import TrackingView from './TrackingView'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,27 @@ export default async function TrackPage({ params }: { params: Params }) {
     meta && order.tracking_number
       ? meta.trackerUrl(order.tracking_number)
       : null
+
+  // 앱은 앱 화면으로(앱 새 디자인 'A 포스터', 2026-10-09, 캔버스 M10·I09·I10). 제목·←(주문 상세)는 앱 윗줄이
+  // 그리므로 아래 웹 머리말(Tracking · 운송장 조회)은 빼고, 조회 상태·동작은 같은 TrackingView 가 맡는다.
+  if (await isAppContextServer()) {
+    return (
+      <AuthAwareShell>
+        <TrackingView
+          carrier={order.carrier}
+          carrierLabel={meta?.label ?? null}
+          trackingNumber={order.tracking_number}
+          orderStatus={order.order_status}
+          shippedAt={order.shipped_at}
+          deliveredAt={order.delivered_at}
+          recipientName={order.recipient_name}
+          trackerDeepLink={trackerDeepLink}
+          supportsInline={Boolean(meta?.deliveryTrackerId)}
+          app={{ orderNumber: order.order_number }}
+        />
+      </AuthAwareShell>
+    )
+  }
 
   return (
     <AuthAwareShell>

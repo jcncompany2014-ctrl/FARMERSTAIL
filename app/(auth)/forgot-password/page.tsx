@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import AuthHero from '@/components/auth/AuthHero'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import ForgotPasswordAppView from '@/components/v3/auth/ForgotPasswordAppView'
 
 /**
  * /forgot-password — 비밀번호 재설정 메일 발송 (R89-E D7).
@@ -27,6 +29,7 @@ import AuthHero from '@/components/auth/AuthHero'
  * 클라이언트 가드 — 같은 세션에서 30초 내 재발송 차단.
  */
 export default function ForgotPasswordPage() {
+  const appLook = useServerAppContext()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -76,6 +79,21 @@ export default function ForgotPasswordPage() {
     // 그 외는 항상 성공 화면으로 — 가입 여부 노출 X.
     setSubmitted(true)
     setLastSentAt(Date.now())
+  }
+
+  // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W07·W08) — 앱이면 앱 화면 부품으로 그린다(판정 = (auth)/layout 의 서버 값).
+  //   메일 보내기·재발송 막기·가입 여부 숨기기는 위 handleSubmit 그대로.
+  if (appLook) {
+    return (
+      <ForgotPasswordAppView
+        submitted={submitted}
+        email={email}
+        onEmailChange={setEmail}
+        loading={loading}
+        error={error}
+        onSubmit={handleSubmit}
+      />
+    )
   }
 
   return (

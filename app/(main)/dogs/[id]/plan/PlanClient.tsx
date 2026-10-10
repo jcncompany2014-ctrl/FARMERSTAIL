@@ -14,13 +14,22 @@
  *  실제 재료(사장님 배합표)·선택 handoff(?recipes=)·가격 정합(boxPricing 정본
  *  공유 — 결제 바 금액 = /order 실청구액)·결과지 슬림화까지 반영.
  *  남은 것: 실사 누끼 사진(사장님 자산 대기).
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터', 캔버스 S29·S30)
+ * 모양만 시안대로 — 추천·잠금·담기/빼기 규칙, 가격 계산(boxPricing 정본 = /order 실청구), 넘기는 주소(?fresh=&recipes=)는
+ * 그대로다. 함께 들어간 결정(앱시안_결정할것.md 3번): 영어 레시피 이름("CHICKEN · 무항생제 닭") → "닭고기 · 무항생제 닭",
+ * "AAFCO·FEDIAF 충족" → "국제 영양 기준 충족", 화식 비율 %(티어 부제) 빼기, 레시피 상세 끝줄의 기관 이름 → "국제 반려견 영양 기준".
+ * 레시피 카드 사진은 레시피 팩 스튜디오 컷(겉봉투 사진 아님), 이름 앞 네모는 파우치 색(lib/design/pouch 와 같은 색).
  */
 
 import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight, Info } from 'lucide-react'
+import { ArrowRight, Check, Plus, Lock, AlertTriangle, ChevronRight } from 'lucide-react'
 import { petName } from '@/lib/korean'
 import { BottomSheet } from '@/components/ui/BottomSheet'
+import { SheetContent } from '@/components/v3/sheet/SheetParts'
+import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
+import DogPawMark from '@/components/DogPawMark'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import { studioPouchImageForLine, bowlImageForLine } from '@/lib/personalization/packageImage'
 import { cardIngredientNames, fullIngredientNames } from '@/lib/recipe-ingredients'
@@ -37,6 +46,9 @@ import { fetchComputedFormula, isPermanentComputeFailure } from '@/lib/personali
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
+import { V3 } from '@/lib/design/tokens'
+import { RECIPE_COLOR } from '@/components/analysis/display'
+import { FOOD_LINE_POUCH, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 
 export type PlanProduct = {
   slug: string
@@ -85,13 +97,31 @@ const RECIPE_DESCRIPTIONS: Record<string, string> = {
     '예민한 아이에게 부드러운 저알러지 단백질이에요. 소화가 편하고, 제주산 흑돼지 특유의 고소한 풍미로 잘 먹어요. 지방이 적은 뒷다리살 부위를 메인으로 담습니다.',
 }
 
-// 레시피 제목 (사장님 지정 2026-07-13). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
-const RECIPE_TITLES: Record<string, string> = {
-  weight: 'CHICKEN · 무항생제 닭',
-  premium: 'BEEF · 프리미엄 한우',
-  basic: 'DUCK · 무항생제 오리',
-  joint: 'PORK · 제주산 흑돼지',
+// 레시피 이름 (사장님 지정 2026-07-13 — 앞의 영어 'CHICKEN ·' 는 2026-10-09 결정으로 뺐다: 부모님 세대가 못 읽는 글자).
+// 2026-10-10 사장님: 제목 자리는 다시 팩 영어 이름을 크게 + 바로 아래 회색 한글(recipeTitle). 여기 name 은 팩 없는 라인·
+// 한 줄 자리용, sub 는 회색 줄의 특징("무항생제 닭"). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
+const RECIPE_NAMES: Record<string, { name: string; sub: string }> = {
+  weight: { name: '닭고기', sub: '무항생제 닭' },
+  premium: { name: '한우', sub: '프리미엄 한우' },
+  basic: { name: '오리', sub: '무항생제 오리' },
+  joint: { name: '흑돼지', sub: '제주산 흑돼지' },
 }
+
+/** 라인 → 파우치 색(이름 앞 네모) — lib/design/pouch 정본. 홈·정기배송 화면의 박스 색과 같다. */
+const LINE_POUCH = FOOD_LINE_POUCH
+
+/**
+ * 레시피 제목(사장님 2026-10-10) — 큰 이름 = 팩에 찍힌 영어(CHICKEN RECIPE …), 아래 회색 = 한글 상품 이름 · 특징
+ * ("닭고기 화식 · 무항생제 닭"). 10/9 에 영어를 뺀 이유(부모님 세대가 못 읽는 글자)는 한글을 바로 아래 같이 둬서 지킨다.
+ * 팩이 없는 라인(연어 — 판매 안 함)은 예전 한글 이름 그대로(en = null).
+ */
+function recipeTitle(line: FoodLine): { en: string | null; ko: string; sub: string } {
+  const pouch = LINE_POUCH[line]
+  const rn = RECIPE_NAMES[line]
+  if (pouch) return { en: POUCH_NAME_EN[pouch], ko: POUCH_PRODUCT_KO[pouch], sub: rn?.sub ?? '' }
+  return { en: null, ko: rn?.name ?? FOOD_LINE_META[line].nameKo, sub: rn?.sub ?? '' }
+}
+const EN_TITLE = { fontWeight: 400, letterSpacing: '0.02em' } as const
 
 // 레시피(단백질) 특성 → 편익 한 줄. 추천 카드의 "추천 이유"에 그 아이의 근거
 // (트리거)와 결합해 노출 — "체중 관리 · 저지방 닭가슴살이라…" 식(사장님 2026-07-14).
@@ -107,6 +137,9 @@ const RECIPE_WHY: Record<string, string> = {
 // 티어 정의는 정본 lib/subscription/freshTier (FRESH_TIERS). 3화면 공유.
 
 const MAX_RECIPES = 2
+
+/** 고르지 않은 칸 테두리 — 시안의 옅은 회색. */
+const IDLE_BORDER = '#D5D3D4'
 
 // 블랭킷 첫주문 50% 폐지(2026-07-17 사장님). 할인 규칙: 기본 구독 15%(전원) +
 // 나무 등급만 추가 10% + 그 외(50% 등)는 이벤트 페이지 신규가입자만·admin 설정.
@@ -154,11 +187,14 @@ function whyForLine(line: FoodLine, reasoning: Formula['reasoning']): string | n
 export default function PlanClient({
   dogId,
   dogName,
+  dogPhoto = null,
   products,
   initialFresh,
 }: {
   dogId: string
   dogName: string
+  /** 머리줄 작은 사진(시안 S29). 없으면 발바닥 자리. */
+  dogPhoto?: string | null
   products: Record<string, PlanProduct>
   initialFresh: number
 }) {
@@ -200,13 +236,14 @@ export default function PlanClient({
 
   if (state.s === 'loading') {
     return (
-      <div style={{ padding: '14px 14px 96px' }}>
+      <div style={{ padding: '18px 20px 24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Skeleton className="h-4 w-32 mx-auto" />
-          <Skeleton className="h-6 w-52 mx-auto" />
-          <Skeleton className="h-28 w-full mt-2" rounded="lg" />
-          <Skeleton className="h-28 w-full" rounded="lg" />
-          <Skeleton className="h-24 w-full" rounded="lg" />
+          <Skeleton className="h-2 w-full" />
+          <Skeleton className="h-4 w-40 mt-3" />
+          <Skeleton className="h-9 w-52" />
+          <Skeleton className="h-36 w-full mt-3" />
+          <Skeleton className="h-36 w-full" />
+          <Skeleton className="h-24 w-full" />
         </div>
       </div>
     )
@@ -214,11 +251,9 @@ export default function PlanClient({
 
   if (state.s === 'retry') {
     return (
-      <div className="px-5 py-16 text-center">
-        <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-          레시피를 불러오지 못했어요
-        </p>
-        <p style={{ fontSize: 14, color: 'var(--muted)', margin: '8px 0 16px' }}>
+      <div style={{ padding: '64px 20px', textAlign: 'center', color: V3.ink }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>레시피를 불러오지 못했어요</p>
+        <p style={{ fontSize: 16, color: V3.inkSoft, margin: '8px 0 20px' }}>
           잠시 연결이 매끄럽지 않아요. 다시 시도해 주세요.
         </p>
         <button
@@ -227,7 +262,7 @@ export default function PlanClient({
             setState({ s: 'loading' })
             setAttempt((n) => n + 1)
           }}
-          style={{ ...ctaLink(), border: 'none', cursor: 'pointer' }}
+          style={{ ...ctaLink(), border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           다시 시도
         </button>
@@ -237,15 +272,13 @@ export default function PlanClient({
 
   if (state.s === 'empty') {
     return (
-      <div className="px-5 py-16 text-center">
-        <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-          아직 맞춤 결과가 없어요
-        </p>
-        <p style={{ fontSize: 14, color: 'var(--muted)', margin: '8px 0 16px' }}>
+      <div style={{ padding: '64px 20px', textAlign: 'center', color: V3.ink }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>아직 맞춤 결과가 없어요</p>
+        <p style={{ fontSize: 16, color: V3.inkSoft, margin: '8px 0 20px', wordBreak: 'keep-all' }}>
           분석을 먼저 받으면 {petName(dogName)}에게 맞는 레시피를 추천해 드려요.
         </p>
         <Link href={`/dogs/${dogId}/analysis`} style={ctaLink()}>
-          분석 보러가기 <ArrowRight size={13} strokeWidth={2.4} />
+          분석 보러가기 <ArrowRight size={16} strokeWidth={2.4} />
         </Link>
       </div>
     )
@@ -255,6 +288,7 @@ export default function PlanClient({
     <PlanView
       dogId={dogId}
       dogName={dogName}
+      dogPhoto={dogPhoto}
       formula={state.formula}
       products={products}
       initialFresh={initialFresh}
@@ -262,16 +296,18 @@ export default function PlanClient({
   )
 }
 
-/** 플랜 본체 — formula 확정 후 렌더. 선택 상태는 이 시점 추천으로 초기화된다. */
-function PlanView({
+/** 플랜 본체 — formula 확정 후 렌더. 선택 상태는 이 시점 추천으로 초기화된다. 점검 화면(/design-check)도 이걸 그린다. */
+export function PlanView({
   dogId,
   dogName,
+  dogPhoto = null,
   formula,
   products,
   initialFresh,
 }: {
   dogId: string
   dogName: string
+  dogPhoto?: string | null
   formula: Formula
   products: Record<string, PlanProduct>
   initialFresh: number
@@ -352,120 +388,171 @@ function PlanView({
 
   const others = RECIPE_LINES.filter((l) => !selected.has(l))
   const canAddMore = selected.size < MAX_RECIPES
+  const name = petName(dogName)
 
   return (
-    <div style={{ padding: '14px 14px 96px', position: 'relative' }}>
-      {/* 스텝 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--muted)' }}>
-        <span style={{ color: 'var(--terracotta)' }}>① 레시피</span>
-        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
-        <span>② 배송</span>
-        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
-        <span>③ 결제</span>
-      </div>
+    <div style={{ position: 'relative', paddingBottom: 12, color: V3.ink }}>
+      <FunnelSteps current={1} />
 
-      <div style={{ textAlign: 'center', marginTop: 12 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--terracotta)' }}>
-          {petName(dogName)}를 위한 맞춤 식단
-        </div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 3, color: 'var(--ink)' }}>
-          이 레시피를 추천해요
-        </h1>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 11, flexWrap: 'wrap' }}>
-        {['수의영양학', 'AAFCO·FEDIAF 충족', '사람도 먹는 등급'].map((t) => (
-          <span key={t} style={{ fontSize: 12, color: 'var(--moss, #4f6a48)', background: 'color-mix(in srgb, var(--moss, #4f6a48) 9%, transparent)', padding: '3px 8px', borderRadius: 99, fontWeight: 600 }}>
-            {t}
+      <section style={{ padding: '22px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: V3.inkMute }}>
+          <span
+            aria-hidden
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 13,
+              overflow: 'hidden',
+              background: V3.soft,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {dogPhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element -- 26px 원형 머리 사진
+              <img src={dogPhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} decoding="async" />
+            ) : (
+              <DogPawMark size={14} color={V3.inkMute} />
+            )}
           </span>
-        ))}
-      </div>
+          {name}를 위한 맞춤 식단
+        </span>
+        {/* 제목 글꼴은 앱 틀의 h1 규칙이 준다 — fontFamily·fontWeight 를 여기서 주지 않는다. */}
+        <h1 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.15 }}>
+          이 레시피를
+          <br />
+          추천해요
+        </h1>
+        <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {['수의영양학', '국제 영양 기준 충족', '사람도 먹는 등급'].map((t) => (
+            <span
+              key={t}
+              style={{
+                height: 28,
+                padding: '0 9px',
+                borderRadius: 4,
+                background: V3.soft,
+                fontSize: 14,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      </section>
 
       {/* ── 위: 내 플랜 (추천 강조) ─────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 18, marginBottom: 9 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-          {petName(dogName)}의 플랜
-        </span>
-        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>
-          {selected.size}가지 · 최대 {MAX_RECIPES}
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[...selected].map((line) => (
-          <HeroCard
-            key={line}
-            line={line}
-            isRec={recommended.has(line)}
-            why={whyForLine(line, formula.reasoning) ?? ''}
-            removable={selected.size > 1}
-            onRemove={() => remove(line)}
-            onDetail={() => setDetailLine(line)}
-          />
-        ))}
-      </div>
+      <section aria-labelledby="my-plan" style={{ padding: '28px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h2 id="my-plan" style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontSize: 24 }}>{name}의 플랜</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: V3.inkMute, fontFamily: 'var(--font-sans)' }}>
+            {selected.size}가지 · 최대 {MAX_RECIPES}
+          </span>
+        </h2>
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[...selected].map((line) => (
+            <HeroCard
+              key={line}
+              line={line}
+              isRec={recommended.has(line)}
+              why={whyForLine(line, formula.reasoning) ?? ''}
+              removable={selected.size > 1}
+              onRemove={() => remove(line)}
+              onDetail={() => setDetailLine(line)}
+            />
+          ))}
+        </div>
+      </section>
 
       {/* ── 아래: 다른 레시피로 바꾸기 ───────────────────────────── */}
       {others.length > 0 && (
-        <>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 20, marginBottom: 8 }}>
+        <section aria-labelledby="other-recipes" style={{ padding: '26px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <h3 id="other-recipes" style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
             다른 레시피로 바꾸기
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          </h3>
+          <div style={{ marginTop: 10, borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
             {others.map((line) => {
               const meta = FOOD_LINE_META[line]
               const isBlocked = blocked.has(line)
               const isRec = recommended.has(line)
+              const rn = RECIPE_NAMES[line]
+              const rt = recipeTitle(line)
+              const pouch = studioPouchImageForLine(line)
               return (
                 <div
                   key={line}
                   style={{
-                    display: 'flex',
+                    minHeight: 72,
+                    padding: '10px 0',
+                    boxSizing: 'border-box',
+                    borderBottom: `1px solid ${V3.rule}`,
+                    display: 'grid',
+                    gridTemplateColumns: '48px minmax(0, 1fr) auto',
+                    columnGap: 12,
                     alignItems: 'center',
-                    gap: 10,
-                    background: isBlocked ? 'var(--bg-2)' : 'var(--surface-card-elevated, #fff)',
-                    border: isBlocked ? '1px dashed var(--rule)' : '1px solid var(--rule)',
-                    borderRadius: 12,
-                    padding: '10px 12px',
-                    opacity: isBlocked ? 0.8 : 1,
+                    opacity: isBlocked ? 0.75 : 1,
                   }}
                 >
-                  <div
+                  <span
                     style={{
-                      ...miniCircle(isBlocked ? 'rgba(120,120,120,.1)' : `color-mix(in srgb, ${meta.color} 13%, transparent)`),
+                      width: 48,
+                      height: 48,
+                      borderRadius: 4,
                       overflow: 'hidden',
+                      background: V3.soft,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
                     {isBlocked ? (
-                      <Lock size={17} strokeWidth={2} color="var(--muted)" />
+                      <Lock size={18} strokeWidth={2} color={V3.inkMute} />
                     ) : (
-                      /* 추천 카드와 같은 화식 그릇 사진(4종 공용) — 이모지 대체 */
-                      // eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯
+                      // eslint-disable-next-line @next/next/no-img-element -- 고정 크기 썸네일(레시피 팩 스튜디오 컷)
                       <img
-                        src={bowlImageForLine(line)}
+                        src={pouch ?? bowlImageForLine(line)}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         decoding="async"
                       />
                     )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: isBlocked ? 'var(--muted)' : 'var(--ink)' }}>{RECIPE_TITLES[line] ?? meta.name}</span>
-                      {isRec && !isBlocked && (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--moss, #4f6a48)' }}>★ 추천</span>
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 17, fontWeight: 800, color: isBlocked ? V3.inkMute : V3.ink }}>
+                      <span aria-hidden style={{ width: 9, height: 9, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
+                      {rt.en ? (
+                        <span className="ft-num" style={{ ...EN_TITLE, fontSize: 19 }}>
+                          {rt.en}
+                        </span>
+                      ) : (
+                        rn?.name ?? meta.nameKo
                       )}
-                    </div>
+                      {!rt.en && <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>{rn?.sub}</span>}
+                      {isRec && !isBlocked && (
+                        <span style={{ fontSize: 13, fontWeight: 800, color: V3.ink }}>★ 추천</span>
+                      )}
+                    </span>
+                    {rt.en && (
+                      <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>
+                        {rt.ko} · {rt.sub}
+                      </span>
+                    )}
                     {isBlocked ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--terracotta)', fontWeight: 700, marginTop: 2 }}>
-                        <AlertTriangle size={11} strokeWidth={2.2} />알레르기로 제외
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, color: V3.sale, fontWeight: 700 }}>
+                        <AlertTriangle size={13} strokeWidth={2.2} aria-hidden />
+                        알레르기로 제외
                       </span>
                     ) : (
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 14, color: V3.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {cardIngredients(line).slice(0, 4).join(', ')}…
-                      </div>
+                      </span>
                     )}
-                  </div>
+                  </span>
                   {!isBlocked && (
                     <button
                       type="button"
@@ -476,20 +563,20 @@ function PlanView({
                         cursor: canAddMore ? 'pointer' : 'default',
                         fontFamily: 'inherit',
                         flexShrink: 0,
+                        height: 40,
+                        padding: '0 12px',
+                        borderRadius: 4,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 4,
-                        fontSize: 14,
+                        gap: 3,
+                        fontSize: 15,
                         fontWeight: 700,
-                        color: canAddMore ? 'var(--ink)' : 'var(--muted)',
-                        background: 'transparent',
-                        border: '1px solid var(--rule)',
-                        opacity: canAddMore ? 1 : 0.5,
-                        padding: '6px 13px',
-                        borderRadius: 99,
+                        color: canAddMore ? V3.ink : V3.inkFaint,
+                        background: '#FFFFFF',
+                        border: `1.5px solid ${canAddMore ? V3.ink : V3.rule}`,
                       }}
                     >
-                      <Plus size={13} strokeWidth={2.4} />
+                      <Plus size={14} strokeWidth={2.4} aria-hidden />
                       {canAddMore ? '담기' : '가득'}
                     </button>
                   )}
@@ -498,21 +585,22 @@ function PlanView({
             })}
           </div>
           {!canAddMore && (
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, textAlign: 'center' }}>
+            <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 14, color: V3.inkMute }}>
               최대 {MAX_RECIPES}가지예요 · 바꾸려면 위에서 하나 빼주세요
-            </div>
+            </p>
           )}
-        </>
+        </section>
       )}
 
-      {/* 화식 비율 */}
-      <div style={{ marginTop: 18, background: 'var(--surface-card-elevated, #fff)', border: '1px solid var(--rule)', borderRadius: 14, padding: 13 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>얼마나 화식으로 드릴까요?</div>
-        <div
-          role="radiogroup"
-          aria-label="화식 비율 선택"
-          style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}
-        >
+      {/* 화식 비율 — 비율(%)은 말하지 않는다(앱시안 결정 3번). 이름·설명만. */}
+      <section
+        aria-labelledby="fresh-q"
+        style={{ margin: '26px 20px 0', paddingTop: 18, borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}
+      >
+        <h2 id="fresh-q" style={{ margin: 0, fontSize: 24 }}>
+          얼마나 화식으로 드릴까요?
+        </h2>
+        <div role="radiogroup" aria-labelledby="fresh-q" style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {FRESH_TIERS.map((t) => {
             const on = freshRatio === t.ratio
             return (
@@ -522,83 +610,67 @@ function PlanView({
                 role="radio"
                 aria-checked={on}
                 onClick={() => setFreshRatio(t.ratio)}
+                className="ft-no-press"
                 style={{
                   appearance: 'none',
                   width: '100%',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  background: on
-                    ? 'color-mix(in srgb, var(--terracotta) 4%, transparent)'
-                    : 'transparent',
-                  border: on ? '2px solid var(--terracotta)' : '1px solid var(--rule)',
-                  borderRadius: 12,
-                  padding: on ? '11px 12px' : '12px 13px',
+                  padding: 14,
+                  borderRadius: 4,
+                  border: on ? `2px solid ${V3.ink}` : `1.5px solid ${IDLE_BORDER}`,
+                  background: on ? V3.soft : '#FFFFFF',
+                  color: V3.ink,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-                    {t.label}
-                  </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 20,
+                      height: 20,
+                      boxSizing: 'border-box',
+                      borderRadius: 10,
+                      border: on ? `6px solid ${V3.ink}` : `1.5px solid ${V3.inkFaint}`,
+                      background: '#FFFFFF',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: 18, fontWeight: 800 }}>{t.label}</span>
                   {'badge' in t && t.badge && (
                     <span
                       style={{
+                        height: 22,
+                        padding: '0 6px',
+                        borderRadius: 4,
+                        background: V3.ink,
+                        color: '#FFFFFF',
                         fontSize: 12,
-                        fontWeight: 700,
-                        color: '#fff',
-                        background: 'var(--terracotta)',
-                        padding: '2px 7px',
-                        borderRadius: 99,
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
                       }}
                     >
                       {t.badge}
                     </span>
                   )}
-                  <span
-                    style={{
-                      marginLeft: 'auto',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: on ? 'var(--terracotta)' : 'var(--muted)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {t.sub}
-                  </span>
                 </span>
-                <span
-                  style={{
-                    display: 'block',
-                    fontSize: 14,
-                    color: on
-                      ? 'color-mix(in srgb, var(--terracotta) 68%, var(--ink))'
-                      : 'var(--muted)',
-                    marginTop: 4,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {t.copy}
-                </span>
+                <span style={{ fontSize: 15, lineHeight: 1.5, color: on ? V3.inkSoft : V3.inkMute, wordBreak: 'keep-all' }}>{t.copy}</span>
                 {'note' in t && t.note && (
                   <span
                     style={{
-                      display: 'flex',
-                      gap: 6,
-                      marginTop: 9,
-                      paddingTop: 9,
-                      borderTop:
-                        '1px solid color-mix(in srgb, var(--terracotta) 15%, transparent)',
-                      color: 'var(--muted)',
-                      fontSize: 12,
+                      paddingTop: 8,
+                      borderTop: '1px solid #DEDCDD',
+                      fontSize: 14,
                       lineHeight: 1.5,
+                      color: V3.inkMute,
+                      wordBreak: 'keep-all',
                     }}
                   >
-                    <Info
-                      size={12}
-                      strokeWidth={2}
-                      color="var(--terracotta)"
-                      style={{ flexShrink: 0, marginTop: 1 }}
-                    />
                     {t.note}
                   </span>
                 )}
@@ -610,66 +682,106 @@ function PlanView({
         {/* 하루 단가 — 하단 결제 바는 '총가격'이라, 하루 얼마인지는 여기에서
             보여준다(사장님 2026-07-14). 비율 바꾸면 같이 갱신. */}
         {dailyPay > 0 && (
-          <div
+          <p
             style={{
+              margin: '14px 0 0',
+              paddingTop: 12,
+              borderTop: `1px solid ${V3.rule}`,
               display: 'flex',
               alignItems: 'baseline',
               justifyContent: 'center',
-              gap: 5,
-              marginTop: 12,
-              paddingTop: 11,
-              borderTop: '1px solid var(--rule)',
-              fontSize: 14,
-              color: 'var(--muted)',
-              fontWeight: 600,
+              gap: 6,
+              fontSize: 15,
+              color: V3.inkMute,
             }}
           >
             하루
-            <strong
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {dailyPay.toLocaleString()}원
-            </strong>
+            <strong style={{ fontSize: 18, fontWeight: 900, color: V3.ink }}>{dailyPay.toLocaleString('ko-KR')}원</strong>
             <span>· 정기배송가 기준</span>
-          </div>
+          </p>
         )}
-      </div>
+      </section>
 
-      {/* 결제 바 (다크) — 총가격(2주). 상세 시트 열리면 숨김(시트 밑으로
-          비쳐 보이는 문제 방지). */}
-      <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, background: 'var(--ink)', padding: '13px 16px calc(13px + env(safe-area-inset-bottom))', display: detailLine ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 40 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
-            2주마다 배송 · 다음 결제 전 해지
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
+      {/* 결제 바 (먹색) — 총가격(2주). 상세 시트 열리면 숨김(시트 밑으로
+          비쳐 보이는 문제 방지). 바 높이는 AppChrome 의 --ft-paybar-h 가 본문 아래 여백으로 비워 둔다(규칙88). */}
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 40,
+          background: V3.ink,
+          color: '#FFFFFF',
+          padding: '12px 16px calc(14px + env(safe-area-inset-bottom))',
+          display: detailLine ? 'none' : 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}
+      >
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>2주마다 배송 · 다음 결제 전 해지</span>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
             {cycleAnchor > cyclePay && (
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'line-through' }}>{cycleAnchor.toLocaleString()}원</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', textDecoration: 'line-through' }}>
+                {cycleAnchor.toLocaleString('ko-KR')}원
+              </span>
             )}
-            <span style={{ fontSize: 19, fontWeight: 800, color: '#fff' }}>
-              {cyclePay.toLocaleString()}원<span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>/2주</span>
+            <span>
+              <span className="ft-num" style={{ fontSize: 26 }}>
+                {cyclePay.toLocaleString('ko-KR')}
+              </span>
+              <span style={{ fontSize: 15, fontWeight: 800 }}>원</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>/2주</span>
             </span>
             {cycleAnchor > cyclePay && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', background: '#E8B84B', padding: '2px 6px', borderRadius: 99 }}>{offLabel}</span>
+              <span
+                style={{
+                  height: 22,
+                  padding: '0 6px',
+                  borderRadius: 4,
+                  background: '#FFFFFF',
+                  color: V3.ink,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'center',
+                }}
+              >
+                {offLabel}
+              </span>
             )}
-          </div>
-        </div>
-        <Link href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`} style={{ border: 'none', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, padding: '12px 18px', fontSize: 16, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>
-          플랜 담기 <ArrowRight size={15} strokeWidth={2.4} color="#fff" />
+          </span>
+        </span>
+        <Link
+          href={`/dogs/${dogId}/order?fresh=${freshRatio}&recipes=${[...selected].join(',')}`}
+          style={{
+            flexShrink: 0,
+            height: 52,
+            padding: '0 14px',
+            borderRadius: 4,
+            background: '#FFFFFF',
+            color: V3.ink,
+            fontSize: 16,
+            fontWeight: 800,
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          플랜 담기 <ArrowRight size={18} strokeWidth={2.4} aria-hidden />
         </Link>
       </div>
 
-      {/* 재료 전체·영양성분 — 밑에서 올라오는 바텀시트(70vh). */}
+      {/* 재료 전체·영양성분 — 밑에서 올라오는 바텀시트. 머리줄은 시안(S30)대로 시트 안에서 그린다. */}
       <BottomSheet
         open={detailLine !== null}
         onClose={() => setDetailLine(null)}
-        title={detailLine ? (RECIPE_TITLES[detailLine] ?? '') : ''}
-        showClose
+        ariaLabel={detailLine ? `${RECIPE_NAMES[detailLine]?.name ?? ''} 재료 전체 · 영양성분` : '레시피 상세'}
         maxHeight="88vh"
       >
         <BottomSheet.Body>
@@ -682,6 +794,7 @@ function PlanView({
                   ? (whyForLine(detailLine, formula.reasoning) ?? '')
                   : ''
               }
+              onClose={() => setDetailLine(null)}
             />
           )}
         </BottomSheet.Body>
@@ -695,12 +808,16 @@ function RecipeDetail({
   line,
   dogName,
   why,
+  onClose,
 }: {
   line: FoodLine
   dogName: string
   why: string
+  onClose: () => void
 }) {
   const meta = FOOD_LINE_META[line]
+  const rn = RECIPE_NAMES[line]
+  const rt = recipeTitle(line)
   const pouchSrc = studioPouchImageForLine(line)
   const ings = fullIngredients(line)
   // 근거 trigger 앞 기술 접두사 정리(고객 가독성).
@@ -718,55 +835,70 @@ function RecipeDetail({
       ]
     : []
   return (
-    <div>
-      {/* 제품 사진 — 스튜디오 파우치 컷을 시트 배경에 녹인다(사장님 2026-10-02:
-          폰 스냅샷 + 분홍 틴트 박스 → 스튜디오 컷, 테두리 없이).
-          · 칸 배경 = 시트 자기 배경(var(--bg)) + isolation 으로 블렌드 범위를 칸 안에 가둠
-          · multiply — 무지 배경(밝은 회색 236~249)이 시트 색으로 사라진다
-          · brightness(1.07) — 배경 최저 236 을 255 로 밀어 올려 multiply 후 시트 색과
-            같아지게(시뮬레이션상 가장자리 편차 1~2/255). 파우치는 살짝만 밝아진다
-          · 좌우 9% 마스크 페이드 — 원본 우하단 바닥 그림자 띠가 칸 오른쪽 끝에서
-            잘려 선처럼 보이던 것을 흐려 없앤다(파우치는 가로 11~89% 라 안 닿음)
-          · cover + 52% — 정사각 원본의 위아래 빈 배경만 잘라 375 폰에서 파우치
-            폭 ~255px(contain 이면 ~196px). 잘려 나간 건 녹는 배경뿐이다
-          drop-shadow·회전은 뺐다 — 사각 이미지에 걸면 칸 모양이 드러난다(스튜디오
-          컷엔 바닥 그림자가 이미 있다). lazy 금지 — 안드로이드 WebView 에서 안
-          뜬다(실측). 사진 없는 라인(연어)은 이모지 폴백. */}
+    <SheetContent>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: V3.ink }}>
+        <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span aria-hidden style={{ width: 12, height: 12, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
+          {rt.en ? (
+            <span className="ft-num" style={{ ...EN_TITLE, fontSize: 26 }}>
+              {rt.en}
+            </span>
+          ) : (
+            <>
+              <span style={{ fontSize: 26 }}>{rn?.name ?? meta.nameKo}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: V3.inkMute, fontFamily: 'var(--font-sans)' }}>{rn?.sub}</span>
+            </>
+          )}
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+          style={{
+            flexShrink: 0,
+            width: 48,
+            height: 48,
+            marginRight: -10,
+            border: 0,
+            background: 'transparent',
+            color: V3.ink,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+      {rt.en && (
+        <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 700, color: V3.inkMute }}>
+          {rt.ko} · {rt.sub}
+        </p>
+      )}
+
+      {/* 제품 사진 — 레시피 팩 스튜디오 컷(시안 S30: 모서리 4 사진 칸). 예전엔 시트 배경에 multiply 로 녹였는데
+          (2026-10-02, 그때 시트 바탕은 크림색) 흰 시트에선 칸 그대로가 시안이다. lazy 금지 — 안드로이드
+          WebView 에서 안 뜬다(실측). 사진 없는 라인(연어)은 그릇 사진으로 대신한다. */}
       <div
         style={{
+          marginTop: 10,
           width: '100%',
-          aspectRatio: '4 / 3',
-          background: 'var(--bg)',
-          isolation: 'isolate',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 8,
+          aspectRatio: '7 / 5',
+          borderRadius: 4,
           overflow: 'hidden',
+          background: V3.soft,
         }}
       >
-        {pouchSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯
-          <img
-            src={pouchSrc}
-            alt={`${meta.nameKo} 화식 패키지`}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 52%',
-              mixBlendMode: 'multiply',
-              filter: 'brightness(1.07)',
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%)',
-              maskImage:
-                'linear-gradient(to right, transparent 0%, #000 9%, #000 91%, transparent 100%)',
-            }}
-            decoding="async"
-          />
-        ) : (
-          <span style={{ fontSize: 56 }} aria-hidden>🍲</span>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯 */}
+        <img
+          src={pouchSrc ?? bowlImageForLine(line)}
+          alt={`${meta.nameKo} 화식 패키지`}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 52%', display: 'block' }}
+          decoding="async"
+        />
       </div>
 
       {/* 완성 그릇 + 연출샷 고지 (사장님 2026-08-25).
@@ -774,84 +906,83 @@ function RecipeDetail({
           있다는 걸 사진 바로 옆에서 밝힌다 — 표시광고 오인 방지이자 "왜 갈려
           있나"를 미리 답해 주는 자리다. 원형 썸네일이라 카드·주문 화면의 그
           사진과 같은 것임을 알아본다. */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
-        <span
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            overflow: 'hidden',
-            flexShrink: 0,
-            boxShadow: `0 0 0 1px color-mix(in srgb, ${meta.color} 26%, transparent)`,
-          }}
-        >
+      <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '60px 1fr', columnGap: 12, alignItems: 'center' }}>
+        <span style={{ width: 60, height: 60, borderRadius: 30, overflow: 'hidden', display: 'block' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 썸네일 */}
           <img
             src={bowlImageForLine(line)}
             alt={`${meta.nameKo} 화식 완성 그릇`}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             decoding="async"
           />
         </span>
-        <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-          사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을
-          소화가 편하도록 곱게 갈아서 담아 드려요.
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: V3.inkMute, wordBreak: 'keep-all' }}>
+          사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을 소화가 편하도록 곱게 갈아서 담아 드려요.
         </p>
       </div>
 
       {/* 이 레시피는요 — 고객용 설명(사장님 2026-07-13). */}
       {RECIPE_DESCRIPTIONS[line] && (
-        <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 16 }}>
+        <p style={{ margin: '18px 0 0', fontSize: 17, lineHeight: 1.7, color: V3.ink, wordBreak: 'keep-all' }}>
           {RECIPE_DESCRIPTIONS[line]}
         </p>
       )}
 
       {/* 개인화 추천 이유 — 이 강아지 프로필 기반(추천 레시피만). */}
       {whyClean && (
-        <div
-          style={{
-            marginBottom: 22,
-            padding: '12px 14px',
-            borderRadius: 12,
-            background: 'color-mix(in srgb, var(--moss, #4f6a48) 8%, transparent)',
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--moss, #4f6a48)', marginBottom: 4 }}>
-            {petName(dogName)}에게 추천한 이유
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
-            {whyClean}에 맞춰 {petName(dogName)}에게 추천했어요.
-          </div>
-        </div>
+        <p style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 4, background: V3.soft, fontSize: 16, lineHeight: 1.6, color: V3.ink, wordBreak: 'keep-all' }}>
+          <strong style={{ fontWeight: 800 }}>{petName(dogName)}에게 추천한 이유</strong> · {whyClean}에 맞춰 {petName(dogName)}에게 추천했어요.
+        </p>
       )}
 
-      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>전체 재료</div>
-      <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.75, marginBottom: 22 }}>
-        {ings.join(', ')}
-      </p>
+      <h3 style={{ margin: '24px 0 0', paddingTop: 14, borderTop: `2px solid ${V3.ink}`, fontSize: 18, fontWeight: 800, color: V3.ink }}>
+        전체 재료
+      </h3>
+      <p style={{ margin: '8px 0 0', fontSize: 16, lineHeight: 1.7, color: V3.inkSoft, wordBreak: 'keep-all' }}>{ings.join(', ')}</p>
 
-      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', marginBottom: 9 }}>
-        등록성분 <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>· 보장분석</span>
-      </div>
-      <div style={{ border: '1px solid var(--rule)', borderRadius: 10, overflow: 'hidden' }}>
+      <h3
+        style={{
+          margin: '24px 0 0',
+          paddingTop: 14,
+          borderTop: `2px solid ${V3.ink}`,
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 6,
+          fontSize: 18,
+          fontWeight: 800,
+          color: V3.ink,
+        }}
+      >
+        등록성분 <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>보장분석</span>
+      </h3>
+      {/* 등록성분 표의 % 는 법정 표시사항이라 그대로 둔다(앱시안 결정 14번). */}
+      <dl style={{ margin: '10px 0 0', border: `1.5px solid ${IDLE_BORDER}`, borderRadius: 4, display: 'flex', flexDirection: 'column' }}>
         {nut.map(([label, value], i) => (
           <div
             key={label}
-            style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 13px', borderTop: i > 0 ? '1px solid var(--rule)' : 'none', fontSize: 14 }}
+            style={{
+              minHeight: 46,
+              padding: '0 14px',
+              borderTop: i > 0 ? `1px solid ${V3.rule}` : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: 16,
+            }}
           >
-            <span style={{ color: 'var(--muted)' }}>{label}</span>
-            <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{value}</span>
+            <dt style={{ color: V3.inkMute }}>{label}</dt>
+            <dd style={{ margin: 0, fontWeight: 800, color: V3.ink }}>{value}</dd>
           </div>
         ))}
-      </div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 11, lineHeight: 1.5 }}>
-        제조국가 한국 · AAFCO · FEDIAF · NRC 기준 완전·균형식.
+      </dl>
+      <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.5, color: V3.inkMute }}>
+        제조국가 한국 · 국제 반려견 영양 기준에 맞춘 완전·균형식.
       </p>
-    </div>
+    </SheetContent>
   )
 }
 
-/** 추천/선택 레시피 강조 카드 (위쪽). 사진 크게 + 재료 + ★추천. */
+/** 추천/선택 레시피 강조 카드 (위쪽). 레시피 팩 사진 + 이름 + 추천 이유 + 재료(시안 S29). */
 function HeroCard({
   line,
   isRec,
@@ -868,7 +999,10 @@ function HeroCard({
   onDetail: () => void
 }) {
   const meta = FOOD_LINE_META[line]
+  const rn = RECIPE_NAMES[line]
+  const rt = recipeTitle(line)
   const ings = cardIngredients(line)
+  const pouch = studioPouchImageForLine(line)
   // 추천 이유 = 그 아이의 근거(트리거) + 레시피 특성. 추천 카드에만 노출.
   const cleanTrigger = why.replace(/^케어 목표\s*=\s*/, '').trim()
   const recipeWhy = RECIPE_WHY[line] ?? ''
@@ -877,114 +1011,187 @@ function HeroCard({
       ? `${cleanTrigger} · ${recipeWhy}`
       : recipeWhy || cleanTrigger
   return (
-    <div style={{ background: 'var(--surface-card-elevated, #fff)', border: '2px solid var(--terracotta)', borderRadius: 16, padding: 14, position: 'relative', overflow: 'hidden' }}>
+    <article
+      style={{
+        position: 'relative',
+        borderRadius: 4,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        background: V3.soft,
+        borderLeft: `6px solid ${V3.mustard}`,
+        color: V3.ink,
+      }}
+    >
       {isRec && (
-        <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 12, fontWeight: 700, color: '#fff', background: 'var(--moss, #4f6a48)', padding: '4px 12px', borderBottomLeftRadius: 12 }}>★ 추천</span>
+        <span
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: 28,
+            padding: '0 10px',
+            background: V3.ink,
+            color: '#FFFFFF',
+            fontSize: 13,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          ★ 추천
+        </span>
       )}
-      <div style={{ display: 'flex', gap: 13, alignItems: 'center' }}>
-        {/* 카드 원형 = 완성된 화식 그릇(4종 공용). 구분은 테두리 색(meta.color). */}
-        <div style={{ ...heroCircle(`color-mix(in srgb, ${meta.color} 14%, transparent)`, meta.color), overflow: 'hidden' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 슬롯 */}
+      <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '76px 1fr', columnGap: 14, alignItems: 'center' }}>
+        <span style={{ width: 76, height: 76, borderRadius: 4, overflow: 'hidden', background: '#FFFFFF', display: 'block' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 슬롯(레시피 팩 스튜디오 컷) */}
           <img
-            src={bowlImageForLine(line)}
-            alt=""
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            src={pouch ?? bowlImageForLine(line)}
+            alt={`${rn?.name ?? meta.nameKo} 레시피 팩`}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             decoding="async"
           />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            {RECIPE_TITLES[line] ?? meta.name}
-          </div>
-        </div>
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span aria-hidden style={{ width: 12, height: 12, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
+            {rt.en ? (
+              <span className="ft-num" style={{ ...EN_TITLE, fontSize: 24, lineHeight: 1 }}>
+                {rt.en}
+              </span>
+            ) : (
+              <span className="ft-poster" style={{ fontSize: 26, lineHeight: 1 }}>
+                {rn?.name ?? meta.nameKo}
+              </span>
+            )}
+          </span>
+          <span style={{ fontSize: 15, color: V3.inkSoft }}>{rt.en ? `${rt.ko} · ${rt.sub}` : rn?.sub}</span>
+        </span>
       </div>
       {/* 추천 이유 — 알고리즘이 추천한(★) 레시피에만. 직접 담은(추가) 레시피엔
           안 띄우고 중립 태그로 구분(사장님 2026-07-14: 추가 담은 오리·소엔 추천
           이유가 뜨면 안 됨 → 맞춤 느낌 유지). */}
       {isRec ? (
-        <div style={{ marginTop: 12, marginBottom: 2 }}>
-          <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, lineHeight: 2 }}>
-            <span
-              style={{
-                display: 'inline-block',
-                position: 'relative',
-                fontWeight: 900,
-                color: 'var(--moss, #4f6a48)',
-              }}
-            >
-              추천 이유
-              <svg
-                viewBox="0 0 100 8"
-                preserveAspectRatio="none"
-                aria-hidden
-                style={{ position: 'absolute', left: 0, bottom: -2, width: '100%', height: 8, overflow: 'visible' }}
-              >
-                <path
-                  d="M0,4.5 C18,2 32,6.5 52,4 C72,1.8 88,6 100,3.5"
-                  stroke="var(--moss, #4f6a48)"
-                  strokeWidth={2.4}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
-            <span> · {recReason}</span>
-          </span>
-        </div>
+        <p style={{ margin: '0 14px', padding: '10px 12px', borderRadius: 4, background: '#FFFFFF', fontSize: 15, lineHeight: 1.55, wordBreak: 'keep-all' }}>
+          <strong style={{ fontWeight: 800 }}>추천 이유</strong> · {recReason}
+        </p>
       ) : (
-        <div style={{ marginTop: 11, marginBottom: 2 }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--muted)',
-              background: 'var(--bg-2)',
-              padding: '3px 9px',
-              borderRadius: 99,
-            }}
-          >
-            <Check size={11} strokeWidth={2.6} />
-            직접 담은 레시피
-          </span>
-        </div>
+        <span
+          style={{
+            margin: '0 14px',
+            alignSelf: 'flex-start',
+            height: 28,
+            padding: '0 9px',
+            borderRadius: 4,
+            background: '#FFFFFF',
+            fontSize: 14,
+            fontWeight: 700,
+            color: V3.inkSoft,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Check size={14} strokeWidth={2.6} aria-hidden />
+          직접 담은 레시피
+        </span>
       )}
-      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 9, lineHeight: 1.55 }}>
+      <p style={{ margin: '10px 14px 0', fontSize: 15, lineHeight: 1.5, color: V3.inkMute, wordBreak: 'keep-all' }}>
         {/* 카드는 발췌(메인+내장+토핑)라 '등'을 붙여 전체가 아님을 밝힌다
             (사장님 2026-08-25). 전체 목록은 '재료 전체' 시트에 있다. */}
         {ings.join(', ')} 등
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 11, borderTop: '1px solid var(--rule)' }}>
+      </p>
+      <div
+        style={{
+          marginTop: 12,
+          padding: '0 14px',
+          minHeight: 56,
+          borderTop: `1px solid ${V3.rule}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <button
           type="button"
           onClick={onDetail}
-          style={{ appearance: 'none', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: 'var(--terracotta)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 1 }}
+          style={{
+            appearance: 'none',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            minHeight: 48,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: 15,
+            fontWeight: 800,
+            color: V3.ink,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 1,
+          }}
         >
           재료 전체 · 영양성분
-          <ChevronRight size={13} strokeWidth={2.4} />
+          <ChevronRight size={15} strokeWidth={2.4} aria-hidden />
         </button>
         {removable ? (
-          <button type="button" onClick={onRemove} style={{ appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--muted)', background: 'transparent', border: '1px solid var(--rule)', padding: '6px 13px', borderRadius: 99 }}>
+          <button
+            type="button"
+            onClick={onRemove}
+            style={{
+              appearance: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              height: 40,
+              padding: '0 14px',
+              borderRadius: 4,
+              border: `1.5px solid ${IDLE_BORDER}`,
+              background: '#FFFFFF',
+              color: V3.inkSoft,
+              fontSize: 15,
+              fontWeight: 700,
+            }}
+          >
             빼기
           </button>
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: 'var(--terracotta)', background: 'color-mix(in srgb, var(--terracotta) 9%, transparent)', padding: '6px 14px', borderRadius: 99 }}>
-            <Check size={15} strokeWidth={2.4} />담김
+          <span
+            style={{
+              height: 40,
+              padding: '0 12px',
+              borderRadius: 4,
+              background: '#FFFFFF',
+              color: V3.ink,
+              fontSize: 15,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Check size={16} strokeWidth={2.6} aria-hidden />
+            담김
           </span>
         )}
       </div>
-    </div>
+    </article>
   )
 }
 
-function heroCircle(bg: string, ring: string): CSSProperties {
-  return { width: 68, height: 68, borderRadius: '50%', background: bg, boxShadow: `0 0 0 1px color-mix(in srgb, ${ring} 22%, transparent), 0 0 0 5px color-mix(in srgb, ${ring} 5%, transparent)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }
-}
-function miniCircle(bg: string): CSSProperties {
-  return { width: 40, height: 40, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }
-}
 function ctaLink(): CSSProperties {
-  return { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '10px 18px', background: 'var(--terracotta)', color: '#fff', borderRadius: 99, fontSize: 16, fontWeight: 700, textDecoration: 'none' }
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    height: 52,
+    padding: '0 20px',
+    background: V3.ink,
+    color: '#FFFFFF',
+    borderRadius: 4,
+    fontSize: 17,
+    fontWeight: 800,
+    textDecoration: 'none',
+  }
 }

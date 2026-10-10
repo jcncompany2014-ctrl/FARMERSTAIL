@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { isAppContextServer } from '@/lib/app-context'
+import { ServerAppContextProvider } from '@/components/app/ServerAppContext'
 
 /**
  * /login · /signup 등 pre-auth 화면의 공통 메타데이터.
@@ -19,10 +21,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true, nocache: true },
 }
 
-export default function AuthLayout({
+/**
+ * 2026-10-09 앱 새 디자인('A 포스터', 캔버스 W06~W10·W22~W25): 앱일 때만 새 모양으로 그린다. 판정은 여기서 서버가
+ * 쿠키·UA 로(lib/app-context — 미들웨어와 같은 두 신호) 해서 넘긴다 — 클라이언트 훅으로 고르면 첫 그림이 웹 모양이었다가
+ * 바뀐다. 이 틀은 판정값만 싣는다(웹 화면은 그대로).
+ */
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  const isApp = await isAppContextServer()
+  return <ServerAppContextProvider isApp={isApp}>{children}</ServerAppContextProvider>
 }

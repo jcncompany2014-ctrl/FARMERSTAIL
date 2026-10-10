@@ -7,17 +7,25 @@
  * note 만 insert(사진 없음) → 기존 다이어리와 같은 테이블이라 타임라인에 그대로.
  * 사진까지 넣고 싶으면 /diary 풀 작성으로.
  *
+ * 2026-10-09 'A 포스터'(시안 T14): 머리줄(제목·안내 · '닫기') · 먹선(1.5px) 네모 입력칸 ·
+ * 먹색 꽉 찬 버튼 · 아래 밑줄 링크. 조각은 SheetParts.
+ *
  * **앱(PWA) 전용.** 호출자가 dogId + open/onClose 제어.
  */
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { Check } from 'lucide-react'
-import { V3, V3FontWeight } from '@/lib/design/tokens'
+import { V3, V3Radius } from '@/lib/design/tokens'
 import BottomSheet from '@/components/ui/BottomSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { petName } from '@/lib/korean'
+import {
+  SheetContent,
+  SheetError,
+  SheetHeader,
+  SheetPrimaryButton,
+  SheetTextLink,
+} from '@/components/v3/sheet/SheetParts'
 
 interface QuickMemoSheetProps {
   open: boolean
@@ -83,91 +91,49 @@ export default function QuickMemoSheet({
       dismissOnBackdrop={!busy}
     >
       <BottomSheet.Body>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 24,
-            color: V3.ink,
-            letterSpacing: '-0.02em',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {dogName ? `${petName(dogName)}의 ` : ''}오늘 한 줄
-        </h2>
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: V3.inkMute }}>
-          짧아도 좋아요 · 나중에 추억이 돼요
-        </p>
+        <SheetContent>
+          <SheetHeader
+            title={`${dogName ? `${petName(dogName)}의 ` : ''}오늘 한 줄`}
+            sub="짧아도 좋아요 · 나중에 추억이 돼요"
+            onClose={onClose}
+          />
 
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          aria-label="오늘 일기 한 줄"
-          placeholder="오늘 어떤 하루였나요?"
-          rows={4}
-          autoFocus
-          style={{
-            width: '100%',
-            marginTop: 16,
-            background: V3.paperHi,
-            border: `1px solid ${V3.rule}`,
-            borderRadius: 4,
-            padding: 12,
-            fontFamily: 'var(--font-sans)',
-            fontSize: 16,
-            color: V3.ink,
-            resize: 'none',
-            outline: 'none',
-            lineHeight: 1.55,
-          }}
-        />
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            aria-label="오늘 일기 한 줄"
+            placeholder="오늘 어떤 하루였나요?"
+            rows={3}
+            autoFocus
+            style={{
+              display: 'block',
+              width: '100%',
+              minHeight: 132,
+              marginTop: 18,
+              padding: '14px 16px',
+              fontSize: 18,
+              lineHeight: 1.6,
+              color: V3.ink,
+              background: '#FFFFFF',
+              border: `1.5px solid ${V3.ink}`,
+              borderRadius: V3Radius.sm,
+              resize: 'none',
+              outline: 'none',
+            }}
+          />
 
-        <Link
-          href={`/dogs/${dogId}/diary`}
-          onClick={onClose}
-          style={{
-            display: 'inline-block',
-            marginTop: 14,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-            letterSpacing: '0.06em',
-            color: V3.accentDeep,
-            fontWeight: 600,
-          }}
-        >
-          사진까지 함께 기록 →
-        </Link>
+          <div style={{ marginTop: 20 }}>
+            <SheetError msg={err} />
+            <SheetPrimaryButton onClick={save} disabled={busy || empty} busy={busy}>
+              {busy ? '저장 중...' : empty ? '한 줄 적어 주세요' : '기록 완료'}
+            </SheetPrimaryButton>
+          </div>
+
+          <SheetTextLink href={`/dogs/${dogId}/diary`} onClick={onClose}>
+            사진까지 함께 기록 →
+          </SheetTextLink>
+        </SheetContent>
       </BottomSheet.Body>
-
-      <BottomSheet.Footer>
-        {err && (
-          <p role="alert" style={{ margin: '0 0 10px', fontSize: 14, color: V3.sale }}>
-            {err}
-          </p>
-        )}
-        <button
-          onClick={save}
-          disabled={busy || empty}
-          className="flex items-center justify-center transition active:scale-[0.98]"
-          style={{
-            width: '100%',
-            height: 52,
-            borderRadius: 4,
-            background: busy || empty ? V3.inkMute : V3.ink,
-            color: V3.paper,
-            border: 'none',
-            cursor: busy ? 'wait' : 'pointer',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: 18,
-            gap: 8,
-          }}
-        >
-          <Check size={18} color={V3.paper} strokeWidth={2.2} />
-          {busy ? '저장 중...' : empty ? '한 줄 적어주세요' : '기록 완료'}
-        </button>
-      </BottomSheet.Footer>
     </BottomSheet>
   )
 }

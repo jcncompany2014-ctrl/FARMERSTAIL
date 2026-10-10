@@ -15,6 +15,8 @@
  * v3 설문(플래그 없음)은 카드가 뜨지 않는다 — 건너뛴 건지 알 수 없으므로.
  */
 
+import { normalizeAllergyAnswers } from './allergy-options.ts'
+
 export type SurveyRowLike = {
   answers?: unknown
   iris_stage?: number | null
@@ -97,7 +99,8 @@ export function seedFromSurvey(row: SurveyRowLike): RefineSeed {
   const a = asRecord(row.answers) ?? {}
   const body = asRecord(a.bodyAssessment)
   const bcs = num(a.bcsExact)
-  const allergies = strArr(a.allergies)
+  // 옛 보기 라벨('연어·생선')은 지금 보기('연어')로 — 안 바꾸면 그 칩이 안 켜진 채 숨은 답이 된다(2026-10-09 보기 정리).
+  const allergies = normalizeAllergyAnswers(strArr(a.allergies))
   const conditions = strArr(a.chronicConditions)
   const meds = Array.isArray(row.current_medications)
     ? row.current_medications.filter((m): m is string => typeof m === 'string')

@@ -39,7 +39,7 @@
 // (tsconfig allowImportingTsExtensions), 안 붙이면 `npm test` 의
 // `node --experimental-strip-types` 가 ERR_MODULE_NOT_FOUND 로 죽는다.
 // 단독 실행(tsx)에서는 통과해서 그 차이를 놓치기 쉽다.
-import { V3 } from './tokens.ts'
+import { POUCH, V3 } from './tokens.ts'
 
 /**
  * hex (#rrggbb) 를 0-1 normalized sRGB 채널 [r, g, b] 로 변환.
@@ -125,60 +125,44 @@ export function passesAAA(
  *              비율만 기록해 둔다(왜 텍스트로 못 쓰는지 근거가 남게).
  */
 export const V3_CONTRAST_PAIRS = [
+  // ── 2026-10-09 앱 새 디자인('A 포스터') — 흰 바탕·먹색·머스타드 ──
   { name: 'ink/paper', fg: V3.ink, bg: V3.paper, use: 'text', purpose: 'body 본문' },
   { name: 'ink/paperHi', fg: V3.ink, bg: V3.paperHi, use: 'text', purpose: 'card 본문' },
+  { name: 'ink/soft', fg: V3.ink, bg: V3.soft, use: 'text', purpose: '회색 면 보조 카드 본문' },
   { name: 'inkSoft/paper', fg: V3.inkSoft, bg: V3.paper, use: 'text', purpose: 'secondary body' },
   { name: 'inkSoft/paperHi', fg: V3.inkSoft, bg: V3.paperHi, use: 'text', purpose: 'secondary body' },
-  {
-    name: 'inkMute/paper',
-    fg: V3.inkMute,
-    bg: V3.paper,
-    use: 'text',
-    purpose: '보조 본문 (마스터피스 P1-A2 darken)',
-  },
-  { name: 'accentDeep/paper', fg: V3.accentDeep, bg: V3.paper, use: 'text', purpose: '강조 텍스트' },
-  { name: 'sage/paper', fg: V3.sage, bg: V3.paper, use: 'text', purpose: '완료·정상 텍스트' },
+  { name: 'inkMute/paper', fg: V3.inkMute, bg: V3.paper, use: 'text', purpose: '보조 본문' },
+  { name: 'inkMute/soft', fg: V3.inkMute, bg: V3.soft, use: 'text', purpose: '회색 면 위 보조 글자' },
+  { name: 'accent/paper', fg: V3.accent, bg: V3.paper, use: 'text', purpose: '강조·링크(먹색)' },
   { name: 'sale/paper', fg: V3.sale, bg: V3.paper, use: 'text', purpose: '오류·할인 텍스트' },
-  { name: 'blue/paper', fg: V3.blue, bg: V3.paper, use: 'text', purpose: '정보 텍스트' },
-  {
-    name: 'yellowInk/paper',
-    fg: V3.yellowInk,
-    bg: V3.paper,
-    use: 'text',
-    purpose: "'시작 전' 등 대기 상태 텍스트 (2026-07-30 신설)",
-  },
+  { name: 'yellowInk/paper', fg: V3.yellowInk, bg: V3.paper, use: 'text', purpose: '색 글자가 꼭 필요한 대기 상태 텍스트' },
+  { name: 'ink/mustard', fg: V3.ink, bg: V3.mustard, use: 'text', purpose: '머스타드 핵심 카드 위 글자' },
+  { name: 'ink/cream', fg: V3.ink, bg: V3.cream, use: 'text', purpose: '옅은 주황 큰 면 위 글자' },
+  { name: 'white/ink', fg: '#FFFFFF', bg: V3.ink, use: 'text', purpose: '먹색 주 버튼·칩 글자' },
+  { name: 'ink/duck', fg: V3.ink, bg: POUCH.duck, use: 'text', purpose: '오리 박스 카드 위 글자' },
+  { name: 'ink/pork', fg: V3.ink, bg: POUCH.pork, use: 'text', purpose: '흑돼지 박스 카드 위 글자' },
+  { name: 'white/beef', fg: '#FFFFFF', bg: POUCH.beef, use: 'text', purpose: '한우 박스 카드 위 글자(흰 글자)' },
 
   // ── 글자색으로 쓰면 안 되는 것들 — 비율을 근거로 남긴다 ──
   {
-    name: 'accent/paper',
-    fg: V3.accent,
+    name: 'mustard/paper',
+    fg: V3.mustard,
     bg: V3.paper,
     use: 'deco',
-    purpose:
-      '3.41:1 — 아이콘·테두리·큰 글자(≥18.66px bold) 전용. 작은 글자는 accentDeep(8.71:1). ' +
-      '2026-07-30 전수: 글자색으로 쓰던 27곳 중 본문 3곳만 accentDeep 으로 교체. ' +
-      '남긴 것과 이유 — 34px display 제목(큰 글자 3:1 통과) · 아이콘 3개(UI 컴포넌트 3:1 통과) · ' +
-      'AppShowcase 19곳(웹 랜딩의 폰 목업 일러스트, 6~10px, 읽는 텍스트가 아니고 웹 시각이라 불변).',
+    purpose: '2.3:1 — 진행 막대·밑줄·점·카드 바탕 전용. 글자는 yellowInk(5.35:1)',
   },
   {
-    name: 'sageSoft/paper',
-    fg: V3.sageSoft,
-    bg: V3.paper,
+    name: 'ink/beef',
+    fg: V3.ink,
+    bg: POUCH.beef,
     use: 'deco',
-    purpose: '3.32:1 — 배경·테두리 전용',
-  },
-  {
-    name: 'yellow/paper',
-    fg: V3.yellow,
-    bg: V3.paper,
-    use: 'deco',
-    purpose: '1.69:1 — 마커 **배경** 전용. 글자색으로 쓰면 사실상 안 보인다',
+    purpose: '3.8:1 — 한우 바탕 위 먹색 글자는 AA 미달이라 한우 카드는 흰 글자',
   },
   {
     name: 'inkFaint/paper',
     fg: V3.inkFaint,
     bg: V3.paper,
     use: 'deco',
-    purpose: '1.69:1 — UI hint(구분선·비활성 아이콘) 전용',
+    purpose: '2.8:1 — UI hint(비활성·자리표시) 전용',
   },
 ] as const

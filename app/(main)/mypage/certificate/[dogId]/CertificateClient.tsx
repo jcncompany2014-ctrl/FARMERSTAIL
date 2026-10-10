@@ -1,11 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { Award, Printer, Download, Share2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { isNativeApp } from '@/lib/capacitor'
-import { saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
+import { captureNodeToCanvas, saveCanvasImage, SAVE_IMAGE_UNSUPPORTED_MESSAGE } from '@/lib/save-image'
 import { petName, withHonorific } from '@/lib/korean'
+import { TIERS } from '@/lib/tiers'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { SCREEN_ROOT, STAMP_CARD, TierSquare, outlineButton, primaryButton } from '@/components/v3/me/MeParts'
+import { PawFillIcon, SaveIcon, ShareIcon } from '@/components/v3/me/MeIcons'
 
 type Dog = {
   id: string
@@ -16,16 +18,25 @@ type Dog = {
   created_at: string | null
 }
 
+/** 나무(mate) 등급 정본 — 안내문의 도장 개수와 등록증 등급 색을 여기서 읽는다(lib/tiers). */
+const MATE = TIERS.find((t) => t.key === 'mate')!
+
 /**
- * 단짝 등급 강아지 등록증 (클라이언트 — 인쇄 + 공유 액션).
+ * 나무 등급 강아지 등록증 (클라이언트 — 이미지 저장 + 공유 액션).
  *
- * 인쇄 / 저장
+ * 저장 / 공유
  * ──────────
- * - "인쇄 / PDF 저장": window.print() — 브라우저 print dialog 에서
- *   "PDF로 저장" 선택 가능 (iOS Safari / Chrome 모두 지원).
- * - "이미지 저장": html2canvas 로 PNG 다운로드 — 대용량 라이브러리라
- *   동적 import 로 첫 진입엔 안 받음.
+ * - "이미지 저장": html2canvas 로 PNG — 대용량 라이브러리라 동적 import 로 첫 진입엔 안 받음.
+ *   앱에서도 동작하는 저장 정본(saveCanvasImage)으로 — 결과가 실제로 저장일 때만 "저장했어요".
  * - "공유": Web Share API + fallback (URL 복사).
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 M06):
+ *   · '인쇄·PDF' 버튼을 뺐다(앱시안 결정). 이 화면은 앱 전용인데 앱(WebView)에선 인쇄 창이 뜨지 않아, 예전
+ *     버튼은 "앱에서는 인쇄가 안 돼요" 안내만 띄웠다(2026-09-25). 저장은 '이미지 저장'이 맡는다.
+ *   · 아래 안내문의 옛 기준("누적 결제 300만원 이상")과 없는 약속("SNS 에 공유하면 다음 가족에게 선물")을
+ *     등급 정본(lib/tiers — 나무 = 도장 50개)으로 고쳤다.
+ *   · 영어 머리말("Farmer's Tail" · "Certificate of Companion" · "나무 · TREE")·명조 글꼴·이모지 자리를 뺐다.
+ *     등록증 카드가 이 화면의 도장 그림자 한 곳 — 흰 바탕이라 저장 그림 바탕도 흰색으로.
  */
 export default function CertificateClient({
   dog,
@@ -59,25 +70,13 @@ export default function CertificateClient({
       })
     : '-'
 
-  function handlePrint() {
-    // 앱(WebView)에선 인쇄 창이 뜨지 않는다 — 무반응 대신 안내한다(2026-09-25).
-    if (isNativeApp()) {
-      toast.info('앱에서는 인쇄가 안 돼요. 이미지 저장을 이용해 주세요')
-      return
-    }
-    window.print()
-  }
-
   async function handleDownloadImage() {
     try {
       const el = document.getElementById('cert-card')
       if (!el) return
-      // html2canvas — dynamic import. lib 큼지만 첫 진입 cost 없음.
-      const { default: html2canvas } = await import('html2canvas')
-      const canvas = await html2canvas(el, {
-        backgroundColor: '#F5F0E6',
-        scale: 2, // 고해상도 — 인쇄 / 공유 품질
-      })
+      // 그림 뜨기 정본(lib/save-image) — html2canvas 는 거기서 그때 불러온다(첫 진입 비용 없음). 직접 부르면 Tailwind 의
+      // img block 때문에 그림 속 글자가 아래로 밀리고, 강아지 사진(저장소 주소)은 useCORS 가 없어 그림이 막힐 수 있었다.
+      const canvas = await captureNodeToCanvas(el)
       // ★저장이 실제로 된 경우에만 성공이라고 말한다 (2026-09-25). 앱에서는 예전
       //   <a download> 가 아무 일도 안 했는데 "이미지를 저장했어요" 가 떴다.
       const result = await saveCanvasImage(canvas, `farmerstail-${dog.name}-${serial}.png`)
@@ -85,7 +84,8 @@ export default function CertificateClient({
       else if (result === 'unsupported') toast.info(SAVE_IMAGE_UNSUPPORTED_MESSAGE)
     } catch (err) {
       console.error('certificate download failed', err)
-      toast.error('이미지를 저장하지 못했어요. 인쇄 메뉴를 사용해 주세요')
+      // 2026-10-09: '인쇄 메뉴를 사용해 주세요' — 인쇄 버튼을 뺐으니 없는 메뉴를 가리키지 않는다.
+      toast.error('이미지를 저장하지 못했어요. 잠시 후 다시 시도해 주세요')
     }
   }
 
@@ -109,378 +109,203 @@ export default function CertificateClient({
   }
 
   return (
-    <div className="pb-12 print:pb-0">
-      {/* 상단 — 인쇄 시 숨김 */}
-      <section className="px-5 pt-6 pb-3 print:hidden">
-        <div className="mt-3">
-          <span className="kicker">인증서</span>
-          <h1
-            className="font-sans mt-1.5"
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {petName(dog.name)}의 등록증
-          </h1>
-          <p className="text-[12px] text-muted mt-1.5 leading-relaxed">
-            나무 등급 도달의 증표. 저장하거나 공유해 보세요.
-          </p>
-        </div>
+    <div style={SCREEN_ROOT}>
+      <section style={{ padding: '22px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>{petName(dog.name)}의 등록증</h2>
+        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.55, color: V3.inkSoft }}>
+          나무 등급에 오른 증표예요. 저장하거나 공유해 보세요.
+        </p>
       </section>
 
-      {/* 등록증 본체 — 인쇄 / 이미지 저장 대상 */}
-      <section className="px-5 print:px-0">
-        <div
-          id="cert-card"
-          className="relative mx-auto"
+      {/* 등록증 본체 — 이미지 저장 대상 */}
+      <section
+        id="cert-card"
+        aria-label="강아지 등록증"
+        style={{
+          ...STAMP_CARD,
+          position: 'relative',
+          margin: '20px 20px 0',
+          padding: '28px 22px 22px',
+          background: '#FFFFFF',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+        }}
+      >
+        {/* 모서리 4개 */}
+        {(['tl', 'tr', 'bl', 'br'] as const).map((pos) => (
+          <span
+            key={pos}
+            aria-hidden
+            style={{
+              position: 'absolute',
+              width: 14,
+              height: 14,
+              ...(pos === 'tl' && { top: 10, left: 10, borderTop: `2px solid ${V3.ink}`, borderLeft: `2px solid ${V3.ink}` }),
+              ...(pos === 'tr' && { top: 10, right: 10, borderTop: `2px solid ${V3.ink}`, borderRight: `2px solid ${V3.ink}` }),
+              ...(pos === 'bl' && { bottom: 10, left: 10, borderBottom: `2px solid ${V3.ink}`, borderLeft: `2px solid ${V3.ink}` }),
+              ...(pos === 'br' && { bottom: 10, right: 10, borderBottom: `2px solid ${V3.ink}`, borderRight: `2px solid ${V3.ink}` }),
+            }}
+          />
+        ))}
+
+        <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.3em', color: V3.inkSoft }}>파머스테일</span>
+        <span className="ft-poster" style={{ marginTop: 6, fontSize: 26 }}>
+          강아지 등록증
+        </span>
+        <span aria-hidden style={{ marginTop: 12, width: 60, height: 2, background: V3.mustard }} />
+
+        <span
           style={{
-            maxWidth: 520,
-            background: 'var(--paper-hi)',
-            border: '2px solid #2A2118',
-            borderRadius: 12,
-            padding: '32px 28px 36px',
-            position: 'relative',
+            marginTop: 22,
+            width: 110,
+            height: 110,
+            boxSizing: 'border-box',
+            borderRadius: 55,
+            border: `3px solid ${V3.ink}`,
             overflow: 'hidden',
+            position: 'relative',
+            background: V3.soft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {/* 모서리 4개 — 빈티지 ornament */}
-          {(['tl', 'tr', 'bl', 'br'] as const).map((pos) => (
-            <span
-              key={pos}
-              aria-hidden
-              style={{
-                position: 'absolute',
-                width: 14,
-                height: 14,
-                ...(pos === 'tl' && {
-                  top: 10,
-                  left: 10,
-                  borderTop: '2px solid var(--accent-deep)',
-                  borderLeft: '2px solid var(--accent-deep)',
-                }),
-                ...(pos === 'tr' && {
-                  top: 10,
-                  right: 10,
-                  borderTop: '2px solid var(--accent-deep)',
-                  borderRight: '2px solid var(--accent-deep)',
-                }),
-                ...(pos === 'bl' && {
-                  bottom: 10,
-                  left: 10,
-                  borderBottom: '2px solid var(--accent-deep)',
-                  borderLeft: '2px solid var(--accent-deep)',
-                }),
-                ...(pos === 'br' && {
-                  bottom: 10,
-                  right: 10,
-                  borderBottom: '2px solid var(--accent-deep)',
-                  borderRight: '2px solid var(--accent-deep)',
-                }),
-              }}
-            />
-          ))}
+          {dog.photo_url ? (
+            <Image src={dog.photo_url} alt={`${dog.name} 사진`} fill sizes="110px" className="object-cover" unoptimized />
+          ) : (
+            <PawFillIcon size={44} color={V3.inkMute} />
+          )}
+        </span>
+        <span className="ft-poster" style={{ marginTop: 14, fontSize: 36, lineHeight: 1 }}>
+          {dog.name}
+        </span>
+        {dog.breed && <span style={{ marginTop: 6, fontSize: 15, color: V3.inkMute }}>{dog.breed}</span>}
 
-          {/* Header — magazine masthead */}
-          <div style={{ textAlign: 'center' }}>
-            <div
-              style={{
-                fontFamily: "'Archivo Black', Arial, sans-serif",
-                fontSize: 12,
-                letterSpacing: '0.32em',
-                wordSpacing: '-0.12em',
-                color: 'var(--accent-deep)',
-                textTransform: 'uppercase',
-              }}
-            >
-              Farmer&apos;s Tail · 파머스테일
-            </div>
-            <div
-              style={{
-                marginTop: 6,
-                fontFamily: 'serif',
-                fontSize: 22,
-                fontWeight: 900,
-                color: 'var(--ink)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              강아지 등록증
-            </div>
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: 12,
-                color: 'var(--ink-mute)',
-                fontStyle: 'italic',
-              }}
-            >
-              Certificate of Companion
-            </div>
-            <div
-              style={{
-                marginTop: 12,
-                width: 60,
-                height: 1.5,
-                background: 'var(--accent-deep)',
-                margin: '12px auto 0',
-              }}
-            />
-          </div>
-
-          {/* 사진 + 이름 */}
-          <div style={{ textAlign: 'center', marginTop: 22 }}>
-            <div
-              style={{
-                width: 110,
-                height: 110,
-                margin: '0 auto',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: '#EDE6D8',
-                border: '3px solid #2A2118',
-                position: 'relative',
-              }}
-            >
-              {dog.photo_url ? (
-                <Image
-                  src={dog.photo_url}
-                  alt={dog.name}
-                  fill
-                  sizes="110px"
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 36,
-                  }}
-                >
-                  🐾
-                </div>
-              )}
-            </div>
-            <div
-              style={{
-                marginTop: 14,
-                fontFamily: 'serif',
-                fontSize: 30,
-                fontWeight: 900,
-                color: 'var(--ink)',
-                letterSpacing: '-0.025em',
-              }}
-            >
-              {dog.name}
-            </div>
-            {dog.breed && (
-              <div
-                style={{
-                  marginTop: 2,
-                  fontSize: 14,
-                  color: 'var(--ink-mute)',
-                }}
-              >
-                {dog.breed}
-              </div>
-            )}
-          </div>
-
-          {/* 본문 — 인증 문구 */}
-          <div
-            style={{
-              marginTop: 24,
-              padding: '16px 14px',
-              background: 'rgba(255,255,255,0.55)',
-              borderTop: '1px solid #D7CFBC',
-              borderBottom: '1px solid #D7CFBC',
-              textAlign: 'center',
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: '#2A2118',
-            }}
-          >
-            위 강아지는
-            <br />
-            <strong style={{ color: 'var(--accent-deep)' }}>파머스테일 산지 가족</strong>의
-            구성원으로
-            <br />그 정성과 한 끼를 함께해 왔음을 증명합니다.
-          </div>
-
-          {/* 메타 정보 — 2단 */}
-          <div
-            style={{
-              marginTop: 18,
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 14,
-              fontSize: 12,
-              color: '#3A3128',
-            }}
-          >
-            <Row label="보호자" value={withHonorific(ownerName)} />
-            <Row label="등급" value="나무 · TREE" />
-            <Row label="가입일" value={memberSinceLabel} />
-            <Row label="발급일" value={issueDate} />
-            <Row
-              label="일련번호"
-              value={serial}
-              mono
-            />
-            <Row
-              label="발급자"
-              value="안성민 · 이준호"
-            />
-          </div>
-
-          {/* 산지 인장 */}
-          <div
-            style={{
-              marginTop: 22,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: '1px solid #D7CFBC',
-              paddingTop: 14,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                color: '#9C9282',
-                letterSpacing: '0.05em',
-              }}
-            >
-              farmerstail.kr / {serial}
-            </div>
-            <div
-              style={{
-                width: 54,
-                height: 54,
-                borderRadius: '50%',
-                border: '2px solid var(--accent-deep)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 12,
-                color: 'var(--accent-deep)',
-                fontWeight: 800,
-                lineHeight: 1.15,
-                textAlign: 'center',
-                letterSpacing: '0.05em',
-              }}
-            >
-              FARMER&apos;S
-              <br />
-              SEAL
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 액션 버튼 — 인쇄 시 숨김 */}
-      <section className="px-5 mt-5 grid grid-cols-3 gap-2 print:hidden max-w-[520px] mx-auto">
-        <button
-          onClick={handlePrint}
-          className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
+        {/* 본문 — 인증 문구 */}
+        <p
+          style={{
+            margin: '22px 0 0',
+            alignSelf: 'stretch',
+            padding: '16px 8px',
+            borderTop: `1px solid ${V3.rule}`,
+            borderBottom: `1px solid ${V3.rule}`,
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: V3.inkSoft,
+          }}
         >
-          <Printer className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[10.5px] font-bold">인쇄·PDF</span>
-        </button>
-        <button
-          onClick={handleDownloadImage}
-          className="flex flex-col items-center gap-1 py-3 rounded bg-ink text-bg hover:opacity-95 transition"
-        >
-          <Download className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[10.5px] font-bold">이미지 저장</span>
-        </button>
-        <button
-          onClick={handleShare}
-          className="flex flex-col items-center gap-1 py-3 rounded border border-rule bg-bg-3 hover:border-text transition"
-        >
-          <Share2 className="w-4 h-4" strokeWidth={2} />
-          <span className="text-[10.5px] font-bold">공유</span>
-        </button>
-      </section>
+          위 강아지는
+          <br />
+          <strong style={{ fontWeight: 800, color: V3.ink }}>파머스테일 산지 가족</strong>의 구성원으로
+          <br />그 정성과 한 끼를 함께해 왔음을 증명합니다.
+        </p>
 
-      <section className="px-5 mt-5 print:hidden max-w-[520px] mx-auto">
-        <div
-          className="flex items-start gap-2 px-4 py-3 rounded"
-          style={{ background: 'var(--bg-2)' }}
+        {/* 메타 정보 — 2단 */}
+        <dl
+          style={{
+            margin: '18px 0 0',
+            alignSelf: 'stretch',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: '14px 12px',
+            textAlign: 'left',
+          }}
         >
-          <Award
-            className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
-            strokeWidth={2}
+          <Row label="보호자" value={withHonorific(ownerName)} />
+          <Row
+            label="등급"
+            value={
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <TierSquare color={MATE.bg} size={10} />
+                {MATE.label}
+              </span>
+            }
           />
-          <p className="text-[10.5px] text-text leading-relaxed">
-            나무 등급은 누적 결제 300만원 이상 가족에게 발급되는 최상위 등급
-            이에요. SNS 에 공유해 주시면 다음 나무 등급 가족에게 작은 선물이 갈 수
-            있어요.
-          </p>
+          <Row label="가입일" value={memberSinceLabel} />
+          <Row label="발급일" value={issueDate} />
+          <Row label="발급자" value="안성민 · 이준호" />
+          <Row label="일련번호" value={serial} wide />
+        </dl>
+
+        {/* 산지 인장 */}
+        <div
+          style={{
+            marginTop: 18,
+            alignSelf: 'stretch',
+            paddingTop: 12,
+            borderTop: `1px solid ${V3.rule}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 13, color: '#8A8A8A', textAlign: 'left' }}>farmerstail.kr / {serial}</span>
+          <Image
+            src="/logo-stamp.png"
+            alt="파머스테일 인장"
+            width={60}
+            height={60}
+            loading="eager"
+            style={{ width: 60, height: 60, objectFit: 'contain', transform: 'rotate(-8deg)', display: 'block', flexShrink: 0 }}
+          />
         </div>
       </section>
 
-      {/* 인쇄 전용 스타일 — print dialog 에서 카드만 보이게. */}
-      <style jsx global>{`
-        @media print {
-          body {
-            background: #fff !important;
-          }
-          html,
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-        }
-      `}</style>
+      {/* 저장 · 공유 */}
+      <div style={{ margin: '24px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+        <button
+          type="button"
+          onClick={handleDownloadImage}
+          style={{ ...primaryButton(68, 15), minHeight: 68, height: 'auto', flexDirection: 'column', gap: 4 }}
+        >
+          <SaveIcon size={22} />
+          <span style={{ fontSize: 15, fontWeight: 800 }}>이미지 저장</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleShare}
+          style={{ ...outlineButton(68, 15), minHeight: 68, height: 'auto', flexDirection: 'column', gap: 4 }}
+        >
+          <ShareIcon size={22} />
+          <span style={{ fontSize: 15, fontWeight: 800 }}>공유</span>
+        </button>
+      </div>
+
+      <p
+        style={{
+          margin: '16px 20px 0',
+          padding: '14px 16px',
+          borderRadius: V3Radius.sm,
+          background: V3.soft,
+          fontSize: 15,
+          lineHeight: 1.55,
+          color: V3.inkSoft,
+        }}
+      >
+        {MATE.label} 등급은 도장 {MATE.threshold}개를 모은 가족에게 드리는 가장 높은 등급이에요.
+      </p>
     </div>
   )
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
+function Row({ label, value, wide }: { label: string; value: React.ReactNode; wide?: boolean }) {
   return (
-    <div>
-      <div
+    <div style={wide ? { gridColumn: '1 / -1' } : undefined}>
+      <dt style={{ fontSize: 13, fontWeight: 700, color: V3.inkMute }}>{label}</dt>
+      <dd
         style={{
-          fontSize: 12,
-          color: '#9C9282',
-          letterSpacing: '0.18em',
-          wordSpacing: '-0.12em',
-          textTransform: 'uppercase',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          marginTop: 2,
-          fontSize: 14,
-          fontWeight: 700,
-          color: 'var(--ink)',
-          fontFamily: mono ? 'JetBrains Mono, monospace' : 'inherit',
-          letterSpacing: mono ? '0.05em' : '-0.005em',
-          // mono(ID·코드)만 break-all — 한글 값(이름·견종)은 단어 단위 유지.
-          wordBreak: mono ? 'break-all' : 'keep-all',
+          margin: '2px 0 0',
+          fontSize: 16,
+          fontWeight: 800,
+          color: V3.ink,
+          ...(wide ? { letterSpacing: '0.02em', whiteSpace: 'nowrap' } : { wordBreak: 'keep-all' }),
         }}
       >
         {value}
-      </div>
+      </dd>
     </div>
   )
 }

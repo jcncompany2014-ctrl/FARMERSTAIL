@@ -1,23 +1,19 @@
 /**
- * EmptyHomeNoDogs — 강아지 0마리 상태의 홈 empty state.
+ * EmptyHomeNoDogs — 강아지 0마리 상태의 홈 (첫 아이 등록 안내).
  *
- * 핸드오프 패턴: dashed paper 카드 + 중앙 plus icon + 헤딩 + CTA.
- * 매거진 톤 유지 — Greeting 다음에 바로 노출.
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 T05): 머스타드 카드 + 먹색 도장 그림자(이 화면의 핵심 카드),
+ *   발바닥 동그라미 · 제목 "첫 아이를 / 등록해 주세요"(제목 글꼴) · 한 줄 · 먹색 큰 버튼.
  */
 
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
-import { V3, V3FontWeight, V3FontSize } from '@/lib/design/tokens'
-import { Mono } from '@/components/v3'
+import { V3, V3Shadow } from '@/lib/design/tokens'
 import DogPawMark from '@/components/DogPawMark'
 
 interface EmptyHomeNoDogsProps {
   /** "아이 추가" 링크. */
   addDogHref?: string
-  /** CTA 라벨. */
+  /** 버튼 라벨. */
   ctaLabel?: string
-  /** 헤딩 — 기본 "첫 아이를 등록해주세요". */
-  heading?: string
   /** 부연 — 기본 안내 문구. */
   description?: string
 }
@@ -25,101 +21,64 @@ interface EmptyHomeNoDogsProps {
 export default function EmptyHomeNoDogs({
   addDogHref = '/dogs/new',
   ctaLabel = '아이 등록하기',
-  heading = '첫 아이를 등록해주세요',
   description = '맞춤 영양 분석과 정기배송 추천이 시작돼요.',
 }: EmptyHomeNoDogsProps) {
   return (
-    <section style={{ padding: '0 20px 30px' }}>
-      <Link
-        href={addDogHref}
-        className="flex flex-col items-center text-center transition active:scale-[0.99]"
+    <section
+      aria-labelledby="empty-title"
+      style={{
+        margin: '26px 20px 0',
+        padding: '26px 20px 22px',
+        border: `2px solid ${V3.ink}`,
+        boxShadow: V3Shadow.stamp,
+        borderRadius: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 10,
+        background: V3.mustard,
+        color: V3.ink,
+      }}
+    >
+      <span
+        aria-hidden
         style={{
-          padding: '40px 20px',
-          borderRadius: 4,
-          background: 'transparent',
-          border: `1.5px dashed ${V3.rule}`,
-          textDecoration: 'none',
-          color: V3.ink,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          background: 'rgba(255,255,255,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <span
-          className="flex items-center justify-center"
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 999,
-            background: V3.paperHi,
-            border: `1px solid ${V3.rule}`,
-            position: 'relative',
-          }}
-        >
-          <DogPawMark size={26} color={V3.inkMute} />
-          <span
-            className="absolute flex items-center justify-center"
-            style={{
-              right: -6,
-              bottom: -6,
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              background: V3.accent,
-              border: `2px solid ${V3.paper}`,
-            }}
-            aria-hidden
-          >
-            <Plus size={14} color={V3.paperHi} strokeWidth={2.4} />
-          </span>
-        </span>
-        {/* GreetingSection 0마리 메타가 'WELCOME'이라 키커 중복 → 액션 지향으로. */}
-        <Mono color="accent" size="xs" weight={600} style={{ marginTop: 18 }}>
-          시작하기
-        </Mono>
-        <h2
-          style={{
-            margin: '8px 0 0',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: V3FontSize.lg,
-            color: V3.ink,
-            letterSpacing: '-0.025em',
-            lineHeight: 1.15,
-            textWrap: 'balance',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {heading}
-        </h2>
-        <p
-          style={{
-            margin: '8px 0 18px',
-            fontFamily: 'var(--font-sans)',
-            fontSize: V3FontSize.base,
-            color: V3.inkSoft,
-            lineHeight: 1.5,
-            maxWidth: 280,
-            textWrap: 'pretty',
-            wordBreak: 'keep-all',
-          }}
-        >
-          {description}
-        </p>
-        <span
-          className="inline-flex items-center"
-          style={{
-            gap: 6,
-            background: V3.ink,
-            color: V3.paperHi,
-            padding: '10px 18px',
-            borderRadius: 4,
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.bold,
-            fontSize: V3FontSize.base,
-            letterSpacing: '-0.005em',
-          }}
-        >
-          {ctaLabel}
-          <Plus size={14} color={V3.paperHi} strokeWidth={2.2} />
-        </span>
+        <DogPawMark size={28} color={V3.ink} />
+      </span>
+      <h2 id="empty-title" style={{ margin: '6px 0 0', fontSize: 28, lineHeight: 1.2 }}>
+        첫 아이를
+        <br />
+        등록해 주세요
+      </h2>
+      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: V3.ink, wordBreak: 'keep-all' }}>{description}</p>
+      <Link
+        href={addDogHref}
+        className="transition active:scale-[0.98]"
+        style={{
+          marginTop: 10,
+          alignSelf: 'stretch',
+          height: 58,
+          borderRadius: 4,
+          background: V3.ink,
+          color: '#FFFFFF',
+          textDecoration: 'none',
+          fontSize: 17,
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {ctaLabel}
       </Link>
     </section>
   )

@@ -47,7 +47,8 @@ import {
   Syringe,
   User,
 } from 'lucide-react'
-import { V3, V3Font } from '@/lib/design/tokens'
+// 웹 화면(/why-app) — 앱 새 디자인과 분리해 옛 v3 톤을 그대로 쓴다(V3Classic).
+import { V3Classic as V3, V3Font } from '@/lib/design/tokens'
 import { stickyScreenIndex } from '@/lib/motion/sticky-progress'
 import { Eyebrow, Display } from '@/components/web/fd/ui'
 

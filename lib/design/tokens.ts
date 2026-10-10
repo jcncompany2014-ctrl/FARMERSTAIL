@@ -15,50 +15,90 @@
  */
 
 // ──────────────────────────────────────────────────────────────────
-// Palette
+// Palette — 'A 포스터' 앱 새 디자인 (2026-10-09, docs/APP_POSTER_REDESIGN_2026_10.md)
 // ──────────────────────────────────────────────────────────────────
+// 흰 바탕 · 먹색 글자 · 강조는 닭고기 파우치 머스타드(장식 전용) · 주 동작은 먹색.
+// 키 이름은 그대로 두고 값만 바꿨다 — 앱 화면 491곳의 V3.* 참조가 한 번에 새 톤이 된다.
+// 웹 화면(/why-app 의 AppShowcase)은 V3Classic(옛 값)을 쓴다 — 웹/앱 절대 분리.
 export const V3 = {
-  // Surface — 종이 paper. Light cream 베이스.
-  paper: '#F7F5F0', // 2026-06-17 웹 톤 통일 = --fd-offwhite (CSS --paper 와 동일)
-  paperHi: '#FCFBF7', // 카드 / sheet / raised surface (중성 라이트)
-  paperDeep: '#EDE8D9', // 프레임 outer / scroll shadow = --fd-cream
+  // Surface — 흰 바탕. 카드도 흰색(먹선·회색 면으로 구분), 들어간 칸은 회색 면.
+  paper: '#FFFFFF',
+  paperHi: '#FFFFFF',
+  paperDeep: '#F6F4F5',
 
   // Ink — 본문 텍스트 + 강조 검정.
+  ink: '#141414',
+  inkSoft: '#3D3D3D',
+  inkMute: '#595959',
+  inkFaint: '#9A9A9A', // 글자 금지 — 비활성·자리표시 장식 전용
+
+  // Rule — 경계선 / 분리선.
+  rule: '#E5E5E5',
+  ruleSoft: 'rgba(20,20,20,0.06)',
+  ruleInk: '#141414', // 2px 먹선(도장 그림자 카드·섹션 머리)
+
+  // Accent — 주 동작·고른 것·켜짐은 먹색(포스터). 예전 테라코타 자리를 먹색이 이어받는다.
+  accent: '#141414',
+  accentDeep: '#141414',
+
+  // Highlight — 닭고기 파우치 머스타드. **배경·막대·밑줄 전용**(흰 바탕 위 2.3:1 — 글자 금지).
+  yellow: '#D4A24C',
+  /** 흰 바탕 위에서 읽히는 머스타드 글자(5.36:1). 꼭 색 글자가 필요할 때만. */
+  yellowInk: '#8A6420',
+
+  // 예전 초록·파랑 의미색은 먹색으로 모은다(포스터는 먹·머스타드·빨강 세 가지).
+  sage: '#141414',
+  sageSoft: '#595959',
+  blue: '#141414',
+
+  // Sale — 오류·경고·할인. (5.12:1)
+  sale: '#C63D2A',
+
+  // ── 새 이름 (2026-10-09) ──
+  /** 닭고기 파우치 머스타드 = yellow. 진행 막대·밑줄·점·레시피 없는 핵심 카드 바탕. */
+  mustard: '#D4A24C',
+  /** 옅은 주황 — 큰 면(강아지 머리 띠·멤버십·도장판·내 말풍선). */
+  cream: '#FCEFD9',
+  /** 더 옅은 주황 — 수치 띠. */
+  creamSoft: '#FFF7EA',
+  /** 회색 면 — 보조 카드(+6px 색 띠)·들어간 칸. */
+  soft: '#F6F4F5',
+} as const
+
+/**
+ * 실제 파우치 사진에서 뽑은 레시피 색 (2026-10-09 사장님 "반반 1로 가자").
+ * 박스 카드: 한 가지 = 그 색 바탕 / 두 가지 = 바탕 첫째 + 테두리 3px·그림자 5px 둘째.
+ * 한우 바탕만 흰 글자(먹색 대비 3.8:1 로 모자람).
+ */
+export const POUCH = {
+  chicken: '#D4A24C',
+  duck: '#A7B9B6',
+  pork: '#BEBDB6',
+  beef: '#B5573A',
+} as const
+
+/**
+ * 옛 v3 값 그대로(2026-10-09 이전) — **웹 화면 전용**.
+ * 웹 /why-app 의 AppShowcase 가 앱 목업을 옛 톤으로 그린다. 웹 시각은 바꾸지 않는다.
+ */
+export const V3Classic = {
+  paper: '#F7F5F0',
+  paperHi: '#FCFBF7',
+  paperDeep: '#EDE8D9',
   ink: '#16140f',
   inkSoft: '#3a342a',
   inkMute: '#706854',
   inkFaint: '#b6ab93',
-
-  // Rule — 경계선 / 분리선.
   rule: 'rgba(22,20,15,0.12)',
   ruleSoft: 'rgba(22,20,15,0.07)',
-  ruleInk: '#16140f', // 2px ink hairline (섹션 분리용)
-
-  // Accent — 테라코타 포인트 (2026-06-17 웹 FD 정렬, = --fd-coral). CSS var(--accent) 와 동일값.
+  ruleInk: '#16140f',
   accent: '#C86B45',
-  accentDeep: '#782E22', // = --fd-coral-ink (텍스트/hover 딥)
-
-  // Highlight — 노란 마커. **배경으로만** 쓴다(marker 하이라이트·도장 등).
-  // paper 위 글자색으로 쓰면 1.69:1 로 사실상 안 보인다 → yellowInk 를 쓸 것.
+  accentDeep: '#782E22',
   yellow: '#e6b942',
-  /**
-   * paper 위에서 읽히는 노랑 (4.64:1, WCAG AA 통과).
-   *
-   * `yellow` 를 '시작 전' 상태 칩의 **글자색**으로 쓴 것을 고치며 추가했다
-   * (2026-07-30). 마커용 색을 텍스트에 쓴 것이 원인 — 마스터피스 P1-A2 에서
-   * `inkMute` 를 darken 한 것과 같은 종류의 수정이다.
-   * 같은 값이 강아지 구독 탭 CSS 에 hex 로 박혀 있었다(`--yellow-ink` 로 통일).
-   */
   yellowInk: '#8a6a12',
-
-  // Sage — 안정 / 완료 / 사용 가능 (2026-06-17 웹 FD 정렬, = --fd-green).
   sage: '#3C725E',
   sageSoft: '#7A8B7B',
-
-  // Blue — 분석용 / 정보.
   blue: '#3b5a78',
-
-  // Sale — 가격 할인 / 재고 경고. accent 와 분리해 둠.
   sale: '#b83a2e',
 } as const
 
@@ -66,14 +106,15 @@ export const V3 = {
 // Dark variant — black hero cards ("오늘의 한 가지" 류) 전용 반전 팔레트
 // ──────────────────────────────────────────────────────────────────
 export const V3Dark = {
-  bg: V3.ink, // #16140f
-  fg: V3.paper, // #f4ede0
-  fgMute: 'rgba(244,237,224,0.65)',
-  fgFaint: 'rgba(244,237,224,0.36)',
-  rule: 'rgba(244,237,224,0.18)',
-  ruleSoft: 'rgba(244,237,224,0.10)',
-  accent: V3.accent,
-  yellow: V3.yellow,
+  bg: V3.ink, // #141414
+  fg: '#FFFFFF',
+  fgMute: 'rgba(255,255,255,0.7)',
+  fgFaint: 'rgba(255,255,255,0.4)',
+  rule: 'rgba(255,255,255,0.18)',
+  ruleSoft: 'rgba(255,255,255,0.10)',
+  // 먹색 면 위 강조는 머스타드(accent 가 먹색이 되어 먹 위에선 안 보인다)
+  accent: V3.mustard,
+  yellow: V3.mustard,
 } as const
 
 // ──────────────────────────────────────────────────────────────────
@@ -159,11 +200,15 @@ export const V3Space = {
 } as const
 
 // ──────────────────────────────────────────────────────────────────
-// Font families — Pretendard + IBM Plex Mono 2종만.
+// Font families — 본문 Pretendard · 제목 Black Han Sans · 큰 숫자 Anton (2026-10-09)
 // ──────────────────────────────────────────────────────────────────
 export const V3Font = {
   sans: "var(--font-sans), 'Pretendard Variable', 'Noto Sans KR', system-ui, sans-serif",
   mono: "var(--font-mono), 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace",
+  /** 제목·레시피 이름. 굵기 400 하나뿐 — 굵게 지정하면 가짜 굵기가 생기니 400 으로. 쉼표가 마침표처럼 보여 숫자엔 쓰지 않는다. */
+  poster: "var(--font-poster), var(--font-sans), 'Pretendard Variable', system-ui, sans-serif",
+  /** 큰 숫자(가격·kcal·g). 뒤 단위는 작게 Pretendard 로. */
+  num: "var(--font-num), var(--font-sans), system-ui, sans-serif",
 } as const
 
 // ──────────────────────────────────────────────────────────────────
@@ -172,11 +217,13 @@ export const V3Font = {
 // ──────────────────────────────────────────────────────────────────
 export const V3Shadow = {
   /** 카드 elevation — 가능하면 사용하지 말 것. paperHi + rule 우선. */
-  card: '0 1px 0 rgba(22,20,15,0.04)',
+  card: '0 1px 0 rgba(20,20,20,0.04)',
   /** Sticky / modal — viewport 위에 떠 있는 surface. */
-  sheet: '0 -4px 24px rgba(22,20,15,0.08)',
-  /** Accent CTA — bottom CTA / FAB 등. */
-  accent: '0 12px 26px rgba(196,74,38,0.32)',
+  sheet: '0 -4px 24px rgba(20,20,20,0.08)',
+  /** Bottom CTA / FAB — 포스터는 번지는 빛 대신 옅은 그림자만. */
+  accent: '0 6px 16px rgba(20,20,20,0.16)',
+  /** 도장 그림자 — 화면당 한 곳, 그 화면의 핵심 카드(2px 먹선과 함께). */
+  stamp: '4px 4px 0 #141414',
 } as const
 
 // ──────────────────────────────────────────────────────────────────

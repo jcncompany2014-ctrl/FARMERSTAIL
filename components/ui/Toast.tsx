@@ -247,8 +247,10 @@ function ToastViewport(props: {
 
   return (
     <>
-      {/* 시각적으로 보이는 stack — 하단 중앙, 모바일은 하단 fullwidth padded. */}
+      {/* 시각적으로 보이는 stack — 하단 중앙, 모바일은 하단 fullwidth padded.
+          data-ft-toast-viewport — 앱일 때만 globals.css 가 색을 앱 새 디자인으로 바꾼다(웹 모양은 그대로). */}
       <div
+        data-ft-toast-viewport=""
         className={cn(
           'fixed z-[60] left-1/2 -translate-x-1/2',
           // 모바일: 하단 탭바(--ft-tabbar-h) 바로 위. 숫자를 박아두면 탭바 높이가 바뀔 때

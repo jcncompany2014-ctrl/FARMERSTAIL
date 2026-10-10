@@ -4,6 +4,8 @@ import { AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import DeleteAccountForm from './DeleteAccountForm'
+import DeleteAppView from './DeleteAppView'
+import { isAppContextServer } from '@/lib/app-context'
 
 /**
  * /mypage/delete — 회원 탈퇴. **웹·앱 공용** (2026-07-31 이관).
@@ -18,6 +20,9 @@ import DeleteAccountForm from './DeleteAccountForm'
  * `/mypage/orders` 와 같은 top-level 공유 라우트로 옮기고 AuthAwareShell 로
  * chrome 을 분기한다. 본문이 쓰는 토큰(--text·--muted·--terracotta·--bg-3)은
  * 웹/앱 스코프에서 각자 값으로 풀리므로 톤은 자동으로 맞는다.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M16·M17): 앱이면 DeleteAppView 를 그린다(조회는 아래 그대로 공유).
+ * 웹 마크업은 이 파일 아래쪽 그대로 — 한 픽셀도 바꾸지 않았다(AGENTS.md R14).
  */
 
 export const dynamic = 'force-dynamic'
@@ -56,6 +61,19 @@ export default async function DeleteAccountPage() {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id),
   ])
+
+  if (await isAppContextServer()) {
+    return (
+      <AuthAwareShell>
+        <DeleteAppView
+          hasOpen={hasOpen}
+          openOrders={openOrders ?? []}
+          orderCount={orderCount ?? 0}
+          dogCount={dogCount ?? 0}
+        />
+      </AuthAwareShell>
+    )
+  }
 
   return (
     <AuthAwareShell>

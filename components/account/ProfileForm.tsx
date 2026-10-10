@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Check, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isKoreanMobile } from '@/lib/phone'
+import { V3 } from '@/lib/design/tokens'
+import { INPUT_STYLE, primaryButton } from '@/components/v3/me/MeParts'
+import { CheckIcon } from '@/components/v3/me/MeIcons'
 
 /**
  * ProfileForm — 마이페이지 / 계정 의 기본 프로필 편집 폼.
@@ -14,6 +17,10 @@ import { isKoreanMobile } from '@/lib/phone'
  *   - phone (포매팅)
  *   - email — 변경 시 Supabase Auth 가 새 주소로 인증 메일 발송, 링크 확인 후 적용
  *     (2026-07-16 사장님: 이름·전화만 있어 빈약 → 이메일 변경 추가).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M01): 웹(/account/profile 웹 화면)과 같이 쓰는 부품이라
+ * `variant='app'` 일 때만 앱 모양(이름표 16 · 입력 56 · 저장 버튼 56 먹색)으로 그린다. 기본값 'web' 은 한 픽셀도
+ * 바뀌지 않는다. 저장·검사 로직은 두 모양이 같은 save() 를 쓴다.
  */
 
 export type ProfileFormInitial = {
@@ -40,8 +47,11 @@ function isValidKoreanMobile(value: string): boolean {
 
 export default function ProfileForm({
   initial,
+  variant = 'web',
 }: {
   initial: ProfileFormInitial
+  /** 'app' = 앱 새 디자인 모양. 기본 'web'(웹 화면 그대로). */
+  variant?: 'web' | 'app'
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -120,6 +130,71 @@ export default function ProfileForm({
     if (emailChanged) setEmailSent(true)
     router.refresh()
     setTimeout(() => setDone(false), 3000)
+  }
+
+  if (variant === 'app') {
+    // 앱 모양(시안 M01 '기본 정보') — 섹션 제목은 화면(ProfileAppView)이 그린다. 간격 18 은 섹션과 같다.
+    return (
+      <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <AppField label="이름">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+            className="ft-me-input"
+            style={INPUT_STYLE}
+            placeholder="이름"
+          />
+        </AppField>
+        <AppField label="휴대폰 번호">
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={phone}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            autoComplete="tel"
+            className="ft-me-input"
+            style={INPUT_STYLE}
+            placeholder="010-1234-5678"
+          />
+        </AppField>
+        <AppField label="이메일" hint="바꾸면 새 주소로 인증 메일이 가요. 메일 속 링크를 눌러야 바뀌어요.">
+          <input
+            type="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            className="ft-me-input"
+            style={INPUT_STYLE}
+            placeholder="you@example.com"
+          />
+        </AppField>
+
+        {emailSent && (
+          <p role="status" style={{ margin: 0, display: 'flex', gap: 6, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: V3.ink }}>
+            <CheckIcon size={18} strokeWidth={2.6} style={{ marginTop: 2 }} />
+            <span>새 이메일로 인증 메일을 보냈어요. 링크를 누르면 변경돼요.</span>
+          </p>
+        )}
+        {error && (
+          <p role="alert" style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: V3.sale }}>
+            {error}
+          </p>
+        )}
+
+        <button type="submit" disabled={saving} style={{ ...primaryButton(56), opacity: saving ? 0.6 : 1 }}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+        {done && (
+          <p role="status" style={{ margin: '-6px 0 0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: V3.ink }}>
+            <CheckIcon size={18} strokeWidth={2.6} />
+            저장됐어요
+          </p>
+        )}
+      </form>
+    )
   }
 
   return (
@@ -224,6 +299,25 @@ export default function ProfileForm({
         )}
       </div>
     </form>
+  )
+}
+
+/** 앱 모양 이름표 — 입력을 감싸 이름표를 눌러도 입력으로 간다(시안 M01: 16px 800 · 간격 8 · 덧말 15 회색). */
+function AppField({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 16, fontWeight: 800, color: V3.ink }}>{label}</span>
+      {children}
+      {hint && <span style={{ fontSize: 15, lineHeight: 1.5, color: V3.inkMute }}>{hint}</span>}
+    </label>
   )
 }
 

@@ -22,6 +22,8 @@ import {
   NO_CANCEL_CONSENT_VERSION,
   noCancelConsentBody,
 } from '@/lib/payments/no-cancel-consent'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import { V3, V3Shadow } from '@/lib/design/tokens'
 
 /**
  * /subscribe/billing-auth — 자동결제 등록 화면 (카드 전용).
@@ -253,9 +255,176 @@ function ConsentNeededHint({ show }: { show: boolean }) {
   )
 }
 
+// ── 앱 모양(앱 새 디자인 'A 포스터', 2026-10-09 캔버스 S33·C05) ─────────────────────────────────────
+// 서버가 앱이라고 판정했을 때만(app/subscribe/layout.tsx → useServerAppContext) 그린다. 고지 내용은 위 웹 정본과
+// **같은 함수**(termsAmountText 의 판정 hasOneTimeDiscount · firstChargeText 의 날짜 · termsNoteText)에서 나온다 —
+// 문구가 두 벌이 되면 어느 쪽이 맞는지 알 수 없게 된다. 웹 모양(RecurringTerms 등)은 그대로다.
+
+const AppCardIcon = ({ size = 22 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="5.5" width="18" height="13" rx="1.5" />
+    <path d="M3 9.5h18" />
+  </svg>
+)
+
+/** 첫 결제일 한 줄 — firstChargeText 와 같은 판정, 날짜 부분만 굵게(시안). */
+function AppFirstCharge({ terms }: { terms: BillingTerms }) {
+  if (terms?.firstChargeDate)
+    return (
+      <>
+        <strong style={{ fontWeight: 800 }}>첫 결제 {dateKo(terms.firstChargeDate)}</strong> · 이후 2주마다
+      </>
+    )
+  if (terms?.firstShipDate)
+    return (
+      <>
+        <strong style={{ fontWeight: 800 }}>첫 박스 {dateKo(terms.firstShipDate)} 발송</strong> · 결제는 발송 전에 진행돼요
+      </>
+    )
+  return <>{firstChargeText(terms)}</>
+}
+
+/** 정기결제 고지 — 금액 · 주기 · 첫 결제일(앱). 이 화면의 핵심 카드라 머스타드 + 도장 그림자. */
+function AppRecurringTerms({ terms }: { terms: BillingTerms }) {
+  const oneTime = hasOneTimeDiscount(terms)
+  return (
+    <section
+      aria-label="결제 금액"
+      style={{
+        margin: '20px 20px 0',
+        padding: 18,
+        border: `2px solid ${V3.ink}`,
+        boxShadow: V3Shadow.stamp,
+        borderRadius: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        background: V3.mustard,
+        color: V3.ink,
+      }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 700 }}>결제 금액</span>
+      {terms?.amount != null ? (
+        <span style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 4, whiteSpace: 'nowrap' }}>
+          {oneTime && (
+            <span
+              style={{
+                alignSelf: 'center',
+                marginRight: 6,
+                height: 28,
+                padding: '0 8px',
+                borderRadius: 4,
+                background: '#EDF2EE',
+                fontSize: 15,
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {terms.discountKind === 'trial' ? '서포터즈 혜택가' : '첫 박스'}
+            </span>
+          )}
+          {/* 계속 받는 할인(등급 등)이면 정가를 지운 줄로 함께 — 웹과 같은 조건. */}
+          {!oneTime && terms.discountLabel && terms.listAmount != null && (
+            <span style={{ alignSelf: 'center', marginRight: 4, fontSize: 16, fontWeight: 600, textDecoration: 'line-through' }}>
+              {terms.listAmount.toLocaleString('ko-KR')}원
+            </span>
+          )}
+          <span className="ft-num" style={{ fontSize: 44, lineHeight: 1 }}>
+            {terms.amount.toLocaleString('ko-KR')}
+          </span>
+          <span className="ft-poster" style={{ fontSize: 22 }}>
+            원
+          </span>
+          {!oneTime && <span style={{ marginLeft: 4, fontSize: 16, fontWeight: 700 }}>· 2주마다</span>}
+        </span>
+      ) : (
+        // 조회 실패·불러오는 중 — 웹과 같은 문장(termsAmountText).
+        <span style={{ fontSize: 18, fontWeight: 800 }}>{termsAmountText(terms)}</span>
+      )}
+      <span style={{ paddingTop: 10, marginTop: 4, borderTop: '1px solid rgba(20,20,20,0.2)', fontSize: 16, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+        <AppFirstCharge terms={terms} />
+      </span>
+      <span style={{ fontSize: 15, lineHeight: 1.55, wordBreak: 'keep-all' }}>
+        {termsNoteText(terms)} 다음 결제 전까지 해지할 수 있어요.
+      </span>
+      {/* 법정 고지 링크 — 웹 RecurringTerms 와 같은 이유로 새 창(카드 등록 도중이라 같은 창에서 나가면 흐름을 잃는다). */}
+      <span style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 14 }}>
+        {[
+          ['/legal/terms', '이용약관'],
+          ['/legal/refund', '환불·청약철회'],
+          ['/legal/privacy', '개인정보처리방침'],
+        ].map(([href, label], i) => (
+          <span key={href} style={{ display: 'inline-flex', gap: 8 }}>
+            {i > 0 && <span aria-hidden="true">·</span>}
+            <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: V3.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+              {label}
+            </a>
+          </span>
+        ))}
+      </span>
+    </section>
+  )
+}
+
+/** 결제 후 취소 안내 필수 체크(앱) — 웹 NoCancelConsentCheck 와 같은 문구·같은 상태. 네모 체크는 먹색(시안). */
+function AppNoCancelConsentCheck({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label
+      style={{
+        margin: '18px 20px 0',
+        padding: 14,
+        borderRadius: 4,
+        border: `1.5px solid ${V3.ink}`,
+        display: 'grid',
+        gridTemplateColumns: '28px 1fr',
+        columnGap: 10,
+        cursor: 'pointer',
+        userSelect: 'none',
+        color: V3.ink,
+      }}
+    >
+      <span className="focus-within:outline focus-within:outline-2 focus-within:outline-offset-2" style={{ position: 'relative', width: 24, height: 24, marginTop: 1, borderRadius: 4 }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          style={{ position: 'absolute', inset: 0, width: 24, height: 24, margin: 0, opacity: 0, cursor: 'pointer' }}
+        />
+        <span
+          aria-hidden
+          style={{
+            width: 24,
+            height: 24,
+            boxSizing: 'border-box',
+            borderRadius: 4,
+            border: `2px solid ${V3.ink}`,
+            background: checked ? V3.ink : '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {checked && (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+          )}
+        </span>
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <strong style={{ fontSize: 17, fontWeight: 800 }}>{NO_CANCEL_CONSENT_LABEL}</strong>
+        <span style={{ fontSize: 15, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>{noCancelConsentBody()}</span>
+      </span>
+    </label>
+  )
+}
+
 function BillingAuthInner() {
   const router = useRouter()
   const isApp = useIsAppContext()
+  // 모양만 — 서버 판정(app/subscribe/layout.tsx). 첫 그림부터 앱 모양이라 웹 → 앱으로 깜빡이지 않는다.
+  const appLook = useServerAppContext()
   const params = useSearchParams()
   const subscriptionId = params.get('subscriptionId')
   const customerKey = params.get('customerKey')
@@ -394,11 +563,147 @@ function BillingAuthInner() {
   // ★ 웹/앱 목적지가 다르다. 이 화면은 top-level 이라 둘 다 들어오는데
   //   앱 전용 경로로 보내면 웹 사용자가 '/app-required' 벽을 맞는다
   //   (2026-07-30 — 카드 등록 끝에 "앱을 설치하세요"가 떴다).
-  const close = () => router.push(billingReturnHref(isApp))
+  //   서버 판정(appLook)도 함께 본다 — 클라이언트 판정은 마운트 직후 아주 잠깐 false 다.
+  const close = () => router.push(billingReturnHref(isApp || appLook))
   const method = chosen ? billingMethod(chosen) : null
   // 선택 화면으로 되돌아갈 수 있을 때만 '뒤로'. 수단이 하나뿐이면 되돌아갈
   // 곳이 없으므로 닫기(✕)를 보여준다 — 앱에서 막다른 화살표는 혼란스럽다.
   const canGoBack = !!method && !onlyOne && !launchingId
+  // 앱 등록 버튼의 잠금 — 웹 버튼 두 곳과 같은 조건(동의 전·여는 중엔 막힘, 규칙155).
+  const registerLocked = !!launchingId || !noCancelAgreed
+
+  if (appLook) {
+    // ── 앱 모양(캔버스 S33·C05) — 위 상태·launch·close 를 그대로 쓴다. ───────────────────
+    return (
+      <main
+        data-ft-chrome="app"
+        className="min-h-[100dvh] flex flex-col"
+        style={{ background: '#FFFFFF', color: V3.ink }}
+      >
+        {/* 윗줄 — 앱 깊은 화면과 같은 꼴(닫기 + 화면 이름). 최상위 경로라 AppChrome 이 없어 safe-area 를 여기서 더한다. */}
+        <header style={{ position: 'sticky', top: 0, zIndex: 30, background: '#FFFFFF', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+          <div
+            style={{
+              height: 64,
+              boxSizing: 'border-box',
+              padding: '0 12px 0 6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              borderBottom: `1px solid ${V3.rule}`,
+            }}
+          >
+            <button
+              type="button"
+              onClick={canGoBack ? () => setChosen(null) : close}
+              aria-label={canGoBack ? '결제수단 다시 고르기' : '닫기'}
+              style={{ width: 48, height: 48, border: 0, background: 'transparent', color: V3.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              {canGoBack ? <ChevronLeft size={26} strokeWidth={2} /> : <X size={24} strokeWidth={2} />}
+            </button>
+            <span className="ft-poster" style={{ fontSize: 22 }}>
+              결제하기
+            </span>
+          </div>
+        </header>
+
+        {error ? (
+          <div style={{ padding: '56px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: V3.sale }}>{error}</p>
+            <button
+              type="button"
+              onClick={close}
+              style={{ marginTop: 18, height: 56, padding: '0 22px', border: 0, borderRadius: 4, background: V3.ink, color: '#FFFFFF', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}
+            >
+              {/* 앱엔 '정기배송 관리'라는 이름이 없다 — 하단 탭 이름으로(앱시안 결정 3번 '동작'). */}
+              정기배송으로 돌아가기
+            </button>
+          </div>
+        ) : (
+          <>
+            <section style={{ padding: '26px 20px 0', display: 'flex', flexDirection: 'column' }}>
+              <span style={{ width: 52, height: 52, borderRadius: 4, background: V3.soft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AppCardIcon size={26} />
+              </span>
+              {/* 제목 글꼴은 앱 틀(data-ft-chrome="app")의 h1 규칙이 준다. */}
+              <h1 style={{ margin: '16px 0 0', fontSize: 32, lineHeight: 1.15 }}>{method ? '결제수단 등록' : '결제수단을 골라주세요'}</h1>
+              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+                {method ? `${method.hint}.` : '등록해두면 2주마다 자동으로 결제돼요.'}
+                <br />
+                <strong style={{ fontWeight: 800, color: V3.ink }}>등록만 하는 단계라 지금 결제되지 않아요.</strong>
+              </p>
+            </section>
+
+            {/* ★법정 고지 — 이 화면이 실제로 카드를 등록하는 자리다(웹 RecurringTerms 와 같은 판정·같은 문장). */}
+            <AppRecurringTerms terms={terms} />
+            <AppNoCancelConsentCheck checked={noCancelAgreed} onChange={setNoCancelAgreed} />
+
+            <div
+              style={{
+                marginTop: 'auto',
+                padding: '24px 20px calc(26px + env(safe-area-inset-bottom, 0px))',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              {/* 수단이 하나(카드 전용)면 등록 버튼 하나. 여럿이면(지금은 없음) 수단마다 버튼 — 누르는 순간 토스 창. */}
+              {(method ? [method] : AVAILABLE).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => void launch(m.id)}
+                  disabled={registerLocked}
+                  style={{
+                    height: 60,
+                    border: 0,
+                    borderRadius: 4,
+                    background: m.brandColor ?? V3.ink,
+                    color: '#FFFFFF',
+                    fontFamily: 'inherit',
+                    fontSize: 17,
+                    fontWeight: 800,
+                    opacity: registerLocked ? 0.4 : 1,
+                    cursor: registerLocked ? 'default' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <AppCardIcon size={20} />
+                  {launchingId === m.id ? '여는 중이에요...' : `${m.label} 등록하기`}
+                </button>
+              ))}
+              {!noCancelAgreed && (
+                <p aria-live="polite" style={{ margin: 0, fontSize: 15, color: V3.inkMute, textAlign: 'center' }}>
+                  위 안내에 동의하면 카드를 등록할 수 있어요.
+                </p>
+              )}
+              {method && !onlyOne && !launchingId && (
+                <button
+                  type="button"
+                  onClick={() => setChosen(null)}
+                  style={{ alignSelf: 'center', height: 44, padding: '0 12px', border: 0, background: 'transparent', color: V3.inkMute, fontSize: 15, textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  다른 결제수단으로
+                </button>
+              )}
+              {!method && (
+                <button
+                  type="button"
+                  onClick={close}
+                  style={{ alignSelf: 'center', height: 44, padding: '0 12px', border: 0, background: 'transparent', color: V3.inkMute, fontSize: 15, textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  나중에 등록할게요
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </main>
+    )
+  }
 
   return (
     <main
@@ -635,17 +940,19 @@ function BillingAuthInner() {
 }
 
 export default function BillingAuthPage() {
+  // 불러오는 동안의 바탕도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
+  const appLook = useServerAppContext()
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: 'var(--bg)' }}
+          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: 'var(--terracotta)',
+              borderColor: appLook ? V3.ink : 'var(--terracotta)',
               borderTopColor: 'transparent',
             }}
           />

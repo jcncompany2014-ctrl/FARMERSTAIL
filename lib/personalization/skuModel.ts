@@ -247,7 +247,8 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     legacyLine: 'skin',
     novel: true,
     muellerAllergyRate: 2.0,
-    blockingAllergies: ['연어·생선', '흰살생선'],
+    // '연어' = 2026-10-09 바뀐 설문 보기, '연어·생선' = 그 전에 저장된 답(lib/survey/allergy-options 별칭) — 둘 다 막는다.
+    blockingAllergies: ['연어', '연어·생선', '흰살생선'],
     // Bexley 2019 (Vet Dermatol 30:25) — 어류 parvalbumin ↔ 닭/칠면조 IgE
     // 교차반응. 닭 알레르기견에게 연어 라인 제안 시 cross-react chip 경고
     // (연어 제품 출시 시 활성). 이전 [] → 닭알레르기견 무경고 갭이었음.

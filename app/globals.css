@@ -149,14 +149,27 @@
      아래 alias 로 동일 v3 값으로 매핑되므로 기존 코드도 자동 적용. */
   /* 2026-06-17 웹 톤 통일(사장님 "웹이랑 색감 통일") — 앱 surface 램프를 웹 --fd-*
      값으로 정렬. 앱 배경이 웹보다 누렜던 것 중화: paper=웹 offwhite, deep=웹 cream. */
-  --paper: #F7F5F0;       /* = 웹 --fd-offwhite (기본 배경·헤더) */
-  --paper-hi: #FCFBF7;    /* 카드/raised — 배경보다 한 톤 밝은 중성 크림 */
-  --paper-deep: #EDE8D9;  /* = 웹 --fd-cream (recessed/딥 섹션) */
+  /* ★2026-10-09 앱 새 디자인('A 포스터', docs/APP_POSTER_REDESIGN_2026_10.md) — 흰 바탕·먹색·머스타드.
+     값은 lib/design/tokens.ts 의 V3 와 1:1. 웹(:root)은 그대로다. */
+  --paper: #FFFFFF;
+  --paper-hi: #FFFFFF;
+  --paper-deep: #F6F4F5;
 
   /* 2026-06-17 웹 FD 브랜드색 정렬(사장님 "앱도 웹 느낌으로") — 앱 accent/green
      토큰 값을 웹 --fd-* 정확값으로 매핑. 191곳 토큰 참조가 한 번에 웹과 동일 톤. */
-  --accent: #C86B45;        /* = 웹 --fd-coral (테라코타 포인트) */
-  --accent-deep: #782E22;   /* = 웹 --fd-coral-ink (딥 — 텍스트/hover) */
+  /* 주 동작·고른 것·켜짐 = 먹색(예전 테라코타 자리). */
+  --accent: #141414;
+  --accent-deep: #141414;
+  /* 새 이름 — 머스타드(닭고기 파우치)·옅은 주황·회색 면·파우치 4색·도장 그림자 */
+  --mustard: #D4A24C;
+  --cream: #FCEFD9;
+  --cream-soft: #FFF7EA;
+  --soft: #F6F4F5;
+  --pouch-chicken: #D4A24C;
+  --pouch-duck: #A7B9B6;
+  --pouch-pork: #BEBDB6;
+  --pouch-beef: #B5573A;
+  --stamp-shadow: 4px 4px 0 #141414;
 
   /* 상단 헤더 고정 높이 — AppChrome 헤더 row(40) + 상하 padding(12+12).
      sticky 서브내브(DogTabsNav 등)의 top 오프셋이 이 변수를 참조한다.
@@ -167,62 +180,62 @@
   /* 결제 퍼널(플랜 담기/결제) 하단 고정 바 높이 — AppChrome 이 본문 아래 여백으로 쓴다(규칙88). */
   --ft-paybar-h: 80px;
   /* 네이티브(Capacitor) 가 상태바·홈바 safe-area 구간을 칠하는 색 = capacitor.config.ts
-     backgroundColor. 하단 탭바가 이 색을 써서 홈바 구간과 한 덩어리로 보인다(2026-09-22).
+     backgroundColor. 하단 탭바·윗줄이 이 색을 써서 홈바·상태바 구간과 한 덩어리로 보인다(2026-09-22).
      값을 바꾸면 capacitor.config.ts 도 같이 — 규칙84 가 두 값을 같게 잠근다.
-     ★2026-10-08 크림(#F5F0E6) → 앱 종이색(--paper)으로 통일(사장님 "앱 기본 배경색이랑 다른데").
-     옛 아이폰 셸(FtShell/2 이전)은 네이티브가 아직 크림이라 아래 html.ft-old-shell-ios 가 되돌린다. */
-  --ft-native-bg: #F7F5F0;
+     ★2026-10-08 크림(#F5F0E6) → 앱 종이색(#F7F5F0) · ★2026-10-09 앱 새 디자인('A 포스터')으로 흰색(셸 3세대).
+     옛 셸은 네이티브가 아직 옛 색이라 아래 html.ft-paper-shell(2세대 종이색)·html.ft-old-shell-ios(1세대 크림)가 되돌린다. */
+  --ft-native-bg: #FFFFFF;
 
   /* 마커 하이라이트 **배경** 전용. paper 위 글자색으로 쓰면 1.69:1 로 안 보인다. */
-  --yellow: #e6b942;
+  --yellow: #D4A24C;
   /* paper 위에서 읽히는 노랑 — 4.64:1 (WCAG AA). '시작 전' 같은 대기 상태 텍스트용.
      --ink-mute 를 darken 한 것과 같은 종류의 수정(2026-07-30). 이 값이 강아지
      구독 탭 CSS 에 hex 로 박혀 있어서 화면마다 노랑이 달랐다 → 여기로 통일. */
-  --yellow-ink: #8a6a12;
+  --yellow-ink: #8A6420;
 
-  --sage: #3C725E;          /* = 웹 --fd-green (미디엄 그린) */
-  --sage-soft: #7A8B7B;     /* = 웹 --fd-green-soft (세이지) */
+  --sage: #141414;
+  --sage-soft: #595959;
 
-  --blue: #3b5a78;
+  --blue: #141414;
 
-  --ink-soft: #3a342a;
+  --ink-soft: #3D3D3D;
   /* 마스터피스 P1-A2: paper 위 4.75:1 (WCAG AA 통과). 이전 #7d7460 = 3.97:1 로
      ≤13.5px 본문 ~859곳이 AA 미달이었음. inkSoft(9.7:1)와는 충분히 구분되어
      mute 위계 유지. app 라이트 스코프 전용(web #715C4A·다크 #A89580 는 이미 통과). */
-  --ink-mute: #706854;
-  --ink-faint: #b6ab93;
+  --ink-mute: #595959;
+  --ink-faint: #9A9A9A;
 
-  --rule-soft: rgba(22, 20, 15, 0.07);
-  --rule-ink: #16140f;
+  --rule-soft: rgba(20, 20, 20, 0.06);
+  --rule-ink: #141414;
 
   /* ─ Dark variant — black hero cards 전용 (의도적 반전) ──────
      앱의 "오늘의 한 가지" 류 ink-bg 카드용. */
-  --ink-bg: #16140f;
-  --ink-fg: #F7F5F0;
-  --ink-fg-mute: rgba(244, 237, 224, 0.65);
-  --ink-fg-faint: rgba(244, 237, 224, 0.36);
-  --ink-rule: rgba(244, 237, 224, 0.18);
-  --ink-rule-soft: rgba(244, 237, 224, 0.10);
-  --ink-yellow: #e6b942;
+  --ink-bg: #141414;
+  --ink-fg: #FFFFFF;
+  --ink-fg-mute: rgba(255, 255, 255, 0.7);
+  --ink-fg-faint: rgba(255, 255, 255, 0.4);
+  --ink-rule: rgba(255, 255, 255, 0.18);
+  --ink-rule-soft: rgba(255, 255, 255, 0.10);
+  --ink-yellow: #D4A24C;
 
   /* ─ legacy 변수 값을 v3 값으로 override ────────────────────
      같은 이름을 다른 값으로 재정의 — 앱 컴포넌트는 `var(--bg)` /
      `var(--terracotta)` 같은 기존 참조 그대로 사용해도 v3 색이 나옴. */
   --background: var(--paper);
-  --foreground: #16140f;
+  --foreground: #141414;
   --bg: var(--paper);
   --bg-2: var(--paper-deep);
   --bg-3: var(--paper-hi);
   --surface-card: var(--paper-hi);
   --surface-card-elevated: #ffffff;
 
-  --ink: #16140f;
+  --ink: #141414;
   --text: var(--ink-soft);
   --muted: var(--ink-mute);
   --muted-strong: var(--ink-soft);
 
-  --rule: rgba(22, 20, 15, 0.12);
-  --rule-2: rgba(22, 20, 15, 0.22);
+  --rule: #E5E5E5;
+  --rule-2: rgba(20, 20, 20, 0.2);
 
   --terracotta: var(--accent);
   --moss: var(--sage);
@@ -267,15 +280,36 @@
   --sp-16: 64px;
 
   /* ─ v3 Shadow — 그림자 대신 rule. 필수 시에만 사용. ──────── */
-  --shadow-card: 0 1px 0 rgba(22, 20, 15, 0.04);
-  --shadow-sheet: 0 -4px 24px rgba(22, 20, 15, 0.08);
-  --shadow-accent: 0 12px 26px rgba(200, 107, 69, 0.32);
+  --shadow-card: 0 1px 0 rgba(20, 20, 20, 0.04);
+  --shadow-sheet: 0 -4px 24px rgba(20, 20, 20, 0.08);
+  --shadow-accent: 0 6px 16px rgba(20, 20, 20, 0.16);
 
   /* ─ v3 Transition ─────────────────────────────────────────
      prefers-reduced-motion 가드는 글로벌 @media 에서. */
   --tr-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
   --tr-base: 240ms cubic-bezier(0.16, 1, 0.3, 1);
   --tr-slow: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ─ 웹 FD 변수를 앱 범위에서만 새 톤으로 (2026-10-09) ─────────────
+     설문(survey.css)·주문 화면 등 앱 화면 일부가 --fd-* 로 그려져 있다. 웹(:root)은 그대로. */
+  --fd-pine: #141414;
+  --fd-green: #141414;
+  --fd-green-soft: #595959;
+  --fd-cream: #F6F4F5;
+  --fd-offwhite: #FFFFFF;
+  --fd-coral: #141414;
+  --fd-coral-ink: #141414;
+  --fd-coral-text: #141414;
+  --fd-gold: #D4A24C;
+  --fd-muted: #595959;
+  --fd-line: #E5E5E5;
+  --fd-line-strong: #8A8A8A;
+}
+/* 2세대 셸(FtShell/2 — 네이티브 바탕이 앱 종이색 #F7F5F0, 2026-10-08 빌드) — 흰 바탕 새 디자인이 나간 뒤에도 스토어
+   업데이트 전까지는 상태바·홈바 구간을 네이티브가 종이색으로 칠한다. 윗줄·탭바(--ft-native-bg)를 그 색으로 맞춰 위아래에
+   띠가 안 생기게 한다(본문은 흰색). head 스크립트가 FtShell/3 미만 셸(1세대 아이폰 제외)에 붙인다(규칙166). */
+html.ft-paper-shell [data-ft-chrome="app"] {
+  --ft-native-bg: #F7F5F0;
 }
 /* 옛 아이폰 셸(네이티브 바탕이 아직 크림 #F5F0E6) — 홈바 구간과 탭바 색을 계속 맞춘다(규칙84의 이유 그대로).
    app/layout.tsx head 스크립트가 UA 에 FtShell/2 가 없는 iOS 앱에만 붙인다. 업데이트하면 저절로 종이색. */
@@ -517,15 +551,88 @@ html.ft-debug-grid body::after {
   box-shadow: none !important;
 }
 
-/* ── 앱 스코프 안에서만 Korean 미세 letter-spacing 압축 + body bg 강제. */
+/* ── 앱 스코프 안에서만 Korean 미세 letter-spacing 압축 + body bg 강제.
+   2026-10-09 앱 새 디자인 — 시안(캔버스) 본문 자간 -0.02em 에 맞춤(예전 -0.012em 이면 박스 카드 한 줄이 두 줄로 넘어갔다).
+   제목(.ft-poster·h1·h2)·숫자(.ft-num)는 아래 규칙이 자기 자간을 지킨다(같은 무게 선택자라 뒤에 있는 쪽이 이긴다). */
 [data-ft-chrome="app"]:lang(ko),
 [data-ft-chrome="app"] :lang(ko) {
-  letter-spacing: -0.012em;
+  letter-spacing: -0.02em;
 }
 [data-ft-chrome="app"] body,
 body[data-ft-chrome-mode="app"] {
   background: var(--paper);
   color: var(--ink);
+}
+/* 앱 글자 기본색 — 앱 틀이 color 를 안 정해서 웹 body 글자색(#3D2B1F 갈색)이 그대로 내려왔다.
+   새 디자인('A 포스터', 2026-10-09)은 먹색 — 앱 틀에서 한 번 정한다. */
+[data-ft-chrome="app"] {
+  color: var(--ink);
+}
+
+/* ── 앱 새 디자인 글꼴 (2026-10-09, 'A 포스터') ─────────────────────────
+   제목·레시피 이름 = Black Han Sans(--font-poster), 큰 숫자 = Anton(--font-num). 둘 다 굵기 400 하나라
+   font-synthesis: none — 굵게(800 등)를 요구해도 가짜 굵기를 만들지 않는다. 화면 제목(h1)·섹션 제목(h2)은
+   기본으로 제목 글꼴. 숫자에 쉼표가 있으면 제목 글꼴 대신 .ft-num(Black Han Sans 는 쉼표가 마침표처럼 보인다). */
+[data-ft-chrome="app"] :is(h1, h2, .ft-poster) {
+  font-family: var(--font-poster), var(--font-sans), 'Pretendard Variable', system-ui, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: -0.01em;
+}
+[data-ft-chrome="app"] :is(.ft-num) {
+  font-family: var(--font-num), var(--font-sans), system-ui, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0.02em;
+}
+/* 아래에서 올라오는 창(components/ui/BottomSheet — 앱 화면만 씀): 위 모서리 24 → 12(시안 T11~T17). */
+[data-ft-chrome="app"] .rounded-t-3xl {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+/* 짧은 알림(토스트)은 앱 틀 밖(루트)에 그려져 웹 색을 받는다 — 앱일 때만 색 변수를 앱 새 디자인으로.
+   성공·안내 = 먹색 바탕 흰 글자, 오류 = 빨강, 경고 = 머스타드. 모서리 4px(시안 B10·B11). */
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] {
+  --ink: #141414;
+  --bg: #FFFFFF;
+  --sale: #C63D2A;
+  --gold: #D4A24C;
+  --moss: #141414;
+}
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] .rounded-xl {
+  border-radius: 4px;
+}
+/* 글자 16·14 굵게(시안 B10·B11) — 토스트는 앱 틀 밖(루트)이라 앱 글자 크기 맞춤(13→16)이 안 닿는다. 웹은 그대로. */
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] .text-\[13px\] {
+  font-size: 16px;
+}
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] .text-\[12px\] {
+  font-size: 14px;
+}
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] :is([role='status'], [role='alert']) {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  box-shadow: 0 6px 16px rgba(20, 20, 20, 0.16);
+}
+/* 아이콘 — 완료·안내 = 흰 글리프만(동그라미 없이), 실패 = 흰 동그라미 안 빨간 ! (시안). 인라인 배경이라 !important. */
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] [role='status'] > span[aria-hidden] {
+  background: transparent !important;
+  font-size: 18px;
+}
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] [role='alert'] > span[aria-hidden] {
+  background: #FFFFFF !important;
+  color: #C63D2A;
+  font-size: 14px;
+}
+html:has([data-ft-chrome="app"]) [data-ft-toast-viewport] button[aria-label='닫기'] svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 앱 화면 뒤 바탕(당겨 내릴 때 보이는 곳)도 흰색 — html 은 웹 :root 바탕이라 앱일 때만 덮는다. */
+html:has([data-ft-chrome="app"]),
+html:has([data-ft-chrome="app"]) body {
+  background: var(--app-page-bg, #FFFFFF);
 }
 
 /* ── Archivo Black legacy alias — 앱 안에서만 Pretendard 900 으로 매핑.
@@ -1732,7 +1839,7 @@ html[data-theme="dark"] .fiber::after {
 /* ── 앱 첫 실행 로딩 (components/AppSplash.tsx) — 꼬리 흔드는 도장 + 점 3개.
    ★폰이 띄우는 화면(capacitor.config SplashScreen)의 **연장**이다(사장님 2026-10-08 "로딩이 두 번 뜬다").
    안드로이드 12+ 는 OS 가 앱 아이콘(도장, 실측 지름 126dp)을 화면 정중앙에 띄운다 — 같은 도장을 같은 크기·
-   같은 자리·같은 바탕(#F7F5F0 = 앱 종이색 = SplashScreen·StatusBar backgroundColor)에 놓고, 폰 화면은 이 화면이 그려질
+   같은 자리·같은 바탕(#FFFFFF = 앱 바탕 = SplashScreen·StatusBar backgroundColor)에 놓고, 폰 화면은 이 화면이 그려질
    준비가 되면 스크립트가 걷는다(SplashScreen.hide). 자리·크기는 스크립트가 --ft-stamp-y·--ft-stamp-size 로
    넣는다(웹뷰는 상태바 아래에서 시작 → 중심 = 화면 높이/2 − 상태바 높이). 기본값(설치형 PWA)은 화면 가운데.
    사라지는 것도 스크립트가 정한다(문서 load 뒤, 꼬리 한 번은 보여 주고, 최대 4.5초).
@@ -1743,7 +1850,7 @@ html[data-theme="dark"] .fiber::after {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #F7F5F0; /* = 앱 종이색(--paper) = capacitor.config SplashScreen·StatusBar backgroundColor */
+  background: #FFFFFF; /* = 앱 바탕(--paper) = capacitor.config SplashScreen·StatusBar backgroundColor (셸 3세대) */
 }
 /* JS 가 죽어도 6초 뒤엔 걷힌다(평소엔 스크립트가 훨씬 먼저 ft-splash--out 으로 걷는다). */
 @media all and (display-mode: standalone) {
@@ -1817,6 +1924,11 @@ html.ft-old-shell-ios .ft-splash__mark {
 }
 html.ft-old-shell-ios .ft-splash__dots {
   top: calc(var(--ft-stamp-y, 50%) + var(--ft-mark-w, 0px) * 0.0865 + 36px);
+}
+/* 2세대 셸(폰 화면이 종이색 #F7F5F0) — 같은 종이색 바탕에, 종이색 위에 구운 도장(v1)으로 잇는다(그림 고르기는 AppSplash
+   스크립트). 업데이트(셸 3세대)하면 흰 바탕·흰 도장(v2). */
+html.ft-paper-shell .ft-splash {
+  background: #F7F5F0;
 }
 /* 점 3개 — 도장 바로 아래(도장 지름 아래 33px), 도장 갈색. */
 .ft-splash__dots {

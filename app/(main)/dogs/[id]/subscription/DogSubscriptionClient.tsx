@@ -30,34 +30,32 @@
  * 배송일은 전부 화요일이다(lib/shipping-schedule). 건너뛰기·재개가 날짜를 새로
  * 잡을 때 반드시 nextShipDate/nextCycleDate 를 쓴다 — 예전엔 '오늘 + 14일' 이라
  * 오늘이 목요일이면 배송일이 목요일이 됐다.
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터', 캔버스 AppSub · S01~S10)
+ * 모양만 시안대로 바꿨다. 미루기·되돌리기(본 날짜 그대로일 때만 옮기는 CAS)·일시정지·재개·해지·카드 등록·
+ * 화식 비율의 저장 로직과 판정은 한 줄도 바꾸지 않았다. 함께 들어간 결정(앱시안_결정할것.md):
+ *  · 함께한 박스 → "함께한 지 N주째예요"(1번 확정 — 몇 번째 박스 대신). 박스 하나 = 2주치.
+ *  · 해지 확인창은 "그냥 둘게요"를 진하게, "해지하기"는 빨간 테두리(13번).
+ *  · 해지한 사람에겐 "지금은 쉬는 중이에요"(15번).
+ *  · 일시정지·다시 시작에도 확인창(3번 '동작' — 예전엔 누르는 즉시 바뀌고 토스트만 떴다).
+ *  · 금액 카드 색 = 박스 레시피 파우치 색(lib/design/pouch — 홈 '다음 정기배송' 카드와 같은 규칙).
+ *  · 서포터즈 할인은 "서포터즈 혜택으로 N원 할인"(3번 '문구' — 할인 이름에 결제 금액이 섞여 헷갈렸다).
+ *  · 결제 없이 해지된 신청서(카드 등록을 못 마쳐 자동 정리된 것)는 '지난 정기배송'에 띄우지 않는다
+ *    (isSubscriptionVisibleToUser — 사장님 2026-07-22 "결제 완료·진행중인 것만", 정기배송 탭과 같은 기준).
  */
 
-import { useId, useRef, useState } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 import { trialPricing, type TrialState } from '@/lib/payments/trial'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
-import Link from 'next/link'
-import {
-  CreditCard,
-  Pause,
-  Play,
-  SkipForward,
-  X,
-  AlertTriangle,
-  Check,
-  Loader2,
-  PackageOpen,
-  SlidersHorizontal,
-  CookingPot,
-  Truck,
-  Home,
-  Undo2,
-} from 'lucide-react'
 import FreshRatioSheet from '@/components/subscription/FreshRatioSheet'
+import DogPawMark from '@/components/DogPawMark'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
-import { petName, iGa } from '@/lib/korean'
+import { petName, iGa, waGwa } from '@/lib/korean'
 import {
   nextShipDate,
   nextCycleDate,
@@ -74,9 +72,10 @@ import {
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import {
   subscriptionState,
+  isSubscriptionVisibleToUser,
   SUB_STATE_LABEL,
-  SUB_STATE_TONE,
   type SubLike,
+  type SubState,
 } from '@/lib/subscription-state'
 import {
   trackSubscriptionPaused,
@@ -85,6 +84,9 @@ import {
 } from '@/lib/analytics'
 import { generateFallbackCustomerKey } from '@/lib/v3-helpers/subscriptions'
 import { billingMethodSummary } from '@/lib/payments/billing-methods'
+import { V3 } from '@/lib/design/tokens'
+import { RECIPE_COLOR } from '@/components/analysis/display'
+import { boxRecipes, boxCardColors, boxCardFrame } from '@/lib/design/pouch'
 import './subscription.css'
 import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 
@@ -107,9 +109,21 @@ export type DogSub = SubLike & {
   subscription_items: { product_name: string; quantity: number }[]
 }
 
+/** 다음 결제 미리보기 — 서버가 청구와 같은 resolveAutoDiscount 로 계산(이벤트·이웃·등급·서포터즈 전부). */
+export type ChargePreview = {
+  chargeAmount: number
+  label: string | null
+  /** 할인 종류(trial_cheap·trial_half = 서포터즈). 없으면 서포터즈 판정으로 대신한다. */
+  reason?: string | null
+}
+
 /** yyyy-mm-dd → "8월 4일 (화)". */
 function dateLabel(iso: string): string {
   return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일 (${weekdayKo(iso)})`
+}
+
+function krw(n: number): string {
+  return `${n.toLocaleString('ko-KR')}원`
 }
 
 export default function DogSubscriptionClient({
@@ -142,7 +156,7 @@ export default function DogSubscriptionClient({
   /** 체험단 가격표 — 있으면 금액 표시가 체험가로 바뀐다 (청구와 같은 판정) */
   trial?: TrialState | null
   /** 구독별 다음 결제액(서버가 청구와 같은 resolveAutoDiscount 로 계산 — 이벤트·이웃·등급·서포터즈 전부) */
-  chargePreview?: Record<string, { chargeAmount: number; label: string | null }> | null
+  chargePreview?: Record<string, ChargePreview> | null
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -154,6 +168,9 @@ export default function DogSubscriptionClient({
   const [cancelId, setCancelId] = useState<string | null>(null)
   // '2주 미루기' 확인 시트 — 한 번 누르면 바로 밀리던 것(2026-10-06 사장님 "실수로 건너뛰기해 버리면 할 수 있는 게 없더라").
   const [skipId, setSkipId] = useState<string | null>(null)
+  // 일시정지·다시 시작 확인 시트(2026-10-09 앱시안 결정 3번 '동작') — 예전엔 누르는 즉시 바뀌고 토스트만 떴다.
+  const [pauseId, setPauseId] = useState<string | null>(null)
+  const [resumeId, setResumeId] = useState<string | null>(null)
   // 화식 비율 변경 (2026-07-31) — 이 화면 docstring 이 역할에 '화식비율' 을
   // 적어 두고도 실물이 없었다. 웹(/account/subscriptions)과 **같은 시트·같은 API**.
   const [ratioId, setRatioId] = useState<string | null>(null)
@@ -161,7 +178,8 @@ export default function DogSubscriptionClient({
   const name = petName(dogName)
   // 해지된 것만 남았으면 '다시 시작' 안내가 주인공 — 살아있는 구독만 위로.
   const live = subs.filter((s) => s.status !== 'cancelled')
-  const past = subs.filter((s) => s.status === 'cancelled')
+  // 지난 정기배송 — 결제 한 번 없이 해지된 신청서(카드 등록을 못 마쳐 자동 정리된 것)는 빼고(isSubscriptionVisibleToUser).
+  const past = subs.filter((s) => s.status === 'cancelled' && isSubscriptionVisibleToUser(s))
 
   async function uid(): Promise<string | null> {
     const {
@@ -347,6 +365,8 @@ export default function DogSubscriptionClient({
           : '정기배송을 일시정지했어요. 이 화면에서 다시 시작할 수 있어요.',
       )
     }
+    // 결과와 상관없이 시트를 닫는다(미루기와 같은 이유 — 실패 안내가 시트에 가리지 않게).
+    setPauseId(null)
     setBusy(null)
   }
 
@@ -359,6 +379,7 @@ export default function DogSubscriptionClient({
     //   결제된 박스 1주 뒤로 앞당겨 또 청구할 수 있었다. 일시정지 + 본 날짜가 그대로여야 쓴다.
     const u = await uid()
     if (!u) {
+      setResumeId(null)
       setBusy(null)
       return
     }
@@ -381,6 +402,7 @@ export default function DogSubscriptionClient({
       trackSubscriptionResumed({ subscriptionId: sub.id })
       toast.success(`${dateLabel(next)}부터 다시 보내드릴게요.`)
     }
+    setResumeId(null)
     setBusy(null)
   }
 
@@ -405,9 +427,17 @@ export default function DogSubscriptionClient({
   if (subs.length === 0) {
     return (
       <div className="sub-page">
-        <EmptyStart name={name} startHref={startHref} />
+        <EmptyStart name={name} startHref={startHref} resting={false} />
       </div>
     )
+  }
+
+  /** 시트에 보여 줄 금액 — 카드와 같은 판정(서버 미리보기 → 서포터즈 판정 → 저장 금액). */
+  function shownAmount(s: DogSub): number {
+    const pv = chargePreview?.[s.id]
+    if (pv) return pv.chargeAmount
+    const tp = trialPricing(trial, s.total_amount)
+    return tp ? tp.chargeAmount : s.total_amount
   }
 
   return (
@@ -429,22 +459,28 @@ export default function DogSubscriptionClient({
           onCard={() => goCard(sub)}
           onSkip={() => setSkipId(sub.id)}
           onUndo={(fromIso, toIso) => void undoSkip(sub.id, fromIso, toIso)}
-          onPause={() => pause(sub)}
-          onResume={() => resume(sub)}
+          onPause={() => setPauseId(sub.id)}
+          onResume={() => setResumeId(sub.id)}
           onCancel={() => setCancelId(sub.id)}
           onRatio={() => setRatioId(sub.id)}
         />
       ))}
 
-      {live.length === 0 && <EmptyStart name={name} startHref={startHref} />}
+      {live.length === 0 && <EmptyStart name={name} startHref={startHref} resting={past.length > 0} />}
 
       {past.length > 0 && (
-        <details className="sub-past">
-          <summary>지난 정기배송 {past.length}건</summary>
+        // 해지만 남았으면 펼쳐 둔다(시안 S02) — 살아 있는 구독이 있으면 접어 둔다.
+        <details className="sub-past" open={live.length === 0}>
+          <summary>
+            지난 정기배송 {past.length}건
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M6 15l6-6 6 6" />
+            </svg>
+          </summary>
           {past.map((sub) => (
             <div className="sub-past-row" key={sub.id}>
-              <span>{sub.created_at.slice(0, 10).replace(/-/g, '.')} 신청</span>
-              <span>
+              <span className="sub-past-date">{sub.created_at.slice(0, 10).replace(/-/g, '.')} 신청</span>
+              <span className="sub-past-chip">
                 {sub.total_deliveries > 0
                   ? `${sub.total_deliveries}회 배송 후 해지`
                   : '신청 취소'}
@@ -455,30 +491,30 @@ export default function DogSubscriptionClient({
       )}
 
       {/* 화식 비율 시트 — 웹(/account/subscriptions)과 **같은 컴포넌트·같은 API**.
-          시트는 --fd-* 토큰만 쓰고, 아래 래퍼가 그걸 앱 v3 값으로 스왑한다.
-          (복사본을 만들면 금액을 보여주는 곳이 둘이 된다.) */}
+          앱은 variant="app" 으로 시안(S08) 모양만 바꾼다(복사본을 만들면 금액을 보여주는 곳이 둘이 된다). */}
       {ratioId && (
-        <RatioSheetFrame onClose={() => setRatioId(null)}>
-            <FreshRatioSheet
-              subscriptionId={ratioId}
-              onClose={() => setRatioId(null)}
-              onChanged={({ ratio, amount }) => {
-                toast.success('화식 비율을 바꿨어요')
-                // ★즉시 반영 (사장님 제보 2026-08-24): subs 는 useState(initialSubs)
-                //   라 router.refresh() 가 내려준 새 props 로는 **갱신되지 않는다**
-                //   (useState 는 최초 1회만 초기화). 시트가 돌려준 서버 확정값을
-                //   로컬 state 에 직접 반영 — pause/cancel(아래 setSubs)과 같은 패턴.
-                setSubs((prev) =>
-                  prev.map((s) =>
-                    s.id === ratioId
-                      ? { ...s, fresh_ratio: ratio, total_amount: amount }
-                      : s,
-                  ),
-                )
-                router.refresh()
-              }}
-            />
-        </RatioSheetFrame>
+        <SheetFrame onClose={() => setRatioId(null)} label="화식 비율 바꾸기" className="is-ratio">
+          <FreshRatioSheet
+            variant="app"
+            subscriptionId={ratioId}
+            onClose={() => setRatioId(null)}
+            onChanged={({ ratio, amount }) => {
+              toast.success('화식 비율을 바꿨어요')
+              // ★즉시 반영 (사장님 제보 2026-08-24): subs 는 useState(initialSubs)
+              //   라 router.refresh() 가 내려준 새 props 로는 **갱신되지 않는다**
+              //   (useState 는 최초 1회만 초기화). 시트가 돌려준 서버 확정값을
+              //   로컬 state 에 직접 반영 — pause/cancel(위 setSubs)과 같은 패턴.
+              setSubs((prev) =>
+                prev.map((s) =>
+                  s.id === ratioId
+                    ? { ...s, fresh_ratio: ratio, total_amount: amount }
+                    : s,
+                ),
+              )
+              router.refresh()
+            }}
+          />
+        </SheetFrame>
       )}
 
       {skipId &&
@@ -502,6 +538,39 @@ export default function DogSubscriptionClient({
           )
         })()}
 
+      {pauseId &&
+        (() => {
+          const s = subs.find((x) => x.id === pauseId)
+          if (!s) return null
+          return (
+            <PauseSheet
+              paidBoxInProgress={paidStateUnknown ? null : !!inProgress[pauseId]}
+              busy={busy === pauseId}
+              onClose={() => setPauseId(null)}
+              onConfirm={() => void pause(s)}
+            />
+          )
+        })()}
+
+      {resumeId &&
+        (() => {
+          const s = subs.find((x) => x.id === resumeId)
+          if (!s) return null
+          // 보여 주는 날짜는 재개 함수와 같은 계산(resumeShipDate). 실제 저장은 누르는 순간 다시 계산한다 —
+          // 시트를 열어 둔 채 마감을 넘기면 더 늦은 날짜가 되고, 그 날짜는 완료 토스트가 말한다(앞당겨지는 일은 없다).
+          const nextIso = resumeShipDate(s.next_delivery_date, undefined, chargeTiming ?? 'before_cooking')
+          return (
+            <ResumeSheet
+              shipIso={nextIso}
+              chargeIso={chargeTiming ? chargeDateFor(nextIso, chargeTiming) : null}
+              amount={shownAmount(s)}
+              busy={busy === resumeId}
+              onClose={() => setResumeId(null)}
+              onConfirm={() => void resume(s)}
+            />
+          )
+        })()}
+
       {cancelId && (
         <CancelSheet
           name={name}
@@ -516,11 +585,11 @@ export default function DogSubscriptionClient({
   )
 }
 
-// ── 구독 카드 (2026-10-01 사장님 B안 — 한 장 요약 + 큰 버튼) ──────────────────────────────────
+// ── 구독 카드 (2026-10-01 사장님 B안 → 2026-10-09 'A 포스터' 시안 AppSub) ────────────────────
 //
 // 사장님 "이 일반 결제 화면이 너무 별로야 강력하게 업그레이드" → B안(시안 두 개 중) 선택.
-//  · 맨 위 한 장: 강아지 · 금액 · 결제일 · 하루 약 얼마 · 박스 여정(결제 → 조리 → 발송 → 도착).
-//  · 함께한 박스: 몇 번째인지 동그라미로.
+//  · 맨 위: 강아지 · 레시피 · 상태, 그 아래 금액 카드(도장 그림자) — 금액 · 결제일 · 하루 약 얼마.
+//  · 박스 여정(결제 → 조리 → 발송 → 도착) · 함께한 지 몇 주째인지.
 //  · 관리: 2×2 큰 버튼(부모님 세대 — 작은 버튼 줄은 누르기 어렵다) + 해지는 조용히.
 // 일정은 lib/shipping-schedule 정본: 토·일 조리 → 월 포장 → 화 발송, 결제는 고객마다(chargeDateFor).
 // 상태별로 '할 수 있는 것만' 보여주는 규칙(이 파일 상단)은 그대로다.
@@ -581,12 +650,61 @@ function boxSteps(
   return timing === 'ship_day' ? [cook, pay, ship, arrive] : [pay, cook, ship, arrive]
 }
 
-const STEP_ICON: Record<string, typeof CreditCard> = {
-  pay: CreditCard,
-  cook: CookingPot,
-  ship: Truck,
-  arrive: Home,
+/** 상태 칩 — 정기배송 탭(SubscriptionsSummaryView)과 같은 색 규칙, 이 화면은 한 단계 크게(시안 AppSub·S01·S03·S04). */
+function StateChip({ state, label }: { state: SubState; label: string }) {
+  return (
+    <span className={'sub-chip is-' + state}>
+      {state === 'paused' && (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <rect x="5" y="4" width="5" height="16" rx="1" />
+          <rect x="14" y="4" width="5" height="16" rx="1" />
+        </svg>
+      )}
+      {label}
+    </span>
+  )
 }
+
+const CardIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="5.5" width="18" height="13" rx="1.5" />
+    <path d="M3 9.5h18" />
+  </svg>
+)
+
+const CheckIcon = ({ size = 18, width = 2.6 }: { size?: number; width?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+)
+
+const PlayIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M7 4.5v15l12-7.5z" />
+  </svg>
+)
+
+const PauseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <rect x="5" y="4" width="5" height="16" rx="1" />
+    <rect x="14" y="4" width="5" height="16" rx="1" />
+  </svg>
+)
+
+const SkipIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M5 5l9 7-9 7z" />
+    <path d="M19 5v14" />
+  </svg>
+)
+
+const Spinner = () => (
+  // 스피너만 남으면 버튼 이름이 사라진다(스크린리더) — 10차 점검 D.
+  <>
+    <Loader2 size={18} strokeWidth={2.4} className="animate-spin" aria-hidden />
+    <span className="sr-only">처리하고 있어요</span>
+  </>
+)
 
 function SubCard({
   sub,
@@ -622,7 +740,7 @@ function SubCard({
   paidUnknown: boolean
   /** 그 결제된 박스의 결제 시각. 모르면 null(옛 계산 next − 14). */
   paidAt: string | null
-  preview: { chargeAmount: number; label: string | null } | null
+  preview: ChargePreview | null
   busy: boolean
   onCard: () => void
   onSkip: () => void
@@ -634,10 +752,14 @@ function SubCard({
   onRatio: () => void
 }) {
   const state = subscriptionState(sub)
-  // 라벨·톤은 lib/subscription-state 정본 — 화면마다 다른 이름을 붙이지 않는다.
-  const meta = { label: SUB_STATE_LABEL[state], tone: SUB_STATE_TONE[state] }
-  const recipes = sub.subscription_items.map((i) => i.product_name.replace(/\s*\([^)]*\)\s*$/, '')).join(' · ')
+  // 라벨은 lib/subscription-state 정본 — 화면마다 다른 이름을 붙이지 않는다.
+  const stateLabel = SUB_STATE_LABEL[state]
   const today = todayKstIsoDate()
+
+  // 레시피 — 파우치 색 네모 + "닭고기·흑돼지"(시안). 순서·합치기는 lib/design/pouch 정본(홈 박스 카드와 같은 순서).
+  const recipes = boxRecipes(sub.subscription_items.map((i) => ({ name: i.product_name, quantity: i.quantity })))
+  const recipeText = recipes.label ? recipes.label.replace(/ 화식$/, '').replace(/ · /g, '·') : null
+  const colors = boxCardColors(recipes.lines)
 
   const method = billingMethodSummary({
     registered: !!sub.has_billing_key,
@@ -648,7 +770,14 @@ function SubCard({
   // 금액 — 서버 미리보기(청구와 같은 함수)가 우선, 없으면 서포터즈 판정으로 대신한다.
   const tpRaw = trialPricing(trial, sub.total_amount)
   const shown = preview ? preview.chargeAmount : tpRaw ? tpRaw.chargeAmount : sub.total_amount
-  const discounted = shown !== sub.total_amount
+  const off = sub.total_amount - shown
+  // 할인 한 줄 — 서포터즈는 "서포터즈 혜택으로 N원 할인"(앱시안 결정 3번: 예전 "서포터즈 100원 −N원"은 할인 이름에
+  // 결제 금액이 섞여 헷갈렸다). 그 밖의 할인은 "이름 −금액". 비율(%)은 쓰지 않는다(브랜드 보이스). 정기배송 탭과 같은 말.
+  const isTrialDiscount = preview
+    ? preview.reason === 'trial_cheap' || preview.reason === 'trial_half' || (!preview.reason && !!tpRaw)
+    : !!tpRaw
+  const discountText =
+    off > 0 ? (isTrialDiscount ? `서포터즈 혜택으로 ${krw(off)} 할인` : `${preview?.label ?? '할인'} −${krw(off)}`) : null
 
   // 결제일 — next_delivery_date 는 **발송일**이고, 결제일은 결제 시점으로 정한다(2026-10-01).
   const nextShip = sub.next_delivery_date
@@ -658,22 +787,48 @@ function SubCard({
    *  next_delivery_date 가 갱신되지 않은 채 과거로 흘러간다.
    */
   const overdue = chargeIso != null && chargeIso < today
-  const when =
-    state === 'active' && chargeIso
-      ? overdue
-        ? `${dateLabel(chargeIso)} 결제 예정이었어요 · 확인 중`
-        : `${dateLabel(chargeIso)} 결제`
-      : state === 'paused'
-        ? '일시정지 중 · 다시 시작하면 다음 발송일부터'
-        : state === 'needs_card'
-          ? '결제수단을 등록하면 첫 배송일이 정해져요'
-          : nextShip
-            ? `다음 발송 ${dateLabel(nextShip)}`
-            : '2주에 한 번'
-  // 결제 시점을 모르는 활성 구독 — 결제 요일 대신 발송일만.
-  const whenText = state === 'active' && !chargeIso && nextShip ? `다음 발송 ${dateLabel(nextShip)}` : when
   // 하루 약 얼마 — 2주(14일)치 한 박스. 100원 체험가처럼 작은 금액엔 의미가 없어 뺀다.
   const perDay = shown >= 1000 ? Math.round(shown / 14 / 10) * 10 : null
+  const perDayText = perDay && state === 'active' ? ` · 하루 약 ${perDay.toLocaleString('ko-KR')}원` : ''
+
+  // 금액 카드 아래 한 줄 — 진행 중이면 결제일(결제 시점을 모르면 발송일), 그 밖의 상태는 지금 무슨 상황인지.
+  const whenNode: ReactNode =
+    state === 'active'
+      ? chargeIso
+        ? overdue
+          ? (
+              <>
+                <strong>{dateLabel(chargeIso)}</strong> 결제 예정이었어요 · 확인 중{perDayText}
+              </>
+            )
+          : (
+              <>
+                <strong>{dateLabel(chargeIso)}</strong> 결제{perDayText}
+              </>
+            )
+        : nextShip
+          ? (
+              <>
+                다음 발송 <strong>{dateLabel(nextShip)}</strong>
+                {perDayText}
+              </>
+            )
+          : `2주에 한 번${perDayText}`
+      : null
+  const noteNode: ReactNode =
+    state === 'paused' ? (
+      <>
+        <strong>일시정지 중이에요.</strong> 다시 시작하면 다음 발송일부터 보내드려요.
+      </>
+    ) : state === 'needs_card' ? (
+      <>
+        결제수단을 등록하면 <strong>첫 배송일이 정해져요.</strong>
+      </>
+    ) : state === 'card_failed' && nextShip ? (
+      <>
+        다음 발송 <strong>{dateLabel(nextShip)}</strong>
+      </>
+    ) : null
 
   // 박스 여정 — 결제됐지만 아직 안 나간 박스가 있으면 **이번 박스**, 아니면 다음 박스.
   //   이번 박스 발송일은 결제 시각 기준(paidBoxShipIso) — next − 14 만 보면 결제 뒤 '2주 미루기'에 2주 늦게 말한다.
@@ -696,8 +851,16 @@ function SubCard({
   //   "1번째 박스까지 받았어요"라고 하던 것. 같은 카드 위 여정은 그 박스를 조리 중으로 그린다.
   //   ★보냈지만 아직 도착 전인 박스(배송 중)도 뺀다(11차 점검 E) — 발송 처리 직후 "1번째 박스까지 받았어요".
   const boxes = Math.max(0, sub.total_deliveries - (inProgress ? 1 : 0) - (inTransit ? 1 : 0))
-  const dots = Math.max(8, Math.min(10, boxes + 2))
   const filled = boxes % 10 === 0 && boxes > 0 ? 10 : boxes % 10
+  // 오고 있는 박스(결제됨·배송 중) 한 칸은 점선으로(시안 S05). 오고 있는 게 없으면 빈칸만(시안 AppSub).
+  const comingIdx = state === 'active' && (inProgress || inTransit) && filled < 10 ? filled : -1
+  // "함께한 지 N주째예요"(앱시안 결정 1번 — 몇 번째 박스 대신). 박스 하나 = 2주치.
+  const withTitle =
+    boxes > 0
+      ? `함께한 지 ${boxes * 2}주째예요`
+      : state === 'active'
+        ? '첫 박스를 준비하고 있어요'
+        : '아직 받은 박스가 없어요'
 
   const skipTo = nextShip ? nextCycleDate(nextShip) : null
   // 미룬 회차를 되돌릴 수 있으면 그 날짜 — 원래 회차 신청 마감 전·결제된 박스와 안 겹칠 때만(undoSkipTarget 정본).
@@ -715,142 +878,159 @@ function SubCard({
       : null
 
   return (
-    <section className={'sub-card is-' + meta.tone}>
+    <section className={'sub-card is-' + state}>
       {/* ── 머리: 누구의 정기배송인지 ── */}
       <div className="sub-head">
         <span className="sub-avatar" aria-hidden>
           {dogPhoto ? (
-            <Image src={dogPhoto} alt="" fill sizes="48px" className="object-cover" unoptimized />
+            <Image src={dogPhoto} alt="" fill sizes="56px" className="object-cover" unoptimized />
           ) : (
-            name.slice(0, 1)
+            <DogPawMark size={24} color={V3.inkMute} />
           )}
         </span>
         <span className="sub-head-text">
-          <span className="sub-head-name">{name} 정기배송</span>
+          <h2 className="sub-head-name">{name} 정기배송</h2>
           <span className="sub-head-sub">
-            {[recipes || '레시피 정보 없음', sub.fresh_ratio != null ? freshTierLabel(sub.fresh_ratio) : null]
-              .filter(Boolean)
-              .join(' · ')}
+            {recipes.lines.length > 0 && (
+              <span className="sub-squares" aria-hidden>
+                {recipes.lines.map((l) => (
+                  <span key={l} style={{ background: RECIPE_COLOR[l] }} />
+                ))}
+              </span>
+            )}
+            <span>
+              {[recipeText || '레시피 정보 없음', sub.fresh_ratio != null ? freshTierLabel(sub.fresh_ratio) : null]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
           </span>
         </span>
-        <span className={'sub-state is-' + meta.tone}>{meta.label}</span>
+        <StateChip state={state} label={stateLabel} />
       </div>
-
-      {/* ── 금액 = 주인공 ── */}
-      <span className="sub-amount">
-        {discounted && (
-          <span className="sub-won" style={{ textDecoration: 'line-through', opacity: 0.55, marginRight: 6 }}>
-            {sub.total_amount.toLocaleString('ko-KR')}원
-          </span>
-        )}
-        {shown.toLocaleString('ko-KR')}
-        <span className="sub-won">원</span>
-      </span>
-      <p className="sub-when">
-        {whenText}
-        {perDay && state === 'active' ? ` · 하루 약 ${perDay.toLocaleString('ko-KR')}원` : ''}
-      </p>
 
       {/* 결제 실패만 경고로 — 놓치면 배송이 멈춘다. */}
       {state === 'card_failed' && (
-        <p className="sub-warn">
-          <AlertTriangle size={16} strokeWidth={2.4} />
-          <span>
-            결제가 되지 않았어요. 결제수단을 다시 등록하면 이어져요.
-            {sub.last_failed_charge_reason ? ` (${sub.last_failed_charge_reason})` : ''}
+        <div role="alert" className="sub-alert">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M12 3.5L2.5 20h19z" />
+            <path d="M12 10v4.5M12 17.2v.3" />
+          </svg>
+          <span className="sub-alert-text">
+            <strong>결제가 되지 않았어요</strong>
+            <span>
+              결제수단을 다시 등록하면 이어져요.
+              {sub.last_failed_charge_reason ? ` (${sub.last_failed_charge_reason})` : ''}
+            </span>
           </span>
-        </p>
+        </div>
       )}
+
+      {/* ── 금액 = 주인공 (박스 레시피 파우치 색 + 도장 그림자) ── */}
+      <section
+        aria-label={state === 'active' ? '다음 결제' : '정기배송 금액'}
+        className="sub-hero"
+        style={{ ...boxCardFrame(colors), '--sub-hero-divider': colors.divider } as React.CSSProperties}
+      >
+        <span className="sub-hero-kicker">{state === 'active' ? '다음 결제' : '2주마다'}</span>
+        <span className="sub-hero-amount">
+          <span className="ft-num">{shown.toLocaleString('ko-KR')}</span>
+          <span className="ft-poster">원</span>
+        </span>
+        {discountText && (
+          <span className="sub-hero-discount">
+            <s>{krw(sub.total_amount)}</s>
+            <span className="sub-hero-discount-chip">{discountText}</span>
+          </span>
+        )}
+        {whenNode && <span className="sub-hero-when">{whenNode}</span>}
+        {noteNode && <span className="sub-hero-note">{noteNode}</span>}
+      </section>
 
       {/* ── 박스 여정 ── */}
       {steps.length > 0 && (
-        <div className="sub-journey" aria-label={inProgress ? '이번 박스 진행' : '다음 박스 일정'}>
-          <p className="sub-journey-title">{inProgress ? '이번 박스' : '다음 박스'}</p>
+        <section className="sub-journey" aria-label={inProgress ? '이번 박스 진행' : '다음 박스 일정'}>
+          <h2>{inProgress ? '이번 박스' : '다음 박스'}</h2>
           <ol className="sub-steps" style={{ '--n': steps.length } as React.CSSProperties}>
             {steps.map((st, i) => {
-              const Icon = STEP_ICON[st.key] ?? Check
-              const cls = st.done ? 'is-done' : i === currentIdx ? 'is-now' : ''
+              // 끝난 단계 = 꽉 찬 막대 + 회색 ✓. 지금 단계 = 이번 박스면 반 칸(진행 중), 다음 박스면 꽉 찬 칸(다음 차례).
+              const cls = st.done ? 'is-done' : i === currentIdx ? (inProgress ? 'is-now' : 'is-next') : ''
               return (
-                <li key={st.key} className={'sub-step ' + cls}>
-                  <span className="sub-step-dot">
-                    {st.done ? <Check size={14} strokeWidth={3} /> : <Icon size={14} strokeWidth={2.2} />}
+                <li key={st.key} className={'sub-step ' + cls} aria-current={i === currentIdx ? 'step' : undefined}>
+                  <span className="sub-step-bar" aria-hidden />
+                  <span className="sub-step-label">
+                    {st.done && <CheckIcon size={14} width={3.2} />}
+                    {st.label}
                   </span>
-                  <span className="sub-step-label">{st.label}</span>
                   <span className="sub-step-when">{st.when}</span>
                 </li>
               )
             })}
           </ol>
-        </div>
+        </section>
       )}
 
       {/* ── 함께한 박스 ── */}
       {(state === 'active' || state === 'paused') && (
-        <div className="sub-boxes">
-          <div className="sub-boxes-row">
-            <span className="sub-kicker">함께한 박스</span>
-            <span className="sub-boxes-count">
-              {boxes > 0 ? `${boxes}번째 박스까지 받았어요` : '첫 박스를 준비하고 있어요'}
-            </span>
+        <section className="sub-with" aria-label="함께한 박스">
+          <div className="sub-with-head">
+            <span className="sub-with-kicker">{waGwa(name)}</span>
+            <h2>{withTitle}</h2>
           </div>
-          <div className="sub-dots" aria-hidden>
-            {Array.from({ length: dots }, (_, i) => (
-              <span
-                key={i}
-                className={'sub-dot' + (i < filled ? ' is-on' : i === filled && state === 'active' ? ' is-next' : '')}
-              />
+          <div className="sub-with-row" aria-hidden>
+            {Array.from({ length: 10 }, (_, i) => (
+              <span key={i} className={i < filled ? 'is-on' : i === comingIdx ? 'is-coming' : undefined} />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── 관리 — 상태별로 '할 수 있는 것'만 ── */}
       {busy && (
         <p className="sub-busy-line">
-          <Loader2 size={16} strokeWidth={2.4} className="animate-spin" /> 처리하고 있어요
+          <Loader2 size={16} strokeWidth={2.4} className="animate-spin" aria-hidden /> 처리하고 있어요
         </p>
       )}
 
       {(state === 'needs_card' || state === 'card_failed') && (
-        <button type="button" className="sub-btn is-primary" onClick={onCard}>
-          <CreditCard size={18} strokeWidth={2.4} />
-          {state === 'card_failed' ? '결제수단 다시 등록' : '결제수단 등록하고 시작'}
-        </button>
+        <div className="sub-primary-wrap">
+          <button type="button" className="sub-primary" onClick={onCard}>
+            <CardIcon />
+            {state === 'card_failed' ? '결제수단 다시 등록' : '결제수단 등록하고 시작'}
+          </button>
+        </div>
       )}
 
       {state === 'paused' && (
-        <button type="button" className="sub-btn is-primary" onClick={onResume} disabled={busy}>
-          <Play size={18} strokeWidth={2.4} />
-          다시 시작
-        </button>
+        <div className="sub-primary-wrap">
+          <button type="button" className="sub-primary" onClick={onResume} disabled={busy}>
+            <PlayIcon />
+            다시 시작
+          </button>
+        </div>
       )}
 
       {state === 'active' && (
-        <div className="sub-tiles">
-          <button type="button" className="sub-tile" onClick={onSkip} disabled={busy}>
-            <SkipForward size={22} strokeWidth={2.2} />
+        <div className="sub-tiles" role="group" aria-label="바꾸기">
+          <button type="button" className="sub-tile is-skip" onClick={onSkip} disabled={busy}>
             <span className="sub-tile-label">2주 미루기</span>
             {/* 결제된 이번 박스는 그대로 나간다(사장님 2026-10-01) — 미루는 건 그다음 박스라는 걸 타일에서 말한다. */}
             <span className="sub-tile-sub">
               {skipTo ? (inProgress ? `그다음 박스를 ${md(skipTo)}로` : `${md(skipTo)} 발송으로`) : '다음 박스를 2주 뒤로'}
             </span>
           </button>
-          <button type="button" className="sub-tile" onClick={onPause} disabled={busy}>
-            <Pause size={22} strokeWidth={2.2} />
+          <button type="button" className="sub-tile is-pause" onClick={onPause} disabled={busy}>
             <span className="sub-tile-label">일시정지</span>
             <span className="sub-tile-sub">다시 시작할 때까지</span>
           </button>
           {/* 화식 비율 — 금액이 함께 바뀌므로 진행 중인 구독에만. 시트가 세 티어 금액을 보여주고 서버가 계산·저장. */}
-          <button type="button" className="sub-tile" onClick={onRatio} disabled={busy}>
-            <SlidersHorizontal size={22} strokeWidth={2.2} />
+          <button type="button" className="sub-tile is-ratio" onClick={onRatio} disabled={busy}>
             <span className="sub-tile-label">화식 비율</span>
             <span className="sub-tile-sub">
               {sub.fresh_ratio != null ? `지금 ${freshTierLabel(sub.fresh_ratio)}` : '비율 바꾸기'}
             </span>
           </button>
           {/* ★ 정상 구독에도 결제수단 교체를 준다 (2026-07-30) — 카드가 만료되기 **전에** 바꿀 수 있게. */}
-          <button type="button" className="sub-tile" onClick={onCard} disabled={busy}>
-            <CreditCard size={22} strokeWidth={2.2} />
+          <button type="button" className="sub-tile is-card" onClick={onCard} disabled={busy}>
             <span className="sub-tile-label">결제수단</span>
             <span className="sub-tile-sub">{method}</span>
           </button>
@@ -859,17 +1039,15 @@ function SubCard({
 
       {/* 미룬 박스 되돌리기 — 실수로 미뤄도 원래 회차 마감 전이면 고객이 스스로 되돌린다(2026-10-06). */}
       {undoTo && nextShip && (
-        <button type="button" className="sub-undo" onClick={() => onUndo(nextShip, undoTo)} disabled={busy}>
-          <Undo2 size={18} strokeWidth={2.4} />
-          미룬 박스 되돌리기 · {md(undoTo)} 발송으로
-        </button>
-      )}
-
-      {state !== 'cancelled' && (
-        <button type="button" className="sub-cancel" onClick={onCancel} disabled={busy}>
-          {/* 결제 이력이 없으면 '해지'가 아니라 '취소'다 (사장님 2026-07-30). */}
-          {sub.total_deliveries > 0 ? '정기배송 해지' : '정기배송 신청 취소'}
-        </button>
+        <div className="sub-undo-wrap">
+          <button type="button" className="sub-undo" onClick={() => onUndo(nextShip, undoTo)} disabled={busy}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 14L4 9l5-5" />
+              <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+            </svg>
+            미룬 박스 되돌리기 · {md(undoTo)} 발송으로
+          </button>
+        </div>
       )}
 
       <p className="sub-foot">
@@ -879,35 +1057,79 @@ function SubCard({
             ? '등록 전까지는 아무것도 결제되지 않아요. 위약금도 없어요.'
             : '다음 결제 전까지 바꾸거나 그만둘 수 있어요. 위약금은 없어요.'}
       </p>
+
+      {state !== 'cancelled' && (
+        <button type="button" className="sub-cancel" onClick={onCancel} disabled={busy}>
+          {/* 결제 이력이 없으면 '해지'가 아니라 '취소'다 (사장님 2026-07-30). */}
+          {sub.total_deliveries > 0 ? '정기배송 해지' : '정기배송 신청 취소'}
+        </button>
+      )}
     </section>
   )
 }
 
-// ── 빈 상태 ─────────────────────────────────────────────────────────────────
+// ── 빈 상태 — 정기배송이 없거나, 해지해서 쉬는 중 (시안 S02) ───────────────────────────────────
 
-function EmptyStart({ name, startHref }: { name: string; startHref: string }) {
+function EmptyStart({ name, startHref, resting }: { name: string; startHref: string; resting: boolean }) {
   return (
-    <section className="sub-empty">
-      <PackageOpen size={22} strokeWidth={1.8} />
-      <h2>{name}의 정기배송이 아직 없어요</h2>
+    <section className="sub-empty" aria-labelledby="sub-empty-title">
+      <span className="sub-empty-icon" aria-hidden>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 8L12 4l8.5 4v8.5L12 20.5l-8.5-4z" />
+          <path d="M3.5 8L12 12l8.5-4M12 12v8.5" />
+          <path d="M7.7 6l8.6 4" />
+        </svg>
+      </span>
+      {/* 해지한 사람에겐 "지금은 쉬는 중이에요"(앱시안 결정 15번) — '정기배송이 없어요'는 처음 오는 사람의 말이다. */}
+      <h1 id="sub-empty-title">
+        {resting ? (
+          <>
+            {name}의 정기배송은
+            <br />
+            지금 쉬는 중이에요
+          </>
+        ) : (
+          <>
+            {name}의 정기배송이
+            <br />
+            아직 없어요
+          </>
+        )}
+      </h1>
       <p>
-        분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나
-        그만둘 수 있어요.
+        {resting ? '다시 시작하면 ' : ''}분석 결과에 맞춘 레시피로 2주마다 보내드려요. 다음 결제 전까지 미루거나 그만둘
+        수 있어요.
       </p>
-      <Link href={startHref} className="sub-btn is-primary">
-        정기배송 시작하기
+      <Link href={startHref} className="sub-empty-cta">
+        {resting ? '정기배송 다시 시작하기' : '정기배송 시작하기'}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
       </Link>
     </section>
   )
 }
 
-// ── 화식 비율 시트 틀 (10차 점검 D, 2026-10-06) ─────────────────────────────────────
+// ── 아래에서 올라오는 창 틀 (시안 S06·S08·S09·S10) ────────────────────────────────────────
 //
-// 예전엔 scrim + div 뿐이라 안드로이드 하드웨어 뒤로가기가 시트를 닫지 않고 **화면을 떠났다**(NativeShellBridge 의
-// 일반 방어는 <dialog open> 만 찾는다). 스크롤 잠금·포커스 트랩·Esc 도 없었다. SkipSheet·CancelSheet 와 같은 훅으로.
-// 시트 안 FreshRatioSheet 는 --fd-* 토큰만 쓴다 — 여기서 앱 v3 값으로 스왑한다. 작은 글자용 --fd-coral-text 는
-// accent(#C86B45, 3.4:1 — 장식 전용)가 아니라 accent-deep(본문 대비 통과)으로(lib/design/contrast).
-function RatioSheetFrame({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+// 예전 화식 비율 시트는 scrim + div 뿐이라 안드로이드 하드웨어 뒤로가기가 시트를 닫지 않고 **화면을 떠났다**
+// (NativeShellBridge 의 일반 방어는 <dialog open> 만 찾는다). 스크롤 잠금·포커스 트랩·Esc 도 없었다(10차 점검 D).
+// 이제 모든 시트가 이 틀 하나로 — Esc 닫기 + 포커스 트랩 + 스크롤 잠금 + 닫을 때 포커스 복귀(useModalA11y).
+// 층 순서: 앱 헤더·탭바 40 < 시트 55·56 < 토스트 60(subscription.css).
+
+function SheetFrame({
+  onClose,
+  labelledBy,
+  label,
+  className,
+  children,
+}: {
+  onClose: () => void
+  labelledBy?: string
+  label?: string
+  className?: string
+  children: ReactNode
+}) {
   const ref = useRef<HTMLDivElement>(null)
   useModalA11y({ open: true, onClose, containerRef: ref })
   return (
@@ -915,25 +1137,29 @@ function RatioSheetFrame({ onClose, children }: { onClose: () => void; children:
       <div className="sub-scrim" onClick={onClose} />
       <div
         ref={ref}
-        className="sub-sheet"
+        className={'sub-sheet' + (className ? ' ' + className : '')}
         role="dialog"
         aria-modal="true"
-        aria-label="화식 비율 바꾸기"
-        style={
-          {
-            '--fd-pine': 'var(--ink)',
-            '--fd-muted': 'var(--muted)',
-            '--fd-line': 'var(--rule)',
-            '--fd-coral': 'var(--terracotta)',
-            '--fd-coral-text': 'var(--accent-deep)',
-            '--fd-offwhite': 'var(--bg-2)',
-            '--fd-r-row': '4px',
-          } as React.CSSProperties
-        }
+        aria-labelledby={labelledBy}
+        aria-label={labelledBy ? undefined : label}
       >
+        <span className="sub-sheet-grip" aria-hidden />
         {children}
       </div>
     </>
+  )
+}
+
+function SheetHead({ id, onClose, big = false, children }: { id: string; onClose: () => void; big?: boolean; children: ReactNode }) {
+  return (
+    <div className={'sub-sheet-head' + (big ? ' is-big' : '')}>
+      <h2 id={id}>{children}</h2>
+      <button type="button" className="sub-sheet-x" onClick={onClose} aria-label="닫기">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
+    </div>
   )
 }
 
@@ -966,56 +1192,174 @@ function SkipSheet({
   onClose: () => void
   onConfirm: () => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  useModalA11y({ open: true, onClose, containerRef: dialogRef })
   const canUndo = undoUntil >= today
   return (
-    <>
-      <div className="sub-scrim" onClick={onClose} />
-      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <button type="button" className="sub-sheet-x" onClick={onClose} aria-label="닫기">
-          <X size={16} strokeWidth={2.2} />
-        </button>
-        <h3 id={titleId}>
-          {md(fromIso)} 박스를 {md(toIso)}로 미룰까요?
-        </h3>
-        <p>
-          {paidBoxInProgress
-            ? `결제된 이번 박스는 그대로 보내드리고, 그다음 박스(${dateLabel(fromIso)} 발송)를 ${dateLabel(toIso)} 발송으로 미뤄요.`
-            : paidBoxInProgress === null
-              ? `${dateLabel(fromIso)} 발송 박스를 ${dateLabel(toIso)} 발송으로 미뤄요. 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요.`
-              : `${dateLabel(fromIso)}에 보낼 박스를 ${dateLabel(toIso)}로 미뤄요. 그 사이 2주는 ${name}에게 박스가 가지 않고, 결제도 그만큼 뒤로 밀려요.`}
-          {canUndo ? ` 잘못 눌렀다면 ${dateLabel(undoUntil)}까지 이 화면에서 되돌릴 수 있어요.` : ''}
-        </p>
-        <div className="sub-sheet-btns">
-          <button type="button" className="sub-btn" onClick={onClose}>
-            그대로 둘게요
-          </button>
-          <button type="button" className="sub-btn is-primary" onClick={onConfirm} disabled={busy}>
-            {busy ? (
-              // 스피너만 남으면 버튼 이름이 사라진다(스크린리더) — 10차 점검 D.
-              <>
-                <Loader2 size={13} strokeWidth={2.4} className="animate-spin" aria-hidden />
-                <span className="sr-only">처리하고 있어요</span>
-              </>
-            ) : (
-              <>
-                <SkipForward size={13} strokeWidth={2.6} />
-                2주 미루기
-              </>
-            )}
-          </button>
-        </div>
+    <SheetFrame onClose={onClose} labelledBy={titleId}>
+      <SheetHead id={titleId} onClose={onClose}>
+        {md(fromIso)} 박스를
+        <br />
+        {md(toIso)}로 미룰까요?
+      </SheetHead>
+      <div className="sub-move" aria-hidden>
+        <span className="sub-move-from">
+          <span className="sub-move-k">지금 발송일</span>
+          <span className="sub-move-v">{dateLabel(fromIso)}</span>
+        </span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+        <span className="sub-move-to">
+          <span className="sub-move-k">미룬 뒤</span>
+          <span className="sub-move-v">{dateLabel(toIso)}</span>
+        </span>
       </div>
-    </>
+      <p className="sub-sheet-body">
+        {paidBoxInProgress
+          ? `결제된 이번 박스는 그대로 보내드리고, 그다음 박스(${dateLabel(fromIso)} 발송)를 ${dateLabel(toIso)} 발송으로 미뤄요.`
+          : paidBoxInProgress === null
+            ? `${dateLabel(fromIso)} 발송 박스를 ${dateLabel(toIso)} 발송으로 미뤄요. 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요.`
+            : `${dateLabel(fromIso)}에 보낼 박스를 ${dateLabel(toIso)}로 미뤄요. 그 사이 2주는 ${name}에게 박스가 가지 않고, 결제도 그만큼 뒤로 밀려요.`}
+      </p>
+      {canUndo && (
+        <p className="sub-sheet-note">
+          잘못 눌렀다면 <strong>{dateLabel(undoUntil)}까지</strong> 이 화면에서 되돌릴 수 있어요.
+        </p>
+      )}
+      <div className="sub-sheet-btns">
+        <button type="button" className="sub-sheet-btn is-line" onClick={onClose}>
+          그대로 둘게요
+        </button>
+        <button type="button" className="sub-sheet-btn is-solid" onClick={onConfirm} disabled={busy}>
+          {busy ? (
+            <Spinner />
+          ) : (
+            <>
+              <SkipIcon />
+              2주 미루기
+            </>
+          )}
+        </button>
+      </div>
+    </SheetFrame>
+  )
+}
+
+// ── 일시정지·다시 시작 확인 (2026-10-09 앱시안 결정 3번 '동작') ─────────────────────────────
+//
+// 예전엔 누르는 즉시 바뀌고 토스트만 떴다. 일시정지는 결제·배송이 멈추고, 다시 시작은 다음 결제가 잡히는 일이라
+// 누르기 전에 무엇이 언제 일어나는지 말한다. 저장 로직(pause·resume)은 그대로다.
+function PauseSheet({
+  paidBoxInProgress,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  /** 결제됐지만 아직 안 나간 박스가 있다 — 그 박스는 그대로 보낸다(사장님 2026-10-01). null = 모름(조회 실패). */
+  paidBoxInProgress: boolean | null
+  busy: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const titleId = useId()
+  return (
+    <SheetFrame onClose={onClose} labelledBy={titleId}>
+      <SheetHead id={titleId} onClose={onClose}>
+        일시정지할까요?
+      </SheetHead>
+      <p className="sub-sheet-body">
+        {paidBoxInProgress ? (
+          <>
+            결제된 이번 박스는 그대로 보내드리고, <strong>그다음 박스부터 배송과 결제가 멈춰요.</strong>
+          </>
+        ) : paidBoxInProgress === null ? (
+          <>
+            <strong>다음 박스부터 배송과 결제가 멈춰요.</strong> 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요.
+          </>
+        ) : (
+          <strong>다음 박스부터 배송과 결제가 멈춰요.</strong>
+        )}{' '}
+        이 화면에서 다시 시작하면 다음 발송일부터 보내드려요.
+      </p>
+      <div className="sub-sheet-btns">
+        <button type="button" className="sub-sheet-btn is-line" onClick={onClose}>
+          그대로 둘게요
+        </button>
+        <button type="button" className="sub-sheet-btn is-solid" onClick={onConfirm} disabled={busy}>
+          {busy ? (
+            <Spinner />
+          ) : (
+            <>
+              <PauseIcon />
+              일시정지
+            </>
+          )}
+        </button>
+      </div>
+    </SheetFrame>
+  )
+}
+
+function ResumeSheet({
+  shipIso,
+  chargeIso,
+  amount,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  /** 다시 시작하면 나갈 첫 박스의 발송일(resumeShipDate). */
+  shipIso: string
+  /** 그 박스의 결제일 — 결제 시점을 모르면 null(결제 요일을 단정하지 않는다). */
+  chargeIso: string | null
+  /** 그 결제의 금액 — 금액 카드와 같은 판정. */
+  amount: number
+  busy: boolean
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  const titleId = useId()
+  return (
+    <SheetFrame onClose={onClose} labelledBy={titleId}>
+      <SheetHead id={titleId} onClose={onClose}>
+        다시 시작할까요?
+      </SheetHead>
+      <p className="sub-sheet-body">
+        {chargeIso ? (
+          <>
+            <strong>{dateLabel(chargeIso)} 아침</strong>에 {krw(amount)}이 결제되고,{' '}
+            <strong>{dateLabel(shipIso)}</strong>에 보내드려요.
+          </>
+        ) : (
+          <>
+            <strong>{dateLabel(shipIso)} 발송분</strong>부터 다시 보내드려요. 결제 금액은 {krw(amount)}이에요.
+          </>
+        )}
+      </p>
+      <p className="sub-sheet-note">다시 시작한 뒤에도 다음 결제 전까지 미루거나 멈출 수 있어요.</p>
+      <div className="sub-sheet-btns">
+        <button type="button" className="sub-sheet-btn is-line" onClick={onClose}>
+          그대로 둘게요
+        </button>
+        <button type="button" className="sub-sheet-btn is-solid" onClick={onConfirm} disabled={busy}>
+          {busy ? (
+            <Spinner />
+          ) : (
+            <>
+              <PlayIcon />
+              다시 시작
+            </>
+          )}
+        </button>
+      </div>
+    </SheetFrame>
   )
 }
 
 // ── 해지 확인 ───────────────────────────────────────────────────────────────
 
 /**
- * 파괴적 확인 시트.
+ * 파괴적 확인 시트. "그냥 둘게요"를 진하게, "해지하기"는 빨간 테두리(앱시안 결정 13번 — 실수로 누르기 쉬운 쪽을 약하게).
  *
  * @param started 결제 이력이 있는가(total_deliveries > 0). 없으면 '해지'가 아니라
  *   **'취소'** 로 말한다 — 결제된 게 없으니 "다음 박스부터 멈춰요" 가 성립하지
@@ -1038,58 +1382,52 @@ function CancelSheet({
   onClose: () => void
   onConfirm: () => void
 }) {
-  // 파괴적 다이얼로그 — Esc 닫기 + 포커스 트랩 + 스크롤 락 + 닫을 때 포커스 복귀
-  // (2026-07-17 a11y). 마운트=열림이므로 open:true.
-  const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  useModalA11y({ open: true, onClose, containerRef: dialogRef })
   return (
-    <>
-      <div className="sub-scrim" onClick={onClose} />
-      <div ref={dialogRef} className="sub-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <button
-          type="button"
-          className="sub-sheet-x"
-          onClick={onClose}
-          aria-label="닫기"
-        >
-          <X size={16} strokeWidth={2.2} />
+    <SheetFrame onClose={onClose} labelledBy={titleId}>
+      <SheetHead id={titleId} onClose={onClose} big>
+        정말 {started ? '해지' : '취소'}할까요?
+      </SheetHead>
+      <p className="sub-sheet-body">
+        {started ? (
+          paidBoxInProgress ? (
+            <>
+              이미 결제된 박스는 맞춤으로 만들어 그대로 보내드려요. 해지하면 <strong>그다음 박스부터 배송과 결제가 멈춰요.</strong>{' '}
+              {name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.
+            </>
+          ) : paidBoxInProgress === null ? (
+            <>
+              해지하면 {name}의 <strong>다음 박스부터 배송과 결제가 멈춰요.</strong> 이미 결제된 박스가 있으면 그 박스는 그대로
+              보내드려요. 기록과 분석은 그대로 남아 있어요.
+            </>
+          ) : (
+            <>
+              해지하면 {name}의 <strong>다음 박스부터 배송과 결제가 멈춰요.</strong> 지금까지의 기록과 분석은 그대로 남아 있고,
+              나중에 다시 시작할 수 있어요.
+            </>
+          )
+        ) : (
+          <>
+            <strong>아직 결제된 게 없어서 그냥 없어져요.</strong> {name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 신청할 수
+            있어요.
+          </>
+        )}
+      </p>
+      <div className="sub-sheet-btns">
+        <button type="button" className="sub-sheet-btn is-solid" onClick={onClose}>
+          그냥 둘게요
         </button>
-        <h3 id={titleId}>정말 {started ? '해지' : '취소'}할까요?</h3>
-        <p>
-          {started
-            ? paidBoxInProgress
-              ? `이미 결제된 박스는 맞춤으로 만들어 그대로 보내드려요. 해지하면 그다음 박스부터 배송과 결제가 멈춰요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
-              : paidBoxInProgress === null
-                ? `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 이미 결제된 박스가 있으면 그 박스는 그대로 보내드려요. 기록과 분석은 그대로 남아 있어요.`
-                : `해지하면 ${name}의 다음 박스부터 배송과 결제가 멈춰요. 지금까지의 기록과 분석은 그대로 남아 있고, 나중에 다시 시작할 수 있어요.`
-            : `아직 결제된 게 없어서 그냥 없어져요. ${name}의 기록과 분석은 그대로 남아 있고, 나중에 다시 신청할 수 있어요.`}
-        </p>
-        <div className="sub-sheet-btns">
-          <button type="button" className="sub-btn" onClick={onClose}>
-            그냥 둘게요
-          </button>
-          <button
-            type="button"
-            className="sub-btn is-danger"
-            onClick={onConfirm}
-            disabled={busy}
-          >
-            {busy ? (
-              // 스피너만 남으면 버튼 이름이 사라진다(스크린리더) — 10차 점검 D.
-              <>
-                <Loader2 size={13} strokeWidth={2.4} className="animate-spin" aria-hidden />
-                <span className="sr-only">처리하고 있어요</span>
-              </>
-            ) : (
-              <>
-                <Check size={13} strokeWidth={2.6} />
-                {started ? '해지하기' : '취소하기'}
-              </>
-            )}
-          </button>
-        </div>
+        <button type="button" className="sub-sheet-btn is-danger" onClick={onConfirm} disabled={busy}>
+          {busy ? (
+            <Spinner />
+          ) : (
+            <>
+              <CheckIcon />
+              {started ? '해지하기' : '취소하기'}
+            </>
+          )}
+        </button>
       </div>
-    </>
+    </SheetFrame>
   )
 }

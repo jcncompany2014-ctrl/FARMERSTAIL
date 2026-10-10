@@ -20,6 +20,7 @@ import {
 } from '@/lib/autosignup-draft'
 import { createDogFromDraft } from '@/lib/auth/createDogFromDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
+import { isFreshAccount, surveyStartHref } from '@/lib/survey/welcome'
 
 export default function StartOnboardPage() {
   const router = useRouter()
@@ -62,7 +63,8 @@ export default function StartOnboardPage() {
           if (cancelled) return
           if (dogId) {
             clearAutosignupDraft()
-            router.replace(`/dogs/${dogId}/survey`)
+            // 방금 가입한 계정이면 설문 첫 질문에 '가입 완료' 띠(시안 Y7, lib/survey/welcome).
+            router.replace(surveyStartHref(dogId, isFreshAccount(user.created_at)))
             return
           }
         } catch {

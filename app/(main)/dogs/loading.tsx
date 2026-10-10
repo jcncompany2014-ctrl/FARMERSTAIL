@@ -2,30 +2,39 @@
  * /dogs 목록 로딩 폴백 (audit #108).
  *
  * 강아지 목록은 보통 1-2개라 카드 2개 placeholder.
+ *
+ * 2026-10-09 'A 포스터' — 시안 B07 치수 그대로. 화면 이름('우리 아이')은 윗줄이 그리므로 뼈대는 카드만:
+ * 옅은 회색 테두리 1.5 · 높이 88 이상 · 사진 동그라미 60 · 이름(24)·한 줄(15).
  */
-import { Skeleton } from '@/components/ui/Skeleton'
+import { V3Radius } from '@/lib/design/tokens'
+import AppSkeleton, { SKELETON_FILL, SkeletonBlock } from '@/components/v3/system/AppSkeleton'
 
 export default function DogsLoading() {
   return (
-    <div className="pb-8" style={{ background: 'var(--bg)' }}>
-      <section className="px-5 pt-6">
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-7 w-1/2 mt-3" />
-      </section>
-      <section className="px-5 mt-6 space-y-3">
+    <AppSkeleton>
+      <div style={{ margin: '20px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[0, 1].map((i) => (
           <div
             key={i}
-            className="rounded border border-rule bg-bg-3 p-4 flex items-center gap-4"
+            style={{
+              minHeight: 88,
+              boxSizing: 'border-box',
+              padding: '14px 16px',
+              border: `1.5px solid ${SKELETON_FILL}`,
+              borderRadius: V3Radius.sm,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}
           >
-            <Skeleton className="w-16 h-16 rounded-full" />
-            <div className="flex-1">
-              <Skeleton className="h-4 w-1/3" />
-              <Skeleton className="h-3 w-1/2 mt-2" />
-            </div>
+            <SkeletonBlock width={60} height={60} round />
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <SkeletonBlock width="38%" height={24} />
+              <SkeletonBlock width="70%" height={15} />
+            </span>
           </div>
         ))}
-      </section>
-    </div>
+      </div>
+    </AppSkeleton>
   )
 }

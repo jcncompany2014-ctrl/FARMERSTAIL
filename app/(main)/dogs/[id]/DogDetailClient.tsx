@@ -4,36 +4,17 @@
 // page.tsx (server) 가 auth/dog/formula/logs/subs/checkins prefetch + redirect.
 // 여기엔 weight modal, delete modal, welcome sheet, 가족/공유/사진 요청 같은
 // useState/onClick/useEffect 만 남김.
+// 2026-10-09 앱 새 디자인('A 포스터', 시안 AppDog·D12 등록 환영 창·D20 체중 기록 창·D21 삭제 확인):
+//   옅은 주황 머리 띠(사진 96 · 이름 제목 글꼴 40 · 수정 칸) → 정보 칸 3열(#FFF7EA) → 보호자님께 → 맞춤 식단
+//   → 정기배송(핵심 카드 — 파우치 색 + 도장 그림자) → 체중 기록(먹색 선 그래프 · 숫자 목록) → 더 보기 목록
+//   → 정보 수정·삭제. 저장·삭제·환영 로직은 그대로다 — 겉모습만 바꿨다.
 import { useEffect, useState, useRef } from 'react'
 import type { TrialState } from '@/lib/payments/trial'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
-import DogPawMark from '@/components/DogPawMark'
-import { petName, formatKg } from '@/lib/korean'
-import {
-  Moon,
-  Footprints,
-  Zap,
-  Check,
-  X,
-  BarChart3,
-  ClipboardList,
-  Pencil,
-  Trash2,
-  AlertTriangle,
-  Scale,
-  Plus,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  History,
-  Bell,
-  Sparkles,
-  PartyPopper,
-  Stethoscope,
-} from 'lucide-react'
+import { petName, formatKg, kgNumber } from '@/lib/korean'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -53,6 +34,29 @@ import AiCommentCard from '@/components/v3/AiCommentCard'
 import GracePeriodBanner from '@/components/dashboard/GracePeriodBanner'
 import type { OnboardingPhase } from '@/lib/onboarding/grace-period'
 import type { AiAnalysisJson } from '@/lib/nutrition/ai-prompt'
+import { isAdvancedUiEnabled } from '@/lib/ui-flags'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import {
+  CheckIcon,
+  ClipboardIcon,
+  PawFillIcon,
+  PencilIcon,
+  ScaleIcon,
+  WarningIcon,
+  XIcon,
+} from '@/components/v3/dog/DogIcons'
+import {
+  CENTER_PANEL,
+  CENTER_SCRIM,
+  Field,
+  Grabber,
+  SHEET_PANEL,
+  SHEET_SCRIM,
+  TextField,
+  UnitText,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+} from '@/components/v3/dog/DogFormParts'
 
 type Props = {
   dog: Dog
@@ -75,7 +79,12 @@ type Props = {
   chargePreview?: Record<string, number>
   /** 첫 4주 온보딩 여정 phase(유저 가입일 기준). 개요 최상단 배너용. */
   gracePhase: OnboardingPhase
+  /** 점검 화면(/design-check/dogs) 전용 — 삭제 확인 창을 연 채로 시작. 실제 화면은 넘기지 않는다. */
+  previewDeleteConfirm?: boolean
 }
+
+/** 제목 글꼴이 아닌 굵은 제목(창 제목) — 앱 틀의 h2 규칙(제목 글꼴)을 본문 글꼴로 되돌린다(시안 D21 21px 800). */
+const PLAIN_TITLE = { fontFamily: 'inherit', fontWeight: 800, letterSpacing: '-0.02em' } as const
 
 export default function DogDetailClient({
   dog: initialDog,
@@ -89,6 +98,7 @@ export default function DogDetailClient({
   gracePhase,
   trial = null,
   chargePreview,
+  previewDeleteConfirm = false,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -101,7 +111,7 @@ export default function DogDetailClient({
   const dogId = dog.id
 
   const [deleting, setDeleting] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(previewDeleteConfirm)
 
   const [showWeightModal, setShowWeightModal] = useState(false)
   const [newWeight, setNewWeight] = useState('')
@@ -274,61 +284,130 @@ export default function DogDetailClient({
     router.refresh()
   }
 
-  const activityMeta: Record<
-    string,
-    { Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; text: string }
-  > = {
-    low: { Icon: Moon, text: '낮음' },
-    medium: { Icon: Footprints, text: '보통' },
-    high: { Icon: Zap, text: '활동적' },
+  const activityText: Record<string, string> = {
+    low: '낮음',
+    medium: '보통',
+    high: '활동적',
   }
   const genderText: Record<string, string> = {
     male: '남아',
     female: '여아',
   }
 
+  const infoItems: Array<{ label: string; value: React.ReactNode }> = [
+    { label: '성별', value: dog.gender ? genderText[dog.gender] ?? '-' : '-' },
+    {
+      label: '나이',
+      value: dog.age_value ? `${dog.age_value}${dog.age_unit === 'years' ? '살' : '개월'}` : '-',
+    },
+    { label: '체중', value: dog.weight ? formatKg(dog.weight) : '-' },
+    {
+      label: '중성화',
+      value:
+        dog.neutered === null ? (
+          '-'
+        ) : dog.neutered ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <CheckIcon size={16} strokeWidth={3} />
+            했어요
+          </span>
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <XIcon size={14} strokeWidth={3} />안 했어요
+          </span>
+        ),
+    },
+    {
+      label: '활동량',
+      value: dog.activity_level ? activityText[dog.activity_level] ?? '-' : '-',
+    },
+  ]
+
+  const moreLinks: Array<{ href: string; title: string; sub?: string }> = [
+    {
+      href: `/dogs/${dog.id}/analysis`,
+      title: '설문 결과 · 맞춤 영양 분석',
+      sub: `설문을 바탕으로 ${petName(dog.name)}의 식단을 분석해요`,
+    },
+    { href: `/dogs/${dog.id}/analyses`, title: '분석 히스토리' },
+    // 복약·예방접종·리마인더 3개 링크를 '건강 관리' 하나로 통합(2026-07-16).
+    { href: `/dogs/${dog.id}/health-care`, title: '건강 관리', sub: '복약·예방접종·리마인더를 한곳에서' },
+    // XL-2 (#14) — 수의사 진료 보조 (모듈 H). 인쇄 리포트 + 링크 공유를
+    // 이 한 페이지 안에서 모두 처리 → 개요의 중복 '수의사 공유' 버튼은 제거.
+    { href: `/dogs/${dog.id}/vet-report`, title: '수의사에게 보여주기' },
+  ]
+
   return (
-    <div className="pb-10">
-      {/* Hero */}
-      <section className="px-5 pt-6">
-        <div className="relative bg-bg-3 rounded border border-rule px-6 py-8 text-center">
-          {/* 정보 수정 — 프로필 카드 모서리 연필 아이콘(사장님 2026-07-16). 스크롤
-              맨 밑 버튼 대신 여기서 바로 눈에 띄고 손이 닿게. */}
-          <Link
-            href={`/dogs/${dog.id}/edit`}
-            aria-label={`${petName(dog.name)} 정보 수정`}
-            // 44px — 이 화면의 **유일한** 정보 수정 진입점인데 32px 였다
-            // (2026-08-07 감사). 아이콘 크기는 그대로, 누를 면적만 넓힌다.
-            className="absolute top-1.5 right-1.5 w-11 h-11 rounded-full bg-bg flex items-center justify-center text-muted hover:text-text hover:bg-bg border border-transparent hover:border-rule transition"
-          >
-            <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-          </Link>
-          <div className="relative w-24 h-24 bg-bg rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4">
-            {dog.photo_url ? (
-              <Image
-                src={dog.photo_url}
-                alt={dog.name}
-                fill
-                sizes="96px"
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <DogPawMark className="w-10 h-10 text-muted" />
-            )}
-          </div>
-          <span className="kicker mb-2 inline-block">우리 아이</span>
-          <h1 className="font-sans" style={{ fontSize: 32, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.15, wordBreak: 'keep-all', overflowWrap: 'break-word' }}>
+    // 줄 높이 normal — 시안은 줄 높이를 안 준 글자가 글꼴 기본값이다(앱 전역 1.5 로 두면 칸마다 커진다).
+    <div style={{ paddingBottom: 28, lineHeight: 'normal' }}>
+      {/* 머리 띠 — 사진 · 이름 · 견종 · 정보 수정(연필). 정보 수정 진입점은 여기와 맨 아래 두 곳
+          (사장님 2026-07-16: 프로필 카드 모서리 연필 + 혹시 모르니 삭제 옆에 하나 더). */}
+      <section
+        style={{
+          padding: '22px 20px',
+          display: 'grid',
+          gridTemplateColumns: '96px 1fr 44px',
+          columnGap: 16,
+          alignItems: 'center',
+          background: V3.cream,
+          color: V3.ink,
+        }}
+      >
+        <span
+          style={{
+            position: 'relative',
+            width: 96,
+            height: 96,
+            borderRadius: 48,
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            border: dog.photo_url ? '3px solid #FFFFFF' : 0,
+            background: V3.soft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {dog.photo_url ? (
+            <Image src={dog.photo_url} alt={`${dog.name} 사진`} fill sizes="96px" className="object-cover" priority />
+          ) : (
+            <PawFillIcon size={42} color="#9A9A9A" />
+          )}
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>우리 아이</span>
+          <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>
             {dog.name}
           </h1>
           {dog.breed && (
-            <p className="text-[12px] text-muted mt-1.5 truncate">{dog.breed}</p>
+            <span className="ft-clamp-1" style={{ fontSize: 16, color: V3.inkSoft }}>
+              {dog.breed}
+            </span>
           )}
-        </div>
+        </span>
+        {/* 44px — 이 화면의 정보 수정 진입점(2026-08-07 감사: 누를 면적은 44 이상). */}
+        <Link
+          href={`/dogs/${dog.id}/edit`}
+          aria-label={`${petName(dog.name)} 정보 수정`}
+          style={{
+            alignSelf: 'flex-start',
+            width: 44,
+            height: 44,
+            boxSizing: 'border-box',
+            border: '1.5px solid rgba(20, 20, 20, 0.3)',
+            borderRadius: V3Radius.sm,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: V3.ink,
+          }}
+        >
+          <PencilIcon size={20} />
+        </Link>
       </section>
 
       {/* 첫 4주 온보딩 여정 — 홈에서 개요 최상단으로 이동(2026-07-24 사장님).
-          주차별 안내(1주 천천히→2주 체크인→3주 체중→4주 🎉), 29일+ 자동 졸업. */}
+          주차별 안내(1주 천천히→2주 체크인→3주 체중→4주 축하), 29일+ 자동 졸업. */}
       <GracePeriodBanner
         phase={gracePhase}
         dogName={petName(dog.name)}
@@ -340,60 +419,35 @@ export default function DogDetailClient({
         }}
       />
 
-      {/* Info card */}
-      <section className="px-5 mt-3">
-        <div className="bg-bg-3 rounded border border-rule px-5 py-4">
-          <InfoRow
-            label="성별"
-            value={dog.gender ? genderText[dog.gender] ?? '-' : '-'}
-          />
-          <InfoRow
-            label="중성화"
-            valueNode={
-              dog.neutered === null ? (
-                <span className="text-[13.5px] font-bold text-text">-</span>
-              ) : dog.neutered ? (
-                <span className="inline-flex items-center gap-1 text-[13.5px] font-bold text-moss">
-                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                  했어요
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[13.5px] font-bold text-muted">
-                  <X className="w-3.5 h-3.5" strokeWidth={2.5} />안 했어요
-                </span>
-              )
-            }
-          />
-          <InfoRow
-            label="나이"
-            value={
-              dog.age_value
-                ? `${dog.age_value}${dog.age_unit === 'years' ? '살' : '개월'}`
-                : '-'
-            }
-          />
-          <InfoRow label="체중" value={dog.weight ? formatKg(dog.weight) : '-'} />
-          <InfoRow
-            label="활동량"
-            valueNode={(() => {
-              if (!dog.activity_level)
-                return <span className="text-[13.5px] font-bold text-text">-</span>
-              const meta = activityMeta[dog.activity_level]
-              if (!meta)
-                return <span className="text-[13.5px] font-bold text-text">-</span>
-              const { Icon, text } = meta
-              return (
-                <span className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-text">
-                  <Icon className="w-3.5 h-3.5 text-muted" strokeWidth={2} />
-                  {text}
-                </span>
-              )
-            })()}
-          />
-        </div>
-      </section>
+      {/* 정보 칸 — 3열(옅은 주황 #FFF7EA). */}
+      <dl
+        style={{
+          margin: '20px 20px 0',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 6,
+        }}
+      >
+        {infoItems.map((it) => (
+          <div
+            key={it.label}
+            style={{
+              padding: 12,
+              background: V3.creamSoft,
+              borderRadius: V3Radius.sm,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              minWidth: 0,
+            }}
+          >
+            <dt style={{ fontSize: 13, color: V3.inkMute }}>{it.label}</dt>
+            <dd style={{ margin: 0, fontSize: 17, fontWeight: 800, color: V3.ink, whiteSpace: 'nowrap' }}>{it.value}</dd>
+          </div>
+        ))}
+      </dl>
 
-      {/* 보호자님께 한마디 — 성별/중성화 박스 바로 아래(사장님 2026-07-16).
+      {/* 보호자님께 한마디 — 정보 칸 바로 아래(사장님 2026-07-16).
           server 가 게이트: 첫 설문 전이면 aiComment=null → 안 뜬다.
           ★revalidate 제거(2026-07-16): 개요 방문마다 재요청하면 신뢰가 깨진다는 사장님
           피드백. 코멘트는 한 번 생성되면 **고정** — 캐시가 있으면 그대로 보여주고 다시
@@ -428,92 +482,167 @@ export default function DogDetailClient({
       />
       )}
 
-      {/* 체중 추이 카드 */}
-      <section className="px-5 mt-3">
-        <div className="bg-bg-3 rounded border border-rule p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
-              <span className="kicker">체중 기록</span>
-            </div>
-            <button
-              onClick={() => setShowWeightModal(true)}
-              className="inline-flex items-center gap-1 text-[10.5px] font-bold text-terracotta hover:text-text transition"
-            >
-              <Plus className="w-3 h-3" strokeWidth={2.5} />
-              기록 추가
-            </button>
-          </div>
-
-          {weightLogs.length > 0 && (
-            <>
-              {/* 스파크라인 */}
-              <WeightSparkline logs={weightLogs} />
-
-              {/* 최근 3개 */}
-              <ul className="mt-3 space-y-1.5">
-                {weightLogs.slice(0, 3).map((log, idx) => {
-                  const next = weightLogs[idx + 1]
-                  const delta = next ? log.weight - next.weight : 0
-                  return (
-                    <li
-                      key={log.id}
-                      className="flex items-center justify-between text-[12px] py-1.5 px-3 rounded-lg bg-bg"
-                    >
-                      <span className="text-muted text-[10.5px]">
-                        {new Date(log.measured_at).toLocaleDateString('ko-KR', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-text">
-                          {formatKg(log.weight)}
-                        </span>
-                        {next && (
-                          <span
-                            className={`inline-flex items-center gap-0.5 text-[10.5px] font-bold ${
-                              Math.abs(delta) < 0.05
-                                ? 'text-muted'
-                                : delta > 0
-                                  ? 'text-terracotta'
-                                  : 'text-moss'
-                            }`}
-                          >
-                            {Math.abs(delta) < 0.05 ? (
-                              <Minus className="w-2.5 h-2.5" strokeWidth={3} />
-                            ) : delta > 0 ? (
-                              <TrendingUp className="w-2.5 h-2.5" strokeWidth={2.5} />
-                            ) : (
-                              <TrendingDown className="w-2.5 h-2.5" strokeWidth={2.5} />
-                            )}
-                            {delta > 0 ? '+' : ''}
-                            {delta.toFixed(1)}kg
-                          </span>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </>
-          )}
-
-          {/* 인사이트 멘트 — 위 숫자에서 읽어낸 결론 한 줄. 기록이 없을 때는
-              이 멘트가 곧 빈 상태 안내(기록을 권하는 문구)라 따로 두지 않는다. */}
-          <InsightNote
-            insight={insight}
-            className={weightLogs.length > 0 ? 'mt-3' : 'mt-1'}
-          />
+      {/* 체중 기록 — 제목 + '+ 기록 추가' · 먹색 선 그래프 · 최근 3개 · 인사이트 한 줄. */}
+      <section
+        aria-labelledby="dog-weight-title"
+        style={{ margin: '26px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <h2 id="dog-weight-title" style={{ margin: 0, fontSize: 24, lineHeight: 1.2 }}>
+            체중 기록
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowWeightModal(true)}
+            style={{
+              height: 40,
+              padding: '0 12px',
+              boxSizing: 'border-box',
+              borderRadius: V3Radius.sm,
+              border: `1.5px solid ${V3.ink}`,
+              background: '#FFFFFF',
+              color: V3.ink,
+              fontFamily: 'inherit',
+              fontSize: 15,
+              fontWeight: 800,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            + 기록 추가
+          </button>
         </div>
+
+        {weightLogs.length > 0 && (
+          <>
+            <WeightSparkline logs={weightLogs} />
+
+            {/* 최근 3개 */}
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: `1.5px solid ${V3.ink}` }}>
+              {weightLogs.slice(0, 3).map((log, idx) => {
+                const next = weightLogs[idx + 1]
+                const delta = next ? log.weight - next.weight : 0
+                const flat = !next || Math.abs(delta) < 0.05
+                return (
+                  <li
+                    key={log.id}
+                    style={{
+                      minHeight: 52,
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto 72px',
+                      columnGap: 12,
+                      alignItems: 'center',
+                      borderBottom: `1px solid ${V3.rule}`,
+                    }}
+                  >
+                    <span style={{ fontSize: 15, color: V3.inkMute }}>
+                      {new Date(log.measured_at).toLocaleDateString('ko-KR', {
+                        timeZone: 'Asia/Seoul',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      <span className="ft-num" style={{ fontSize: 22 }}>
+                        {kgNumber(log.weight)}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}> kg</span>
+                    </span>
+                    <span
+                      style={{
+                        textAlign: 'right',
+                        fontSize: 14,
+                        fontWeight: flat ? 400 : 700,
+                        color: flat ? V3.inkMute : V3.ink,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {flat ? '—' : `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(1)}kg`}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
+
+        {/* 인사이트 멘트 — 위 숫자에서 읽어낸 결론 한 줄. 기록이 없을 때는
+            이 멘트가 곧 빈 상태 안내(기록을 권하는 문구)라 따로 두지 않는다. */}
+        <InsightNote insight={insight} />
       </section>
 
-      {/* 체중 기록 모달 */}
-      {showWeightModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:px-6 z-50"
-          onClick={closeWeightModal}
+      {/* 더 보기 — 분석·히스토리·건강 관리·수의사 보고서. */}
+      <nav
+        aria-label="더 보기"
+        style={{ margin: '28px 20px 0', borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}
+      >
+        {moreLinks.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            style={{
+              minHeight: l.sub ? 72 : 64,
+              borderBottom: `1px solid ${V3.rule}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              color: V3.ink,
+              textDecoration: 'none',
+            }}
+          >
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+              <span style={{ fontSize: 17, fontWeight: 800 }}>{l.title}</span>
+              {l.sub && <span style={{ fontSize: 14, color: V3.inkMute }}>{l.sub}</span>}
+            </span>
+            {/* 시안: 설명이 있는 줄은 꺾쇠가 보통 굵기, 제목만 있는 줄은 굵게. */}
+            <span aria-hidden style={{ fontSize: l.sub ? 16 : 17, fontWeight: l.sub ? 400 : 800 }}>
+              ›
+            </span>
+          </Link>
+        ))}
+      </nav>
+
+      {/* 가족 초대(DogFamilyMembers)·수의사 공유(VetShareButton)는 2026-07-16 개요에서
+          제거. 초대는 수락 후 열람 경로가 아직 없어 사장님이 UI 숨김 결정. 공유는
+          위 '수의사에게 보여주기'(vet-report)가 링크 공유까지 포함해 중복이었음. */}
+
+      {/* Phase P5 — 친구 사진 부탁 링크(배포 스위치가 꺼져 있으면 자리도 비우지 않는다). */}
+      {isAdvancedUiEnabled('photo_request') && (
+        <section style={{ margin: '12px 20px 0' }}>
+          <PhotoRequestButton dogId={dog.id} dogName={dog.name} />
+        </section>
+      )}
+
+      {/* 정보 수정 + 삭제 — 수정하기는 머리 띠 연필과 함께 여기 하단에도 둔다
+          (사장님 2026-07-16: 혹시 모르니 삭제 옆에 하나 더). */}
+      <div style={{ margin: '22px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <Link href={`/dogs/${dog.id}/edit`} style={secondaryButtonStyle(52)}>
+          정보 수정
+        </Link>
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          style={{
+            height: 52,
+            boxSizing: 'border-box',
+            borderRadius: V3Radius.sm,
+            border: `1.5px solid ${V3.rule}`,
+            background: '#FFFFFF',
+            color: V3.inkMute,
+            fontFamily: 'inherit',
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
         >
+          삭제
+        </button>
+      </div>
+
+      {/* 체중 기록 창 (시안 D20) */}
+      {showWeightModal && (
+        <div style={SHEET_SCRIM} onClick={closeWeightModal}>
           <div
             ref={weightModalRef}
             role="dialog"
@@ -521,197 +650,90 @@ export default function DogDetailClient({
             aria-labelledby="weight-modal-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-3 rounded-t-[12px] sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            style={SHEET_PANEL}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <Scale className="w-3.5 h-3.5 text-moss" strokeWidth={2} />
-              <span className="kicker">새 체중 기록</span>
-            </div>
-            <h3
-              id="weight-modal-title"
-              className="font-sans text-[16px] font-black text-text"
+            <Grabber />
+            <span
+              style={{
+                marginTop: 18,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 14,
+                fontWeight: 800,
+                color: V3.inkMute,
+              }}
             >
+              <ScaleIcon size={16} />
+              새 체중 기록
+            </span>
+            <h2 id="weight-modal-title" style={{ margin: '8px 0 0', fontSize: 28, lineHeight: 1.15 }}>
               {petName(dog.name)}의 체중
-            </h3>
-            <p className="text-[10.5px] text-muted mt-1">
-              기록하면 추이 차트와 대시보드에 반영돼요.
+            </h2>
+            <p style={{ margin: '6px 0 0', fontSize: 16, lineHeight: 1.5, color: V3.inkSoft }}>
+              기록하면 체중 그래프와 홈 화면에 반영돼요.
             </p>
 
-            <div className="mt-5 space-y-3">
-              <div>
-                <label className="block text-[10.5px] font-bold text-text mb-1.5">
-                  체중 (kg)
-                </label>
-                <input
-                  type="number" onWheel={(e) => e.currentTarget.blur()}
-                  step="0.1"
-                  min="0.1"
-                  max="100"
-                  autoFocus
-                  value={newWeight}
-                  onChange={(e) => setNewWeight(e.target.value)}
-                  placeholder={dog.weight ? `이전: ${formatKg(dog.weight)}` : '예: 5.4'}
-                  inputMode="decimal"
-                  enterKeyHint="next"
-                  className="w-full px-4 py-3 rounded-lg border border-rule bg-bg-3 text-text text-sm focus:outline-none focus:border-terracotta transition"
-                />
-              </div>
-              <div>
-                <label className="block text-[10.5px] font-bold text-text mb-1.5">
-                  메모 (선택)
-                </label>
-                <input
-                  type="text"
-                  value={newWeightNote}
-                  onChange={(e) => setNewWeightNote(e.target.value)}
-                  placeholder="병원 검진, 사료 변경 등"
-                  maxLength={80}
-                  className="w-full px-4 py-3 rounded-lg border border-rule bg-bg-3 text-text text-sm focus:outline-none focus:border-terracotta transition"
-                />
-              </div>
-            </div>
+            <Field
+              label="체중"
+              style={{ marginTop: 20 }}
+              help={dog.weight ? `이전 기록 ${formatKg(dog.weight)}` : undefined}
+            >
+              <TextField
+                type="number"
+                onWheel={(e) => e.currentTarget.blur()}
+                step="0.1"
+                min="0.1"
+                max="100"
+                autoFocus
+                value={newWeight}
+                onChange={(e) => setNewWeight(e.target.value)}
+                placeholder="예: 5.4"
+                inputMode="decimal"
+                enterKeyHint="next"
+                height={64}
+                fontSize={30}
+                padX={16}
+                className="ft-num"
+                borderWidth={2}
+                trailing={<UnitText size={17} weight={800}>kg</UnitText>}
+              />
+            </Field>
+            <Field label="메모" hint="(선택)" style={{ marginTop: 16 }}>
+              <TextField
+                type="text"
+                value={newWeightNote}
+                onChange={(e) => setNewWeightNote(e.target.value)}
+                placeholder="병원 검진, 사료 변경 등"
+                maxLength={80}
+                height={54}
+              />
+            </Field>
 
-            <div className="mt-6 space-y-2">
-              <button
-                onClick={handleSaveWeight}
-                disabled={savingWeight || !newWeight}
-                className="w-full py-3 rounded-full bg-ink text-bg text-[13.5px] font-bold active:scale-[0.98] transition disabled:opacity-50"
-              >
-                {savingWeight ? '저장 중...' : '저장하기'}
-              </button>
-              <button
-                onClick={closeWeightModal}
-                disabled={savingWeight}
-                className="w-full py-3 rounded bg-bg-3 text-muted text-[13.5px] font-bold border border-rule hover:border-text hover:text-text transition"
-              >
-                취소
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleSaveWeight}
+              disabled={savingWeight || !newWeight}
+              aria-busy={savingWeight || undefined}
+              style={{ ...primaryButtonStyle(58, savingWeight || !newWeight), marginTop: 22 }}
+            >
+              {savingWeight ? '저장 중...' : '저장하기'}
+            </button>
+            <button
+              type="button"
+              onClick={closeWeightModal}
+              disabled={savingWeight}
+              style={{ ...secondaryButtonStyle(54), marginTop: 8 }}
+            >
+              취소
+            </button>
           </div>
         </div>
       )}
 
-      {/* Primary actions */}
-      <section className="px-5 mt-4 space-y-2.5">
-        <Link
-          href={`/dogs/${dog.id}/analysis`}
-          className="flex items-center gap-3 w-full px-5 py-4 bg-text text-white rounded active:scale-[0.99] transition"
-        >
-          <div className="w-9 h-9 rounded-full bg-bg-3/10 flex items-center justify-center">
-            <BarChart3 className="w-4 h-4" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[13.5px] font-black">설문 결과 · 맞춤 영양 분석</div>
-            <div className="text-[10.5px] text-white/60 mt-0.5">
-              설문을 바탕으로 {petName(dog.name)}의 식단을 분석해요
-            </div>
-          </div>
-        </Link>
-        <Link
-          href={`/dogs/${dog.id}/survey`}
-          className="flex items-center gap-3 w-full px-5 py-4 bg-terracotta text-white rounded active:scale-[0.99] transition"
-        >
-          <div className="w-9 h-9 rounded-full bg-bg-3/10 flex items-center justify-center">
-            <ClipboardList className="w-4 h-4" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[13.5px] font-black">설문 시작하기</div>
-            <div className="text-[10.5px] text-white/70 mt-0.5">
-              맞춤 분석을 위한 5분 설문 · 결과는 분석에서
-            </div>
-          </div>
-        </Link>
-      </section>
-
-      {/* Tertiary: 분석 히스토리 + 건강 일지 */}
-      <section className="px-5 mt-3 space-y-2">
-        <Link
-          href={`/dogs/${dog.id}/analyses`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <History className="w-4 h-4 text-moss" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              분석 히스토리
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              이전 분석 결과를 시간순으로 비교해보세요
-            </div>
-          </div>
-        </Link>
-        {/* 복약·예방접종·리마인더 3개 링크를 '건강 관리' 하나로 통합(2026-07-16). */}
-        <Link
-          href={`/dogs/${dog.id}/health-care`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <Bell className="w-4 h-4 text-terracotta" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              건강 관리
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              복약·예방접종·리마인더를 한곳에서
-            </div>
-          </div>
-        </Link>
-        {/* XL-2 (#14) — 수의사 진료 보조 (모듈 H). 인쇄 리포트 + 링크 공유를
-            이 한 페이지 안에서 모두 처리 → 개요의 중복 '수의사 공유' 버튼은 제거. */}
-        <Link
-          href={`/dogs/${dog.id}/vet-report`}
-          className="flex items-center gap-3 w-full px-5 py-3.5 bg-bg-3 rounded border border-rule hover:border-text transition"
-        >
-          <div className="w-8 h-8 rounded-full bg-bg flex items-center justify-center">
-            <Stethoscope className="w-4 h-4 text-ink" strokeWidth={2} />
-          </div>
-          <div className="flex-1 text-left">
-            <div className="text-[12px] font-black text-text">
-              수의사에게 보여주기
-            </div>
-            <div className="text-[10.5px] text-muted mt-0.5">
-              인쇄해서 가져가거나, 링크로 미리 공유하세요
-            </div>
-          </div>
-        </Link>
-      </section>
-
-      {/* 가족 초대(DogFamilyMembers)·수의사 공유(VetShareButton)는 2026-07-16 개요에서
-          제거. 초대는 수락 후 열람 경로가 아직 없어 사장님이 UI 숨김 결정. 공유는
-          위 '수의사에게 보여주기'(vet-report)가 링크 공유까지 포함해 중복이었음. */}
-
-      {/* Phase P5 — 친구 사진 부탁 링크. */}
-      <section className="px-5 mt-3">
-        <PhotoRequestButton dogId={dog.id} dogName={dog.name} />
-      </section>
-
-      {/* Secondary actions — 정보 수정 + 삭제. 수정하기는 프로필 카드 모서리 연필과
-          함께 여기 하단에도 둔다(사장님 2026-07-16: 혹시 모르니 삭제 옆에 하나 더). */}
-      <section className="px-5 mt-3 grid grid-cols-2 gap-2.5">
-        <Link
-          href={`/dogs/${dog.id}/edit`}
-          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-text rounded border border-rule hover:border-text text-[12px] font-bold transition"
-        >
-          <Pencil className="w-3.5 h-3.5" strokeWidth={2} />
-          정보 수정
-        </Link>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="flex items-center justify-center gap-1.5 py-3 bg-bg-3 text-sale rounded border border-rule hover:border-sale text-[12px] font-bold transition"
-        >
-          <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
-          삭제
-        </button>
-      </section>
-
-      {/* Delete confirm modal */}
+      {/* 삭제 확인 (시안 D21) */}
       {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center px-6 z-50"
-          onClick={() => !deleting && setShowDeleteConfirm(false)}
-        >
+        <div style={CENTER_SCRIM} onClick={() => !deleting && setShowDeleteConfirm(false)}>
           <div
             ref={deleteModalRef}
             role="alertdialog"
@@ -720,25 +742,29 @@ export default function DogDetailClient({
             aria-describedby="delete-modal-desc"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-3 rounded border border-rule p-6 max-w-sm w-full shadow-xl"
+            style={CENTER_PANEL}
           >
-            <div className="flex justify-center mb-3">
-              <div className="w-12 h-12 rounded-full bg-[#FFF5F3] flex items-center justify-center">
-                <AlertTriangle
-                  className="w-6 h-6 text-sale"
-                  strokeWidth={2}
-                />
-              </div>
-            </div>
-            <h3
-              id="delete-modal-title"
-              className="font-sans text-[16px] font-black text-text text-center mb-2"
+            <span
+              aria-hidden
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                background: V3.soft,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: V3.sale,
+              }}
             >
+              <WarningIcon size={28} />
+            </span>
+            <h2 id="delete-modal-title" style={{ ...PLAIN_TITLE, margin: '16px 0 0', fontSize: 21, lineHeight: 1.35 }}>
               정말 삭제할까요?
-            </h3>
+            </h2>
             <p
               id="delete-modal-desc"
-              className="text-[12px] text-muted text-center mb-6 leading-relaxed"
+              style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft }}
             >
               {/* ★ 예전엔 여기서 "자동으로 해지되지 않아요" 라고 **경고만 하고**
                   아래 버튼으로 그대로 삭제가 됐다. 그러면 구독은 dog_id 만 NULL 이
@@ -761,41 +787,45 @@ export default function DogDetailClient({
                 </>
               )}
             </p>
-            <div className="space-y-2">
-              {hasLiveSub ? (
-                <Link
-                  href={`/dogs/${dog.id}/subscription`}
-                  className="block w-full py-3 rounded bg-ink text-bg text-[13.5px] font-black text-center active:scale-[0.98] transition"
-                >
-                  정기배송 보러가기
-                </Link>
-              ) : (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="w-full py-3 rounded bg-sale text-white text-[13.5px] font-black active:scale-[0.98] transition disabled:opacity-50"
-                >
-                  {deleting ? '삭제 중...' : '네, 삭제할래요'}
-                </button>
-              )}
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleting}
-                className="w-full py-3 rounded bg-bg-3 text-muted text-[13.5px] font-bold border border-rule hover:border-text hover:text-text transition"
+            {hasLiveSub ? (
+              <Link
+                href={`/dogs/${dog.id}/subscription`}
+                style={{ ...primaryButtonStyle(58), marginTop: 22, alignSelf: 'stretch' }}
               >
-                취소
+                정기배송 보러가기
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                aria-busy={deleting || undefined}
+                style={{
+                  ...primaryButtonStyle(58),
+                  marginTop: 22,
+                  alignSelf: 'stretch',
+                  background: V3.sale,
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                {deleting ? '삭제 중...' : '네, 삭제할래요'}
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={deleting}
+              style={{ ...secondaryButtonStyle(54), marginTop: 8, alignSelf: 'stretch' }}
+            >
+              취소
+            </button>
           </div>
         </div>
       )}
 
-      {/* Welcome sheet — 강아지 등록 직후 환영 + 설문 유도 (?welcome=1) */}
+      {/* 등록 환영 창 — 강아지 등록 직후 환영 + 설문 유도 (?welcome=1, 시안 D12) */}
       {showWelcomeSheet && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:px-6 z-50"
-          onClick={() => setShowWelcomeSheet(false)}
-        >
+        <div style={SHEET_SCRIM} onClick={() => setShowWelcomeSheet(false)}>
           <div
             ref={welcomeSheetRef}
             role="dialog"
@@ -803,103 +833,65 @@ export default function DogDetailClient({
             aria-labelledby="welcome-sheet-title"
             tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
-            className="bg-bg-3 rounded-t-[12px] sm:rounded border-t sm:border border-rule p-6 max-w-sm w-full shadow-xl"
+            style={SHEET_PANEL}
           >
-            <div className="flex justify-center mb-3">
-              <div className="w-14 h-14 rounded-full bg-bg flex items-center justify-center">
-                <PartyPopper
-                  className="w-7 h-7 text-terracotta"
-                  strokeWidth={1.8}
-                />
-              </div>
-            </div>
-            <div className="text-center mb-1">
-              <span className="kicker">환영해요</span>
-            </div>
-            <h3
-              id="welcome-sheet-title"
-              className="font-sans text-[20px] font-black text-text text-center"
-            >
+            <Grabber />
+            <span style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 800 }}>
+              <span aria-hidden style={{ width: 8, height: 8, background: V3.mustard }} />
+              환영해요
+            </span>
+            <h2 id="welcome-sheet-title" style={{ margin: '10px 0 0', fontSize: 32, lineHeight: 1.15, wordBreak: 'keep-all' }}>
               {dog.name} 등록 완료!
-            </h3>
-            <p className="text-[12px] text-muted text-center mt-2 leading-relaxed">
-              이제 {petName(dog.name)}의 식습관·건강·취향을 5분 동안
-              <br />
-              알려주시면 맞춤 식단을 추천해 드려요.
+            </h2>
+            <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft }}>
+              이제 {petName(dog.name)}의 식습관·건강·취향을 5분 동안 알려주시면 맞춤 식단을 추천해 드려요.
             </p>
 
-            <div className="mt-5 rounded bg-bg p-4 space-y-2">
-              <div className="flex items-start gap-2.5">
-                <Sparkles
-                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
-                  strokeWidth={2.2}
-                />
-                <p className="text-[10.5px] text-text leading-relaxed">
-                  AI가 NRC / FEDIAF 기준으로 일일 칼로리·영양소를 계산해요
-                </p>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Sparkles
-                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
-                  strokeWidth={2.2}
-                />
-                <p className="text-[10.5px] text-text leading-relaxed">
-                  알레르기·만성질환·기호도까지 반영한 1:1 맞춤 설계
-                </p>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Sparkles
-                  className="w-3.5 h-3.5 text-terracotta mt-0.5 shrink-0"
-                  strokeWidth={2.2}
-                />
-                <p className="text-[10.5px] text-text leading-relaxed">
-                  설문은 언제든 다시 할 수 있어요
-                </p>
-              </div>
+            {/* 문구(사장님 결정 목록): 'AI가 NRC / FEDIAF 기준으로' → 전문용어 없이 '국제 기준',
+                '설문은 언제든 다시' → 실제로 월 횟수 한도가 있어 '나중에 다시'. */}
+            <div
+              style={{
+                marginTop: 18,
+                padding: '14px 16px',
+                borderRadius: V3Radius.sm,
+                background: V3.soft,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              {[
+                '하루 열량과 영양을 국제 기준에 맞춰 계산해요',
+                '알레르기·만성질환·기호도까지 반영한 1:1 맞춤 설계',
+                '설문은 나중에 다시 할 수 있어요',
+              ].map((t) => (
+                <span key={t} style={{ display: 'flex', gap: 10, fontSize: 16, lineHeight: 1.5 }}>
+                  <CheckIcon size={18} strokeWidth={2.8} style={{ marginTop: 3 }} />
+                  {t}
+                </span>
+              ))}
             </div>
 
-            <div className="mt-6 space-y-2">
-              <button
-                onClick={() => {
-                  setShowWelcomeSheet(false)
-                  router.push(`/dogs/${dog.id}/survey`)
-                }}
-                className="flex items-center justify-center gap-1.5 w-full py-3.5 rounded-full bg-terracotta text-white text-[13.5px] font-black active:scale-[0.98] transition"
-              >
-                <ClipboardList className="w-4 h-4" strokeWidth={2.2} />5분 맞춤
-                설문 시작하기
-              </button>
-              <button
-                onClick={() => setShowWelcomeSheet(false)}
-                className="w-full py-3 rounded bg-bg-3 text-muted text-[12px] font-bold border border-rule hover:border-text hover:text-text transition"
-              >
-                먼저 둘러볼게요
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowWelcomeSheet(false)
+                router.push(`/dogs/${dog.id}/survey`)
+              }}
+              style={{ ...primaryButtonStyle(60), marginTop: 22 }}
+            >
+              <ClipboardIcon size={20} />
+              5분 맞춤 설문 시작하기
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowWelcomeSheet(false)}
+              style={{ ...secondaryButtonStyle(54), marginTop: 8 }}
+            >
+              먼저 둘러볼게요
+            </button>
           </div>
         </div>
-      )}
-    </div>
-  )
-}
-
-function InfoRow({
-  label,
-  value,
-  valueNode,
-}: {
-  label: string
-  value?: string
-  valueNode?: React.ReactNode
-}) {
-  return (
-    // UI audit A-3: dt 라벨 column min-w-[88px] 통일 + tracking 0.22 → 0.18 (한국어 가독성)
-    <div className="flex justify-between items-center py-2.5 border-b border-bg last:border-0 gap-3">
-      <span className="text-[10.5px] font-semibold text-muted tracking-tight min-w-[88px] shrink-0">
-        {label}
-      </span>
-      {valueNode ?? (
-        <span className="text-[13.5px] font-bold text-text text-right">{value}</span>
       )}
     </div>
   )

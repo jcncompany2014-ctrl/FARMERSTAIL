@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, ArrowRight, ChevronLeft, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import { weightReliability } from '@/lib/personalization/reliability'
@@ -16,7 +16,6 @@ import {
 import { type BcsKey, type ChronicConditionKey } from '@/lib/nutrition/guidelines'
 import { haptic } from '@/lib/haptic'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
-import { useConfirm } from '@/components/v3/useConfirm'
 import { trackSurveyStarted, trackSurveyCompleted } from '@/lib/analytics'
 import { deriveBCS } from '@/lib/calorie-v2/engine'
 import { detectBcsWeightConflict } from '@/lib/bcs-consistency'
@@ -26,8 +25,9 @@ import {
   counterLabel,
   isSkippable,
   legacyStepToScreen,
+  mainCount,
+  OPTIONAL_KEYS,
   restoreScreenKey,
-  progressPct,
   screenError,
   type FlowAnswers,
   type OptionalChoice,
@@ -69,9 +69,14 @@ import {
   type SurveyDog,
 } from './steps/Pregnancy'
 import { GoalScreen, type CareGoal } from './steps/Preferences'
-import { GateScreen } from './steps/Gate'
-import LoadingStep from './steps/Loading'
+import { GateScreen, GateButtons } from './steps/Gate'
+import LoadingStep, { LoadingCta } from './steps/Loading'
+import { SurveyScreenContext } from './steps/ScreenShell'
+import { SurveyFrame, SurveyTopBar, SurveyAlert, SurveyWelcome } from './steps/Frame'
+import { WELCOME_PARAM } from '@/lib/survey/welcome'
+import { ExitSheet } from './steps/Sheet'
 import type { RefineSeed } from '@/lib/survey/refine'
+import { normalizeAllergyAnswers } from '@/lib/survey/allergy-options'
 import './survey.css'
 
 /**
@@ -91,9 +96,41 @@ import './survey.css'
  * 상태 변수·localStorage 자동저장(7일)·제출(surveys + analyses insert · dogs 갱신 ·
  * kibble_requests 로그)·체중↔체형 모순 경고·재진입 가드·언마운트 안전 타이머는
  * v3 그대로다. 옛 초안의 currentStep 은 legacyStepToScreen 으로 이어받는다.
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터') — 설문 새 틀(캔버스 '설문 (새 틀)' E01~E18 · F22~F32 · L19~L35)
+ * 그리는 것만 바꿨다(답 키·값·저장·검증·흐름 판정은 그대로): 흰 바탕 + 빛 → 위 줄(← · 진행 막대 · 나가기) →
+ * 자리·높이 고정 카드(긴 화면은 카드 안에서만 스크롤) → 카드 아래 알림 줄. steps/Frame.tsx 가 틀.
+ *  · 진행 막대: 본 질문 = n / 본 질문 수, 관문·추가 질문 동안은 꽉 찬 채(사장님 결정 1번 — 관문에서 '답하기'를
+ *    고르면 화면 수가 늘어 막대가 뒤로 가던 것). 정확도 올리기는 추가 질문 n / 4.
+ *  · 나가기 확인: 설문 안의 ExitSheet — '계속하기'가 진한 위 버튼(사장님 결정 2번). 뜻은 예전 확인창과 같다.
+ *  · ← 는 첫 질문에서도 보인다(시안) — 하드웨어 뒤로가기와 같게 '나갈까요?'를 연다.
+ *  · preview 는 디자인 점검 화면(/design-check/survey) 전용 — 실제 화면은 넘기지 않는다.
  */
 
 type ScreenState = ScreenKey | 'loading'
+
+/**
+ * 디자인 점검(/design-check/survey) 전용 — 로그인 없이 각 단계·상태를 띄운다. **실제 설문 화면(page.tsx)은
+ * 이 값을 넘기지 않고, 넘기지 않으면 지금과 100% 같게 동작한다.** 넘기면: 강아지 조회·분석 기록(track)·
+ * localStorage 저장을 건너뛰고, 아래 값으로 시작한다(제출 버튼은 로그인이 없어 저장되지 않는다).
+ */
+export type SurveyPreview = {
+  dog: SurveyDog
+  screen: ScreenState
+  /** 처음 답 — 정확도 올리기 시드와 같은 모양(빠진 칸은 빈 답). */
+  seed?: Partial<RefineSeed>
+  weightMethod?: WeightMethod
+  /** 처음부터 떠 있는 알림/실패 문구(시안 L21 · L33). */
+  err?: string
+  /** 분석 중 단계를 이 값에 멈춘다(시안 E18 · L33). */
+  loadingStage?: number
+  /** 카드 안 스크롤 위치('end' = 맨 아래). */
+  scroll?: 'end' | number
+  /** 이어 쓰기 복원(시안 L35) — localStorage 대신 이 초안으로 실제 복원 흐름을 탄다. */
+  draft?: Record<string, unknown>
+  /** 가입 직후 '가입 완료' 띠(시안 Y7) — true 는 사라지지 않고 떠 있고, 'live' 는 실제처럼 3.5초 뒤 위 줄로 바뀐다. */
+  welcome?: boolean | 'live'
+}
 
 // react-hooks/purity 회피 — 제출 핸들러 안의 Date.now() 를 React Compiler 가 "render 중
 // 호출"로 오판한다(이벤트 핸들러인데). autosignup-draft 와 같은 이유로 모듈 수준 함수.
@@ -105,6 +142,7 @@ export default function SurveyClient({
   dogId,
   previous,
   refineFrom = null,
+  preview,
 }: {
   dogId: string
   /** 직전 분석 스냅샷 — 체중↔체형 모순 검증의 비교 기준. 첫 설문이면 null. */
@@ -115,16 +153,48 @@ export default function SurveyClient({
    * 무시한다(이전에 쓰다 만 초안이 튀어나오면 더 헷갈린다). lib/survey/refine.ts.
    */
   refineFrom?: RefineSeed | null
+  /** 디자인 점검 전용(위 SurveyPreview). 실제 화면은 넘기지 않는다. */
+  preview?: SurveyPreview
 }) {
   const router = useRouter()
   const supabase = createClient()
   const toast = useToast()
-  const confirm = useConfirm()
   const refineMode = refineFrom !== null
-  const seed = refineFrom
+  const isPreview = preview !== undefined
+  // 점검 화면만 preview.seed 로 시작한다 — 실제 화면은 refineFrom(정확도 올리기) 그대로.
+  const seed: Partial<RefineSeed> | null = refineFrom ?? preview?.seed ?? null
 
-  const [dog, setDog] = useState<SurveyDog | null>(null)
-  const [screen, setScreen] = useState<ScreenState>(refineMode ? 'optFood' : 'ribs')
+  const [dog, setDog] = useState<SurveyDog | null>(preview?.dog ?? null)
+  const [screen, setScreen] = useState<ScreenState>(
+    preview?.screen ?? (refineMode ? 'optFood' : 'ribs'),
+  )
+  // 나가기 확인 창(ExitSheet) 열림.
+  const [exitOpen, setExitOpen] = useState(false)
+  // 가입 직후 '가입 완료' 띠(시안 Y7, lib/survey/welcome) — 'on' 떠 있음 · 'leaving' 사라지는 중 · null 없음(위 줄).
+  const [welcome, setWelcome] = useState<'on' | 'leaving' | null>(preview?.welcome ? 'on' : null)
+
+  // 설문 주소의 ?welcome=1(가입하자마자 강아지가 만들어진 길만 붙인다)을 읽고 바로 지운다 — 새로고침·뒤로가기로
+  // 다시 뜨지 않게. 정확도 올리기(추가 답변)는 가입 직후가 아니라 띄우지 않는다.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (isPreview) return
+    const q = new URLSearchParams(window.location.search)
+    if (q.get(WELCOME_PARAM) !== '1') return
+    q.delete(WELCOME_PARAM)
+    const rest = q.toString()
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
+    if (!refineMode) setWelcome('on')
+  }, [isPreview, refineMode])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // 강아지를 불러와 띠가 실제로 보인 때부터 3.5초 떠 있다가 사라진다(점검 화면은 'live' 일 때만 — 시안 촬영은 그대로 둔다).
+  const dogReady = dog !== null
+  const welcomeFrozen = isPreview && preview?.welcome !== 'live'
+  useEffect(() => {
+    if (welcomeFrozen || welcome === null || !dogReady) return
+    const t = setTimeout(() => setWelcome(welcome === 'on' ? 'leaving' : null), welcome === 'on' ? 3500 : 240)
+    return () => clearTimeout(t)
+  }, [welcome, welcomeFrozen, dogReady])
 
   // 화면 전환 시 스크롤 맨 위 + 짧은 진동 + 첫 h1 focus (a11y).
   useEffect(() => {
@@ -139,7 +209,7 @@ export default function SurveyClient({
       }
     })
   }, [screen])
-  const [err, setErr] = useState('')
+  const [err, setErr] = useState(preview?.err ?? '')
   const [saving, setSaving] = useState(false)
 
   // 1~3. 몸 — 체형 3분해(갈비뼈·허리·배) → deriveBCS 역산. bcs 는 파생값으로 유지.
@@ -163,7 +233,7 @@ export default function SurveyClient({
     }
   }
   // [발명 모듈 D] 체중 측정 방법 — 신뢰도(W_method) 입력. 미입력 시 dog 프로필 값.
-  const [weightMethod, setWeightMethod] = useState<WeightMethod>('')
+  const [weightMethod, setWeightMethod] = useState<WeightMethod>(preview?.weightMethod ?? '')
   // 칼로리 v2 2b — 사다리 감산·가산 신호 4종 ('' = 미응답 → 무보정).
   const [easyKeeper, setEasyKeeper] = useState<'' | 'yes' | 'no'>(seed?.easyKeeper ?? '')
   const [vigorous, setVigorous] = useState<Vigorous>(seed?.vigorous ?? '')
@@ -205,10 +275,18 @@ export default function SurveyClient({
   // 11. 케어 목표 (★알고리즘 1순위)
   const [careGoal, setCareGoal] = useState<CareGoal | ''>((seed?.careGoal as CareGoal | '') ?? '')
   // 관문 — 선택 묶음 답하기 / 건너뛰기
-  const [optChoice, setOptChoice] = useState<OptionalChoice>(refineMode ? 'answer' : '')
+  // (점검 화면이 추가 질문 화면에서 시작하면 관문 답은 '답하기'였다 — 초안 복원과 같은 규칙.)
+  const [optChoice, setOptChoice] = useState<OptionalChoice>(
+    refineMode ||
+      (preview !== undefined && preview.screen !== 'loading' && isSkippable(preview.screen))
+      ? 'answer'
+      : '',
+  )
 
   // loading 단계 stage 인디케이터
-  const [loadingStage, setLoadingStage] = useState(0)
+  const [loadingStage, setLoadingStage] = useState(preview?.loadingStage ?? 0)
+  // 점검 화면이 단계를 멈춰 둔 값(없으면 평소처럼 0.7초마다 다음 단계).
+  const previewStage = preview?.loadingStage
 
   // 설문 진행 중 이탈 시 browser confirm. 'loading' 은 제외(submit 직후 router.push).
   useEffect(() => {
@@ -224,9 +302,13 @@ export default function SurveyClient({
   }, [screen, bodyAssess.ribs, bristol, foodType])
 
   // refine 모드는 서버 시드가 정본 — localStorage 초안 복원을 건너뛴다(저장은 그대로).
-  const restoredRef = useRef(refineMode)
+  // 점검 화면은 preview.draft 가 있을 때만 복원 흐름을 탄다(localStorage 는 읽지 않는다).
+  const previewDraftJson = preview?.draft ? JSON.stringify(preview.draft) : null
+  const restoredRef = useRef(refineMode || (isPreview && previewDraftJson === null))
 
   useEffect(() => {
+    // 점검 화면 — 강아지는 preview.dog 로 이미 들고 있다(로그인·조회·분석 기록 없음).
+    if (isPreview) return
     async function load() {
       const {
         data: { user },
@@ -251,7 +333,7 @@ export default function SurveyClient({
       trackSurveyStarted(dogId)
     }
     void load()
-  }, [dogId, router, supabase])
+  }, [dogId, router, supabase, isPreview])
 
   // ── Autosave (localStorage) — 7일, dog 별 분리 ────────────────────────
   const STORAGE_KEY = `farmerstail-survey:${dogId}`
@@ -262,12 +344,13 @@ export default function SurveyClient({
   useEffect(() => {
     if (!dog || restoredRef.current || typeof window === 'undefined') return
     restoredRef.current = true
-    const raw = localStorage.getItem(STORAGE_KEY)
+    // 점검 화면은 localStorage 대신 preview.draft(시안 L35) — 아래 복원 흐름은 그대로.
+    const raw = isPreview ? previewDraftJson : localStorage.getItem(STORAGE_KEY)
     if (!raw) return
     try {
       const data = JSON.parse(raw) as Record<string, unknown> & { _ts?: number }
       if (typeof data._ts === 'number' && Date.now() - data._ts > 7 * 24 * 60 * 60 * 1000) {
-        localStorage.removeItem(STORAGE_KEY)
+        if (!isPreview) localStorage.removeItem(STORAGE_KEY)
         return
       }
       if (data.bcs !== undefined) setBcs(data.bcs as BcsKey | null)
@@ -287,7 +370,9 @@ export default function SurveyClient({
       if (typeof data.walkMinutes === 'string') setWalkMinutes(data.walkMinutes)
       if (typeof data.currentBrand === 'string') setCurrentBrand(data.currentBrand)
       if (typeof data.dlMode === 'string') setDlMode(data.dlMode as DlMode)
-      if (Array.isArray(data.allergies)) setAllergies(data.allergies as string[])
+      // 작성 중 임시 저장도 옛 보기 라벨('연어·생선')이면 지금 보기('연어')로(lib/survey/allergy-options).
+      if (Array.isArray(data.allergies))
+        setAllergies(normalizeAllergyAnswers((data.allergies as unknown[]).filter((x): x is string => typeof x === 'string')))
       const conds = Array.isArray(data.chronicConditions)
         ? (data.chronicConditions as ChronicConditionKey[])
         : []
@@ -331,7 +416,7 @@ export default function SurveyClient({
     } catch {
       // corrupted — silently ignore
     }
-  }, [dog, STORAGE_KEY, toast])
+  }, [dog, STORAGE_KEY, toast, isPreview, previewDraftJson])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // 저장 — 500ms debounce. loading 중엔 저장 안 함(이미 제출).
@@ -353,6 +438,8 @@ export default function SurveyClient({
     // 남기면 다음 일반 설문이 그 초안을 복원해 11개 질문을 건너뛴 채 선택 화면에서 시작한다
     // (2026-09-23 점검). 나가면 다음 ?refine=1 진입 때 다시 시드된다.
     if (refineMode) return
+    // 점검 화면은 예시 값이라 저장하지 않는다.
+    if (isPreview) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
       try {
@@ -441,14 +528,17 @@ export default function SurveyClient({
     optChoice,
     screen,
     refineMode,
+    isPreview,
   ])
 
   // loading stage 진행 — 4 stage rotating
   useEffect(() => {
     if (screen !== 'loading') return
+    // 점검 화면이 단계를 정해 두면 그 자리에 멈춘다(시안 E18 · L33).
+    if (previewStage !== undefined) return
     const t = setInterval(() => setLoadingStage((s) => Math.min(s + 1, 4)), 700)
     return () => clearInterval(t)
-  }, [screen])
+  }, [screen, previewStage])
 
   const ageInMonths = dog
     ? dog.age_unit === 'years'
@@ -566,18 +656,13 @@ export default function SurveyClient({
   const exitHref = refineMode ? `/dogs/${dogId}/analysis` : `/dogs/${dogId}`
   const hasAnyAnswer =
     bodyAssess.ribs !== '' || bristol !== null || foodType !== '' || careGoal !== ''
-  async function exitSurvey() {
+  // 답이 있거나 정확도 올리기면 확인 창(ExitSheet — '계속하기' = 머무름, '나가기' = exitHref)을 거친다.
+  // 예전 공용 확인창(useConfirm)과 같은 조건·같은 뜻 — 모양만 설문 안에서 시안대로(사장님 결정 2번).
+  function exitSurvey() {
     if (isLoading) return
     if (hasAnyAnswer || refineMode) {
-      const ok = await confirm({
-        title: refineMode ? '추가 답변을 그만둘까요?' : '설문을 나갈까요?',
-        body: refineMode
-          ? '지금까지 적은 추가 답변은 저장되지 않아요.'
-          : '지금까지 답한 내용은 저장돼 있어요. 다시 들어오면 이어서 할 수 있어요.',
-        confirmLabel: '나가기',
-        cancelLabel: '계속하기',
-      })
-      if (!ok) return
+      setExitOpen(true)
+      return
     }
     router.push(exitHref)
   }
@@ -588,7 +673,7 @@ export default function SurveyClient({
       event.preventDefault()
       if (isLoading) return
       if (idx > firstIdx) goPrev()
-      else void exitSurvey()
+      else exitSurvey()
     }
     window.addEventListener(NATIVE_BACK_EVENT, handler)
     return () => window.removeEventListener(NATIVE_BACK_EVENT, handler)
@@ -875,22 +960,30 @@ export default function SurveyClient({
   }
 
   if (!dog) {
+    // 강아지를 불러오는 동안 — 같은 틀(빈 위 줄 + 카드) 안에서 도는 표시만. 다 불러오면 덜컹 없이 질문이 뜬다.
     return (
-      <div
-        className="flex items-center justify-center min-h-[80vh]"
-        style={{ background: 'var(--bg)' }}
-      >
-        <Loader2
-          className="w-8 h-8 animate-spin"
-          style={{ color: 'var(--fd-coral)' }}
-          strokeWidth={1.6}
-        />
-      </div>
+      <SurveyFrame top={null} cta={null} below={null} scrollKey="boot">
+        <div className="s-boot" role="status" aria-label="불러오는 중">
+          <Loader2 className="animate-spin" size={32} strokeWidth={1.6} aria-hidden />
+        </div>
+      </SurveyFrame>
     )
   }
 
-  const progress = isLoading ? 100 : progressPct(screens, idx)
   const counter = isLoading ? '' : counterLabel(screens, idx)
+  // 진행 막대 — 본 질문 = n / 본 질문 수(시안 9%·18%…). 관문·추가 질문 동안은 꽉 찬 채(사장님 결정 1번 — 예전엔
+  // 관문에서 '답하기'를 고르면 화면 수가 늘어 막대가 뒤로 갔다). 정확도 올리기는 추가 질문만 물으니 n / 4(시안 L19).
+  let progress = 100
+  if (!isLoading && cur) {
+    const upto = screens.slice(0, idx + 1)
+    if (cur.part === 'required' || cur.part === 'conditional') {
+      const n = upto.filter((s) => s.part === 'required' || s.part === 'conditional').length
+      progress = Math.round((n / Math.max(1, mainCount(screens))) * 100)
+    } else if (cur.part === 'optional' && refineMode) {
+      const n = upto.filter((s) => s.part === 'optional').length
+      progress = Math.round((n / OPTIONAL_KEYS.length) * 100)
+    }
+  }
 
   // CTA 라벨 — 선택 화면은 답이 없으면 '건너뛰기'가 곧 다음.
   let ctaLabel = '다음'
@@ -899,52 +992,67 @@ export default function SurveyClient({
     if (isLastScreen) ctaLabel = answered ? '결과 보기' : '건너뛰고 결과 보기'
     else ctaLabel = answered ? '다음' : '건너뛰기'
   }
-  const showCta = !isLoading && cur && cur.part !== 'gate'
+
+  // 카드 안(질문)과 카드 아래쪽 버튼 자리 — 관문·분석 중은 자기 버튼, 나머지는 '다음' 하나.
+  let cta: ReactNode = null
+  if (isLoading) {
+    cta = err ? (
+      <LoadingCta
+        saving={saving}
+        onRetry={() => {
+          setErr('')
+          setLoadingStage(0)
+          void saveAndGoResult()
+        }}
+        onBack={() => {
+          // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 화면으로 복귀.
+          setErr('')
+          setScreen(optChoice === 'answer' ? 'optMeds' : 'gate')
+        }}
+      />
+    ) : null
+  } else if (cur?.key === 'gate') {
+    cta = (
+      <GateButtons
+        onAnswer={() => chooseGate('answer')}
+        onSkip={() => chooseGate('skip')}
+        saving={saving}
+      />
+    )
+  } else if (cur) {
+    cta = (
+      <button type="button" className="s-next-btn s-next-full" onClick={goNext} disabled={saving}>
+        {ctaLabel}
+      </button>
+    )
+  }
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <div
-        className="max-w-md mx-auto"
-        style={{
-          background: 'var(--bg)',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100dvh',
-        }}
+    <SurveyScreenContext.Provider value={{ counter, refine: refineMode }}>
+      <SurveyFrame
+        top={
+          isLoading ? null : welcome !== null && idx === firstIdx ? (
+            // 가입 직후 첫 질문 — 위 줄 자리에 '가입 완료' 띠(시안 Y7). 다음 질문으로 넘어가면 바로 위 줄.
+            <SurveyWelcome name={dog.name} leaving={welcome === 'leaving'} />
+          ) : (
+            <SurveyTopBar
+              progress={progress}
+              progressLabel={counter || '진행률'}
+              backLabel={idx > firstIdx ? '이전 질문' : '설문 나가기'}
+              onBack={() => {
+                // 첫 질문의 ← 는 하드웨어 뒤로가기와 같다 — '나갈까요?'(답이 없으면 바로 나감).
+                if (idx > firstIdx) goPrev()
+                else exitSurvey()
+              }}
+              onExit={exitSurvey}
+            />
+          )
+        }
+        cta={cta}
+        below={err && !isLoading ? <SurveyAlert>{err}</SurveyAlert> : null}
+        scrollKey={screen}
+        previewScroll={preview?.scroll}
       >
-        {!isLoading && (
-          <div className="s-stepwrap">
-            <div className="s-top">
-              <button
-                type="button"
-                className="s-back"
-                onClick={goPrev}
-                disabled={idx <= firstIdx}
-                aria-label="이전 질문"
-              >
-                <ChevronLeft size={22} strokeWidth={2.4} aria-hidden />
-                이전
-              </button>
-              <span className="s-count" aria-live="polite">
-                {counter}
-              </span>
-              <button type="button" className="s-exit" onClick={() => void exitSurvey()}>
-                나가기
-              </button>
-            </div>
-            <div
-              className="s-progress"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={counter || '진행률'}
-            >
-              <i style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-        )}
-
         {/* ── 화면 (lib/survey/flow 순서) ── */}
         {!isLoading && cur?.key === 'ribs' && (
           <RibsScreen
@@ -1037,13 +1145,7 @@ export default function SurveyClient({
         {!isLoading && cur?.key === 'goal' && (
           <GoalScreen careGoal={careGoal} setCareGoal={setCareGoal} />
         )}
-        {!isLoading && cur?.key === 'gate' && (
-          <GateScreen
-            onAnswer={() => chooseGate('answer')}
-            onSkip={() => chooseGate('skip')}
-            saving={saving}
-          />
-        )}
+        {!isLoading && cur?.key === 'gate' && <GateScreen />}
         {!isLoading && cur?.key === 'optFood' && (
           <OptFoodScreen
             foodType={foodType}
@@ -1083,46 +1185,19 @@ export default function SurveyClient({
           />
         )}
 
-        {isLoading && (
-          <LoadingStep
-            dogName={dog.name}
-            loadingStage={loadingStage}
-            err={err}
-            saving={saving}
-            onRetry={() => {
-              setErr('')
-              setLoadingStage(0)
-              void saveAndGoResult()
-            }}
-            onBack={() => {
-              // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 화면으로 복귀.
-              setErr('')
-              setScreen(optChoice === 'answer' ? 'optMeds' : 'gate')
-            }}
-          />
-        )}
+        {isLoading && <LoadingStep dogName={dog.name} loadingStage={loadingStage} err={err} />}
+      </SurveyFrame>
 
-        {err && !isLoading && (
-          <div className="s-errbar" role="alert" aria-live="polite">
-            <AlertCircle size={16} strokeWidth={2.2} aria-hidden />
-            <span>{err}</span>
-          </div>
-        )}
-
-        {showCta && (
-          <div className="s-ctabar s-ctabar-v4">
-            <button
-              type="button"
-              className="s-next-btn s-next-full"
-              onClick={goNext}
-              disabled={saving}
-            >
-              {ctaLabel}
-              <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      {/* 나가기 확인 — '계속하기'(진한 위 버튼) = 머무름 · '나가기' = exitHref(사장님 결정 2번). */}
+      <ExitSheet
+        open={exitOpen}
+        refine={refineMode}
+        onStay={() => setExitOpen(false)}
+        onLeave={() => {
+          setExitOpen(false)
+          router.push(exitHref)
+        }}
+      />
+    </SurveyScreenContext.Provider>
   )
 }

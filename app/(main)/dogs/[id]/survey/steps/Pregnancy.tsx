@@ -3,8 +3,11 @@
 //                      임신 주차 / 산자 수는 둘째 줄(선택).
 //   (AdultWeightScreen '다 자라면 몇 kg' 는 2026-10-01 제거 — 보호자가 알 수 없는 답이 자견 칼로리
 //    전체를 좌우했다. 나이·체중 성장곡선으로 추정: lib/growth-curve.ts)
-import { Check, Baby, Heart, AlertCircle } from 'lucide-react'
-import { ScreenShell, OptionList, SecondLine } from './ScreenShell'
+//
+// 2026-10-09 앱 새 디자인('A 포스터', 시안 E11 · F29 · F30 · F31): 해당 없음/임신/수유 = 선택 막대, 아래 펼침
+// (주차·마릿수 칸)은 카드 안. 어린 강아지 안내가 뜨면(F31) 칸이 카드에 들어가게 주차 도움말은 뺀다.
+// 숫자 범위(주차 1~9 · 마릿수 1~15)·저장은 그대로.
+import { ScreenShell, Segmented, LabelBar, Help, Field } from './ScreenShell'
 
 export type PregnancyValue = 'none' | 'pregnant' | 'lactating' | ''
 
@@ -25,6 +28,12 @@ function ageMonths(dog: SurveyDog): number {
   return dog.age_unit === 'years' ? dog.age_value * 12 : dog.age_value
 }
 
+const PREGNANCY_OPTIONS = [
+  { v: 'none', label: '해당 없음' },
+  { v: 'pregnant', label: '임신 중' },
+  { v: 'lactating', label: '수유 중' },
+] as const
+
 export function PregnancyScreen({
   dog,
   pregnancy,
@@ -43,6 +52,7 @@ export function PregnancyScreen({
   setLitterSize: (v: number | null) => void
 }) {
   const isPuppy = ageMonths(dog) < 12
+  const puppyNote = pregnancy !== '' && pregnancy !== 'none' && isPuppy
   return (
     <ScreenShell
       kicker="건강"
@@ -53,17 +63,14 @@ export function PregnancyScreen({
           수유 중인가요?
         </>
       }
-      sub="임신·수유 중이면 필요한 열량이 크게 달라져요."
+      sub="임신·수유 중이면 필요한 열량이 크게 달라져요"
     >
-      <OptionList
-        options={[
-          { v: 'none', label: '해당 없음', Icon: Check },
-          { v: 'pregnant', label: '임신 중', Icon: Baby },
-          { v: 'lactating', label: '수유 중', Icon: Heart },
-        ]}
+      <Segmented
+        style={{ marginTop: 24 }}
+        options={PREGNANCY_OPTIONS}
         value={pregnancy}
         onChange={(v) => {
-          const next = (v ?? '') as PregnancyValue
+          const next = v as PregnancyValue
           setPregnancy(next)
           if (next !== 'pregnant') setPregnancyWeek(null)
           if (next !== 'lactating') setLitterSize(null)
@@ -71,73 +78,54 @@ export function PregnancyScreen({
         ariaLabel="임신 / 수유"
       />
 
-      {pregnancy !== '' && pregnancy !== 'none' && isPuppy && (
-        <div
-          className="s-note"
-          style={{
-            background: 'color-mix(in srgb, var(--fd-gold) 14%, transparent)',
-            color: 'var(--fd-pine)',
-          }}
-        >
-          <span className="s-ic-warn" style={{ background: 'var(--fd-gold)' }}>
-            <AlertCircle size={14} strokeWidth={2.2} color="#7A5B1B" />
+      {puppyNote && (
+        <div className="s-warnbox" role="status" style={{ marginTop: 14 }}>
+          <span className="s-warnbox-body">
+            12개월이 안 된 강아지의 임신·수유는 매우 드물어요. 한 번 더 확인해 주세요.
           </span>
-          <span>12개월 미만 강아지의 임신·수유는 매우 드물어요. 한 번 더 확인해 주세요.</span>
         </div>
       )}
 
       {pregnancy === 'pregnant' && (
-        <SecondLine
-          label="임신 몇 주차인가요?"
-          hint="6주차 이후 필요 열량이 본격적으로 늘어요. 모르면 비워 두세요."
-        >
-          <div className="s-input-suffix">
-            <input
-              type="number"
-              onWheel={(e) => e.currentTarget.blur()}
-              inputMode="numeric"
-              className="s-inp"
-              aria-label="임신 주차"
-              min={1}
-              max={9}
-              step={1}
-              value={pregnancyWeek ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                setPregnancyWeek(v === '' ? null : Math.max(1, Math.min(9, Number(v))))
-              }}
-              placeholder="1~9"
-            />
-            <span className="s-unit">주차</span>
-          </div>
-        </SecondLine>
+        <>
+          <LabelBar optional style={{ marginTop: puppyNote ? 18 : 24 }}>
+            임신 몇 주차인가요?
+          </LabelBar>
+          {!puppyNote && <Help>6주차 이후 필요 열량이 본격적으로 늘어요. 모르면 비워 두세요.</Help>}
+          <Field
+            style={{ marginTop: 12 }}
+            type="number"
+            min={1}
+            max={9}
+            step={1}
+            ariaLabel="임신 주차"
+            value={pregnancyWeek === null ? '' : String(pregnancyWeek)}
+            onChange={(v) => setPregnancyWeek(v === '' ? null : Math.max(1, Math.min(9, Number(v))))}
+            placeholder="예) 5"
+            unit="주차"
+          />
+        </>
       )}
 
       {pregnancy === 'lactating' && (
-        <SecondLine
-          label="새끼가 몇 마리인가요?"
-          hint="새끼 수에 따라 필요 열량이 달라져요. 모르면 비워 두세요."
-        >
-          <div className="s-input-suffix">
-            <input
-              type="number"
-              onWheel={(e) => e.currentTarget.blur()}
-              inputMode="numeric"
-              className="s-inp"
-              aria-label="산자 수 (출산한 새끼 마릿수)"
-              min={1}
-              max={15}
-              step={1}
-              value={litterSize ?? ''}
-              onChange={(e) => {
-                const v = e.target.value
-                setLitterSize(v === '' ? null : Math.max(1, Math.min(15, Number(v))))
-              }}
-              placeholder="1~15"
-            />
-            <span className="s-unit">마리</span>
-          </div>
-        </SecondLine>
+        <>
+          <LabelBar optional style={{ marginTop: puppyNote ? 18 : 24 }}>
+            새끼가 몇 마리인가요?
+          </LabelBar>
+          {!puppyNote && <Help>새끼 수에 따라 필요 열량이 달라져요. 모르면 비워 두세요.</Help>}
+          <Field
+            style={{ marginTop: 12 }}
+            type="number"
+            min={1}
+            max={15}
+            step={1}
+            ariaLabel="산자 수 (출산한 새끼 마릿수)"
+            value={litterSize === null ? '' : String(litterSize)}
+            onChange={(v) => setLitterSize(v === '' ? null : Math.max(1, Math.min(15, Number(v))))}
+            placeholder="예) 4"
+            unit="마리"
+          />
+        </>
       )}
     </ScreenShell>
   )

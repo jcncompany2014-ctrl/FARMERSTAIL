@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
 import { Loader2, Check, AlertCircle, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { V3 } from '@/lib/design/tokens'
+import { outlineButton } from '@/components/v3/me/MeParts'
+import { CheckIcon, KeyIcon } from '@/components/v3/me/MeIcons'
 
 /**
  * PasswordChangeButton — 비밀번호 재설정 메일 트리거.
@@ -12,8 +15,18 @@ import { createClient } from '@/lib/supabase/client'
  * 변경할 수 있는 가장 안전한 방식 (재설정 링크가 인증된 메일함으로 가야 변경
  * 가능). redirectTo 는 /auth/callback?next=/account/profile 로 설정해
  * 링크 클릭 후 프로필 화면으로 돌아오게.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 M01): 웹과 같이 쓰는 부품이라 `variant='app'` 일 때만 앱 모양
+ * (흰 바탕 1.5px 먹선 · 높이 52 · 열쇠 그림)으로 그린다. 기본 'web' 은 그대로. 보내기 로직은 같은 send().
  */
-export default function PasswordChangeButton({ email }: { email: string }) {
+export default function PasswordChangeButton({
+  email,
+  variant = 'web',
+}: {
+  email: string
+  /** 'app' = 앱 새 디자인 모양. 기본 'web'(웹 화면 그대로). */
+  variant?: 'web' | 'app'
+}) {
   const supabase = createClient()
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -51,6 +64,30 @@ export default function PasswordChangeButton({ email }: { email: string }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  if (variant === 'app') {
+    if (done) {
+      return (
+        <p role="status" style={{ margin: '4px 0 0', display: 'flex', gap: 6, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: V3.ink }}>
+          <CheckIcon size={18} strokeWidth={2.6} style={{ marginTop: 2 }} />
+          <span>재설정 메일을 보냈어요. 받은 편지함을 확인해 주세요.</span>
+        </p>
+      )
+    }
+    return (
+      <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button type="button" onClick={send} disabled={busy} style={{ ...outlineButton(52, 16), width: '100%', opacity: busy ? 0.6 : 1 }}>
+          <KeyIcon size={18} />
+          {busy ? '보내는 중…' : '재설정 메일 받기'}
+        </button>
+        {error && (
+          <p role="alert" style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: V3.sale }}>
+            {error}
+          </p>
+        )}
+      </div>
+    )
   }
 
   if (done) {

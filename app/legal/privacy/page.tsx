@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import AuthAwareShell from "@/components/AuthAwareShell"
-import LegalDocument, {
-  Section,
-  UL,
-} from '@/components/LegalDocument'
+import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
+import { isAppContextServer } from '@/lib/app-context'
+import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
 import CookieConsentResetLink from '@/components/CookieConsentResetLink'
 import { business } from '@/lib/business'
 
@@ -54,10 +53,16 @@ const EFFECTIVE_DATE = '2026-10-02'
  *   - 개인정보 보호책임자
  *   - 개인정보 처리방침의 변경
  */
-export default function PrivacyPage() {
+// 2026-10-09 앱 새 디자인('A 포스터', 이용약관 M22 와 같은 틀): 앱이면 바깥 틀·장 제목·목록만 앱 부품으로 고른다
+// (components/v3/me/AppLegal). 법문 글자는 한 자도 바꾸지 않았다. 웹은 LegalFrame 의 웹 갈래 = 예전 마크업 그대로.
+export default async function PrivacyPage() {
+  const isApp = await isAppContextServer()
+  const Section = isApp ? AppSection : WebSection
+  const UL = isApp ? AppUL : WebUL
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
-      <LegalDocument
+    <AuthAwareShell>
+      <LegalFrame
+        isApp={isApp}
         eyebrow="Privacy Policy"
         title="개인정보처리방침"
         effectiveDate={EFFECTIVE_DATE}
@@ -940,7 +945,7 @@ export default function PrivacyPage() {
             통해 고지합니다.
           </p>
         </Section>
-      </LegalDocument>
-    </div></AuthAwareShell>
+      </LegalFrame>
+    </AuthAwareShell>
   )
 }

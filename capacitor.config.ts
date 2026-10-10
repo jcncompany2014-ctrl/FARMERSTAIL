@@ -79,13 +79,15 @@ const config: CapacitorConfig = {
    * 뒤에 토큰 하나만 덧붙이는 건 표준 관행이다.
    */
   /*
-   * 뒤의 `FtShell/2` = 이 네이티브 셸의 세대. 웹 배포는 모든 설치 버전에 닿지만 네이티브 색
+   * 뒤의 `FtShell/3` = 이 네이티브 셸의 세대. 웹 배포는 모든 설치 버전에 닿지만 네이티브 색
    * (폰 화면·상태바·홈바 구간)은 스토어 업데이트로만 바뀌어서, 웹이 "이 셸은 어느 색인가"를 알아야
-   * 한다(2026-10-08 — 네이티브 바탕을 크림 #F5F0E6 → 앱 종이색 #F7F5F0 로 맞춘 첫 셸이 2).
+   * 한다. 세대: 1(표식 없음) = 크림 #F5F0E6 · 2 = 앱 종이색 #F7F5F0(2026-10-08) · 3 = 흰색 #FFFFFF
+   * (2026-10-09 앱 새 디자인 'A 포스터' — 시안대로 흰 바탕). 옛 셸은 웹이 그 셸 색으로 이어 준다
+   * (html.ft-paper-shell · html.ft-old-shell-ios — 규칙166).
    * 첫 요청부터 헤더에 실리고 head 인라인 스크립트가 동기로 읽는다(app/layout.tsx). 표식 판정은
    * 앞 토큰(FarmerstailApp)만 본다 — 규칙58.
    */
-  appendUserAgent: 'FarmerstailApp FtShell/2',
+  appendUserAgent: 'FarmerstailApp FtShell/3',
 
   server: {
     // 운영: Vercel 도메인을 그대로 로드. NEXT_PUBLIC_SITE_URL 와 일치.
@@ -156,13 +158,13 @@ const config: CapacitorConfig = {
     contentInset: 'always',
     // iOS 백그라운드 진입 시 webview 일시정지 — 배터리 보호.
     // 정기배송 카운트다운 같은 timer 는 foreground 시 재계산 (이미 처리됨).
-    backgroundColor: '#F7F5F0',
+    backgroundColor: '#FFFFFF',
   },
 
   android: {
     // 안드로이드 광고용 Webview 는 디버그 모드에서 chrome://inspect 가능.
     // 운영 빌드는 자동 false.
-    backgroundColor: '#F7F5F0',
+    backgroundColor: '#FFFFFF',
   },
 
   plugins: {
@@ -182,8 +184,8 @@ const config: CapacitorConfig = {
       // 남아 있는 도장이 그 틈을 덮고, 끝나는 순간 밑에 같은 자리·같은 크기의 웹 도장이 있어 이음새가 안 보인다.
       // 0 으로 두면 시스템 기본 페이드로 도장까지 같이 흐려져 빈 화면이 비쳤다.
       launchFadeOutDuration: 500,
-      backgroundColor: '#F7F5F0',
-      // 옛 방식 스플래시(안드로이드 12 API 가 실패할 때만)에서 그림(drawable/splash = 크림 + 도장 132dp)을
+      backgroundColor: '#FFFFFF',
+      // 옛 방식 스플래시(안드로이드 12 API 가 실패할 때만)에서 그림(drawable/splash = 흰 바탕 + 도장 132dp)을
       // 늘리지 않고 제 크기로 가운데에.
       androidScaleType: 'CENTER',
       showSpinner: false,
@@ -196,7 +198,7 @@ const config: CapacitorConfig = {
       // overlaysWebView=false 로 두면 WebView 가 status bar 아래에서 시작 —
       // 노치/다이내믹 아일랜드 영역에 컨텐츠 안 들어감.
       overlaysWebView: false,
-      backgroundColor: '#F7F5F0',
+      backgroundColor: '#FFFFFF',
       /**
        * ★2026-08-20 — 'DEFAULT' 에서 'LIGHT' 로.
        *
@@ -206,7 +208,7 @@ const config: CapacitorConfig = {
        *   Default = **기기 테마를 따라간다** — 다크모드면 글자가 밝아진다
        *
        * 우리 앱은 항상 라이트 톤이다(globals.css 에서 다크 자동전환을 사장님
-       * 요청으로 꺼 뒀다). 배경은 종이색(#F7F5F0) 고정인데 'DEFAULT' 로 두면
+       * 요청으로 꺼 뒀다). 배경은 흰색(#FFFFFF) 고정인데 'DEFAULT' 로 두면
        * **폰을 다크모드로 쓰는 사용자 전원에게 흰 글자 + 크림 배경**이 되어
        * 시계·배터리가 안 보인다. 배경이 고정이므로 글자도 고정해야 한다.
        */

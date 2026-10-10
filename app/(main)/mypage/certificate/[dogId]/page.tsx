@@ -29,8 +29,8 @@ export const metadata: Metadata = {
  *
  * 저장
  * ────
- * 사용자가 "PDF / 이미지 저장" 버튼 누르면 브라우저 print dialog 또는
- * html2canvas 로 PNG 다운로드. 별도 PDF 라이브러리 의존 X.
+ * 사용자가 "이미지 저장" 버튼 누르면 html2canvas 로 PNG 저장(앱에서도 동작하는 saveCanvasImage).
+ * 별도 PDF 라이브러리 의존 X. 2026-10-09 앱 새 디자인: '인쇄·PDF' 버튼은 앱에서 뺐다(앱 WebView 엔 인쇄 창이 없다).
  */
 export default async function CertificatePage({
   params,

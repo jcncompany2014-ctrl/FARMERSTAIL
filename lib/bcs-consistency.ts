@@ -120,7 +120,8 @@ export function detectBcsWeightConflict(
       title: '체중과 체형이 서로 안 맞아요',
       detail: `체중은 ${prevW} → ${curW}kg으로 줄었는데, 체형은 지난번보다 통통해졌다고 나왔어요(${bcsWord(prevBcs)} → ${bcsWord(currentBcs)}).`,
       action:
-        '살이 빠지면서 체형이 더 통통해지긴 어려워요. 체중을 다시 재보시거나, 갈비뼈·허리·배 관찰을 한 번 더 확인해 주세요.',
+        // 문구 = 앱 설문 새 틀 시안 F32 그대로(2026-10-10). 이 문구는 앱 설문(SurveyClient)만 쓴다.
+        '살이 빠지면서 체형이 더 통통해지긴 어려워요. 체중을 다시 재 보시거나, 갈비뼈·허리·배를 한 번 더 살펴봐 주세요.',
       flagLabel: '체중은 줄었는데 체형 점수는 올라감 · 수의 상담 권장',
       prevWeightKg,
       currentWeightKg,

@@ -3,40 +3,43 @@
 /**
  * MypageClient — v3 reskin (2026-05-22, R9).
  *
- * 변경:
- *   - 헤더: serif → sans 800 + Mono kicker.
- *   - 프로필 카드: paperHi + 1px rule + radius 4.
- *   - 등급 hero: 등급별 수채화 배경 + 혜택 한 줄 (포인트 폐기 2026-07-16).
- *   - StatCard: 4-col mini metric strip 패턴 (ActiveDogCard 와 동일 톤).
- *   - MenuGroup: kicker (Mono) + paperHi 카드 + ink rule.
- *   - MenuItem: chevron / badge 톤은 V3.accent.
- *
  * 비즈니스 로직(로그아웃·tier·count)은 audit #101 유지.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 T09 내 정보 · T10 로그아웃 확인):
+ *   · 맨 위 = 큰 이름(제목 글꼴 34) + "프로필 / 비밀번호 →". 이메일 줄·등급 알약 칩·발자국 장식은 뺐다(시안에 없다,
+ *     알약 칩 금지). 소셜(카카오·애플) 가입자는 비밀번호가 없어 "프로필 →" 만 쓴다(프로필 화면의 비밀번호 카드도
+ *     이메일 가입자에게만 — 사장님 결정).
+ *   · 멤버십 카드(이 화면의 도장 그림자 한 곳) = 등급 이름 + "혜택 보기 →" + 도장판 10칸 + 한 줄 설명. 예전엔 등급
+ *     수채화 카드와 스탬프 카드(StampCard — 웹 /account 와 같이 쓰는 부품)가 따로 있었다. 수채화 배경은 시안에 없다.
+ *     칸 수는 StampCard 와 같은 정본(cardProgressFloored + 등급 floor)으로 센다 — 등급이 잠근 완성 판 위로만 현재 판이
+ *     얹힌다(강등 없음 2026-07-22).
+ *   · 주문·정기배송 두 칸 · 메뉴 묶음(위 1.5px 먹선 + 줄 사이 옅은 선) · 맨 아래 한 줄(약관 · 정책 / 로그아웃 · 회원 탈퇴).
+ *   · 로그아웃 확인 = 가운데 창(시안 T10 — 제목 21 · 설명 17 · 두 칸 버튼 56). 예전 v3 Modal 대신 직접 그린다.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Repeat,
-  Bell,
-  ChevronRight,
-  LogOut,
-  Sprout,
-  HelpCircle,
-  FileText,
-  Shield,
-  Crown,
-  TrendingUp,
-} from 'lucide-react'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import StampCard from '@/components/account/StampCard'
-import { tierMeta, resolveTierKey, stampsToFirstTier } from '@/lib/tiers'
-import { V3, V3FontSize, V3FontWeight, V3Radius } from '@/lib/design/tokens'
-import { Mono, Modal, Badge } from '@/components/v3'
-import DogPawMark from '@/components/DogPawMark'
+import { tierMeta, resolveTierKey } from '@/lib/tiers'
+import { cardProgressFloored, STAMP_CARD_SIZE, STAMP_REWARD_LABEL } from '@/lib/stamps'
+import { V3, V3Radius } from '@/lib/design/tokens'
 import { withHonorific } from '@/lib/korean'
 import { cleanupPushOnLogout } from '@/lib/capacitor'
+import { useModalA11y } from '@/lib/ui/useModalA11y'
+import AdminModeRow from '@/components/app/AdminModeRow'
+import { MENU_LINE, SCRIM, SCREEN_ROOT, STAMP_CARD, StampGrid } from '@/components/v3/me/MeParts'
+import {
+  BellIcon,
+  BoxIcon,
+  ChartIcon,
+  ChevronRightIcon,
+  CrownIcon,
+  DataDownIcon,
+  DocIcon,
+  HelpIcon,
+} from '@/components/v3/me/MeIcons'
 
 type Profile = {
   name: string | null
@@ -50,6 +53,10 @@ type Props = {
   profile: Profile | null
   orderCount: number
   subCount: number
+  /** 이메일로 가입했나(user.app_metadata.provider === 'email') — 소셜 가입자는 비밀번호가 없다. */
+  emailSignup?: boolean
+  /** 점검 화면(/design-check/me) 전용 — 로그아웃 확인 창을 열어 둔 채로 그린다. 실제 화면은 넘기지 않는다. */
+  previewLogoutOpen?: boolean
 }
 
 export default function MypageClient({
@@ -57,11 +64,13 @@ export default function MypageClient({
   profile,
   orderCount,
   subCount,
+  emailSignup = true,
+  previewLogoutOpen,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
-  // browser confirm() → v3 Modal — 톤 통일 + accessibility 강화 (focus trap).
-  const [logoutOpen, setLogoutOpen] = useState(false)
+  // browser confirm() → 확인 창 — 톤 통일 + 접근성(포커스 가둠·Esc·하드웨어 뒤로가기는 useModalA11y).
+  const [logoutOpen, setLogoutOpen] = useState(previewLogoutOpen ?? false)
   const [loggingOut, setLoggingOut] = useState(false)
 
   async function performLogout() {
@@ -83,582 +92,312 @@ export default function MypageClient({
   //   profiles.tier 와 stamp_count 파생 중 높은 쪽을 취해 만료로 인한 오강등을 막는다.
   const stamps = profile?.stamp_count ?? 0
   const tierMetaOrNull = tierMeta(resolveTierKey(profile?.tier, stamps))
-  // 수채화 배경 키 — 등급 없으면 씨앗 그림을 옅게 쓴다(빈 액자 대신 '앞으로 될 모습').
-  const tierKey = tierMetaOrNull?.key ?? 'seed'
+  // 도장판 현재 판 — 등급 floor(도달 등급 임계값) 위로만 얹힌다(StampCard 와 같은 정본).
+  const card = cardProgressFloored(stamps, tierMetaOrNull?.threshold ?? 0)
 
   return (
-    <div style={{ paddingBottom: 32 }}>
-      {/* ──────────────────────────────────────────────────────────────
-          내 정보 헤더 — 박스 없이 큰 이름(27 black)으로 "여기가 내 정보"임을
-          한눈에. 상단 'My Account/마이페이지' 헤더 제거 후 이름이 곧 헤더 역할.
-          ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '30px 20px 4px', position: 'relative', overflow: 'hidden' }}>
-        {/* 빈 공간 — 발자국 트레일(배열 그대로). 이름정보와 씨앗 칩 사이 정가운데
-            정렬: 섹션 중앙(50%) + 칩쪽 약간 바이어스. 폭 달라도 가운데 유지. 클릭 통과. */}
-        <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: 'calc(50% + 34px)', width: 0 }}>
-            <span style={{ position: 'absolute', left: -96, top: 30, opacity: 0.07, transform: 'rotate(20deg)' }}>
-              <DogPawMark size={18} color={V3.ink} />
-            </span>
-            <span style={{ position: 'absolute', left: -44, top: 52, opacity: 0.08, transform: 'rotate(30deg)' }}>
-              <DogPawMark size={21} color={V3.ink} />
-            </span>
-            <span style={{ position: 'absolute', left: 14, top: 26, opacity: 0.06, transform: 'rotate(18deg)' }}>
-              <DogPawMark size={18} color={V3.ink} />
-            </span>
-            <span style={{ position: 'absolute', left: 76, top: 48, opacity: 0.07, transform: 'rotate(28deg)' }}>
-              <DogPawMark size={21} color={V3.ink} />
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center" style={{ gap: 12, position: 'relative' }}>
-          <Link href="/account/profile" className="flex-1 min-w-0">
-            <div
-              className="truncate"
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 27,
-                fontWeight: V3FontWeight.black,
-                color: V3.ink,
-                letterSpacing: '-0.025em',
-                lineHeight: 1.1,
-              }}
-            >
-              {withHonorific(displayName)}
-            </div>
-            <div
-              className="truncate"
-              style={{
-                fontSize: 16,
-                color: V3.inkMute,
-                marginTop: 4,
-              }}
-            >
-              {email ?? '—'}
-            </div>
-            <Mono
-              color="accent"
-              size="xs"
-              weight={600}
-              letterSpacing="0.1em"
-              style={{ marginTop: 8, display: 'inline-block' }}
-            >
-              프로필 / 비밀번호 →
-            </Mono>
-          </Link>
-          {tierMetaOrNull && (
-            <Link
-              href="/mypage/membership"
-              aria-label="멤버십 등급 보기"
-              className="shrink-0 active:scale-95 transition"
-            >
-              <TierChip stampCount={stamps} tier={profile?.tier} />
-            </Link>
-          )}
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────────
-          등급 hero — 등급별 수채화 배경(씨앗→나무).
-          2026-07-16: '포인트 잔액' hero 였는데 포인트를 전면 폐기하면서 등급 카드로
-          전환. 수채화 배경과 등급 여정은 그대로 살리고 P 숫자만 뺐다. 우리 혜택은
-          이제 자동할인이라, 모아둔 숫자보다 "지금 등급이 뭐고 뭘 받는지"가 맞다.
-          ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '12px 20px 0' }}>
-        <Link
-          href="/mypage/membership"
-          className="relative block overflow-hidden"
-          style={{
-            borderRadius: V3Radius.sm,
-            padding: '18px 20px',
-            textDecoration: 'none',
-            color: V3.ink,
-            border: `1px solid ${V3.rule}`,
-            backgroundColor: V3.paperHi,
-            // 등급 달성 전(시작 전)엔 수채화 배경 없이 담백하게 — 사장님 2026-07-16.
-            // 아직 아무 등급도 아닌데 새싹 배경이 깔리면 과하다.
-            backgroundImage: tierMetaOrNull
-              ? `linear-gradient(95deg, rgba(252,251,247,0.95) 0%, rgba(252,251,247,0.66) 40%, rgba(252,251,247,0.10) 70%), url(/tiers/${tierKey}.webp)`
-              : 'none',
-            backgroundSize: 'cover',
-            backgroundPosition: 'right center',
-            backgroundRepeat: 'no-repeat',
-          }}
+    <div style={SCREEN_ROOT}>
+      {/* 큰 이름 = 이 화면의 머리. 누르면 프로필(이름·연락처·비밀번호·배송지). */}
+      <Link
+        href="/account/profile"
+        style={{
+          margin: '22px 20px 0',
+          color: V3.ink,
+          textDecoration: 'none',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <span
+          className="ft-poster"
+          style={{ fontSize: 34, lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
-          <div className="relative">
-            <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
-              <Sprout size={14} color={V3.accentDeep} strokeWidth={2} />
-              <Mono color={V3.accentDeep} size="xxs" weight={600}>
-                멤버십
-              </Mono>
-            </div>
-            <div className="flex items-baseline" style={{ gap: 7 }}>
-              <span
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontWeight: V3FontWeight.black,
-                  // 시작 전 문구('멤버십 시작 전')는 길어서 30이면 부담 → 20으로 낮춘다.
-                  // 등급 라벨(씨앗/새싹…)은 짧아서 그대로 크게.
-                  fontSize: tierMetaOrNull ? 30 : 20,
-                  color: V3.ink,
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1,
-                }}
-              >
-                {tierMetaOrNull?.label ?? '멤버십 시작 전'}
-              </span>
-              {/* 등급 있을 때만 영문 라벨(SEED 등). 등급 전 'N TO GO'는 제거 —
-                  스탬프 칸이 시각적으로 남은 수를 보여줘 중복(사장님 2026-07-22). */}
-              {tierMetaOrNull && (
-                <Mono color="inkMute" size="sm" weight={600} letterSpacing="0.08em">
-                  {tierMetaOrNull.en}
-                </Mono>
-              )}
-            </div>
-            <div
-              className="flex items-center"
-              style={{
-                marginTop: 14,
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: V3Radius.xs,
-                background: 'rgba(255,255,255,0.68)',
-                border: `1px solid ${V3.rule}`,
-              }}
-            >
-              <div className="flex-1 min-w-0">
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: V3FontWeight.bold,
-                    color: V3.ink,
-                  }}
-                >
-                  {tierMetaOrNull?.benefit ??
-                    `스탬프 ${stampsToFirstTier(stamps)}개만 더 모으면 씨앗으로 시작해요`}
-                </div>
-              </div>
-              <ChevronRight size={14} color={V3.inkMute} strokeWidth={2} />
-            </div>
-          </div>
-        </Link>
-      </section>
+          {withHonorific(displayName)}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: V3.inkSoft, flexShrink: 0 }}>
+          {emailSignup ? '프로필 / 비밀번호 →' : '프로필 →'}
+        </span>
+      </Link>
 
-      {/* ──────────────────────────────────────────────────────────────
-          스탬프 카드 — 멤버십 화면을 눌러야만 보이던 걸 밖으로 꺼냈다(사장님 2026-07-16).
-          등급의 기준이 스탬프 개수라, 등급 카드 바로 밑이 제자리다.
-          ────────────────────────────────────────────────────────────── */}
-      <section style={{ padding: '12px 20px 0' }}>
-        <StampCard stampCount={profile?.stamp_count} tier={profile?.tier} variant="app" />
-      </section>
+      {/* 멤버십 카드 — 등급 + 도장판. 스탬프 카드를 멤버십 화면 밖으로 꺼낸 자리(사장님 2026-07-16) —
+          등급의 기준이 도장 개수라 등급 바로 밑이 제자리다. */}
+      <Link
+        href="/mypage/membership"
+        aria-label="멤버십 등급 보기"
+        style={{
+          ...STAMP_CARD,
+          margin: '18px 20px 0',
+          padding: '18px 18px 16px',
+          color: V3.ink,
+          textDecoration: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          background: V3.cream,
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>멤버십</span>
+            {/* 등급 전(도장 10개 미만)엔 등급 이름 대신 '멤버십 시작 전' — 아무것도 안 한 사람에게 등급을 주지 않는다. */}
+            <span className="ft-poster" style={{ fontSize: tierMetaOrNull ? 30 : 24, lineHeight: 1 }}>
+              {tierMetaOrNull?.label ?? '멤버십 시작 전'}
+            </span>
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 800, flexShrink: 0 }}>혜택 보기 →</span>
+        </span>
+        <StampGrid
+          filled={card.filled}
+          emptyBorder="#D9C4A3"
+          size={STAMP_CARD_SIZE}
+          label={`도장 ${STAMP_CARD_SIZE}칸 중 ${card.filled}개. ${card.remaining}개 더 모으면 ${STAMP_REWARD_LABEL}.`}
+        />
+        <span style={{ fontSize: 15, lineHeight: 1.5, color: V3.inkMute }}>
+          정기배송 결제 한 번에 도장 하나. {STAMP_CARD_SIZE}칸을 채우면 보상을 드려요.
+        </span>
+      </Link>
 
-      {/* ──────────────────────────────────────────────────────────────
-          Stat grid — 주문 / 구독 2칸.
-          (쿠폰·찜 열은 그 기능들이 폐지되며 사라졌다 — 2026-07-16 주석 정정)
-          열 수를 3 → 2 로 고쳤다(2026-07-30): 셀은 2개인데 3열이라 오른쪽에
-          **빈 칸 하나**가 남아 두 칸이 화면 2/3만 쓰고 있었다. 'dogs' 칸이
-          빠질 때 열 수를 안 줄인 잔재다.
-          ────────────────────────────────────────────────────────────── */}
+      {/* 주문 / 정기배송 두 칸. 열 수 3 → 2(2026-07-30): 셀은 2개인데 3열이라 빈 칸이 남았었다.
+          (쿠폰·찜 열은 그 기능들이 폐지되며 사라졌다 — 2026-07-16) */}
       {(orderCount > 0 || subCount > 0) && (
-        <section style={{ padding: '10px 20px 0' }}>
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 0,
-              background: V3.paperHi,
-              border: `1px solid ${V3.rule}`,
-              borderRadius: V3Radius.sm,
-              overflow: 'hidden',
-            }}
-          >
-            <StatCell
-              href="/mypage/orders"
-              kicker="주문"
-              value={orderCount}
-              unit="건"
-              tone="ink"
-              isFirst
-            />
-            <StatCell
-              href="/mypage/subscriptions"
-              kicker="정기배송"
-              value={subCount}
-              unit="건"
-              tone="sage"
-            />
-          </div>
-        </section>
+        <div style={{ margin: '16px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <StatCell href="/mypage/orders" label="주문" value={orderCount} band={V3.mustard} />
+          <StatCell href="/mypage/subscriptions" label="정기배송" value={subCount} band={V3.ink} />
+        </div>
       )}
 
-      {/* ──────────────────────────────────────────────────────────────
-          Menu groups — kicker + paperHi 카드 + ink rule
-          ────────────────────────────────────────────────────────────── */}
-      <MenuGroup kicker="주문 · 배송" topPad={28}>
+      <MenuSection title="주문 · 배송">
         {/* '주문 내역' + '정기배송 관리' 를 한 줄로 합쳤다(사장님 2026-07-30).
             목적지는 정기배송 화면 — 거기서 다음 결제·진행 중 구독을 보여주고
             맨 아래 '결제·주문 내역' 줄로 /mypage/orders 로 넘어간다. 두 줄이
             나란히 있으면 어느 쪽을 눌러야 하는지 매번 고민하게 된다. */}
-        <MenuItem
-          href="/mypage/subscriptions"
-          Icon={Repeat}
-          label="정기배송 · 주문 내역"
-          last
-        />
+        <MenuRow href="/mypage/subscriptions" icon={<BoxIcon size={24} />} label="정기배송 · 주문 내역" last />
         {/* 배송지 관리는 프로필(/account/profile)로 편입(2026-07-16). */}
-      </MenuGroup>
+      </MenuSection>
 
-      <MenuGroup kicker="혜택" topPad={20}>
-        <MenuItem href="/reports" Icon={TrendingUp} label="건강 리포트" />
-        <MenuItem href="/mypage/membership" Icon={Crown} label="멤버십 등급" last />
-      </MenuGroup>
+      <MenuSection title="혜택">
+        <MenuRow href="/reports" icon={<ChartIcon size={24} />} label="건강 리포트" />
+        <MenuRow href="/mypage/membership" icon={<CrownIcon size={24} />} label="멤버십 등급" last />
+      </MenuSection>
 
-      <MenuGroup kicker="설정" topPad={20}>
+      <MenuSection title="설정">
         {/* 분석 맞춤도 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
-            페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
-        <MenuItem href="/mypage/accuracy" Icon={Gauge} label="분석 맞춤도" /> */}
+            페이지(/mypage/accuracy)는 남겨두고 메뉴 진입만 숨긴다. */}
         {/* 받은 알림·알림 설정·광고 수신 3개를 '알림' 한 페이지(탭)로 통합(2026-07-16). */}
-        <MenuItem href="/notifications" Icon={Bell} label="알림" last />
-      </MenuGroup>
+        <MenuRow href="/notifications" icon={<BellIcon size={24} />} label="알림" last />
+      </MenuSection>
 
-      <MenuGroup kicker="도움말" topPad={20}>
-        {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김".
-            페이지(/chat)는 남겨두고 메뉴 진입만 숨긴다. 되살릴 땐 아래 주석 해제.
-        <MenuItem href="/chat" Icon={Sparkles} label="AI 영양 상담" /> */}
-        <MenuItem href="/help" Icon={HelpCircle} label="고객센터" />
-        <MenuItem href="/faq" Icon={FileText} label="자주 묻는 질문" />
+      <MenuSection title="도움말">
+        {/* AI 영양 상담 — 사장님 2026-07-16 "나중에 쓸 수도 있어서 일단 숨김". 페이지(/chat)는 남겨두고 메뉴만 숨긴다. */}
+        <MenuRow href="/help" icon={<HelpIcon size={24} />} label="고객센터" />
+        <MenuRow href="/faq" icon={<DocIcon size={24} />} label="자주 묻는 질문" />
         {/* 내 데이터(열람·다운로드) — PIPA §35 열람권은 고객센터 경로로도 충족돼
             메인 '설정'에서 '도움말' 하단으로 내림(사장님 2026-07-24, 눈에 덜 띄게).
             단 삭제/차단이 아니라 접근성은 유지 = 다크패턴 회피. */}
-        <MenuItem
-          href="/mypage/privacy"
-          Icon={Shield}
-          label="내 데이터 (열람·다운로드)"
-          last
-        />
-      </MenuGroup>
+        <MenuRow href="/mypage/privacy" icon={<DataDownIcon size={24} />} label="내 데이터 (열람·다운로드)" last />
+      </MenuSection>
 
-      {/* 약관·정책 */}
-      <section style={{ padding: '24px 20px 8px' }}>
-        <Mono color="inkMute" size="xxs" weight={500} letterSpacing="0.12em">
-          <Link href="/legal" style={{ color: V3.inkMute, textDecoration: 'none' }}>
-            약관 · 정책
-          </Link>
-        </Mono>
-      </section>
+      {/* 관리자 모드 — 운영자에게만(2026-10-09 윗줄 강아지 칩 메뉴에서 이리로 옮김) */}
+      <AdminModeRow />
 
-      {/* 로그아웃 */}
-      <section style={{ padding: '16px 20px 0' }}>
-        <button
-          onClick={() => setLogoutOpen(true)}
-          className="w-full flex items-center justify-center transition active:scale-[0.98]"
-          style={{
-            gap: 8,
-            padding: '14px 16px',
-            background: V3.paperHi,
-            border: `1px solid ${V3.rule}`,
-            borderRadius: V3Radius.sm,
-            fontFamily: 'var(--font-sans)',
-            fontSize: 16,
-            fontWeight: V3FontWeight.semibold,
-            color: V3.inkMute,
-          }}
-        >
-          <LogOut size={16} strokeWidth={2} />
-          로그아웃
-        </button>
-      </section>
-
-      {/* Logout 확인 modal — confirm() 대체. */}
-      <Modal
-        open={logoutOpen}
-        onClose={() => !loggingOut && setLogoutOpen(false)}
-        title="로그아웃 하시겠어요?"
-        dismissOnBackdrop={!loggingOut}
-        // 확인 다이얼로그 — 우상단 X 는 아래 "취소" 버튼과 중복이라 제거
-        // (사장님 2026-07-19). 닫기 = 취소 버튼 또는 배경 탭.
-        showClose={false}
-      >
-        <Modal.Body>
-          저장된 정보는 그대로 유지돼요. 다시 로그인하면 똑같이 사용할 수 있어요.
-        </Modal.Body>
-        <Modal.Footer>
-          <button
-            type="button"
-            onClick={() => setLogoutOpen(false)}
-            disabled={loggingOut}
-            style={{
-              padding: '10px 18px',
-              borderRadius: V3Radius.sm,
-              fontSize: 14,
-              fontWeight: V3FontWeight.bold,
-              background: V3.paperHi,
-              color: V3.inkMute,
-              border: `1px solid ${V3.rule}`,
-              cursor: loggingOut ? 'not-allowed' : 'pointer',
-              opacity: loggingOut ? 0.5 : 1,
-            }}
-          >
-            취소
-          </button>
-          <button
-            type="button"
-            onClick={performLogout}
-            disabled={loggingOut}
-            style={{
-              padding: '10px 18px',
-              borderRadius: V3Radius.sm,
-              fontSize: 14,
-              fontWeight: V3FontWeight.bold,
-              background: V3.ink,
-              color: V3.paperHi,
-              border: 'none',
-              cursor: loggingOut ? 'not-allowed' : 'pointer',
-              opacity: loggingOut ? 0.7 : 1,
-            }}
-          >
-            {loggingOut ? '로그아웃 중…' : '로그아웃'}
-          </button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* 탈퇴 */}
-      <section style={{ padding: '12px 20px 0', textAlign: 'center' }}>
+      {/* 맨 아래 한 줄 — 약관 · 정책 / 로그아웃 · 회원 탈퇴 */}
+      <div style={{ margin: '26px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link
-          href="/mypage/delete"
-          style={{
-            fontSize: 12,
-            color: V3.inkMute,
-            textDecoration: 'underline',
-            textUnderlineOffset: 2,
-          }}
+          href="/legal"
+          style={{ minHeight: 48, display: 'flex', alignItems: 'center', fontSize: 15, fontWeight: 700, color: V3.inkSoft, textDecoration: 'underline' }}
         >
-          회원 탈퇴
+          약관 · 정책
         </Link>
-      </section>
+        <span style={{ display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => setLogoutOpen(true)}
+            style={{
+              minHeight: 48,
+              padding: '0 8px',
+              border: 0,
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              fontFamily: 'inherit',
+              fontSize: 15,
+              fontWeight: 700,
+              color: V3.inkSoft,
+              textDecoration: 'underline',
+              cursor: 'pointer',
+            }}
+          >
+            로그아웃
+          </button>
+          <Link
+            href="/mypage/delete"
+            style={{ minHeight: 48, padding: '0 8px', display: 'flex', alignItems: 'center', fontSize: 15, fontWeight: 700, color: V3.inkMute, textDecoration: 'underline' }}
+          >
+            회원 탈퇴
+          </Link>
+        </span>
+      </div>
+
+      {logoutOpen && (
+        <LogoutDialog
+          busy={loggingOut}
+          onCancel={() => !loggingOut && setLogoutOpen(false)}
+          onConfirm={performLogout}
+        />
+      )}
     </div>
   )
 }
 
 // ──────────────────────────────────────────────────────────────
-// TierChip — 5단계 등급 시스템 (씨앗/새싹/꽃/열매/단짝)
+// LogoutDialog — 가운데 확인 창(시안 T10). 닫기 = 취소 버튼 · 바탕 누르기 · Esc · 하드웨어 뒤로가기.
+// 우상단 X 는 아래 "취소" 와 중복이라 두지 않는다(사장님 2026-07-19).
 // ──────────────────────────────────────────────────────────────
-// 배지 정본 = profiles.tier(ratcheted floor, 강등 없음 2026-07-22). resolveTierKey 로
-// hero·TierBadge 와 같은 헬퍼를 써 같은 등급을 보장한다.
-function TierChip({
-  stampCount,
-  tier,
+function LogoutDialog({
+  busy,
+  onCancel,
+  onConfirm,
 }: {
-  stampCount: number
-  tier?: string | null
+  busy: boolean
+  onCancel: () => void
+  onConfirm: () => void
 }) {
-  const meta = tierMeta(resolveTierKey(tier, stampCount))
-  // 등급이 없으면(스탬프 10개 미만) 칩을 아예 안 그린다 — 빈 칩보다 없는 게 낫다.
-  if (!meta) return null
+  const panelRef = useRef<HTMLElement | null>(null)
+  useModalA11y({ open: true, onClose: onCancel, containerRef: panelRef, preventEscape: busy })
+  const button = {
+    height: 56,
+    boxSizing: 'border-box' as const,
+    borderRadius: V3Radius.sm,
+    fontFamily: 'inherit',
+    fontSize: 17,
+    fontWeight: 800,
+    cursor: busy ? 'not-allowed' : 'pointer',
+  }
   return (
-    <span
-      className="inline-flex items-center"
-      style={{
-        gap: 4,
-        fontFamily: 'var(--font-sans)',
-        fontSize: 12,
-        fontWeight: V3FontWeight.black,
-        padding: '4px 10px',
-        borderRadius: V3Radius.pill,
-        background: meta.bg,
-        color: meta.ink,
-        letterSpacing: '-0.01em',
-        border: `1px solid ${V3.rule}`,
-      }}
-    >
-      {meta.label}
-    </span>
+    <>
+      <div aria-hidden onClick={onCancel} style={{ position: 'fixed', inset: 0, zIndex: 145, background: SCRIM }} />
+      <section
+        ref={panelRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="ft-logout-title"
+        aria-describedby="ft-logout-body"
+        style={{
+          position: 'fixed',
+          zIndex: 150,
+          left: 20,
+          right: 20,
+          top: 280,
+          maxWidth: 440,
+          margin: '0 auto',
+          padding: '24px 20px 20px',
+          background: '#FFFFFF',
+          borderRadius: 8,
+          boxShadow: '0 16px 40px rgba(20,20,20,0.18)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          lineHeight: 'normal',
+          color: V3.ink,
+        }}
+      >
+        <h2 id="ft-logout-title" style={{ margin: 0, fontFamily: 'inherit', fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em' }}>
+          로그아웃 하시겠어요?
+        </h2>
+        <p id="ft-logout-body" style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: V3.inkSoft }}>
+          저장된 정보는 그대로 유지돼요. 다시 로그인하면 똑같이 사용할 수 있어요.
+        </p>
+        <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            style={{ ...button, border: `1.5px solid ${V3.ink}`, background: '#FFFFFF', color: V3.ink, opacity: busy ? 0.5 : 1 }}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            style={{ ...button, border: 0, background: V3.ink, color: '#FFFFFF', opacity: busy ? 0.7 : 1 }}
+          >
+            {busy ? '로그아웃 중…' : '로그아웃'}
+          </button>
+        </div>
+      </section>
+    </>
   )
 }
 
 // ──────────────────────────────────────────────────────────────
-// StatCell — 4-col 메트릭 strip 한 cell
+// StatCell — 회색 면 + 위 6px 색 띠(주문 = 머스타드, 정기배송 = 먹색) + 큰 숫자(Anton 30).
 // ──────────────────────────────────────────────────────────────
-function StatCell({
-  href,
-  kicker,
-  value,
-  unit,
-  tone,
-  isFirst,
-}: {
-  href: string
-  kicker: string
-  value: number
-  unit: string
-  tone: 'ink' | 'sage' | 'accent' | 'yellow'
-  isFirst?: boolean
-}) {
-  const toneColor: Record<typeof tone, string> = {
-    ink: V3.ink,
-    sage: V3.sage,
-    accent: V3.accent,
-    yellow: V3.yellow,
-  }
+function StatCell({ href, label, value, band }: { href: string; label: string; value: number; band: string }) {
   return (
     <Link
       href={href}
       style={{
-        padding: '12px 10px',
-        borderLeft: isFirst ? 'none' : `1px solid ${V3.rule}`,
+        padding: '14px 16px',
+        color: V3.ink,
         textDecoration: 'none',
-        display: 'block',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        borderRadius: V3Radius.sm,
+        background: V3.soft,
+        borderTop: `6px solid ${band}`,
+        boxSizing: 'content-box',
       }}
     >
-      <Mono color="inkMute" size="xxs" weight={500}>
-        {kicker}
-      </Mono>
-      <div className="flex items-baseline" style={{ marginTop: 6, gap: 3 }}>
-        <span
-          className="tabular-nums"
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontWeight: V3FontWeight.black,
-            fontSize: 22,
-            color: toneColor[tone],
-            letterSpacing: '-0.025em',
-            lineHeight: 1,
-          }}
-        >
+      <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>{label}</span>
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <span className="ft-num" style={{ fontSize: 30 }}>
           {value}
         </span>
-        <Mono color="inkMute" size="xxs" weight={500} letterSpacing="0.04em">
-          {unit}
-        </Mono>
-      </div>
+        <span style={{ fontSize: 15, fontWeight: 800 }}> 건</span>
+      </span>
     </Link>
   )
 }
 
 // ──────────────────────────────────────────────────────────────
-// MenuGroup — kicker label + paperHi 카드 wrapper
+// MenuSection · MenuRow — 회색 소제목 + 위 1.5px 먹선 + 줄(높이 60 · 아이콘 24 · 글자 17 · 꺾쇠).
 // ──────────────────────────────────────────────────────────────
-function MenuGroup({
-  kicker,
-  topPad,
-  children,
-}: {
-  kicker: string
-  topPad: number
-  children: React.ReactNode
-}) {
+function MenuSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section style={{ padding: `${topPad}px 20px 0` }}>
-      <div style={{ marginBottom: 8, paddingLeft: 2 }}>
-        <Mono color="inkMute" size="xxs" weight={500}>
-          {kicker}
-        </Mono>
-      </div>
-      <div
-        style={{
-          background: V3.paperHi,
-          border: `1px solid ${V3.rule}`,
-          borderRadius: V3Radius.sm,
-          overflow: 'hidden',
-        }}
-      >
-        {children}
-      </div>
+    <section style={{ margin: '28px 20px 0' }}>
+      <h2 style={{ margin: '0 0 4px', fontFamily: 'inherit', fontSize: 15, fontWeight: 800, color: V3.inkMute, letterSpacing: '-0.02em' }}>
+        {title}
+      </h2>
+      <div style={{ borderTop: `1.5px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>{children}</div>
     </section>
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// MenuItem — 단일 row (icon + label + chevron, optional badge)
-// ──────────────────────────────────────────────────────────────
-function MenuItem({
-  href,
-  Icon,
-  label,
-  last,
-  badge,
-}: {
-  href?: string
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>
-  label: string
-  last?: boolean
-  badge?: number
-}) {
-  const borderBottom = last ? 'none' : `1px solid ${V3.rule}`
-
-  // href 없는 항목 = 아직 목적지 없음 → 클릭 불가 '준비 중' 행으로 렌더.
-  // (옛 comingSoon prop 제거 2026-07-23 — 전 호출부가 href 를 넘겨 한 번도
-  //  전달되지 않던 死prop. '준비 중' 은 href 생략만으로 낸다.)
-  if (!href) {
-    return (
-      <div
-        className="flex items-center justify-between"
-        style={{
-          padding: '14px 16px',
-          borderBottom,
-        }}
-      >
-        <div className="flex items-center" style={{ gap: 12 }}>
-          <Icon size={18} color={V3.inkMute} strokeWidth={1.5} />
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: V3FontSize.base,
-              fontWeight: V3FontWeight.semibold,
-              color: V3.inkMute,
-            }}
-          >
-            {label}
-          </span>
-        </div>
-        <Mono
-          color="inkMute"
-          size="xxs"
-          weight={500}
-          letterSpacing="0.08em"
-          style={{
-            padding: '2px 8px',
-            background: V3.paper,
-            borderRadius: V3Radius.xs,
-          }}
-        >
-          준비 중
-        </Mono>
-      </div>
-    )
-  }
-
+function MenuRow({ href, icon, label, last }: { href: string; icon: ReactNode; label: string; last?: boolean }) {
   return (
     <Link
       href={href}
-      className="flex items-center justify-between transition active:opacity-60"
+      className="transition active:opacity-60"
       style={{
-        padding: '14px 16px',
-        borderBottom,
+        minHeight: 60,
+        padding: '0 4px',
+        boxSizing: 'content-box',
+        borderBottom: last ? 0 : `1px solid ${MENU_LINE}`,
+        color: V3.ink,
         textDecoration: 'none',
+        display: 'grid',
+        gridTemplateColumns: '28px 1fr 20px',
+        columnGap: 12,
+        alignItems: 'center',
       }}
     >
-      <div className="flex items-center min-w-0" style={{ gap: 12 }}>
-        <Icon size={18} color={V3.ink} strokeWidth={1.5} />
-        <span
-          className="truncate"
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: V3FontSize.base,
-            fontWeight: V3FontWeight.semibold,
-            color: V3.ink,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {label}
-        </span>
-        {typeof badge === 'number' && badge > 0 && (
-          <Badge tone="accent" filled size="sm">
-            {badge > 99 ? '99+' : badge}
-          </Badge>
-        )}
-      </div>
-      <ChevronRight size={16} color={V3.inkMute} strokeWidth={2} />
+      {icon}
+      <span style={{ fontSize: 17, fontWeight: 700, minWidth: 0 }}>{label}</span>
+      <ChevronRightIcon size={20} color={V3.inkMute} strokeWidth={2.2} />
     </Link>
   )
 }

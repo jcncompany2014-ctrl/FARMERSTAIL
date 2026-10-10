@@ -120,6 +120,50 @@ export default async function OrdersPage() {
       new Error(`[mypage.orders] ${error.message}`),
       { tags: { area: 'mypage-orders' } },
     )
+    if (isApp) {
+      // 앱 — 앱엔 '마이페이지'라는 이름이 없다(앱시안 결정 3번 '동작'). 정기배송 탭의 불러오기 실패(S14)와 같은 꼴.
+      return (
+        <AuthAwareShell>
+          <main className="pb-8">
+            <section
+              role="alert"
+              style={{
+                margin: '24px 20px 0',
+                padding: '22px 20px 20px',
+                border: '1.5px solid #C63D2A',
+                borderRadius: 4,
+                display: 'flex',
+                flexDirection: 'column',
+                color: '#141414',
+              }}
+            >
+              <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.25 }}>주문 내역을 불러오지 못했어요</h2>
+              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
+                잠시 뒤에 다시 열어 봐 주세요. 계속 이러면 고객센터로 알려 주시면 바로 확인할게요.
+              </p>
+              <Link
+                href="/help"
+                style={{
+                  marginTop: 18,
+                  height: 56,
+                  borderRadius: 4,
+                  background: '#141414',
+                  color: '#FFFFFF',
+                  fontSize: 17,
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                고객센터로 가기
+              </Link>
+            </section>
+          </main>
+        </AuthAwareShell>
+      )
+    }
     return (
       <AuthAwareShell>
         <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
@@ -149,13 +193,11 @@ export default async function OrdersPage() {
   return (
     <AuthAwareShell>
     <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
-      {/* 헤더 */}
+      {/* 헤더 — 앱은 윗줄(← 주문 내역)이 제목·뒤로가기를 맡아 본문 머리가 없다(2026-10-09 앱 새 디자인 M07 — 예전 앱
+          머리말 'Orders' 는 영어라 뺐다, 앱시안 결정 3번). 웹은 아래 그대로. */}
+      {!isApp && (
       <section className="px-5 pt-6 pb-2 md:px-6">
-        {isApp ? (
-          // 앱: 헤더 ← 가 '주문 내역' 제목/뒤로가기를 이미 담당 → 본문은
-          // kicker 만. 아래 상태 통계(전체/진행 중/취소·환불)가 공간을 채운다.
-          <span className="kicker block">Orders</span>
-        ) : (
+        {(
           <>
             <Link
               href="/mypage"
@@ -178,6 +220,7 @@ export default async function OrdersPage() {
           </>
         )}
       </section>
+      )}
 
       {/* 앱: 필터 탭 + 다시주문 스트립 + 목록을 OrdersAppView 가 담당.
           웹: 아래 기존 통계 + 목록 그대로(에디토리얼 톤 불변). */}

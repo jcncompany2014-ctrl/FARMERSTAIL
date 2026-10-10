@@ -1,16 +1,22 @@
 'use client'
 
+/**
+ * 알림 설정 — 이 기기의 푸시 켜기/끄기 + 알림 종류·방해 금지 시간(PreferencesPanel) + 등록된 기기.
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 시안 M12 · I08):
+ *   · 이 기기 상태 = 회색 면 + 왼쪽 6px 머스타드 띠 · 먹색 동그라미 종 · "알림이 켜져 있어요" 19 굵게 ·
+ *     두 칸 단추(알림 끄기 = 흰 바탕 먹선 · 테스트 알림 = 먹색). 꺼져 있으면 '알림 켜기' 한 칸.
+ *   · '기기' 목록에 **앱(네이티브) 기기**도 넣었다(앱시안 결정). 예전엔 웹 푸시(push_subscriptions)만 세서,
+ *     앱스토어로 설치한 사람은 알림이 켜져 있어도 "아직 등록된 기기가 없어요"가 떴다. page.tsx 가
+ *     native_push_tokens 를 **읽기만** 해서 넘긴다. 켜기·끄기·테스트 발송 로직은 그대로다 — 화면 목록만
+ *     켜고 끈 결과를 따라간다(웹 줄을 이미 그렇게 하고 있었다).
+ *   · 알림 종류·방해 금지 시간을 못 불러오면(시안 I08) 이 탭엔 실패 카드만 남긴다 — "켜고 끄는 칸을 잠시
+ *     숨겼어요. 새로고침해 주세요."(앱시안 결정 문구)와 화면이 같은 말을 하게.
+ */
+
 import { useEffect, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
-import {
-  Bell,
-  BellOff,
-  Check,
-  Loader2,
-  Smartphone,
-  AlertCircle,
-  Send,
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import PreferencesPanel from './PreferencesPanel'
 import {
   isNativeApp,
@@ -18,13 +24,25 @@ import {
   markPushOptOut,
   clearPushOptOut,
   getDeviceId,
+  getPlatform,
 } from '@/lib/capacitor'
 import { formatKstLongDate } from '@/lib/datetime-kst'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { Chip, RuleList, SectionTitle, outlineButton, primaryButton } from '@/components/v3/me/MeParts'
+import { BellIcon, BellOffIcon, CheckIcon, DeviceIcon, SendIcon, WarnIcon } from '@/components/v3/me/MeIcons'
 
 type SubRow = {
   id: string
   endpoint: string
   user_agent: string | null
+  created_at: string
+}
+
+/** 앱(네이티브) 기기 — native_push_tokens 의 화면용 칸(토큰 값은 고르지 않는다). */
+type NativeDeviceRow = {
+  id: string
+  platform: string
+  device_id: string | null
   created_at: string
 }
 
@@ -50,22 +68,34 @@ type Status =
 
 export default function NotificationSettingsClient({
   initialSubs,
+  initialNativeDevices = [],
   vapidPublicKey,
   embedded,
+  previewStatus,
 }: {
   initialSubs: SubRow[]
+  /** 앱(네이티브) 기기. null = 조회 실패 — "등록된 기기가 없어요"로 그리지 않는다(규칙1). */
+  initialNativeDevices?: NativeDeviceRow[] | null
   vapidPublicKey: string | null
   /** 통합 알림 페이지 탭 안에서 렌더될 때 true — 자체 헤더 숨김. */
   embedded?: boolean
+  /** 점검 화면(/design-check/me) 전용 — 기기 상태 감지 대신 이 값으로 그린다. 실제 화면은 넘기지 않는다. */
+  previewStatus?: Status
 }) {
-  const [status, setStatus] = useState<Status>('unknown')
+  const [status, setStatus] = useState<Status>(previewStatus ?? 'unknown')
   const [subs, setSubs] = useState<SubRow[]>(initialSubs)
+  const [nativeDevices, setNativeDevices] = useState<NativeDeviceRow[] | null>(initialNativeDevices)
   const [msg, setMsg] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null)
+  // 이 앱 기기의 device_id — 목록에서 '이 기기' 표를 붙이는 데만 쓴다.
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null)
+  // 알림 종류·방해 금지 시간을 못 불러왔나 — 시안 I08: 그땐 이 탭의 켜고 끄는 칸을 전부 숨기고 실패 카드만 둔다.
+  const [prefsFailed, setPrefsFailed] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (previewStatus) return // 점검 화면 — 실제 기기 감지를 하지 않는다.
     // ★네이티브(Capacitor) 분기가 초기 감지에 없었다 (2026-08-08 네이티브 감사).
     //   WKWebView 엔 PushManager 가 없어 아래 검사가 'unsupported' 로 굳고,
     //   그러면 켜기 버튼이 disabled 라 enable() 의 네이티브 분기에 **영원히
@@ -94,6 +124,7 @@ export default function NotificationSettingsClient({
             setStatus('off')
             return
           }
+          setCurrentDeviceId(deviceId)
           const res = await fetch(
             `/api/push/native-register?deviceId=${encodeURIComponent(deviceId)}`,
           )
@@ -130,7 +161,7 @@ export default function NotificationSettingsClient({
         setStatus('off')
       }
     })()
-  }, [])
+  }, [previewStatus])
 
   async function enable() {
     setMsg(null)
@@ -150,6 +181,8 @@ export default function NotificationSettingsClient({
         void clearPushOptOut()
         setStatus('on')
         setMsg('네이티브 앱 알림이 활성화됐어요')
+        // 화면 목록만 따라간다(등록은 위에서 끝났다) — 이 기기 줄이 없으면 맨 위에 하나 그린다.
+        void showThisNativeDevice()
         return
       } catch (e) {
         setMsg(userFacingError(e, '알림 등록 실패'))
@@ -231,6 +264,8 @@ export default function NotificationSettingsClient({
             { method: 'DELETE' },
           )
           if (!res.ok) throw new Error('푸시 해제에 실패했어요')
+          // 화면 목록만 따라간다 — 지운 이 기기 줄을 뺀다.
+          setNativeDevices((prev) => (prev ? prev.filter((d) => d.device_id !== deviceId) : prev))
         }
         // ★직접 껐다는 표시. 이게 없으면 다음 홈 진입에서 자동 등록이 토큰을
         //   다시 만들어 "껐는데 계속 온다"가 된다(2026-09-15 자동 등록 도입).
@@ -265,6 +300,26 @@ export default function NotificationSettingsClient({
     }
   }
 
+  /** 앱에서 켠 뒤 '기기' 목록에 이 기기를 그린다(표시만 — 저장은 registerAndSyncNativePush 가 이미 했다). */
+  async function showThisNativeDevice() {
+    try {
+      const deviceId = await getDeviceId()
+      if (!deviceId) return
+      setCurrentDeviceId(deviceId)
+      const platform = getPlatform()
+      setNativeDevices((prev) => {
+        const list = prev ?? []
+        if (list.some((d) => d.device_id === deviceId)) return list
+        return [
+          { id: `native-${deviceId}`, platform, device_id: deviceId, created_at: new Date().toISOString() },
+          ...list,
+        ]
+      })
+    } catch {
+      /* 표시만 못 할 뿐 — 알림은 이미 켜졌다 */
+    }
+  }
+
   async function sendTest() {
     setTesting(true)
     setMsg(null)
@@ -286,218 +341,245 @@ export default function NotificationSettingsClient({
   // Use a plain boolean so TS doesn't narrow `status` to just 'on' in the JSX below.
   const isOn: boolean = status === 'on'
 
+  // '기기' 목록 — 앱(네이티브) 기기 먼저, 그다음 웹 푸시 구독.
+  const devices: Array<{ key: string; name: string; date: string; current: boolean }> = [
+    ...(nativeDevices ?? []).map((d) => ({
+      key: `n-${d.id}`,
+      name: `${d.platform === 'ios' ? 'iPhone' : 'Android'} · 앱`,
+      date: d.created_at,
+      current: !!currentDeviceId && d.device_id === currentDeviceId,
+    })),
+    ...subs.map((s) => ({
+      key: `w-${s.id}`,
+      name: prettyUA(s.user_agent),
+      date: s.created_at,
+      current: currentEndpoint === s.endpoint,
+    })),
+  ]
+
   return (
-    <div className={embedded ? undefined : 'pb-10'}>
+    <div>
       {!embedded && (
-        <section className="px-5 pt-4 pb-2">
-          <span className="kicker mt-3 block">알림 설정</span>
-          <p className="text-[13.5px] text-muted mt-1.5 leading-relaxed">
-            배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
-          </p>
-        </section>
+        <p style={{ margin: '20px 20px 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>
+          배송 변경, 결제 완료, 리마인더를 알림으로 받을 수 있어요
+        </p>
       )}
 
-      {/* 메인 토글 */}
-      <section className="px-5 mt-4">
-        <div className="bg-bg-3 rounded border border-rule p-5">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                isOn ? 'bg-terracotta/10' : 'bg-bg'
-              }`}
-            >
-              {isOn ? (
-                <Bell className="w-5 h-5 text-terracotta" strokeWidth={2} />
-              ) : (
-                <BellOff className="w-5 h-5 text-muted" strokeWidth={2} />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="text-[13.5px] font-black text-text">
-                {isOn ? '알림이 켜져 있어요' : '알림이 꺼져 있어요'}
-              </div>
-              <div className="text-[10.5px] text-muted mt-0.5">
-                이 기기에서의 알림 상태예요
-              </div>
-            </div>
-          </div>
+      {/* 이 기기 알림 — 설정을 못 불러오면(I08) 숨긴다. */}
+      {!prefsFailed && (
+      <section
+        aria-label="이 기기 알림"
+        style={{
+          margin: '20px 20px 0',
+          padding: 18,
+          borderRadius: V3Radius.sm,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          background: V3.soft,
+          borderLeft: `6px solid ${V3.mustard}`,
+        }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '48px 1fr', columnGap: 14, alignItems: 'center' }}>
+          <span
+            aria-hidden
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              background: isOn ? V3.ink : '#FFFFFF',
+              color: isOn ? '#FFFFFF' : V3.inkMute,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isOn ? <BellIcon size={24} /> : <BellOffIcon size={24} />}
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{ fontSize: 19, fontWeight: 800 }}>{isOn ? '알림이 켜져 있어요' : '알림이 꺼져 있어요'}</span>
+            <span style={{ fontSize: 15, color: V3.inkMute }}>이 기기에서의 알림 상태예요</span>
+          </span>
+        </div>
 
-          {status === 'unsupported' && (
-            <div className="mt-3 flex items-start gap-2 text-[10.5px] text-sale bg-sale/5 rounded-lg px-3 py-2">
-              <AlertCircle
-                className="w-3.5 h-3.5 shrink-0 mt-0.5"
-                strokeWidth={2}
-              />
-              <span>
-                이 브라우저는 웹 알림을 지원하지 않아요. 홈 화면에 추가하거나
-                Chrome·Safari 최신 버전을 사용해 주세요.
-              </span>
-            </div>
-          )}
-          {status === 'blocked' && (
-            <div className="mt-3 flex items-start gap-2 text-[10.5px] text-sale bg-sale/5 rounded-lg px-3 py-2">
-              <AlertCircle
-                className="w-3.5 h-3.5 shrink-0 mt-0.5"
-                strokeWidth={2}
-              />
-              <span>
-                {isNativeApp()
+        {(status === 'unsupported' || status === 'blocked') && (
+          <p style={{ margin: 0, display: 'flex', gap: 8, fontSize: 15, fontWeight: 700, lineHeight: 1.5, color: V3.sale }}>
+            <WarnIcon size={18} strokeWidth={2.2} style={{ marginTop: 2 }} />
+            <span>
+              {status === 'unsupported'
+                ? '이 브라우저는 웹 알림을 지원하지 않아요. 홈 화면에 추가하거나 Chrome·Safari 최신 버전을 사용해 주세요.'
+                : isNativeApp()
                   ? '알림이 꺼져 있어요. 휴대폰 설정 > 파머스테일 > 알림에서 허용해 주세요.'
                   : '알림이 차단되어 있어요. 브라우저 설정에서 파머스테일의 알림을 허용해 주세요.'}
-              </span>
-            </div>
+            </span>
+          </p>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+          {isOn ? (
+            <button
+              type="button"
+              onClick={disable}
+              disabled={status === 'unsubscribing' || status === 'subscribing'}
+              style={{ ...outlineButton(54, 16), gap: 6 }}
+            >
+              {status === 'unsubscribing' ? (
+                <>
+                  <Loader2 className="animate-spin" style={{ width: 18, height: 18 }} strokeWidth={2} />
+                  처리 중...
+                </>
+              ) : (
+                <>
+                  <BellOffIcon size={18} />
+                  알림 끄기
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={enable}
+              disabled={
+                status === 'subscribing' ||
+                status === 'unsupported' ||
+                status === 'blocked'
+              }
+              style={{
+                ...primaryButton(54, 16),
+                gap: 6,
+                gridColumn: '1 / -1',
+                opacity: status === 'unsupported' || status === 'blocked' ? 0.45 : 1,
+              }}
+            >
+              {status === 'subscribing' ? (
+                <>
+                  <Loader2 className="animate-spin" style={{ width: 18, height: 18 }} strokeWidth={2} />
+                  처리 중...
+                </>
+              ) : (
+                <>
+                  <BellIcon size={18} />
+                  알림 켜기
+                </>
+              )}
+            </button>
           )}
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {isOn ? (
-              <button
-                onClick={disable}
-                disabled={
-                  status === 'unsubscribing' || status === 'subscribing'
-                }
-                className="py-3 rounded bg-bg-3 border border-rule text-text text-[12px] font-bold hover:border-text transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {status === 'unsubscribing' ? (
-                  <>
-                    <Loader2
-                      className="w-3.5 h-3.5 animate-spin"
-                      strokeWidth={2}
-                    />
-                    처리 중...
-                  </>
-                ) : (
-                  <>
-                    <BellOff className="w-3.5 h-3.5" strokeWidth={2} />
-                    알림 끄기
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={enable}
-                disabled={
-                  status === 'subscribing' ||
-                  status === 'unsupported' ||
-                  status === 'blocked'
-                }
-                className="col-span-2 py-3 rounded-full text-[12px] font-bold active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-                style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-              >
-                {status === 'subscribing' ? (
-                  <>
-                    <Loader2
-                      className="w-3.5 h-3.5 animate-spin"
-                      strokeWidth={2}
-                    />
-                    처리 중...
-                  </>
-                ) : (
-                  <>
-                    <Bell className="w-3.5 h-3.5" strokeWidth={2} />
-                    알림 켜기
-                  </>
-                )}
-              </button>
-            )}
-            {isOn && (
-              <button
-                onClick={sendTest}
-                disabled={testing}
-                className="py-3 rounded bg-text text-white text-[12px] font-bold active:scale-[0.98] transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
-              >
-                {testing ? (
-                  <>
-                    <Loader2
-                      className="w-3.5 h-3.5 animate-spin"
-                      strokeWidth={2}
-                    />
-                    전송 중...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" strokeWidth={2} />
-                    테스트 알림
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          {msg &&
-            (() => {
-              // 실패 메시지를 초록 체크(성공 스타일)로 보여주던 버그 방지(2026-07-17).
-              // 실패면 빨강 + 체크 숨김 + role=alert(SR 즉시 안내).
-              const isError = /(실패|않았|않아|않은|완료되지|다시 시도|오류)/.test(
-                msg,
-              )
-              return (
-                <p
-                  role={isError ? 'alert' : 'status'}
-                  aria-live={isError ? 'assertive' : 'polite'}
-                  className={`mt-3 text-[10.5px] font-bold inline-flex items-center gap-1 ${
-                    isError ? 'text-sale' : 'text-moss'
-                  }`}
-                >
-                  {!isError && <Check className="w-3 h-3" strokeWidth={2.5} />}
-                  {msg}
-                </p>
-              )
-            })()}
+          {isOn && (
+            <button
+              type="button"
+              onClick={sendTest}
+              disabled={testing}
+              style={{ ...primaryButton(54, 16), gap: 6, opacity: testing ? 0.6 : 1 }}
+            >
+              {testing ? (
+                <>
+                  <Loader2 className="animate-spin" style={{ width: 18, height: 18 }} strokeWidth={2} />
+                  전송 중...
+                </>
+              ) : (
+                <>
+                  <SendIcon size={18} />
+                  테스트 알림
+                </>
+              )}
+            </button>
+          )}
         </div>
-      </section>
 
-      {/* 카테고리·조용한 시간 선호 */}
-      <section className="px-5 mt-3">
-        <PreferencesPanel />
+        {msg &&
+          (() => {
+            // 실패 메시지를 초록 체크(성공 스타일)로 보여주던 버그 방지(2026-07-17).
+            // 실패면 빨강 + 체크 숨김 + role=alert(SR 즉시 안내).
+            const isError = /(실패|않았|않아|않은|완료되지|다시 시도|오류)/.test(
+              msg,
+            )
+            return (
+              <p
+                role={isError ? 'alert' : 'status'}
+                aria-live={isError ? 'assertive' : 'polite'}
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  gap: 6,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  lineHeight: 1.5,
+                  color: isError ? V3.sale : V3.ink,
+                }}
+              >
+                {!isError && <CheckIcon size={18} strokeWidth={2.6} style={{ marginTop: 2 }} />}
+                <span>{msg}</span>
+              </p>
+            )
+          })()}
       </section>
+      )}
+
+      {/* 카테고리·조용한 시간 선호 — 불러오기 실패면 실패 카드(I08)를 그린다. 자리를 고정해 상태가 유지된다. */}
+      <PreferencesPanel onLoadFailed={() => setPrefsFailed(true)} />
 
       {/* 화면 테마(다크모드) 토글은 사장님 2026-07-16 지시로 삭제. */}
 
-      {/* 등록된 기기 */}
-      <section className="px-5 mt-3">
-        <div className="mb-2">
-          <span className="kicker kicker-muted">기기</span>
-        </div>
-        {subs.length === 0 ? (
-          <div className="bg-bg-3 rounded border border-dashed border-rule-2 p-6 text-center">
-            <p className="text-[10.5px] text-muted">
-              아직 등록된 기기가 없어요.
-            </p>
-          </div>
+      {/* 등록된 기기 — 앱(네이티브) + 웹 푸시. 설정을 못 불러오면(I08) 숨긴다. */}
+      {!prefsFailed && (
+      <section aria-labelledby="nt-device" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <SectionTitle id="nt-device">기기</SectionTitle>
+        {devices.length === 0 ? (
+          <p
+            style={{
+              margin: '12px 0 0',
+              padding: '22px 16px',
+              borderRadius: V3Radius.sm,
+              border: '1.5px dashed #BDBDBD',
+              textAlign: 'center',
+              fontSize: 15,
+              lineHeight: 1.5,
+              color: V3.inkMute,
+            }}
+          >
+            {nativeDevices === null
+              ? '앱 기기 목록을 불러오지 못했어요. 새로고침해 주세요.'
+              : '아직 등록된 기기가 없어요.'}
+          </p>
         ) : (
-          <ul className="space-y-2">
-            {subs.map((s) => {
-              const isCurrent = currentEndpoint === s.endpoint
-              return (
-                <li
-                  key={s.id}
-                  className="bg-bg-3 rounded border border-rule px-4 py-3 flex items-start gap-3"
-                >
-                  <Smartphone
-                    className="w-4 h-4 text-muted shrink-0 mt-0.5"
-                    strokeWidth={2}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-[12px] font-bold text-text truncate">
-                        {prettyUA(s.user_agent)}
-                      </p>
-                      {isCurrent && (
-                        <span className="shrink-0 inline-block px-1.5 py-0.5 rounded-full bg-moss text-white text-[9.5px] font-black tracking-wider">
-                          이 기기
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10.5px] text-muted mt-0.5">
-                      {formatKstLongDate(s.created_at)}
-                    </p>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+          <RuleList style={{ marginTop: 12 }}>
+            {devices.map((d) => (
+              <div
+                key={d.key}
+                style={{
+                  padding: '14px 0',
+                  borderBottom: `1px solid ${V3.rule}`,
+                  display: 'grid',
+                  gridTemplateColumns: '24px 1fr',
+                  columnGap: 12,
+                  alignItems: 'center',
+                }}
+              >
+                <DeviceIcon size={22} color={V3.ink} />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.name}
+                    </span>
+                    {d.current && (
+                      <Chip height={24} fontSize={12}>
+                        이 기기
+                      </Chip>
+                    )}
+                  </span>
+                  <span style={{ fontSize: 15, color: V3.inkMute }}>{formatKstLongDate(d.date)}</span>
+                </span>
+              </div>
+            ))}
+            {nativeDevices === null && (
+              <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: V3.inkMute }}>
+                앱 기기 목록을 불러오지 못했어요. 새로고침해 주세요.
+              </p>
+            )}
+          </RuleList>
         )}
       </section>
+      )}
     </div>
   )
 }

@@ -17,9 +17,25 @@
  * This is the absolute last line of defense. Always report to Sentry
  * because the automatic integration lives inside the tree that just
  * blew up.
+ *
+ * ★2026-10-09 앱 갈래 (앱 새 디자인 'A 포스터', 시안 B04) — 이 파일은 웹·앱 공용이다.
+ * 웹 화면(아래 두 번째 return)은 한 픽셀도 바꾸지 않았다(웹/앱 절대 분리 — 웹 쪽 '500'·영어 머리말·
+ * 문제 코드 정리는 웹 리뉴얼 때). 앱(네이티브·설치형 PWA)이면 앱 상태 화면을 그린다:
+ * 휴대폰 그림 · "앱을 불러오지 못했어요" · 새로고침 · 홈으로 — 오류 번호·영어 없음(결정: 오류는 뜨는
+ * 순간 자동 기록되니 고객에게 문제 코드를 보이지 않는다). 위 Sentry 호출은 두 갈래 공통.
+ * 앱 판정: 정본 isAppRequest(ft_app 쿠키·UA 표식) + Capacitor 브리지. 서버가 그린 HTML 은 항상 웹
+ * 갈래(서버 스냅숏 = 웹)이고 브라우저가 앱이면 곧바로 앱 갈래로 바뀐다. 클라이언트에서 처음 그려질
+ * 때는 첫 그림부터 앱 갈래다(useSyncExternalStore — 웹 화면이 한 번 비치지 않는다).
+ * 여기엔 globals.css·글꼴 변수가 없어 앱 갈래도 인라인 스타일뿐인 AppStatusScreen(standalone)을 쓴다.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { RotateCw } from 'lucide-react'
+import { isAppRequest } from '@/lib/app-context-request'
+import { isNativeApp } from '@/lib/capacitor'
+import { V3 } from '@/lib/design/tokens'
+import AppStatusScreen from '@/components/v3/system/AppStatusScreen'
+import { AppCrashIcon } from '@/components/v3/system/StatusIcons'
 
 // FD 브랜드 토큰 inline mirror — globals.css 없이도 쓰려고 복제(루트 layout 붕괴
 // 시엔 var(--fd-*) 가 안 잡힘). globals.css 가 바뀌면 여기도 수동으로 맞춰야 한다.
@@ -30,6 +46,37 @@ const TOKENS = {
   muted: '#5A6C61', // --fd-muted
   terracotta: '#B63619', // --fd-coral-text (흰 텍스트 버튼 배경, AA pass)
   rule: '#DCD6C4', // --fd-line
+} as const
+
+/** ft_app 쿠키 값(없으면 null) — 앱/웹 판정 자체는 정본 isAppRequest 가 한다(규칙58). */
+function appCookieValue(): string | null {
+  const hit = document.cookie
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('ft_app='))
+  return hit ? hit.slice('ft_app='.length) : null
+}
+
+/** 앱(네이티브·설치형 PWA)인가 — 쿠키·UA 표식(정본) 또는 Capacitor 브리지. 못 읽으면 웹. */
+function detectAppShell(): boolean {
+  try {
+    return isAppRequest({ appCookie: appCookieValue(), userAgent: navigator.userAgent }) || isNativeApp()
+  } catch {
+    return false
+  }
+}
+// 쿠키·UA 는 이 화면이 떠 있는 동안 바뀌지 않는다 — 구독할 것이 없다.
+const subscribeNothing = () => () => {}
+const serverIsWeb = () => false
+
+/** 앱 갈래 body — 흰 바탕·먹색(앱 새 디자인). 여기선 웹 글꼴이 안 실려 휴대폰 시스템 한글 글꼴로 그린다. */
+const APP_BODY_STYLE = {
+  margin: 0,
+  backgroundColor: V3.paper,
+  color: V3.ink,
+  fontFamily:
+    "'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+  letterSpacing: '-0.012em',
 } as const
 
 export default function GlobalError({
@@ -51,6 +98,34 @@ export default function GlobalError({
     } catch {
       // 클립보드 권한 거부 시 무시 — 사용자가 수동 복사 가능.
     }
+  }
+
+  const reload = () => {
+    if (typeof window !== 'undefined') window.location.reload()
+  }
+
+  const isApp = useSyncExternalStore(subscribeNothing, detectAppShell, serverIsWeb)
+  if (isApp) {
+    return (
+      <html lang="ko">
+        <body style={APP_BODY_STYLE}>
+          <AppStatusScreen
+            frame="standalone"
+            icon={<AppCrashIcon />}
+            kicker="잠깐 멈췄어요"
+            title={'앱을 불러오지\n못했어요'}
+            body={'문제 내용은 저희에게 자동으로 전달돼요.\n새로고침해도 안 되면\n잠시 후 다시 열어 주세요.'}
+            primary={{
+              label: '새로고침',
+              icon: <RotateCw size={20} strokeWidth={2.4} aria-hidden />,
+              onClick: reload,
+            }}
+            // 루트 layout 이 무너진 자리라 라우터 이동이 아니라 전체 새로 불러오기(a 태그)로 홈에 간다.
+            secondary={{ label: '홈으로 돌아가기', href: '/dashboard', fullReload: true }}
+          />
+        </body>
+      </html>
+    )
   }
 
   return (

@@ -6,11 +6,11 @@ import { Sparkles, Sprout } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { onboardingPhase } from '@/lib/onboarding/grace-period'
 import { petName } from '@/lib/korean'
-import { Mono } from '@/components/v3'
-import { V3, V3FontWeight, V3FontSize, V3Radius } from '@/lib/design/tokens'
+import { V3 } from '@/lib/design/tokens'
 import AccuracyBreakdown, {
   type AccuracyVar,
 } from '@/components/dashboard/AccuracyBreakdown'
+import AccuracyIntro from './AccuracyIntro'
 import {
   feedReliability,
   activityReliability,
@@ -36,6 +36,9 @@ export const metadata: Metadata = {
  * 홈의 시각 위계를 정리하면서 마이페이지 전용 화면으로 이동(사장님 지시).
  * 활성 강아지(헤더 칩에서 고른 아이, 쿠키) 기준으로 체중·활동·급여 측정의
  * 정밀도를 보여준다. 계산식은 대시보드와 동일(lib/personalization/reliability).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 캔버스 A14): 머리는 AccuracyIntro, 맞춤도 카드는 AccuracyBreakdown(머스타드 도장
+ * 그림자 카드). 첫 주·빈 상태 카드도 같은 결(회색 면·점선 테두리)로. 조회·계산은 그대로.
  */
 type DogRow = { id: string; name: string }
 type SnapshotShape = {
@@ -140,73 +143,42 @@ export default async function AccuracyPage() {
       : []
 
   return (
-    <div style={{ paddingBottom: 32 }}>
-      <section style={{ padding: '18px 20px 4px' }}>
-        <Mono color="accent" size="xs" weight={600}>
-          정확도
-        </Mono>
-        <p
-          style={{
-            fontSize: V3FontSize.base,
-            lineHeight: 1.55,
-            color: V3.inkMute,
-            marginTop: 8,
-          }}
-        >
-          {inSilentGrace
-            ? '지금은 맞춤 데이터가 쌓이는 중이에요. 급하게 뭔가 안 하셔도 괜찮아요 — 정밀도는 다음 주부터 차근차근 보여드릴게요.'
-            : '체중·활동·급여를 어떻게 측정했는지에 따라 맞춤 분석의 정밀도가 달라져요. 약한 항목의 측정 도구를 바꾸면 더 정확한 추천을 받을 수 있어요.'}
-        </p>
-      </section>
+    // 줄 높이는 시안과 같은 기본값(normal).
+    <div style={{ paddingBottom: 28, color: V3.ink, lineHeight: 'normal' }}>
+      <AccuracyIntro silent={inSilentGrace} />
 
       {inSilentGrace ? (
-        <section style={{ padding: '20px 20px 0' }}>
-          <div
-            className="text-center"
+        <section
+          style={{
+            margin: '22px 20px 0',
+            padding: '36px 22px',
+            borderRadius: 4,
+            background: V3.soft,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          }}
+        >
+          <span
+            aria-hidden
             style={{
-              borderRadius: V3Radius.sm,
-              border: `1.5px solid ${V3.rule}`,
-              padding: '40px 24px',
-              background: V3.paperHi,
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              background: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div
-              className="mx-auto flex items-center justify-center"
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
-                marginBottom: 14,
-              }}
-            >
-              <Sprout size={22} color={V3.sage} strokeWidth={1.6} />
-            </div>
-            <h3
-              style={{
-                margin: 0,
-                fontFamily: 'var(--font-sans)',
-                fontWeight: V3FontWeight.black,
-                fontSize: V3FontSize.md,
-                color: V3.ink,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              첫 주는 천천히, 편하게
-            </h3>
-            <p
-              style={{
-                fontSize: V3FontSize.sm,
-                color: V3.inkMute,
-                marginTop: 8,
-                lineHeight: 1.55,
-              }}
-            >
-              {graceDogName ? `${graceDogName}의 ` : ''}맞춤 데이터가 조금 쌓이면
-              변수별 정밀도를 여기서 보여드릴게요. 첫 주는 부담 없이 둘러보세요.
-            </p>
-          </div>
+            <Sprout size={24} color={V3.ink} strokeWidth={2} />
+          </span>
+          <h2 style={{ margin: '16px 0 0', fontSize: 24, lineHeight: 1.2 }}>첫 주는 천천히, 편하게</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+            {graceDogName ? `${graceDogName}의 ` : ''}맞춤 데이터가 조금 쌓이면 변수별 정밀도를 여기서 보여드릴게요. 첫
+            주는 부담 없이 둘러보세요.
+          </p>
         </section>
       ) : accuracyVars.length > 0 && dogMeta ? (
         <AccuracyBreakdown
@@ -217,70 +189,56 @@ export default async function AccuracyPage() {
           defaultOpen
         />
       ) : (
-        <section style={{ padding: '20px 20px 0' }}>
-          <div
-            className="text-center"
+        <section
+          style={{
+            margin: '22px 20px 0',
+            padding: '36px 22px 28px',
+            border: `1.5px dashed ${V3.inkFaint}`,
+            borderRadius: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+          }}
+        >
+          <span
+            aria-hidden
             style={{
-              borderRadius: V3Radius.sm,
-              border: `1.5px dashed ${V3.rule}`,
-              padding: '40px 24px',
-              background: V3.paperHi,
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              background: V3.soft,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div
-              className="mx-auto flex items-center justify-center"
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 26,
-                background: V3.paper,
-                border: `1px solid ${V3.rule}`,
-                marginBottom: 14,
-              }}
-            >
-              <Sparkles size={22} color={V3.accent} strokeWidth={1.5} />
-            </div>
-            <h3
-              style={{
-                margin: 0,
-                fontFamily: 'var(--font-sans)',
-                fontWeight: V3FontWeight.black,
-                fontSize: V3FontSize.md,
-                color: V3.ink,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              아직 보여드릴 맞춤도가 없어요
-            </h3>
-            <p
-              style={{
-                fontSize: V3FontSize.sm,
-                color: V3.inkMute,
-                marginTop: 8,
-                lineHeight: 1.55,
-              }}
-            >
-              우리 아이를 등록하고 맞춤 분석을 한 번 받으면
-              변수별 정밀도를 여기서 확인할 수 있어요
-            </p>
-            <Link
-              href={activeDog ? `/dogs/${activeDog.id}/survey` : '/dogs/new'}
-              className="inline-flex items-center active:scale-[0.98] transition"
-              style={{
-                marginTop: 20,
-                gap: 6,
-                padding: '12px 22px',
-                fontSize: V3FontSize.sm,
-                fontWeight: V3FontWeight.bold,
-                borderRadius: V3Radius.pill,
-                background: V3.ink,
-                color: V3.paperHi,
-                textDecoration: 'none',
-              }}
-            >
-              {activeDog ? '분석 시작하기' : '우리 아이 등록하기'}
-            </Link>
-          </div>
+            <Sparkles size={24} color={V3.ink} strokeWidth={2} />
+          </span>
+          <h2 style={{ margin: '16px 0 0', fontSize: 24, lineHeight: 1.2 }}>아직 보여드릴 맞춤도가 없어요</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+            우리 아이를 등록하고 맞춤 분석을 한 번 받으면 변수별 정밀도를 여기서 확인할 수 있어요
+          </p>
+          <Link
+            href={activeDog ? `/dogs/${activeDog.id}/survey` : '/dogs/new'}
+            className="transition active:scale-[0.98]"
+            style={{
+              marginTop: 22,
+              alignSelf: 'stretch',
+              height: 56,
+              borderRadius: 4,
+              background: V3.ink,
+              color: '#FFFFFF',
+              fontSize: 17,
+              fontWeight: 800,
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {activeDog ? '분석 시작하기' : '우리 아이 등록하기'}
+          </Link>
         </section>
       )}
     </div>

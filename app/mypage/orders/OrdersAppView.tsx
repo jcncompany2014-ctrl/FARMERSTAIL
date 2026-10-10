@@ -9,13 +9,19 @@
  * 기능화 + (2) 최근 주문 '다시 담기' 스트립으로 재구매 유도 + 공간 채움.
  *
  * 데이터는 서버(page.tsx)에서 받아 props 로만 받는다(추가 쿼리 없음).
+ *
+ * # 2026-10-09 앱 새 디자인('A 포스터', 캔버스 M07)
+ * 거르기 세 칸(고른 칸 = 먹색, 왼쪽 머스타드 띠) + 주문 카드(날짜·상태 칩·사진·이름·주문번호·금액 숫자 글꼴).
+ * 거르기 판정·이동 주소는 그대로다. 사진은 레시피 팩 스튜디오 컷(겉봉투 사진 금지 — 주문에 저장된 상품 사진이
+ * 옛 겉봉투일 수 있다), 이름은 레시피 이름("닭고기 레시피", lib/design/pouch 의 POUCH_NAME). 모르는 상품은 저장된 값.
  */
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingBag } from 'lucide-react'
-import { V3, V3FontWeight, V3Radius } from '@/lib/design/tokens'
+import { V3 } from '@/lib/design/tokens'
+import { pouchLineFromName, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
+import { studioPouchImage } from '@/lib/personalization/packageImage'
 
 export type OrderItemRow = {
   id: string
@@ -50,22 +56,23 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: '환불',
 }
 
+/** 상태 칩 색 — 끝난 것 먹색, 진행 중 머스타드, 대기 회색, 실패·취소·환불 빨강. */
 function badgeColors(status: string): { bg: string; fg: string } {
   switch (status) {
     case 'paid':
     case 'delivered':
-      return { bg: 'var(--moss, #6f7d52)', fg: '#fff' }
+      return { bg: V3.ink, fg: '#FFFFFF' }
     case 'preparing':
     case 'shipping':
-      return { bg: 'var(--accent)', fg: '#fff' }
+      return { bg: V3.mustard, fg: V3.ink }
     case 'pending':
-      return { bg: 'var(--gold, #d8a531)', fg: 'var(--ink)' }
+      return { bg: V3.soft, fg: V3.ink }
     case 'failed':
     case 'cancelled':
     case 'refunded':
-      return { bg: 'var(--sale, #b5453a)', fg: '#fff' }
+      return { bg: V3.sale, fg: '#FFFFFF' }
     default:
-      return { bg: 'var(--rule)', fg: 'var(--ink)' }
+      return { bg: V3.soft, fg: V3.ink }
   }
 }
 
@@ -77,6 +84,14 @@ function formatDate(iso: string): string {
     day: '2-digit',
     timeZone: 'Asia/Seoul',
   })
+}
+
+/** 주문 상품 줄 → 화면 이름·사진. 레시피면 "닭고기 레시피" + 스튜디오 팩 컷, 아니면 저장된 이름·사진. */
+function itemLook(it: OrderItemRow): { name: string; ko: string | null; image: string | null } {
+  const line = pouchLineFromName(it.product_name)
+  // 레시피 팩 = 큰 이름은 팩에 찍힌 영어, 아래 회색 한글 상품 이름(사장님 2026-10-10).
+  if (line) return { name: POUCH_NAME_EN[line], ko: POUCH_PRODUCT_KO[line], image: studioPouchImage(line) }
+  return { name: it.product_name.replace(/\s*\([^)]*\)\s*$/, ''), ko: null, image: it.product_image_url }
 }
 
 type FilterKey = 'all' | 'ongoing' | 'cancelled'
@@ -94,6 +109,13 @@ function isCancelled(o: OrderRow): boolean {
     o.payment_status === 'refunded'
   )
 }
+
+const BagIcon = ({ size = 26 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M5 8h14l-1 12H6z" />
+    <path d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+  </svg>
+)
 
 export default function OrdersAppView({
   orders,
@@ -121,69 +143,56 @@ export default function OrdersAppView({
   // 빈 주문 — 페이지가 자체 empty 를 처리하지 않고 이 뷰가 담당.
   if (orders.length === 0) {
     return (
-      <section style={{ padding: '24px 20px 0' }}>
-        <div
-          className="text-center"
+      <section
+        style={{
+          margin: '24px 20px 0',
+          padding: '32px 20px',
+          borderRadius: 4,
+          background: V3.soft,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          color: V3.ink,
+        }}
+      >
+        <span
           style={{
-            borderRadius: V3Radius.sm,
-            border: `1.5px dashed ${V3.rule}`,
-            padding: '44px 24px',
-            background: V3.paperHi,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            background: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: V3.inkMute,
           }}
         >
-          <div
-            className="mx-auto flex items-center justify-center"
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              background: V3.paper,
-              border: `1px solid ${V3.rule}`,
-              marginBottom: 14,
-            }}
-          >
-            <ShoppingBag size={24} color={V3.accent} strokeWidth={1.5} />
-          </div>
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-sans)',
-              fontWeight: V3FontWeight.black,
-              fontSize: 16,
-              color: V3.ink,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            아직 주문 내역이 없어요
-          </h3>
-          <p
-            style={{
-              fontSize: 12,
-              color: V3.inkMute,
-              marginTop: 8,
-              lineHeight: 1.55,
-            }}
-          >
-            우리 아이 첫 한 끼를 골라보세요
-          </p>
-          {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
-          <Link
-            href="/dogs"
-            className="inline-flex items-center active:scale-[0.98] transition"
-            style={{
-              marginTop: 20,
-              padding: '12px 22px',
-              fontSize: 12,
-              fontWeight: V3FontWeight.bold,
-              borderRadius: V3Radius.pill,
-              background: V3.ink,
-              color: V3.paperHi,
-              textDecoration: 'none',
-            }}
-          >
-            정기배송 시작하기
-          </Link>
-        </div>
+          <BagIcon />
+        </span>
+        {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다. */}
+        <h2 style={{ margin: '16px 0 0', fontSize: 24, lineHeight: 1.2 }}>아직 주문 내역이 없어요</h2>
+        <p style={{ margin: '8px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>우리 아이 첫 박스를 시작해 보세요</p>
+        {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
+        <Link
+          href="/dogs"
+          className="active:opacity-80"
+          style={{
+            marginTop: 20,
+            height: 56,
+            padding: '0 22px',
+            borderRadius: 4,
+            background: V3.ink,
+            color: '#FFFFFF',
+            fontSize: 17,
+            fontWeight: 800,
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          정기배송 시작하기
+        </Link>
       </section>
     )
   }
@@ -195,242 +204,167 @@ export default function OrdersAppView({
   ]
 
   return (
-    <div>
+    // 줄 높이 normal — 시안 원본은 기본 줄 높이라, 앱 기본(1.5)이면 카드마다 몇 px 씩 길어진다(여러 줄 문구는 따로 지정).
+    <div style={{ color: V3.ink, lineHeight: 'normal' }}>
       {/* '다시 담기' 스트립 제거 (2026-07-16) — cart_items 에 담고 "장바구니에
           담았어요" 토스트까지 띄웠는데, /cart 는 구독 전용 전환(2026-06-26)으로
           /start 리다이렉트라 **담아도 볼 수가 없었다**. 낱개 재구매 자체가 없는
           모델이다(재구매 = 구독이 알아서 보냄). */}
 
-      {/* 2) 필터 탭 — 죽은 통계 칩 대신 누르면 걸러지는 세그먼트. */}
-      <section style={{ padding: '14px 20px 0' }}>
-        <div
-          className="grid"
-          style={{
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 0,
-            background: V3.paperHi,
-            border: `1px solid ${V3.rule}`,
-            borderRadius: V3Radius.sm,
-            overflow: 'hidden',
-          }}
-        >
-          {TABS.map((t, i) => {
-            const active = filter === t.key
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setFilter(t.key)}
-                aria-pressed={active}
-                className="transition"
-                style={{
-                  padding: '11px 8px',
-                  borderLeft: i === 0 ? 'none' : `1px solid ${V3.rule}`,
-                  background: active
-                    ? 'color-mix(in srgb, var(--accent) 9%, transparent)'
-                    : 'transparent',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                <div
-                  className="font-mono uppercase"
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    color: active ? V3.accent : V3.inkMute,
-                  }}
-                >
-                  {t.label}
-                </div>
-                <div
-                  className="tabular-nums"
-                  style={{
-                    marginTop: 4,
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 22,
-                    fontWeight: V3FontWeight.black,
-                    lineHeight: 1,
-                    color: active ? V3.ink : 'var(--ink-mute)',
-                    letterSpacing: '-0.025em',
-                  }}
-                >
+      {/* 거르기 — 죽은 통계 칩 대신 누르면 걸러지는 세 칸(시안 M07). */}
+      <div
+        role="group"
+        aria-label="주문 거르기"
+        style={{
+          margin: '20px 20px 0',
+          borderRadius: 4,
+          overflow: 'hidden',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          background: V3.soft,
+          borderLeft: `6px solid ${V3.mustard}`,
+        }}
+      >
+        {TABS.map((t, i) => {
+          const active = filter === t.key
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setFilter(t.key)}
+              aria-pressed={active}
+              className="ft-no-press"
+              style={{
+                minHeight: 72,
+                border: 0,
+                borderLeft: i === 0 ? 0 : `1.5px solid ${V3.ink}`,
+                background: active ? V3.ink : '#FFFFFF',
+                color: active ? '#FFFFFF' : V3.ink,
+                fontFamily: 'inherit',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 15, fontWeight: active ? 800 : 700, color: active ? '#FFFFFF' : V3.inkSoft }}>{t.label}</span>
+              <span style={{ whiteSpace: 'nowrap' }}>
+                <span className="ft-num" style={{ fontSize: 26, lineHeight: 1 }}>
                   {t.count}
-                  <span
-                    style={{ fontSize: 11, fontWeight: 600, marginLeft: 2, color: V3.inkMute }}
-                  >
-                    건
-                  </span>
-                </div>
-                {/* 활성 탭 하단 accent 막대 */}
-                <div
-                  aria-hidden
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}> 건</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 주문 목록 (거르기 적용) */}
+      {filtered.length === 0 ? (
+        <p style={{ margin: '16px 20px 0', padding: '32px 0', textAlign: 'center', fontSize: 16, color: V3.inkMute }}>
+          이 조건의 주문이 없어요
+        </p>
+      ) : (
+        <ul style={{ margin: '16px 20px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map((order) => {
+            const items = Array.isArray(order.order_items) ? order.order_items : []
+            const firstItem = items[0]
+            const extraCount = items.length - 1
+            const displayStatus = order.payment_status === 'paid' ? order.order_status : order.payment_status
+            const label =
+              order.payment_status === 'paid'
+                ? ORDER_STATUS_LABEL[order.order_status] ?? order.order_status
+                : PAYMENT_STATUS_LABEL[order.payment_status] ?? order.payment_status
+            const bc = badgeColors(displayStatus)
+            const look = firstItem ? itemLook(firstItem) : null
+
+            return (
+              <li key={order.id}>
+                <Link
+                  href={`/mypage/orders/${order.id}`}
+                  className="active:opacity-80"
                   style={{
-                    width: 16,
-                    height: 2,
-                    margin: '6px auto 0',
-                    background: active ? V3.accent : 'transparent',
+                    padding: '14px 16px 16px',
+                    border: `1px solid ${V3.rule}`,
+                    borderRadius: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    color: V3.ink,
+                    textDecoration: 'none',
                   }}
-                />
-              </button>
-            )
-          })}
-        </div>
-      </section>
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: V3.inkMute }}>{formatDate(order.created_at)}</span>
+                    <span
+                      style={{
+                        height: 26,
+                        padding: '0 8px',
+                        borderRadius: 4,
+                        background: bc.bg,
+                        color: bc.fg,
+                        fontSize: 13,
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </span>
+                  </span>
 
-      {/* 3) 주문 목록 (필터 적용) */}
-      <section style={{ padding: '12px 20px 0' }}>
-        {filtered.length === 0 ? (
-          <p
-            className="text-center"
-            style={{
-              padding: '32px 0',
-              fontSize: 13,
-              color: V3.inkMute,
-            }}
-          >
-            이 조건의 주문이 없어요
-          </p>
-        ) : (
-          <ul className="space-y-2.5">
-            {filtered.map((order) => {
-              const items = Array.isArray(order.order_items)
-                ? order.order_items
-                : []
-              const firstItem = items[0]
-              const extraCount = items.length - 1
-              const displayStatus =
-                order.payment_status === 'paid'
-                  ? order.order_status
-                  : order.payment_status
-              const label =
-                order.payment_status === 'paid'
-                  ? ORDER_STATUS_LABEL[order.order_status] ?? order.order_status
-                  : PAYMENT_STATUS_LABEL[order.payment_status] ??
-                    order.payment_status
-              const bc = badgeColors(displayStatus)
-
-              return (
-                <li key={order.id}>
-                  <Link
-                    href={`/mypage/orders/${order.id}`}
-                    className="block transition active:scale-[0.99]"
-                    style={{
-                      background: V3.paperHi,
-                      border: `1px solid ${V3.rule}`,
-                      borderRadius: V3Radius.sm,
-                      padding: '14px 16px',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+                  {firstItem && look && (
+                    <span style={{ display: 'grid', gridTemplateColumns: '60px minmax(0, 1fr) 12px', columnGap: 14, alignItems: 'center' }}>
                       <span
                         style={{
-                          fontSize: 11.5,
-                          fontWeight: V3FontWeight.bold,
+                          position: 'relative',
+                          width: 60,
+                          height: 60,
+                          borderRadius: 4,
+                          overflow: 'hidden',
+                          background: V3.soft,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           color: V3.inkMute,
                         }}
                       >
-                        {formatDate(order.created_at)}
+                        {look.image ? (
+                          <Image src={look.image} alt="" fill sizes="60px" className="object-cover" />
+                        ) : (
+                          <BagIcon size={24} />
+                        )}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: V3FontWeight.black,
-                          padding: '2px 8px',
-                          borderRadius: V3Radius.xs,
-                          background: bc.bg,
-                          color: bc.fg,
-                        }}
-                      >
-                        {label}
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                        <span className="line-clamp-1" style={{ fontSize: 17, fontWeight: 800 }}>
+                          <span className={look.ko ? 'ft-num' : undefined} style={look.ko ? { fontSize: 19, fontWeight: 400, letterSpacing: '0.02em' } : undefined}>
+                            {look.name}
+                          </span>
+                          {extraCount > 0 && <span style={{ fontWeight: 600, color: V3.inkMute }}> 외 {extraCount}건</span>}
+                        </span>
+                        {look.ko && <span style={{ fontSize: 14, color: V3.inkMute }}>{look.ko}</span>}
+                        <span style={{ fontSize: 13, color: V3.inkMute, letterSpacing: '0.01em' }}>{order.order_number}</span>
+                        <span style={{ whiteSpace: 'nowrap' }}>
+                          <span className="ft-num" style={{ fontSize: 22 }}>
+                            {order.total_amount.toLocaleString('ko-KR')}
+                          </span>
+                          <span style={{ fontSize: 15, fontWeight: 800 }}>원</span>
+                        </span>
                       </span>
-                    </div>
-
-                    {firstItem && (
-                      <div className="flex" style={{ gap: 12 }}>
-                        <div
-                          className="relative shrink-0 overflow-hidden flex items-center justify-center"
-                          style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: V3Radius.xs,
-                            background: V3.paper,
-                            border: `1px solid ${V3.rule}`,
-                          }}
-                        >
-                          {firstItem.product_image_url ? (
-                            <Image
-                              src={firstItem.product_image_url}
-                              alt={firstItem.product_name}
-                              fill
-                              sizes="56px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <ShoppingBag
-                              size={24}
-                              color={V3.inkMute}
-                              strokeWidth={1.5}
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className="line-clamp-1"
-                            style={{
-                              fontSize: 13.5,
-                              fontWeight: V3FontWeight.bold,
-                              color: V3.ink,
-                              letterSpacing: '-0.01em',
-                            }}
-                          >
-                            {firstItem.product_name}
-                            {extraCount > 0 && (
-                              <span style={{ color: V3.inkMute }}>
-                                {' '}외 {extraCount}건
-                              </span>
-                            )}
-                          </p>
-                          <p
-                            className="font-mono"
-                            style={{
-                              fontSize: 10.5,
-                              color: V3.inkMute,
-                              marginTop: 3,
-                            }}
-                          >
-                            {order.order_number}
-                          </p>
-                          <div className="flex items-baseline" style={{ marginTop: 6, gap: 2 }}>
-                            <span
-                              className="tabular-nums"
-                              style={{
-                                fontFamily: 'var(--font-sans)',
-                                fontSize: 15,
-                                fontWeight: V3FontWeight.black,
-                                // 15px bold 는 WCAG large-text(18.66px bold) 미달 →
-                                // 본문 기준 4.5:1 이 필요하다. accent 3.41 → accentDeep 8.71.
-                                color: V3.accentDeep,
-                                letterSpacing: '-0.02em',
-                              }}
-                            >
-                              {order.total_amount.toLocaleString()}
-                            </span>
-                            <span style={{ fontSize: 11, color: V3.inkMute }}>원</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+                      <span aria-hidden style={{ fontSize: 20 }}>
+                        ›
+                      </span>
+                    </span>
+                  )}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
-

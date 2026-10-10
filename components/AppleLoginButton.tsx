@@ -9,6 +9,13 @@ type Props = {
   next?: string
   /** "로그인" vs "회원가입" 컨텍스트 — 버튼 카피만 변경. */
   variant?: 'login' | 'signup'
+  /**
+   * 겉모양만 — 'app' = 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W06·W27): 흰 바탕 1.5px 먹선 · 모서리 4 · 높이 56.
+   * 카카오 버튼과 같은 크기라 4.8 동등 비중은 그대로. 기본(웹)은 예전 알약 모양.
+   */
+  look?: 'web' | 'app' | 'flow'
+  /** 버튼 글자 바꾸기 — 새 첫 화면 'Apple로 가입하고 시작'(시안 Y6). 없으면 variant 글자. */
+  label?: string
 }
 
 /**
@@ -44,6 +51,8 @@ type Props = {
 export default function AppleLoginButton({
   next = '/dashboard',
   variant = 'login',
+  look = 'web',
+  label: labelOverride,
 }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -93,7 +102,48 @@ export default function AppleLoginButton({
 
   if (!shouldRender || !isAppleDevice) return null
 
-  const label = variant === 'signup' ? 'Apple 로 가입하기' : 'Apple 로 시작하기'
+  const label = labelOverride ?? (variant === 'signup' ? 'Apple 로 가입하기' : 'Apple 로 시작하기')
+
+  // 'flow' = 새 첫 화면(시안 Y6) — 먹색 알약(높이 58 · 모서리 29, 흰 글자). 'app' = 흰 바탕 1.5px 먹선(모서리 4).
+  if (look === 'app' || look === 'flow') {
+    const flow = look === 'flow'
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={loading}
+          className="active:opacity-80 disabled:opacity-60"
+          aria-label={label}
+          style={{
+            width: '100%',
+            height: flow ? 58 : 56,
+            boxSizing: 'border-box',
+            border: flow ? 0 : '1.5px solid #141414',
+            borderRadius: flow ? 29 : 4,
+            background: flow ? '#141414' : '#FFFFFF',
+            color: flow ? '#FFFFFF' : '#141414',
+            fontFamily: 'inherit',
+            fontSize: 17,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <AppleMark size={19} />
+          {loading ? '연결 중...' : label}
+        </button>
+        {error && (
+          <p role="alert" style={{ margin: '8px 0 0', fontSize: 14, fontWeight: 700, lineHeight: 1.5, color: '#B23624' }}>
+            {error}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -124,11 +174,11 @@ export default function AppleLoginButton({
  * 적으로 유사한 일반 사과 모양 outline. App Store 심사 시 시스템 native sheet
  * (apple-sign-in plugin) 로 전환하면 자동으로 정확한 로고 사용.
  */
-function AppleMark() {
+function AppleMark({ size = 16 }: { size?: number }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"

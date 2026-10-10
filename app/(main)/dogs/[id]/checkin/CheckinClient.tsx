@@ -1,23 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Check,
-  Loader2,
-  AlertCircle,
-  Sparkles,
-  Camera,
-  X,
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { petName } from '@/lib/korean'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { haptic } from '@/lib/haptic'
 import { trackCheckinSubmitted } from '@/lib/analytics'
+import { ArrowRightIcon, CheckIcon, XIcon } from '@/components/v3/dog/DogIcons'
 import './checkin.css'
 
 /**
@@ -26,8 +21,11 @@ import './checkin.css'
  * 보호자가 cycle 의 week_2 / week_4 응답을 보내는 폼. cron 이 보낸 push /
  * email 의 deep link 가 이 페이지로 진입.
  *
- * # 디자인 (placeholder — 클로드 디자인 핸드오프 받으면 교체)
- * 토큰 (cream/ink/terracotta) 그대로. .ck-* 접두 (checkin).
+ * # 디자인
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 S23-checkin-week2 · S24-checkin-week4 · S25-checkin-answered ·
+ * S26-checkin-result) — 흰 바탕·먹 글자·모서리 4px. 질문마다 위 2px 먹선 + 제목 글꼴 24, 고른 칸 = 먹색 바탕.
+ * '응답을 이미 받았어요'·결과 피드백 카드가 그 화면의 도장 그림자 한 곳. .ck-* 접두 (checkin).
+ * 영어·전문용어(변 상태 (Bristol)·다음 cycle 알고리즘·AI 채점)는 뺐다(앱시안 결정 16·17·'영어·전문용어').
  *
  * # 응답 항목
  *  - stoolScore     : Bristol 1-7 (4 = 이상)
@@ -46,18 +44,48 @@ import './checkin.css'
 
 type Checkpoint = 'week_2' | 'week_4'
 
+type Stool = 1 | 2 | 3 | 4 | 5 | 6 | 7
+type Five = 1 | 2 | 3 | 4 | 5
+
+/**
+ * 점검 화면(/design-check/box/checkin) 전용 — 로그인 없이 예시 값으로 그린다. 실제 화면은 넘기지 않는다.
+ * 넘기면 강아지·기존 응답 조회를 건너뛰고 이 값으로 시작한다(저장 버튼은 로그인이 없어 저장되지 않는다).
+ */
+export type CheckinPreview = {
+  dogName: string
+  /** 이미 받은 응답 — 있으면 읽기 전용(S25). */
+  existing?: {
+    stoolScore: number | null
+    coatScore: number | null
+    appetiteScore: number | null
+    overallSatisfaction: number | null
+    freeText: string | null
+  } | null
+  /** 고른 답(입력 중 모습). */
+  answers?: {
+    stool?: Stool | null
+    coat?: Five | null
+    appetite?: Five | null
+    satisfaction?: Five | null
+    freeText?: string
+  }
+  /** 보낸 뒤 맞춤 피드백 화면(S26). */
+  result?: { notes: string[]; shouldReanalyze: boolean }
+}
+
 const STOOL_OPTIONS: Array<{
-  v: 1 | 2 | 3 | 4 | 5 | 6 | 7
+  v: Stool
   label: string
   hint: string
   tag: 'good' | 'warn' | 'bad'
 }> = [
+  // 2026-10-09: '경증' → '가벼운'(시안 S23 — 전문 어투). 저장·판정은 숫자(v)라 글자만 바뀐다.
   { v: 1, label: '딱딱한 알갱이', hint: '심한 변비', tag: 'bad' },
-  { v: 2, label: '울퉁불퉁 굳음', hint: '경증 변비', tag: 'bad' },
+  { v: 2, label: '울퉁불퉁 굳음', hint: '가벼운 변비', tag: 'bad' },
   { v: 3, label: '겉이 갈라짐', hint: '경계', tag: 'warn' },
   { v: 4, label: '매끄러운 소시지', hint: '이상적', tag: 'good' },
   { v: 5, label: '부드러운 덩어리', hint: '경계', tag: 'warn' },
-  { v: 6, label: '죽 같은 무름', hint: '경증 설사', tag: 'bad' },
+  { v: 6, label: '죽 같은 무름', hint: '가벼운 설사', tag: 'bad' },
   { v: 7, label: '액체에 가까움', hint: '심한 설사', tag: 'bad' },
 ]
 
@@ -67,22 +95,25 @@ export default function CheckinClient({
   dogId,
   cycleNumber,
   checkpoint,
+  preview,
 }: {
   dogId: string
   cycleNumber: number
   checkpoint: Checkpoint
+  preview?: CheckinPreview
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const previewMode = preview !== undefined
   // 2주 피드백 해석 결과 — 제출 성공 시 맞춤 안내 + 재분석 권장 표시.
   const [result, setResult] = useState<{
     notes: string[]
     shouldReanalyze: boolean
-  } | null>(null)
+  } | null>(preview?.result ?? null)
   const toast = useToast()
 
-  const [dogName, setDogName] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [dogName, setDogName] = useState(preview?.dogName ?? '')
+  const [loading, setLoading] = useState(!previewMode)
   // 조회 실패를 "데이터 없음"으로 위장하지 않기 위한 상태(2026-08-05).
   const [loadError, setLoadError] = useState(false)
   const [existing, setExisting] = useState<null | {
@@ -91,19 +122,19 @@ export default function CheckinClient({
     appetiteScore: number | null
     overallSatisfaction: number | null
     freeText: string | null
-  }>(null)
-  const [editMode, setEditMode] = useState(true)
+  }>(preview?.existing ?? null)
+  const [editMode, setEditMode] = useState(!preview?.existing)
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
 
   // 응답 state
-  const [stool, setStool] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | null>(null)
-  const [coat, setCoat] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
-  const [appetite, setAppetite] = useState<1 | 2 | 3 | 4 | 5 | null>(null)
-  const [satisfaction, setSatisfaction] = useState<
-    1 | 2 | 3 | 4 | 5 | null
-  >(null)
-  const [freeText, setFreeText] = useState('')
+  const [stool, setStool] = useState<Stool | null>(preview?.answers?.stool ?? null)
+  const [coat, setCoat] = useState<Five | null>(preview?.answers?.coat ?? null)
+  const [appetite, setAppetite] = useState<Five | null>(preview?.answers?.appetite ?? null)
+  const [satisfaction, setSatisfaction] = useState<Five | null>(
+    preview?.answers?.satisfaction ?? null,
+  )
+  const [freeText, setFreeText] = useState(preview?.answers?.freeText ?? '')
   // 사진 — 변/털 첨부. v1.5+ Storage bucket dog_checkin_photos.
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [photoPreview, setPhotoPreview] = useState<Record<string, string>>({})
@@ -111,6 +142,8 @@ export default function CheckinClient({
 
   // 강아지 정보 + 기존 응답 조회
   useEffect(() => {
+    // 점검 화면은 예시 값으로 이미 시작했다 — 조회(로그인 필요)를 건너뛴다.
+    if (previewMode) return
     let cancelled = false
     ;(async () => {
       // ★try/catch/finally 가 없으면 **무한 스피너**다(2026-08-05 감사).
@@ -203,7 +236,7 @@ export default function CheckinClient({
     return () => {
       cancelled = true
     }
-  }, [dogId, cycleNumber, checkpoint, router, supabase])
+  }, [dogId, cycleNumber, checkpoint, router, supabase, previewMode])
 
   async function uploadPhoto(file: File) {
     setUploading(true)
@@ -312,7 +345,8 @@ export default function CheckinClient({
         setResult({ notes: fb.notes, shouldReanalyze: fb.shouldReanalyze })
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
-        toast.success(`${petName(dogName)}를 더 잘 챙길게요 🐾`)
+        // 2026-10-09: 끝의 🐾 이모지는 뺐다(앱 새 디자인 — 이모지 쓰지 않음).
+        toast.success(`${petName(dogName)}를 더 잘 챙길게요`)
         router.push(`/dogs/${dogId}/analysis`)
       }
     } catch (e) {
@@ -337,8 +371,8 @@ export default function CheckinClient({
   if (loadError) {
     return (
       <div className="ck-page">
-        <div className="ck-state" style={{ flexDirection: 'column', gap: 12 }}>
-          <p className="text-[13.5px] text-text text-center">
+        <div className="ck-state ck-state-error">
+          <p>
             체크인 정보를 불러오지 못했어요.
             <br />
             잠시 후 다시 시도해 주세요.
@@ -346,7 +380,7 @@ export default function CheckinClient({
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="text-[12px] font-bold text-terracotta underline underline-offset-2"
+            className="ck-retry"
           >
             다시 시도
           </button>
@@ -359,94 +393,61 @@ export default function CheckinClient({
   if (result) {
     return (
       <div className="ck-page">
-        <header className="ck-hero">
-          <div className="ck-kicker">맞춤 피드백 · {cycleNumber}번째 박스</div>
+        <section className="ck-hero">
+          <span className="ck-kicker">
+            맞춤 피드백
+            <span className="ck-cycle">{cycleNumber}번째 박스</span>
+          </span>
           <h1>
             {petName(dogName)}의 답변을<br />
             확인했어요
           </h1>
-        </header>
-        <section
-          style={{
-            margin: '0 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
+        </section>
+        <Image
+          src="/bowl-eating.jpg"
+          alt="밥을 먹는 셸티"
+          width={700}
+          height={525}
+          sizes="350px"
+          loading="eager"
+          className="ck-result-photo"
+        />
+        <section aria-label="피드백" className="ck-result-card">
           {result.notes.map((n, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                gap: 10,
-                padding: '14px 16px',
-                borderRadius: 12,
-                background: 'var(--cream, #faf6ec)',
-                border: '1px solid var(--rule, rgba(22,20,15,0.1))',
-                fontSize: 16,
-                lineHeight: 1.55,
-                color: 'var(--ink, #16140f)',
-              }}
-            >
-              <Sparkles
-                size={16}
-                strokeWidth={2}
-                color="var(--terracotta, #c4623f)"
-                style={{ flexShrink: 0, marginTop: 1 }}
-              />
+            <div key={i} className="ck-result-note">
+              <SparkleIcon />
               <span>{n}</span>
             </div>
           ))}
+        </section>
 
+        <div className="ck-result-actions">
           <button
             type="button"
             onClick={() => {
               haptic('tap')
               router.push(`/dogs/${dogId}/analysis`)
             }}
-            style={{
-              marginTop: 6,
-              padding: '14px 20px',
-              borderRadius: 999,
-              border: 'none',
-              background: 'var(--terracotta, #c4623f)',
-              color: '#fff',
-              fontSize: 16,
-              fontWeight: 800,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+            className="ck-primary"
           >
-            {result.shouldReanalyze
-              ? '지금 다시 분석하기 →'
-              : '분석 결과 보기 →'}
+            {result.shouldReanalyze ? '지금 다시 분석하기' : '분석 결과 보기'}
+            <ArrowRightIcon size={20} strokeWidth={2.4} />
           </button>
-          <Link
-            href={`/dogs/${dogId}`}
-            style={{
-              textAlign: 'center',
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'var(--muted, #706854)',
-              textDecoration: 'none',
-              padding: 8,
-            }}
-          >
+          <Link href={`/dogs/${dogId}`} className="ck-text-link">
             {petName(dogName)} 페이지로
           </Link>
-        </section>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="ck-page">
-      <header className="ck-hero">
-        <div className="ck-kicker">
+      <section className="ck-hero">
+        <span className="ck-kicker">
           {checkpoint === 'week_2' ? '2주차 · 적응 체크' : '4주차 · 종합 평가'}
           <span className="ck-cycle">{cycleNumber}번째 박스</span>
-        </div>
+        </span>
         <h1>
           {petName(dogName)}의<br />
           요즘 어때요?
@@ -477,21 +478,22 @@ export default function CheckinClient({
                 <i style={{ width: `${pct}%` }} />
               </div>
               <span className="ck-progress-lbl">
-                {filled} / {total} 항목
+                <span className="ft-num">{filled}</span> / <span className="ft-num">{total}</span> 항목
               </span>
             </div>
           )
         })()}
-      </header>
+      </section>
 
       {existing && !editMode && (
-        <div className="ck-existing">
-          <Sparkles size={14} strokeWidth={2} color="var(--terracotta)" />
-          <div>
-            <strong>이번 박스 {checkpoint === 'week_2' ? '2주차' : '4주차'} 응답을 이미 받았어요.</strong>
-            <br />
-            아래 답변이 다음 박스 알고리즘에 반영돼요.
-          </div>
+        <div className="ck-existing" role="status">
+          <span className="ck-existing-head">
+            <CheckIcon size={20} color="#141414" style={{ marginTop: 2 }} />
+            <span className="ck-existing-text">
+              <strong>이번 박스 {checkpoint === 'week_2' ? '2주차' : '4주차'} 응답을 이미 받았어요.</strong>
+              <span>아래 답변이 다음 박스 알고리즘에 반영돼요.</span>
+            </span>
+          </span>
           <button
             type="button"
             className="ck-edit-btn"
@@ -506,7 +508,9 @@ export default function CheckinClient({
         className="ck-section"
         disabled={!editMode}
       >
-        <legend className="ck-sect-lbl">변 상태 (Bristol)</legend>
+        <legend className="ck-sect-lbl">
+          <span className="ft-poster ck-sect-title">변 상태</span>
+        </legend>
         <p className="ck-sect-hint">평소 변과 가장 비슷한 형태를 골라주세요.</p>
         <div className="ck-stool-grid">
           {STOOL_OPTIONS.map((s) => {
@@ -515,50 +519,66 @@ export default function CheckinClient({
               <button
                 key={s.v}
                 type="button"
-                className={`ck-stool ${active ? 'on' : ''} ${s.tag}`}
+                className={`ck-stool ${active ? 'on' : ''}`}
                 onClick={() => setStool(s.v)}
                 aria-pressed={active}
               >
-                <span className="ck-stool-num">#{s.v}</span>
-                <span className="ck-stool-lbl">{s.label}</span>
-                <span className="ck-stool-hint">{s.hint}</span>
+                <span className="ft-num ck-stool-num">{s.v}</span>
+                <span className="ck-stool-text">
+                  <span className="ck-stool-lbl">{s.label}</span>
+                  <span className="ck-stool-hint">
+                    {s.tag === 'good' && <span className="ck-stool-dot" aria-hidden />}
+                    {s.hint}
+                  </span>
+                </span>
               </button>
             )
           })}
+          <button
+            type="button"
+            className={`ck-skip ck-skip-cell ${stool === null ? 'on' : ''}`}
+            onClick={() => setStool(null)}
+            aria-pressed={stool === null}
+          >
+            {stool === null && <CheckIcon size={16} strokeWidth={3} />}
+            잘 모르겠어요
+          </button>
         </div>
-        <button
-          type="button"
-          className={`ck-skip ${stool === null ? 'on' : ''}`}
-          onClick={() => setStool(null)}
-        >
-          {stool === null ? '✓ 잘 모르겠어요' : '잘 모르겠어요'}
-        </button>
       </fieldset>
 
       <fieldset className="ck-section" disabled={!editMode}>
-        <legend className="ck-sect-lbl">털 상태</legend>
+        <legend className="ck-sect-lbl">
+          <span className="ft-poster ck-sect-title">털 상태</span>
+        </legend>
         <p className="ck-sect-hint">윤기 / 푸석함 정도.</p>
         <FiveScale value={coat} onChange={setCoat} />
       </fieldset>
 
       <fieldset className="ck-section" disabled={!editMode}>
-        <legend className="ck-sect-lbl">식욕</legend>
+        <legend className="ck-sect-lbl">
+          <span className="ft-poster ck-sect-title">식욕</span>
+        </legend>
         <p className="ck-sect-hint">잘 먹는 정도.</p>
         <FiveScale value={appetite} onChange={setAppetite} />
       </fieldset>
 
       {checkpoint === 'week_4' && (
         <fieldset className="ck-section" disabled={!editMode}>
-          <legend className="ck-sect-lbl">종합 만족도</legend>
+          <legend className="ck-sect-lbl">
+            <span className="ft-poster ck-sect-title">종합 만족도</span>
+          </legend>
           <p className="ck-sect-hint">
-            이번 박스 전체 평가. 1-2 면 다음 cycle 알고리즘이 적극 조정해요.
+            이번 박스 전체 평가예요. 1~2점이면 다음 박스를 크게 조정해요.
           </p>
           <FiveScale value={satisfaction} onChange={setSatisfaction} />
         </fieldset>
       )}
 
       <fieldset className="ck-section" disabled={!editMode}>
-        <legend className="ck-sect-lbl">더 알려주실 게 있다면 (선택)</legend>
+        <legend className="ck-sect-lbl">
+          <span className="ft-poster ck-sect-title is-small">더 알려주실 게 있다면</span>{' '}
+          <span className="ck-optional">선택</span>
+        </legend>
         <textarea
           rows={4}
           maxLength={500}
@@ -573,10 +593,12 @@ export default function CheckinClient({
 
       {editMode && (
         <fieldset className="ck-section ck-photo-section">
-          <legend className="ck-sect-lbl">변·털 사진 (선택)</legend>
-          <p className="ck-sect-hint">
-            첨부하면 다음 cycle 에 AI 자동 채점이 더 정확해져요. 5MB 이하 jpg/png.
-          </p>
+          <legend className="ck-sect-lbl">
+            <span className="ck-photo-title">변·털 사진</span>{' '}
+            <span className="ck-optional">선택</span>
+          </legend>
+          {/* 2026-10-09: "첨부하면 다음 cycle 에 AI 자동 채점이 더 정확해져요" 는 뺐다 — 안 쓰는 기능(앱시안 결정 17). */}
+          <p className="ck-sect-hint ck-photo-hint">5MB 이하 사진.</p>
           {photoUrls.length > 0 && (
             <div className="ck-photo-grid">
               {photoUrls.map((path) => {
@@ -601,7 +623,7 @@ export default function CheckinClient({
                       className="ck-photo-del"
                       aria-label="사진 삭제"
                     >
-                      <X size={11} strokeWidth={2.6} color="#fff" />
+                      <XIcon size={12} color="#FFFFFF" />
                     </button>
                   </div>
                 )
@@ -609,7 +631,7 @@ export default function CheckinClient({
             </div>
           )}
           <label className={'ck-photo-btn' + (uploading ? ' busy' : '')}>
-            <Camera size={14} strokeWidth={2} />
+            <CameraIcon />
             <span>{uploading ? '업로드 중...' : '사진 추가'}</span>
             <input
               type="file"
@@ -627,9 +649,11 @@ export default function CheckinClient({
         </fieldset>
       )}
       {!editMode && photoUrls.length > 0 && (
-        <fieldset className="ck-section">
-          <legend className="ck-sect-lbl">첨부된 사진</legend>
-          <div className="ck-photo-grid">
+        <fieldset className="ck-section ck-photo-section">
+          <legend className="ck-sect-lbl">
+            <span className="ck-photo-title">첨부된 사진</span>
+          </legend>
+          <div className="ck-photo-grid ck-photo-grid-ro">
             {photoUrls.map((path) => {
               const url = photoPreview[path]
               return (
@@ -652,12 +676,12 @@ export default function CheckinClient({
 
       {err && (
         <div className="ck-err" role="alert">
-          <AlertCircle size={14} strokeWidth={2} />
+          <AlertIcon />
           {err}
         </div>
       )}
 
-      {editMode && (
+      {editMode ? (
         <div className="ck-cta">
           <button
             type="button"
@@ -667,17 +691,19 @@ export default function CheckinClient({
           >
             {saving ? (
               <>
-                <Loader2 size={14} strokeWidth={2.4} className="animate-spin" />
+                <Loader2 size={18} strokeWidth={2.4} className="animate-spin" />
                 저장 중...
               </>
             ) : (
               <>
                 응답 보내기
-                <Check size={14} strokeWidth={2.6} color="#fff" />
+                <CheckIcon size={18} strokeWidth={2.8} color="#FFFFFF" />
               </>
             )}
           </button>
         </div>
+      ) : (
+        <div className="ck-end" aria-hidden />
       )}
     </div>
   )
@@ -687,8 +713,8 @@ function FiveScale({
   value,
   onChange,
 }: {
-  value: 1 | 2 | 3 | 4 | 5 | null
-  onChange: (v: 1 | 2 | 3 | 4 | 5 | null) => void
+  value: Five | null
+  onChange: (v: Five | null) => void
 }) {
   return (
     <>
@@ -703,7 +729,7 @@ function FiveScale({
               onClick={() => onChange(v)}
               aria-pressed={active}
             >
-              <span className="num">{v}</span>
+              <span className="ft-num num">{v}</span>
               <span className="lbl">{FIVE_LABELS[v - 1]}</span>
             </button>
           )
@@ -713,9 +739,39 @@ function FiveScale({
         type="button"
         className={`ck-skip ${value === null ? 'on' : ''}`}
         onClick={() => onChange(null)}
+        aria-pressed={value === null}
       >
-        {value === null ? '✓ 잘 모르겠어요' : '잘 모르겠어요'}
+        {value === null && <CheckIcon size={16} strokeWidth={3} />}
+        잘 모르겠어요
       </button>
     </>
+  )
+}
+
+/* ── 선 그림 — 시안 원본 HTML 의 SVG(24 격자) 그대로. 장식(aria-hidden). ── */
+
+function CameraIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+      <path d="M4 8h3l2-2.5h6L17 8h3v11H4z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  )
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0, marginTop: 2 }}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+    </svg>
+  )
+}
+
+function AlertIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0, marginTop: 1 }}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5M12 16v.3" />
+    </svg>
   )
 }

@@ -1,19 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type RefObject } from 'react'
 import { userFacingError } from '@/lib/error-message'
-import {
-  Send,
-  Sparkles,
-  Loader2,
-  AlertCircle,
-  Trash2,
-  User as UserIcon,
-} from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/Spinner'
 import { useConfirm } from '@/components/v3'
 import type { ChatNudge } from '@/lib/chat/proactive-nudges'
+import { V3 } from '@/lib/design/tokens'
+import DogPawMark from '@/components/DogPawMark'
 
 /**
  * AI 영양사 chat client (history 보존 thread).
@@ -23,14 +17,24 @@ import type { ChatNudge } from '@/lib/chat/proactive-nudges'
  * - 둘 다 thread 에 append
  * - 강아지 select 변경 시 conversation 분리 (다시 fetch)
  * - "대화 지우기" 버튼 — DELETE 호출 + thread 비움
+ *
+ * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 A13·A12·I04·I05):
+ *   그리는 부분을 ChatView 로 나눴다(같은 파일) — 불러오기·보내기(스트림)·지우기 로직은 ChatClient 그대로.
+ *   점검 화면(/design-check/analysis)이 ChatView 에 예시 대화·오류를 넣어 로그인 없이 본다.
+ *   · 강아지 칩: 알약 → 48px 네모(고른 것 = 먹색). '🐶' 이모지 → 발바닥 원(사진이 오면 사진).
+ *   · 질문 예시: 알약 → 52px 네모 버튼 세로 목록. 내 말풍선 = 옅은 주황, 답 말풍선 = 흰 바탕 먹선.
+ *   · 오류 안내는 대화 아래·입력창 위 한 곳(빨간 면). 예전엔 대화가 하나도 없을 때(첫 질문이 막혔을 때)
+ *     오류 칸이 그려지지 않아 아무 말 없이 질문만 입력창에 돌아왔다.
  */
 
-type Message = {
+export type Message = {
   id?: string
   role: 'user' | 'assistant'
   content: string
   created_at?: string
 }
+
+export type ChatDog = { id: string; name: string; photoUrl?: string | null }
 
 const SUGGESTIONS = [
   '닭고기 알레르기 있는 강아지에게 뭐 먹여요?',
@@ -42,7 +46,7 @@ const SUGGESTIONS = [
 export default function ChatClient({
   dogs,
 }: {
-  dogs: Array<{ id: string; name: string }>
+  dogs: ChatDog[]
 }) {
   const toast = useToast()
   const confirm = useConfirm()
@@ -269,54 +273,97 @@ export default function ChatClient({
   }
 
   return (
+    <ChatView
+      dogs={dogs}
+      selectedDogId={selectedDogId}
+      onSelectDog={setSelectedDogId}
+      messages={messages}
+      historyLoading={historyLoading}
+      loading={loading}
+      error={error}
+      nudge={nudge && !nudgeDismissed ? nudge : null}
+      onDismissNudge={dismissNudge}
+      onUseNudgePrompt={(p) => setInput(p)}
+      input={input}
+      onInputChange={setInput}
+      onSend={(t) => void send(t)}
+      onClearHistory={() => void clearHistory()}
+      threadEndRef={threadEndRef}
+    />
+  )
+}
+
+/** 그리기 — 상태는 위 ChatClient 가 들고 있다. 점검 화면이 예시 상태를 넣어 쓴다. */
+export function ChatView({
+  dogs,
+  selectedDogId,
+  onSelectDog,
+  messages,
+  historyLoading,
+  loading,
+  error,
+  nudge,
+  onDismissNudge,
+  onUseNudgePrompt,
+  input,
+  onInputChange,
+  onSend,
+  onClearHistory,
+  threadEndRef,
+}: {
+  dogs: ChatDog[]
+  selectedDogId: string
+  onSelectDog: (id: string) => void
+  messages: Message[]
+  historyLoading: boolean
+  loading: boolean
+  error: string | null
+  /** 보여 줄 안내(닫았으면 null). */
+  nudge: ChatNudge | null
+  onDismissNudge: () => void
+  onUseNudgePrompt: (prompt: string) => void
+  input: string
+  onInputChange: (v: string) => void
+  onSend: (text: string) => void
+  onClearHistory: () => void
+  threadEndRef?: RefObject<HTMLDivElement | null>
+}) {
+  return (
     <>
       {/* 강아지 선택 */}
       {dogs.length > 0 && (
-        <section className="px-5 mt-3">
-          <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest mb-1.5">
-            강아지 선택
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSelectedDogId('')}
-              aria-pressed={selectedDogId === ''}
-              className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
-              style={{
-                background: selectedDogId === '' ? 'var(--ink)' : 'white',
-                color: selectedDogId === '' ? 'white' : 'var(--text)',
-                border: '1px solid var(--rule)',
-              }}
-            >
-              일반
-            </button>
-            {dogs.map((d) => {
-              const active = selectedDogId === d.id
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => setSelectedDogId(d.id)}
-                  aria-pressed={active}
-                  className="px-3 py-1.5 rounded-full text-[10.5px] font-bold transition"
-                  style={{
-                    background: active ? 'var(--ink)' : 'white',
-                    color: active ? 'white' : 'var(--text)',
-                    border: '1px solid var(--rule)',
-                  }}
-                >
-                  🐶 {d.name}
-                </button>
-              )
-            })}
+        <section aria-label="강아지 선택" style={{ margin: '22px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: V3.inkMute }}>강아지 선택</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <DogChip label="일반" active={selectedDogId === ''} onClick={() => onSelectDog('')} />
+            {dogs.map((d) => (
+              <DogChip
+                key={d.id}
+                label={d.name}
+                active={selectedDogId === d.id}
+                onClick={() => onSelectDog(d.id)}
+                photo={d.photoUrl ?? null}
+                withAvatar
+              />
+            ))}
           </div>
         </section>
       )}
 
       {/* 대화 thread */}
-      <section className="px-5 mt-4 space-y-3">
+      <section
+        aria-label="대화"
+        style={{
+          margin: '26px 20px 0',
+          paddingTop: 18,
+          borderTop: `1px solid ${V3.rule}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
         {historyLoading ? (
-          <div className="flex items-center gap-2 text-[12px] text-muted py-6 justify-center">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '24px 0', fontSize: 15, color: V3.inkMute }}>
             <Spinner size={14} />
             대화를 불러오는 중...
           </div>
@@ -325,68 +372,87 @@ export default function ChatClient({
             {/* 능동 개입 nudge — assistant 톤 카드. dismiss 24h. CTA 가 있으면
                 input 에 자동 주입하지만, 사용자가 그대로 send 할지 직접
                 고치든 자유 — 자율성 유지 (voice-guidelines §5). */}
-            {nudge && !nudgeDismissed && (
+            {nudge && (
               <div
-                className="rounded border-2 px-4 py-3"
-                style={{
-                  background: 'color-mix(in srgb, var(--terracotta) 5%, white)',
-                  borderColor:
-                    'color-mix(in srgb, var(--terracotta) 28%, transparent)',
-                }}
                 aria-label="영양 도우미 안내"
+                style={{
+                  padding: 16,
+                  borderRadius: 4,
+                  display: 'grid',
+                  gridTemplateColumns: '32px 1fr',
+                  columnGap: 12,
+                  background: V3.soft,
+                  borderLeft: `6px solid ${V3.mustard}`,
+                }}
               >
-                <div className="flex items-start gap-2.5">
-                  <span
-                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: 'var(--terracotta)', color: 'white' }}
-                    aria-hidden
-                  >
-                    <Sparkles className="w-3.5 h-3.5" strokeWidth={2.2} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-[12px] leading-relaxed"
-                      style={{ color: 'var(--ink)' }}
-                    >
-                      {nudge.message}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      {nudge.promptSuggestion && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setInput(nudge.promptSuggestion ?? '')
-                          }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10.5px] font-bold text-white"
-                          style={{ background: 'var(--terracotta)' }}
-                        >
-                          이 질문으로 시작
-                        </button>
-                      )}
+                <SparkAvatar />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, wordBreak: 'keep-all' }}>{nudge.message}</p>
+                  <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    {nudge.promptSuggestion && (
                       <button
                         type="button"
-                        onClick={dismissNudge}
-                        className="text-[10.5px] font-bold text-muted hover:text-text transition"
+                        onClick={() => onUseNudgePrompt(nudge.promptSuggestion ?? '')}
+                        style={{
+                          height: 44,
+                          padding: '0 14px',
+                          border: 0,
+                          borderRadius: 4,
+                          background: V3.ink,
+                          color: '#FFFFFF',
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
                       >
-                        괜찮아요
+                        이 질문으로 시작
                       </button>
-                    </div>
-                  </div>
-                </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={onDismissNudge}
+                      style={{
+                        height: 44,
+                        padding: '0 4px',
+                        border: 0,
+                        background: 'transparent',
+                        color: V3.inkMute,
+                        fontSize: 15,
+                        fontWeight: 700,
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      괜찮아요
+                    </button>
+                  </span>
+                </span>
               </div>
             )}
 
-            <div className="text-[10.5px] font-bold text-muted uppercase tracking-widest">
-              이런 질문은 어때요?
-            </div>
-            <div className="flex flex-wrap gap-1.5">
+            <span style={{ marginTop: nudge ? 6 : 0, fontSize: 14, fontWeight: 700, color: V3.inkMute }}>이런 질문은 어때요?</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => send(s)}
+                  onClick={() => onSend(s)}
                   disabled={loading}
-                  className="px-3 py-1.5 rounded-full text-[10.5px] text-text bg-bg-2 border border-rule hover:border-text transition text-left max-w-full"
+                  style={{
+                    minHeight: 52,
+                    padding: '10px 14px',
+                    border: '1.5px solid #D5D3D4',
+                    borderRadius: 4,
+                    background: '#FFFFFF',
+                    color: V3.ink,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    lineHeight: 1.45,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    wordBreak: 'keep-all',
+                  }}
                 >
                   {s}
                 </button>
@@ -399,35 +465,49 @@ export default function ChatClient({
               <MessageBubble key={m.id ?? `${i}-${m.role}`} message={m} />
             ))}
             {loading && (
-              <div
-                role="status"
-                className="rounded border-2 px-4 py-3"
-                style={{
-                  background: 'color-mix(in srgb, var(--moss) 4%, white)',
-                  borderColor:
-                    'color-mix(in srgb, var(--moss) 35%, transparent)',
-                }}
-              >
-                <div className="flex items-center gap-2 text-[12px] text-muted">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <div role="status" style={{ display: 'flex', gap: 10 }}>
+                <SparkAvatar />
+                <span
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 4,
+                    border: `1.5px solid ${V3.ink}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    fontSize: 16,
+                    color: V3.inkMute,
+                  }}
+                >
+                  <Spinner size={14} />
                   답변을 생각하고 있어요...
-                </div>
+                </span>
               </div>
             )}
-            {error && (
-              <div role="alert" className="flex items-start gap-2 text-[12px] text-sale rounded bg-sale/8 px-3 py-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-            <div ref={threadEndRef} />
+            {/* 자동 스크롤 표식 — 묶음 간격(14)을 먹지 않게 위로 당긴다. */}
+            <div ref={threadEndRef} style={{ marginTop: -14, height: 0 }} />
             {messages.length >= 2 && !loading && (
               <button
                 type="button"
-                onClick={clearHistory}
-                className="inline-flex items-center gap-1 text-[10.5px] text-muted hover:text-sale transition"
+                onClick={onClearHistory}
+                style={{
+                  alignSelf: 'flex-start',
+                  height: 48,
+                  padding: '0 8px 0 0',
+                  border: 0,
+                  background: 'transparent',
+                  color: V3.inkMute,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                }}
               >
-                <Trash2 className="w-3 h-3" strokeWidth={2} />
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
                 이 대화 지우기
               </button>
             )}
@@ -435,16 +515,55 @@ export default function ChatClient({
         )}
       </section>
 
+      {/* 오류 — 대화 아래·입력창 위 한 곳(대화가 비어 있어도 보인다). */}
+      {error && (
+        <div
+          role="alert"
+          style={{
+            margin: '14px 20px 0',
+            padding: '12px 14px',
+            borderRadius: 4,
+            background: '#FBE7E2',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+          }}
+        >
+          <span style={{ flexShrink: 0, marginTop: 2 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={V3.sale} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7.5v5.5" />
+              <circle cx="12" cy="16.4" r="0.9" fill={V3.sale} />
+            </svg>
+          </span>
+          <span style={{ fontSize: 16, lineHeight: 1.55, fontWeight: 600, color: '#7A2A1E', wordBreak: 'keep-all' }}>{error}</span>
+        </div>
+      )}
+
       {/* 입력 폼 — 항상 하단 */}
-      <section className="px-5 mt-4 sticky bottom-[calc(var(--ft-tabbar-h,68px)+16px+env(safe-area-inset-bottom))] z-10">
-        <div className="bg-bg-3 rounded border border-rule px-4 py-3 shadow-sm">
+      <section
+        aria-label="질문 쓰기"
+        className="sticky bottom-[calc(var(--ft-tabbar-h,68px)+16px+env(safe-area-inset-bottom))] z-10"
+        style={{ margin: '14px 20px 0' }}
+      >
+        <div
+          style={{
+            padding: 14,
+            border: `2px solid ${V3.ink}`,
+            borderRadius: 4,
+            background: '#FFFFFF',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
           <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, 500))}
+            onChange={(e) => onInputChange(e.target.value.slice(0, 500))}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
-                void send(input)
+                onSend(input)
               }
             }}
             rows={2}
@@ -454,88 +573,182 @@ export default function ChatClient({
                 ? '우리 아이 식이에 대해 궁금한 점을 적어주세요...'
                 : '이어서 질문하기...'
             }
-            className="w-full text-[16px] text-text placeholder:text-muted/60 focus:outline-none resize-none"
+            className="w-full focus:outline-none resize-none placeholder:text-[#8A8A8A]"
+            style={{ minHeight: 52, border: 0, padding: 0, fontSize: 17, lineHeight: 1.5, color: V3.ink, background: 'transparent' }}
           />
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-[10.5px] text-muted">
-              {input.length}/500
-            </span>
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: V3.inkMute }}>{input.length}/500</span>
             <button
               type="button"
-              onClick={() => send(input)}
+              onClick={() => onSend(input)}
               disabled={!input.trim() || loading}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-bold transition disabled:opacity-40"
-              style={{ background: 'var(--terracotta)', color: 'white' }}
+              style={{
+                height: 48,
+                padding: '0 18px',
+                border: 0,
+                borderRadius: 4,
+                background: V3.ink,
+                color: '#FFFFFF',
+                fontSize: 16,
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                opacity: !input.trim() || loading ? 0.4 : 1,
+                cursor: 'pointer',
+              }}
             >
               {loading ? (
                 <>
-                  <Loader2
-                    className="w-3.5 h-3.5 animate-spin"
-                    strokeWidth={2}
-                  />
+                  <Spinner size={14} />
                   생각 중
                 </>
               ) : (
                 <>
-                  <Send className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M4 12l16-8-6 16-3-7z" />
+                  </svg>
                   보내기
                 </>
               )}
             </button>
-          </div>
+          </span>
         </div>
       </section>
     </>
   )
 }
 
+/** 영양 도우미 동그라미 — 먹색 원 + 흰 반짝이(시안 A12·A13). */
+function SparkAvatar() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        flexShrink: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        background: V3.ink,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFFFFF">
+        <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+      </svg>
+    </span>
+  )
+}
+
+function DogChip({
+  label,
+  active,
+  onClick,
+  photo = null,
+  withAvatar = false,
+}: {
+  label: string
+  active: boolean
+  onClick: () => void
+  photo?: string | null
+  withAvatar?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className="ft-no-press"
+      style={{
+        height: 48,
+        padding: withAvatar ? '0 16px 0 8px' : '0 16px',
+        border: `1.5px solid ${active ? V3.ink : '#D5D3D4'}`,
+        borderRadius: 4,
+        background: active ? V3.ink : '#FFFFFF',
+        color: active ? '#FFFFFF' : V3.ink,
+        fontSize: 16,
+        fontWeight: active ? 800 : 700,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        cursor: 'pointer',
+      }}
+    >
+      {withAvatar &&
+        (photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" style={{ width: 30, height: 30, borderRadius: 15, objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <span
+            aria-hidden
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              background: V3.soft,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <DogPawMark size={17} color={V3.inkFaint} />
+          </span>
+        ))}
+      {label}
+    </button>
+  )
+}
+
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
   return (
-    <div
-      className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}
-    >
-      <div
-        className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5`}
+    <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: 10 }}>
+      {isUser ? (
+        <span
+          aria-hidden
+          style={{
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            background: V3.soft,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={V3.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5" />
+          </svg>
+        </span>
+      ) : (
+        <SparkAvatar />
+      )}
+      <p
         style={{
-          background: isUser
-            ? 'var(--paper-deep)'
-            : 'color-mix(in srgb, var(--moss) 12%, white)',
+          margin: 0,
+          // 시안처럼 최대 폭은 글자 칸 기준(content-box) — 여백·선은 그 바깥.
+          boxSizing: 'content-box',
+          maxWidth: isUser ? '78%' : '82%',
+          minWidth: 0,
+          padding: '12px 14px',
+          borderRadius: 4,
+          background: isUser ? V3.cream : '#FFFFFF',
+          border: isUser ? 0 : `1.5px solid ${V3.ink}`,
+          color: V3.ink,
+          fontSize: 17,
+          lineHeight: isUser ? 1.6 : 1.65,
+          whiteSpace: 'pre-line',
+          wordBreak: 'keep-all',
+          overflowWrap: 'anywhere',
         }}
       >
-        {isUser ? (
-          <UserIcon
-            className="w-3.5 h-3.5 text-text"
-            strokeWidth={2}
-          />
-        ) : (
-          <Sparkles
-            className="w-3.5 h-3.5"
-            style={{ color: 'var(--moss)' }}
-            strokeWidth={2}
-          />
-        )}
-      </div>
-      <div
-        className={`flex-1 min-w-0 max-w-[80%] rounded px-3.5 py-2.5 ${
-          isUser ? 'rounded-tr-sm' : 'rounded-tl-sm'
-        }`}
-        style={{
-          background: isUser
-            ? 'white'
-            : 'color-mix(in srgb, var(--moss) 4%, white)',
-          border: isUser
-            ? '1px solid var(--rule)'
-            : '1px solid color-mix(in srgb, var(--moss) 35%, transparent)',
-        }}
-      >
-        <p className="text-[13.5px] text-text leading-relaxed whitespace-pre-line">
-          <span className="sr-only">
-            {isUser ? '나: ' : 'AI 영양 도우미: '}
-          </span>
-          {message.content}
-        </p>
-      </div>
+        <span className="sr-only">{isUser ? '나: ' : 'AI 영양 도우미: '}</span>
+        {message.content}
+      </p>
     </div>
   )
 }

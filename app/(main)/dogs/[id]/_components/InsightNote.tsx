@@ -7,54 +7,26 @@
  * 문구 생성은 lib/dog-insight (순수 함수 + 테스트). 여기선 렌더만 한다.
  * tone → 색만 바뀌고 레이아웃은 동일. 'watch' 도 경보가 아니라 '눈여겨볼 변화'
  * 수준의 톤 — 진짜 경보는 건강 알림(급변·개입 푸시)이 담당.
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 AppDog): 기록 목록 바로 아래 굵은 한 줄(15px 먹색 700) +
+ * 회색 설명. 테두리·아이콘은 뺐다. '눈여겨볼 변화'(watch)만 앞에 머스타드 네모 하나.
  */
-import { Sparkles } from 'lucide-react'
 import type { DogInsight } from '@/lib/dog-insight'
+import { V3 } from '@/lib/design/tokens'
 
-const TONE_COLOR: Record<DogInsight['tone'], string> = {
-  good: 'var(--moss)',
-  watch: 'var(--terracotta)',
-  neutral: 'var(--muted)',
-  prompt: 'var(--muted)',
-}
-
-export default function InsightNote({
-  insight,
-  className = '',
-}: {
-  insight: DogInsight
-  className?: string
-}) {
-  const accent = TONE_COLOR[insight.tone]
+export default function InsightNote({ insight }: { insight: DogInsight }) {
   return (
-    <div
-      className={`rounded bg-bg px-3.5 py-3 ${className}`}
-      style={{ borderLeft: `2px solid ${accent}` }}
-    >
-      <div className="flex items-start gap-2">
-        <Sparkles
-          className="w-3 h-3 mt-[3px] shrink-0"
-          strokeWidth={2.5}
-          style={{ color: accent }}
-          aria-hidden
-        />
-        <div className="min-w-0">
-          <p
-            className="text-[12px] font-bold leading-snug"
-            style={{ color: accent }}
-          >
-            {insight.headline}
-          </p>
-          <p className="text-[11px] text-muted leading-relaxed mt-1">
-            {insight.body}
-          </p>
-          {insight.surveyNote && (
-            <p className="text-[10.5px] text-muted/80 leading-relaxed mt-1.5 pt-1.5 border-t border-rule/60">
-              {insight.surveyNote}
-            </p>
-          )}
-        </div>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <p style={{ margin: 0, display: 'flex', gap: 8, fontSize: 15, fontWeight: 700, lineHeight: 1.45, color: V3.ink }}>
+        {insight.tone === 'watch' && (
+          <span aria-hidden style={{ flexShrink: 0, width: 6, height: 6, marginTop: 8, background: V3.mustard }} />
+        )}
+        {insight.headline}
+      </p>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: V3.inkMute }}>{insight.body}</p>
+      {insight.surveyNote && (
+        <p style={{ margin: '4px 0 0', fontSize: 14, lineHeight: 1.55, color: V3.inkMute }}>{insight.surveyNote}</p>
+      )}
     </div>
   )
 }

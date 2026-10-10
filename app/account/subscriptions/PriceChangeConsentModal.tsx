@@ -21,15 +21,22 @@
  * - 거부 → {decision:'decline'} → 이전 cycle 유지(레시피·금액 그대로).
  *   forced(알레르기·건강)일 땐 거부 전에 안전 경고를 한 번 더 확인시킨다.
  * - 3일 무반응 → 타임아웃 cron 이 자동 declined(=이전 유지).
+ *
+ * # 앱 모양(variant="app", 2026-10-09 앱 새 디자인 'A 포스터', 캔버스 S16·S17)
+ * 같은 상태·같은 API 호출·같은 판정 — **그리는 것만** 갈린다(R14 variant 패턴). 웹은 기본값('web') 그대로라
+ * 한 픽셀도 바뀌지 않는다. 앱은 아래에서 올라오는 창(손잡이 · '나중에' 글자 버튼 · 큰 제목 · 금액은 숫자 글꼴).
  */
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, ShieldCheck, RefreshCw, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { petName } from '@/lib/korean'
+import { V3 } from '@/lib/design/tokens'
+import { RECIPE_COLOR } from '@/components/analysis/display'
+import { pouchLineFromName, type PouchLine } from '@/lib/design/pouch'
 
 export type PriceChangeProposal = {
   dogId: string
@@ -44,13 +51,31 @@ export type PriceChangeProposal = {
 
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`
 
+/** 앱 창 — 고르지 않은 칸 테두리·손잡이 색(시안). */
+const APP_IDLE = '#D5D3D4'
+/** 앱 창 — 경고 바탕(정기배송 화면 결제 실패 경고와 같은 값). */
+const APP_RED_SOFT = '#FBF1EF'
+
+/** "닭고기·흑돼지 레시피"(recipeName) → 파우치 색 네모 순서. 모르는 이름은 뺀다. */
+function linesOfLabel(label: string): PouchLine[] {
+  return label
+    .replace(/\s*레시피$/, '')
+    .split('·')
+    .map((x) => pouchLineFromName(x.trim()))
+    .filter((l): l is PouchLine => l !== null)
+}
+
 export default function PriceChangeConsentModal({
   proposal,
+  variant = 'web',
 }: {
   proposal: PriceChangeProposal
+  /** 'app' = 앱 새 디자인 모양(시안 S16·S17). 기본 'web' — 웹 모양은 손대지 않는다. */
+  variant?: 'web' | 'app'
 }) {
   const router = useRouter()
   const toast = useToast()
+  const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const [dismissed, setDismissed] = useState(false)
   const [step, setStep] = useState<'main' | 'declineWarn'>('main')
@@ -115,6 +140,185 @@ export default function PriceChangeConsentModal({
   }
 
   const busy = loading !== null
+
+  if (variant === 'app') {
+    const spin = <RefreshCw className="w-5 h-5 animate-spin" strokeWidth={2.5} aria-label="처리하고 있어요" />
+    const lines = linesOfLabel(proposal.recipeLabel)
+    const btn = (solid: boolean, danger = false): React.CSSProperties => ({
+      height: solid ? 58 : 56,
+      borderRadius: 4,
+      border: solid ? 0 : `1.5px solid ${danger ? V3.sale : V3.ink}`,
+      background: solid ? V3.ink : '#FFFFFF',
+      color: solid ? '#FFFFFF' : danger ? V3.sale : V3.ink,
+      fontFamily: 'inherit',
+      fontSize: 17,
+      fontWeight: 800,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: busy ? 'default' : 'pointer',
+      opacity: busy ? 0.6 : 1,
+    })
+    return (
+      <div
+        className="fixed inset-0 flex items-end justify-center"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        // 층 순서: 앱 윗줄·탭바 40 < 이 창 50 < 토스트 60.
+        style={{ zIndex: 50, background: 'rgba(20,20,20,0.42)' }}
+        onClick={() => !busy && setDismissed(true)}
+      >
+        <div
+          ref={panelRef}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: 'min(520px, 100%)',
+            boxSizing: 'border-box',
+            maxHeight: 'calc(100dvh - 24px)',
+            overflowY: 'auto',
+            padding: '10px 20px calc(26px + env(safe-area-inset-bottom))',
+            background: '#FFFFFF',
+            color: V3.ink,
+            borderRadius: '12px 12px 0 0',
+            boxShadow: '0 -8px 30px rgba(20,20,20,0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <span aria-hidden style={{ alignSelf: 'center', flexShrink: 0, width: 40, height: 4, borderRadius: 2, background: APP_IDLE }} />
+          {step === 'main' ? (
+            <>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span
+                  style={{
+                    height: 28,
+                    boxSizing: 'border-box',
+                    padding: '0 9px',
+                    borderRadius: 4,
+                    background: proposal.forced ? APP_RED_SOFT : V3.soft,
+                    border: `1px solid ${proposal.forced ? V3.sale : APP_IDLE}`,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" strokeWidth={2.4} aria-hidden />
+                  {proposal.forced ? '동의가 필요해요' : '확인이 필요해요'}
+                </span>
+                {/* Esc·바깥 누르기와 같다 — 이번 방문만 닫는다(미결정). 다음에 들어오면 다시 뜬다. */}
+                <button
+                  type="button"
+                  onClick={() => !busy && setDismissed(true)}
+                  style={{ height: 48, padding: '0 4px', border: 0, background: 'transparent', color: V3.ink, fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  나중에
+                </button>
+              </div>
+              {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다 — fontFamily·fontWeight 를 여기서 주지 않는다. */}
+              <h2 id={titleId} style={{ margin: '8px 0 0', fontSize: 26, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                {name} 레시피를
+                <br />
+                바꿔도 될까요?
+              </h2>
+              <span style={{ marginTop: 14, fontSize: 14, fontWeight: 700, color: V3.inkMute }}>왜 바꾸나요?</span>
+              <p style={{ margin: '4px 0 0', fontSize: 17, lineHeight: 1.55, wordBreak: 'keep-all' }}>{proposal.reason}</p>
+              <dl style={{ margin: '16px 0 0', borderTop: `2px solid ${V3.ink}`, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ minHeight: 56, borderBottom: `1px solid ${V3.rule}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <dt style={{ fontSize: 15, color: V3.inkMute, flexShrink: 0 }}>바뀔 레시피</dt>
+                  <dd style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 17, fontWeight: 800, textAlign: 'right' }}>
+                    {lines.length > 0 && (
+                      <span aria-hidden style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                        {lines.map((l) => (
+                          <span key={l} style={{ width: 10, height: 10, background: RECIPE_COLOR[l] }} />
+                        ))}
+                      </span>
+                    )}
+                    {proposal.recipeLabel}
+                  </dd>
+                </div>
+                <div style={{ padding: '12px 0', borderBottom: `1px solid ${V3.rule}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <dt style={{ fontSize: 15, color: V3.inkMute }}>2주 상품 금액 (할인 전)</dt>
+                  <dd style={{ margin: 0, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: V3.inkMute, textDecoration: 'line-through', whiteSpace: 'nowrap' }}>
+                      {won(proposal.priceFrom)}
+                    </span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={V3.ink} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ alignSelf: 'center' }}>
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                    <span className="sr-only">에서</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      <span className="ft-num" style={{ fontSize: 30 }}>
+                        {proposal.priceTo.toLocaleString('ko-KR')}
+                      </span>
+                      <span style={{ fontSize: 17, fontWeight: 800 }}>원</span>
+                    </span>
+                  </dd>
+                </div>
+              </dl>
+              <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+                동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 정기결제부터</strong> 새 금액이에요. 지금 결제되지
+                않아요. 3일 안에 안 고르시면 이전 그대로 유지돼요.
+              </p>
+              <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button type="button" disabled={busy} onClick={() => submit('approve')} style={btn(true)}>
+                  {loading === 'approve' ? spin : '동의하고 적용'}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => (proposal.forced ? setStep('declineWarn') : submit('decline'))}
+                  style={btn(false)}
+                >
+                  {loading === 'decline' ? spin : '이전 그대로 유지'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 id={titleId} style={{ margin: '20px 0 0', fontSize: 26, lineHeight: 1.2, wordBreak: 'keep-all' }}>
+                {name} 레시피를
+                <br />
+                바꿔도 될까요?
+              </h2>
+              <div
+                role="alert"
+                style={{
+                  marginTop: 16,
+                  padding: 16,
+                  border: `1.5px solid ${V3.sale}`,
+                  borderRadius: 4,
+                  background: APP_RED_SOFT,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                <strong style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 800 }}>
+                  <AlertTriangle className="w-5 h-5 shrink-0" strokeWidth={2.4} style={{ color: V3.sale }} aria-hidden />
+                  정말 이전 그대로 두시겠어요?
+                </strong>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+                  새로 등록한 <strong style={{ fontWeight: 800, color: V3.ink }}>알레르기·건강 상태가 반영되지 않아요.</strong> 지난
+                  박스와 같은 레시피·금액({won(proposal.priceFrom)})이 계속 나가요.
+                </p>
+              </div>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button type="button" disabled={busy} onClick={() => submit('decline')} style={btn(false, true)}>
+                  {loading === 'decline' ? spin : '네, 이전 그대로 둘게요'}
+                </button>
+                <button type="button" disabled={busy} onClick={() => setStep('main')} style={btn(true)}>
+                  아니요, 바꿀래요
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

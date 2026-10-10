@@ -5,35 +5,39 @@
  * 다른 진입점에서 따로 떠서 헷갈렸던 문제 해결. 두 화면 상단에 같은 토글을 얹어
  * 어디서 들어오든 하나의 "기록" 허브처럼 보이고 즉시 전환된다.
  *
- * 앱 전용(v3 토큰 --paper-* / --ink*). Link 만 사용 — 훅 없음. active prop 으로
- * 현재 세그먼트를 명시(서버/클라 양쪽 안전). 데이터 페칭은 각 라우트가 그대로.
+ * 2026-10-09 앱 새 디자인('A 포스터', 시안 D01·D05): 회색 면(#F6F4F5) 안 두 칸 · 높이 48 · 모서리 4.
+ * 켜진 칸 = 흰 바탕 + 1.5px 먹선 + 먹색 800, 꺼진 칸 = 회색 600. 아이콘은 시안 선 그림(사진기·맥박 하트).
+ * 바깥 여백(위 18 · 좌우 20)은 이 부품이 가진다 — 두 화면이 같은 자리에 놓이게.
+ *
+ * 앱 전용. Link 만 사용 — 훅 없음. active prop 으로 현재 세그먼트를 명시(서버/클라 양쪽 안전).
+ * 데이터 페칭은 각 라우트가 그대로.
  */
 import Link from 'next/link'
-import { Camera, HeartPulse } from 'lucide-react'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { CameraIcon, HeartPulseIcon } from '@/components/v3/dog/DogIcons'
 
 export default function RecordSegments({
   dogId,
   active,
-  className,
 }: {
   dogId: string
   active: 'diary' | 'health'
-  className?: string
 }) {
   const segs = [
-    { key: 'diary', label: '일상', href: `/dogs/${dogId}/diary`, Icon: Camera },
-    { key: 'health', label: '건강일지', href: `/dogs/${dogId}/health`, Icon: HeartPulse },
+    { key: 'diary', label: '일상', href: `/dogs/${dogId}/diary`, Icon: CameraIcon },
+    { key: 'health', label: '건강일지', href: `/dogs/${dogId}/health`, Icon: HeartPulseIcon },
   ] as const
 
   return (
-    <nav className={className} aria-label="기록 종류">
+    <nav aria-label="기록 종류" style={{ margin: '18px 20px 0' }}>
       <div
         style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
           gap: 4,
           padding: 4,
-          background: 'var(--paper-deep)',
-          borderRadius: 12,
+          background: V3.soft,
+          borderRadius: V3Radius.sm,
         }}
       >
         {segs.map(({ key, label, href, Icon }) => {
@@ -43,21 +47,21 @@ export default function RecordSegments({
               key={key}
               href={href}
               aria-current={on ? 'page' : undefined}
-              className="flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+              className="flex items-center justify-center ft-no-press"
               style={{
-                flex: 1,
-                padding: '9px 8px',
-                borderRadius: 8,
-                fontSize: 16,
-                fontWeight: on ? 700 : 600,
-                letterSpacing: '-0.01em',
+                height: 48,
+                boxSizing: 'border-box',
+                gap: 7,
+                borderRadius: V3Radius.sm,
+                border: on ? `1.5px solid ${V3.ink}` : 0,
+                background: on ? '#FFFFFF' : 'transparent',
+                fontSize: 17,
+                fontWeight: on ? 800 : 600,
+                color: on ? V3.ink : V3.inkMute,
                 textDecoration: 'none',
-                color: on ? 'var(--ink)' : 'var(--ink-mute)',
-                background: on ? 'var(--paper-hi)' : 'transparent',
-                boxShadow: on ? '0 1px 3px rgba(22,20,15,0.10)' : 'none',
               }}
             >
-              <Icon style={{ width: 15, height: 15 }} strokeWidth={on ? 2.4 : 2} aria-hidden />
+              <Icon size={19} strokeWidth={on ? 2.2 : 2} />
               {label}
             </Link>
           )

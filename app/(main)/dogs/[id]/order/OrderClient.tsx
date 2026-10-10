@@ -66,6 +66,9 @@ import {
 } from '@/lib/personalization/boxPricing'
 import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
+import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
+import { FOOD_LINE_POUCH, POUCH_NAME } from '@/lib/design/pouch'
+import { RECIPE_COLOR, recipeTitleOfLine } from '@/components/analysis/display'
 import './order.css'
 import { PANCREATITIS_GATE_COPY } from '@/lib/personalization/plain-reason'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
@@ -161,6 +164,12 @@ export type OrderProfileInitial = {
  * 가입 시 고정 금액을 받는 상태). 승인 화면이 같은 계산을 써야 하므로 추출했다.
  * 여기서 다시 구현하지 말 것 — 계산이 둘이면 "주문서 금액 ≠ 승인 금액"이 된다.
  */
+
+/** 앱 화면의 레시피 이름 — 상품 이름·시안과 같은 '닭고기'(lib/design/pouch POUCH_NAME). 모르는 라인은 엔진 표시명. */
+function appRecipeName(line: FoodLine): string {
+  const p = FOOD_LINE_POUCH[line]
+  return p ? POUCH_NAME[p] : FOOD_LINE_META[line].nameKo
+}
 
 /** g → 보기 좋은 한국어 (예: "1.4 kg" / "850 g"). */
 function formatGrams(g: number): string {
@@ -697,7 +706,8 @@ export default function OrderClient({
     if (items.length === 0) return '레시피를 고르면 여기에 표시돼요'
     const names = items
       .filter((it) => it.line)
-      .map((it) => `${FOOD_LINE_META[it.line!].nameKo}`)
+      // 앱 — 레시피 고르기·홈과 같은 이름('닭고기', lib/design/pouch POUCH_NAME). 웹은 예전 표시명 그대로.
+      .map((it) => (isApp ? appRecipeName(it.line!) : `${FOOD_LINE_META[it.line!].nameKo}`))
       .join(' · ')
     // 처방=팩 한 숫자(사장님 2026-08-24) — 레시피 행·결제 요약과 같은 packG 합.
     const totalG = items.reduce((sum, it) => sum + it.packG, 0)
@@ -705,30 +715,45 @@ export default function OrderClient({
     return `${names} · 하루 ${totalG}g · ${tier?.label ?? ''}`
   })()
 
+  // ★앱 새 디자인('A 포스터', 2026-10-09 캔버스 S31·S32·C04) — 앱일 때만 is-app 이 붙고, 새 모양은 전부
+  //   order.css 의 `.ord-page.is-app` 아래에 있다. 웹(/account/subscribe, isApp=false)은 한 픽셀도 바뀌지 않는다.
+  //   금액·주소·결제창 로직은 위 그대로다 — 아래에서 isApp 으로 갈리는 건 글자·색·숫자 글꼴뿐.
   return (
-    <div className="ord-page">
+    <div className={'ord-page' + (isApp ? ' is-app' : '')}>
       {/* 스텝 — 레시피(플랜)→배송(현재)→결제(카드등록). 플랜 페이지와 동일 흐름. */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          fontSize: 12,
-          fontWeight: 700,
-          color: 'var(--muted)',
-          marginBottom: 14,
-        }}
-      >
-        <span>① 레시피</span>
-        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
-        <span style={{ color: 'var(--terracotta)' }}>② 배송</span>
-        <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
-        <span>③ 결제</span>
-      </div>
+      {isApp ? (
+        <FunnelSteps current={2} flush />
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--muted)',
+            marginBottom: 14,
+          }}
+        >
+          <span>① 레시피</span>
+          <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
+          <span style={{ color: 'var(--terracotta)' }}>② 배송</span>
+          <span style={{ width: 14, height: 1, background: 'var(--rule)' }} />
+          <span>③ 결제</span>
+        </div>
+      )}
 
       <header className="ord-hero">
-        <span className="ord-kicker">CUSTOM BOX · {formula?.cycleNumber ?? '–'}번째 박스</span>
+        {/* 앱은 영어 머리말을 쓰지 않는다(앱시안 결정 3번 "CUSTOM BOX"). 웹은 예전 그대로. */}
+        {/* 앱에서 추천이 없으면 '–번째 박스'를 빼고 '맞춤 박스'만(시안 I02). */}
+        <span className="ord-kicker">
+          {isApp
+            ? formula
+              ? `맞춤 박스 · ${formula.cycleNumber}번째 박스`
+              : '맞춤 박스'
+            : `CUSTOM BOX · ${formula?.cycleNumber ?? '–'}번째 박스`}
+        </span>
         <h1>
           {petName(dogName)} 맞춤 박스<br />
           배송 정보를 입력해주세요
@@ -739,16 +764,28 @@ export default function OrderClient({
         <p>받을 주소만 확인하면 마지막 결제 단계예요.</p>
       </header>
 
-      {!formula && (
+      {/* 앱 — 회색 안내 카드(시안 I02: 상자 아이콘 · 제목 · 한 줄 · 꽉 찬 검은 버튼). 웹은 아래 예전 그대로. */}
+      {!formula && isApp && (
+        <section aria-label="맞춤 박스 없음" className="ord-empty-app">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z" />
+            <path d="M3.5 7.5L12 12l8.5-4.5M12 12v9" />
+          </svg>
+          <p className="ord-empty-app-title">아직 맞춤 박스 추천이 없어요</p>
+          <p className="ord-empty-app-body">분석을 먼저 받아 주세요.</p>
+          <Link href={`/dogs/${dogId}/analysis`} className="ord-empty-app-go">
+            분석 보러 가기
+          </Link>
+        </section>
+      )}
+
+      {!formula && !isApp && (
         <div className="ord-empty">
           <p>{err || '아직 박스 추천이 없어요.'}</p>
           {/* 분석 화면은 앱 전용(/dogs/*) — 웹에선 우리 아이 목록으로 보낸다.
               앱 설치 벽으로 보내면 "분석 보러가기"가 거짓말이 된다(2026-07-31). */}
-          <Link
-            href={isApp ? `/dogs/${dogId}/analysis` : '/account/dogs'}
-            className="ord-empty-cta"
-          >
-            {isApp ? '분석 보러가기 →' : '우리 아이 보기 →'}
+          <Link href="/account/dogs" className="ord-empty-cta">
+            우리 아이 보기 →
           </Link>
         </div>
       )}
@@ -815,7 +852,19 @@ export default function OrderClient({
               <PackageOpen size={14} strokeWidth={2.2} color="var(--moss)" />
               <span className="ord-fold-txt">
                 <b>받는 박스</b>
-                <span className="ord-fold-desc">{boxSummary}</span>
+                <span className="ord-fold-desc">
+                  {/* 앱 — 레시피 색 네모(시안 S31 — 작은 네모·띠는 RECIPE_COLOR, 파우치 색은 카드 바탕 전용). */}
+                  {isApp && (
+                    <span className="ord-fold-squares" aria-hidden>
+                      {items
+                        .filter((it) => it.line && FOOD_LINE_POUCH[it.line])
+                        .map((it) => (
+                          <span key={it.slug} style={{ background: RECIPE_COLOR[FOOD_LINE_POUCH[it.line!]!] }} />
+                        ))}
+                    </span>
+                  )}
+                  {boxSummary}
+                </span>
               </span>
               <span className="ord-fold-more">
                 자세히
@@ -846,8 +895,16 @@ export default function OrderClient({
                 const meta = it.line ? FOOD_LINE_META[it.line] : null
                 // 이름은 한글 표시명(치킨/흑돼지…), 한 줄은 '프레시 OO 레시피'
                 // (사장님 2026-07-15). 영문명(Chicken)은 여기선 안 쓴다.
-                const label = meta ? meta.nameKo : '토퍼'
-                const sub = meta ? meta.subtitle : '동결건조'
+                // 앱 — 제목 = 팩 영어 이름, 한 줄 = 한글 상품 이름(사장님 2026-10-10). 팩 없는 라인·웹은 예전 그대로.
+                const appTitle = isApp && it.line ? recipeTitleOfLine(it.line) : null
+                const label = meta ? (isApp ? (appTitle?.en ?? appRecipeName(it.line!)) : meta.nameKo) : '토퍼'
+                const sub = meta
+                  ? isApp
+                    ? appTitle?.en
+                      ? appTitle.ko
+                      : `프레시 ${appRecipeName(it.line!)} 레시피`
+                    : meta.subtitle
+                  : '동결건조'
                 const color = meta ? meta.color : 'var(--moss)'
                 const isOOS = (it.product.stock ?? 0) <= 0
                 const notSub = it.product.is_subscribable === false
@@ -866,10 +923,15 @@ export default function OrderClient({
                         라인(연어 등)은 기존 이모지로 폴백한다. */}
                     <span
                       className="ord-recipe-slot"
-                      style={{
-                        background: `color-mix(in srgb, ${color} 14%, transparent)`,
-                        boxShadow: `0 0 0 1px color-mix(in srgb, ${color} 26%, transparent)`,
-                      }}
+                      style={
+                        // 앱 — 사진 테두리 = 레시피 색 2px(시안 S32 — RECIPE_COLOR, 흑돼지 #2E3338). 웹은 예전 옅은 테두리 그대로.
+                        isApp && it.line && FOOD_LINE_POUCH[it.line]
+                          ? { boxShadow: `0 0 0 2px ${RECIPE_COLOR[FOOD_LINE_POUCH[it.line]!]}` }
+                          : {
+                              background: `color-mix(in srgb, ${color} 14%, transparent)`,
+                              boxShadow: `0 0 0 1px color-mix(in srgb, ${color} 26%, transparent)`,
+                            }
+                      }
                       aria-hidden
                     >
                       {/* 원형 = 완성된 화식 그릇(4종 공용 한 장, 사장님 2026-08-25).
@@ -888,7 +950,10 @@ export default function OrderClient({
                       />
                     </span>
                     <div className="ord-recipe-body">
-                      <div className="ord-recipe-name">
+                      <div
+                        className={appTitle?.en ? 'ord-recipe-name ft-num' : 'ord-recipe-name'}
+                        style={appTitle?.en ? { fontSize: 19, fontWeight: 400, letterSpacing: '0.02em' } : undefined}
+                      >
                         {label}
                       </div>
                       <div className="ord-recipe-sub">{sub}</div>
@@ -943,7 +1008,8 @@ export default function OrderClient({
                       }}
                     >
                       <span className="ord-fresh-btn-name">{t.label}</span>
-                      <span className="ord-fresh-btn-sub">화식 {t.ratio}%</span>
+                      {/* 앱은 비율(%)을 말하지 않는다(앱시안 결정 3번). 웹은 예전 그대로. */}
+                      {!isApp && <span className="ord-fresh-btn-sub">화식 {t.ratio}%</span>}
                     </button>
                   )
                 })}
@@ -956,7 +1022,7 @@ export default function OrderClient({
               어떻게 돌아가는지 그대로 보여준다(사장님 2026-07-15). 요일을 하루로
               조이는 게 제약이 아니라 신선함의 이유라는 걸 납득시키는 자리.
               날짜·요일은 lib/shipping-schedule 단일 진실에서 나온다. */}
-          <ShipRhythmCard firstShipIso={firstShipIso} timing={shipTiming} />
+          <ShipRhythmCard firstShipIso={firstShipIso} timing={shipTiming} isApp={isApp} />
 
           {/* (급여표/전환 카드는 사장님 요청으로 제거 — 2026-07-16.) */}
 
@@ -1213,16 +1279,29 @@ export default function OrderClient({
             <div className="ord-summary-divide" />
             {pricePreview && pricePreview.discountAmount > 0 && (
               <div className="ord-summary-row">
-                <span>{pricePreview.discountLabel ?? '할인'}</span>
+                {/* 앱 — 서포터즈 할인 이름에 결제 금액을 섞지 않는다("서포터즈 100원 −77,700원" → "서포터즈 혜택
+                    −77,700원", 앱시안 결정 3번 '문구'). 웹은 예전 이름 그대로. */}
+                <span>
+                  {isApp && pricePreview.discountKind === 'trial'
+                    ? '서포터즈 혜택'
+                    : (pricePreview.discountLabel ?? '할인')}
+                </span>
                 <span>−{pricePreview.discountAmount.toLocaleString()}원</span>
               </div>
             )}
-            <div className="ord-summary-row">
+            <div className={'ord-summary-row' + (isApp ? ' ord-summary-total' : '')}>
               <span>{oneTimeDiscount ? '첫 결제' : '2주 결제'}</span>
-              <strong>{firstCharge.toLocaleString()}원</strong>
+              {isApp ? (
+                <strong>
+                  <span className="ft-num">{firstCharge.toLocaleString()}</span>
+                  <span className="ord-summary-won">원</span>
+                </strong>
+              ) : (
+                <strong>{firstCharge.toLocaleString()}원</strong>
+              )}
             </div>
             {oneTimeDiscount && pricePreview && (
-              <div className="ord-summary-row">
+              <div className={'ord-summary-row' + (isApp ? ' ord-summary-after' : '')}>
                 <span>
                   {pricePreview.discountKind === 'trial'
                     ? '서포터즈 혜택(100원·반값)이 모두 끝나면'
@@ -1291,11 +1370,23 @@ export default function OrderClient({
               모를 때는 두 경우 모두 참인 "발송 전"으로만 말한다. */}
           <p className="ord-foot">
             <Check size={11} strokeWidth={2.6} color="var(--moss)" />
-            {knownFirstChargeIso
-              ? `오늘은 카드 등록만 해요 — 첫 결제는 첫 발송일인 ${dateKo(knownFirstChargeIso)} 아침에 이뤄져요. 그 전까지는 무료로 취소할 수 있어요.`
-              : firstShipIso
-                ? `오늘은 카드 등록만 해요 — 첫 박스는 ${dateKo(firstShipIso)}에 보내드리고, 결제는 발송 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.`
-                : '오늘은 카드 등록만 해요 — 결제는 첫 박스를 보내기 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.'}
+            {isApp ? (
+              // 앱 — 첫 마디를 굵게(시안 S31). 문장은 웹과 같다(같은 판정 knownFirstChargeIso·firstShipIso).
+              <span>
+                <strong>오늘은 카드 등록만 해요</strong>
+                {knownFirstChargeIso
+                  ? ` — 첫 결제는 첫 발송일인 ${dateKo(knownFirstChargeIso)} 아침에 이뤄져요. 그 전까지는 무료로 취소할 수 있어요.`
+                  : firstShipIso
+                    ? ` — 첫 박스는 ${dateKo(firstShipIso)}에 보내드리고, 결제는 발송 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.`
+                    : ' — 결제는 첫 박스를 보내기 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.'}
+              </span>
+            ) : knownFirstChargeIso ? (
+              `오늘은 카드 등록만 해요 — 첫 결제는 첫 발송일인 ${dateKo(knownFirstChargeIso)} 아침에 이뤄져요. 그 전까지는 무료로 취소할 수 있어요.`
+            ) : firstShipIso ? (
+              `오늘은 카드 등록만 해요 — 첫 박스는 ${dateKo(firstShipIso)}에 보내드리고, 결제는 발송 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.`
+            ) : (
+              '오늘은 카드 등록만 해요 — 결제는 첫 박스를 보내기 전에 이뤄져요. 결제 전까지는 무료로 취소할 수 있어요.'
+            )}
           </p>
           {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 앱은 AppChrome 이
               SiteFooter 를 숨기므로 이 화면에서 약관·청약철회·처리방침으로 가는
@@ -1319,7 +1410,15 @@ export default function OrderClient({
                   : '첫 박스 · 2주마다 · 다음 결제 전 해지'}
               </span>
               <span className="ord-paybar-price">
-                {firstCharge.toLocaleString()}원
+                {isApp ? (
+                  // 앱 — 큰 숫자는 숫자 글꼴(시안 S31). 웹은 예전 그대로.
+                  <span>
+                    <span className="ft-num ord-paybar-num">{firstCharge.toLocaleString()}</span>
+                    <span className="ord-paybar-won">원</span>
+                  </span>
+                ) : (
+                  <>{firstCharge.toLocaleString()}원</>
+                )}
                 <span className="ord-paybar-badge">정기배송가</span>
               </span>
             </div>
@@ -1368,7 +1467,16 @@ function dateKo(iso: string): string {
   return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
 }
 
-function ShipRhythmCard({ firstShipIso, timing }: { firstShipIso: string | null; timing: ChargeTiming }) {
+function ShipRhythmCard({
+  firstShipIso,
+  timing,
+  isApp = false,
+}: {
+  firstShipIso: string | null
+  timing: ChargeTiming
+  /** 앱 — 마감 문구("이날까지 신청하면…")를 굵게(시안 S32). 웹은 예전 그대로. */
+  isApp?: boolean
+}) {
   // 서포터즈 체험 구간은 신청 마감이 일요일이라 리듬표의 마감 문구도 일요일 칸에(shipWeekFor).
   const week = shipWeekFor(timing)
   const firstLabel = firstShipIso ? `첫 발송 ${dateKo(firstShipIso)}` : '첫 발송일 계산 중'
@@ -1402,7 +1510,16 @@ function ShipRhythmCard({ firstShipIso, timing }: { firstShipIso: string | null;
             }
           >
             <span className="ord-day-ko">{d.ko}</span>
-            <span className="ord-day-what">{d.what}</span>
+            <span className="ord-day-what">
+              {isApp && d.what.includes('이날까지') ? (
+                <>
+                  {d.what.slice(0, d.what.indexOf('이날까지'))}
+                  <strong>{d.what.slice(d.what.indexOf('이날까지'))}</strong>
+                </>
+              ) : (
+                d.what
+              )}
+            </span>
           </li>
         ))}
       </ol>

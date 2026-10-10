@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { trackSignUp } from '@/lib/analytics'
 import { safeNextPath } from '@/lib/auth/safe-next'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import AgeGateAppView from '@/components/v3/auth/AgeGateAppView'
 
 /**
  * /onboarding/age-gate
@@ -26,6 +28,7 @@ import { safeNextPath } from '@/lib/auth/safe-next'
  */
 
 function AgeGateInner() {
+  const appLook = useServerAppContext()
   const router = useRouter()
   const params = useSearchParams()
   const next = params.get('next') ?? '/dashboard'
@@ -118,6 +121,23 @@ function AgeGateInner() {
   async function handleUnder14Acknowledge() {
     await supabase.auth.signOut()
     router.replace('/')
+  }
+
+  // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W13·W26) — 앱이면 앱 화면 부품으로(판정 = onboarding/layout 의 서버 값).
+  //   저장·차단·이동은 위 그대로 — 상태만 넘긴다.
+  if (appLook) {
+    return (
+      <AgeGateAppView
+        year={year}
+        years={Array.from({ length: currentYear - MIN_YEAR + 1 }, (_, i) => currentYear - i)}
+        onYearChange={setYear}
+        isUnder14={isUnder14}
+        error={error}
+        saving={saving}
+        canSubmit={!(saving || !year || (!isUnder14 && !isValid))}
+        onPrimary={isUnder14 ? handleUnder14Acknowledge : handleSubmit}
+      />
+    )
   }
 
   return (
@@ -231,17 +251,19 @@ function AgeGateInner() {
 }
 
 export default function AgeGatePage() {
+  // 앱이면 기다리는 동안도 흰 바탕·먹색 원(앱 새 디자인) — 웹은 예전 그대로.
+  const appLook = useServerAppContext()
   return (
     <Suspense
       fallback={
         <main
           className="min-h-screen flex items-center justify-center"
-          style={{ background: 'var(--bg)' }}
+          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: 'var(--terracotta)',
+              borderColor: appLook ? '#141414' : 'var(--terracotta)',
               borderTopColor: 'transparent',
             }}
           />

@@ -38,7 +38,7 @@ export default async function PlanPage({
   const [{ data: dog }, { data: prodList }] = await Promise.all([
     supabase
       .from('dogs')
-      .select('name')
+      .select('name, photo_url')
       .eq('id', dogId)
       .eq('user_id', user.id)
       .maybeSingle(),
@@ -52,6 +52,8 @@ export default async function PlanPage({
 
   if (!dog) redirect('/dogs')
   const dogName = (dog as { name: string }).name
+  // 머리줄 작은 사진(2026-10-09 앱 새 디자인 S29) — 표시용이라 없으면 발바닥 자리.
+  const dogPhoto = (dog as { photo_url?: string | null }).photo_url ?? null
 
   const products: Record<string, PlanProduct> = {}
   for (const p of ((prodList ?? []) as unknown) as PlanProduct[]) {
@@ -62,6 +64,7 @@ export default async function PlanPage({
     <PlanClient
       dogId={dogId}
       dogName={dogName}
+      dogPhoto={dogPhoto}
       products={products}
       initialFresh={initialFresh}
     />

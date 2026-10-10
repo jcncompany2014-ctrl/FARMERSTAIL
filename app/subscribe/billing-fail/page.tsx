@@ -10,6 +10,9 @@ import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
+import { useServerAppContext } from '@/components/app/ServerAppContext'
+import AppResultScreen, { ResultAction } from '@/components/v3/billing/AppResultScreen'
+import { V3 } from '@/lib/design/tokens'
 
 /**
  * /subscribe/billing-fail
@@ -27,17 +30,19 @@ function BillingFailInner() {
   // 웹/앱 목적지가 다르다 — 앱 전용 경로로 보내면 웹 사용자가 '/app-required'
   // 벽을 맞는다(실패 화면에서 벽으로 이어지는 최악의 조합).
   const isApp = useIsAppContext()
+  // 모양만 — 서버 판정(app/subscribe/layout.tsx). 이동 주소도 함께 본다(클라이언트 판정은 마운트 직후 잠깐 false).
+  const appLook = useServerAppContext()
   const params = useSearchParams()
   const router = useRouter()
   // 안드로이드 뒤로가기 — 토스 창으로 되돌아가지 않고 정기배송 화면으로(2026-09-24 점검).
   useEffect(() => {
     const onBack = (event: Event) => {
       event.preventDefault()
-      router.replace(billingReturnHref(isApp))
+      router.replace(billingReturnHref(isApp || appLook))
     }
     window.addEventListener(NATIVE_BACK_EVENT, onBack)
     return () => window.removeEventListener(NATIVE_BACK_EVENT, onBack)
-  }, [router, isApp])
+  }, [router, isApp, appLook])
   const code = params.get('code')
   const message = params.get('message')
   const subscriptionId = params.get('subscriptionId')
@@ -60,6 +65,41 @@ function BillingFailInner() {
       extra: { tossMessage: message ?? null },
     })
   }, [cancelled, code, message])
+
+  if (appLook) {
+    // ── 앱 모양(캔버스 S37) — 문구 판정·이동 주소는 아래 웹과 같다. 앱엔 '마이페이지'가 없어(앱시안 결정 3번
+    //    '동작') 하단 탭 이름 '정기배송'으로 말한다. ────────────────────────────────────────────────
+    return (
+      <AppResultScreen
+        alert={!cancelled}
+        mark="card"
+        // 큰 제목이라 끝 마침표는 뗀다(시안 S37) — 문장 자체는 웹과 같은 billingFailMessage.
+        title={friendly.replace(/\.$/, '')}
+        body={
+          <span style={{ color: V3.inkSoft }}>
+            정기배송은 결제수단이 등록되어야 자동 결제가 진행돼요. 지금 다시 시도하거나 정기배송 화면에서 나중에 등록할 수
+            있어요.
+          </span>
+        }
+        actions={
+          <>
+            {/* billing-auth 는 customerKey 필수 — 둘 다 있을 때만 원클릭 재시도(웹과 같은 조건). */}
+            {subscriptionId && customerKey && (
+              <ResultAction
+                primary
+                href={`/subscribe/billing-auth?subscriptionId=${encodeURIComponent(subscriptionId)}&customerKey=${encodeURIComponent(customerKey)}`}
+              >
+                다시 시도하기
+              </ResultAction>
+            )}
+            <ResultAction primary={!(subscriptionId && customerKey)} href={billingReturnHref(true)}>
+              정기배송으로 가기
+            </ResultAction>
+          </>
+        }
+      />
+    )
+  }
 
   return (
     <main
@@ -115,17 +155,19 @@ function BillingFailInner() {
 }
 
 export default function BillingFailPage() {
+  // 불러오는 동안도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
+  const appLook = useServerAppContext()
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: 'var(--bg)' }}
+          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: 'var(--terracotta)',
+              borderColor: appLook ? V3.ink : 'var(--terracotta)',
               borderTopColor: 'transparent',
             }}
           />

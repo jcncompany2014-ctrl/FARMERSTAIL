@@ -10,11 +10,15 @@ import {
   openDaumPostcodePopup,
   type DaumAddress,
 } from '@/components/AddressSearchSheet'
+import { V3, V3Radius } from '@/lib/design/tokens'
+import { SearchIcon } from '@/components/v3/me/MeIcons'
 
 interface AddressSearchProps {
   onComplete: (data: DaumAddress) => void
   className?: string
   buttonText?: string
+  /** 'app' = 앱 새 디자인 단추(높이 56 · 2px 먹선 · 16px 굵게, 시안 M02). 기본은 옛 모양 그대로. */
+  variant?: 'default' | 'app'
 }
 
 /**
@@ -23,11 +27,15 @@ interface AddressSearchProps {
  * 로더·팝업·시트의 실체는 전부 `components/AddressSearchSheet`(정본)에 있다.
  * 여기는 버튼과 분기만 남는다 — 주문 화면(OrderClient)이 같은 정본을 쓰므로
  * 두 화면의 주소검색 동작이 다시는 갈라질 수 없다(규칙60).
+ *
+ * 2026-10-09 앱 새 디자인('A 포스터'): 단추 모양만 variant='app' 으로 갈랐다(지금 쓰는 곳은 앱 배송지 폼 하나).
+ * 누르면 일어나는 일(시트/팝업 분기·실패 토스트)은 그대로다.
  */
 export default function AddressSearch({
   onComplete,
   className = '',
   buttonText = '주소 검색',
+  variant = 'default',
 }: AddressSearchProps) {
   const toast = useToast()
   const scriptReady = useRef(false)
@@ -63,6 +71,31 @@ export default function AddressSearch({
 
   return (
     <>
+      {variant === 'app' ? (
+        <button
+          type="button"
+          onClick={handleClick}
+          style={{
+            height: 56,
+            boxSizing: 'border-box',
+            borderRadius: V3Radius.sm,
+            border: `2px solid ${V3.ink}`,
+            background: '#FFFFFF',
+            color: V3.ink,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            fontFamily: 'inherit',
+            fontSize: 16,
+            fontWeight: 800,
+            cursor: 'pointer',
+          }}
+        >
+          <SearchIcon size={18} strokeWidth={2.2} />
+          {buttonText}
+        </button>
+      ) : (
       <button
         type="button"
         onClick={handleClick}
@@ -71,6 +104,7 @@ export default function AddressSearch({
         <Search className="w-4 h-4" strokeWidth={2} />
         {buttonText}
       </button>
+      )}
 
       <AddressSearchSheet
         open={sheetOpen}
