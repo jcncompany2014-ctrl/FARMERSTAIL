@@ -23,7 +23,7 @@ import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { haptic } from '@/lib/haptic'
 import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { trackBoxAdjusted } from '@/lib/analytics'
-import { recipeChipOfLine, recipeColorOfLine, recipeNameOfLine } from './display'
+import { recipeChipOfLine, recipeColorOfLine, recipeNameOfLine, recipeTitleOfLine } from './display'
 
 /**
  * AdjustSheet — 박스에 담을 레시피 고르기.
@@ -273,6 +273,8 @@ export default function AdjustSheet({
               }
               const color = recipeColorOfLine(line)
               const name = recipeNameOfLine(line)
+              // 제목 = 팩 영어 이름 + 회색 한글 상품 이름(사장님 2026-10-10).
+              const title = recipeTitleOfLine(line)
               return (
                 <button
                   type="button"
@@ -284,7 +286,14 @@ export default function AdjustSheet({
                 >
                   <span className="adj-slot-band" aria-hidden />
                   <span className="adj-slot-pct">{shareLabel}</span>
-                  <span className="adj-slot-name">{name}</span>
+                  {title.en ? (
+                    <>
+                      <span className="adj-slot-name adj-en ft-num">{title.en}</span>
+                      <small className="adj-slot-ko">{title.ko}</small>
+                    </>
+                  ) : (
+                    <span className="adj-slot-name">{name}</span>
+                  )}
                   <small className="adj-slot-amt">
                     {/* 비율은 칼로리에 적용 — 무게를 반반으로 쪼개면 안 된다.
                         레시피마다 kcal/100g 가 달라(115 vs 120) 같은 50%라도
@@ -317,6 +326,7 @@ export default function AdjustSheet({
               const isPicked = picks.includes(line)
               const isBlocked = blocked.has(line)
               const isRec = recommended.includes(line)
+              const title = recipeTitleOfLine(line)
               return (
                 <button
                   type="button"
@@ -333,8 +343,9 @@ export default function AdjustSheet({
                 >
                   <span className="adj-pick-top">
                     <span className="adj-pick-dot" />
-                    <span className="adj-pick-name">{recipeNameOfLine(line)}</span>
+                    <span className={title.en ? 'adj-pick-name adj-en ft-num' : 'adj-pick-name'}>{title.en ?? title.ko}</span>
                   </span>
+                  {title.en && <span className="adj-pick-ko">{title.ko}</span>}
                   {isPicked && (
                     <span className="adj-pick-check" aria-hidden>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">

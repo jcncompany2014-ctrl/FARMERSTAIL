@@ -145,6 +145,14 @@
   padding: 0 12px;
   font-size: 14px; color: #3D3D3D; white-space: nowrap;
 }
+/* 팩 영어 이름(사장님 2026-10-10) — 글꼴은 .ft-num(팩과 같은 좁은 대문자), 칸이 좁아 크기만 낮춘다. 아래 회색 = 한글 상품 이름. */
+.adj-slot-name.adj-en { font-size: 19px; line-height: 1.1; letter-spacing: 0.02em; }
+.adj-slot-ko { padding: 0 12px; font-size: 14px; color: #595959; }
+.adj-pick-name.adj-en { font-size: 18px; font-weight: 400; letter-spacing: 0.02em; line-height: 1.08; }
+/* 영어 이름은 칸이 좁아 두 줄이 되기도 한다 — 색 네모를 첫 줄에 맞춘다(가운데면 두 줄 사이에 떠 보인다). */
+.adj-pick-top:has(.adj-en) { align-items: flex-start; }
+.adj-pick-top:has(.adj-en) .adj-pick-dot { margin-top: 5px; }
+.adj-pick-ko { font-size: 14px; font-weight: 700; color: #595959; }
 
 /* 영양 단면 — 고른 레시피의 단백질·지방 막대 + 100g당 열량 */
 .adj-live {

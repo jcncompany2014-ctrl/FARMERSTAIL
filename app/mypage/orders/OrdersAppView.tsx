@@ -20,7 +20,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { V3 } from '@/lib/design/tokens'
-import { pouchLineFromName, POUCH_NAME } from '@/lib/design/pouch'
+import { pouchLineFromName, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 import { studioPouchImage } from '@/lib/personalization/packageImage'
 
 export type OrderItemRow = {
@@ -87,10 +87,11 @@ function formatDate(iso: string): string {
 }
 
 /** 주문 상품 줄 → 화면 이름·사진. 레시피면 "닭고기 레시피" + 스튜디오 팩 컷, 아니면 저장된 이름·사진. */
-function itemLook(it: OrderItemRow): { name: string; image: string | null } {
+function itemLook(it: OrderItemRow): { name: string; ko: string | null; image: string | null } {
   const line = pouchLineFromName(it.product_name)
-  if (line) return { name: `${POUCH_NAME[line]} 레시피`, image: studioPouchImage(line) }
-  return { name: it.product_name.replace(/\s*\([^)]*\)\s*$/, ''), image: it.product_image_url }
+  // 레시피 팩 = 큰 이름은 팩에 찍힌 영어, 아래 회색 한글 상품 이름(사장님 2026-10-10).
+  if (line) return { name: POUCH_NAME_EN[line], ko: POUCH_PRODUCT_KO[line], image: studioPouchImage(line) }
+  return { name: it.product_name.replace(/\s*\([^)]*\)\s*$/, ''), ko: null, image: it.product_image_url }
 }
 
 type FilterKey = 'all' | 'ongoing' | 'cancelled'
@@ -339,9 +340,12 @@ export default function OrdersAppView({
                       </span>
                       <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                         <span className="line-clamp-1" style={{ fontSize: 17, fontWeight: 800 }}>
-                          {look.name}
+                          <span className={look.ko ? 'ft-num' : undefined} style={look.ko ? { fontSize: 19, fontWeight: 400, letterSpacing: '0.02em' } : undefined}>
+                            {look.name}
+                          </span>
                           {extraCount > 0 && <span style={{ fontWeight: 600, color: V3.inkMute }}> 외 {extraCount}건</span>}
                         </span>
+                        {look.ko && <span style={{ fontSize: 14, color: V3.inkMute }}>{look.ko}</span>}
                         <span style={{ fontSize: 13, color: V3.inkMute, letterSpacing: '0.01em' }}>{order.order_number}</span>
                         <span style={{ whiteSpace: 'nowrap' }}>
                           <span className="ft-num" style={{ fontSize: 22 }}>

@@ -6367,3 +6367,49 @@ test('규칙170: 새 첫 화면·결과 둘러보기(앱) — 첫 실행은 새 
   assert.ok(sc.includes('q.delete(WELCOME_PARAM)') && sc.includes("window.history.replaceState(null, ''"), "설문이 '가입 완료' 표식을 주소에서 지우지 않는다 — 새로고침·뒤로가기마다 다시 뜬다")
   assert.ok(sc.includes("if (!refineMode) setWelcome('on')"), "정확도 올리기(추가 답변)에도 '가입 완료' 띠가 뜬다")
 })
+
+test('규칙171: 앱 레시피 제목 = 팩에 찍힌 영어 + 아래 회색 한글 상품 이름 · 체형 꼬리표는 겁주지 않는 말', () => {
+  /**
+   * 2026-10-10 사장님 결정(앱 새 디자인 결정 목록).
+   *  · 레시피 이름이 '제목'으로 크게 나오는 자리 8곳은 팩에 찍힌 영어(CHICKEN · DUCK · BLACK PORK · HANWOO BEEF RECIPE)를
+   *    크게, 바로 아래 회색으로 한글 상품 이름(products.name 과 같은 '닭고기 화식'…)을 쓴다 — 손님이 냉동실 팩과 앱을 바로
+   *    맞춰 보게. 한글을 같이 두는 건 10/9 결정(부모님 세대가 영어를 못 읽는다)을 지키려는 것 — 영어만 남기면 안 된다.
+   *    두 레시피를 한 줄에 잇는 자리(홈 배송 카드·정기배송 요약 등)는 한글 그대로(POUCH_NAME).
+   *  · 설문 체형 판정 꼬리표: 심한 저체중·비만(1·8·9단계)은 '위험' 대신 '관리 필요'(색은 그대로 빨강).
+   */
+  const pouch = stripComments(read(join(ROOT, 'lib', 'design', 'pouch.ts')))
+  for (const [k, en, ko] of [
+    ['chicken', 'CHICKEN RECIPE', '닭고기 화식'],
+    ['duck', 'DUCK RECIPE', '오리고기 화식'],
+    ['pork', 'BLACK PORK RECIPE', '흑돼지 화식'],
+    ['beef', 'HANWOO BEEF RECIPE', '한우 화식'],
+  ] as const) {
+    assert.ok(pouch.includes(`${k}: '${en}'`), `팩 영어 이름이 팩 글자와 다르다(${k} → ${en})`)
+    assert.ok(pouch.includes(`${k}: '${ko}'`), `회색 한글이 상품 이름과 다르다(${k} → ${ko})`)
+  }
+  // 제목 자리 8곳 — 팩 영어 이름을 쓰고(직접 또는 recipeTitleOfLine), 한글 상품 이름도 같이 그린다.
+  const TITLE_PLACES = [
+    'components/analysis/magazine/BoxMixCard.tsx',
+    'components/analysis/AdjustSheet.tsx',
+    'app/(main)/dogs/[id]/plan/PlanClient.tsx',
+    'app/(main)/dogs/[id]/order/OrderClient.tsx',
+    'app/(main)/dogs/[id]/_components/CurrentFormulaCard.tsx',
+    'app/mypage/orders/OrdersAppView.tsx',
+    'app/mypage/orders/[id]/OrderDetailAppView.tsx',
+    'app/mypage/orders/[id]/receipt/ReceiptAppView.tsx',
+  ]
+  for (const f of TITLE_PLACES) {
+    const src = stripComments(read(join(ROOT, ...f.split('/'))))
+    // recipeTitleOfLine 은 import 한 줄 + 쓰는 곳(직접 부르거나 map 에 넘기거나) — 두 번 이상 나와야 쓴 것이다.
+    const usesTitle = (src.match(/\brecipeTitleOfLine\b/g) ?? []).length >= 2
+    const usesEn = usesTitle || src.includes('POUCH_NAME_EN[')
+    const usesKo = usesTitle || src.includes('POUCH_PRODUCT_KO[')
+    assert.ok(usesEn && usesKo, `${f}: 레시피 제목이 '팩 영어 + 회색 한글'이 아니다`)
+  }
+  const display = stripComments(read(join(ROOT, 'components', 'analysis', 'display.ts')))
+  assert.match(display, /return pouch \? \{ en: POUCH_NAME_EN\[pouch\], ko: POUCH_PRODUCT_KO\[pouch\] \}/, 'recipeTitleOfLine 이 팩 영어·한글 상품 이름을 같이 돌려주지 않는다')
+  // 체형 꼬리표 — '위험' 금지.
+  const body = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'steps', 'Body.tsx')))
+  assert.ok(!body.includes("tag: '위험'"), "설문 체형 꼬리표에 '위험'이 있다(사장님 10/10 — '관리 필요')")
+  assert.equal((body.match(/tag: '관리 필요'/g) ?? []).length, 3, "체형 1·8·9단계 꼬리표가 '관리 필요'가 아니다")
+})

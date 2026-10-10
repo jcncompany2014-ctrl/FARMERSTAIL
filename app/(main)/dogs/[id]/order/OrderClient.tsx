@@ -68,7 +68,7 @@ import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
 import { FOOD_LINE_POUCH, POUCH_NAME } from '@/lib/design/pouch'
-import { RECIPE_COLOR } from '@/components/analysis/display'
+import { RECIPE_COLOR, recipeTitleOfLine } from '@/components/analysis/display'
 import './order.css'
 import { PANCREATITIS_GATE_COPY } from '@/lib/personalization/plain-reason'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
@@ -895,8 +895,16 @@ export default function OrderClient({
                 const meta = it.line ? FOOD_LINE_META[it.line] : null
                 // 이름은 한글 표시명(치킨/흑돼지…), 한 줄은 '프레시 OO 레시피'
                 // (사장님 2026-07-15). 영문명(Chicken)은 여기선 안 쓴다.
-                const label = meta ? (isApp ? appRecipeName(it.line!) : meta.nameKo) : '토퍼'
-                const sub = meta ? (isApp ? `프레시 ${appRecipeName(it.line!)} 레시피` : meta.subtitle) : '동결건조'
+                // 앱 — 제목 = 팩 영어 이름, 한 줄 = 한글 상품 이름(사장님 2026-10-10). 팩 없는 라인·웹은 예전 그대로.
+                const appTitle = isApp && it.line ? recipeTitleOfLine(it.line) : null
+                const label = meta ? (isApp ? (appTitle?.en ?? appRecipeName(it.line!)) : meta.nameKo) : '토퍼'
+                const sub = meta
+                  ? isApp
+                    ? appTitle?.en
+                      ? appTitle.ko
+                      : `프레시 ${appRecipeName(it.line!)} 레시피`
+                    : meta.subtitle
+                  : '동결건조'
                 const color = meta ? meta.color : 'var(--moss)'
                 const isOOS = (it.product.stock ?? 0) <= 0
                 const notSub = it.product.is_subscribable === false
@@ -942,7 +950,10 @@ export default function OrderClient({
                       />
                     </span>
                     <div className="ord-recipe-body">
-                      <div className="ord-recipe-name">
+                      <div
+                        className={appTitle?.en ? 'ord-recipe-name ft-num' : 'ord-recipe-name'}
+                        style={appTitle?.en ? { fontSize: 19, fontWeight: 400, letterSpacing: '0.02em' } : undefined}
+                      >
                         {label}
                       </div>
                       <div className="ord-recipe-sub">{sub}</div>

@@ -5,7 +5,7 @@ import {
   isCheckinLinkVisible,
 } from '@/lib/personalization/cycle'
 import { ALL_LINES } from '@/lib/personalization/lines'
-import { recipeColorOfLine, recipeNameOfLine } from '@/components/analysis/display'
+import { recipeColorOfLine, recipeNameOfLine, recipeTitleOfLine } from '@/components/analysis/display'
 import { todayKstIsoDate, diffDaysKst, addDaysKst } from '@/lib/datetime-kst'
 import type { Formula } from '@/lib/personalization/types'
 import { V3, V3Radius } from '@/lib/design/tokens'
@@ -106,6 +106,7 @@ export default function CurrentFormulaCard({
     .sort((a, b) => (ratios[b] ?? 0) - (ratios[a] ?? 0))
     .slice(0, 2)
   const recipeLabel = `${lines.length > 0 ? lines.map(recipeNameOfLine).join('·') : '맞춤'} 레시피`
+  const titles = lines.map(recipeTitleOfLine)
 
   return (
     <section
@@ -156,19 +157,34 @@ export default function CurrentFormulaCard({
       </div>
 
       {/* 원물 레시피명(박스=2종 반반, %·라인명 없이 — 알림/이메일과 톤 통일).
-          사장님 2026-07-23 Option A. */}
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {lines.length > 0 && (
-          <span aria-hidden style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-            {lines.map((l) => (
-              <span key={l} style={{ width: 14, height: 14, background: recipeColorOfLine(l) }} />
-            ))}
-          </span>
-        )}
-        <span className="ft-poster" style={{ fontSize: 24, wordBreak: 'keep-all' }}>
-          {recipeLabel}
+          사장님 2026-07-23 Option A. 2026-10-10 사장님: 제목은 팩에 찍힌 영어 이름을 한 줄씩(색 네모와 함께), 아래 회색에
+          한글 상품 이름. 팩이 없는 라인이 섞이면 예전 한글 한 줄. */}
+      {titles.length > 0 && titles.every((t) => t.en) ? (
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {titles.map((t, i) => (
+            <span key={lines[i]} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span aria-hidden style={{ width: 14, height: 14, flexShrink: 0, background: recipeColorOfLine(lines[i]!) }} />
+              <span className="ft-num" style={{ fontSize: 24, lineHeight: 1.05, letterSpacing: '0.02em' }}>
+                {t.en}
+              </span>
+            </span>
+          ))}
+          <span style={{ marginTop: 2, fontSize: 15, fontWeight: 700, color: V3.inkMute }}>{titles.map((t) => t.ko).join(' · ')}</span>
         </span>
-      </span>
+      ) : (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {lines.length > 0 && (
+            <span aria-hidden style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+              {lines.map((l) => (
+                <span key={l} style={{ width: 14, height: 14, background: recipeColorOfLine(l) }} />
+              ))}
+            </span>
+          )}
+          <span className="ft-poster" style={{ fontSize: 24, wordBreak: 'keep-all' }}>
+            {recipeLabel}
+          </span>
+        </span>
+      )}
 
       {/* 다음 액션 — pending 우선, 그 다음 checkin D-Day */}
       {isPending ? (

@@ -13,7 +13,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { V3, V3Shadow } from '@/lib/design/tokens'
-import { pouchLineFromName, POUCH_NAME } from '@/lib/design/pouch'
+import { pouchLineFromName, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 import { RECIPE_COLOR } from '@/components/analysis/display'
 import { studioPouchImage } from '@/lib/personalization/packageImage'
 
@@ -90,8 +90,14 @@ function Row({ label, children, strong = false, wrap = false }: { label: string;
 
 function itemLook(it: OrderDetailAppItem) {
   const line = pouchLineFromName(it.product_name)
+  // 레시피 팩 = 큰 이름은 팩에 찍힌 영어, 아래 회색에 한글 상품 이름(사장님 2026-10-10).
   return line
-    ? { line, name: `${POUCH_NAME[line]} 레시피`, sub: `한 끼 팩 · ${it.unit_price.toLocaleString('ko-KR')}원 × ${it.quantity}`, image: studioPouchImage(line) }
+    ? {
+        line,
+        name: POUCH_NAME_EN[line],
+        sub: `${POUCH_PRODUCT_KO[line]} · 한 끼 팩 · ${it.unit_price.toLocaleString('ko-KR')}원 × ${it.quantity}`,
+        image: studioPouchImage(line),
+      }
     : {
         line: null,
         name: it.product_name.replace(/\s*\([^)]*\)\s*$/, ''),
@@ -268,7 +274,9 @@ export default function OrderDetailAppView({ m }: { m: OrderDetailAppModel }) {
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 800 }}>
                     {look.line && <span aria-hidden style={{ width: 9, height: 9, background: RECIPE_COLOR[look.line], flexShrink: 0 }} />}
-                    {look.name}
+                    <span className={look.line ? 'ft-num' : undefined} style={look.line ? { fontSize: 18, fontWeight: 400, letterSpacing: '0.02em' } : undefined}>
+                      {look.name}
+                    </span>
                   </span>
                   <span style={{ fontSize: 14, color: V3.inkMute }}>{look.sub}</span>
                 </span>

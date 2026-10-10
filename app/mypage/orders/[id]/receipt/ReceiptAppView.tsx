@@ -12,7 +12,7 @@
 import type { CSSProperties } from 'react'
 import { V3 } from '@/lib/design/tokens'
 import { business } from '@/lib/business'
-import { pouchLineFromName, POUCH_NAME } from '@/lib/design/pouch'
+import { pouchLineFromName, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 import { kstKoDateTimeParts } from '@/lib/datetime-kst'
 import ReceiptSaveButton from './ReceiptSaveButton'
 
@@ -64,10 +64,15 @@ function DateTimeLines({ iso }: { iso: string }) {
   )
 }
 
-/** 주문 상세(OrderDetailAppView)와 같은 이름 — 레시피 팩은 '닭고기 레시피 / 한 끼 팩'. 그 밖은 저장된 이름 그대로. */
-function itemLabel(it: ReceiptAppItem): { name: string; sub: string | null } {
+/**
+ * 주문 상세(OrderDetailAppView)와 같은 이름 — 레시피 팩은 큰 이름 = 팩에 찍힌 영어, 아래 회색 = '닭고기 화식 · 한 끼 팩'
+ * (사장님 2026-10-10). 그 밖은 저장된 이름 그대로. pack = 팩 영어 이름 글꼴로 그릴지.
+ */
+function itemLabel(it: ReceiptAppItem): { name: string; sub: string | null; pack: boolean } {
   const line = pouchLineFromName(it.product_name)
-  return line ? { name: `${POUCH_NAME[line]} 레시피`, sub: '한 끼 팩' } : { name: it.product_name, sub: it.variant_name }
+  return line
+    ? { name: POUCH_NAME_EN[line], sub: `${POUCH_PRODUCT_KO[line]} · 한 끼 팩`, pack: true }
+    : { name: it.product_name, sub: it.variant_name, pack: false }
 }
 
 const DT: CSSProperties = { fontSize: 13, fontWeight: 700, color: V3.inkMute }
@@ -174,7 +179,13 @@ export default function ReceiptAppView({ m }: { m: ReceiptAppModel }) {
                 return (
                   <tr key={it.id} style={{ borderBottom: `1px solid ${V3.rule}` }}>
                     <td style={{ padding: '10px 4px 10px 0', fontWeight: 700, lineHeight: 1.4 }}>
-                      {label.name}
+                      {label.pack ? (
+                        <span className="ft-num" style={{ fontSize: 16, fontWeight: 400, letterSpacing: '0.02em' }}>
+                          {label.name}
+                        </span>
+                      ) : (
+                        label.name
+                      )}
                       {label.sub && (
                         <>
                           <br />

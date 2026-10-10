@@ -45,6 +45,26 @@ export const POUCH_NAME: Record<PouchLine, string> = {
   beef: '한우',
 }
 
+/**
+ * 팩에 찍힌 영어 이름 — 레시피 이름이 '제목'으로 크게 나오는 자리(추천 박스·주문 줄 등)는 팩과 같은 영어를 크게,
+ * 그 아래 회색으로 한글 상품 이름(POUCH_PRODUCT_KO)을 쓴다(사장님 2026-10-10 — 손님이 냉동실의 팩과 앱을 바로 맞춰 본다).
+ * 팩 글자: FRESH CHICKEN · FRESH DUCK · BLACK PORK · HANWOO BEEF + RECIPE — 'FRESH' 는 닭·오리에만 있어 넷을 맞추려고 뺐다.
+ */
+export const POUCH_NAME_EN: Record<PouchLine, string> = {
+  chicken: 'CHICKEN RECIPE',
+  duck: 'DUCK RECIPE',
+  pork: 'BLACK PORK RECIPE',
+  beef: 'HANWOO BEEF RECIPE',
+}
+
+/** 영어 이름 아래 회색 한글 — 상품 이름(products.name)과 같은 말이라 주문 기록·웹 상점과도 같다. */
+export const POUCH_PRODUCT_KO: Record<PouchLine, string> = {
+  chicken: '닭고기 화식',
+  duck: '오리고기 화식',
+  pork: '흑돼지 화식',
+  beef: '한우 화식',
+}
+
 /** 같은 팩 수일 때의 순서(시안: 닭+흑돼지 = 닭 바탕, 한우+오리 = 한우 바탕). */
 const LINE_ORDER: readonly PouchLine[] = ['chicken', 'pork', 'beef', 'duck']
 

@@ -48,7 +48,7 @@ import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
 import { V3 } from '@/lib/design/tokens'
 import { RECIPE_COLOR } from '@/components/analysis/display'
-import { FOOD_LINE_POUCH } from '@/lib/design/pouch'
+import { FOOD_LINE_POUCH, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 
 export type PlanProduct = {
   slug: string
@@ -98,7 +98,8 @@ const RECIPE_DESCRIPTIONS: Record<string, string> = {
 }
 
 // 레시피 이름 (사장님 지정 2026-07-13 — 앞의 영어 'CHICKEN ·' 는 2026-10-09 결정으로 뺐다: 부모님 세대가 못 읽는 글자).
-// line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
+// 2026-10-10 사장님: 제목 자리는 다시 팩 영어 이름을 크게 + 바로 아래 회색 한글(recipeTitle). 여기 name 은 팩 없는 라인·
+// 한 줄 자리용, sub 는 회색 줄의 특징("무항생제 닭"). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
 const RECIPE_NAMES: Record<string, { name: string; sub: string }> = {
   weight: { name: '닭고기', sub: '무항생제 닭' },
   premium: { name: '한우', sub: '프리미엄 한우' },
@@ -108,6 +109,19 @@ const RECIPE_NAMES: Record<string, { name: string; sub: string }> = {
 
 /** 라인 → 파우치 색(이름 앞 네모) — lib/design/pouch 정본. 홈·정기배송 화면의 박스 색과 같다. */
 const LINE_POUCH = FOOD_LINE_POUCH
+
+/**
+ * 레시피 제목(사장님 2026-10-10) — 큰 이름 = 팩에 찍힌 영어(CHICKEN RECIPE …), 아래 회색 = 한글 상품 이름 · 특징
+ * ("닭고기 화식 · 무항생제 닭"). 10/9 에 영어를 뺀 이유(부모님 세대가 못 읽는 글자)는 한글을 바로 아래 같이 둬서 지킨다.
+ * 팩이 없는 라인(연어 — 판매 안 함)은 예전 한글 이름 그대로(en = null).
+ */
+function recipeTitle(line: FoodLine): { en: string | null; ko: string; sub: string } {
+  const pouch = LINE_POUCH[line]
+  const rn = RECIPE_NAMES[line]
+  if (pouch) return { en: POUCH_NAME_EN[pouch], ko: POUCH_PRODUCT_KO[pouch], sub: rn?.sub ?? '' }
+  return { en: null, ko: rn?.name ?? FOOD_LINE_META[line].nameKo, sub: rn?.sub ?? '' }
+}
+const EN_TITLE = { fontWeight: 400, letterSpacing: '0.02em' } as const
 
 // 레시피(단백질) 특성 → 편익 한 줄. 추천 카드의 "추천 이유"에 그 아이의 근거
 // (트리거)와 결합해 노출 — "체중 관리 · 저지방 닭가슴살이라…" 식(사장님 2026-07-14).
@@ -467,6 +481,7 @@ export function PlanView({
               const isBlocked = blocked.has(line)
               const isRec = recommended.has(line)
               const rn = RECIPE_NAMES[line]
+              const rt = recipeTitle(line)
               const pouch = studioPouchImageForLine(line)
               return (
                 <div
@@ -510,12 +525,23 @@ export function PlanView({
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 17, fontWeight: 800, color: isBlocked ? V3.inkMute : V3.ink }}>
                       <span aria-hidden style={{ width: 9, height: 9, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
-                      {rn?.name ?? meta.nameKo}
-                      <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>{rn?.sub}</span>
+                      {rt.en ? (
+                        <span className="ft-num" style={{ ...EN_TITLE, fontSize: 19 }}>
+                          {rt.en}
+                        </span>
+                      ) : (
+                        rn?.name ?? meta.nameKo
+                      )}
+                      {!rt.en && <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>{rn?.sub}</span>}
                       {isRec && !isBlocked && (
                         <span style={{ fontSize: 13, fontWeight: 800, color: V3.ink }}>★ 추천</span>
                       )}
                     </span>
+                    {rt.en && (
+                      <span style={{ fontSize: 14, fontWeight: 600, color: V3.inkMute }}>
+                        {rt.ko} · {rt.sub}
+                      </span>
+                    )}
                     {isBlocked ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, color: V3.sale, fontWeight: 700 }}>
                         <AlertTriangle size={13} strokeWidth={2.2} aria-hidden />
@@ -791,6 +817,7 @@ function RecipeDetail({
 }) {
   const meta = FOOD_LINE_META[line]
   const rn = RECIPE_NAMES[line]
+  const rt = recipeTitle(line)
   const pouchSrc = studioPouchImageForLine(line)
   const ings = fullIngredients(line)
   // 근거 trigger 앞 기술 접두사 정리(고객 가독성).
@@ -812,8 +839,16 @@ function RecipeDetail({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: V3.ink }}>
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <span aria-hidden style={{ width: 12, height: 12, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
-          <span style={{ fontSize: 26 }}>{rn?.name ?? meta.nameKo}</span>
-          <span style={{ fontSize: 16, fontWeight: 700, color: V3.inkMute, fontFamily: 'var(--font-sans)' }}>{rn?.sub}</span>
+          {rt.en ? (
+            <span className="ft-num" style={{ ...EN_TITLE, fontSize: 26 }}>
+              {rt.en}
+            </span>
+          ) : (
+            <>
+              <span style={{ fontSize: 26 }}>{rn?.name ?? meta.nameKo}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: V3.inkMute, fontFamily: 'var(--font-sans)' }}>{rn?.sub}</span>
+            </>
+          )}
         </h2>
         <button
           type="button"
@@ -838,6 +873,11 @@ function RecipeDetail({
           </svg>
         </button>
       </div>
+      {rt.en && (
+        <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 700, color: V3.inkMute }}>
+          {rt.ko} · {rt.sub}
+        </p>
+      )}
 
       {/* 제품 사진 — 레시피 팩 스튜디오 컷(시안 S30: 모서리 4 사진 칸). 예전엔 시트 배경에 multiply 로 녹였는데
           (2026-10-02, 그때 시트 바탕은 크림색) 흰 시트에선 칸 그대로가 시안이다. lazy 금지 — 안드로이드
@@ -960,6 +1000,7 @@ function HeroCard({
 }) {
   const meta = FOOD_LINE_META[line]
   const rn = RECIPE_NAMES[line]
+  const rt = recipeTitle(line)
   const ings = cardIngredients(line)
   const pouch = studioPouchImageForLine(line)
   // 추천 이유 = 그 아이의 근거(트리거) + 레시피 특성. 추천 카드에만 노출.
@@ -1014,11 +1055,17 @@ function HeroCard({
         <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span aria-hidden style={{ width: 12, height: 12, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
-            <span className="ft-poster" style={{ fontSize: 26, lineHeight: 1 }}>
-              {rn?.name ?? meta.nameKo}
-            </span>
+            {rt.en ? (
+              <span className="ft-num" style={{ ...EN_TITLE, fontSize: 24, lineHeight: 1 }}>
+                {rt.en}
+              </span>
+            ) : (
+              <span className="ft-poster" style={{ fontSize: 26, lineHeight: 1 }}>
+                {rn?.name ?? meta.nameKo}
+              </span>
+            )}
           </span>
-          <span style={{ fontSize: 15, color: V3.inkSoft }}>{rn?.sub}</span>
+          <span style={{ fontSize: 15, color: V3.inkSoft }}>{rt.en ? `${rt.ko} · ${rt.sub}` : rn?.sub}</span>
         </span>
       </div>
       {/* 추천 이유 — 알고리즘이 추천한(★) 레시피에만. 직접 담은(추가) 레시피엔

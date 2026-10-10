@@ -9,7 +9,7 @@
 
 import type { FoodLine } from '@/lib/personalization/types'
 import { LEGACY_LINE_TO_PROTEIN, type ProteinKey } from '@/lib/personalization/skuModel'
-import { POUCH_NAME } from '@/lib/design/pouch'
+import { FOOD_LINE_POUCH, POUCH_NAME, POUCH_NAME_EN, POUCH_PRODUCT_KO } from '@/lib/design/pouch'
 
 /** 화면에 쓰는 레시피 이름 — 앱 정본(lib/design/pouch POUCH_NAME '닭고기'…)과 같은 말. 연어는 판매 안 함(이름만). */
 export const RECIPE_NAME: Record<ProteinKey, string> = {
@@ -38,6 +38,15 @@ export function proteinOfLine(line: FoodLine): ProteinKey {
 
 export function recipeNameOfLine(line: FoodLine): string {
   return RECIPE_NAME[proteinOfLine(line)]
+}
+
+/**
+ * 레시피 '제목' — 큰 이름은 팩에 찍힌 영어, 아래 회색은 한글 상품 이름(사장님 2026-10-10 — 손님이 냉동실 팩과 바로 맞춰 본다).
+ * 팩이 없는 라인(연어 — 판매 안 함)은 en = null 이라 한글 이름만. 두 레시피를 한 줄에 잇는 자리는 recipeNameOfLine 그대로.
+ */
+export function recipeTitleOfLine(line: FoodLine): { en: string | null; ko: string } {
+  const pouch = FOOD_LINE_POUCH[line]
+  return pouch ? { en: POUCH_NAME_EN[pouch], ko: POUCH_PRODUCT_KO[pouch] } : { en: null, ko: recipeNameOfLine(line) }
 }
 
 export function recipeColorOfLine(line: FoodLine): string {

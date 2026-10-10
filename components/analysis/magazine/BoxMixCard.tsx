@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import type { Reasoning, FoodLine } from '@/lib/personalization/types'
 import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
 import { bowlImageForLine, studioPouchImageForLine } from '@/lib/personalization/packageImage'
-import { recipeColorOfLine } from '../display'
+import { recipeColorOfLine, recipeTitleOfLine } from '../display'
 
 export interface BoxMixItem {
   key: FoodLine
@@ -169,6 +169,11 @@ function BoxRow({ item }: { item: BoxMixItem }) {
   // 레시피 팩 스튜디오 컷(시안 D08) — 판매하지 않는 라인(연어)은 그릇 사진, 그것도 없으면 레시피 색 원.
   const photo = item.photoUrl ?? studioPouchImageForLine(item.key) ?? bowlImageForLine(item.key)
   const color = recipeColorOfLine(item.key)
+  // 큰 이름 = 팩에 찍힌 영어, 아래 회색 = 한글 상품 이름(사장님 2026-10-10). 팩이 없는 라인은 예전 한글 이름 그대로.
+  const t = recipeTitleOfLine(item.key)
+  const pouch = t.en !== null
+  const title = t.en ?? item.ko
+  const subLine = pouch ? `${t.ko} · ${item.sub}` : item.sub
   return (
     <div
       style={{
@@ -193,11 +198,13 @@ function BoxRow({ item }: { item: BoxMixItem }) {
         {photo && <Image src={photo} alt={`${item.ko} 팩`} fill sizes="52px" style={{ objectFit: 'cover' }} />}
       </span>
       <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 17, fontWeight: 800 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span aria-hidden style={{ width: 10, height: 10, background: color, flexShrink: 0 }} />
-          {item.ko}
+          <span className={pouch ? 'ft-num' : undefined} style={pouch ? { fontSize: 19, letterSpacing: '0.02em' } : { fontSize: 17, fontWeight: 800 }}>
+            {title}
+          </span>
         </span>
-        <span style={{ fontSize: 14, color: V3.inkMute, wordBreak: 'keep-all' }}>{item.sub}</span>
+        <span style={{ fontSize: 14, color: V3.inkMute, wordBreak: 'keep-all' }}>{subLine}</span>
       </span>
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, whiteSpace: 'nowrap' }}>
         <span style={{ fontSize: 13, color: V3.inkMute }}>하루</span>
