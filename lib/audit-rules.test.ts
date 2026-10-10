@@ -3635,13 +3635,17 @@ test('규칙83: 앱 하단 탭은 앱에서만·몰입 화면 밖에서만 그�
 })
 
 
-test('규칙84: 하단 탭바 색은 Capacitor 네이티브 배경색(capacitor.config backgroundColor)과 같아야 한다', () => {
+test('규칙84: 아래 탭은 떠 있는 알약 — 네이티브 앱에선 홈바 구간 바로 위(간격 0)에 앉고, 그 구간 색(네이티브)은 앱 바탕(흰색)과 같다', () => {
   /**
-   * # 왜 (2026-09-22 사장님 아이폰 스크린샷)
+   * # 왜 (2026-09-22 사장님 아이폰 스크린샷 → 2026-10-10 토스식)
    * iOS 는 contentInset 'always' 라 상태바·홈바 safe-area 구간을 웹이 아니라 네이티브가
-   * capacitor.config 의 backgroundColor 로 칠한다. 탭바가 웹 종이색(#F7F5F0)이고 네이티브가
-   * #F5F0E6 이면 탭 줄 아래 홈바 구간이 다른 색 띠로 보인다 — "맨 아래로 내리면 저런 바가
-   * 왜 생기냐, 색도 다르다". 탭바는 --ft-native-bg 를 쓰고, 그 값은 capacitor.config 와 같다.
+   * capacitor.config 의 backgroundColor 로 칠하고, 그 구간으로는 웹 내용이 안 내려간다. 9/22 엔 꽉 찬 탭바(종이색)
+   * 아래 홈바 구간(크림)이 다른 색 띠로 보였다 — "맨 아래로 내리면 저런 바가 왜 생기냐, 색도 다르다".
+   * 10/10 사장님이 토스식(떠 있는 둥근 탭)을 골랐다. 이제 홈바 구간과 맞닿는 건 탭이 아니라 앱 바탕이다:
+   *  ① 네이티브 색 = --ft-native-bg = 앱 바탕(흰색) — 알약 양옆·아래가 한 장으로 이어진다.
+   *  ② 네이티브 앱에선 알약을 그 구간 바로 위(간격 0, html.ft-native)에 앉힌다. 간격을 두면 알약 밑으로 내용이
+   *     한 줄 비치다가 홈바 구간 경계에서 칼같이 잘린다(토스처럼 탭 아래로 내용이 흐르는 건 아이폰 앱에선 안 된다).
+   *  ③ --ft-tabbar-h(본문 아래 여백·토스트·입력창이 탭 위에 서는 기준) = 알약 높이 + 간격.
    */
   const cap = read(join(ROOT, 'capacitor.config.ts'))
   const nativeColors = [...cap.matchAll(/backgroundColor:\s*['"](#[0-9a-fA-F]{6})['"]/g)].map((m) => (m[1] ?? '').toUpperCase())
@@ -3653,11 +3657,34 @@ test('규칙84: 하단 탭바 색은 Capacitor 네이티브 배경색(capacitor.
   assert.ok(m, 'globals.css 에 --ft-native-bg 가 없다')
   const cssColor = (m?.[1] ?? '').toUpperCase()
   const nativeColor = nativeColors[0] ?? ''
-  assert.equal(cssColor, nativeColor, `--ft-native-bg(${cssColor}) 와 capacitor backgroundColor(${nativeColor}) 가 다르다 — 홈바 구간에 색 띠가 생긴다`)
+  assert.equal(cssColor, nativeColor, `--ft-native-bg(${cssColor}) 와 capacitor backgroundColor(${nativeColor}) 가 다르다 — 상태바·홈바 구간에 색 띠가 생긴다`)
+  // ① 앱 바탕 = 네이티브 색 — 알약 양옆으로 보이는 바탕이 홈바 구간과 이어진다.
+  const pageBg = css.match(/html:has\(\[data-ft-chrome="app"\]\) body \{[^}]*background: var\(--app-page-bg, (#[0-9A-Fa-f]{6})\)/)?.[1]
+  assert.equal(pageBg?.toUpperCase(), nativeColor, `앱 바탕(${pageBg})이 네이티브 홈바 구간 색(${nativeColor})과 다르다 — 떠 있는 탭 아래에 색 띠가 생긴다`)
 
+  // ② 떠 있는 알약: 양옆 안쪽·완전 둥금·바닥 간격 변수.
   const bar = stripComments(read(join(ROOT, 'components', 'app', 'BottomTabBar.tsx')))
-  assert.match(bar, /background:\s*'var\(--ft-native-bg\)'/, '하단 탭바 배경이 --ft-native-bg 가 아니다')
-  assert.doesNotMatch(bar, /backdropFilter/, '하단 탭바에 블러가 다시 들어왔다 — 반투명이면 safe-area 구간과 색이 갈린다')
+  const nav = bar.match(/<nav\s+aria-label="주 메뉴"[\s\S]*?>\s*\{LEFT/)?.[0] ?? ''
+  assert.ok(nav, '아래 탭(nav 주 메뉴)을 못 찾았다')
+  assert.match(nav, /left: 20,\s*right: 20,/, '아래 탭이 양옆 20 안쪽으로 떠 있지 않다(꽉 찬 바로 돌아갔다)')
+  assert.match(nav, /borderRadius: 999/, '아래 탭이 둥근 알약이 아니다')
+  assert.match(nav, /bottom: 'calc\(var\(--ft-tabbar-gap, 8px\) \+ env\(safe-area-inset-bottom\)\)'/, '아래 탭 바닥 간격이 --ft-tabbar-gap 을 안 쓴다 — 네이티브 앱에서 홈바 구간 위에 틈이 생긴다')
+  const pillH = Number(bar.match(/const PILL_H = (\d+)/)?.[1])
+  assert.ok(pillH >= 56 && pillH <= 68, `알약 높이(${pillH})가 이상하다`)
+  assert.match(nav, /height: PILL_H/, '아래 탭 높이가 PILL_H 가 아니다')
+
+  // ③ 높이 변수 = 알약 + 간격(웹 기본·네이티브 앱 둘 다).
+  const base = css.match(/\[data-ft-chrome="app"\] \{[\s\S]*?--ft-tabbar-gap:\s*(\d+)px;\s*--ft-tabbar-h:\s*(\d+)px;/)
+  assert.ok(base, '앱 틀 기본 --ft-tabbar-gap·--ft-tabbar-h 를 못 찾았다')
+  assert.equal(Number(base?.[2]), pillH + Number(base?.[1]), `--ft-tabbar-h(${base?.[2]})가 알약 ${pillH} + 간격 ${base?.[1]} 과 다르다 — 마지막 줄·토스트가 탭에 가려진다`)
+  const native = css.match(/html\.ft-native \[data-ft-chrome="app"\] \{\s*--ft-tabbar-gap:\s*0px;\s*--ft-tabbar-h:\s*(\d+)px;/)
+  assert.ok(native, '네이티브 앱(html.ft-native)에서 탭 바닥 간격이 0 이 아니다 — 알약 밑으로 내용이 비치다 잘린다')
+  assert.equal(Number(native?.[1]), pillH, `네이티브 앱 --ft-tabbar-h(${native?.[1]})가 알약 높이 ${pillH} 와 다르다`)
+  const layoutSrc = read(join(ROOT, 'app', 'layout.tsx'))
+  assert.match(layoutSrc, /if\(c\)\{h\.classList\.add\('ft-native'\);/, 'head 스크립트가 네이티브 앱에 ft-native 를 안 붙인다')
+  // 업데이트 안내(앱 틀 밖이라 숫자)도 알약 위 12.
+  const notice = stripComments(read(join(ROOT, 'components', 'NativeUpdateNotice.tsx')))
+  assert.ok(notice.includes(`+ ${pillH + 12}px)`), `업데이트 안내가 떠 있는 탭(${pillH}) 위 12 에 서지 않는다`)
 })
 
 
@@ -5382,11 +5409,15 @@ test('규칙149: 앱 첫 화면은 한 번처럼 — 웹 로딩 화면이 폰 �
   assert.ok(showMs >= 3000, `폰 화면 타이머(${showMs}ms)가 짧다 — 웹이 걷기 전에 먼저 걷혀 사이에 빈 화면이 낀다`)
   assert.match(splashSrc, /call\('SplashScreen','hide',ios\?\{fadeOutDuration:0\}:\{\}\)/, '웹 로딩 화면이 폰 화면을 걷지 않거나, 아이폰에서 겹쳐 사라지는 효과가 켜졌다 — 옛 글자 로고와 도장이 겹쳐 보인다')
   // ⑤ 아이폰(사장님 10/8 아이폰 화면): 앱이 다시 띄우는 폰 화면은 웹뷰 맨 위에 화면 크기로 붙어 중심이 웹뷰 기준 화면높이/2 —
-  //    상태바를 빼면 그만큼 어긋난다. 옛 아이폰 앱은 런치 화면이 크림 바탕 글자 로고라 같은 그림·자리·바탕으로 잇는다.
+  //    상태바를 빼면 그만큼 어긋난다. 옛 아이폰 앱은 런치 화면이 크림 바탕이라 로딩 바탕도 크림으로 잇는다.
+  //    ★2026-10-10 그림은 옛 아이폰 앱도 꼬리 흔드는 도장(사장님 "로딩도 도장 꼬리 흔드는 걸로") — 예전엔 런치 화면의
+  //    글자 로고를 그대로 이어 보여서, 옛 앱을 쓰는 사장님 폰엔 새 로딩이 안 보였다.
   assert.match(splashSrc, /if\(ios\)\{place\(0\)/, '아이폰 도장 자리에서 상태바를 뺀다 — 폰 화면(웹뷰 기준 화면높이/2)과 어긋난다')
-  assert.match(splashSrc, /export const SPLASH_MARK_SRC = '\/logo-ink\.png'/, '옛 아이폰 앱 로딩 글자 로고가 런치 화면과 같은 그림이 아니다')
-  assert.match(splashSrc, /export const IOS_LAUNCH_MARK_PX = 1000\b/, '옛 아이폰 런치 화면 글자 로고 폭(2732 중 1000)이 바뀌었다')
   assert.match(css, /html\.ft-old-shell-ios \.ft-splash \{\s*background: #F5F0E6;/, '옛 아이폰 앱 로딩 바탕이 그 앱 폰 화면(크림)과 다르다')
+  assert.match(splashSrc, /var pic=el\.querySelector\('\.ft-splash__still'\)/, '로딩 그림을 셸에 따라 다른 것(글자 로고 등)으로 고른다 — 모든 앱이 도장이어야 한다')
+  assert.doesNotMatch(splashSrc, /ft-splash__mark/, '옛 아이폰 앱 로딩에 글자 로고가 남아 있다 — 꼬리 흔드는 도장으로 바꿨다')
+  assert.doesNotMatch(css, /\.ft-splash__stamp \{\s*display: none/, '어떤 셸에서 로딩 도장을 숨긴다')
+  assert.doesNotMatch(splashSrc, /var calm=oldIos/, '옛 아이폰 앱에서 꼬리 영상을 끈다')
   assert.match(splashSrc, /call\('StatusBar','getInfo'\)/, '도장 자리를 상태바 높이로 맞추지 않는다 — 폰 화면 도장과 어긋나 튄다')
   // ④ 절대 안 남는다: JS 가 죽어도 CSS 가 걷는다.
   assert.match(css, /html\.ft-standalone \.ft-splash \{[^}]*animation: ft-splash-fallback 0\.45s ease [1-8]s forwards/, '웹 로딩 화면의 비상 걷힘(CSS)이 없다 — 스크립트가 실패하면 화면이 안 걷힌다')
@@ -6131,11 +6162,16 @@ test('규칙166: 앱 바탕 흰색(셸 3세대) 뒤에도 옛 셸은 그 셸 색
   const layoutSrc = read(join(ROOT, 'app', 'layout.tsx'))
   assert.match(layoutSrc, /var gen=g\?\+g\[1\]:0;if\(gen<2&&/, 'head 스크립트가 셸 세대를 숫자로 읽지 않는다')
   assert.match(layoutSrc, /else if\(gen<3\)\{h\.classList\.add\('ft-paper-shell'\);\}/, 'head 스크립트가 옛 셸(FtShell/3 미만)에 ft-paper-shell 을 안 붙인다')
-  assert.match(layoutSrc, /l\.href=h\.classList\.contains\('ft-paper-shell'\)\?'\$\{PAPER_SHELL_STILL_SRC\}':'\$\{SPLASH_STILL_SRC\}'/, '옛 셸이 흰 바탕 도장을 미리 받는다(그 셸이 쓰는 건 종이색 도장)')
+  assert.match(layoutSrc, /l\.href=\(h\.classList\.contains\('ft-paper-shell'\)\|\|h\.classList\.contains\('ft-old-shell-ios'\)\)\?'\$\{PAPER_SHELL_STILL_SRC\}':'\$\{SPLASH_STILL_SRC\}'/, '옛 셸이 흰 바탕 도장을 미리 받는다(그 셸이 쓰는 건 종이색 도장)')
 
   const css = stripComments(read(join(ROOT, 'app', 'globals.css')))
-  assert.match(css, /html\.ft-paper-shell \[data-ft-chrome="app"\] \{\s*--ft-native-bg: #F7F5F0;/, '옛 셸에서 윗줄·탭바가 네이티브 종이색을 안 따른다 — 아이폰 상태바·홈바 구간에 띠가 생긴다')
+  assert.match(css, /html\.ft-paper-shell \[data-ft-chrome="app"\] \{\s*--ft-native-bg: #F7F5F0;/, '옛 셸에서 윗줄이 네이티브 종이색을 안 따른다 — 상태바를 흰색으로 못 바꾼 옛 셸에서 위에 띠가 생긴다')
   assert.match(css, /html\.ft-paper-shell \.ft-splash \{\s*background: #F7F5F0;/, '옛 셸 로딩 바탕이 그 셸 폰 화면(종이색)과 다르다')
+  // ★2026-10-10 (사장님 옛 아이폰 화면 "위아래 띠가 색이 이상해") — 로딩이 걷힐 때 상태바를 흰색으로 바꾸는 데 성공하면
+  // html.ft-sb-white 가 붙고 윗줄도 흰색. 이 규칙은 셸 색 규칙들 **뒤에** 있어야 이긴다(같은 무게).
+  const sbWhiteAt = css.search(/html\.ft-sb-white \[data-ft-chrome="app"\] \{\s*--ft-native-bg: #FFFFFF;/)
+  assert.ok(sbWhiteAt > 0, '상태바를 흰색으로 바꾼 옛 셸에서 윗줄을 흰색으로 돌리는 규칙(html.ft-sb-white)이 없다')
+  assert.ok(sbWhiteAt > css.search(/html\.ft-paper-shell \[data-ft-chrome="app"\]/) && sbWhiteAt > css.search(/html\.ft-old-shell-ios \[data-ft-chrome="app"\]/), 'html.ft-sb-white 규칙이 옛 셸 색 규칙보다 앞에 있어 진다 — 상태바만 희고 윗줄은 셸 색으로 남는다')
 
   const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
   assert.match(chrome, /<header[\s\S]{0,120}background: 'var\(--ft-native-bg\)'/, '윗줄이 상태바 구간 색(--ft-native-bg)을 안 쓴다 — 옛 아이폰 셸에서 위에 띠가 생긴다')
@@ -6143,9 +6179,14 @@ test('규칙166: 앱 바탕 흰색(셸 3세대) 뒤에도 옛 셸은 그 셸 색
   const splash = read(join(ROOT, 'components', 'AppSplash.tsx'))
   assert.equal(splash.match(/export const PAPER_SHELL_BG = '(#[0-9A-Fa-f]{6})'/)?.[1], '#F7F5F0', '옛 셸 바탕색이 2세대 네이티브 종이색이 아니다')
   assert.match(splash, /var paperShell=root\.classList\.contains\('ft-paper-shell'\);/, '로딩 스크립트가 옛 셸을 가려내지 않는다')
-  assert.match(splash, /color:paperShell\?'\$\{PAPER_SHELL_BG\}':'\$\{APP_PAPER\}'/, '안드로이드 옛 셸의 상태바를 흰색으로 칠한다 — 종이색 윗줄 위에 흰 띠가 생긴다')
-  assert.match(splash, /pic\.src=\(paperShell&&pic\.getAttribute\('data-src-paper'\)\)\|\|pic\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 도장 그림을 띄운다')
-  assert.match(splash, /wag\.src=\(paperShell&&wag\.getAttribute\('data-src-paper'\)\)\|\|wag\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 꼬리 영상을 띄운다')
+  assert.match(splash, /var oldShell=paperShell\|\|oldIos;/, '로딩 스크립트가 옛 아이폰 셸을 옛 셸로 안 친다')
+  assert.match(splash, /color:paperShell\?'\$\{PAPER_SHELL_BG\}':'\$\{APP_PAPER\}'/, '안드로이드 옛 셸의 로딩 중 상태바를 흰색으로 칠한다 — 종이색 로딩 위에 흰 띠가 생긴다')
+  assert.match(splash, /pic\.src=\(oldShell&&pic\.getAttribute\('data-src-paper'\)\)\|\|pic\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 도장 그림을 띄운다')
+  assert.match(splash, /wag\.src=\(oldShell&&wag\.getAttribute\('data-src-paper'\)\)\|\|wag\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 꼬리 영상을 띄운다')
+  // 상태바 흰색은 **성공했을 때만** 윗줄을 흰색으로(실패하면 셸 색 그대로 = 띠 없음), 로딩이 걷힐 때·이미 본 세션이면 바로.
+  assert.match(splash, /var sbWhite=function\(\)\{if\(oldShell\)call\('StatusBar','setBackgroundColor',\{color:'\$\{APP_PAPER\}'\}\)\.then\(function\(\)\{root\.classList\.add\('ft-sb-white'\)\}/, '옛 셸 상태바를 흰색으로 바꾼 뒤에만 윗줄을 흰색으로 돌리지 않는다')
+  assert.match(splash, /\{hideNative\(\);sbWhite\(\);return\}/, '로딩을 건너뛴 실행(같은 세션 두 번째)에서 옛 셸 상태바를 흰색으로 안 바꾼다')
+  assert.match(splash, /gone=true;sbWhite\(\);/, '로딩이 걷힐 때 옛 셸 상태바를 흰색으로 안 바꾼다')
   assert.match(splash, /data-src-paper=\{PAPER_SHELL_STILL_SRC\}/, '정지 도장에 종이색 그림 주소가 없다')
   assert.match(splash, /data-src-paper=\{PAPER_SHELL_WAG_SRC\}/, '꼬리 영상에 종이색 영상 주소가 없다')
   // 두 벌의 그림·영상이 실제로 있고 서로 다른 파일이다.

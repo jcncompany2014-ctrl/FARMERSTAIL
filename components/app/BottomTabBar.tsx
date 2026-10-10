@@ -27,6 +27,12 @@
  * - ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 T11): 흰 바 + 먹색 1.5px 윗선, 아이콘 26
  *   (홈은 켜지면 채움), 켜진 탭 = 먹색 800 / 꺼진 탭 = #595959 600, 가운데 = 52px 먹색 원.
  *   기록 메뉴 = 회색 칸 + 왼쪽 6px 색 띠(머스타드·청록·빨강·먹색) + 흰 원 아이콘.
+ * - ★2026-10-10 떠 있는 둥근 탭(사장님 "토스 UI 위아래는 우리만큼 여백이 많은 느낌이 아닌데" → 세 안 비교에서
+ *   "두번째가 젤 나은 듯"). 꽉 찬 바(68) + 홈바 구간(34) = 102 높이 덩어리가 화면 아래를 막고 있었다.
+ *   토스 캡처 실측(높이 61·좌우 21 안쪽·완전 둥금)대로 높이 62 알약을 좌우 20 안쪽에 띄우고, 양옆으로 내용이 보인다.
+ *   켜진 탭 = 회색 알약 + 먹색 800. 가운데 원은 50(알약 안 위아래 6). 글자 크기(13.5)는 그대로.
+ *   ★네이티브 앱은 알약을 홈바 구간 바로 위(간격 0)에 앉힌다 — 아이폰은 contentInset 'always' 라 홈바 구간을
+ *   웹이 아니라 앱이 칠하고 그 아래로는 내용이 안 보인다. 간격을 두면 알약 밑에 내용이 한 줄 비치다가 잘린다(규칙84).
  */
 
 import { useState, type CSSProperties } from 'react'
@@ -152,6 +158,12 @@ const RIGHT: LinkTab[] = [
 
 // 탭바 라벨은 본문 토큰(16)을 따르지 않는다 — 사장님 "무겁다"(2026-09-22). 탭바 표준 12~13.
 const TAB_LABEL_PX = 13.5
+// 떠 있는 알약(2026-10-10) — 바깥 높이 62(테두리 포함) = 안쪽 여백 5 + 칸 50 + 5 + 테두리 1+1.
+// --ft-tabbar-h(globals.css)는 이 높이 + 아래 간격(--ft-tabbar-gap)이다. 높이를 바꾸면 둘 다.
+const PILL_H = 62
+const PILL_PAD = 5
+// 켜진 탭 뒤 회색 알약(토스 캡처의 그것). 흰 알약 위에서 보일 만큼만 진하게.
+const ACTIVE_FILL = '#EDEDED'
 
 // band = 기록 칸 왼쪽 6px 색 띠(시안 T11 — 머스타드·청록·빨강·먹색 차례).
 const RECORD_ACTIONS = [
@@ -190,6 +202,7 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
 
   const linkStyle = (active: boolean): CSSProperties => ({
     color: active ? V3.ink : V3.inkMute,
+    background: active ? ACTIVE_FILL : 'transparent',
   })
 
   const renderLink = (t: LinkTab) => {
@@ -200,7 +213,7 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
         href={t.href}
         aria-current={active ? 'page' : undefined}
         className="flex flex-col items-center justify-center ft-no-press"
-        style={{ ...linkStyle(active), gap: 3, paddingTop: 6, paddingBottom: 8 }}
+        style={{ ...linkStyle(active), gap: 3, borderRadius: 999, minWidth: 0 }}
       >
         <TabIcon name={t.key} active={active} />
         <span
@@ -215,61 +228,65 @@ export default function BottomTabBar({ activeDogId, activeDogName, hidden }: Bot
 
   return (
     <>
+      {/* 떠 있는 둥근 탭(2026-10-10 — 위 docstring). nav 자체가 알약이라 양옆 20px 은 아래 내용을 그대로 누를 수 있다.
+          바닥 간격 = --ft-tabbar-gap(웹 8 · 네이티브 앱 0 — html.ft-native) + 기기 안전 여백. */}
       <nav
         aria-label="주 메뉴"
-        className="fixed left-0 right-0 z-40"
+        className="fixed z-40 grid"
         style={{
-          bottom: 0,
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          // ★네이티브 배경색과 같은 불투명 색 (사장님 2026-09-22 아이폰 스크린샷: 탭 줄
-          //   아래 홈바 구간이 다른 색 띠로 보였다). 그 구간은 웹이 아니라 Capacitor 가
-          //   capacitor.config 의 backgroundColor 로 칠한다(contentInset 'always').
-          //   그때 네이티브(#F5F0E6)와 웹(#F7F5F0)이 2단계 달라 띠가 생겼다 — 탭바를 그 색으로 맞춰 바+홈바가
-          //   한 덩어리로 읽히게 한다. 두 값의 동기는 규칙84 가 잠근다(지금 셸 3세대 = 흰색, 옛 셸은 규칙166).
-          background: 'var(--ft-native-bg)',
-          // 포스터 — 그림자 대신 먹색 윗선(시안 T11).
-          borderTop: `1.5px solid ${V3.ink}`,
+          left: 20,
+          right: 20,
+          maxWidth: 448,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          bottom: 'calc(var(--ft-tabbar-gap, 8px) + env(safe-area-inset-bottom))',
+          height: PILL_H,
+          padding: PILL_PAD,
+          boxSizing: 'border-box',
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          borderRadius: 999,
+          // 거의 흰 반투명 + 옅은 테두리·그림자 — 지나가는 내용이 살짝 비친다(토스 캡처). 바탕이 흰색이라
+          // 예전처럼 네이티브 홈바 구간 색(--ft-native-bg)과 맞출 일이 없다 — 알약은 그 구간에 닿아도 둥근 끝만 닿는다.
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid rgba(20,20,20,0.08)',
+          boxShadow: '0 6px 24px rgba(20,20,20,0.10)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
         }}
       >
-        <div
-          className="max-w-md mx-auto grid"
-          style={{
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            height: 'var(--ft-tabbar-h, 68px)',
-          }}
+        {LEFT.map(renderLink)}
+
+        {/* 가운데 — 발바닥 원. 처음엔 바 위로 절반 솟게 했는데 사장님이 "혼자 둥둥 떠
+            있다" — 바 **안쪽**, 다른 아이콘들과 같은 높이에 앉힌다(2026-09-22).
+            글자는 없고(발바닥이 곧 이름), 눌리는 영역은 칸 전체. 지름은 칸 높이(50) 그대로 —
+            46 은 "너무 작다"(9/22)였다. */}
+        <button
+          type="button"
+          onClick={openRecord}
+          aria-label="기록하기"
+          aria-haspopup="dialog"
+          aria-expanded={recordActive}
+          className="flex items-center justify-center ft-no-press"
+          style={{ minWidth: 0 }}
         >
-          {LEFT.map(renderLink)}
-
-          {/* 가운데 — 발바닥 원. 처음엔 바 위로 절반 솟게 했는데 사장님이 "혼자 둥둥 떠
-              있다" — 바 **안쪽**, 다른 아이콘들과 같은 높이에 앉힌다(2026-09-22).
-              글자는 없고(발바닥이 곧 이름), 눌리는 영역은 칸 전체. */}
-          <button
-            type="button"
-            onClick={openRecord}
-            aria-label="기록하기"
-            aria-haspopup="dialog"
-            aria-expanded={recordActive}
-            className="flex items-center justify-center ft-no-press"
+          <span
+            aria-hidden
+            // 결과 화면 둘러보기 2단계가 이 원을 가리킨다(components/v3/tour/ResultTour).
+            data-tour="record"
+            className="flex items-center justify-center transition-transform duration-150"
+            style={{
+              width: PILL_H - PILL_PAD * 2 - 2,
+              height: PILL_H - PILL_PAD * 2 - 2,
+              borderRadius: 999,
+              background: V3.ink,
+              transform: recordActive ? 'scale(0.94)' : 'scale(1)',
+            }}
           >
-            <span
-              aria-hidden
-              // 결과 화면 둘러보기 2단계가 이 원을 가리킨다(components/v3/tour/ResultTour).
-              data-tour="record"
-              className="flex items-center justify-center transition-transform duration-150"
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 999,
-                background: V3.ink,
-                transform: recordActive ? 'scale(0.94)' : 'scale(1)',
-              }}
-            >
-              <DogPawMark size={26} color="#FFFFFF" />
-            </span>
-          </button>
+            <DogPawMark size={26} color="#FFFFFF" />
+          </span>
+        </button>
 
-          {RIGHT.map(renderLink)}
-        </div>
+        {RIGHT.map(renderLink)}
       </nav>
 
       {/* 기록 메뉴 — 제목은 시트 기본 헤더(구분선) 대신 직접 그린다. 2×2 타일:

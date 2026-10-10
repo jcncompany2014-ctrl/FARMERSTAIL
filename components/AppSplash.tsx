@@ -44,10 +44,6 @@ export const PAPER_SHELL_BG = '#F7F5F0'
 export const SPLASH_STAMP_BOX = 132
 /** iOS 런치 이미지(2732² 정사각, aspect fill) 안의 도장 그림 한 변(px) — ios/App/App/Assets.xcassets/Splash.imageset. */
 export const IOS_LAUNCH_STAMP_PX = 427
-/** 옛 아이폰 앱(FtShell/2 이전)의 런치 이미지 속 글자 로고 폭(px, 2732² 안) — 9/24 이전 Splash.imageset 실측. */
-export const IOS_LAUNCH_MARK_PX = 1000
-/** 옛 아이폰 앱 런치 이미지의 글자 로고와 같은 그림(크기 비율까지 같다: 873×151 ↔ 1000×172). */
-export const SPLASH_MARK_SRC = '/logo-ink.png'
 
 // 오버레이 바로 뒤에서 한 번 실행된다(document.currentScript.parentNode = .ft-splash).
 // 네이티브 호출은 Capacitor 브리지(문서 시작 때 주입)의 nativePromise 로 — 번들 로드를 기다리지 않는다.
@@ -59,8 +55,11 @@ export const SPLASH_MARK_SRC = '/logo-ink.png'
 // ★iOS(사장님 10/8 아이폰 화면 "이거봐바"): 앱이 띄우는 폰 화면은 런치 화면을 **웹뷰 맨 위(상태바 아래)에
 // 화면 크기로** 다시 붙인 것이라(@capacitor/splash-screen iOS — parentView = 웹뷰) 그림 중심이 웹뷰 기준
 // 화면 높이/2 다. 그래서 iOS 는 상태바를 빼지 않는다. 걷을 때는 겹쳐 사라지는 0.2초 효과를 끈다 — 그 사이에
-// 옛 글자 로고와 새 도장이 겹쳐 보였다. 옛 아이폰 앱(FtShell/2 이전, 런치 화면 = 크림 바탕 글자 로고)은
-// 같은 글자 로고를 같은 자리·같은 크림 바탕에 이어서 보여 준다(도장은 업데이트 뒤부터).
+// 옛 글자 로고와 새 도장이 겹쳐 보였다.
+// ★2026-10-10 옛 아이폰 앱(FtShell/2 이전, 런치 화면 = 크림 바탕 글자 로고)도 꼬리 흔드는 도장(사장님 "로딩도 도장
+// 꼬리 흔드는 걸로") — 크림 바탕에 종이색 위에 구운 v1. 예전엔 런치 화면의 글자 로고를 그대로 이어 보였다.
+// ★2026-10-10 옛 셸(oldShell = 2세대 종이색·옛 아이폰 크림)은 로딩이 걷힐 때(또는 이미 본 세션이면 바로) 상태바를
+// 흰색으로 바꾸고, 성공하면 html.ft-sb-white 를 붙여 윗줄도 흰색으로 맞춘다 — 위쪽 띠가 사라진다(실패하면 셸 색 그대로).
 const SCRIPT = `(function(){try{
 var el=document.currentScript&&document.currentScript.parentNode;if(!el)return;
 var root=document.documentElement,cap=window.Capacitor;
@@ -69,24 +68,26 @@ var call=function(p,m,o){try{return nat&&cap.nativePromise?cap.nativePromise(p,m
 var ios=nat&&typeof cap.getPlatform==='function'&&cap.getPlatform()==='ios';
 var hideNative=function(){call('SplashScreen','hide',ios?{fadeOutDuration:0}:{}).catch(function(){})};
 var paperShell=root.classList.contains('ft-paper-shell');
+var oldIos=ios&&root.classList.contains('ft-old-shell-ios');
+var oldShell=paperShell||oldIos;
+var sbWhite=function(){if(oldShell)call('StatusBar','setBackgroundColor',{color:'${APP_PAPER}'}).then(function(){root.classList.add('ft-sb-white')},function(){})};
 if(nat&&!ios)call('StatusBar','setBackgroundColor',{color:paperShell?'${PAPER_SHELL_BG}':'${APP_PAPER}'}).catch(function(){});
 var standalone=nat||root.classList.contains('ft-standalone')||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
-if(!standalone||root.classList.contains('ft-splash-skip')){hideNative();return}
-var oldIos=ios&&root.classList.contains('ft-old-shell-ios');
+if(!standalone||root.classList.contains('ft-splash-skip')){hideNative();sbWhite();return}
 var H=screen.height,gap=Math.max(0,H-innerHeight);
 var size=ios?${IOS_LAUNCH_STAMP_PX}*H/2732:${SPLASH_STAMP_BOX};
 var place=function(top){el.style.setProperty('--ft-stamp-size',size.toFixed(1)+'px');el.style.setProperty('--ft-stamp-y',(H/2-top).toFixed(1)+'px')};
 var info=Promise.resolve();
-if(ios){place(0);if(oldIos)el.style.setProperty('--ft-mark-w',(H*${IOS_LAUNCH_MARK_PX}/2732).toFixed(1)+'px')}
+if(ios){place(0)}
 else if(nat){place(gap>1?Math.max(0,gap-24):0);
 info=call('StatusBar','getInfo').then(function(i){if(i&&typeof i.height==='number'&&gap>1)place(i.overlays?0:Math.min(i.height+0.5,gap))},function(){})}
-var pic=el.querySelector(oldIos?'.ft-splash__mark':'.ft-splash__still'),wag=el.querySelector('.ft-splash__wag');
-pic.src=(paperShell&&pic.getAttribute('data-src-paper'))||pic.getAttribute('data-src');
+var pic=el.querySelector('.ft-splash__still'),wag=el.querySelector('.ft-splash__wag');
+pic.src=(oldShell&&pic.getAttribute('data-src-paper'))||pic.getAttribute('data-src');
 var ready=pic.decode?pic.decode().catch(function(){}):new Promise(function(r){pic.onload=pic.onerror=r});
-var calm=oldIos||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||typeof wag.requestVideoFrameCallback!=='function';
-if(!calm){wag.muted=true;wag.setAttribute('muted','');wag.src=(paperShell&&wag.getAttribute('data-src-paper'))||wag.getAttribute('data-src');var frames=0;var onFrame=function(){if(++frames>=2)el.classList.add('ft-splash--wag');else wag.requestVideoFrameCallback(onFrame)};wag.requestVideoFrameCallback(onFrame)}
+var calm=(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||typeof wag.requestVideoFrameCallback!=='function';
+if(!calm){wag.muted=true;wag.setAttribute('muted','');wag.src=(oldShell&&wag.getAttribute('data-src-paper'))||wag.getAttribute('data-src');var frames=0;var onFrame=function(){if(++frames>=2)el.classList.add('ft-splash--wag');else wag.requestVideoFrameCallback(onFrame)};wag.requestVideoFrameCallback(onFrame)}
 var shown=false,gone=false,t0=0;
-var out=function(){if(gone)return;gone=true;el.classList.add('ft-splash--out');setTimeout(function(){el.style.display='none';try{wag.pause();wag.removeAttribute('src');wag.load()}catch(e){}},450)};
+var out=function(){if(gone)return;gone=true;sbWhite();el.classList.add('ft-splash--out');setTimeout(function(){el.style.display='none';try{wag.pause();wag.removeAttribute('src');wag.load()}catch(e){}},450)};
 var reveal=function(){if(shown)return;shown=true;t0=Date.now();hideNative();
 if(!calm){var p=wag.play();if(p&&p.catch)p.catch(function(){})}
 var loaded=function(){setTimeout(out,Math.max(0,1600-(Date.now()-t0)))};
@@ -103,7 +104,7 @@ export default function AppSplash() {
     <div className="ft-splash" aria-hidden>
       <div className="ft-splash__stamp">
         {/* src 는 스크립트가 앱일 때만 붙인다(웹 브라우저는 받지 않음). */}
-        {/* 2세대 셸은 data-src-paper(종이색 위에 구운 v1) — 스크립트가 html.ft-paper-shell 을 보고 고른다. */}
+        {/* 옛 셸(2세대·옛 아이폰)은 data-src-paper(종이색 위에 구운 v1) — 스크립트가 html.ft-paper-shell·ft-old-shell-ios 를 보고 고른다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className="ft-splash__still"
@@ -125,9 +126,6 @@ export default function AppSplash() {
           disablePictureInPicture
         />
       </div>
-      {/* 옛 아이폰 앱 전용 — 그 앱의 런치 화면 글자 로고를 그대로 이어받는다(CSS html.ft-old-shell-ios). */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="ft-splash__mark" data-src={SPLASH_MARK_SRC} alt="" width={873} height={151} />
       <div className="ft-splash__dots">
         <span />
         <span />

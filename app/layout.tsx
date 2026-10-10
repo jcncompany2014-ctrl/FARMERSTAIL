@@ -412,10 +412,12 @@ export default function RootLayout({
           아직 크림인 옛 아이폰 셸이면 html.ft-old-shell-ios 를 붙인다(탭바가 홈바 구간 색을 따라감).
           ★2026-10-09 — 셸 3세대(흰 바탕, 앱 새 디자인)부터는 흰색. 그보다 옛 셸(2세대 종이색 등)은
           html.ft-paper-shell 을 붙여 윗줄·탭바·로딩을 그 셸의 종이색으로 잇고, 종이색 도장(v1)을 미리 받는다(규칙166).
+          ★2026-10-10 — 네이티브 앱엔 html.ft-native(떠 있는 아래 탭을 홈바 구간 바로 위에 앉힌다 — 규칙84).
+          옛 아이폰 셸도 로딩이 꼬리 흔드는 도장(종이색 v1)이라 그 그림을 미리 받는다.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');if(c){var g=/FtShell\\/(\\d+)/.exec(navigator.userAgent||'');var gen=g?+g[1]:0;if(gen<2&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='ios'){h.classList.add('ft-old-shell-ios');}else if(gen<3){h.classList.add('ft-paper-shell');}}try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');var l=document.createElement('link');l.rel='preload';l.as='image';l.href=h.classList.contains('ft-paper-shell')?'${PAPER_SHELL_STILL_SRC}':'${SPLASH_STILL_SRC}';document.head.appendChild(l);}}catch(e){}}}catch(e){}})();`,
+            __html: `(function(){try{var n=window.navigator&&window.navigator.standalone===true;var c=window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()===true;if(n||c){var h=document.documentElement;h.classList.add('ft-standalone');if(c){h.classList.add('ft-native');var g=/FtShell\\/(\\d+)/.exec(navigator.userAgent||'');var gen=g?+g[1]:0;if(gen<2&&typeof window.Capacitor.getPlatform==='function'&&window.Capacitor.getPlatform()==='ios'){h.classList.add('ft-old-shell-ios');}else if(gen<3){h.classList.add('ft-paper-shell');}}try{if(sessionStorage.getItem('ft_splash_shown')){h.classList.add('ft-splash-skip');}else{sessionStorage.setItem('ft_splash_shown','1');var l=document.createElement('link');l.rel='preload';l.as='image';l.href=(h.classList.contains('ft-paper-shell')||h.classList.contains('ft-old-shell-ios'))?'${PAPER_SHELL_STILL_SRC}':'${SPLASH_STILL_SRC}';document.head.appendChild(l);}}catch(e){}}}catch(e){}})();`,
           }}
         />
       </head>

@@ -444,18 +444,19 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       // 타이밍 무관 — nav 가 속한 하위 레이아웃이 늦게 뜨거나 실패해도 숨겨짐.
       data-focus={focusMode ? 'true' : undefined}
     >
-      {/* 상단 헤더 — 앱 새 디자인('A 포스터', 2026-10-09): 흰 바탕 + 아래 1px 회색 선, 높이 64.
-          홈 = 왼쪽 작은 로고 + 오른쪽 알림 종 / 탭 화면 = 화면 이름 / 깊은 화면 = ← + 이름.
-          사람 아이콘·가운데 큰 로고는 뺐다(아래 탭 '내 정보'와 겹침 — 시안 결정).
+      {/* 상단 헤더 — 앱 새 디자인('A 포스터', 2026-10-09). 홈 = 왼쪽 작은 로고 + 오른쪽 알림 종 /
+          탭 화면 = 화면 이름 / 깊은 화면 = ← + 이름. 사람 아이콘·가운데 큰 로고는 뺐다(아래 탭 '내 정보'와 겹침 — 시안 결정).
+          ★2026-10-10 토스식(사장님이 세 안 중 고름): 아래 선을 없애고 높이 64 → 56. 토스 윗줄은 높이가 우리와 거의 같은데
+          선이 없고 바탕과 같은 색이라 띠로 안 읽혔다(캡처 실측).
           focus mode (설문/체크인 등) 에서는 hide. */}
       {!focusMode && (
       <header
         className="sticky top-0 z-40"
         style={{
-          // 상태바 구간 색(--ft-native-bg)과 같은 색 — 새 셸은 흰색(= --paper), 옛 2세대 셸은 네이티브가 상태바를
-          // 종이색으로 칠하므로 윗줄도 종이색이 돼 위에 띠가 안 생긴다(html.ft-paper-shell — 규칙166).
+          // 상태바 구간 색(--ft-native-bg)과 같은 색 — 새 셸은 흰색(= --paper). 옛 셸은 로딩 동안 네이티브가 상태바를
+          // 그 셸 색으로 칠하므로 윗줄도 그 색이고, 로딩이 걷히며 상태바를 흰색으로 바꾸는 데 성공하면 같이 흰색이 된다
+          // (html.ft-sb-white — 규칙166).
           background: 'var(--ft-native-bg)',
-          borderBottom: '1px solid var(--rule)',
           paddingTop: 'env(safe-area-inset-top)',
         }}
       >
@@ -464,10 +465,10 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           // 오른쪽 여백 — 우리 아이 목록은 '+ 추가' 버튼이 있어 12(시안 T07), 그 밖엔 48px 아이콘 칸이라 8.
           style={{ paddingLeft: isDeep ? 6 : 20, paddingRight: pathname === '/dogs' ? 12 : 8 }}
         >
-          {/* A5: minHeight 64 고정 — 값은 globals.css 의 --ft-header-h(64px) 와 동기. */}
+          {/* A5: minHeight 고정 — 값은 globals.css 의 --ft-header-h(56px) 와 동기(2026-10-10 토스식 64 → 56). */}
           <div
             className="flex items-center justify-between"
-            style={{ minHeight: 64, gap: 8, boxSizing: 'border-box' }}
+            style={{ minHeight: 56, gap: 8, boxSizing: 'border-box' }}
           >
             {/* ── 왼쪽 — 깊은 화면 ← + 이름 / 홈 로고 / 탭 화면 이름 ── */}
             <div className="flex items-center justify-start min-w-0" style={{ gap: 4 }}>

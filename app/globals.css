@@ -171,12 +171,14 @@
   --pouch-beef: #B5573A;
   --stamp-shadow: 4px 4px 0 #141414;
 
-  /* 상단 헤더 고정 높이 — AppChrome 헤더 row(40) + 상하 padding(12+12).
+  /* 상단 헤더 고정 높이 — AppChrome 헤더 row 의 minHeight(아래 선 없음 — 2026-10-10 토스식 64 → 56).
      sticky 서브내브(DogTabsNav 등)의 top 오프셋이 이 변수를 참조한다.
      safe-area 는 사용처에서 calc 로 더할 것. */
-  --ft-header-h: 64px;
-  /* 하단 탭바 높이(safe-area 제외). AppChrome main 하단 여백·sticky CTA 가 참조. */
-  --ft-tabbar-h: 68px;
+  --ft-header-h: 56px;
+  /* 하단 탭이 화면 아래에서 차지하는 높이(safe-area 제외) = 떠 있는 알약 62 + 아래 간격(--ft-tabbar-gap).
+     AppChrome main 하단 여백·토스트·sticky CTA 가 참조. 네이티브 앱은 간격 0 → 62(아래 html.ft-native). */
+  --ft-tabbar-gap: 8px;
+  --ft-tabbar-h: 70px;
   /* 결제 퍼널(플랜 담기/결제) 하단 고정 바 높이 — AppChrome 이 본문 아래 여백으로 쓴다(규칙88). */
   --ft-paybar-h: 80px;
   /* 네이티브(Capacitor) 가 상태바·홈바 safe-area 구간을 칠하는 색 = capacitor.config.ts
@@ -315,6 +317,19 @@ html.ft-paper-shell [data-ft-chrome="app"] {
    app/layout.tsx head 스크립트가 UA 에 FtShell/2 가 없는 iOS 앱에만 붙인다. 업데이트하면 저절로 종이색. */
 html.ft-old-shell-ios [data-ft-chrome="app"] {
   --ft-native-bg: #F5F0E6;
+}
+/* 옛 셸이라도 로딩이 걷힐 때 상태바를 흰색으로 바꾸는 데 성공하면(AppSplash 스크립트가 html.ft-sb-white 를 붙인다)
+   윗줄도 흰색 — 위쪽 띠가 사라진다(사장님 10/10 옛 아이폰 화면 "위아래 띠가 색이 이상해"). 실패하면 위 두 규칙대로
+   상태바와 같은 셸 색으로 남아 띠가 안 생긴다. 맨 아래 홈바 구간은 앱이 칠하는 곳이라 업데이트 전까지 셸 색 그대로. */
+html.ft-sb-white [data-ft-chrome="app"] {
+  --ft-native-bg: #FFFFFF;
+}
+/* 네이티브 앱(head 스크립트가 Capacitor 에서 붙인다) — 홈바 구간을 앱이 칠하고 그 아래로 내용이 안 보이므로(아이폰
+   contentInset 'always') 떠 있는 탭을 그 구간 바로 위(간격 0)에 앉힌다. 간격을 두면 탭 밑에 내용이 한 줄 비치다
+   잘린다(규칙84). */
+html.ft-native [data-ft-chrome="app"] {
+  --ft-tabbar-gap: 0px;
+  --ft-tabbar-h: 62px;
 }
 
 /* =========================================================================
@@ -1901,29 +1916,11 @@ html.ft-splash-skip .ft-splash {
 .ft-splash--wag .ft-splash__wag {
   opacity: 1;
 }
-/* 옛 아이폰 앱(FtShell/2 이전) 전용 — 그 앱의 런치 화면이 크림 바탕 글자 로고라, 같은 그림·같은 크기·같은 자리·
-   같은 크림으로 이어받는다(사장님 10/8 아이폰 화면: 글자 로고와 도장이 겹쳐 보였다). 크기·자리는 스크립트가 넣는다
-   (--ft-mark-w = 화면 높이 × 1000/2732, 중심 = 웹뷰 기준 화면 높이/2). 업데이트하면 도장으로 바뀐다. */
-.ft-splash__mark {
-  display: none;
-  position: absolute;
-  left: 50%;
-  top: var(--ft-stamp-y, 50%);
-  width: var(--ft-mark-w, 0px);
-  height: auto;
-  transform: translate(-50%, -50%);
-}
+/* 옛 아이폰 앱(FtShell/2 이전) — 폰 화면(런치 화면)이 크림 바탕이라 로딩 바탕도 크림으로 잇는다. 그림은 꼬리 흔드는
+   도장(사장님 10/10 "로딩도 도장 꼬리 흔드는 걸로") — 종이색 위에 구운 v1 을 쓴다. 크림과 종이색 차이(2·5·10)는
+   도장 바깥 고리에만 비치고 가장자리는 위 마스크가 녹인다. 예전엔 런치 화면의 글자 로고를 그대로 이어 보였다. */
 html.ft-old-shell-ios .ft-splash {
   background: #F5F0E6;
-}
-html.ft-old-shell-ios .ft-splash__stamp {
-  display: none;
-}
-html.ft-old-shell-ios .ft-splash__mark {
-  display: block;
-}
-html.ft-old-shell-ios .ft-splash__dots {
-  top: calc(var(--ft-stamp-y, 50%) + var(--ft-mark-w, 0px) * 0.0865 + 36px);
 }
 /* 2세대 셸(폰 화면이 종이색 #F7F5F0) — 같은 종이색 바탕에, 종이색 위에 구운 도장(v1)으로 잇는다(그림 고르기는 AppSplash
    스크립트). 업데이트(셸 3세대)하면 흰 바탕·흰 도장(v2). */

@@ -74,8 +74,9 @@ export default function NativeUpdateNotice() {
         position: 'fixed',
         left: 16,
         right: 16,
-        // 아래 탭(높이 68 + 윗선 1.5) 위 12px. 탭 높이 변수(--ft-tabbar-h)는 앱 틀 안에만 있어 값으로 쓴다.
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 82px)',
+        // 떠 있는 아래 탭(높이 62, 네이티브 앱은 바닥 간격 0 — 2026-10-10) 위 12px. 탭 높이 변수(--ft-tabbar-h)는
+        // 앱 틀 안에만 있어 값으로 쓴다.
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)',
         zIndex: 60,
         // 태블릿에선 앱 본문 폭(448)을 넘지 않게 가운데로.
         maxWidth: 416,
