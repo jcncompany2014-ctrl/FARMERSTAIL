@@ -16,7 +16,7 @@ import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
  * 출고일 = 주문한 날(KST) 다음의 첫 화·목(lib/store/shipping). 도착 요일은 약속하지 않는다.
  * 자기 주문만 보인다(user_id 로 거른다). 결제 전(pending) 주문이면 결제 화면으로 돌려보낸다.
  */
-export const metadata: Metadata = { title: '주문이 완료됐어요 | 파머스테일', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: '주문이 완료됐어요', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
 
 const won = (n: number) => n.toLocaleString('ko-KR')

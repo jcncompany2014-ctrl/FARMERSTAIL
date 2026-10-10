@@ -30,13 +30,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const r = recipeFromSlug(slug)
   if (!r) return {}
   const item = storeItem(`${r}-500g`)
-  const title = `${RECIPE_PRODUCT_NAME[r]} 500g ${won(item.price)}원 | 파머스테일`
+  // 화면 제목은 루트 틀이 ' | 파머스테일'을 붙인다 — 공유 미리보기(openGraph)엔 틀이 안 붙어 브랜드를 직접 단다.
+  const title = `${RECIPE_PRODUCT_NAME[r]} 500g ${won(item.price)}원`
   const description = `${recipeIntro(r)}. 100g 팩 5개, 얼린 채로 화·목 출고.`
   return {
     title,
     description,
     alternates: { canonical: `/store/${r}` },
-    openGraph: { title, description, type: 'website', locale: 'ko_KR', siteName: '파머스테일', url: `/store/${r}`, images: [{ url: RECIPE_STUDIO_IMG[r], width: 800, height: 800 }] },
+    openGraph: { title: `${title} | 파머스테일`, description, type: 'website', locale: 'ko_KR', siteName: '파머스테일', url: `/store/${r}`, images: [{ url: RECIPE_STUDIO_IMG[r], width: 800, height: 800 }] },
   }
 }
 

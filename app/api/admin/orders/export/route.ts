@@ -5,12 +5,14 @@ import { toCsvWithBom } from '@/lib/csv'
 import { dbError } from '@/lib/api/errors'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
+import { STORE_ORDER_PREFIX } from '@/lib/store/order-number'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /**
- * GET /api/admin/orders/export?status=&q=&from=&to=
+ * GET /api/admin/orders/export?status=&q=&from=&to=&kind=store
+ * (kind=store = 웹 가게(단품) 주문만 — 주문번호 FTS-, 2026-10-10 웹 리뉴얼)
  *
  * 출력: text/csv (UTF-8 BOM) — Excel 에서 바로 열림.
  * 보안: admin 만. 비관리자는 403.
@@ -162,6 +164,9 @@ export async function GET(request: Request) {
       )
     }
   }
+
+  // 가게(단품) 주문만 — 화면의 '가게 주문만' 칩과 같은 거르기(주문번호 머리글자 정본).
+  if (url.searchParams.get('kind') === 'store') query = query.like('order_number', `${STORE_ORDER_PREFIX}%`)
 
   const { data, error } = await query
   if (error) {

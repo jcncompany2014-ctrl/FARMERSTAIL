@@ -276,7 +276,7 @@ export function renderWelcome(input: {
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
     <p style="margin:0 0 8px 0;">
-      아직 안 해보셨다면, <strong style="color:#B5533A;">2분 설문</strong>으로 우리 아이에게
+      아직 안 해보셨다면, 파머스테일 앱의 <strong style="color:#B5533A;">2분 설문</strong>으로 우리 아이에게
       맞는 화식부터 확인해 보세요. 체형·건강에 맞춰 하루 급여량까지 계산해 드려요.
     </p>
   `
@@ -288,11 +288,12 @@ export function renderWelcome(input: {
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
     icon: '🐶',
-    preview: '파머스테일에 가입해주셔서 감사해요. 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
+    preview: '파머스테일에 가입해주셔서 감사해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     body,
+    // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.
     cta: {
-      label: '맞춤 플랜 시작하기',
-      href: `${SITE_URL}/start`,
+      label: '앱에서 시작하기',
+      href: `${SITE_URL}/app`,
     },
   })
   return { subject, html }

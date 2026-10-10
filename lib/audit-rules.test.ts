@@ -6656,3 +6656,26 @@ test('규칙175: 아이폰 앱 링크(AASA)는 웹 가게·행사·링크 모음
     assert.ok(at > 0 && at < allowAt, `AASA 가 ${p} 를 앱으로 연다(제외 줄이 없거나 전체 허용보다 뒤에 있다)`)
   }
 })
+
+test('규칙176: 웹 설문은 행사 링크(?p=)만 — 그 밖의 웹 /start 는 앱 소개로, 가입 완료는 앱으로 잇고, 메일은 웹 설문을 가리키지 않는다', () => {
+  /**
+   * # 왜 (2026-10-10 웹 리뉴얼 D1·D2 — 웹 설문·웹 정기배송 신청은 앱으로)
+   * 웹 /start 는 옛 디자인 설문을 그대로 그리고 있었고(/events 도 그리로 갔다), 가입 완료(/start/done)는 '배송지 → 카드
+   * 등록 → 첫 배송' 웹 신청을 설명하며 웹 신청 화면으로 보냈다 — 그 신청은 이제 없다. 가입·뉴스레터 환영 메일 버튼도 웹 설문.
+   * 단 배너·전단에 인쇄된 행사 QR(/start?p=코드)은 설문 → 가입 때 혜택이 계정에 박히는 흐름이라 그대로 둔다.
+   */
+  const start = stripComments(read(join(ROOT, 'app', 'start', 'page.tsx')))
+  assert.match(start, /if \(!isApp && !promo\) redirect\('\/app'\)/, '웹 /start 가 행사 코드 없이도 옛 설문을 그린다(앱 소개로 가야 한다)')
+  assert.match(start, /const promo = normalizePromoCode\(/, '웹 /start 가 행사 코드를 정본(normalizePromoCode)으로 읽지 않는다')
+  const done = stripComments(read(join(ROOT, 'app', 'start', 'done', 'page.tsx'))) + stripComments(read(join(ROOT, 'app', 'start', 'done', 'DoneWebView.tsx')))
+  assert.ok(!/account\/subscribe|\/account\/dogs/.test(done), '가입 완료 화면이 없어진 웹 정기배송 신청으로 보낸다')
+  assert.ok(done.includes('APP_STORE_LINKS.ios') && done.includes('APP_STORE_LINKS.android'), '가입 완료 화면에 앱 받기(공식 스토어)가 없다')
+  // 행사 혜택은 본인 기록만 — 관리자 권한으로 읽을 땐 코드가 user_id 로 묶는다(규칙8).
+  assert.match(done, /\.from\('promotion_claims'\)[\s\S]{0,120}\.eq\('user_id', user\.id\)/, '가입 완료가 행사 기록을 본인으로 묶지 않고 읽는다')
+  for (const rel of ['lib/email/templates/newsletter-welcome.ts', 'lib/email/templates/orders.ts', 'lib/email/templates/newsletter-vol-01.ts']) {
+    assert.ok(!/SITE_URL\}\/start[`'"]/.test(read(join(ROOT, ...rel.split('/')))), `${rel}: 메일 버튼이 없어진 웹 설문(/start)을 가리킨다`)
+  }
+  for (const rel of ['app/events/page.tsx', 'app/events/[slug]/page.tsx']) {
+    assert.match(stripComments(read(join(ROOT, ...rel.split('/')))), /permanentRedirect\('\/app'\)/, `${rel}: 옛 이벤트 주소가 앱 소개가 아닌 곳으로 간다`)
+  }
+})

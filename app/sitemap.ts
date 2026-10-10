@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { STORE_RECIPES } from '@/lib/store/catalog'
 
 // R72 — production fallback 을 www. 으로 통일 (Vercel 의 primary 도메인).
 // NEXT_PUBLIC_SITE_URL env 가 우선 — 셋업돼 있으면 그 값 사용.
@@ -22,13 +23,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 1.0,
     },
-    // 퍼널 진입점 — 모든 진입 CTA 가 여기로 모이고 robots index 도 허용인데
-    // sitemap 에만 빠져 있었다(계획 D1, 2026-07-25). 홈 다음으로 중요한 URL.
+    // ★2026-10-10 웹 리뉴얼 — 웹 = 단품 가게(/store·레시피 4종), 맞춤·정기배송 = 앱(/app).
+    //   /start(웹 설문 → 행사 링크 전용·그 밖은 /app)·/why-app(→ /app)·/plans(→ /store)는 넘기기만 하므로 뺐다 —
+    //   넘기는 주소를 올리면 GSC 가 리다이렉트 경고를 낸다. 넘기기(308)는 그대로 둬야 옛 색인이 새 주소로 옮겨 간다.
     {
-      url: `${siteUrl}/start`,
+      url: `${siteUrl}/store`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.9,
+    },
+    ...STORE_RECIPES.map((r) => ({
+      url: `${siteUrl}/store/${r}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    })),
+    {
+      url: `${siteUrl}/app`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
     },
     {
       url: `${siteUrl}/blog`,
@@ -62,13 +76,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
-    // 앱 소개 스크롤 쇼케이스 (왜 파머스테일 앱인가) — 2026-07-02.
-    {
-      url: `${siteUrl}/why-app`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
     // /reviews — 실제 후기가 쌓일 때까지 숨김(2026-09-05, 홈 redirect 중).
     // {
     //   url: `${siteUrl}/reviews`,
@@ -76,12 +83,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     //   changeFrequency: 'weekly',
     //   priority: 0.7,
     // },
-    {
-      url: `${siteUrl}/plans`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
     // 신규 콘텐츠 페이지 — 산지 / FAQ / 뉴스레터 / 과학 alias
     {
       url: `${siteUrl}/partners`,

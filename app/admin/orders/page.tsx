@@ -17,6 +17,7 @@ import {
 } from '@/components/adminui/table'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
+import { STORE_ORDER_PREFIX, isStoreOrderNumber } from '@/lib/store/order-number'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,8 @@ type SearchParams = Promise<{
   status?: string
   q?: string
   page?: string
+  /** 'store' = 웹 가게(단품) 주문만 — 주문번호 FTS- (2026-10-10 웹 리뉴얼). */
+  kind?: string
 }>
 
 // 서버(Vercel)는 UTC 라 raw Date getter 를 쓰면 주문 시각이 9시간 어긋난다.
@@ -98,8 +101,22 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: SearchParams
 }) {
-  const { status = 'all', q = '', page: pageRaw } = await searchParams
+  const { status = 'all', q = '', page: pageRaw, kind: kindRaw } = await searchParams
   const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
+  // ★웹 가게(단품) 주문 — 포장 목록(피킹·라벨·조리 합계)은 정기배송 기준이라 여기 안 나온다(기획서 §9.2). 가게 주문은
+  //   냉동 재고에서 화·목 출고하므로 이 화면에서 '가게 주문만' + '준비 중'으로 골라 송장을 넣는다.
+  const storeOnly = kindRaw === 'store'
+  /** 지금 보고 있는 거르기(상태·검색·가게)를 유지한 주소 — 칩·페이지가 같은 묶음을 잇는다. */
+  const hrefWith = (over: { status?: string; kind?: string | null }) => {
+    const p = new URLSearchParams()
+    const st = over.status ?? status
+    if (st !== 'all') p.set('status', st)
+    if (q) p.set('q', q)
+    const k = over.kind === undefined ? (storeOnly ? 'store' : null) : over.kind
+    if (k) p.set('kind', k)
+    const s = p.toString()
+    return `/admin/orders${s ? `?${s}` : ''}`
+  }
 
   const supabase = await createClient()
 
@@ -134,6 +151,9 @@ export default async function AdminOrdersPage({
         : query.in('payment_status', PAID_STATUSES).eq('order_status', status)
   }
 
+  // 가게(단품) 주문만 — 주문번호 머리글자(정본 STORE_ORDER_PREFIX)로 가른다.
+  if (storeOnly) query = query.like('order_number', `${STORE_ORDER_PREFIX}%`)
+
   // 검색 — 주문번호 / 수령자명 / 전화번호 3중. 운영팀이 고객 문의 받을 때
   // 가장 흔한 키 세 가지. PostgREST `or()` 는 (%, _, (, ), \, ,) escape 안
   // 해주니 직접 처리.
@@ -166,6 +186,7 @@ export default async function AdminOrdersPage({
   const exportParams = new URLSearchParams()
   if (status !== 'all') exportParams.set('status', status)
   if (q.trim()) exportParams.set('q', q.trim())
+  if (storeOnly) exportParams.set('kind', 'store')
   const exportHref = `/api/admin/orders/export${
     exportParams.toString() ? `?${exportParams.toString()}` : ''
   }`
@@ -180,6 +201,10 @@ export default async function AdminOrdersPage({
             정기배송 자동결제도 결제될 때마다 여기에 주문 한 건으로 쌓여요.{' '}
             <Em>주문번호를 누르면</Em> 상세에서 배송 상태 변경·환불을 처리할 수
             있어요.
+          </p>
+          <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+            웹 가게(단품) 주문은 주문번호가 <Em>FTS-</Em> 로 시작하고, 냉동 재고에서 <Hl>화·목요일</Hl>에 출고해요. 포장
+            목록(피킹)에는 나오지 않으니 <Em>가게 주문만</Em> + <Em>준비 중</Em>으로 골라 송장을 넣어 주세요.
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
@@ -197,10 +222,6 @@ export default async function AdminOrdersPage({
         <div className="flex flex-wrap gap-1.5">
           {FILTERS.map((f) => {
             const active = status === f.key
-            const href =
-              f.key === 'all'
-                ? `/admin/orders${q ? `?q=${encodeURIComponent(q)}` : ''}`
-                : `/admin/orders?status=${f.key}${q ? `&q=${encodeURIComponent(q)}` : ''}`
             return (
               <Button
                 key={f.key}
@@ -209,16 +230,21 @@ export default async function AdminOrdersPage({
                 className="h-8 rounded-full px-3.5"
                 asChild
               >
-                <Link href={href}>{f.label}</Link>
+                <Link href={hrefWith({ status: f.key })}>{f.label}</Link>
               </Button>
             )
           })}
+          {/* 가게(단품) 주문만 — 상태 칩과 따로 켜고 끈다. */}
+          <Button variant={storeOnly ? 'default' : 'outline'} size="sm" className="h-8 rounded-full px-3.5" asChild>
+            <Link href={hrefWith({ kind: storeOnly ? null : 'store' })}>{storeOnly ? '가게 주문만 ✓' : '가게 주문만'}</Link>
+          </Button>
         </div>
 
         <form action="/admin/orders" method="get" className="flex items-center gap-2">
           {status !== 'all' && (
             <input type="hidden" name="status" value={status} />
           )}
+          {storeOnly && <input type="hidden" name="kind" value="store" />}
           <Input
             type="search"
             name="q"
@@ -258,8 +284,13 @@ export default async function AdminOrdersPage({
                   <Card className="gap-0 py-3.5 transition active:bg-secondary">
                     <CardContent className="px-4">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-[11px] text-muted-foreground">
-                          {o.order_number}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          {isStoreOrderNumber(o.order_number) && (
+                            <Badge className="shrink-0 border-transparent bg-amber-100 text-amber-900">가게</Badge>
+                          )}
+                          <span className="truncate font-mono text-[11px] text-muted-foreground">
+                            {o.order_number}
+                          </span>
                         </span>
                         <Badge className={`shrink-0 ${badge.cls}`}>{badge.label}</Badge>
                       </div>
@@ -302,7 +333,12 @@ export default async function AdminOrdersPage({
                     return (
                       <TableRow key={o.id}>
                         <TableCell className="font-mono text-[11.5px]">
-                          {o.order_number}
+                          <span className="inline-flex items-center gap-1.5">
+                            {isStoreOrderNumber(o.order_number) && (
+                              <Badge className="border-transparent bg-amber-100 font-sans text-amber-900">가게</Badge>
+                            )}
+                            {o.order_number}
+                          </span>
                         </TableCell>
                         <TableCell className="font-medium">{o.recipient_name}</TableCell>
                         <TableCell className="text-[12px] text-muted-foreground">
@@ -343,6 +379,7 @@ export default async function AdminOrdersPage({
           params={{
             status: status !== 'all' ? status : undefined,
             q: q || undefined,
+            kind: storeOnly ? 'store' : undefined,
           }}
           total={total}
         />

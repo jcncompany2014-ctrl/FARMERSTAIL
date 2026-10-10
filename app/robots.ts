@@ -74,6 +74,13 @@ export default function robots(): MetadataRoute.Robots {
           '/offline',
           '/forgot-password',
           '/reset-password',
+          // 2026-10-10 웹 리뉴얼 — 가게의 장바구니·주문서·주문 결과와 가입 화면은 색인할 이유가 없다.
+          //   상품(/store·/store/[레시피])은 색인한다(sitemap 에 올렸다).
+          '/store/cart',
+          '/store/checkout',
+          '/store/order',
+          '/store/order/*',
+          '/signup',
         ],
       },
     ],

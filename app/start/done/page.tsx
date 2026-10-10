@@ -1,45 +1,24 @@
-// 트랙B — 웹 가입 완료 착지 화면(사장님 결정 2026-06-16, A안 = 웹은 리드 캡처).
+// 웹 가입 완료 착지 화면 — 웹 설문(행사 링크 ?p=코드)으로 가입한 손님이 오는 곳.
 //
-// 배경: /dogs/* 는 app-only(proxy.ts) 라 웹 가입자가 분석 종착점으로 가면
-// /app-required 로 튕긴다. 그 "앱 설치 벽" 대신, 가입 직후 웹에서 매끄러운
-// 핸드오프를 보여준다.
-//   • 앱(PWA/Capacitor) 사용자: /start/claim·login 이 곧장 /dogs/{id}/analysis 로 보냄.
+//   • 앱(PWA/Capacitor) 사용자: /start/claim·login 이 곧장 /dogs/{id}/analysis 로 보내 여기 오지 않는다.
 //   • 웹 사용자: 여기로 온다.
 //
-// ★2026-08-03 — **확인 화면으로 다시 씀** (사장님: "가입과 결제창으로 넘어가는
-//   그 사이가 너무 비어있는 기분이야. 대충 읽다가 가입했는데 갑자기 금액 결제
-//   창으로 넘어가버리니 그사이에 뭔가 설명이 있어야 할 거 같은데").
-//
-//   맞는 지적이었다. 이 화면은 "가입이 완료됐어요 → [정기배송 신청하기]" 가
-//   전부였다. 설문을 대충 읽고 가입한 사람은 **자기가 뭘 사는지 모르는 채로
-//   금액이 적힌 결제 화면**을 만난다. 그 사이를 채운다:
-//     ① 우리 아이 박스 구성 — 실제 레시피·급여량·주기. query param 이 아니라
-//        loadOrderPageData 로 **다음 화면과 같은 원천**에서 읽는다(화면마다
-//        구성·금액이 달라 보이던 사고가 이 프로젝트에 여러 번 있었다).
-//     ② ★결제 시점 — "지금 등록해도 돈은 안 나간다". 코드로 확인한 사실이다:
-//        billing-issue 는 billing_key 저장 + next_delivery_date=다음 발송 화요일만
-//        하고, 실제 청구는 subscription-charge 크론이 결제일 아침에 한다. 사장님이 말한
-//        "갑자기 금액 결제 창" 불안을 정확히 없애는 문장이라 크게 앞세웠다.
-//        ★2026-10-01 — 결제일은 고객마다 다르다: 일반 = 발송 3일 전 토요일(조리 직전),
-//        서포터즈 체험 구간 = 발송일(chargeDateFor). 결제 시점을 조회하지 못하면(비로그인·
-//        조회 실패) 결제 요일을 단정하지 않고 "발송 전"으로만 말한다 — 서포터즈에게
-//        토요일 결제를 보이면 안 된다(사장님).
-//     ③ 다음 3단계 · ④ 안심 3줄 → CTA
-//
-//   데이터가 없거나(직접 진입·옛 링크) 처방이 아직이면 ① 없이 나머지만 그린다 —
-//   틀린 구성·틀린 금액을 보여주는 것보다 설명이 조금 적은 편이 낫다.
+// ★2026-10-10 웹 리뉴얼(기획서 D1·D2, 사장님 "기획서대로"): 웹 설문·웹 정기배송 신청은 앱으로 옮겼다.
+//   예전 화면은 "배송지 → 카드 등록 → 첫 배송"(웹 신청) 단계를 설명하고 [배송지 입력하고 시작하기]로 웹 신청 화면에
+//   보냈다 — 그 신청은 이제 앱에서만 한다. 그래서 이 화면은 "가입 끝 → 앱에서 이어서"로 다시 썼다(새 웹 가게 틀).
+//   ① 앱이 추천한 구성 요약 — 다음에 볼 앱 화면과 **같은 원천**(loadOrderPageData)에서 읽는다(화면마다 구성·금액이
+//      달라 보이던 사고가 여러 번 있었다). 실패하면 통째로 뺀다 — 틀린 구성·금액보다 설명이 적은 편이 낫다.
+//   ② 행사 혜택 — 가입할 때 계정에 박힌(claim_promotion) 혜택이 아직 안 쓰였으면 보여 준다. 행사표(promotions)는
+//      손님이 직접 못 읽게 잠겨 있어(2026-09-26 이벤트 코드 비공개) 서버가 관리자 권한으로 **이 사람의 기록만** 읽는다(규칙8).
+//   ③ 앱 받기(공식 배지) — 같은 계정으로 로그인하면 우리 아이·추천 구성이 그대로 있고, 행사 혜택은 첫 정기배송 결제에 적용된다.
 
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Check, MapPin, CreditCard, Truck } from 'lucide-react'
-import WebChrome from '@/components/WebChrome'
-import { Section, Container, Display, Eyebrow } from '@/components/web/fd/ui'
+import DoneWebView, { type DoneBox, type DonePromo } from './DoneWebView'
 import { loadOrderPageData } from '@/lib/subscription/orderPageData'
 import { quoteBox } from '@/lib/subscription/boxQuote'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { recipeName } from '@/lib/personalization/format'
-import { chargeDateFor, nextShipDate, weekdayKo, type ChargeTiming } from '@/lib/shipping-schedule'
-import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { petName } from '@/lib/korean'
 
 export const metadata: Metadata = {
@@ -47,45 +26,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-/** '2026-08-04' → '8월 4일(화)'. 발송은 늘 화요일이라 요일은 고정이다. */
-function shipLabel(iso: string): string {
-  const parts = iso.split('-')
-  return `${Number(parts[1])}월 ${Number(parts[2])}일(화)`
-}
-
-/** '2026-08-01' → '8월 1일(토)'. 결제일은 요일이 고객마다 달라 계산한다. */
-function dateKo(iso: string): string {
-  return `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일(${weekdayKo(iso)})`
-}
-
 /**
- * 결제 시점 — 로그인한 사용자일 때만(lib/payments/charge-timing). 첫 결제일과 첫 발송 마감(서포터즈 일요일·일반
- * 금요일)이 이걸 따른다. 비로그인·조회 실패면 null —
- * 그때 화면은 결제 요일을 단정하지 않는다(서포터즈에게 토요일 결제를 보이면 안 된다, 2026-10-01).
+ * 앱 정기배송 화면과 **같은 원천**으로 추천 구성 요약을 만든다.
+ * 실패하면 null — 요약을 통째로 뺀다.
  */
-async function loadChargeTiming(): Promise<ChargeTiming | null> {
-  try {
-    const supabase = await createClient()
-    const user = await getSafeUser(supabase)
-    if (!user) return null
-    return await getChargeTiming(user.id)
-  } catch {
-    return null
-  }
-}
-
-type BoxSummary = {
-  recipes: string
-  dailyGrams: number | null
-  total: number | null
-}
-
-/**
- * 다음 화면(/account/subscribe/[dogId])과 **같은 원천**으로 박스 요약을 만든다.
- * 실패하면 null — 요약을 통째로 뺀다. 설명이 아쉬운 것보다 틀린 구성·금액을
- * 보여주는 쪽이 훨씬 나쁘다.
- */
-async function loadBoxSummary(dogId: string): Promise<BoxSummary | null> {
+async function loadBoxSummary(dogId: string): Promise<DoneBox | null> {
   if (!dogId) return null
   try {
     const data = await loadOrderPageData(dogId, {})
@@ -93,8 +38,7 @@ async function loadBoxSummary(dogId: string): Promise<BoxSummary | null> {
 
     const supabase = await createClient()
     const quote = await quoteBox(supabase, {
-      // 아직 구독 행이 없다. quoteBox 는 이 값을 품목행을 만들 때만 쓰고
-      // 여기선 total 만 읽는다 — 저장하지 않는다.
+      // 아직 구독 행이 없다. quoteBox 는 이 값을 품목행을 만들 때만 쓰고 여기선 total 만 읽는다 — 저장하지 않는다.
       subscriptionId: 'preview',
       formula: {
         lineRatios: data.formula.lineRatios,
@@ -114,15 +58,35 @@ async function loadBoxSummary(dogId: string): Promise<BoxSummary | null> {
   }
 }
 
-const STEPS = [
-  { Icon: MapPin, t: '배송지 확인', d: '받으실 주소와 연락처를 확인해요.' },
-  {
-    Icon: CreditCard,
-    t: '결제수단 등록',
-    d: '결제할 카드를 등록해요. 등록만 하고 결제는 아직이에요.',
-  },
-  { Icon: Truck, t: '첫 배송', d: '' }, // 실제 날짜는 아래에서 채운다
-] as const
+/**
+ * 가입할 때 계정에 박힌 행사 혜택 — 아직 안 썼을 때만. 조회 실패·없음·이미 씀이면 null(화면에서 뺀다).
+ * 행사표는 손님이 못 읽으니 관리자 권한으로 읽되, 범위는 코드가 로그인한 본인(user.id)으로 묶는다(규칙8).
+ */
+async function loadPendingPromo(): Promise<DonePromo | null> {
+  try {
+    const supabase = await createClient()
+    const user = await getSafeUser(supabase)
+    if (!user) return null
+    const admin = createAdminClient()
+    const { data: claim, error: claimErr } = await admin
+      .from('promotion_claims')
+      .select('promotion_id, redeemed_order_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (claimErr || !claim || claim.redeemed_order_id) return null
+    const { data: promo, error: promoErr } = await admin
+      .from('promotions')
+      .select('name, discount_rate')
+      .eq('id', claim.promotion_id)
+      .maybeSingle()
+    if (promoErr || !promo) return null
+    const ratePct = Math.round(Number(promo.discount_rate) * 100)
+    if (!(ratePct > 0)) return null
+    return { name: String(promo.name), ratePct }
+  } catch {
+    return null
+  }
+}
 
 export default async function StartDonePage({
   searchParams,
@@ -132,232 +96,10 @@ export default async function StartDonePage({
   const sp = await searchParams
   const rawName = (sp.name || '').trim()
   const dogId = (sp.dog || '').trim()
-  const box = await loadBoxSummary(dogId)
+  const [box, promo] = await Promise.all([loadBoxSummary(dogId), loadPendingPromo()])
 
   // 이름 조사는 정본 헬퍼로(받침 있으면 '이'). 없으면 '우리 아이'.
   const who = rawName ? petName(rawName) : '우리 아이'
-  // 첫 발송일 마감도 결제 시점별(2026-10-02) — 서포터즈 체험 구간 일요일·일반 금요일 밤. 모르면 일반.
-  const chargeTiming = await loadChargeTiming()
-  const shipIso = nextShipDate(undefined, chargeTiming ?? 'before_cooking')
-  const ship = shipLabel(shipIso)
-  const chargeIso = chargeTiming ? chargeDateFor(shipIso, chargeTiming) : null
 
-  return (
-    <WebChrome>
-      <main>
-        <Section bg="offwhite" pad="lg">
-          <Container size="sm">
-            <div className="text-center">
-              <span
-                className="inline-flex items-center justify-center rounded-full"
-                style={{ width: 56, height: 56, background: 'var(--fd-green)' }}
-              >
-                <Check className="w-7 h-7" strokeWidth={2.6} color="#FFFFFF" />
-              </span>
-              <div className="pt-5">
-                <Eyebrow>Welcome · 가입 완료</Eyebrow>
-              </div>
-              <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                {who}의 첫 박스가
-                <br />
-                준비됐어요
-              </Display>
-            </div>
-
-            {/* ① 무엇을 사는지 */}
-            {box && (
-              <div
-                className="mt-8 text-left"
-                style={{
-                  background: '#FFFFFF',
-                  border: '1px solid var(--fd-line)',
-                  borderRadius: 12,
-                  padding: '20px 22px',
-                }}
-              >
-                <p
-                  className="text-[13px]"
-                  style={{
-                    fontWeight: 800,
-                    letterSpacing: '0.1em',
-                    color: 'var(--fd-muted)',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  우리 아이 맞춤 구성
-                </p>
-                <p className="pt-2 text-[19px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>
-                  {box.recipes}
-                </p>
-                <p className="pt-1.5 text-[15px]" style={{ color: 'var(--fd-muted)' }}>
-                  {box.dailyGrams ? `하루 ${box.dailyGrams.toLocaleString()}g · ` : ''}
-                  2주에 한 번 배송
-                </p>
-                {box.total != null && (
-                  <div
-                    className="mt-4 pt-4 flex items-baseline justify-between"
-                    style={{ borderTop: '1px solid var(--fd-line)' }}
-                  >
-                    <span
-                      className="text-[15px]"
-                      style={{ color: 'var(--fd-muted)', fontWeight: 700 }}
-                    >
-                      2주 박스 예상 금액
-                    </span>
-                    <span
-                      className="text-[20px]"
-                      style={{
-                        fontWeight: 800,
-                        color: 'var(--fd-pine)',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {box.total.toLocaleString()}원
-                    </span>
-                  </div>
-                )}
-                <p className="pt-2 text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                  다음 화면에서 화식 비율과 배송지를 확인하면 금액이 확정돼요.
-                </p>
-              </div>
-            )}
-
-            {/* ② ★결제 시점 */}
-            <div
-              className="mt-4 text-left"
-              style={{ background: 'var(--fd-pine)', borderRadius: 12, padding: '20px 22px' }}
-            >
-              <p className="text-[17px]" style={{ fontWeight: 800, color: 'var(--fd-gold)' }}>
-                지금 바로 결제되지 않아요
-              </p>
-              <p
-                className="pt-2 text-[15px]"
-                style={{ color: 'rgba(255,255,255,0.92)', lineHeight: 1.65 }}
-              >
-                다음 화면에서 결제수단을 등록하시는데, <b>그때 돈이 빠져나가지 않아요.</b>{' '}
-                {chargeIso === shipIso ? (
-                  <>
-                    실제 결제는 첫 발송일인 <b>{ship}</b> 아침에 이뤄져요.
-                  </>
-                ) : chargeIso ? (
-                  <>
-                    실제 결제는 조리를 시작하기 전인 <b>{dateKo(chargeIso)}</b> 아침에 이뤄지고,
-                    첫 박스는 <b>{ship}</b>에 보내드려요.
-                  </>
-                ) : (
-                  <>
-                    실제 결제는 첫 박스를 보내기 전에 이뤄지고, 첫 박스는 <b>{ship}</b>에 보내드려요.
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* ③ 다음 순서 */}
-            <div className="mt-8">
-              <p
-                className="text-[13px] text-center"
-                style={{
-                  fontWeight: 800,
-                  letterSpacing: '0.1em',
-                  color: 'var(--fd-muted)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                다음 순서로 진행돼요
-              </p>
-              <ol className="pt-4 grid gap-3">
-                {STEPS.map((s, i) => {
-                  const Icon = s.Icon
-                  const desc = i === 2 ? `${ship}에 문 앞으로 보내드려요.` : s.d
-                  return (
-                    <li
-                      key={s.t}
-                      className="flex items-start gap-3 text-left"
-                      style={{
-                        background: '#FFFFFF',
-                        border: '1px solid var(--fd-line)',
-                        borderRadius: 10,
-                        padding: '14px 16px',
-                      }}
-                    >
-                      <span
-                        className="inline-flex shrink-0 items-center justify-center rounded-full"
-                        style={{ width: 34, height: 34, background: 'var(--fd-cream)' }}
-                      >
-                        <Icon size={17} strokeWidth={2.2} color="var(--fd-green)" />
-                      </span>
-                      <span className="flex-1">
-                        <span
-                          className="block text-[16px]"
-                          style={{ fontWeight: 800, color: 'var(--fd-pine)' }}
-                        >
-                          {s.t}
-                        </span>
-                        <span
-                          className="block pt-0.5 text-[14px]"
-                          style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}
-                        >
-                          {desc}
-                        </span>
-                      </span>
-                    </li>
-                  )
-                })}
-              </ol>
-            </div>
-
-            {/* ④ 안심 — 전부 코드로 확인한 사실만 */}
-            <ul className="mt-6 grid gap-2">
-              {[
-                '다음 결제 전까지 해지할 수 있어요.',
-                '받은 박스에 문제가 있으면 환불해 드려요.',
-                '배송비는 구독료에 포함이에요.',
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2 text-left">
-                  <Check
-                    size={15}
-                    strokeWidth={2.8}
-                    color="var(--fd-green)"
-                    className="shrink-0"
-                    style={{ marginTop: 2 }}
-                    aria-hidden
-                  />
-                  <span
-                    className="text-[15px]"
-                    style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}
-                  >
-                    {t}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pt-8 text-center">
-              <Link
-                href={dogId ? `/account/subscribe/${dogId}` : '/account/dogs'}
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full text-[16px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
-                style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
-              >
-                배송지 입력하고 시작하기
-              </Link>
-              <p className="pt-3 text-[14px]" style={{ color: 'var(--fd-muted)' }}>
-                38개 영양소 정밀 분석·일일 케어는 앱에서 이어져요.
-              </p>
-              <p className="pt-5 text-[14px]" style={{ color: 'var(--fd-muted)' }}>
-                이미 앱이 있다면{' '}
-                <Link
-                  href="/login"
-                  className="font-bold underline underline-offset-2"
-                  style={{ color: 'var(--fd-coral-text)' }}
-                >
-                  앱에서 로그인
-                </Link>
-                해 주세요.
-              </p>
-            </div>
-          </Container>
-        </Section>
-      </main>
-    </WebChrome>
-  )
+  return <DoneWebView who={who} box={box} promo={promo} />
 }

@@ -9,6 +9,7 @@ import TrackingView from '@/app/mypage/orders/[id]/track/TrackingView'
 import AccountWebView from '@/app/account/AccountWebView'
 import ProfileWebView from '@/app/account/profile/ProfileWebView'
 import DeleteWebView from '@/app/mypage/delete/DeleteWebView'
+import DoneWebView from '@/app/start/done/DoneWebView'
 import SubscriptionsWebClient from '@/app/account/subscriptions/SubscriptionsWebClient'
 import type { Subscription } from '@/app/account/subscriptions/types'
 import { carrierMeta } from '@/lib/tracking'
@@ -110,6 +111,9 @@ export default async function DesignCheckStorePage({ searchParams }: { searchPar
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { s } = await searchParams
   if (s === 'receipt') return <ReceiptWebView m={RECEIPT_WEB} orderId="design-check" print={false} />
+  // 웹 가입 완료(행사 링크 손님) — 혜택·추천 구성은 로그인한 사람만 보이는 칸이라 예시 값으로 확인한다.
+  if (s === 'start-done')
+    return <DoneWebView who="땅콩이" box={{ recipes: '치킨 · 흑돼지', dailyGrams: 240, total: 61800 }} promo={{ name: '부산 펫박람회', ratePct: 30 }} />
   if (s === 'account')
     return <AccountWebView name="보호자" email="guardian@example.com" stamps={23} tierRaw="sprout" totalOrders={24} pendingOrders={1} activeSubs={2} dogCount={2} />
   if (s === 'subs')

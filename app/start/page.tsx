@@ -10,6 +10,7 @@ import Reveal from '@/components/landing/Reveal'
 import { Section, Container, Display, Eyebrow, PhotoSlot } from '@/components/web/fd/ui'
 import StartClient from './StartClient'
 import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
+import { normalizePromoCode } from '@/lib/promotions'
 
 /**
  * /start — FD식 무료 맞춤분석 퍼널 진입 (트랙B B1b).
@@ -28,9 +29,9 @@ export const metadata: Metadata = {
   description:
     '가입 없이 2분이면, 우리 아이에게 맞는 수의영양 기반 식단을 받아볼 수 있어요. 강아지 정보와 생활 습관만 알려주세요.',
   alternates: { canonical: '/start' },
-  // 카카오 우선 퍼널 완성 → 색인 허용(사장님 2026-06-16). 이제 모든 진입 CTA 가
-  // 이 페이지로 모이는 실제 퍼널 시작점.
-  robots: { index: true, follow: true },
+  // 2026-10-10 웹 리뉴얼 — 웹 /start 는 행사 링크(?p=) 전용이고 그 밖은 /app 으로 넘긴다. 색인할 진입점이 아니다
+  //   (예전: 카카오 우선 퍼널 완성 → 색인 허용, 2026-06-16). sitemap 에서도 뺐다.
+  robots: { index: false, follow: true },
   // 계획 D1(2026-07-25) — OG 를 안 주면 root layout 의 사이트 기본값이 그대로
   // 쓰인다. Next 는 page 의 title/description 을 openGraph 로 자동 복사하지
   // 않기 때문. 인스타·카톡으로 이 링크를 뿌리는데 미리보기에 "파머스테일"
@@ -54,11 +55,17 @@ const FLOW: [string, string, string][] = [
   ['03', '맞춤 결과', '수의영양 기준으로 분석한 결과를 확인하고, 저장하려면 가입해요.'],
 ]
 
-export default async function StartPage() {
+export default async function StartPage({ searchParams }: { searchParams: Promise<{ p?: string | string[] }> }) {
   // ★앱 컨텍스트면 WebChrome(웹 마케팅 헤더/푸터) 대신 미니멀 앱 셸 —
   //   앱에서 "무료 맞춤분석" 눌렀을 때 웹 화면이 뜨던 것 차단(사장님 B안,
   //   2026-07-19). 웹은 기존 WebChrome 그대로.
   const isApp = await isAppContextServer()
+  // ★2026-10-10 웹 리뉴얼(기획서 D1, 사장님 "기획서대로"): 웹 설문은 앱으로 옮겼다 — 웹 손님은 앱 소개(/app)로.
+  //   단 행사 링크(?p=코드 — 배너·전단에 이미 인쇄된 QR)는 지금 흐름(설문 → 가입할 때 혜택이 계정에 박힘 → 앱 첫 정기배송에
+  //   적용)을 그대로 둔다. 그 손님의 끝 화면(/start/done)이 앱으로 이어 준다. 행사 화면을 새로 만들면(/p/코드) 여기도 정리.
+  const sp = await searchParams
+  const promo = normalizePromoCode(Array.isArray(sp.p) ? sp.p[0] : sp.p)
+  if (!isApp && !promo) redirect('/app')
   // ★ 익명 전용 퍼널 가드 (사장님 제보 2026-08-24, 규칙62): 이 퍼널의 끝은
   //   가입 폼이라 로그인 사용자는 끝까지 가도 "이미 가입된 이메일" 에서 막힌다.
   //   CTA 는 planHref 가 이미 분기하지만 직접 진입(북마크·QR)은 CTA 를 안

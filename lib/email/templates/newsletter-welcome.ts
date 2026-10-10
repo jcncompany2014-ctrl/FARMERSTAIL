@@ -48,11 +48,11 @@ export function renderNewsletterWelcome(input: {
        <strong>· 보호자 Q&amp;A</strong> — 자주 받는 질문에 수의영양 관점에서 답변`,
     )}
     <p style="margin:14px 0 0 0;">
-      아직 안 해보셨다면, 2분 설문으로 우리 아이에게 맞는 화식부터 확인해 보세요.
-      구독하면 정기배송 할인이 기본으로 들어가요.
+      아직 안 해보셨다면, 파머스테일 앱의 2분 설문으로 우리 아이에게 맞는 화식부터 확인해 보세요.
+      앱 정기배송은 할인이 기본으로 들어가요.
     </p>
     <div style="margin:18px 0 6px 0;background:#EFEADF;border:1px solid #DCD6C4;border-radius:8px;padding:18px 20px;text-align:center;">
-      <div style="font-size:10px;color:#5A6C61;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;">2-min Survey · 무료 분석</div>
+      <div style="font-size:11px;color:#5A6C61;font-weight:700;">앱 · 2분 설문</div>
       <div style="margin-top:6px;font-size:20px;font-weight:800;color:#173B33;letter-spacing:-0.02em;">우리 아이 맞춤 화식</div>
       <div style="margin-top:8px;font-size:11px;color:#5A6C61;">체형·건강에 맞춰 하루 급여량까지 계산해 드려요</div>
     </div>
@@ -68,14 +68,15 @@ export function renderNewsletterWelcome(input: {
   `
 
   const html = renderLayout({
-    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
+    preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     kicker: 'Welcome · 첫 메일',
     heading: '환영해요. 첫 메일이에요.',
     icon: '🐾',
     body,
+    // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.
     cta: {
-      label: '맞춤 플랜 시작하기',
-      href: `${SITE_URL}/start`,
+      label: '앱에서 시작하기',
+      href: `${SITE_URL}/app`,
     },
   })
 

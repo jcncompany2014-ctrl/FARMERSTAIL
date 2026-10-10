@@ -11,7 +11,7 @@ import { widgetClientKey, widgetCustomerKey } from '@/lib/store/toss-widget'
  * 받는 분은 기본 배송지(앱과 같은 addresses) → 없으면 프로필로 미리 채운다.
  */
 export const metadata: Metadata = {
-  title: '주문·결제 | 파머스테일',
+  title: '주문·결제',
   robots: { index: false, follow: false },
 }
 export const dynamic = 'force-dynamic'

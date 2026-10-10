@@ -7,7 +7,7 @@ import { business } from '@/lib/business'
  * 결제창 failUrl — 토스가 code·message 를 붙여 보낸다. 결제는 되지 않았다(돈이 나가지 않음).
  * 만든 주문(결제 대기)은 30분 뒤 order-expire 가 정리한다.
  */
-export const metadata: Metadata = { title: '결제가 되지 않았어요 | 파머스테일', robots: { index: false, follow: false } }
+export const metadata: Metadata = { title: '결제가 되지 않았어요', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
 
 export default async function OrderFailPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

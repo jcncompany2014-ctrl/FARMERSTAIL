@@ -121,9 +121,10 @@ export function renderNewsletterVol01(input: {
     kicker: 'Tail Letter · Vol. 01',
     heading: '우리 아이 BCS 점수, 알고 계세요?',
     body,
+    // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.
     cta: {
-      label: '우리 아이 분석 시작하기',
-      href: `${SITE_URL}/start`,
+      label: '앱에서 우리 아이 분석하기',
+      href: `${SITE_URL}/app`,
     },
   })
 
