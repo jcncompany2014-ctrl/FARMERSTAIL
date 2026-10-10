@@ -6077,3 +6077,30 @@ test('규칙164: 배합비(products.ingredients)는 공개 조회에서 빠져 �
     'app/admin/products/[id]/page.tsx', // 상품 수정 폼 — 배합비 편집
   ], `products 를 '*'·ingredients 로 읽는 곳이 바뀌었다 — 배합비가 새 화면으로 흐르는지 확인하고 목록을 갱신한다`)
 })
+
+test('규칙165: /app 앱 소개 화면엔 본 사이트로 나가는 길이 없고, 인스타 링크 모음 첫 버튼은 /app 이다', () => {
+  /**
+   * 사장님(2026-10-09): 토스 일반결제 심사 전이라 자사몰은 팔 수 없지만 막으면 심사가 안 된다.
+   * → 본 사이트는 주소를 직접 치면 열리게 두고, 인스타로 오는 손님(링크 모음 /link 첫 버튼)만
+   *   /app 으로 보낸다. /app 에서 본 사이트로 나가는 길이 하나라도 생기면 손님이 결제 안 되는
+   *   상점·옛 설문으로 흘러 들어간다 — 메뉴 하나, 로고 링크 하나로 조용히 뚫린다.
+   * 밖으로 나가는 건 앱스토어·구글플레이·스마트스토어·카카오 채널(전부 외부)만 허용한다.
+   */
+  const page = read(join(ROOT, 'app/app/page.tsx'))
+  const code = stripComments(page)
+  assert.ok(!/from ['"]next\/link['"]/.test(code), '/app 이 next/link 를 쓴다 — 본 사이트로 가는 길이 생긴다')
+  assert.ok(!/\b(WebChrome|SiteFooter|FdFooter|AuthAwareShell|FunnelCta)\b/.test(code), '/app 에 사이트 머리줄·바닥·퍼널 버튼이 붙었다 — 메뉴로 본 사이트에 들어간다')
+  const literal = [...code.matchAll(/href=\{?\s*(["'`])([^"'`]*)\1/g)].map((m) => m[2] ?? '')
+  assert.deepEqual(literal.filter((h) => !/^https:\/\//.test(h)), [], '/app 에 본 사이트로 가는 글자 링크가 있다')
+  const ALLOWED = new Set(['APP_STORE_LINKS.ios', 'APP_STORE_LINKS.android', 'SMARTSTORE_URL', 'business.kakaoChannelUrl'])
+  const exprs = [...code.matchAll(/href=\{([^}"'`]+)\}/g)].map((m) => (m[1] ?? '').trim())
+  assert.ok(exprs.length >= 4, `/app 의 링크를 ${exprs.length}개밖에 못 찾았다 — 검사가 망가졌다`)
+  assert.deepEqual(exprs.filter((e) => !ALLOWED.has(e)), [], '/app 링크가 허용된 외부 주소(앱스토어·구글플레이·스마트스토어·카카오)가 아니다')
+  assert.match(code, /if \(await isAppContextServer\(\)\) redirect\('\/dashboard'\)/, '/app 이 앱 안에서 열리면 웹 화면이 앱에 뜬다 — 앱 홈으로 보내야 한다')
+
+  const links = stripComments(read(join(ROOT, 'lib/links.ts')))
+  const first = /export const BIO_LINKS[^=]*=\s*\[\s*\{([\s\S]*?)\n {2}\}/.exec(links)?.[1] ?? ''
+  assert.ok(first, 'BIO_LINKS 첫 버튼을 못 찾았다')
+  assert.match(first, /href:\s*`\/app\?/, '링크 모음 첫 버튼이 /app 이 아니다 — 인스타 손님이 본 사이트로 들어간다')
+  assert.match(first, /primary:\s*true/, '링크 모음 강조 버튼이 /app 이 아니다')
+})

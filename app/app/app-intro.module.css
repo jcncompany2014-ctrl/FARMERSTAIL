@@ -1,0 +1,330 @@
+/*
+ * /app — 앱 소개 전용 화면(웹). 'A 포스터' 웹 결: 흰 바탕·먹색 글자·제목 Black Han Sans·큰 숫자 Anton·모서리 4px.
+ * 색은 앱 새 디자인과 같은 줄기 — 먹색 #141414 · 닭고기 파우치 머스타드 #D4A24C · 옅은 주황 #FCEFD9.
+ */
+.page {
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #141414;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+.col {
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* 머리줄 — 로고만(누르는 곳 없음) */
+.header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* 첫 화면 */
+.hero {
+  padding: 36px 20px 40px;
+}
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #595959;
+}
+.kickerDot {
+  width: 8px;
+  height: 8px;
+  background: #d4a24c;
+}
+.heroTitle {
+  margin: 12px 0 0;
+  /* 좁은 폰(320~360px)에서도 한 줄이 넘치지 않게 폭에 맞춰 줄인다 */
+  font-size: clamp(34px, 11.6vw, 46px);
+  line-height: 1.08;
+  font-weight: 400;
+}
+.heroTitle em {
+  font-style: normal;
+  border-bottom: 10px solid #d4a24c;
+}
+.heroBody {
+  margin: 20px 0 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: #3d3d3d;
+}
+.heroBody strong {
+  color: #141414;
+  font-weight: 800;
+}
+
+/* 스토어 배지 — 공식 배지 그대로, 보이는 높이 40px(구글 PNG 위아래 투명 여백 상쇄) */
+.badges {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.badge {
+  height: 60px;
+  border-radius: 4px;
+  background: #0b0b0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease;
+}
+.badge:active {
+  transform: scale(0.98);
+}
+.badgeApple {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+.badgeGoogle {
+  height: 52px;
+  margin: -6px 0;
+  width: auto;
+  display: block;
+}
+
+/* 먹색 칸 — 정기배송 15% */
+.dark {
+  padding: 44px 20px 0;
+  background: #141414;
+  color: #ffffff;
+  overflow: hidden;
+}
+.darkKicker {
+  font-size: 17px;
+  font-weight: 700;
+  color: #d4a24c;
+}
+.bigNum {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(96px, 33vw, 128px);
+  line-height: 0.95;
+}
+.darkTitle {
+  display: block;
+  margin-top: 10px;
+  font-size: clamp(22px, 6.7vw, 26px);
+  line-height: 1.2;
+  font-weight: 400;
+}
+.checks {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+.checks li {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  column-gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 18px;
+}
+.phoneStage {
+  position: relative;
+  margin: 40px auto 0;
+  width: 350px;
+  max-width: 100%;
+  height: 360px;
+}
+.phoneBig {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 230px;
+  height: 360px;
+  box-sizing: border-box;
+  border-radius: 34px 34px 0 0;
+  background: #000000;
+  padding: 8px 8px 0;
+  overflow: hidden;
+}
+.phoneBig img {
+  width: 214px;
+  height: auto;
+  border-radius: 26px 26px 0 0;
+  display: block;
+}
+.chip {
+  position: absolute;
+  left: 4px;
+  top: 210px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #141414;
+  box-shadow: 4px 4px 0 #000000;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chipLabel {
+  font-size: 13px;
+  color: #595959;
+}
+.chipValue {
+  font-size: 22px;
+}
+
+/* 앱에서 할 수 있는 것 */
+.section {
+  padding: 56px 20px 0;
+}
+.h2 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 400;
+}
+.phones {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.phoneSmall {
+  width: 100%;
+  aspect-ratio: 169 / 330;
+  box-sizing: border-box;
+  border-radius: 28px;
+  background: #000000;
+  padding: 7px;
+  overflow: hidden;
+}
+.phoneSmall img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 22px;
+  display: block;
+}
+.figTitle {
+  font-size: 18px;
+  font-weight: 800;
+}
+.figSub {
+  margin-top: 3px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #595959;
+}
+.note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #767676;
+}
+
+/* 도장판 */
+.stampCard {
+  margin: 48px 20px 0;
+  padding: 20px;
+  border-radius: 4px;
+  border: 2px solid #141414;
+  box-shadow: 4px 4px 0 #141414;
+  background: #fcefd9;
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  column-gap: 14px;
+  align-items: center;
+}
+.stampTitle {
+  font-size: 23px;
+  font-weight: 400;
+}
+.stampBody {
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.stampImg {
+  transform: rotate(-8deg);
+  display: block;
+}
+
+/* 마지막 — 앱 받기 · 스마트스토어 · 카카오 */
+.final {
+  padding: 56px 20px 56px;
+}
+.finalBody {
+  margin: 12px 0 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: #3d3d3d;
+}
+.storeCard {
+  margin-top: 12px;
+  min-height: 68px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background: #f6f4f5;
+  display: grid;
+  grid-template-columns: 1fr 18px;
+  align-items: center;
+  color: #141414;
+  text-decoration: none;
+}
+.storeCardTitle {
+  display: block;
+  font-size: 17px;
+  font-weight: 800;
+}
+.storeCardSub {
+  display: block;
+  margin-top: 2px;
+  font-size: 16px;
+  color: #595959;
+}
+.kakao {
+  margin-top: 8px;
+  height: 56px;
+  border-radius: 4px;
+  background: #fee500;
+  color: #191600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* 바닥 — 사업자 정보(글자만, 누르는 곳 없음) */
+.footer {
+  padding: 36px 20px 48px;
+  background: #141414;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.75;
+}
+.footer p {
+  margin: 0;
+}
+.footerName {
+  margin-bottom: 10px !important;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}

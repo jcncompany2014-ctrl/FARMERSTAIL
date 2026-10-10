@@ -28,11 +28,17 @@ const UTM = 'utm_source=instagram&utm_medium=bio'
 export const SMARTSTORE_URL =
   'https://smartstore.naver.com/farmerstail?NaPm=ct%3D1k3pc0air%7Cci%3Dshopn%7Ctr%3Dmktlnk%7Chk%3Da8be6386e76ece0ea39773e5ef80b98b699a375f%7Ctrx%3Dundefined'
 
+/**
+ * ★첫 버튼 = 앱 소개 전용 화면(/app) — 2026-10-09 사장님 지시.
+ * 토스 일반결제 심사 전이라 자사몰은 팔 수 없지만 심사 때문에 막을 수도 없다. 그래서 인스타로
+ * 오는 손님은 본 사이트(/start 설문 등)를 거치지 않고 /app 으로만 가게 한다(/app 엔 본 사이트로
+ * 나가는 길이 없다). 심사가 끝나 상점을 열면 이 버튼을 상점으로 되돌린다. 규칙165.
+ */
 export const BIO_LINKS: BioLink[] = [
   {
-    label: '2분 설문으로 맞춤 식단 받기',
-    sub: '우리 아이 몸에 맞춘 신선 화식',
-    href: `/start?${UTM}&utm_campaign=linkinbio`,
+    label: '앱에서 맞춤 식단 받기',
+    sub: '하루 양 계산부터 정기배송까지',
+    href: `/app?${UTM}&utm_campaign=linkinbio`,
     primary: true,
   },
   {
