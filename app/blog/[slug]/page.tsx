@@ -3,22 +3,24 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
-import { BookOpen, Eye, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import WebChrome from '@/components/WebChrome'
+import StoreShell from '@/components/store/StoreShell'
 import ShareButton from '@/components/ShareButton'
 import { renderMarkdown } from '@/lib/markdown'
-import { BLUR_BG2 } from '@/lib/ui/blur'
 import JsonLd from '@/components/JsonLd'
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
-import { Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
-import StickyCta from '@/components/web/fd/StickyCta'
 
 /**
- * /blog/[slug] — 매거진 상세.
+ * /blog/[slug] — 매거진 글.
  *
- * 톤: /blog 인덱스와 같은 editorial 언어. kicker + serif 헤드라인 + paper-tone
- * 카드. 관련 글 리스트는 blog 인덱스 More 카드와 동일한 horizontal 레이아웃.
+ * # 2026-10-10 웹 리뉴얼 — 웹 시안 WEB-C09
+ * 가게 틀(StoreShell) 안에서 위에서부터: ← 매거진 → 카테고리 · 큰 제목 · 요약 → 날짜·읽는 시간 줄(오른쪽 공유)
+ *   → 표지 사진 → 본문 → 같은 주제의 글(2칸).
+ * 본문은 DB 글(lib/markdown 렌더 결과) 그대로다 — 우리가 고치지 않는다. 모양만 아래 POST_CSS(.ftb-post)로
+ * 시안의 글 칸(17px·줄 1.8·포스터 글꼴 소제목·먹선 목록·회색 인용)에 맞췄다. 예전 .ft-md(명조 제목·주황 링크)는
+ * 전역 css 라 웹 리뉴얼 밖 화면(어드민 미리보기)도 쓰므로 그대로 두고, 이 화면만 클래스를 바꿨다.
+ * 조회수 숫자는 시안에 없어 뺐다(조회수 올리기 RPC 는 그대로). 예전 하단 설문 버튼(StickyCta → /start)은 없앴다
+ * — 웹 설문은 앱으로 옮겼다. 예전 FD 톤 판은 git 이력.
  */
 
 /**
@@ -128,6 +130,49 @@ function formatDate(iso: string | null) {
   })
 }
 
+/**
+ * 본문 글 칸(시안 C09 의 article) — lib/markdown 이 만드는 태그(h1~h6·p·ul/li·blockquote·hr·img·a·strong·em·code·pre)만 다룬다.
+ * 가게 틀(.fts main h1·h2)이 소제목을 포스터 글꼴로 이미 바꾸므로 여기선 크기·간격만 준다.
+ * 목록 바로 뒤 구분선(ul + hr)은 숨긴다 — 목록 줄마다 아래 선이 있어 hr 까지 그리면 빈 줄 하나처럼 보였다(간격은 다음 칸이 갖는다).
+ * 공유 단추(.ftb-share) — 공용 ShareButton 의 동작(카카오 → 기기 공유 → 주소 복사)을 그대로 쓰고, 아이콘만 시안 원본 path
+ * (M12 3v13 · M7 8l5-5 5 5 · M5 13v6…)로 씌운다. 공용 부품은 고치지 않는다.
+ */
+const SHARE_ICON =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v13'/%3E%3Cpath d='M7 8l5-5 5 5'/%3E%3Cpath d='M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6'/%3E%3C/svg%3E\")"
+
+const POST_CSS = `
+.ftb-post { font-size: 17px; line-height: 1.8; color: #141414; overflow-wrap: break-word; }
+.ftb-post > * { margin: 0; }
+.ftb-post > * + * { margin-top: 16px; }
+.ftb-post > h1, .ftb-post > h2 { margin-top: 40px; }
+.ftb-post > h3 { margin-top: 32px; }
+.ftb-post > h4, .ftb-post > h5, .ftb-post > h6 { margin-top: 28px; }
+.ftb-post > :first-child { margin-top: 0; }
+.ftb-post > h1 + *, .ftb-post > h2 + *, .ftb-post > h3 + *, .ftb-post > h4 + * { margin-top: 12px; }
+.ftb-post h1 { font-size: 28px; line-height: 1.2; }
+.ftb-post h2 { font-size: 24px; line-height: 1.25; }
+.ftb-post h3 { font-family: var(--font-poster), var(--font-sans), sans-serif; font-weight: 400; letter-spacing: -0.01em; font-size: 20px; line-height: 1.3; }
+.ftb-post h4, .ftb-post h5, .ftb-post h6 { font-size: 17px; font-weight: 800; line-height: 1.5; }
+.ftb-post strong { font-weight: 800; }
+.ftb-post em { font-style: normal; }
+.ftb-post a { color: #141414; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.ftb-post ul { padding: 0; list-style: none; border-top: 2px solid #141414; }
+.ftb-post li { position: relative; padding: 14px 0 14px 22px; border-bottom: 1px solid #E5E5E5; line-height: 1.6; }
+.ftb-post li::before { content: ''; position: absolute; left: 2px; top: calc(14px + 0.8em - 4px); width: 8px; height: 8px; background: #141414; }
+.ftb-post > blockquote { margin-top: 40px; padding: 18px; border-left: 4px solid #141414; background: #F6F4F5; font-size: 16px; line-height: 1.7; }
+.ftb-post > blockquote + blockquote { margin-top: 8px; }
+.ftb-post > hr { border: 0; border-top: 1px solid #E5E5E5; }
+.ftb-post > hr, .ftb-post > hr + * { margin-top: 36px; }
+.ftb-post > ul + hr { display: none; }
+.ftb-post img { display: block; width: 100%; height: auto; border-radius: 4px; }
+.ftb-post > img { margin-top: 20px; }
+.ftb-post code { padding: 0.1em 0.4em; border-radius: 4px; background: #F6F4F5; font-size: 0.9em; }
+.ftb-post pre { padding: 16px; border-radius: 4px; background: #F6F4F5; overflow-x: auto; font-size: 15px; line-height: 1.6; }
+.ftb-post pre code { padding: 0; background: none; }
+.ftb-share svg { display: none; }
+.ftb-share::before { content: ''; width: 22px; height: 22px; background: currentColor; -webkit-mask: ${SHARE_ICON} center / contain no-repeat; mask: ${SHARE_ICON} center / contain no-repeat; }
+`
+
 export default async function BlogPostPage({ params }: { params: Params }) {
   const { slug } = await params
   const post = await getPost(slug)
@@ -207,148 +252,120 @@ export default async function BlogPostPage({ params }: { params: Params }) {
     1,
     Math.round((post.content || '').replace(/<[^>]+>/g, '').length / 500),
   )
+  const metaLine = [formatDate(post.published_at), `${readingMin}분 읽기`].filter(Boolean).join(' · ')
 
   return (
-    <WebChrome>
-      <main>
-        <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
-        <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
+    <StoreShell>
+      <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
+      <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
+      <style>{POST_CSS}</style>
 
-        {/* Header */}
-        <Section bg="offwhite" pad="sm">
-          <Container size="md">
+      <div style={{ lineHeight: 'normal' }}>
+        {/* ── ← 매거진 · 카테고리 · 큰 제목 · 요약 · 날짜/읽는 시간 + 공유 · 표지 ── */}
+        <section style={{ padding: '8px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <Link
+            href="/blog"
+            style={{ alignSelf: 'flex-start', height: 48, marginLeft: -4, display: 'flex', alignItems: 'center', gap: 4, fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'none' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+            매거진
+          </Link>
+          {cat && (
             <Link
-              href="/blog"
-              className="inline-flex items-center gap-1 no-underline text-[13px]"
-              style={{ color: 'var(--fd-muted)', fontWeight: 700 }}
+              href={`/blog?category=${cat.slug}`}
+              style={{ marginTop: 12, alignSelf: 'flex-start', fontSize: 15, fontWeight: 800, color: '#595959', textDecoration: 'none' }}
             >
-              ← 매거진
+              {cat.name}
             </Link>
-            <div className="pt-5">
-              {cat && (
-                <Link href={`/blog?category=${cat.slug}`} className="no-underline">
-                  <Eyebrow>{cat.name}</Eyebrow>
-                </Link>
-              )}
-              <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                {post.title}
-              </Display>
-              {post.excerpt && (
-                <p className="pt-4 text-[14px] md:text-[17px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                  {post.excerpt}
-                </p>
-              )}
-              <div className="pt-5 flex items-center gap-3 text-[12px] flex-wrap" style={{ color: 'var(--fd-muted)' }}>
-                <span>{formatDate(post.published_at)}</span>
-                <span style={{ opacity: 0.5 }}>·</span>
-                <span>{readingMin}분 읽기</span>
-                <span style={{ opacity: 0.5 }}>·</span>
-                <span className="inline-flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5" strokeWidth={2} />
-                  {(post.views ?? 0).toLocaleString()}
-                </span>
-                <span className="ml-auto">
-                  <ShareButton
-                    url={`/blog/${post.slug}`}
-                    title={post.title}
-                    description={post.excerpt ?? undefined}
-                    imageUrl={post.cover_url ?? undefined}
-                  />
-                </span>
-              </div>
-            </div>
-          </Container>
-        </Section>
-
-        {/* Cover */}
-        <Container size="md" className="pb-2">
-          {post.cover_url ? (
-            <div className="relative w-full aspect-[16/9] overflow-hidden" style={{ background: 'var(--fd-cream)', borderRadius: 8 }}>
+          )}
+          <h1 className="d" style={{ margin: cat ? '8px 0 0' : '12px 0 0', fontSize: 32, lineHeight: 1.2 }}>
+            {post.title}
+          </h1>
+          {post.excerpt && <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>{post.excerpt}</p>}
+          <div
+            style={{
+              marginTop: 16,
+              padding: '4px 0',
+              borderTop: '1px solid #E5E5E5',
+              borderBottom: '1px solid #E5E5E5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 15, color: '#595959' }}>{metaLine}</span>
+            <ShareButton
+              url={`/blog/${post.slug}`}
+              title={post.title}
+              description={post.excerpt ?? undefined}
+              imageUrl={post.cover_url ?? undefined}
+              label="이 글 공유하기"
+              iconOnly
+              className="ftb-share"
+              style={{
+                width: 48,
+                height: 48,
+                marginRight: -12,
+                flexShrink: 0,
+                border: 0,
+                background: 'transparent',
+                color: '#141414',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            />
+          </div>
+          {post.cover_url && (
+            <span style={{ marginTop: 20, position: 'relative', display: 'block', width: '100%', aspectRatio: '350 / 197', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
               <Image
                 src={post.cover_url}
                 alt={post.title}
                 fill
-                priority
-                sizes="(max-width: 768px) 100vw, 760px"
-                className="object-cover"
+                loading="eager"
+                fetchPriority="high"
+                sizes="(max-width: 480px) calc(100vw - 40px), 440px"
+                style={{ objectFit: 'cover' }}
               />
-            </div>
-          ) : (
-            <div className="w-full aspect-[16/9] flex items-center justify-center" style={{ background: 'var(--fd-cream)', borderRadius: 8 }}>
-              <BookOpen className="w-12 h-12 md:w-16 md:h-16" strokeWidth={1.2} color="var(--fd-green)" style={{ opacity: 0.4 }} />
-            </div>
+            </span>
           )}
-        </Container>
+        </section>
 
-        {/* Body */}
-        <Section bg="offwhite" pad="md">
-          <Container size="md">
-            <div
-              className="ft-md text-[15px] md:text-[17px]"
-              style={{ color: 'var(--fd-pine)', lineHeight: 1.85 }}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
-            />
-          </Container>
-        </Section>
+        {/* ── 본문 — DB 글 그대로(lib/markdown), 모양은 POST_CSS ── */}
+        <article
+          className="ftb-post"
+          style={{ padding: '28px 20px 0' }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+        />
 
-        {/* Related */}
-        {relatedPosts.length > 0 && (
-          <Section bg="cream" pad="md">
-            <Container size="lg">
-              <Eyebrow>RELATED</Eyebrow>
-              <h2 className="sr-only">관련 글</h2>
-              <div className="pt-5 grid grid-cols-2 md:grid-cols-3 gap-4">
-                {relatedPosts.map((r) => (
-                  <Link
-                    key={r.id}
-                    href={`/blog/${r.slug}`}
-                    className="group block no-underline"
-                    style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, overflow: 'hidden' }}
-                  >
-                    <div className="relative w-full aspect-[4/3] overflow-hidden" style={{ background: 'var(--fd-cream)' }}>
-                      {r.cover_url ? (
-                        <Image
-                          src={r.cover_url}
-                          alt={r.title}
-                          fill
-                          sizes="(max-width: 768px) 50vw, 260px"
-                          loading="lazy"
-                          placeholder="blur"
-                          blurDataURL={BLUR_BG2}
-                          className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen className="w-7 h-7" strokeWidth={1.4} color="var(--fd-green)" style={{ opacity: 0.4 }} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-[14px] line-clamp-2" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
-                        {r.title}
-                      </h3>
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-[11px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>
-                          {formatDate(r.published_at)}
-                        </p>
-                        <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={2.5} color="var(--fd-coral)" />
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </Container>
-          </Section>
+        {/* ── 같은 주제의 글 — 같은 카테고리 최신 글(최대 3편), 2칸 ── */}
+        {relatedPosts.length > 0 ? (
+          <section style={{ padding: '52px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+            <h2 className="d" style={{ margin: 0, fontSize: 24, lineHeight: 1.2 }}>
+              같은 주제의 글
+            </h2>
+            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+              {relatedPosts.map((r) => (
+                <Link key={r.id} href={`/blog/${r.slug}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, color: '#141414', textDecoration: 'none' }}>
+                  <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '4 / 3', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                    {r.cover_url && (
+                      <Image src={r.cover_url} alt="" fill loading="lazy" sizes="(max-width: 480px) calc(50vw - 25px), 215px" style={{ objectFit: 'cover' }} />
+                    )}
+                  </span>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.4, textWrap: 'wrap' }}>{r.title}</h3>
+                  <span style={{ fontSize: 14, color: '#595959' }}>{formatDate(r.published_at)}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <div aria-hidden style={{ height: 64 }} />
         )}
-      </main>
-      {/*
-        FD 패턴: 기사 스크롤 끝에서 모바일 하단 sticky CTA(설문 퍼널). /blog
-        인덱스(회차98)와 동일 노출. 단 이 페이지는 ISR(revalidate 300) 최적화를
-        보존해야 하므로 isAuthed 분기를 위한 getUser 를 호출하지 않고 정적
-        /start 로 보낸다(설문 자동가입 퍼널 — not-found.tsx 회차125 선례와
-        동일). 캐시 보존 > authed/anon href 미세 구분.
-      */}
-      <StickyCta href="/start" />
-    </WebChrome>
+      </div>
+    </StoreShell>
   )
 }

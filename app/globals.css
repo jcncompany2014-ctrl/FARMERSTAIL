@@ -1916,6 +1916,141 @@ html.ft-splash-skip .ft-splash {
 .ft-splash--wag .ft-splash__wag {
   opacity: 1;
 }
+/* 꼬리 그림 장면 — 영상이 막힐 때의 꼬리(사장님 10/10 "왜또 꼬리가 안움직여"). 아이폰 저전력 모드는 영상 재생(play())을
+   거절한다(WebKit 버그 216887 — Capacitor 앱도 같다). 그림·CSS 애니메이션은 안 막힌다. 영상과 같은 51장면·1.7초:
+   · 꼬리 칸(.ft-splash__tail) — 정지 도장 위, 꼬리가 실제로 움직이는 네모만(396 기준 118·89·197·173). 칸 가장자리는
+     정지 도장과 같은 첫 장면이라 이음새가 없다. 묶음 그림 3열×17행(칸 사이 여백 = 가장자리를 늘인 것 — 압축·확대가
+     이웃 장면 잉크를 끌어오지 않게)을 장면마다 한 칸씩 옮긴다.
+   · 도장 '쿵'(.ft-splash__bob) — 영상 앞 장면들에서 도장 전체가 최대 5% 커졌다 돌아온다. 장면마다 고리를 맞춰 잰 배율·이동.
+   숫자는 scratchpad vid/gen_tail_css.cjs 가 계산 결과에서 뽑았다(손으로 고치지 말 것 — 그림과 함께 다시 뽑는다). */
+.ft-splash__bob {
+  position: absolute;
+  inset: 0;
+}
+.ft-splash__tail {
+  position: absolute;
+  left: 29.798%;
+  top: 22.4747%;
+  width: 49.7475%;
+  height: 43.6869%;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: 316.7513% 1886.7052%;
+}
+.ft-splash--tail .ft-splash__tail {
+  opacity: 1;
+  animation: ft-tail-frames 1.7s steps(1, end) infinite;
+}
+.ft-splash--tail .ft-splash__bob {
+  animation: ft-tail-bob 1.7s linear infinite;
+}
+@keyframes ft-tail-frames {
+  0% { background-position: 1.171% 0.2912%; }
+  1.9608% { background-position: 49.8829% 0.2912%; }
+  3.9216% { background-position: 98.5948% 0.2912%; }
+  5.8824% { background-position: 1.171% 6.5027%; }
+  7.8431% { background-position: 49.8829% 6.5027%; }
+  9.8039% { background-position: 98.5948% 6.5027%; }
+  11.7647% { background-position: 1.171% 12.7143%; }
+  13.7255% { background-position: 49.8829% 12.7143%; }
+  15.6863% { background-position: 98.5948% 12.7143%; }
+  17.6471% { background-position: 1.171% 18.9259%; }
+  19.6078% { background-position: 49.8829% 18.9259%; }
+  21.5686% { background-position: 98.5948% 18.9259%; }
+  23.5294% { background-position: 1.171% 25.1375%; }
+  25.4902% { background-position: 49.8829% 25.1375%; }
+  27.451% { background-position: 98.5948% 25.1375%; }
+  29.4118% { background-position: 1.171% 31.3491%; }
+  31.3725% { background-position: 49.8829% 31.3491%; }
+  33.3333% { background-position: 98.5948% 31.3491%; }
+  35.2941% { background-position: 1.171% 37.5607%; }
+  37.2549% { background-position: 49.8829% 37.5607%; }
+  39.2157% { background-position: 98.5948% 37.5607%; }
+  41.1765% { background-position: 1.171% 43.7722%; }
+  43.1373% { background-position: 49.8829% 43.7722%; }
+  45.098% { background-position: 98.5948% 43.7722%; }
+  47.0588% { background-position: 1.171% 49.9838%; }
+  49.0196% { background-position: 49.8829% 49.9838%; }
+  50.9804% { background-position: 98.5948% 49.9838%; }
+  52.9412% { background-position: 1.171% 56.1954%; }
+  54.902% { background-position: 49.8829% 56.1954%; }
+  56.8627% { background-position: 98.5948% 56.1954%; }
+  58.8235% { background-position: 1.171% 62.407%; }
+  60.7843% { background-position: 49.8829% 62.407%; }
+  62.7451% { background-position: 98.5948% 62.407%; }
+  64.7059% { background-position: 1.171% 68.6186%; }
+  66.6667% { background-position: 49.8829% 68.6186%; }
+  68.6275% { background-position: 98.5948% 68.6186%; }
+  70.5882% { background-position: 1.171% 74.8302%; }
+  72.549% { background-position: 49.8829% 74.8302%; }
+  74.5098% { background-position: 98.5948% 74.8302%; }
+  76.4706% { background-position: 1.171% 81.0417%; }
+  78.4314% { background-position: 49.8829% 81.0417%; }
+  80.3922% { background-position: 98.5948% 81.0417%; }
+  82.3529% { background-position: 1.171% 87.2533%; }
+  84.3137% { background-position: 49.8829% 87.2533%; }
+  86.2745% { background-position: 98.5948% 87.2533%; }
+  88.2353% { background-position: 1.171% 93.4649%; }
+  90.1961% { background-position: 49.8829% 93.4649%; }
+  92.1569% { background-position: 98.5948% 93.4649%; }
+  94.1176% { background-position: 1.171% 99.6765%; }
+  96.0784% { background-position: 49.8829% 99.6765%; }
+  98.0392% { background-position: 98.5948% 99.6765%; }
+}
+@keyframes ft-tail-bob {
+  0% { transform: none; }
+  1.9608% { transform: translate(0.0329%, -0.0658%) scale(1.015); }
+  3.9216% { transform: translate(0.0329%, -0.0987%) scale(1.0335); }
+  5.8824% { transform: translate(0.0329%, -0.0658%) scale(1.0535); }
+  7.8431% { transform: translate(0.0658%, -0.0658%) scale(1.051); }
+  9.8039% { transform: translate(0.0987%, -0.0658%) scale(1.0485); }
+  11.7647% { transform: translate(0.0987%, -0.0329%) scale(1.0365); }
+  13.7255% { transform: translate(0.1316%, 0.0329%) scale(1.0225); }
+  15.6863% { transform: translate(0.1316%, 0.1645%) scale(1); }
+  17.6471% { transform: translate(0.1316%, 0.1974%) scale(0.9975); }
+  19.6078% { transform: translate(0.1645%, 0.1974%) scale(0.995); }
+  21.5686% { transform: translate(0.1645%, 0.1974%) scale(0.9935); }
+  23.5294% { transform: translate(0.1645%, 0.1974%) scale(0.996); }
+  25.4902% { transform: translate(0.1645%, 0.1974%) scale(1.005); }
+  27.451% { transform: translate(0.1645%, 0.1974%) scale(1.0075); }
+  29.4118% { transform: translate(0.1645%, 0.1645%) scale(1.01); }
+  31.3725% { transform: translate(0.1316%, 0.1645%) scale(1.0125); }
+  33.3333% { transform: translate(0.1316%, 0.1645%) scale(1.0125); }
+  35.2941% { transform: translate(0.1316%, 0.1974%) scale(1.0075); }
+  37.2549% { transform: translate(0.1316%, 0.1974%) scale(1.0065); }
+  39.2157% { transform: translate(0.1316%, 0.1974%) scale(1.006); }
+  41.1765% { transform: translate(0.1316%, 0.1974%) scale(1.004); }
+  43.1373% { transform: translate(0.1645%, 0.1974%) scale(1.0035); }
+  45.098% { transform: translate(0.1316%, 0.2303%) scale(1.0035); }
+  47.0588% { transform: translate(0.1645%, 0.2303%) scale(1.0035); }
+  49.0196% { transform: translate(0.1645%, 0.2303%) scale(1.0035); }
+  50.9804% { transform: translate(0.1316%, 0.2303%) scale(1.004); }
+  52.9412% { transform: translate(0.1645%, 0.1974%) scale(1.004); }
+  54.902% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  56.8627% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  58.8235% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  60.7843% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  62.7451% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  64.7059% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  66.6667% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  68.6275% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  70.5882% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  72.549% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  74.5098% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  76.4706% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  78.4314% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  80.3922% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  82.3529% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  84.3137% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  86.2745% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  88.2353% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  90.1961% { transform: translate(0.1316%, 0.2303%) scale(1.005); }
+  92.1569% { transform: translate(0.1645%, 0.2303%) scale(1.005); }
+  94.1176% { transform: translate(0.1645%, 0.2303%) scale(1.005); }
+  96.0784% { transform: translate(0.1645%, 0.2303%) scale(1.005); }
+  98.0392% { transform: translate(0.1645%, 0.2303%) scale(1.005); }
+  100% { transform: none; }
+}
 /* 옛 아이폰 앱(FtShell/2 이전) — 폰 화면(런치 화면)이 크림 바탕이라 로딩 바탕도 크림으로 잇는다. 그림은 꼬리 흔드는
    도장(사장님 10/10 "로딩도 도장 꼬리 흔드는 걸로") — 종이색 위에 구운 v1 을 쓴다. 크림과 종이색 차이(2·5·10)는
    도장 바깥 고리에만 비치고 가장자리는 위 마스크가 녹인다. 예전엔 런치 화면의 글자 로고를 그대로 이어 보였다. */

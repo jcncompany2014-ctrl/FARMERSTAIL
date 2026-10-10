@@ -38,9 +38,15 @@ import { PencilIcon, TrashIcon } from '@/components/v3/me/MeIcons'
 export default function AddressesClient({
   initial,
   isApp = true,
+  look,
 }: {
   initial: Address[]
   isApp?: boolean
+  /**
+   * 'web' = 웹 내 프로필(웹 시안 WEB-A20, 2026-10-10 웹 리뉴얼) — 앱과 같은 새 모양(AppList)이되 기본 배송지는 먹색 2px 테(웹은
+   * 흰 바탕·먹색만 — 머스타드 띠 없음), '수정'은 앱 안내로(배송지 추가·수정 폼은 앱 전용). 저장·삭제·기본 설정 로직은 같다.
+   */
+  look?: 'web'
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -91,9 +97,10 @@ export default function AddressesClient({
     }
   }
 
-  if (isApp) {
+  if (isApp || look === 'web') {
     return (
       <AppList
+        web={!isApp && look === 'web'}
         list={list}
         busyId={busyId}
         pending={pending}
@@ -331,6 +338,7 @@ export default function AddressesClient({
 
 /** 앱 모양 배송지 목록(시안 M01) — 상태·동작은 위 AddressesClient 가 들고 넘긴다. */
 function AppList({
+  web = false,
   list,
   busyId,
   pending,
@@ -340,6 +348,8 @@ function AppList({
   onCancelDelete,
   onConfirmDelete,
 }: {
+  /** 웹 내 프로필 — 기본 배송지 먹색 2px 테, '수정'은 앱 안내(/app-required). */
+  web?: boolean
   list: Address[]
   busyId: string | null
   pending: boolean
@@ -373,7 +383,9 @@ function AppList({
           <article
             key={a.id}
             style={
-              a.isDefault
+              a.isDefault && web
+                ? { border: `2px solid ${V3.ink}`, borderRadius: V3Radius.sm, display: 'flex', flexDirection: 'column' }
+                : a.isDefault
                 ? {
                     borderRadius: V3Radius.sm,
                     display: 'flex',
@@ -420,7 +432,10 @@ function AppList({
                   기본으로
                 </button>
               )}
-              <Link href={`/mypage/addresses/${a.id}/edit`} style={{ ...action, borderRight: divider, color: V3.ink }}>
+              <Link
+                href={web ? '/app-required?from=%2Fmypage%2Faddresses' : `/mypage/addresses/${a.id}/edit`}
+                style={{ ...action, borderRight: divider, color: V3.ink }}
+              >
                 <PencilIcon size={17} />
                 수정
               </Link>

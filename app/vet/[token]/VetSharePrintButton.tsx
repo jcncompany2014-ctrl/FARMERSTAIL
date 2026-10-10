@@ -10,19 +10,17 @@ import { Printer } from 'lucide-react'
  * (인쇄 시 버튼·링크 숨김 등).
  */
 export default function VetSharePrintButton() {
+  // 모양 = 웹 시안 WEB-A32(2026-10-10 웹 리뉴얼) — 높이 48 · 먹색 1.5px 테.
   return (
     <button
       type="button"
       onClick={() => window.print()}
-      className="no-print inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border bg-white text-[11px] font-bold transition active:scale-[0.99]"
-      style={{
-        borderColor: 'var(--terracotta)',
-        color: 'var(--terracotta)',
-      }}
-      aria-label="PDF 로 저장 또는 인쇄"
+      className="no-print"
+      style={{ height: 48, padding: '0 14px', borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontFamily: 'inherit', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+      aria-label="PDF로 저장하거나 인쇄"
     >
-      <Printer className="w-3.5 h-3.5" strokeWidth={2.2} />
-      PDF / 인쇄
+      <Printer className="w-4 h-4" strokeWidth={2.2} />
+      PDF · 인쇄
     </button>
   )
 }

@@ -1,0 +1,106 @@
+/*
+ * 웹 가게('A 포스터' 웹, 2026-10-10 웹 리뉴얼) 공통 — .fts 범위 안에서만.
+ * 흰 바탕 · 먹색 글자 · 제목·레시피 이름 = Black Han Sans(.d) · 큰 숫자 = Anton(.n) · 모서리 4px.
+ * 색은 레시피 띠(lib/store/catalog RECIPE_BAND)에서만. 앱 세계 표시는 숲색 #1D3B2F.
+ * 웹 시안(canvas-web project/*.dc.html)이 px 정본이다 — 폭 390 모바일, PC 에선 가운데 480 칸.
+ */
+.fts {
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #141414;
+  font-family: var(--font-sans), 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+  -webkit-text-size-adjust: 100%;
+}
+.fts a {
+  color: inherit;
+}
+.fts-col {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.fts .d {
+  font-family: var(--font-poster), var(--font-sans), sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.fts .n {
+  font-family: var(--font-num), var(--font-sans), sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.fts .hand {
+  font-family: var(--font-hand), var(--font-sans), sans-serif;
+  font-weight: 700;
+}
+/* 앱 화면 부품을 웹에 다시 쓸 때(예: 사업자 정보 BusinessAppView) — 앱은 [data-ft-chrome="app"] h1·h2 가 포스터 글꼴이다.
+   웹 가게 안에서도 제목은 같은 글꼴로. 직접 만든 제목은 이미 .d 라 같다. */
+.fts main h1,
+.fts main h2 {
+  font-family: var(--font-poster), var(--font-sans), sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+/* 앱 부품의 글꼴 이름표(.ft-poster 제목 · .ft-num 큰 숫자)는 앱 범위([data-ft-chrome="app"])에서만 먹는다 — 웹 가게에 다시
+   쓴 앱 화면(주문 상세·운송장·탈퇴 폼 등)에서도 같은 글꼴로. */
+.fts .ft-poster {
+  font-family: var(--font-poster), var(--font-sans), sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.fts .ft-num {
+  font-family: var(--font-num), var(--font-sans), sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+/* 법정 문서 안 링크 — 먹색 굵게 밑줄(예전 웹 강조색 변수가 주황으로 남아 있다). */
+.fts-legal a {
+  color: #141414 !important;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.fts details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.fts details > summary::-webkit-details-marker {
+  display: none;
+}
+.fts details[open] .fts-acc-plus {
+  display: none;
+}
+.fts details:not([open]) .fts-acc-minus {
+  display: none;
+}
+.fts button {
+  font-family: inherit;
+  letter-spacing: inherit;
+}
+.fts :focus-visible {
+  outline: 2px solid #141414;
+  outline-offset: 2px;
+}
+/* 가로로 미는 줄(사진 넘기기 등) — 스크롤 막대 숨김. */
+.fts-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fts-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+/* PC — 가운데 칸 바깥은 아주 옅은 회색으로 칸을 드러낸다(모바일 시안을 그대로 키우지 않는다). */
+@media (min-width: 600px) {
+  .fts {
+    background: #f6f4f5;
+  }
+  .fts-page {
+    background: #ffffff;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    box-shadow: 0 0 0 1px #e5e5e5;
+  }
+}

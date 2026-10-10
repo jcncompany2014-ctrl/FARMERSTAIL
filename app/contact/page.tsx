@@ -1,11 +1,10 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Mail, MessageCircle, Phone, ArrowRight } from 'lucide-react'
-import WebChrome from '@/components/WebChrome'
+import SiteShell from '@/components/store/SiteShell'
 import { business } from '@/lib/business'
+import { isAppContextServer } from '@/lib/app-context'
 import ContactForm from './ContactForm'
-import { Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 
@@ -16,16 +15,16 @@ const CONTACT_OG = ogImageUrl({
   variant: 'editorial',
 })
 
+const DESCRIPTION = '제품·주문·정기배송·반품, 무엇이든 적어 보내 주세요. 영업일에는 24시간 안에 답변드려요.'
+
 export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차148).
   title: '문의하기',
-  description:
-    '제품·주문·정기배송·반품 등 어떤 문의든 보내주세요. 평일 영업일 24시간 이내 답변드립니다.',
+  description: DESCRIPTION,
   alternates: { canonical: '/contact' },
   openGraph: {
     title: '문의하기 | 파머스테일',
-    description:
-      '제품·주문·정기배송·반품 등 어떤 문의든 보내주세요. 평일 영업일 24시간 이내 답변드립니다.',
+    description: DESCRIPTION,
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -35,124 +34,195 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '문의하기 | 파머스테일',
-    description:
-      '제품·주문·정기배송·반품 등 어떤 문의든 보내주세요. 평일 영업일 24시간 이내 답변드립니다.',
+    description: DESCRIPTION,
     images: [CONTACT_OG],
   },
   robots: { index: true, follow: true },
 }
 
 /**
- * /contact — 1:1 문의 폼 + 채널 안내 (farm v6 = FD 톤 리스타일, 2026-06-13).
- * 폼 로직(ContactForm client·/api/contact·honeypot·rate-limit)·AuthAwareShell 보존,
- * 페이지 셸만 FD 톤. ContactForm 컴포넌트는 미수정.
+ * /contact — 문의하기(웹 시안 WEB-C18·C18b, 2026-10-10 웹 리뉴얼 'A 포스터' 웹).
+ * 연락 채널 세 줄(이메일·전화·카카오) + 메시지 양식(ContactForm — /api/contact·honeypot·한도 그대로) + 자주 묻는 질문 안내.
+ * 바깥 틀은 SiteShell — 웹이면 새 웹 가게 틀, 앱이면 AppChrome(앱은 카카오 채널 주소가 비었을 때만 여기로 온다 —
+ * /help·/account 의 폴백). 앱은 윗줄이 제목(문의하기)을 맡으므로 본문 머리말·큰 제목을 뺀다. 예전 FD 톤 판은 git 이력.
  */
-export default function ContactPage() {
+export default async function ContactPage() {
+  const isApp = await isAppContextServer()
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '문의하기', path: '/contact' },
   ])
   return (
-    <WebChrome>
+    <SiteShell>
       <main>
         <JsonLd id="ld-contact-crumbs" data={crumbLd} />
-        {/* Hero */}
-        <Section bg="offwhite" pad="sm">
-          <Container size="md">
-            <Eyebrow>CONTACT</Eyebrow>
-            <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              궁금한 점이 있다면
-            </Display>
-            <p className="pt-4 text-[14px] md:text-[16px]" style={{ color: 'var(--fd-muted)', maxWidth: 520, lineHeight: 1.65 }}>
-              제품·주문·정기배송·반품 — 무엇이든 적어 보내주세요. 평일 영업일
-              24시간 이내, 가능하면 더 빨리 답변드립니다.
-            </p>
-          </Container>
-        </Section>
+        <section style={{ padding: isApp ? '20px 20px 0' : '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          {!isApp && (
+            <>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>문의하기</span>
+              <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
+                궁금한 점이
+                <br />
+                있다면
+              </h1>
+            </>
+          )}
+          <p style={{ margin: isApp ? 0 : '14px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>
+            제품·주문·정기배송·반품, 무엇이든 적어 보내 주세요. 영업일에는 24시간 안에, 가능하면 더 빨리 답변드려요.
+          </p>
+        </section>
 
-        {/* 빠른 채널 + 폼 */}
-        <Section bg="cream" pad="md">
-          <Container size="md">
-            <ul className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-              <Channel Icon={Mail} label="이메일" value={business.email} href={`mailto:${business.email}`} />
-              <Channel Icon={Phone} label="전화" value={business.phone} href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} note="평일 10:00 – 18:00" />
-              {business.kakaoChannelUrl && (
-                <Channel Icon={MessageCircle} label="카카오 채널" value="1:1 채팅" href={business.kakaoChannelUrl} external />
-              )}
-            </ul>
-
-            <div className="mt-8">
-              <Eyebrow color="var(--fd-coral)">MESSAGE</Eyebrow>
-              <div
-                className="mt-4 px-5 py-6 md:px-8 md:py-8"
-                style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8 }}
-              >
-                <Suspense fallback={null}>
-                  <ContactForm />
-                </Suspense>
-              </div>
-            </div>
-
-            {/* FAQ 안내 */}
-            <Link
-              href="/faq"
-              className="mt-6 flex items-center justify-between gap-3 no-underline"
-              style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: '16px 18px' }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] md:text-[14px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>
-                  먼저 자주 묻는 질문도 확인해 보세요
-                </p>
-                <p className="mt-1 text-[12px]" style={{ color: 'var(--fd-muted)' }}>
-                  식단·배송·결제·정기배송 관련 답변이 모여 있어요.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1 shrink-0 text-[13px]" style={{ color: 'var(--fd-coral-text)', fontWeight: 800 }}>
-                FAQ <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
+        <section aria-label="연락 방법" style={{ padding: '28px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            <Channel href={`mailto:${business.email}`} label="이메일" icon={<MailIcon />}>
+              <span style={{ fontSize: 17, fontWeight: 800, wordBreak: 'break-all' }}>{business.email}</span>
+            </Channel>
+            <Channel href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} label="전화 · 평일 10:00–18:00" icon={<PhoneIcon />}>
+              <span className="n" style={{ fontSize: 19 }}>
+                {business.phone}
               </span>
-            </Link>
-          </Container>
-        </Section>
+            </Channel>
+            {business.kakaoChannelUrl && (
+              <Channel href={business.kakaoChannelUrl} label="카카오 채널" icon={<KakaoIcon />} kakao external>
+                <span style={{ fontSize: 17, fontWeight: 800 }}>1:1 채팅</span>
+              </Channel>
+            )}
+          </div>
+        </section>
+
+        <section aria-labelledby="contact-message" style={{ padding: '44px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <h2 id="contact-message" className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>
+            메시지 남기기
+          </h2>
+          <div style={{ marginTop: 18 }}>
+            <Suspense fallback={null}>
+              <ContactForm />
+            </Suspense>
+          </div>
+        </section>
+
+        <section style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+          <Link
+            href="/faq"
+            style={{
+              minHeight: 72,
+              padding: '12px 16px',
+              boxSizing: 'border-box',
+              borderRadius: 4,
+              background: '#F6F4F5',
+              display: 'grid',
+              gridTemplateColumns: '1fr 18px',
+              columnGap: 10,
+              alignItems: 'center',
+              color: '#141414',
+              textDecoration: 'none',
+            }}
+          >
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 17, fontWeight: 800 }}>먼저 자주 묻는 질문도 확인해 보세요</span>
+              <span style={{ fontSize: 15, color: '#595959' }}>식단·배송·결제·정기배송 답변이 모여 있어요</span>
+            </span>
+            <Chevron />
+          </Link>
+        </section>
       </main>
-    </WebChrome>
+    </SiteShell>
   )
 }
 
+/** 연락 채널 한 줄(시안 C18) — 40px 동그라미 아이콘 · 회색 라벨 위, 굵은 값 아래 · 오른쪽 꺾쇠(바깥 링크는 ↗). */
 function Channel({
-  Icon,
-  label,
-  value,
   href,
-  note,
+  label,
+  icon,
+  kakao,
   external,
+  children,
 }: {
-  Icon: typeof Mail
+  href: string
   label: string
-  value: string
-  href?: string
-  note?: string
+  icon: React.ReactNode
+  kakao?: boolean
   external?: boolean
+  children: React.ReactNode
 }) {
   return (
-    <li>
-      <a
-        href={href}
-        target={external ? '_blank' : undefined}
-        rel={external ? 'noopener noreferrer' : undefined}
-        className="block no-underline transition hover:opacity-90 h-full"
-        style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, padding: '16px 18px' }}
+    <a
+      href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      style={{
+        minHeight: 72,
+        borderBottom: '1px solid #E5E5E5',
+        display: 'grid',
+        gridTemplateColumns: '44px 1fr 18px',
+        columnGap: 10,
+        alignItems: 'center',
+        color: '#141414',
+        textDecoration: 'none',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          background: kakao ? '#FEE500' : '#F6F4F5',
+          color: kakao ? '#191919' : '#141414',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 shrink-0" strokeWidth={2} color="var(--fd-coral)" />
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)', textTransform: 'uppercase' }}>
-            {label}
-          </span>
-        </div>
-        <div className="mt-2 text-[15px] break-all" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}>
-          {value}
-        </div>
-        {note && <div className="mt-1 text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>{note}</div>}
-      </a>
-    </li>
+        {icon}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>{label}</span>
+        {children}
+      </span>
+      {external ? <OutArrow /> : <Chevron />}
+    </a>
+  )
+}
+
+function MailIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
+  )
+}
+
+function PhoneIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6.5 4h3l1.5 4-2 1.2a11 11 0 0 0 5.8 5.8L16 13l4 1.5v3a2 2 0 0 1-2 2A15 15 0 0 1 4.5 6 2 2 0 0 1 6.5 4z" />
+    </svg>
+  )
+}
+
+function KakaoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 4C7 4 3 7.1 3 11c0 2.4 1.5 4.5 3.9 5.8L6 20l3.6-2.3c.8.2 1.6.3 2.4.3 5 0 9-3.1 9-7s-4-7-9-7z" />
+    </svg>
+  )
+}
+
+function Chevron() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+function OutArrow() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 17L17 7M9 7h8v8" />
+    </svg>
   )
 }

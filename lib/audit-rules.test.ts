@@ -4891,7 +4891,9 @@ test('규칙128: 보관·알레르기 안내는 라벨·실제 원료대로 (사
   assert.ok(faq.includes('제조일로부터 냉동 180일'), 'FAQ 폴백에 라벨 유통기한이 없다')
   assert.ok(!/실수로 섞여 들어갈 일이 없습니다/.test(faq), "FAQ 폴백이 생선·계란까지 '자동 제외'를 약속한다")
   assert.ok(/연어유[\s\S]{0,400}카카오톡으로 편하게 문의/.test(faq), 'FAQ 폴백 알레르기 답에 공통 원료 안내·카카오톡 문의가 없다')
-  assert.ok((faq.match(/whitespace-pre-line/g) ?? []).length >= 2, 'FAQ 답변의 문단 나눔이 한 줄로 뭉친다')
+  // 웹 갈래는 2026-10-10 웹 리뉴얼로 StoreFaq(인라인 white-space: pre-line)를 쓴다 — 앱 갈래 + StoreFaq 둘 다 문단을 지킨다.
+  const storeFaq = read(join(ROOT, 'components', 'store', 'StoreFaq.tsx'))
+  assert.ok(faq.includes('whitespace-pre-line') && faq.includes('<StoreFaq') && storeFaq.includes("whiteSpace: 'pre-line'"), 'FAQ 답변의 문단 나눔이 한 줄로 뭉친다')
   const plans = read(join(ROOT, 'app', 'plans', 'page.tsx'))
   assert.ok(!/해당 원료가 포함된 레시피는 자동으로 제외/.test(plans), "/plans 가 생선·계란까지 '자동 제외'를 약속한다")
   const mig = read(join(ROOT, 'supabase', 'migrations', '20260926120000_content_faq_blog_facts.sql'))
@@ -5158,7 +5160,10 @@ test('규칙141: 관리자 한 번의 오터치가 되돌릴 수 없게 번지�
   assert.ok(stripComments(read(join(ROOT, 'app', 'api', 'cron', 'protein-rotation', 'route.ts'))).includes('snapBoxLines(lineRatios).length !== 1'), '두 가지 레시피 박스에도 "한 가지 단백질만" 푸시가 간다')
   // ⑧ 영수증 — 결제된 주문만, 환불 반영
   const rc = stripComments(read(join(ROOT, 'app', 'mypage', 'orders', '[id]', 'receipt', 'page.tsx')))
-  assert.ok(rc.includes("['paid', 'partially_refunded', 'refunded'].includes(o.payment_status)) notFound()") && rc.includes('실제 결제 금액'), '결제 실패 주문도 영수증이 나오고, 환불이 영수증에 없다')
+  // 2026-10-10 웹 리뉴얼: 그리기는 ReceiptWebView(웹)·ReceiptAppView(앱) — 둘 다 환불 줄을 그리고, page.tsx 가 환불액을 넘긴다.
+  const rcWeb = stripComments(read(join(ROOT, 'app', 'mypage', 'orders', '[id]', 'receipt', 'ReceiptWebView.tsx')))
+  const rcApp = stripComments(read(join(ROOT, 'app', 'mypage', 'orders', '[id]', 'receipt', 'ReceiptAppView.tsx')))
+  assert.ok(rc.includes("['paid', 'partially_refunded', 'refunded'].includes(o.payment_status)) notFound()") && /\n\s+refunded,\n/.test(rc) && rcWeb.includes('실제 결제 금액') && rcApp.includes('실제 결제 금액'), '결제 실패 주문도 영수증이 나오고, 환불이 영수증에 없다')
   // ⑨ 강아지 화면의 결제 예정 금액 = 청구와 같은 함수
   for (const f of ['app/(main)/dogs/[id]/subscription/page.tsx', 'app/(main)/dogs/[id]/page.tsx']) {
     assert.ok(stripComments(read(join(ROOT, ...f.split('/')))).includes('resolveAutoDiscount('), `${f}: 결제 예정 금액이 청구와 다른 계산(서포터즈만)이다`)
@@ -5664,7 +5669,12 @@ test('규칙155: 결제 후 취소 제한은 그 결제 전에 받은 필수 동
   assert.match(terms, /결제 전에 회사가 그 사실을 별도로 알리고 회원이 동의한 경우/, '약관 제9조 제한 사유에 동의 회차가 없다')
   assert.match(terms, /직전\s+금요일 밤/, '약관 제8조 마감이 금요일 밤이 아니다(lib/shipping-schedule LEAD_DAYS 4)')
   for (const [name, src] of [['환불정책', refund], ['약관', terms]] as const) {
-    assert.doesNotMatch(src, /가상계좌|간편결제|에스크로/, `${name}이 없는 결제 수단(가상계좌·간편결제)을 약속한다 — 카드 전용`)
+    // ★2026-10-10 웹 가게(단품, 규칙172): 단품은 토스 결제창의 카드·간편결제로 한 번에 결제한다 — '간편결제'는 단품 조항에서만
+    //   허용한다. 정기배송은 여전히 카드 전용이고, 가상계좌·에스크로는 어디에도 없다.
+    assert.doesNotMatch(src, /가상계좌|에스크로/, `${name}이 없는 결제 수단(가상계좌·에스크로)을 약속한다`)
+    for (const m of src.matchAll(/간편결제/g)) {
+      assert.ok(src.slice(Math.max(0, (m.index ?? 0) - 200), m.index).includes('단품'), `${name}이 정기배송에 간편결제를 약속한다 — 정기배송은 카드 전용(간편결제는 단품 조항에서만)`)
+    }
     assert.doesNotMatch(src, /마이페이지에서 반품 신청/, `${name}이 없는 '마이페이지 반품 신청'을 안내한다`)
     assert.doesNotMatch(src, /수도권은 다음 날|일요일이며/, `${name}이 옛 일정(일요일 마감·다음 날 도착)을 말한다`)
   }
@@ -6270,7 +6280,14 @@ test('규칙168: 주문 영수증·운송장(앱) — 앱 화면으로 그리고
   const tp = stripComments(read(join(ROOT, ...O, 'track', 'page.tsx')))
   assert.match(tp, /if \(await isAppContextServer\(\)\) \{[\s\S]{0,700}?app=\{\{ orderNumber: order\.order_number \}\}/, '앱 운송장 조회가 웹 화면(영어 머리말)으로 뜬다')
   const tv = stripComments(read(join(ROOT, ...O, 'track', 'TrackingView.tsx')))
-  assert.match(tv, /if \(app\) \{\s*return \(\s*<TrackingAppView/, 'TrackingView 가 앱 화면으로 갈리지 않는다')
+  // 2026-10-10 웹 리뉴얼: 웹도 같은 화면(app.web)을 쓰게 되어 옛 웹 갈래를 지웠다 — TrackingView 는 늘 앱 화면 하나를 그린다.
+  assert.ok(
+    /return \(\s*<TrackingAppView/.test(tv) &&
+      /\bapp: \{ orderNumber: string; web\?: boolean \}/.test(tv) &&
+      !/function ProgressBar\(/.test(tv) &&
+      (tv.match(/\breturn \(/g) ?? []).length === 1,
+    'TrackingView 가 새 화면(TrackingAppView) 하나로 그리지 않는다 — 옛 웹 갈래가 돌아왔다',
+  )
   // ④ 윗줄 — 제목은 각자 이름, ← 는 그 주문 상세(목록까지 두 단계 건너뛰지 않는다). 영수증엔 아래 탭이 없다(시안 M09).
   const chrome = stripComments(read(join(ROOT, 'components', 'AppChrome.tsx')))
   assert.ok(chrome.includes("'/mypage/orders/:id/receipt': '주문 영수증'") && chrome.includes("'/mypage/orders/:id/track': '운송장 조회'"), '영수증·운송장 윗줄 제목이 "주문 상세"로 뜬다')
@@ -6282,11 +6299,9 @@ test('규칙168: 주문 영수증·운송장(앱) — 앱 화면으로 그리고
   }
   assert.ok(stripComments(read(join(ROOT, ...O, 'receipt', 'ReceiptAppView.tsx'))).includes('kstKoDateTimeParts('), '앱 영수증 날짜가 정본(kstKoDateTimeParts)을 안 쓴다')
   const dp = stripComments(read(join(ROOT, ...O, 'page.tsx')))
-  const appBranchStart = dp.indexOf('if (await isAppContextServer())')
-  const appBranchEnd = dp.indexOf('<OrderDetailAppView m={model} />')
-  assert.ok(appBranchStart > 0 && appBranchEnd > appBranchStart, '주문 상세 앱 분기를 찾지 못했다')
-  const appBranch = dp.slice(appBranchStart, appBranchEnd)
-  assert.ok(!appBranch.includes('formatDateTime(') && appBranch.includes('formatKstKoDateTime('), '주문 상세(앱) 날짜가 toLocaleString 경로(formatDateTime)로 그려진다')
+  // ★2026-10-10 웹 리뉴얼: 웹도 같은 화면(OrderDetailAppView)을 SiteShell 에 담아 앱·웹이 한 갈래다 — 파일 전체가 정본 날짜만 쓴다.
+  assert.ok(dp.includes('<OrderDetailAppView m={model} />') && dp.includes('<SiteShell>'), '주문 상세가 새 화면(OrderDetailAppView + SiteShell)으로 그려지지 않는다')
+  assert.ok(!dp.includes('formatDateTime(') && dp.includes('formatKstKoDateTime('), '주문 상세 날짜가 toLocaleString 경로(formatDateTime)로 그려진다')
   // ⑥ 레시피 작은 네모·사진 테두리 = 레시피 색(RECIPE_COLOR). 파우치 색은 카드 바탕·테두리 전용.
   for (const f of [
     join(...O, 'OrderDetailAppView.tsx'),
@@ -6480,4 +6495,164 @@ test('규칙171: 앱 레시피 제목 = 팩에 찍힌 영어 + 아래 회색 한
   const body = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'steps', 'Body.tsx')))
   assert.ok(!body.includes("tag: '위험'"), "설문 체형 꼬리표에 '위험'이 있다(사장님 10/10 — '관리 필요')")
   assert.equal((body.match(/tag: '관리 필요'/g) ?? []).length, 3, "체형 1·8·9단계 꼬리표가 '관리 필요'가 아니다")
+})
+
+
+test('규칙172: 웹 가게(단품) — 가게 주문은 결제위젯 가맹점 키로만 승인·환불·조회하고, 재고를 되돌리지 않으며, 금액은 서버가 상품표로 계산한다', () => {
+  /**
+   * # 왜 (2026-10-10 사장님 "웹 = 단품 가게"·"시안 숫자 그대로"·"회원만" — docs/WEB_STORE_RENEWAL_PLAN_2026_10.md)
+   * ① 토스 가맹점이 둘이 됐다 — 정기결제(빌링) 계약과 웹 가게 일회 결제(결제위젯) 계약은 MID·비밀 키가 다르고, 결제는
+   *    그 결제를 만든 가맹점 키로만 승인·환불·조회된다. 가게 주문(FTS-)을 빌링 키로 환불하면 결제를 못 찾아 **환불이 조용히
+   *    실패**한다. 그래서 돈이 지나는 다섯 곳(승인·고객 취소·환불 재시도·웹훅·어드민 부분취소)이 주문번호로 가맹점을 가린다.
+   * ② 재고 — 지금 재고를 잡는 경로는 없다. 예전 판정(subscription_id == null = 예약 주문)을 그대로 두면 가게 주문 취소·만료마다
+   *    차감한 적 없는 재고가 유령처럼 는다(2026-08-08 정기배송에서 잡은 그 사고). 판정은 lib/commerce/stock-gate 하나.
+   * ③ 금액 — 브라우저는 '무엇을 몇 개'만 보낸다. 서버가 상품표(cartSummary)로 계산해 주문을 만든다(고객은 orders 를 못 쓴다).
+   * ④ 앱은 단품을 안 판다 — 상점 경로·주문 API 는 앱에서 막는다(웹/앱 절대 분리).
+   * ⑤ 토스 공개 테스트 키는 미리보기·로컬 전용 — 운영(production)에선 절대 안 쓴다(키가 없으면 '결제 준비 중').
+   */
+  const toss = stripComments(read(join(ROOT, 'lib', 'payments', 'toss.ts')))
+  assert.match(toss, /export function merchantForOrderNumber\(orderNumber: string \| null \| undefined\): TossMerchant \{\s*return isStoreOrderNumber\(orderNumber\) \? 'widget' : 'billing'/, '주문번호로 가맹점을 가리는 함수가 없다/바뀌었다')
+  assert.match(toss, /if \(merchant === 'widget'\) \{[\s\S]{0,200}if \(process\.env\.VERCEL_ENV !== 'production'\) return TOSS_DOCS_TEST_WIDGET_SECRET_KEY\s*throw/, '운영에서도 토스 공개 테스트 키로 떨어질 수 있다')
+  const orderNo = read(join(ROOT, 'lib', 'store', 'order-number.ts'))
+  assert.match(orderNo, /export const STORE_ORDER_PREFIX = 'FTS-'/, "가게 주문번호 머리가 'FTS-' 가 아니다 — 정기배송('FT-')과 가려지지 않는다")
+
+  // ① 돈이 지나는 다섯 곳이 가맹점을 가린다.
+  const moneyPaths: [string, RegExp][] = [
+    [join('app', 'api', 'payments', 'confirm', 'route.ts'), /const merchant = merchantForOrderNumber\(order\.order_number\)[\s\S]*confirmPayment\(\{ paymentKey, orderId, amount, merchant \}\)/],
+    [join('app', 'api', 'orders', '[id]', 'cancel', 'route.ts'), /cancelPayment\(\{[\s\S]{0,200}merchant: merchantForOrderNumber\(order\.order_number\)/],
+    [join('app', 'api', 'cron', 'refund-retry', 'route.ts'), /cancelPayment\(\{[\s\S]{0,1200}merchant: merchantForOrderNumber\(orderRow\?\.order_number\)/],
+    [join('app', 'api', 'payments', 'webhook', 'route.ts'), /fetchPayment\(paymentKey, merchantForOrderNumber\(orderId\)\)/],
+    [join('app', 'api', 'admin', 'orders', '[id]', 'partial-cancel', 'route.ts'), /tossSecretKey\(merchantForOrderNumber\(order\.order_number\)\)/],
+  ]
+  for (const [rel, re] of moneyPaths) {
+    const src = stripComments(read(join(ROOT, rel)))
+    assert.match(src, re, `${rel}: 가게 주문(FTS-)을 결제위젯 가맹점 키로 다루지 않는다 — 다른 가맹점 키로는 결제를 못 찾아 환불·승인이 실패한다`)
+  }
+  const confirm = stripComments(read(join(ROOT, 'app', 'api', 'payments', 'confirm', 'route.ts')))
+  assert.equal((confirm.match(/cancelPayment\(\{[^}]*merchant,/g) ?? []).length, 2, '승인 라우트의 자동 환불 두 곳이 가맹점 키를 안 넘긴다')
+  const partial = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'orders', '[id]', 'partial-cancel', 'route.ts')))
+  assert.doesNotMatch(partial, /process\.env\.TOSS_SECRET_KEY/, '어드민 부분취소가 빌링 키를 직접 읽는다 — 가게 주문 환불이 실패한다')
+
+  // ② 재고 되돌림 판정은 정본 하나.
+  const gate = read(join(ROOT, 'lib', 'commerce', 'stock-gate.ts'))
+  assert.match(gate, /if \(isStoreOrderNumber\(o\.order_number\)\) return false/, '재고 판정이 가게 주문을 예약 주문으로 읽는다')
+  for (const rel of [join('app', 'api', 'cron', 'order-expire', 'route.ts'), join('app', 'api', 'orders', '[id]', 'cancel', 'route.ts'), join('app', 'api', 'admin', 'orders', '[id]', 'partial-cancel', 'route.ts')]) {
+    const src = stripComments(read(join(ROOT, rel)))
+    assert.match(src, /const reservedStock = orderReservedStock\(/, `${rel}: 재고 되돌림이 정본(orderReservedStock)을 안 쓴다`)
+    assert.doesNotMatch(src, /reservedStock\s*=\s*[^\n]*subscription_id\s*={2,3}\s*null/, `${rel}: 옛 판정(subscription_id == null)이 남아 가게 주문 재고가 유령처럼 는다`)
+  }
+
+  // ③ 금액은 서버가 상품표로.
+  const api = stripComments(read(join(ROOT, 'app', 'api', 'store', 'orders', 'route.ts')))
+  assert.match(api, /const lines = normalizeCart\(body\.lines\)/, '주문 API 가 장바구니를 상품표로 거르지 않는다')
+  assert.match(api, /const summary = cartSummary\(lines\)/, '주문 API 가 금액을 상품표로 계산하지 않는다')
+  assert.match(api, /total_amount: summary\.total/, '주문 금액이 서버 계산값이 아니다')
+  assert.doesNotMatch(api, /body\.(amount|price|total|subtotal|shipping)/, '주문 API 가 브라우저가 보낸 금액을 읽는다')
+  assert.match(api, /order_number: storeOrderNumber\(\)/, '가게 주문번호가 FTS- 머리로 만들어지지 않는다')
+  assert.match(api, /if \(!user\) return NextResponse\.json\(\{ code: 'UNAUTHORIZED'/, '가게 주문이 비회원도 받는다(사장님 10/10 "회원만")')
+
+  // ④ 앱에서는 가게가 없다.
+  assert.match(api, /if \(await isAppContextServer\(\)\) \{\s*return NextResponse\.json\(\{ code: 'APP_NOT_STORE'/, '앱에서 가게 주문이 만들어진다')
+  const storeLayout = stripComments(read(join(ROOT, 'app', 'store', 'layout.tsx')))
+  assert.match(storeLayout, /if \(await isAppContextServer\(\)\) redirect\('\/dashboard'\)/, '앱에서 상점 화면이 열린다(앱은 단품을 안 판다)')
+
+  // ⑤ 운영은 테스트 키를 쓰지 않는다(브라우저 쪽).
+  const widget = read(join(ROOT, 'lib', 'store', 'toss-widget.ts'))
+  assert.match(widget, /return process\.env\.VERCEL_ENV === 'production' \? null : TOSS_DOCS_TEST_WIDGET_CLIENT_KEY/, '운영에서 결제위젯이 토스 공개 테스트 키로 열린다')
+  const design = stripComments(read(join(ROOT, 'app', 'design-check-store', 'page.tsx')))
+  assert.match(design, /if \(process\.env\.VERCEL_ENV === 'production'\) notFound\(\)/, '가게 점검 화면이 운영에서 열린다')
+})
+
+test('규칙173: 앱 로딩 꼬리는 영상이 막혀도 움직인다 — 아이폰 저전력 모드(play() 거절)·옛 웹뷰는 꼬리 그림 장면으로', () => {
+  /**
+   * # 왜 (2026-10-10 사장님 아이폰 화면 "왜또 꼬리가 안움직여" — 배터리 아이콘이 노란색 = 저전력 모드)
+   * 꼬리는 영상(mp4)으로만 움직였다. 아이폰 저전력 모드는 영상 재생(play())을 거절한다(WebKit 버그 216887 —
+   * Capacitor 앱도 같다). 그러면 정지 도장만 남고 점(CSS)만 돌았다. 장면 신호(requestVideoFrameCallback)가 없는 옛 웹뷰는
+   * 아예 정지 도장이었다. 그림·CSS 애니메이션은 안 막힌다 → 영상이 거절·오류면(옛 웹뷰는 처음부터) 꼬리가 움직이는
+   * 네모만 51장면 묶음 그림을 CSS 가 넘기고, 영상 앞 장면의 도장 '쿵'도 CSS 로 같이 한다.
+   * 헤드리스 엣지에서 play() 를 거절시켜 51장면이 다 넘어가는 것을 확인했다(정상일 땐 영상, 그림은 안 받는다).
+   */
+  const splash = read(join(ROOT, 'components', 'AppSplash.tsx'))
+  // ① 영상 재생이 거절되면 꼬리 그림으로 — 거절을 삼키기만 하면(예전 p.catch(function(){})) 꼬리가 멈춘다.
+  assert.match(splash, /if\(rvfc\)\{var p=wag\.play\(\);if\(p&&p\.catch\)p\.catch\(function\(\)\{startTail\(\)\}\)\}else startTail\(\)/, '영상 재생이 거절되면(아이폰 저전력 모드) 꼬리가 멈춘다 — 꼬리 그림 장면으로 넘어가지 않는다')
+  assert.match(splash, /wag\.addEventListener\('error',function\(\)\{startTail\(\)\}\)/, '영상 오류에도 꼬리 그림 장면으로 안 넘어간다')
+  // ② 움직임 줄이기만 정지 — 장면 신호(rvfc)가 없다고 정지시키지 않는다(그건 그림 장면으로).
+  assert.match(splash, /var calm=!!\(window\.matchMedia&&matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\);/, '움직임 줄이기 말고도 꼬리를 멈추는 조건이 섞였다(옛 웹뷰는 그림 장면으로 돌아야 한다)')
+  // ③ 꼬리 그림은 다 풀린 뒤에만 보이고, 옛 셸은 종이색 그림 — 영상이 이미 돌면 그림을 안 받는다(정상일 땐 영상만).
+  assert.match(splash, /var startTail=function\(\)\{if\(tailOn\|\|wagOn\|\|gone\|\|calm\|\|!tail\)return;/, '영상이 도는데도 꼬리 그림을 받거나, 로딩이 걷힌 뒤에 받는다')
+  assert.match(splash, /var src=\(oldShell&&tail\.getAttribute\('data-src-paper'\)\)\|\|tail\.getAttribute\('data-src'\)/, '옛 셸에 흰 바탕 꼬리 그림을 띄운다')
+  assert.match(splash, /\(im\.decode\?im\.decode\(\):[^)]*\)[^)]*\)\)\.then\(function\(\)\{if\(gone\)return;tail\.style\.backgroundImage='url\('\+src\+'\)';el\.classList\.add\('ft-splash--tail'\)\}/, '꼬리 그림이 다 풀리기 전에 보인다(빈 칸이 정지 도장을 가린다)')
+  // '쿵' 칸을 연 뒤 닫히기(</div>) 전에 정지 도장·꼬리 칸이 둘 다 있어야 한다(카나리아: 꼬리 칸을 밖으로 빼면 빨강).
+  assert.match(splash, /<div className="ft-splash__bob">(?:(?!<\/div>)[\s\S])*?className="ft-splash__still"(?:(?!<\/div>)[\s\S])*?<div className="ft-splash__tail" data-src=\{SPLASH_TAIL_SRC\} data-src-paper=\{PAPER_SHELL_TAIL_SRC\} \/>/, '정지 도장과 꼬리 칸이 같은 \'쿵\' 칸 안에 없다 — 커질 때 꼬리가 어긋난다')
+  // ④ 두 벌의 그림이 실제로 있고 서로 다르며, 저전력일 때만 받는 대신 너무 크지 않다.
+  const srcOf = (k: string) => splash.match(new RegExp('export const ' + k + " = '([^']+)'"))?.[1] ?? ''
+  for (const k of ['SPLASH_TAIL_SRC', 'PAPER_SHELL_TAIL_SRC']) {
+    const src = srcOf(k)
+    const p = join(ROOT, 'public', ...src.split('/').filter(Boolean))
+    assert.ok(src && existsSync(p), k + '(' + src + ') 파일이 없다')
+    assert.ok(statSync(p).size < 300 * 1024, k + ' 꼬리 그림이 300KB 를 넘는다 — 로딩이 걷히기 전에 못 받는다')
+  }
+  assert.notEqual(srcOf('SPLASH_TAIL_SRC'), srcOf('PAPER_SHELL_TAIL_SRC'), '흰 바탕·종이색 꼬리 그림이 같은 파일이다')
+  // ⑤ CSS — 51장면을 1.7초(영상과 같은 길이)에 한 칸씩, 도장 '쿵'도 같은 1.7초.
+  const css = stripComments(read(join(ROOT, 'app', 'globals.css')))
+  assert.match(css, /\.ft-splash--tail \.ft-splash__tail \{\s*opacity: 1;\s*animation: ft-tail-frames 1\.7s steps\(1, end\) infinite;/, '꼬리 그림 장면이 영상과 같은 1.7초 장면 넘기기로 돌지 않는다')
+  assert.match(css, /\.ft-splash--tail \.ft-splash__bob \{\s*animation: ft-tail-bob 1\.7s linear infinite;/, '꼬리 그림 장면일 때 도장 \'쿵\'이 없다')
+  const frames = css.match(/@keyframes ft-tail-frames \{([\s\S]*?)\n\}/)?.[1] ?? ''
+  assert.equal((frames.match(/background-position:/g) ?? []).length, 51, '꼬리 그림 장면이 51장이 아니다(영상과 장면 수가 다르다)')
+  assert.match(css, /\.ft-splash__tail \{[^}]*opacity: 0;/, '꼬리 칸이 처음부터 보인다 — 그림이 오기 전 빈 칸이 정지 도장을 가린다')
+})
+
+test('규칙174: 레시피 QR 화면(웹 C01) — 재료 이름은 정본에서 · "이 레시피에만"은 첫째 토핑만 · 사기 줄·앱 띠는 웹만 · 성분 % 없음 · 없어진 웹 설문을 가리키지 않는다', async () => {
+  /**
+   * # 왜 (2026-10-10 웹 리뉴얼)
+   * 옛 QR 화면의 원장(RECIPE_LEDGER)은 사장님 확정 배합표(lib/recipe-ingredients)와 따로 손으로 적혀 있어서 토핑을 하나씩
+   * 빠뜨리고(오리 애호박·흑돼지 양배추·한우 비트) '브로콜리·블루베리는 치킨 레시피에만'이라 했다 — 블루베리는 한우에도 있다.
+   * 닭 알레르기 답은 "오리 레시피를 안내해 드려요"였지만 앱은 닭 알레르기에 오리를 '비슷한 단백질 주의'로 표시하고, 가게 상품
+   * 화면은 흑돼지·한우를 권한다. 웹 설문은 앱으로 옮겼는데 답마다 '설문'을 가리켰다.
+   */
+  const page = stripComments(read(join(ROOT, 'app', 'recipe', '[protein]', 'page.tsx')))
+  const detailSrc = stripComments(read(join(ROOT, 'lib', 'recipe-detail.ts')))
+  // ① 재료 이름은 정본에서 — 손으로 적은 원장이 돌아오면 또 어긋난다.
+  assert.ok(detailSrc.includes('RECIPE_INGREDIENTS[SKU_MODEL[p].legacyLine]') && !/RECIPE_LEDGER/.test(detailSrc + page), '주요 재료 이름을 정본(lib/recipe-ingredients) 대신 손으로 적는다')
+  const { recipeLedger } = await import('./recipe-detail.ts')
+  const { RECIPE_INGREDIENTS } = await import('./recipe-ingredients.ts')
+  const lines = { chicken: 'weight', duck: 'basic', pork: 'joint', beef: 'premium' } as const
+  const heroes = Object.values(lines).map((l) => RECIPE_INGREDIENTS[l]!.toppings[0])
+  const supports = Object.values(lines).map((l) => RECIPE_INGREDIENTS[l]!.toppings[1])
+  // ② "○○는 이 레시피에만 들어가요" 는 첫째 토핑이 4종에서 한 번씩만 나올 때만 참이다.
+  assert.equal(new Set(heroes).size, 4, '첫째 토핑이 두 레시피에 겹친다 — "이 레시피에만" 이 거짓이 된다')
+  assert.ok(heroes.every((h) => !supports.includes(h)), '첫째 토핑이 다른 레시피의 둘째 토핑으로도 들어간다 — "이 레시피에만" 이 거짓이 된다')
+  for (const [p, l] of Object.entries(lines)) {
+    const ing = RECIPE_INGREDIENTS[l]!
+    const rows = recipeLedger(p as keyof typeof lines)
+    const all = [ing.main, ...ing.organs, ...ing.veg, ...ing.toppings, ...ing.base].join(' ')
+    for (const r of rows) for (const name of r.name.split(' · ')) assert.ok(name && all.includes(name), `${p} 주요 재료 '${name}' 가 정본 원재료에 없다`)
+    assert.equal(rows.find((r) => r.label === '토핑')?.name, ing.toppings.join(' · '), `${p} 토핑 줄이 정본 토핑 2종과 다르다`)
+  }
+  // ③ 전체 원재료는 정본 함수 그대로(규칙127과 같은 줄).
+  assert.ok(page.includes('fullIngredientNames(PROTEIN_LINE[key]).join'), '전체 원재료를 정본 목록 대신 다른 데서 그린다')
+  // ④ 사기 줄(/store)·앱 띠(/app)는 웹만 — 앱은 단품을 팔지 않고, /store 는 앱에서 앱 홈으로 튕긴다.
+  assert.match(page, /\{!isApp && \(\s*<Link\s+href=\{`\/store\/\$\{key\}`\}/, "'이 레시피 사기' 줄이 앱에도 보인다")
+  assert.match(page, /\{isApp \? \([\s\S]{0,200}?\) : \([\s\S]{0,600}?href="\/app"/, "'앱에서 할인' 띠가 앱에도 보인다")
+  // ⑤ 성분 % 는 싣지 않는다(검사 결과 전 — 가게 상품 화면과 같은 말).
+  assert.ok(!/\d\s*%\s*이[상하]/.test(page) && !/조단백|조지방|조섬유|조회분/.test(page), 'QR 화면에 등록성분 숫자(% 이상·이하)를 싣는다')
+  // ⑥ 웹 설문은 앱으로 옮겼다 — 고객 문구가 '설문'·/start 를 가리키지 않는다. 닭 알레르기에 오리를 권하지 않는다.
+  assert.ok(!/설문/.test(page) && !/설문/.test(detailSrc) && !/href="\/start/.test(page), 'QR 화면 문구가 없어진 웹 설문을 가리킨다')
+  assert.ok(!/오리 레시피를 안내/.test(detailSrc), '닭 알레르기 답이 오리를 권한다(앱은 오리를 비슷한 단백질 주의로, 가게는 흑돼지·한우를 권한다)')
+})
+
+test('규칙175: 아이폰 앱 링크(AASA)는 웹 가게·행사·링크 모음을 앱으로 열지 않는다 — 제외가 전체 허용보다 먼저', () => {
+  /**
+   * # 왜 (2026-10-10 웹 리뉴얼, 기획서 §6)
+   * AASA 가 /admin·/api 말고 전부(/*)를 앱으로 열어서, 앱이 깔린 아이폰에서 가게(/store) 링크를 누르면 앱이 열리고
+   * 앱은 /store 를 앱 홈으로 보낸다 — 가게에서 살 길이 없어진다. 단품은 웹에서만 판다(앱은 맞춤·정기배송).
+   * Apple 은 components 를 위에서부터 첫 일치로 판정하므로 제외 줄이 전체 허용('/*')보다 앞에 있어야 한다.
+   */
+  const src = stripComments(read(join(ROOT, 'app', '.well-known', 'apple-app-site-association', 'route.ts')))
+  const allowAt = src.indexOf("{ '/': '/*' }")
+  assert.ok(allowAt > 0, "AASA 의 전체 허용 줄({ '/': '/*' })을 못 찾았다 — 검사가 망가졌다")
+  for (const p of ['/store', '/store/*', '/p/*', '/link']) {
+    const at = src.indexOf(`{ '/': '${p}', exclude: true }`)
+    assert.ok(at > 0 && at < allowAt, `AASA 가 ${p} 를 앱으로 연다(제외 줄이 없거나 전체 허용보다 뒤에 있다)`)
+  }
 })

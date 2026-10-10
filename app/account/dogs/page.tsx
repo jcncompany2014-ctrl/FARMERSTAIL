@@ -8,6 +8,7 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
+import DogsWebView from './DogsWebView'
 
 /**
  * /account/dogs — 웹 사용자용 "우리 아이" 간략 목록.
@@ -91,6 +92,16 @@ export default async function AccountDogsPage() {
           .map((x) => x.dog_id)
           .filter((x): x is string => Boolean(x)),
       )
+
+  // 웹 = 웹 시안 WEB-A21(2026-10-10 웹 리뉴얼) — DogsWebView(새 웹 가게 틀). 아래는 앱 갈래(앱 주문 화면에서 오는 경우).
+  if (!isApp) {
+    return (
+      <DogsWebView
+        dogs={dogs.map((d) => ({ id: d.id, name: d.name, photoUrl: d.photo_url, meta: [d.breed, ageLabel(d)].filter(Boolean).join(' · ') || '정보 없음' }))}
+        subscribedDogIds={subscribedDogIds}
+      />
+    )
+  }
 
   return (
     <AuthAwareShell>

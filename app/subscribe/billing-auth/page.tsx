@@ -1,5 +1,7 @@
 'use client'
 
+import '@/components/store/store.css'
+
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useResetLoadingOnRestore } from '@/lib/useResetLoadingOnRestore'
 import { userFacingError } from '@/lib/error-message'
@@ -152,59 +154,53 @@ function firstChargeText(terms: BillingTerms): string {
  *  갈라지면 어느 쪽이 맞는지 알 수 없게 되므로 다음 정리 때 둘을 합친다.)
  */
 function RecurringTerms({ terms }: { terms: BillingTerms }) {
+  // 모양 = 웹 시안 WEB-A24(2026-10-10 웹 리뉴얼) — 흰 카드 · 먹색 2px 테 · 도장 그림자. 판정·문장은 앱(AppRecurringTerms)과
+  // 같은 함수(hasOneTimeDiscount · termsAmountText · firstChargeText · termsNoteText)에서 나온다.
+  const oneTime = hasOneTimeDiscount(terms)
   return (
-    <div
-      className="mt-4 px-4 py-3 text-left"
-      style={{ background: 'var(--bg-3)', border: '1px solid var(--rule)' }}
-    >
-      <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
-        결제 금액
-      </p>
-      <p
-        className="text-[15px] font-black mt-0.5"
-        style={{ color: 'var(--ink)' }}
-      >
-        {terms?.amount != null && !hasOneTimeDiscount(terms) && terms.discountLabel && terms.listAmount != null && (
-          <span
-            className="mr-1.5 line-through"
-            style={{ color: 'var(--muted)', fontWeight: 600 }}
-          >
-            {terms.listAmount.toLocaleString()}원
+    <div style={{ marginTop: 24, border: '2px solid #141414', boxShadow: '4px 4px 0 #141414', borderRadius: 4, background: '#FFFFFF', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+      <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>결제 금액</span>
+        {terms?.amount != null ? (
+          <span style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6, whiteSpace: 'nowrap' }}>
+            {oneTime && (
+              <span style={{ alignSelf: 'center', height: 28, padding: '0 8px', borderRadius: 4, background: '#F6F4F5', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+                {terms.discountKind === 'trial' ? '서포터즈 혜택가' : '첫 박스'}
+              </span>
+            )}
+            {/* 계속 받는 할인(등급 등)이면 정가를 지운 줄로 함께. */}
+            {!oneTime && terms.discountLabel && terms.listAmount != null && (
+              <span style={{ fontSize: 17, fontWeight: 600, color: '#767676', textDecoration: 'line-through' }}>{terms.listAmount.toLocaleString('ko-KR')}원</span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+              <span className="n" style={{ fontSize: 38, lineHeight: 1 }}>
+                {terms.amount.toLocaleString('ko-KR')}
+              </span>
+              <span className="d" style={{ fontSize: 20 }}>
+                원
+              </span>
+            </span>
+            {!oneTime && <span style={{ fontSize: 17, fontWeight: 800 }}>· 2주마다</span>}
           </span>
+        ) : (
+          <span style={{ fontSize: 18, fontWeight: 800 }}>{termsAmountText(terms)}</span>
         )}
-        {termsAmountText(terms)}
-      </p>
-      <p
-        className="text-[11.5px] mt-1.5 leading-relaxed"
-        style={{ color: 'var(--muted)' }}
-      >
-        {firstChargeText(terms)}
-        <br />
+        <span style={{ marginTop: 4, fontSize: 17, fontWeight: 800, lineHeight: 1.45 }}>{firstChargeText(terms)}</span>
+      </div>
+      <p style={{ margin: 0, padding: '14px 18px', borderTop: '1px solid #E5E5E5', fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
         {termsNoteText(terms)} 다음 결제 전까지 해지할 수 있어요.
       </p>
-      {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 이 화면은 AuthAwareShell 을
-          쓰지 않아 푸터가 없다. 전자상거래법 §13 은 결제 전에 읽을 수 있어야 한다.
+      {/* 법정 고지 링크 (2026-09-01 출시 전 감사) — 이 화면은 푸터가 없다. 전자상거래법 §13 은 결제 전에 읽을 수 있어야 한다.
           ★새 창으로 연다 — 카드 등록 **도중**이라 같은 창에서 나가면 흐름을 잃는다. */}
-      <p
-        className="text-[11px] mt-2.5 leading-relaxed"
-        style={{ color: 'var(--muted)' }}
-      >
+      <p style={{ margin: 0, padding: '0 18px 14px', display: 'flex', flexWrap: 'wrap', columnGap: 14, fontSize: 15 }}>
         {[
           ['/legal/terms', '이용약관'],
           ['/legal/refund', '환불·청약철회'],
           ['/legal/privacy', '개인정보처리방침'],
-        ].map(([href, label], i) => (
-          <span key={href}>
-            {i > 0 && <span aria-hidden="true"> · </span>}
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--muted)', textDecoration: 'underline', textUnderlineOffset: 2 }}
-            >
-              {label}
-            </a>
-          </span>
+        ].map(([href, label]) => (
+          <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{ minHeight: 40, display: 'flex', alignItems: 'center', color: '#3D3D3D', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            {label}
+          </a>
         ))}
       </p>
     </div>
@@ -217,29 +213,36 @@ function RecurringTerms({ terms }: { terms: BillingTerms }) {
  * 주문 제작 재화의 청약철회 제한은 그 거래에 대한 별도 고지 + 고객 동의가 요건이다. 이 화면이 카드 등록(정기결제
  * 시작) 자리라 여기서 받는다 — 앱 주문 화면이 토스를 못 띄워 이 화면으로 넘어온 경우·카드 재등록도 여기를 거친다.
  * 문구·버전 정본 lib/payments/no-cancel-consent. 체크해야 등록 버튼이 열리고, 버전이 토스 왕복 주소를 타고
- * billing-issue 에서 카드 저장과 함께 기록된다.
+ * billing-issue 에서 카드 저장과 함께 기록된다. 모양 = 웹 시안 WEB-A24(회색 면 · 먹색 2px 테 · 26px 체크).
  */
 function NoCancelConsentCheck({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label
-      className="mt-4 px-4 py-3 flex items-start gap-2.5 text-left cursor-pointer select-none"
-      style={{ background: 'var(--bg-3)', border: `1px solid ${checked ? 'var(--moss)' : 'var(--rule)'}` }}
+      style={{
+        marginTop: 22,
+        padding: 16,
+        borderRadius: 4,
+        border: '2px solid #141414',
+        background: '#F6F4F5',
+        display: 'grid',
+        gridTemplateColumns: '30px 1fr',
+        columnGap: 8,
+        alignItems: 'start',
+        textAlign: 'left',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
     >
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 shrink-0 cursor-pointer"
-        style={{ width: 20, height: 20, accentColor: 'var(--moss)' }}
+        style={{ margin: '1px 0 0', width: 26, height: 26, accentColor: '#141414', cursor: 'pointer' }}
       />
-      <span className="flex flex-col gap-1">
-        <span className="text-[14px] font-bold" style={{ color: 'var(--ink)' }}>
-          {NO_CANCEL_CONSENT_LABEL}
-        </span>
-        {/* 법정 고지(청약철회 제한) — 11.5px 회색은 시니어 기준 미달이었다(10차 점검 D). 웹·앱 공통 14px. */}
-        <span className="text-[14px] leading-relaxed" style={{ color: 'var(--muted)', wordBreak: 'keep-all' }}>
-          {noCancelConsentBody()}
-        </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.45 }}>{NO_CANCEL_CONSENT_LABEL}</span>
+        {/* 법정 고지(청약철회 제한) — 시니어 기준 글자(10차 점검 D). */}
+        <span style={{ fontSize: 16, lineHeight: 1.6, color: '#3D3D3D', wordBreak: 'keep-all' }}>{noCancelConsentBody()}</span>
       </span>
     </label>
   )
@@ -249,7 +252,7 @@ function NoCancelConsentCheck({ checked, onChange }: { checked: boolean; onChang
 function ConsentNeededHint({ show }: { show: boolean }) {
   if (!show) return null
   return (
-    <p className="mt-2.5 text-[13px] text-left" style={{ color: 'var(--muted)' }} aria-live="polite">
+    <p aria-live="polite" style={{ margin: '12px 0 0', fontSize: 15, color: '#595959', textAlign: 'center' }}>
       위 안내에 동의하면 카드를 등록할 수 있어요.
     </p>
   )
@@ -705,141 +708,74 @@ function BillingAuthInner() {
     )
   }
 
+  // ── 웹 모양(웹 시안 WEB-A24, 2026-10-10 웹 리뉴얼) — 위 상태·launch·close 를 그대로 쓴다. 가게 메뉴 없는 집중 화면
+  //    (닫기 + 결제하기). 등록 버튼은 두 갈래(고르기·지정) 모두 동의 전엔 잠긴다(규칙 — 웹 2 · 앱 1).
   return (
-    <main
-      className="min-h-[100dvh] flex flex-col"
-      style={{ background: 'var(--bg)' }}
-    >
-      {/* 우리 도메인 화면이므로 헤더를 우리가 그린다 — 앱에서 브라우저처럼
-          보이지 않게. 토스 화면의 도메인 표시는 iOS 가 붙이는 것이라 별개다. */}
-      {/* ★ safe-area 를 헤더에 더한다 (2026-07-30 누락 수정).
-          홈 화면에 설치한 앱(standalone)은 상태바 아래로 화면이 시작하지 않는다 —
-          노치·상태바가 이 헤더를 덮어 닫기(✕) 버튼이 반쯤 가려졌다. 앱 껍데기가
-          아니라 top-level 라우트라 AppChrome 의 safe-area 처리를 못 받는다.
-          웹 브라우저에서는 inset 이 0 이라 아무 변화가 없다. */}
-      <header
-        className="sticky top-0 z-10 flex items-center px-2"
-        style={{
-          background: 'var(--bg)',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          // h-14(3.5rem) + 노치. 클래스로 두면 inline height 와 겹쳐 헷갈린다.
-          height: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
-        }}
-      >
-        <button
-          type="button"
-          onClick={canGoBack ? () => setChosen(null) : close}
-          aria-label={canGoBack ? '결제수단 다시 고르기' : '닫기'}
-          className="w-10 h-10 flex items-center justify-center rounded-full active:opacity-60"
-          style={{ color: 'var(--ink)' }}
-        >
-          {canGoBack ? (
-            <ChevronLeft size={22} strokeWidth={2.2} />
-          ) : (
-            <X size={20} strokeWidth={2.2} />
-          )}
-        </button>
-        <span
-          className="flex-1 text-center text-[15px] font-bold"
-          style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}
-        >
-          결제하기
-        </span>
-        {/* 좌측 버튼과 폭을 맞춰 제목을 진짜 가운데로 */}
-        <span className="w-10" aria-hidden />
-      </header>
+    <main className="fts" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <div className="fts-page" style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* 우리 도메인 화면이므로 헤더를 우리가 그린다 — 앱에서 브라우저처럼 보이지 않게.
+            ★ safe-area 를 헤더에 더한다 (2026-07-30) — 홈 화면에 설치한 앱(standalone)은 상태바 아래로 화면이 시작하지 않는다.
+            웹 브라우저에서는 inset 이 0 이라 아무 변화가 없다. */}
+        <header style={{ position: 'sticky', top: 0, zIndex: 30, background: '#FFFFFF', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+          <div
+            style={{
+              height: 56,
+              boxSizing: 'border-box',
+              padding: '0 6px',
+              display: 'grid',
+              gridTemplateColumns: '56px 1fr 56px',
+              alignItems: 'center',
+              borderBottom: '1px solid #E5E5E5',
+            }}
+          >
+            <button
+              type="button"
+              onClick={canGoBack ? () => setChosen(null) : close}
+              aria-label={canGoBack ? '결제수단 다시 고르기' : '닫기'}
+              style={{ width: 48, height: 48, border: 0, background: 'transparent', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              {canGoBack ? <ChevronLeft size={26} strokeWidth={2} /> : <X size={24} strokeWidth={2} />}
+            </button>
+            <span className="d" style={{ textAlign: 'center', fontSize: 22 }}>
+              결제하기
+            </span>
+            <span aria-hidden />
+          </div>
+        </header>
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-16">
-        <div className="w-full max-w-sm text-center">
+        <section style={{ padding: '30px 20px 48px', display: 'flex', flexDirection: 'column' }}>
           {error ? (
             <>
-              <p
-                className="text-[14px] font-bold mb-3"
-                style={{ color: 'var(--sale)' }}
-              >
-                {error}
-              </p>
+              <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#B3261E' }}>{error}</p>
               <button
                 type="button"
                 onClick={close}
-                className="px-5 py-2.5 text-[13px] font-bold"
-                style={{
-                  background: 'var(--ink)',
-                  color: 'var(--bg)',
-                  borderRadius: 4,
-                }}
+                style={{ marginTop: 18, alignSelf: 'flex-start', height: 56, padding: '0 22px', border: 0, borderRadius: 4, background: '#141414', color: '#FFFFFF', fontFamily: 'inherit', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}
               >
                 정기배송 관리로 돌아가기
               </button>
             </>
           ) : !method ? (
             /* ── 고르기 = 곧바로 열기 ──────────────────────────────────
-               예전엔 고른 뒤 "○○로 등록하려면 다음을 눌러주세요" 확인 화면을
-               한 번 더 뒀다. 두 가지가 문제였다(사장님 2026-07-30):
-                ① 그 문구가 **토스 자체 화면의 문구와 거의 같아서**, 우리
-                   화면을 토스 화면으로 착각하게 만들었다("우리 앱 컬러로
-                   나와버리는데 왜이래"). 남의 화면을 흉내내면 안 된다.
-                ② 토스페이는 토스가 이미 같은 안내 화면을 띄운다 → '다음'을
-                   두 번 누르게 된다.
-               **버튼을 누르는 것 자체가 사용자 제스처**라, 여기서 바로 열어도
-               iOS 이동 차단에 걸리지 않는다. 확인 화면은 없앴다. */
+               예전엔 고른 뒤 "○○로 등록하려면 다음을 눌러주세요" 확인 화면을 한 번 더 뒀다(사장님 2026-07-30 —
+               토스 자체 화면 문구와 같아 착각을 만들었고, 토스페이는 '다음'을 두 번 누르게 했다). **버튼을 누르는 것 자체가
+               사용자 제스처**라 여기서 바로 열어도 iOS 이동 차단에 걸리지 않는다. 확인 화면은 없앴다. */
             <>
-              <p
-                className="text-[19px] font-black"
-                style={{ color: 'var(--ink)', letterSpacing: '-0.025em' }}
-              >
+              <h1 className="d" style={{ margin: 0, fontSize: 36, lineHeight: 1.1 }}>
                 결제수단을 골라주세요
-              </p>
-              <p
-                className="text-[12px] mt-2 leading-relaxed"
-                style={{ color: 'var(--muted)' }}
-              >
-                등록해두면 <strong>2주마다</strong> 자동으로 결제돼요.
+              </h1>
+              <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>
+                등록해두면 <strong style={{ fontWeight: 800, color: '#141414' }}>2주마다</strong> 자동으로 결제돼요.
                 <br />
-                다음 결제 전까지 해지할 수 있어요.
+                등록만 하는 단계라 지금 결제되지 않아요.
               </p>
-
-              {/* 정기결제 고지 — 금액 · 주기 · 첫 결제일 */}
-              <div
-                className="mt-4 px-4 py-3 text-left"
-                style={{
-                  background: 'var(--bg-3)',
-                  border: '1px solid var(--rule)',
-                }}
-              >
-                <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                  결제 금액
-                </p>
-                <p
-                  className="text-[15px] font-black mt-0.5"
-                  style={{ color: 'var(--ink)' }}
-                >
-                  {terms?.amount != null && !hasOneTimeDiscount(terms) && terms.discountLabel && terms.listAmount != null && (
-                    <span
-                      className="mr-1.5 line-through"
-                      style={{ color: 'var(--muted)', fontWeight: 600 }}
-                    >
-                      {terms.listAmount.toLocaleString()}원
-                    </span>
-                  )}
-                  {termsAmountText(terms)}
-                </p>
-                <p
-                  className="text-[11.5px] mt-1.5 leading-relaxed"
-                  style={{ color: 'var(--muted)' }}
-                >
-                  {firstChargeText(terms)}
-                  <br />
-                  {termsNoteText(terms)}
-                </p>
-              </div>
+              {/* 정기결제 고지 — 금액 · 주기 · 첫 결제일 · 법정 링크(정본 하나 — 예전엔 이 갈래만 링크 없는 사본이었다). */}
+              <RecurringTerms terms={terms} />
               <NoCancelConsentCheck checked={noCancelAgreed} onChange={setNoCancelAgreed} />
-              <div className="mt-6 flex flex-col gap-2.5 text-left">
+              <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {AVAILABLE.map((m) => {
-                  // 토스페이는 **토스 브랜드 색**으로 — 카드와 나란히 두면
-                  // 회색 카드 두 장이라 구분이 안 됐다(사장님 "너무 똑같애").
+                  // 토스페이는 **토스 브랜드 색**으로 — 카드와 나란히 두면 구분이 안 됐다(사장님 "너무 똑같애").
                   // 로고 이미지는 토스 브랜드 자산이라 임의로 만들지 않는다.
-                  const brand = m.brandColor
                   const busy = launchingId === m.id
                   return (
                     <button
@@ -847,29 +783,26 @@ function BillingAuthInner() {
                       type="button"
                       onClick={() => void launch(m.id)}
                       disabled={!!launchingId || !noCancelAgreed}
-                      className="w-full px-5 py-4 border text-left transition-opacity active:opacity-70 disabled:opacity-60"
                       style={{
-                        borderColor: brand ?? 'var(--rule)',
-                        background: brand ?? 'transparent',
+                        minHeight: 64,
+                        padding: '10px 18px',
+                        boxSizing: 'border-box',
+                        border: 0,
                         borderRadius: 4,
+                        background: m.brandColor ?? '#141414',
+                        color: '#FFFFFF',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        gap: 2,
+                        opacity: launchingId || !noCancelAgreed ? 0.4 : 1,
+                        cursor: launchingId || !noCancelAgreed ? 'default' : 'pointer',
                       }}
                     >
-                      <span
-                        className="block text-[14px] font-bold"
-                        style={{ color: brand ? '#fff' : 'var(--ink)' }}
-                      >
-                        {busy ? '여는 중이에요...' : m.label}
-                      </span>
-                      <span
-                        className="block text-[11.5px] mt-1"
-                        style={{
-                          color: brand
-                            ? 'rgba(255,255,255,0.82)'
-                            : 'var(--muted)',
-                        }}
-                      >
-                        {m.hint}
-                      </span>
+                      <span style={{ fontSize: 18, fontWeight: 800 }}>{busy ? '여는 중이에요...' : m.label}</span>
+                      <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.82)' }}>{m.hint}</span>
                     </button>
                   )
                 })}
@@ -878,81 +811,89 @@ function BillingAuthInner() {
               <button
                 type="button"
                 onClick={close}
-                className="mt-5 text-[12px] underline"
-                style={{ color: 'var(--muted)' }}
+                style={{ marginTop: 10, alignSelf: 'center', height: 44, padding: '0 12px', border: 0, background: 'transparent', color: '#595959', fontFamily: 'inherit', fontSize: 15, textDecoration: 'underline', cursor: 'pointer' }}
               >
                 나중에 등록할게요
               </button>
             </>
           ) : (
-            /* ── 수단이 하나뿐이거나 ?method= 로 지정돼 들어온 경우 ──
-               고를 게 없어 클릭할 대상이 없다 → 열기 버튼 하나를 둔다.
-               문구는 **우리 말투로** 쓴다(토스 화면 흉내 금지). */
+            /* ── 수단이 하나뿐이거나 ?method= 로 지정돼 들어온 경우 ── 고를 게 없어 열기 버튼 하나. 문구는 **우리 말투로**
+               (토스 화면 흉내 금지). */
             <>
-              <p
-                className="text-[19px] font-black"
-                style={{ color: 'var(--ink)', letterSpacing: '-0.025em' }}
-              >
+              <h1 className="d" style={{ margin: 0, fontSize: 36, lineHeight: 1.1 }}>
                 결제수단 등록
-              </p>
-              <p
-                className="text-[12px] mt-2 leading-relaxed"
-                style={{ color: 'var(--muted)' }}
-              >
+              </h1>
+              <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>
                 {method.hint}.
                 <br />
                 등록만 하는 단계라 지금 결제되지 않아요.
               </p>
-              {/* ★법정 고지 — 이 화면이 실제로 카드를 등록하는 자리다.
-                  선택 화면에만 있던 고지가 카드 전용 전환 후 도달 불가가 됐다. */}
+              {/* ★법정 고지 — 이 화면이 실제로 카드를 등록하는 자리다. */}
               <RecurringTerms terms={terms} />
               <NoCancelConsentCheck checked={noCancelAgreed} onChange={setNoCancelAgreed} />
               <button
                 type="button"
                 onClick={() => void launch(method.id)}
                 disabled={!!launchingId || !noCancelAgreed}
-                className="mt-7 w-full py-4 text-[14px] font-bold disabled:opacity-60"
                 style={{
-                  background: method.brandColor ?? 'var(--ink)',
-                  color: method.brandColor ? '#fff' : 'var(--bg)',
+                  marginTop: 22,
+                  height: 60,
+                  border: 0,
                   borderRadius: 4,
+                  background: method.brandColor ?? '#141414',
+                  color: '#FFFFFF',
+                  fontFamily: 'inherit',
+                  fontSize: 18,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: launchingId || !noCancelAgreed ? 0.4 : 1,
+                  cursor: launchingId || !noCancelAgreed ? 'default' : 'pointer',
                 }}
               >
+                <AppCardIcon size={20} />
                 {launchingId ? '여는 중이에요...' : `${method.label} 등록하기`}
               </button>
+              <span style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, color: '#595959' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="5" y="11" width="14" height="9" rx="1.5" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                카드 등록은 토스페이먼츠 화면에서 해요
+              </span>
               <ConsentNeededHint show={!noCancelAgreed} />
               {!onlyOne && !launchingId && (
                 <button
                   type="button"
                   onClick={() => setChosen(null)}
-                  className="mt-4 text-[12px] underline"
-                  style={{ color: 'var(--muted)' }}
+                  style={{ marginTop: 10, alignSelf: 'center', height: 44, padding: '0 12px', border: 0, background: 'transparent', color: '#595959', fontFamily: 'inherit', fontSize: 15, textDecoration: 'underline', cursor: 'pointer' }}
                 >
                   다른 결제수단으로
                 </button>
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
     </main>
   )
 }
 
 export default function BillingAuthPage() {
-  // 불러오는 동안의 바탕도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
-  const appLook = useServerAppContext()
+  // 불러오는 동안 흰 바탕·먹색 원 — 앱 새 디자인·웹 리뉴얼(2026-10-10) 둘 다.
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
+          style={{ background: '#FFFFFF' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: appLook ? V3.ink : 'var(--terracotta)',
+              borderColor: V3.ink,
               borderTopColor: 'transparent',
             }}
           />

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Smartphone, ArrowRight, Heart, Bell, BookOpen } from 'lucide-react'
 import AppRequiredAutoRecover from '@/components/AppRequiredAutoRecover'
+import StoreShell from '@/components/store/StoreShell'
 
 export const metadata: Metadata = {
   title: '앱에서 사용 가능한 기능이에요',
@@ -18,7 +18,7 @@ type SearchParams = Promise<{ from?: string }>
  * 원래 가려던 경로가 들어옴 — Universal Links / App Links 가 설정된 후엔 앱
  * 설치 + 첫 실행 시 이 경로로 deep-link 가능.
  *
- * 디자인: 마케팅 + 파머스독(FD) 톤. 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
+ * 디자인: 웹 시안 WEB-A27(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀, 강한 다운로드 CTA + 앱이 무엇을 주는지 짧게.
  */
 /**
  * 스토어 URL — **두 앱 모두 출시됐으므로 코드에 박는다**(2026-09-08 사장님 제보:
@@ -44,231 +44,108 @@ export default async function AppRequiredPage({
   const { from } = await searchParams
   const fromLabel = from ? friendlyLabel(from) : null
 
+  // 모양 = 웹 시안 WEB-A27(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 검은 네모 표식 → 앱 전용 머리말(숲색 = 앱 세계) →
+  //   큰 제목 → 숲색 띠(앱이 해 주는 일 세 줄 + 공식 스토어 배지) → 웹으로 계속하기.
   return (
-    <main
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-16 md:py-24"
-      style={{ background: 'var(--bg)' }}
-    >
-      {/* ★진짜 앱 사용자가 이 벽에 떨어진 경우(첫 실행·쿠키 만료) 자동 복구.
-          웹 사용자에겐 아무 일도 안 일어난다 — 컴포넌트 docstring 참조. */}
+    <StoreShell>
+      {/* ★진짜 앱 사용자가 이 벽에 떨어진 경우(첫 실행·쿠키 만료) 자동 복구. 웹 사용자에겐 아무 일도 안 일어난다. */}
       <AppRequiredAutoRecover />
-      <div className="max-w-md md:max-w-2xl w-full text-center">
-        {/* 큰 아이콘 */}
-        <div
-          className="w-20 h-20 md:w-28 md:h-28 mx-auto rounded-3xl flex items-center justify-center mb-6 md:mb-9"
-          style={{
-            background: 'var(--ink)',
-            color: 'var(--bg)',
-          }}
-        >
-          <Smartphone className="w-9 h-9 md:w-12 md:h-12" strokeWidth={1.75} />
-        </div>
-
-        {/* kicker */}
-        <div
-          className="text-[10px] md:text-[12px]"
-          style={{
-            fontWeight: 700,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--terracotta)',
-          }}
-        >
-          App Only · 앱 전용 기능
-        </div>
-
-        {/* 헤드라인 */}
-        <h1
-          className="font-serif mt-3 md:mt-5 leading-tight text-[28px] md:text-[44px] lg:text-[52px]"
-          style={{
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.03em',
-          }}
-        >
-          {fromLabel
-            ? `${fromLabel}${eunNeun(fromLabel)}`
-            : '이 기능은'}
+      <section style={{ padding: '40px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <span aria-hidden style={{ width: 72, height: 72, background: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="2.5" width="12" height="19" rx="2.5" />
+            <path d="M10.5 18.5h3" />
+          </svg>
+        </span>
+        <span style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#595959' }}>
+          <span aria-hidden style={{ width: 8, height: 8, background: '#1D3B2F' }} />
+          앱 전용 기능
+        </span>
+        <h1 className="d" style={{ margin: '10px 0 0', fontSize: 38, lineHeight: 1.15 }}>
+          {fromLabel ? `${fromLabel}${eunNeun(fromLabel)}` : '이 기능은'}
           <br />
-          <span
-            className="italic"
-            style={{ color: 'var(--terracotta)', fontWeight: 700 }}
-          >
-            앱에서 사용 가능해요
-          </span>
+          앱에서 쓸 수 있어요
         </h1>
-
-        <p
-          className="mt-4 md:mt-6 leading-relaxed text-[13px] md:text-[16px] max-w-xl mx-auto"
-          style={{
-            color: 'var(--text)',
-          }}
-        >
-          매일의 케어 기록 · 정밀 영양 분석 · 건강 수첩 같은 도구는
-          <br className="hidden md:block" />
-          {' '}파머스테일 앱에서만 제공돼요.
+        <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>
+          매일의 케어 기록 · 정밀 영양 분석 · 건강 수첩 같은 도구는 파머스테일 앱에서만 제공돼요.
         </p>
-
         {/* 정기배송 관리는 웹 계정에서도 가능 (2026-06-27 /account/subscriptions 신설) —
             앱 설치 없이 해결하러 온 사용자를 막다른 길에 두지 않는다. */}
         {from?.startsWith('/mypage/subscriptions') && (
-          <p className="mt-3 text-[12.5px] md:text-[14px]" style={{ color: 'var(--muted)' }}>
+          <p style={{ margin: '12px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
             정기배송 관리는{' '}
-            <Link
-              href="/account/subscriptions"
-              className="font-bold underline underline-offset-2"
-              style={{ color: 'var(--terracotta)' }}
-            >
+            <Link href="/account/subscriptions" style={{ fontWeight: 800, color: '#141414', textDecoration: 'underline', textUnderlineOffset: 3 }}>
               웹 계정에서도
-            </Link>
-            {' '}할 수 있어요.
+            </Link>{' '}
+            할 수 있어요.
           </p>
         )}
+      </section>
 
-        {/* 기능 미리보기 */}
-        <ul
-          className="mt-8 md:mt-12 space-y-3 md:grid md:grid-cols-3 md:gap-4 md:space-y-0 text-left"
-          style={{ color: 'var(--text)' }}
-        >
-          <Feature
-            Icon={Heart}
-            title="우리 아이 케어 기록"
-            desc="식사·활동·체중을 한 번 입력하면 변화 그래프로 보여드려요."
-          />
-          <Feature
-            Icon={Bell}
-            title="배송일 자동 알림"
-            desc="다음 정기배송이 출발하기 전에 알려드려요."
-          />
-          <Feature
-            Icon={BookOpen}
-            title="우리 아이 맞춤 매거진"
-            desc="품종·연령에 맞는 영양 정보를 정기적으로 큐레이션."
-          />
+      <section style={{ marginTop: 36, padding: '32px 20px 36px', background: '#1D3B2F', color: '#FFFFFF', display: 'flex', flexDirection: 'column' }}>
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: '1px solid rgba(255,255,255,0.25)', display: 'flex', flexDirection: 'column' }}>
+          <Feature title="우리 아이 케어 기록" desc="식사·활동·체중을 한 번 입력하면 변화 그래프로 보여드려요." />
+          <Feature title="배송일 자동 알림" desc="다음 정기배송이 출발하기 전에 알려드려요." />
+          <Feature title="우리 아이 맞춤 매거진" desc="품종·나이에 맞는 영양 정보를 꾸준히 골라 드려요." />
         </ul>
-
-        {/**
-         * 다운로드 배지 — **스토어 출시 전에는 감춘다** (2026-08-12 4라운드 감사).
-         *
-         * 앱이 아직 스토어에 없어 두 링크가 모두 404 다. 이 화면은 앱 전용 경로로
-         * 들어온 웹 고객이 도착하는 벽이고, 메일·푸시 CTA 도 여기로 온다 — 즉
-         * **유일한 행동이 죽은 링크**였다. 출시하면 env 두 개를 채운다:
-         *   NEXT_PUBLIC_IOS_APP_URL · NEXT_PUBLIC_ANDROID_APP_URL
-         * 값이 없으면 아래 대체 안내(웹으로 계속하기)만 남는다.
-         *
-         * ★2026-09-01 현재 — 안드로이드는 프로덕션 출시됐고
-         *   NEXT_PUBLIC_ANDROID_APP_URL 을 Vercel Production 에 넣었다.
-         *   그 전까지는 **배지가 하나도 없어 웹→앱 동선이 전부 막다른 길**이었다
-         *   (출시 전 감사 실측). iOS 는 심사 통과 후 같은 방식으로 채운다.
-         *   ⚠️ NEXT_PUBLIC_* 은 **빌드 시점에 박힌다** — env 만 넣고 재배포를
-         *   안 하면 화면은 그대로 비어 있다.
-         */}
-        {/* ★공식 스토어 배지로 교체 (2026-09-05 사장님: "공식 버튼 같은 걸로").
-            Apple 정식 SVG(ko-KR, 원본 높이 40)·Google Play 공식 배지(ko).
-            구글 배지는 아트워크 안에 여백이 포함돼 있어 같은 시각 높이가
-            되려면 애플보다 약 1.21배 높게 렌더해야 한다(250/40 비율 실측).
-            두 배지 모두 가이드라인상 변형 금지 — 이미지 그대로, 링크만. */}
-        {(IOS_URL || ANDROID_URL) && (
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3 md:mt-14 md:gap-4">
-            {IOS_URL && (
-              <a
-                href={IOS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="active:scale-[0.98] transition"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/badge-appstore-ko.svg"
-                  alt="App Store에서 다운로드"
-                  className="h-12 w-auto md:h-[52px]"
-                />
-              </a>
-            )}
-            {ANDROID_URL && (
-              <a
-                href={ANDROID_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="active:scale-[0.98] transition"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/badge-googleplay-ko.png"
-                  alt="Google Play에서 다운로드"
-                  className="h-[58px] w-auto md:h-[63px]"
-                />
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* 웹으로 계속 — 앱 소개(/why-app) + 마케팅 페이지 회귀 */}
-        <div className="mt-8 flex items-center justify-center gap-5">
-          <Link
-            href="/why-app"
-            className="inline-flex items-center gap-1.5 text-[12px] font-bold transition hover:underline"
-            style={{ color: 'var(--terracotta)' }}
-          >
-            앱이 뭘 하는지 미리 보기
-            <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-[12px] font-bold transition hover:underline"
-            style={{ color: 'var(--muted)' }}
-          >
-            웹에서 제품 둘러보기
-            <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
-          </Link>
+        {/* ★공식 스토어 배지(2026-09-05 사장님: "공식 버튼 같은 걸로") — 가이드라인상 변형 금지, 이미지 그대로 링크만.
+            구글 배지는 아트워크 안에 여백이 있어 같은 시각 높이가 되려면 애플보다 약 1.21배 높게(250/40 실측). */}
+        <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <a href={IOS_URL} target="_blank" rel="noopener noreferrer" aria-label="App Store에서 받기" style={{ height: 60, borderRadius: 4, background: '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/badge-appstore-ko.svg" alt="App Store에서 다운로드" style={{ height: 40, width: 'auto', display: 'block' }} />
+          </a>
+          <a href={ANDROID_URL} target="_blank" rel="noopener noreferrer" aria-label="Google Play에서 받기" style={{ height: 60, borderRadius: 4, background: '#0B0B0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/badge-googleplay-ko.png" alt="Google Play에서 다운로드" style={{ height: 48, width: 'auto', display: 'block' }} />
+          </a>
         </div>
-      </div>
-    </main>
+      </section>
+
+      {/* 웹으로 계속 — 앱 소개(/app) · 가게(웹은 단품 가게, 2026-10-10) */}
+      <nav aria-label="웹에서 계속하기" style={{ padding: '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+        <Link
+          href="/app"
+          style={{ minHeight: 60, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, fontWeight: 800, color: '#141414', textDecoration: 'none' }}
+        >
+          앱이 뭘 하는지 미리 보기
+          <Chevron />
+        </Link>
+        <Link
+          href="/store"
+          style={{ minHeight: 60, borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, fontWeight: 700, color: '#3D3D3D', textDecoration: 'none' }}
+        >
+          웹에서 제품 둘러보기
+          <Chevron />
+        </Link>
+      </nav>
+    </StoreShell>
   )
 }
 
-function Feature({
-  Icon,
-  title,
-  desc,
-}: {
-  Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  title: string
-  desc: string
-}) {
+function Chevron() {
   return (
-    <li className="flex items-start gap-3 md:flex-col md:gap-3 md:p-5 md:rounded-2xl md:border md:border-rule md:bg-bg-2 md:text-center md:items-center">
-      <div
-        className="w-9 h-9 md:w-12 md:h-12 shrink-0 rounded-xl flex items-center justify-center mt-0.5"
-        style={{
-          background: 'var(--bg-2)',
-          color: 'var(--terracotta)',
-        }}
-      >
-        <Icon className="w-4 h-4 md:w-5 md:h-5" strokeWidth={2} />
-      </div>
-      <div className="flex-1 md:flex-none">
-        <div
-          className="font-bold text-[13px] md:text-[15px]"
-          style={{ color: 'var(--ink)' }}
-        >
-          {title}
-        </div>
-        <div
-          className="mt-1 md:mt-1.5 leading-relaxed text-[11.5px] md:text-[12.5px]"
-          style={{ color: 'var(--muted)' }}
-        >
-          {desc}
-        </div>
-      </div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+/** 앱이 해 주는 일 한 줄(시안 A27) — 숲색 띠 위 흰 체크 · 굵은 이름 · 연한 설명. */
+function Feature({ title, desc }: { title: string; desc: string }) {
+  return (
+    <li style={{ padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,0.25)', display: 'grid', gridTemplateColumns: '28px 1fr', columnGap: 10, alignItems: 'start' }}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A9C4B2" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ marginTop: 2 }}>
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      </svg>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <strong style={{ fontSize: 18, fontWeight: 800 }}>{title}</strong>
+        <span style={{ fontSize: 16, lineHeight: 1.55, color: '#C9D6CD' }}>{desc}</span>
+      </span>
     </li>
   )
 }
 
-/**
- * `/dashboard` 같은 기술 경로를 사용자에게 보여줄 라벨로 변환.
- * 변환 못 하는 경로면 null 반환 → 일반 카피로 폴백.
- */
 /**
  * 한글 받침 유무로 "은/는" 조사 자동 결정. 한글이 아닌 단어로 끝나면 안전한
  * fallback "은" 반환. friendlyLabel 결과가 매번 다른 받침을 가지므로

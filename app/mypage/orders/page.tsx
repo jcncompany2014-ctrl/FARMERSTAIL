@@ -1,16 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import * as Sentry from '@sentry/nextjs'
-import { Package, ShoppingBag } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import AuthAwareShell from '@/components/AuthAwareShell'
+import SiteShell from '@/components/store/SiteShell'
 import { isAppContextServer } from '@/lib/app-context'
-import OrdersAppView, {
-  type OrderRow as AppOrderRow,
-} from './OrdersAppView'
+import OrdersAppView, { type OrderRow as AppOrderRow } from './OrdersAppView'
 
+/**
+ * 주문 내역 — 웹·앱이 같이 쓰는 주소.
+ * ★2026-10-10 웹 리뉴얼: 웹도 앱 새 디자인 목록(OrdersAppView — 필터 탭·주문 카드)을 새 웹 가게 틀(SiteShell)에 담는다.
+ *  웹은 제목 한 줄을 더하고, 빈 화면 안내는 가게로(variant 'web'). 예전 웹 판(통계 칩·에디토리얼 목록)은 git 이력에 있다.
+ *  웹 가게 주문(FTS-)·정기배송 주문이 같은 목록에 보인다(같은 계정).
+ */
 // (cache-bust: Turbopack 가 편집 중간 파스 실패 청크를 캐시해 강제 재컴파일)
 export const dynamic = 'force-dynamic'
 
@@ -18,53 +20,6 @@ export const metadata: Metadata = {
   title: '주문 내역',
   description: '내 주문 내역',
   robots: { index: false, follow: false },
-}
-
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  pending: '결제 대기',
-  preparing: '상품 준비 중',
-  shipping: '배송 중',
-  delivered: '배송 완료',
-  cancelled: '취소됨',
-}
-
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  pending: '결제 대기',
-  paid: '결제 완료',
-  failed: '결제 실패',
-  cancelled: '결제 취소',
-  partially_refunded: '부분 환불',
-  refunded: '환불',
-}
-
-function statusBadge(status: string) {
-  switch (status) {
-    case 'paid':
-    case 'delivered':
-      return 'bg-moss text-white'
-    case 'preparing':
-    case 'shipping':
-      return 'bg-terracotta text-white'
-    case 'pending':
-      return 'bg-gold text-text'
-    case 'failed':
-    case 'cancelled':
-    case 'refunded':
-      return 'bg-sale text-white'
-    default:
-      return 'bg-rule text-text'
-  }
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    // 서버 컴포넌트 기본 UTC → 자정 직후 주문이 전날로 보이는 off-by-one 방지.
-    timeZone: 'Asia/Seoul',
-  })
 }
 
 export default async function OrdersPage() {
@@ -76,8 +31,7 @@ export default async function OrdersPage() {
 
   if (!user) redirect('/login?next=/mypage/orders')
 
-  // 앱: 상단 헤더(← 주문 내역)가 제목/뒤로가기를 담당 → 본문 중복 헤더 제거.
-  // 웹: per-screen 헤더가 없으므로 editorial 뒤로가기 + serif 제목 유지.
+  // 앱: 상단 헤더(← 주문 내역)가 제목/뒤로가기를 담당 → 본문 제목 없음. 웹: 본문 제목 한 줄.
   const isApp = await isAppContextServer()
 
   const { data: orders, error } = await supabase
@@ -114,388 +68,66 @@ export default async function OrdersPage() {
     // range 페이지네이션은 후속.
     .limit(50)
 
+  const title = !isApp && (
+    <h1 className="d" style={{ margin: 0, padding: '28px 20px 0', fontSize: 34, lineHeight: 1.1 }}>
+      주문 내역
+    </h1>
+  )
+
   if (error) {
     // 고객에게는 안 보여주되 나는 알아야 한다 — 원본은 Sentry 로만.
-    Sentry.captureException(
-      new Error(`[mypage.orders] ${error.message}`),
-      { tags: { area: 'mypage-orders' } },
-    )
-    if (isApp) {
-      // 앱 — 앱엔 '마이페이지'라는 이름이 없다(앱시안 결정 3번 '동작'). 정기배송 탭의 불러오기 실패(S14)와 같은 꼴.
-      return (
-        <AuthAwareShell>
-          <main className="pb-8">
-            <section
-              role="alert"
-              style={{
-                margin: '24px 20px 0',
-                padding: '22px 20px 20px',
-                border: '1.5px solid #C63D2A',
-                borderRadius: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                color: '#141414',
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.25 }}>주문 내역을 불러오지 못했어요</h2>
-              <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
-                잠시 뒤에 다시 열어 봐 주세요. 계속 이러면 고객센터로 알려 주시면 바로 확인할게요.
-              </p>
-              <Link
-                href="/help"
-                style={{
-                  marginTop: 18,
-                  height: 56,
-                  borderRadius: 4,
-                  background: '#141414',
-                  color: '#FFFFFF',
-                  fontSize: 17,
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                고객센터로 가기
-              </Link>
-            </section>
-          </main>
-        </AuthAwareShell>
-      )
-    }
+    Sentry.captureException(new Error(`[mypage.orders] ${error.message}`), { tags: { area: 'mypage-orders' } })
+    // 앱엔 '마이페이지'라는 이름이 없다(앱시안 결정 3번 '동작'). 정기배송 탭의 불러오기 실패(S14)와 같은 꼴 — 웹도 같은 꼴.
     return (
-      <AuthAwareShell>
-        <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
-          <div className="px-5 pt-5 md:px-6">
-            <div className="bg-white rounded-xl border border-rule px-5 py-5">
-              <p className="text-[13px] font-bold text-sale">
-                주문 내역을 불러오지 못했어요
-              </p>
-              {/* 계획 C5 — DB 원본 에러(error.message)를 고객에게 그대로 보여주던
-                  자리. 테이블·컬럼명 같은 내부 정보가 새고 고객은 읽어도 뭘
-                  해야 할지 모른다. 할 수 있는 행동만 알려준다(audit #69 패턴). */}
-              <p className="text-[11px] text-muted mt-1.5">
-                잠시 후 새로고침해 주세요. 계속 이러면 마이페이지 &gt; 문의하기로
-                알려주시면 바로 확인할게요.
-              </p>
-            </div>
-          </div>
-        </main>
-      </AuthAwareShell>
-    )
-  }
-
-  // '다시 주문' 스트립 제거 (2026-07-16) — 담을 장바구니가 없다(/cart 는 구독 전용
-  // 전환으로 /start 리다이렉트). 이 블록은 그 스트립 하나 때문에 products 를 한 번 더
-  // 조회하던 추가 쿼리였다.
-
-  return (
-    <AuthAwareShell>
-    <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
-      {/* 헤더 — 앱은 윗줄(← 주문 내역)이 제목·뒤로가기를 맡아 본문 머리가 없다(2026-10-09 앱 새 디자인 M07 — 예전 앱
-          머리말 'Orders' 는 영어라 뺐다, 앱시안 결정 3번). 웹은 아래 그대로. */}
-      {!isApp && (
-      <section className="px-5 pt-6 pb-2 md:px-6">
-        {(
-          <>
-            <Link
-              href="/mypage"
-              className="text-[11px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-            >
-              ← 내 정보
-            </Link>
-            <span className="kicker mt-3 block">Orders</span>
-            <h1
-              className="font-serif mt-1.5"
-              style={{
-                fontSize: 22,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              주문 내역
-            </h1>
-          </>
-        )}
-      </section>
-      )}
-
-      {/* 앱: 필터 탭 + 다시주문 스트립 + 목록을 OrdersAppView 가 담당.
-          웹: 아래 기존 통계 + 목록 그대로(에디토리얼 톤 불변). */}
-      {isApp ? (
-        <OrdersAppView
-          orders={(orders ?? []) as unknown as AppOrderRow[]}
-        />
-      ) : (
-      <>
-      {/* 상태별 통계 — 진행 중 (preparing/shipping) / 완료 / 취소
-          0건 카드는 자동 숨김. 모두 0 이면 섹션 비표시. */}
-      {(() => {
-        const ongoing = (orders ?? []).filter(
-          (o) =>
-            o.payment_status === 'paid' &&
-            (o.order_status === 'preparing' || o.order_status === 'shipping'),
-        ).length
-        const delivered = (orders ?? []).filter(
-          (o) => o.order_status === 'delivered',
-        ).length
-        const cancelled = (orders ?? []).filter(
-          (o) =>
-            o.order_status === 'cancelled' ||
-            o.payment_status === 'cancelled' ||
-            o.payment_status === 'refunded',
-        ).length
-        const total = orders?.length ?? 0
-        if (total === 0) return null
-        return (
-          <section className="px-5 mt-3 md:px-6">
-            <div className="grid grid-cols-3 gap-2">
-              <StatChip
-                kicker="전체"
-                value={total}
-                tone="ink"
-              />
-              <StatChip
-                kicker="진행 중"
-                value={ongoing}
-                tone="terracotta"
-                highlight={ongoing > 0}
-              />
-              <StatChip
-                kicker={cancelled > 0 ? '취소·환불' : '완료'}
-                value={cancelled > 0 ? cancelled : delivered}
-                tone={cancelled > 0 ? 'sale' : 'moss'}
-              />
-            </div>
-          </section>
-        )
-      })()}
-
-      {!orders || orders.length === 0 ? (
-        <section className="px-5 mt-14">
-          <div
-            className="rounded-2xl border px-5 py-12 text-center"
+      <SiteShell>
+        <main className="pb-8">
+          {title}
+          <section
+            role="alert"
             style={{
-              background: 'var(--bg-2)',
-              borderColor: 'var(--rule-2)',
-              borderStyle: 'dashed',
+              margin: '24px 20px 0',
+              padding: '22px 20px 20px',
+              border: '1.5px solid #C63D2A',
+              borderRadius: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              color: '#141414',
             }}
           >
-            <div
-              className="w-14 h-14 mx-auto rounded-full flex items-center justify-center"
-              style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--rule-2)',
-              }}
-            >
-              <Package
-                className="w-6 h-6 text-muted"
-                strokeWidth={1.5}
-              />
-            </div>
-            <span className="kicker mt-4 block">Empty</span>
-            <p
-              className="font-serif mt-2"
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
-              }}
-            >
-              아직 주문 내역이 없어요
+            <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.25 }}>주문 내역을 불러오지 못했어요</h2>
+            <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
+              잠시 뒤에 다시 열어 봐 주세요. 계속 이러면 고객센터로 알려 주시면 바로 확인할게요.
             </p>
-            <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
-              첫 주문을 시작해 보세요
-            </p>
-            {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브로.
-                단 **웹이면 /dogs 가 아니다**(2026-08-02 검수). /dogs 는 앱 전용
-                라우트(proxy APP_ONLY_PREFIXES)라, 웹 고객이 "정기배송 시작하기"를
-                누르면 구독을 시작하는 대신 **앱 설치 벽(/app-required)** 을 맞았다.
-                이 화면은 웹도 들어오는 몇 안 되는 mypage 라우트다(MYPAGE_WEB_ALLOWED
-                — 환불 정책이 "마이페이지 > 주문내역"으로 안내하는 바로 그 화면).
-                웹의 같은 허브는 /account/dogs — 강아지별 '신청'·'관리' CTA 를 준다. */}
             <Link
-              href={isApp ? '/dogs' : '/account/dogs'}
-              className="mt-5 inline-block px-6 py-2.5 rounded-full text-[12px] font-bold active:scale-[0.98] transition"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
+              href={isApp ? '/help' : '/contact'}
+              style={{
+                marginTop: 18,
+                height: 56,
+                borderRadius: 4,
+                background: '#141414',
+                color: '#FFFFFF',
+                fontSize: 17,
+                fontWeight: 800,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              정기배송 시작하기
+              고객센터로 가기
             </Link>
-          </div>
-        </section>
-      ) : (
-        <section className="px-5 md:px-6 mt-3">
-          <ul className="space-y-2.5 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-            {orders.map((order) => {
-              type OrderItemRow = {
-                id: string
-                product_name: string
-                product_image_url: string | null
-                quantity: number
-                unit_price: number
-              }
-              const items: OrderItemRow[] = Array.isArray(order.order_items)
-                ? (order.order_items as OrderItemRow[])
-                : []
-              const firstItem = items[0]
-              const extraCount = items.length - 1
-
-              const displayStatus =
-                order.payment_status === 'paid'
-                  ? order.order_status
-                  : order.payment_status
-              const label =
-                order.payment_status === 'paid'
-                  ? ORDER_STATUS_LABEL[order.order_status] ??
-                    order.order_status
-                  : PAYMENT_STATUS_LABEL[order.payment_status] ??
-                    order.payment_status
-
-              return (
-                <li key={order.id} className="md:h-full">
-                  {/* UI audit #2: grid 자식 h-full + flex-col 으로 row 높이 통일.
-                      짧은 카드 / 긴 카드 (외 N건) 가 같은 행에서 baseline 어긋남 차단. */}
-                  <Link
-                    href={`/mypage/orders/${order.id}`}
-                    className="block md:h-full bg-white rounded-xl border border-rule px-4 py-4 md:px-5 md:py-5 hover:border-text transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-3 md:mb-4">
-                      <span className="text-[11px] md:text-[12.5px] text-muted font-bold">
-                        {formatDate(order.created_at)}
-                      </span>
-                      <span
-                        className={`text-[10px] md:text-[11px] font-black px-2 py-0.5 md:px-2.5 md:py-1 rounded-md ${statusBadge(
-                          displayStatus
-                        )}`}
-                      >
-                        {label}
-                      </span>
-                    </div>
-
-                    {firstItem && (
-                      <div className="flex gap-3 md:gap-4">
-                        <div className="relative shrink-0 w-14 h-14 md:w-20 md:h-20 rounded-lg bg-bg overflow-hidden flex items-center justify-center">
-                          {firstItem.product_image_url ? (
-                            <Image
-                              src={firstItem.product_image_url}
-                              alt={firstItem.product_name}
-                              fill
-                              sizes="(max-width: 768px) 56px, 80px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <ShoppingBag
-                              className="w-6 h-6 md:w-8 md:h-8 text-muted"
-                              strokeWidth={1.5}
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] md:text-[14px] font-bold text-text line-clamp-1">
-                            {firstItem.product_name}
-                            {extraCount > 0 && (
-                              <span className="text-muted">
-                                {' '}외 {extraCount}건
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] md:text-[11px] text-muted mt-0.5 md:mt-1 font-mono">
-                            {order.order_number}
-                          </p>
-                          <div className="mt-1 md:mt-2 flex items-baseline gap-1">
-                            <span
-                              className="font-serif text-[14px] md:text-[18px] tabular-nums"
-                              style={{
-                                fontWeight: 800,
-                                color: 'var(--terracotta)',
-                                letterSpacing: '-0.015em',
-                              }}
-                            >
-                              {order.total_amount.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] md:text-[12px] text-muted">
-                              원
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
-      </>
-      )}
-    </main>
-    </AuthAwareShell>
-  )
-}
-
-/**
- * StatChip — 헤더 상태 통계 카드. 0 도 표시 (전체 한 번에 보기 좋음).
- * tone 'terracotta' + highlight 이면 sale 색 강조 + 도트 (사용자 액션 필요).
- */
-function StatChip({
-  kicker,
-  value,
-  tone,
-  highlight,
-}: {
-  kicker: string
-  value: number
-  tone: 'ink' | 'terracotta' | 'moss' | 'sale'
-  highlight?: boolean
-}) {
-  const colorMap = {
-    ink: 'var(--ink)',
-    terracotta: 'var(--terracotta)',
-    moss: 'var(--moss)',
-    sale: 'var(--sale)',
+          </section>
+        </main>
+      </SiteShell>
+    )
   }
-  const accent = colorMap[tone]
+
   return (
-    <div
-      className="rounded-xl border px-3 py-2.5 transition relative"
-      style={{
-        background: highlight
-          ? `color-mix(in srgb, ${accent} 6%, white)`
-          : 'white',
-        borderColor: highlight ? accent : 'var(--rule)',
-      }}
-    >
-      <div
-        className="text-[10px] font-bold uppercase tracking-widest"
-        style={{ color: accent }}
-      >
-        {kicker}
-      </div>
-      <div className="mt-1 flex items-baseline gap-0.5">
-        <span
-          className="font-serif tabular-nums leading-none"
-          style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.015em',
-          }}
-        >
-          {value}
-        </span>
-        <span className="text-[10px] text-muted">건</span>
-      </div>
-      {highlight && value > 0 && (
-        <span
-          aria-hidden
-          className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
-          style={{ background: accent }}
-        />
-      )}
-    </div>
+    <SiteShell>
+      <main className="pb-8">
+        {title}
+        <OrdersAppView orders={(orders ?? []) as unknown as AppOrderRow[]} variant={isApp ? 'app' : 'web'} />
+      </main>
+    </SiteShell>
   )
 }

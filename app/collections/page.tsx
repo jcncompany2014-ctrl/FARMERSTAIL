@@ -14,7 +14,9 @@ import { permanentRedirect } from 'next/navigation'
  *  앱/웹 분기처럼 조건에 따라 달라지는 리다이렉트와, /reviews 같은 **임시**
  *  숨김은 307(`redirect`)을 유지해야 한다 — 308 은 브라우저가 영구 캐시해서
  *  조건이 바뀌어도 계속 튕긴다.
+ *
+ * ★2026-10-10 웹 리뉴얼(웹 = 단품 가게): 목적지를 새 가게(/store)로 바꿨다. 옛 주소는 그대로 308.
  */
 export default function CollectionsPage() {
-  permanentRedirect('/start')
+  permanentRedirect('/store')
 }

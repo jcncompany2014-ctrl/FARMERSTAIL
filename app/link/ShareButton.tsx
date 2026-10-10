@@ -34,15 +34,33 @@ export default function ShareButton() {
     <button
       type="button"
       onClick={share}
-      aria-label={copied ? '링크가 복사되었어요' : '페이지 공유'}
-      className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-[#1E1A14] shadow-[0_2px_10px_rgba(0,0,0,0.12)] backdrop-blur transition active:scale-95"
+      aria-label={copied ? '링크가 복사되었어요' : '이 페이지 공유하기'}
+      // 모양 = 웹 시안 WEB-C12(2026-10-10) — 흰 동그라미 48px · 회색 테.
+      className="transition active:scale-95"
+      style={{
+        position: 'absolute',
+        right: 12,
+        top: 12,
+        zIndex: 10,
+        width: 48,
+        height: 48,
+        boxSizing: 'border-box',
+        borderRadius: 24,
+        border: '1px solid #E5E5E5',
+        background: '#FFFFFF',
+        color: '#141414',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+      }}
     >
       {copied ? (
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="m5 12 5 5L20 7" />
         </svg>
       ) : (
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 3v13" />
           <path d="m7 8 5-5 5 5" />
           <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />

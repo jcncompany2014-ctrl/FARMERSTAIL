@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
-import { fetchPayment, type TossPaymentStatus } from '@/lib/payments/toss'
+import { fetchPayment, merchantForOrderNumber, type TossPaymentStatus } from '@/lib/payments/toss'
 import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 // R91-D #1 (D7): amount mismatch / 위변조는 fatal alert helper 로 통일.
@@ -78,7 +78,8 @@ export async function POST(req: Request) {
 
   // 1) Re-fetch payment from Toss — this is our truth source.
   //    lib/payments/toss 가 auth 헤더와 base URL을 책임.
-  const lookup = await fetchPayment(paymentKey)
+  //    ★웹 가게 주문(FTS-)은 결제위젯 계약 키로 조회한다(규칙172) — 위젯 가맹점의 웹훅도 이 주소로 온다.
+  const lookup = await fetchPayment(paymentKey, merchantForOrderNumber(orderId))
   if (!lookup.ok) {
     // Toss API itself returned an error — don't trust the webhook.
     // Return 500 so Toss retries; if it's a permanent 4xx the retry

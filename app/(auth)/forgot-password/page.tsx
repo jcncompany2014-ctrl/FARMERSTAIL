@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import AuthHero from '@/components/auth/AuthHero'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
 import ForgotPasswordAppView from '@/components/v3/auth/ForgotPasswordAppView'
+import ForgotPasswordWebView from '@/components/store/ForgotPasswordWebView'
 
 /**
  * /forgot-password — 비밀번호 재설정 메일 발송 (R89-E D7).
@@ -96,147 +94,15 @@ export default function ForgotPasswordPage() {
     )
   }
 
+  // 웹 = 웹 시안 WEB-A03·A04(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 예전 웹 판(AuthHero)은 git 이력.
   return (
-    <main
-      className="min-h-screen flex flex-col items-center justify-center px-6 py-10 md:py-16"
-      style={{ background: 'var(--fd-offwhite)' }}
-    >
-      <div className="w-full max-w-sm md:max-w-md">
-        <AuthHero
-          kicker="Reset · 비밀번호 재설정"
-          title={<>비밀번호 찾기</>}
-          subtitle="가입한 이메일을 입력하시면 재설정 링크를 보내드려요."
-        />
-
-        {submitted ? (
-          <div
-            className="rounded-xl px-4 py-5 mb-5"
-            style={{
-              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
-              boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
-            }}
-          >
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2
-                className="w-4 h-4 shrink-0 mt-0.5"
-                strokeWidth={2.25}
-                color="var(--fd-green)"
-              />
-              <div className="min-w-0">
-                <p
-                  className="text-[12.5px] font-bold leading-relaxed"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
-                  메일을 보냈어요
-                </p>
-                <p
-                  className="text-[11.5px] mt-2 leading-relaxed"
-                  style={{ color: 'var(--fd-muted)' }}
-                >
-                  {email} 로 재설정 링크를 보냈어요. 메일이 안 보이면
-                  스팸함도 확인해 주세요. 링크는 1시간 동안 유효해요.
-                </p>
-                <p
-                  className="text-[11px] mt-3 leading-relaxed"
-                  style={{ color: 'var(--fd-muted)' }}
-                >
-                  (가입하지 않은 이메일은 메일이 발송되지 않아요.)
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                className="block text-[11px] font-bold mb-1.5"
-                htmlFor="forgot-email"
-                style={{ color: 'var(--fd-pine)' }}
-              >
-                이메일
-              </label>
-              <input
-                id="forgot-email"
-                type="email"
-                required
-                autoComplete="email"
-                inputMode="email"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                enterKeyHint="go"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border text-[16px] focus:outline-none transition"
-                style={{
-                  borderColor: 'var(--fd-line)',
-                  background: '#FFFFFF',
-                  color: 'var(--fd-pine)',
-                }}
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--fd-coral)')
-                }
-                onBlur={(e) =>
-                  (e.currentTarget.style.borderColor = 'var(--fd-line)')
-                }
-                placeholder="example@email.com"
-              />
-            </div>
-
-            {error && (
-              <div
-                role="alert"
-                aria-live="assertive"
-                className="text-[12px] font-bold rounded-lg px-3.5 py-2.5 flex items-start gap-2"
-                style={{
-                  color: 'var(--sale)',
-                  background:
-                    'color-mix(in srgb, var(--sale) 6%, transparent)',
-                  boxShadow:
-                    'inset 0 0 0 1px color-mix(in srgb, var(--sale) 25%, transparent)',
-                }}
-              >
-                <AlertCircle
-                  className="w-4 h-4 shrink-0 mt-0.5"
-                  strokeWidth={2.5}
-                />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full font-bold text-[14px] active:translate-y-[1px] transition-all disabled:opacity-50"
-              style={{
-                height: 56,
-                borderRadius: 9999,
-                background: 'var(--fd-pine)',
-                color: '#FFFFFF',
-                letterSpacing: '-0.01em',
-                boxShadow: '0 6px 18px -8px rgba(23,59,51,0.5)',
-              }}
-            >
-              {loading ? '발송 중...' : '재설정 메일 보내기'}
-            </button>
-          </form>
-        )}
-
-        <div
-          className="text-center mt-8 text-[12.5px]"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          비밀번호가 기억나셨나요?{' '}
-          <Link
-            href="/login"
-            className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--fd-coral-text)' }}
-          >
-            로그인
-          </Link>
-        </div>
-      </div>
-    </main>
+    <ForgotPasswordWebView
+      submitted={submitted}
+      email={email}
+      onEmailChange={setEmail}
+      loading={loading}
+      error={error}
+      onSubmit={handleSubmit}
+    />
   )
 }

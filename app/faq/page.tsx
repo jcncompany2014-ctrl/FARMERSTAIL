@@ -1,14 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
 import JsonLd from '@/components/JsonLd'
 import { buildFaqJsonLd, buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import SiteShell from '@/components/store/SiteShell'
+import StoreFaq from '@/components/store/StoreFaq'
+import { STORE_FAQ } from '@/lib/store/faq'
 import { isAppContextServer } from '@/lib/app-context'
-import StickyCta from '@/components/web/fd/StickyCta'
-import { Button, Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
-import { planHref } from '@/lib/funnel-cta'
 import { V3, V3Radius } from '@/lib/design/tokens'
 import { MeCss, SCREEN_ROOT } from '@/components/v3/me/MeParts'
 import { MinusIcon, PlusIcon, TalkIcon } from '@/components/v3/me/MeIcons'
@@ -204,54 +203,6 @@ const FALLBACK_GROUPS: Group[] = [
   },
 ]
 
-function FaqItem({ q, a, last }: { q: string; a: string; last: boolean }) {
-  return (
-    <details
-      className="group"
-      style={{
-        background: '#FFFFFF',
-        borderLeft: '1px solid var(--fd-line)',
-        borderRight: '1px solid var(--fd-line)',
-        borderTop: '1px solid var(--fd-line)',
-        borderBottom: last ? '1px solid var(--fd-line)' : 'none',
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        padding: '18px 20px',
-      }}
-    >
-      <summary
-        className="flex items-start justify-between gap-3 cursor-pointer list-none"
-        style={{ color: 'var(--fd-pine)' }}
-      >
-        <span className="flex-1 text-[14px] md:text-[16px]" style={{ fontWeight: 700, letterSpacing: '-0.015em' }}>
-          {q}
-        </span>
-        <span
-          aria-hidden
-          className="shrink-0 mt-0.5 transition-transform group-open:rotate-45 text-[20px] leading-none"
-          style={{ color: 'var(--fd-coral)' }}
-        >
-          +
-        </span>
-      </summary>
-      <p className="mt-3 whitespace-pre-line text-[13px] md:text-[14.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.7 }}>
-        {a}
-      </p>
-    </details>
-  )
-}
-
-/**
- * 앱(PWA) 전용 FAQ 본문 — 앱 chrome(AppChrome) 안에서 앱 네이티브 톤으로.
- *
- * 왜 별도 렌더인가(사장님 2026-07-22):
- *  1. AppChrome 헤더 바가 이미 '자주 묻는 질문' 제목을 보여준다 → 웹 FD 히어로의
- *     `<Display>자주 묻는 질문</Display>` 을 그대로 쓰면 **제목이 두 번** 뜬다. 본문엔
- *     중복 h1 없이 짧은 안내만.
- *  2. 웹 FD 컴포넌트(Section/Container/Eyebrow)는 앱에서 '웹 화면'처럼 보인다 →
- *     앱 토큰(bg-bg-3·rounded-[12px]·text-text/muted)로 /help 와 같은 톤.
- *  3. 문의하기가 웹 /contact 로 튀던 걸 앱 고객센터 허브(/help)로 — 앱 안에서 해결.
- */
 function FaqItemApp({ q, a }: { q: string; a: string }) {
   // 접힘/펼침 모양(회색 면 · 굵기 · + ↔ −)은 details[open] 선택자로 — MeCss 의 .ft-me-faq 규칙.
   return (
@@ -348,10 +299,6 @@ function FaqAppView({ groups }: { groups: Group[] }) {
 
 export default async function FaqPage() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isAuthed = !!user
   // 앱(PWA) 컨텍스트면 앱 chrome 으로 렌더 → FAQ 눌러도 웹으로 안 넘어감(사장님 2026-07-16).
   // 웹 마케팅 전환 요소(하단 CTA·StickyCta)는 앱에선 하단 탭과 겹치고 부적절 → 웹 전용.
   const isApp = await isAppContextServer()
@@ -391,100 +338,69 @@ export default async function FaqPage() {
   // 웹 마케팅 히어로·JSON-LD·CTA 는 웹 전용(아래).
   if (isApp) return <FaqAppView groups={groups} />
 
+  // 웹 — 2026-10-10 웹 리뉴얼(웹 = 단품 가게): 맨 위에 '웹에서 살 때'(가게 기준 — 숫자는 코드 정본 lib/store),
+  // 그 아래 DB FAQ. DB 답은 **앱 정기배송 기준**(화요일 발송·배송비 포함·카드 자동결제)이라 '앱 정기배송' 제목 아래로 묶어
+  // 가게 기준(화·목 출고·배송비 4,000원)과 헷갈리지 않게 한다. 식단·영양은 둘 다 해당돼 앞에 둔다.
+  const storeGroup: Group = { title: '웹에서 살 때', items: STORE_FAQ }
+  const general = groups.filter((g) => g.title.includes('식단'))
+  const subs = groups.filter((g) => !g.title.includes('식단'))
   const faqLd = buildFaqJsonLd(
-    groups.flatMap((g) => g.items).map((it) => ({ question: it.q, answer: it.a })),
+    [storeGroup, ...general, ...subs].flatMap((g) => g.items).map((it) => ({ question: it.q, answer: it.a })),
   )
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '자주 묻는 질문', path: '/faq' },
   ])
+  const jump = [storeGroup, ...general, ...subs]
 
   return (
-    <AuthAwareShell>
-      <main>
-        <JsonLd id="ld-faq" data={faqLd} />
-        <JsonLd id="ld-faq-crumbs" data={crumbLd} />
-
-        {/* Hero */}
-        <Section bg="offwhite" pad="md">
-          <Container size="md">
-            <Eyebrow>FAQ</Eyebrow>
-            <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              자주 묻는 질문
-            </Display>
-            <p className="pt-4 text-[14px] md:text-[16px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}>
-              원하는 답이 없다면{' '}
-              <Link href="/contact" className="underline underline-offset-2" style={{ color: 'var(--fd-coral-text)', fontWeight: 700 }}>
-                문의하기
-              </Link>
-              로 메시지를 보내주세요. 평일 영업일 24시간 이내 답변드립니다.
-            </p>
-
-            {/* 카테고리 바로가기(점프 링크) — FD /faq 패턴. 긴 FAQ 를 카테고리
-                섹션으로 빠르게 이동. 그룹이 2개 이상일 때만 노출. */}
-            {groups.length > 1 && (
-              <nav aria-label="질문 카테고리 바로가기" className="mt-6 flex flex-wrap gap-2">
-                {groups.map((g, i) => (
-                  <a
-                    key={g.title}
-                    href={`#faq-${i}`}
-                    className="rounded-full text-[12px] md:text-[12.5px] font-bold no-underline transition hover:opacity-80"
-                    style={{
-                      padding: '7px 14px',
-                      background: '#FFFFFF',
-                      color: 'var(--fd-pine)',
-                      border: '1px solid var(--fd-line)',
-                    }}
-                  >
-                    {g.title}
-                  </a>
-                ))}
-              </nav>
-            )}
-          </Container>
-        </Section>
-
-        {/* Groups */}
-        <Section bg="cream" pad="md">
-          <Container size="md">
-            {groups.map((g, i) => (
-              <div key={g.title} id={`faq-${i}`} className="mb-9 md:mb-12 last:mb-0 scroll-mt-24">
-                <h2 className="mb-4 text-[18px] md:text-[22px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>
-                  {g.title}
-                </h2>
-                <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                  {g.items.map((it, i) => (
-                    <FaqItem key={it.q} q={it.q} a={it.a} last={i === g.items.length - 1} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </Container>
-        </Section>
-
-        {/* CTA — 웹 전용(앱엔 하단 탭이 있어 전환 CTA 중복·부적절). */}
-        {!isApp && (
-          <Section bg="pine" pad="md">
-            <Container size="md">
-              <div className="text-center">
-                <Display size="md" style={{ color: '#FFFFFF' }}>
-                  아직 고민 중이신가요?
-                </Display>
-                <p className="pt-3 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 420, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
-                  2분 설문이면 우리 아이에게 맞는 식단을 바로 확인할 수 있어요.
-                </p>
-                <div className="pt-7 flex justify-center">
-                  <Button href={planHref(!!isAuthed, false)} tone="coral" size="lg">
-                    2분 설문 시작하기
-                    <ArrowRight size={19} strokeWidth={2.4} />
-                  </Button>
-                </div>
-              </div>
-            </Container>
-          </Section>
-        )}
-      </main>
-      {!isApp && <StickyCta href={planHref(!!isAuthed, false)} />}
-    </AuthAwareShell>
+    <SiteShell>
+      <JsonLd id="ld-faq" data={faqLd} />
+      <JsonLd id="ld-faq-crumbs" data={crumbLd} />
+      <div style={{ padding: '28px 20px 0' }}>
+        <h1 className="d" style={{ margin: 0, fontSize: 36, lineHeight: 1.1 }}>
+          자주 묻는 질문
+        </h1>
+        <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>
+          원하는 답이 없다면{' '}
+          <Link href="/contact" style={{ color: '#141414', fontWeight: 800 }}>
+            문의하기
+          </Link>
+          로 알려 주세요. 영업일 하루 안에 답해 드려요.
+        </p>
+        <nav aria-label="질문 묶음 바로가기" style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {jump.map((g, i) => (
+            <a key={g.title} href={`#faq-${i}`} style={{ height: 40, padding: '0 14px', borderRadius: 4, border: '1px solid #BDBDBD', display: 'flex', alignItems: 'center', fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none' }}>
+              {g.title}
+            </a>
+          ))}
+        </nav>
+      </div>
+      {[storeGroup, ...general].map((g, i) => (
+        <div key={g.title} id={`faq-${i}`} style={{ scrollMarginTop: 64 }}>
+          <StoreFaq title={g.title} items={g.items} />
+        </div>
+      ))}
+      {subs.length > 0 && (
+        <div style={{ margin: '8px 0 0', padding: '28px 0 0', background: '#F6F4F5' }}>
+          <p style={{ margin: 0, padding: '0 20px', fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
+            아래는 <strong style={{ color: '#1D3B2F' }}>앱 정기배송</strong> 기준이에요. 웹에서 사는 단품은 위 &lsquo;웹에서 살 때&rsquo;를 봐 주세요.
+          </p>
+          {subs.map((g, i) => (
+            <div key={g.title} id={`faq-${i + 1 + general.length}`} style={{ scrollMarginTop: 64 }}>
+              <StoreFaq title={g.title.startsWith('정기배송') ? g.title : `정기배송 · ${g.title}`} items={g.items} />
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ padding: '8px 20px 64px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <Link href="/store" style={{ height: 56, borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, textDecoration: 'none' }}>
+          레시피 보러 가기
+        </Link>
+        <Link href="/contact" style={{ height: 56, borderRadius: 4, border: '1.5px solid #141414', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, textDecoration: 'none' }}>
+          문의하기
+        </Link>
+      </div>
+    </SiteShell>
   )
 }

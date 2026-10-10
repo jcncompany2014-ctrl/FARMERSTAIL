@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
-import { cancelPayment } from '@/lib/payments/toss'
+import { cancelPayment, merchantForOrderNumber } from '@/lib/payments/toss'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 // R91-D #1 (D7): 환불 영구 실패 시 운영자 수동 개입 필수 → fatal alert helper
 // 로 Sentry rule 라우팅 가능하게.
@@ -121,10 +121,10 @@ async function runRefundRetry(): Promise<Response> {
     // succeeded 로 마무리하고 cancel 호출은 skip.
     const { data: orderRow, error: orderRowErr } = (await adminTyped
       .from('orders')
-      .select('payment_status')
+      .select('payment_status, order_number')
       .eq('id', row.order_id)
       .maybeSingle()) as {
-      data: { payment_status: string | null } | null
+      data: { payment_status: string | null; order_number: string | null } | null
       error: { message: string } | null
     }
     // ★조회 실패면 이 행을 **건드리지 않고** 다음 실행에 맡긴다(2026-08-05).
@@ -173,6 +173,8 @@ async function runRefundRetry(): Promise<Response> {
       //   횟수는 로그·큐 행에 남으니 사유에서 뺀다.
       cancelReason: `자동 환불 (${row.reason})`,
       cancelAmount: row.amount,
+      // 웹 가게 주문(FTS-)은 결제위젯 계약 키로(규칙172).
+      merchant: merchantForOrderNumber(orderRow?.order_number),
     })
 
     if (result.ok) {

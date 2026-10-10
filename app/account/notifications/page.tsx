@@ -7,6 +7,7 @@ import AuthAwareShell from '@/components/AuthAwareShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
 import ConsentWebClient from './ConsentWebClient'
+import StoreShell from '@/components/store/StoreShell'
 
 /**
  * /account/notifications — 웹 사용자용 광고·마케팅 수신 설정.
@@ -73,6 +74,24 @@ export default async function AccountNotificationsPage() {
    * 그래서 실패하면 토글 대신 안내를 띄운다.
    * (앱 화면 `app/(main)/notifications/page.tsx` 도 같은 이유로 함께 고쳤다.)
    */
+  if (profileRes.error && !isApp) {
+    // 웹(시안 WEB-A22 틀) — 실패 안내. 아래 앱 갈래와 같은 말.
+    return (
+      <NotificationsWebFrame>
+        <section role="alert" style={{ margin: '24px 20px 64px', padding: '22px 20px 20px', border: '1.5px solid #C63D2A', borderRadius: 4 }}>
+          <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 22, fontWeight: 800, letterSpacing: 'inherit' }}>수신 설정을 불러오지 못했어요</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
+            지금 상태를 알 수 없어서 화면을 그리지 않았어요 — 잘못 보여드리면 이미 껐다고 오해하실 수 있어서예요. 잠시 뒤 다시 열어 봐 주세요.
+            급하시면{' '}
+            <Link href="/contact" style={{ color: '#141414', fontWeight: 800 }}>
+              문의
+            </Link>{' '}
+            주시면 저희가 바로 꺼 드릴게요.
+          </p>
+        </section>
+      </NotificationsWebFrame>
+    )
+  }
   if (profileRes.error) {
     return (
       <AuthAwareShell>
@@ -117,6 +136,25 @@ export default async function AccountNotificationsPage() {
     agree_sms_at: string | null
     marketing_policy_version: string | null
   } | null
+
+  // 웹 = 웹 시안 WEB-A22(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 아래는 앱 갈래(메일 링크를 앱에서 연 경우).
+  if (!isApp) {
+    return (
+      <NotificationsWebFrame>
+        <section aria-label="수신 동의" style={{ padding: '24px 20px 64px' }}>
+          <ConsentWebClient
+            initial={{
+              agree_email: Boolean(profile?.agree_email),
+              agree_sms: Boolean(profile?.agree_sms),
+              agree_email_at: profile?.agree_email_at ?? null,
+              agree_sms_at: profile?.agree_sms_at ?? null,
+              marketing_policy_version: profile?.marketing_policy_version ?? null,
+            }}
+          />
+        </section>
+      </NotificationsWebFrame>
+    )
+  }
 
   return (
     <AuthAwareShell>
@@ -187,5 +225,29 @@ export default async function AccountNotificationsPage() {
         </Container>
       </main>
     </AuthAwareShell>
+  )
+}
+
+/** 웹 틀(시안 WEB-A22) — ← 내 계정 · 큰 제목 · 한 줄 설명. */
+function NotificationsWebFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <StoreShell>
+      <section style={{ padding: '12px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <Link
+          href="/account"
+          style={{ alignSelf: 'flex-start', minHeight: 48, marginLeft: -6, paddingRight: 8, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#3D3D3D', textDecoration: 'none' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          내 계정
+        </Link>
+        <h1 className="d" style={{ margin: '4px 0 0', fontSize: 36, lineHeight: 1.1 }}>
+          알림 · 수신 설정
+        </h1>
+        <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>광고·마케팅 정보를 받을지 채널마다 정할 수 있어요.</p>
+      </section>
+      {children}
+    </StoreShell>
   )
 }

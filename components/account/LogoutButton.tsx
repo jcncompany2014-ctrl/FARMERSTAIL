@@ -6,7 +6,8 @@ import { LogOut, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cleanupPushOnLogout } from '@/lib/capacitor'
 
-export default function LogoutButton() {
+/** look='web' — 웹 계정 화면(웹 시안 WEB-A19, 2026-10-10 웹 리뉴얼): 높이 48 · 회색 테 · 모서리 4. 기본은 예전 모양. */
+export default function LogoutButton({ look }: { look?: 'web' } = {}) {
   const router = useRouter()
   const supabase = createClient()
   const [busy, setBusy] = useState(false)
@@ -22,6 +23,35 @@ export default function LogoutButton() {
     setBusy(false)
     router.push('/')
     router.refresh()
+  }
+
+  if (look === 'web') {
+    return (
+      <button
+        type="button"
+        onClick={logout}
+        disabled={busy}
+        style={{
+          height: 48,
+          padding: '0 16px',
+          borderRadius: 4,
+          border: '1.5px solid #8A8A8A',
+          background: '#FFFFFF',
+          color: '#3D3D3D',
+          fontFamily: 'inherit',
+          fontSize: 16,
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: busy ? 'wait' : 'pointer',
+          opacity: busy ? 0.6 : 1,
+        }}
+      >
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.25} /> : <LogOut className="w-4 h-4" strokeWidth={2.25} />}
+        로그아웃
+      </button>
+    )
   }
 
   return (

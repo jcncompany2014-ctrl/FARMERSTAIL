@@ -3,7 +3,6 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
@@ -27,6 +26,7 @@ import { isEmailNotConfirmed } from '@/lib/auth/resend-confirmation'
 import ResendConfirmationButton from '@/components/auth/ResendConfirmationButton'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
 import { V3 } from '@/lib/design/tokens'
+import StoreShell from '@/components/store/StoreShell'
 import {
   AuthAppMain,
   AuthErrorBox,
@@ -39,17 +39,15 @@ import {
 } from '@/components/v3/auth/AuthAppParts'
 
 /**
- * /login — 기존 계정 로그인 (FD 2단 split 재설계, 회차129).
+ * /login — 기존 계정 로그인.
  *
- * 레이아웃: 데스크톱 좌 파인 브랜드 패널(로고 + Eyebrow + 헤드라인 + 혜택
- * 리스트 + PhotoSlot) / 우 폼 컬럼, 모바일은 위→아래로 스택. /signup 과 동일한
- * FD 언어 — components/web/fd 프리미티브(Eyebrow·PhotoSlot) + --fd-* 토큰만
- * 사용(옛 v4 토큰 0). 카카오·애플 OAuth 를 이메일 폼 위로 승격(한국 유저 단축
- * 경로). 에러/검증 상태는 signup 과 공유하는 destructive 토큰 --sale.
+ * 모양: 앱 = 앱 새 디자인('A 포스터', 캔버스 W06·W22~W24) · 웹 = 웹 시안 WEB-A01(2026-10-10 웹 리뉴얼 — 새 웹 가게 틀에
+ * 카카오(처음이면 1초 가입)·애플·이메일, 아래에 카카오 1초 가입 안내). 판정은 서버 레이아웃이 넘긴 값(첫 그림부터).
  *
  * 인증 로직은 보존(불변): soft-delete 가드 · Confirm-email 후 signup_profile
  * 복원(applySignupProfile) · app/web 분기(/dashboard vs /mypage/orders) ·
- * ?next= safe-redirect.
+ * ?next= safe-redirect. ★웹은 강아지(설문) 없이도 그대로 들어간다(웹 = 회원만 사는 단품 가게, 2026-10-10) —
+ * 강아지 없으면 설문으로 보내는 것은 앱만.
  */
 
 /**
@@ -118,7 +116,6 @@ function LoginInner() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   // Form-submission errors only — URL-driven errors are a derived value
   // below so we don't need a setState-in-effect round trip.
@@ -292,7 +289,8 @@ function LoginInner() {
     let destination = safeNext ?? (isApp ? '/dashboard' : '/mypage/orders')
     // 설문(=강아지) 없이 로그인한 신규/미완성 유저는 설문으로 (사장님 2026-06-16:
     // 설문 없이 진입 불가). 명시적 ?next=(예: /checkout) 가 있으면 그쪽 우선.
-    if (!safeNext && signedIn) {
+    // ★앱만(2026-10-10 웹 리뉴얼) — 웹은 회원만 사는 단품 가게라 강아지 없이도 주문 내역으로(웹 설문은 앱으로 옮겼다).
+    if (!safeNext && signedIn && (isApp || appLook)) {
       const { count } = await supabase
         .from('dogs')
         .select('id', { count: 'exact', head: true })
@@ -396,319 +394,119 @@ function LoginInner() {
     )
   }
 
+  // ── 웹(웹 시안 WEB-A01, 2026-10-10 웹 리뉴얼) — 새 웹 가게 틀에 카카오(처음이면 1초 가입)·애플·이메일.
+  //    로그인 처리(handleLogin)·소셜 목적지·안내 판정은 위 그대로. 웹은 회원만 사는 단품 가게라 '무료 맞춤 분석(설문)'
+  //    대신 카카오 1초 가입(/signup)으로 안내한다. 예전 FD 톤 판은 git 이력.
+  const notice = justReset || justDeleted
+  const signupHref = safeNextPath(searchParams.get('next'))
+    ? `/signup?next=${encodeURIComponent(safeNextPath(searchParams.get('next'))!)}`
+    : '/signup'
   return (
-    <main
-      className="min-h-screen flex flex-col"
-      style={{ background: 'var(--fd-offwhite)' }}
-    >
-      {/* 상단 로고 — 웹만. ★앱은 로고 헤더를 빼서 한 화면에 담는다(2026-07-19
-          사장님 폰: 로고 때문에 로그인 화면이 스크롤돼 "앱 느낌"이 퇴색). 네이티브
-          로그인은 큰 로고를 안 쓰고, "환영해요!" 헤드라인이 브랜드 모먼트를 대신. */}
-      {!isApp && (
-        <header className="flex items-center justify-center px-6 py-5">
-          <Link href="/" aria-label="파머스테일 홈" className="inline-flex">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-ink.png"
-              alt="Farmer's Tail"
-              className="h-8 w-auto"
-              fetchPriority="high"
-            />
-          </Link>
-        </header>
-      )}
-
-      {/* 본문 — FD식 단일 중앙 컬럼(좌우 브랜드 패널 없음). 앱은 세로 여백을
-          줄여 스크롤 없이 한 화면(웹은 기존 넉넉한 여백 유지). */}
-      <div
-        className={`flex-1 flex flex-col items-center px-6 ${
-          isApp
-            ? 'pt-[max(20px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))]'
-            : 'pb-20'
-        }`}
-      >
-        <div
-          className={`w-full max-w-[420px] mx-auto ${isApp ? '' : 'pt-4 lg:pt-10'}`}
-        >
-          {/* ★앱에도 로고를 세운다(2026-09-08 사장님: "맨 위에 로고 넣자, 좀
-              심심하다"). 2026-07-19 에 앱에서 뺐던 이유는 **로고 헤더가 화면을
-              밀어 스크롤을 만들었기** 때문이지 로고 자체가 아니었다 — 그래서
-              별도 header 가 아니라 본문 컬럼 안에 작게(h-6) 얹고, 헤드라인
-              상단 여백을 그만큼 줄여 한 화면에 남게 한다. */}
-          {isApp && (
-            <div className="flex justify-center mb-3.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo-ink.png"
-                alt="Farmer's Tail"
-                className="h-6 w-auto"
-                fetchPriority="high"
-              />
-            </div>
-          )}
-
-          {/* 헤드라인 — 큰 "환영해요!" 중앙 (FD "Welcome!" 대응, 균형 잡힌 크기). */}
-          <h1
-            className="text-center text-[clamp(36px,11vw,50px)]"
-            style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--fd-pine)' }}
-          >
-            환영해요!
-          </h1>
-          <p
-            className="text-center mt-3.5 text-[14px] md:text-[15px]"
-            style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}
-          >
-            로그인하고 우리 아이 식단 이어가기
-          </p>
-
-
-        {/* R89-E (D7): 비밀번호 재설정 완료 안내 — /reset-password → /login?reset=1 */}
+    <StoreShell>
+      <section style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h1 className="d" style={{ margin: 0, fontSize: 44, lineHeight: 1.05 }}>
+          환영해요!
+        </h1>
+        <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: '#3D3D3D' }}>로그인하면 주문과 배송을 한눈에 볼 수 있어요</p>
         {justReset && (
-          <div
-            className="mt-7 rounded-xl px-4 py-3.5"
-            style={{
-              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
-              boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
-            }}
-          >
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2
-                className="w-4 h-4 shrink-0 mt-0.5"
-                strokeWidth={2.25}
-                color="var(--fd-green)"
-              />
-              <div className="min-w-0">
-                <p
-                  className="text-[12px] font-bold"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
-                  비밀번호가 변경됐어요
-                </p>
-                <p
-                  className="text-[11px] mt-1 leading-relaxed"
-                  style={{ color: 'var(--fd-muted)' }}
-                >
-                  새 비밀번호로 로그인해 주세요.
-                </p>
-              </div>
-            </div>
-          </div>
+          <AuthNoticeBox title="비밀번호가 변경됐어요" style={{ marginTop: 16 }}>
+            새 비밀번호로 로그인해 주세요.
+          </AuthNoticeBox>
         )}
-
-        {/* 탈퇴 완료 안내 — /api/account/delete 후 router.replace('/login?deleted=1') */}
         {justDeleted && (
-          <div
-            className="mt-7 rounded-xl px-4 py-3.5"
-            style={{
-              background: 'color-mix(in srgb, var(--fd-green) 10%, transparent)',
-              boxShadow:
-                'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 30%, transparent)',
-            }}
-          >
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2
-                className="w-4 h-4 shrink-0 mt-0.5"
-                strokeWidth={2.25}
-                color="var(--fd-green)"
-              />
-              <div className="min-w-0">
-                <p
-                  className="text-[12px] font-bold"
-                  style={{ color: 'var(--fd-pine)' }}
-                >
-                  탈퇴가 완료됐어요
-                </p>
-                <p
-                  className="text-[11px] mt-1 leading-relaxed"
-                  style={{ color: 'var(--fd-muted)' }}
-                >
-                  그동안 파머스테일을 이용해 주셔서 감사해요. 언제든 다시 찾아
-                  주세요.
-                </p>
-              </div>
-            </div>
-          </div>
+          <AuthNoticeBox title="탈퇴가 완료됐어요" style={{ marginTop: 16 }}>
+            그동안 파머스테일을 이용해 주셔서 감사해요. 또 찾아 주시면 반갑게 맞을게요.
+          </AuthNoticeBox>
         )}
-
-        {/*
-          카카오 로그인 — 프라이머리 위치로 승격. signup 과 동일 원칙:
-          한국 유저는 카카오로 훨씬 빠르게 로그인하므로 이메일 폼 위로
-          올려 단축 경로로 둔다. 이메일은 카카오를 안 쓰는 유저를 위한
-          fallback.
-        */}
-        {/* next=/start/claim — 인증 후 라우팅 허브. 강아지 없으면 설문(/start)
-            으로 보내 "설문 없이 가입 불가" 보장(사장님 2026-06-16). 기존 카카오
-            회원은 강아지 보유 → 홈으로. */}
-        <div className="mt-9 space-y-3">
-          <KakaoLoginButton variant="login" next={socialNext} />
-          {/* Apple Guideline 4.8 — Kakao 와 동등 비중. iOS 빌드는 거부 사유
-              해소 위해 동일 화면 노출, 웹은 미국/일본 사용자 도움. */}
-          <AppleLoginButton variant="login" next={socialNext} />
+        <div style={{ marginTop: notice ? 16 : 28 }}>
+          <KakaoLoginButton variant="login" next={socialNext} look="app" label="카카오로 시작하기" />
         </div>
-
-        {/* 디바이더 — FD처럼 간결하게 "또는". 넉넉한 상하 여백으로 소셜/이메일 분리. */}
-        <div className="flex items-center gap-4 my-7">
-          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
-          <span style={{ color: 'var(--fd-muted)', fontSize: 12, fontWeight: 600 }}>
-            또는
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
+        <p style={{ margin: '10px 0 0', fontSize: 15, lineHeight: 1.5, color: '#3D3D3D', textAlign: 'center' }}>처음이어도 카카오로 1초 만에 가입돼요</p>
+        <div style={{ marginTop: 14 }}>
+          <AppleLoginButton variant="login" next={socialNext} look="app" />
         </div>
-
-        {/* 폼 — 흰 카드 대신 종이 톤 지면 위에 직접. */}
-        <form onSubmit={handleLogin} className="space-y-3.5">
-          {/* FD식 둥근 pill 인풋 — 라벨은 placeholder + aria-label(시각 미니멀·a11y 유지). */}
-          <input
-            type="email"
-            required
-            aria-label="이메일"
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            enterKeyHint="next"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-full border text-[15px] focus:outline-none transition"
-            style={{
-              height: 58,
-              paddingLeft: 22,
-              paddingRight: 22,
-              borderColor: 'var(--fd-line)',
-              background: '#FFFFFF',
-              color: 'var(--fd-pine)',
-            }}
-            onFocus={(e) =>
-              (e.currentTarget.style.borderColor = 'var(--fd-coral)')
-            }
-            onBlur={(e) =>
-              (e.currentTarget.style.borderColor = 'var(--fd-line)')
-            }
-            placeholder="이메일"
-          />
-
-          <div className="relative">
-            <input
-              type={showPw ? 'text' : 'password'}
+        <div style={{ margin: '30px 0 22px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span aria-hidden style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>또는 이메일로</span>
+          <span aria-hidden style={{ flex: 1, height: 1, background: '#E5E5E5' }} />
+        </div>
+        <form onSubmit={handleLogin} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 800 }}>이메일</span>
+            <AuthInput
+              type="email"
               required
-              aria-label="비밀번호"
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="next"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@email.com"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 800 }}>비밀번호</span>
+            <AuthPasswordInput
+              required
               autoComplete="current-password"
               enterKeyHint="go"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-full border text-[15px] focus:outline-none transition"
-              style={{
-                height: 58,
-                paddingLeft: 22,
-                paddingRight: 52,
-                borderColor: 'var(--fd-line)',
-                background: '#FFFFFF',
-                color: 'var(--fd-pine)',
-              }}
-              onFocus={(e) =>
-                (e.currentTarget.style.borderColor = 'var(--fd-coral)')
-              }
-              onBlur={(e) =>
-                (e.currentTarget.style.borderColor = 'var(--fd-line)')
-              }
-              placeholder="비밀번호"
             />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-label={showPw ? '비밀번호 숨기기' : '비밀번호 표시'}
-              className="absolute inset-y-0 right-2.5 my-auto h-10 w-10 flex items-center justify-center rounded-full hover:bg-black/5 transition"
-              style={{ color: 'var(--fd-muted)' }}
-              tabIndex={-1}
-            >
-              {showPw ? (
-                <EyeOff className="w-4 h-4" strokeWidth={2} />
-              ) : (
-                <Eye className="w-4 h-4" strokeWidth={2} />
-              )}
-            </button>
-          </div>
-
-          {error && (
-            <div
-              role="alert"
-              aria-live="assertive"
-              className="text-[12px] font-bold rounded-lg px-3.5 py-2.5"
-              style={{
-                color: 'var(--fd-coral-text)',
-                background: 'color-mix(in srgb, var(--sale) 6%, transparent)',
-                boxShadow:
-                  'inset 0 0 0 1px color-mix(in srgb, var(--sale) 25%, transparent)',
-              }}
-            >
-              {error}
-            </div>
-          )}
-          {unconfirmedEmail && formError && (
-            <ResendConfirmationButton email={unconfirmedEmail} className="text-center text-[12.5px]" />
-          )}
-
-          {/* 브랜드 기본 CTA = 코랄(사장님 2026-06-17 "초록 별로" → 사이트 표준
-              코랄로). 마케팅 전 CTA 와 통일·따뜻한 톤. */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full font-bold text-[15px] active:translate-y-[1px] transition-all disabled:opacity-50 mt-1"
-            style={{
-              height: 58,
-              borderRadius: 9999,
-              background: 'var(--fd-coral)',
-              color: '#FFFFFF',
-              letterSpacing: '-0.01em',
-              boxShadow: '0 6px 18px -8px rgba(242,103,75,0.5)',
-            }}
-          >
+          </label>
+          {error && <AuthErrorBox>{error}</AuthErrorBox>}
+          {unconfirmedEmail && formError && <ResendConfirmationButton email={unconfirmedEmail} className="text-center text-[12.5px]" />}
+          <AuthPrimaryButton type="submit" disabled={loading} style={{ marginTop: 4 }}>
             {loading ? '로그인 중...' : '로그인'}
-          </button>
+          </AuthPrimaryButton>
         </form>
-
-        {/* 하단 링크 — 회원가입 + 비밀번호 찾기 (R89-E D7). */}
-        <div
-          className="text-center mt-6 text-[12.5px]"
-          style={{ color: 'var(--fd-muted)' }}
+        <Link
+          href="/forgot-password"
+          style={{
+            alignSelf: 'center',
+            marginTop: 8,
+            minHeight: 48,
+            padding: '0 8px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: 16,
+            fontWeight: 700,
+            color: '#3D3D3D',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
         >
-          <Link
-            href="/forgot-password"
-            className="font-semibold underline underline-offset-2"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            비밀번호를 잊으셨나요?
-          </Link>
-        </div>
-        {/* FD 패턴 — 로그인은 기존 회원 전용. 신규는 "회원가입" 폼이 아니라
-            무료 분석(설문) 퍼널로만 진입(설문 없이 가입 불가, 사장님 2026-06-16).
-            FD 의 "New to The Farmer's Dog? → Build your plan" 대응. */}
-        <div className="mt-7 pt-6" style={{ borderTop: '1px solid var(--fd-line)' }}>
-          <p
-            className="text-center text-[14px]"
-            style={{ color: 'var(--fd-pine)', fontWeight: 800, letterSpacing: '-0.01em' }}
-          >
-            파머스테일이 처음이세요?
-          </p>
-          <Link
-            href="/start"
-            className="mt-3.5 mx-auto block text-center font-bold text-[13.5px] active:translate-y-[1px] transition-all"
-            style={{
-              maxWidth: 300,
-              padding: '14px 24px',
-              borderRadius: 9999,
-              border: '1.5px solid var(--fd-coral)',
-              color: 'var(--fd-coral-text)',
-              background: 'transparent',
-            }}
-          >
-            무료 맞춤 분석 시작하기
-          </Link>
-        </div>
-        </div>
-      </div>
-    </main>
+          비밀번호를 잊으셨나요?
+        </Link>
+      </section>
+
+      <section style={{ margin: '28px 20px 56px', padding: '20px 18px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <strong style={{ fontSize: 18, fontWeight: 800 }}>파머스테일이 처음이세요?</strong>
+        <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>카카오로 가입하면 웹에서 산 주문이 앱에서도 그대로 보여요.</span>
+        <Link
+          href={signupHref}
+          style={{
+            marginTop: 4,
+            height: 56,
+            boxSizing: 'border-box',
+            borderRadius: 4,
+            border: '2px solid #141414',
+            background: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 17,
+            fontWeight: 800,
+            color: '#141414',
+            textDecoration: 'none',
+          }}
+        >
+          카카오로 1초 가입
+        </Link>
+      </section>
+    </StoreShell>
   )
 }

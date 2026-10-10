@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import AuthAwareShell from "@/components/AuthAwareShell"
+import SiteShell from '@/components/store/SiteShell'
 import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
 import { isAppContextServer } from '@/lib/app-context'
 import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
@@ -37,7 +37,8 @@ export const metadata: Metadata = {
  *   AI 상담 · Anthropic 전송 범위(진료서·영수증 이미지 포함) · Supabase 저장 위치(서울 리전, get_project 실측) ·
  *   알림톡(솔라피·카카오) · Sentry 세션 리플레이(마스킹). 다음 개정부터는 다시 7일 전 공지.
  */
-const EFFECTIVE_DATE = '2026-10-02'
+// ★2026-10-10 — 웹 스토어 단품 결제 항목을 더했다(약관과 같은 날, 사장님 "이용자 없어" 즉시 시행). 시행일 = 배포일.
+const EFFECTIVE_DATE = '2026-10-10'
 
 /**
  * 개인정보처리방침.
@@ -60,7 +61,7 @@ export default async function PrivacyPage() {
   const Section = isApp ? AppSection : WebSection
   const UL = isApp ? AppUL : WebUL
   return (
-    <AuthAwareShell>
+    <SiteShell>
       <LegalFrame
         isApp={isApp}
         eyebrow="Privacy Policy"
@@ -123,7 +124,10 @@ export default async function PrivacyPage() {
               정기결제로 처리되며, 카드번호 전체 등 결제 수단 정보는 회사가
               저장하지 않습니다. 회사는 결제 상태, 거래 ID, 결제 금액, 카드사명,
               카드번호 끝 4자리, 정기결제용 빌링키(토스페이먼츠가 발급한
-              식별값), 정기결제 관련 동의 일시를 저장합니다.
+              식별값), 정기결제 관련 동의 일시를 저장합니다. 웹 스토어 단품은
+              토스페이먼츠 결제창에서 고른 신용·체크카드 또는 간편결제로 한 번에
+              결제되며, 회사는 결제 상태, 거래 ID, 결제 금액, 결제수단 종류를
+              저장합니다.
             </li>
             <li>
               <b>자동 수집:</b> 접속 IP, 접속 일시, 쿠키, 기기 정보,
@@ -946,6 +950,6 @@ export default async function PrivacyPage() {
           </p>
         </Section>
       </LegalFrame>
-    </AuthAwareShell>
+    </SiteShell>
   )
 }

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { orderReservedStock } from '@/lib/commerce/stock-gate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -254,7 +255,8 @@ async function runOrderExpire(): Promise<Response> {
      * (낱개 카탈로그가 부활해 예약을 다시 하게 되면, 그 주문에는
      *  subscription_id 가 없으므로 이 분기 그대로 복원된다.)
      */
-    const reservedStock = ord.subscription_id === null
+    // ★판정 정본 lib/commerce/stock-gate — 웹 가게 주문(FTS-)도 재고를 잡지 않는다(2026-10-10, 규칙172).
+    const reservedStock = orderReservedStock(ord)
     for (const it of itemsArr) {
       if (reservedStock) {
         await supabase.rpc('restore_stock', {

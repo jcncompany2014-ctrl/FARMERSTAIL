@@ -1,20 +1,22 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { BookOpen, ArrowUpRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import WebChrome from '@/components/WebChrome'
-import Reveal from '@/components/landing/Reveal'
+import StoreShell from '@/components/store/StoreShell'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
-import { Container, Display, Eyebrow, Section } from '@/components/web/fd/ui'
-import StickyCta from '@/components/web/fd/StickyCta'
-import { planHref } from '@/lib/funnel-cta'
 
 /**
- * /blog — 매거진 인덱스 (farm v6 = FD 톤 리스타일, 2026-06-13).
- * 데이터/로직(blog_categories·blog_posts·카테고리 필터·ISR) 보존, presentation만 FD.
- * 블로그 cover_url 은 실제 콘텐츠 이미지 → next/image 유지(placeholder 아님).
+ * /blog — 매거진 목록.
+ * 데이터/로직(blog_categories·blog_posts·카테고리 필터·ISR) 보존, 모양만 바꾼다.
+ * 블로그 cover_url 은 DB 의 실제 콘텐츠 이미지(Unsplash·Supabase Storage) → next/image 유지(큰 원본을 칸 크기로 줄여 받는다).
+ *
+ * # 2026-10-10 웹 리뉴얼 — 웹 시안 WEB-C08
+ * 가게 틀(StoreShell) 안에서 위에서부터: 머리말·큰 제목·소개 → 카테고리 단추 칸(전체 + DB 카테고리)
+ *   → 최신 글 한 편(큰 사진·'최신 글' 딱지) → 나머지 글 목록(먹선 아래 한 줄씩, 오른쪽 작은 사진).
+ * 글 제목·요약·날짜·카테고리 이름은 DB 그대로 보여 준다(우리가 고치지 않는다).
+ * 예전 하단 설문 버튼(StickyCta → /start)은 없앴다 — 웹 설문은 앱으로 옮겼다. 그 버튼 주소를 고르려고만 부르던
+ * 로그인 조회(getUser)도 같이 뺐다. 예전 FD 톤 판은 git 이력.
  */
 export const revalidate = 3600
 
@@ -73,18 +75,40 @@ function formatDate(iso: string | null) {
   })
 }
 
-const CARD: React.CSSProperties = {
-  background: '#FFFFFF',
-  border: '1px solid var(--fd-line)',
-  borderRadius: 8,
-  overflow: 'hidden',
+function Chevron({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
 }
 
-function CatLabel({ name }: { name: string }) {
+/** 카테고리 단추(시안 C08) — 높이 48 · 모서리 4 · 고른 것은 먹색 바탕 흰 글자, 나머지는 회색 테. */
+function CategoryButton({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--fd-green)' }}>
-      {name}
-    </span>
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
+      style={{
+        minHeight: 48,
+        padding: '0 4px',
+        boxSizing: 'border-box',
+        borderRadius: 4,
+        border: active ? '1px solid #141414' : '1px solid #BDBDBD',
+        background: active ? '#141414' : '#FFFFFF',
+        color: active ? '#FFFFFF' : '#141414',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        fontSize: 16,
+        fontWeight: active ? 800 : 700,
+        lineHeight: 1.2,
+        textDecoration: 'none',
+      }}
+    >
+      {children}
+    </Link>
   )
 }
 
@@ -95,8 +119,6 @@ export default async function BlogIndexPage({
 }) {
   const { category: catSlug } = await searchParams
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const isAuthed = !!user
 
   const { data: categories, error: catsErr } = await supabase
     .from('blog_categories')
@@ -118,6 +140,7 @@ export default async function BlogIndexPage({
   const rows = (posts ?? []) as Post[]
   const catById = new Map(cats.map((c) => [c.id, c]))
   const [hero, ...rest] = rows
+  const heroCat = hero?.category_id ? catById.get(hero.category_id) : undefined
 
   // 매거진 인덱스 BreadcrumbList(홈 › 매거진) — 다른 마케팅 페이지와 동일 패턴.
   // blog/[slug] 상세는 Article+Breadcrumb 보유했으나 인덱스 자체는 누락이었음(회차140).
@@ -126,146 +149,119 @@ export default async function BlogIndexPage({
     { name: '매거진', path: '/blog' },
   ])
 
+  // 카테고리 단추 칸 — 시안은 4칸 한 줄(전체 + 셋). DB 카테고리가 더 많으면 3칸씩 줄을 늘려 이름이 잘리지 않게 한다.
+  const navCols = cats.length + 1 <= 4 ? 4 : 3
+
   return (
-    <WebChrome>
-      <main>
-        <JsonLd id="ld-blog-crumbs" data={crumbLd} />
-        {/* Hero */}
-        <Section bg="offwhite" pad="sm">
-          <Container size="lg">
-            <Eyebrow>MAGAZINE</Eyebrow>
-            <Display as="h1" size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              파머스테일 매거진
-            </Display>
-            <p className="pt-3 text-[14px] md:text-[16px]" style={{ color: 'var(--fd-muted)', maxWidth: 520, lineHeight: 1.6 }}>
-              반려견 영양·건강·케어에 관한 파머스테일의 이야기.
-            </p>
+    <StoreShell>
+      <JsonLd id="ld-blog-crumbs" data={crumbLd} />
+      <div style={{ lineHeight: 'normal' }}>
+        {/* ── 머리말 · 큰 제목 · 소개 · 카테고리 ── */}
+        <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>매거진</span>
+          <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
+            파머스테일
+            <br />
+            매거진
+          </h1>
+          <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>반려견 영양·건강·돌봄에 관한 파머스테일의 이야기예요.</p>
+          <nav aria-label="카테고리" style={{ marginTop: 20, display: 'grid', gridTemplateColumns: `repeat(${navCols}, minmax(0, 1fr))`, gap: 6 }}>
+            <CategoryButton href="/blog" active={!activeCategory}>
+              전체
+            </CategoryButton>
+            {cats.map((c) => (
+              <CategoryButton key={c.id} href={`/blog?category=${c.slug}`} active={activeCategory?.id === c.id}>
+                {c.name}
+              </CategoryButton>
+            ))}
+          </nav>
+        </section>
 
-            {/* 카테고리 chips */}
-            <nav className="mt-6 flex gap-2 overflow-x-auto scrollbar-hide pb-1" aria-label="카테고리">
-              <Link
-                href="/blog"
-                aria-current={!activeCategory ? 'page' : undefined}
-                className="shrink-0 rounded-full text-[12px] font-bold whitespace-nowrap no-underline transition"
-                style={{
-                  padding: '8px 16px',
-                  background: !activeCategory ? 'var(--fd-pine)' : '#FFFFFF',
-                  color: !activeCategory ? '#FFFFFF' : 'var(--fd-pine)',
-                  border: '1px solid ' + (!activeCategory ? 'var(--fd-pine)' : 'var(--fd-line)'),
-                }}
-              >
-                전체
-              </Link>
-              {cats.map((c) => {
-                const active = activeCategory?.id === c.id
-                return (
-                  <Link
-                    key={c.id}
-                    href={`/blog?category=${c.slug}`}
-                    aria-current={active ? 'page' : undefined}
-                    className="shrink-0 rounded-full text-[12px] font-bold whitespace-nowrap no-underline transition"
-                    style={{
-                      padding: '8px 16px',
-                      background: active ? 'var(--fd-pine)' : '#FFFFFF',
-                      color: active ? '#FFFFFF' : 'var(--fd-pine)',
-                      border: '1px solid ' + (active ? 'var(--fd-pine)' : 'var(--fd-line)'),
-                    }}
-                  >
-                    {c.name}
-                  </Link>
-                )
-              })}
-            </nav>
-          </Container>
-        </Section>
-
-        {/* Posts */}
-        <Section bg="cream" pad="md">
-          <Container size="lg">
-            {rows.length === 0 ? (
-              <div
-                className="py-16 flex flex-col items-center text-center"
-                style={{ ...CARD, background: 'var(--fd-offwhite)', borderStyle: 'dashed' }}
-              >
-                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: '#FFFFFF' }}>
-                  <BookOpen className="w-5 h-5" strokeWidth={1.8} color="var(--fd-muted)" />
-                </div>
-                <Eyebrow color="var(--fd-muted)">COMING SOON</Eyebrow>
-                <p className="mt-2 text-[16px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>
-                  아직 게시된 글이 없어요
-                </p>
-                <p className="mt-1.5 text-[13px]" style={{ color: 'var(--fd-muted)' }}>
-                  {activeCategory ? `"${activeCategory.name}" 카테고리는 준비 중이에요` : '곧 첫 번째 이야기를 만나보세요.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-3 gap-5">
-                {/* Hero 최신글 — 2칸 차지 */}
-                {hero && (
-                  <Link href={`/blog/${hero.slug}`} className="md:col-span-3 group block no-underline" style={CARD}>
-                    <article className="grid md:grid-cols-2 md:items-stretch">
-                      <div className="relative aspect-[16/10] md:aspect-auto overflow-hidden" style={{ background: 'var(--fd-cream)', minHeight: 220 }}>
-                        {hero.cover_url ? (
-                          <Image src={hero.cover_url} alt={hero.title} fill priority sizes="(max-width:768px) 100vw, 560px" className="object-cover group-hover:scale-[1.02] transition-transform duration-500" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-12 h-12" strokeWidth={1.2} color="var(--fd-green)" style={{ opacity: 0.4 }} /></div>
-                        )}
-                      </div>
-                      <div className="p-6 md:p-8 flex flex-col justify-center">
-                        <div className="flex items-center gap-2">
-                          <span aria-hidden style={{ width: 16, height: 2, background: 'var(--fd-coral)' }} />
-                          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-coral-text)', textTransform: 'uppercase' }}>Latest</span>
-                          {hero.category_id && catById.get(hero.category_id) && <CatLabel name={catById.get(hero.category_id)!.name} />}
-                        </div>
-                        <h2 className="mt-3 text-[20px] md:text-[26px]" style={{ fontWeight: 900, color: 'var(--fd-pine)', letterSpacing: '-0.03em', lineHeight: 1.18 }}>
-                          {hero.title}
-                        </h2>
-                        {hero.excerpt && (
-                          <p className="mt-3 text-[13.5px] md:text-[15px] line-clamp-2" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                            {hero.excerpt}
-                          </p>
-                        )}
-                        <div className="mt-5 flex items-center justify-between">
-                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fd-muted)' }}>{formatDate(hero.published_at)}</span>
-                          <span className="inline-flex items-center gap-1" style={{ fontSize: 13, fontWeight: 800, color: 'var(--fd-coral-text)' }}>
-                            읽기 <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={2.5} />
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  </Link>
+        {rows.length === 0 || !hero ? (
+          <section style={{ padding: '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '36px 20px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6 }}>
+              <strong style={{ fontSize: 18, fontWeight: 800 }}>아직 게시된 글이 없어요</strong>
+              <span style={{ fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
+                {activeCategory ? `"${activeCategory.name}" 카테고리는 준비 중이에요` : '곧 첫 번째 이야기를 만나보세요.'}
+              </span>
+            </div>
+          </section>
+        ) : (
+          <>
+            {/* ── 최신 글 한 편 — 큰 사진 · '최신 글' 딱지 · 제목 · 요약 · 날짜/읽기 ── */}
+            <section style={{ padding: rest.length > 0 ? '28px 20px 0' : '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+              <Link href={`/blog/${hero.slug}`} style={{ display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }}>
+                {hero.cover_url && (
+                  <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '350 / 220', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                    <Image
+                      src={hero.cover_url}
+                      alt={hero.title}
+                      fill
+                      loading="eager"
+                      fetchPriority="high"
+                      sizes="(max-width: 480px) calc(100vw - 40px), 440px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  </span>
                 )}
+                <span style={{ marginTop: hero.cover_url ? 14 : 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 800 }}>
+                  <span style={{ height: 26, padding: '0 8px', borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center' }}>최신 글</span>
+                  {heroCat && <span style={{ color: '#595959' }}>{heroCat.name}</span>}
+                </span>
+                {/* 가게 틀은 main 안 h2 를 포스터 글꼴로 바꾸고, 전역 규칙은 제목 줄을 고르게 나눈다(text-wrap: balance).
+                    시안의 이 제목은 본문 글꼴 굵게 + 보통 줄바꿈이라 둘 다 되돌린다(제목 태그는 화면 낭독용으로 남긴다). */}
+                <h2 style={{ margin: '8px 0 0', fontFamily: 'inherit', fontSize: 24, fontWeight: 900, lineHeight: 1.3, letterSpacing: '-0.03em', textWrap: 'wrap' }}>{hero.title}</h2>
+                {hero.excerpt && <span style={{ marginTop: 8, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>{hero.excerpt}</span>}
+                <span style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ fontSize: 15, color: '#595959' }}>{formatDate(hero.published_at)}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 800 }}>
+                    읽기
+                    <Chevron size={16} />
+                  </span>
+                </span>
+              </Link>
+            </section>
 
-                {/* 나머지 — 3열 카드 */}
-                {rest.map((p, i) => (
-                  <Reveal key={p.id} delay={i * 70}>
-                  <Link href={`/blog/${p.slug}`} className="group block no-underline" style={CARD}>
-                    <article>
-                      <div className="relative aspect-[16/10] overflow-hidden" style={{ background: 'var(--fd-cream)' }}>
-                        {p.cover_url ? (
-                          <Image src={p.cover_url} alt={p.title} fill sizes="(max-width:768px) 100vw, 360px" loading="lazy" className="object-cover group-hover:scale-[1.02] transition-transform duration-500" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-8 h-8" strokeWidth={1.4} color="var(--fd-green)" style={{ opacity: 0.4 }} /></div>
+            {/* ── 나머지 글 — 먹선 아래 한 줄씩(카테고리 · 제목 · 날짜 + 오른쪽 96 사진) ── */}
+            {rest.length > 0 && (
+              <section style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+                  {rest.map((p) => {
+                    const cat = p.category_id ? catById.get(p.category_id) : undefined
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/blog/${p.slug}`}
+                        style={{
+                          padding: '16px 0',
+                          borderBottom: '1px solid #E5E5E5',
+                          display: 'grid',
+                          gridTemplateColumns: p.cover_url ? '1fr 96px' : '1fr',
+                          columnGap: 14,
+                          alignItems: 'start',
+                          color: '#141414',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {cat && <span style={{ fontSize: 14, fontWeight: 800, color: '#595959' }}>{cat.name}</span>}
+                          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, lineHeight: 1.4, textWrap: 'wrap' }}>{p.title}</h3>
+                          <span style={{ fontSize: 14, color: '#595959' }}>{formatDate(p.published_at)}</span>
+                        </span>
+                        {p.cover_url && (
+                          <span style={{ position: 'relative', display: 'block', width: 96, height: 96, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                            <Image src={p.cover_url} alt="" fill loading="lazy" sizes="96px" style={{ objectFit: 'cover' }} />
+                          </span>
                         )}
-                      </div>
-                      <div className="p-5">
-                        {p.category_id && catById.get(p.category_id) && <CatLabel name={catById.get(p.category_id)!.name} />}
-                        <h3 className="mt-2 text-[16px] line-clamp-2" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
-                          {p.title}
-                        </h3>
-                        <p className="mt-3 text-[12px]" style={{ fontWeight: 600, color: 'var(--fd-muted)' }}>{formatDate(p.published_at)}</p>
-                      </div>
-                    </article>
-                  </Link>
-                  </Reveal>
-                ))}
-              </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </section>
             )}
-          </Container>
-        </Section>
-      </main>
-      {/* 모바일 sticky 설문 CTA — 다른 마케팅 페이지와 동일(회차98 재추가, blog 정상화 후) */}
-      <StickyCta href={planHref(!!isAuthed, false)} />
-    </WebChrome>
+          </>
+        )}
+      </div>
+    </StoreShell>
   )
 }

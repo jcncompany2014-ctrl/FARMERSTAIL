@@ -1,23 +1,21 @@
 import type { ReactNode } from 'react'
 
 /**
- * Shared styling wrapper for long-form legal documents
- * (이용약관, 개인정보처리방침, 환불정책).
+ * 법정 문서(이용약관·개인정보처리방침·환불 정책) **웹** 틀. 앱은 components/v3/me/AppLegal.
  *
- * 톤: farm v6 = The Farmer's Dog 클론 (2026-06-13, 회차8). FD 토큰으로:
- * 파인 그린 헤딩(Pretendard 헤비) + 오트밀 크림 카드 + 코랄 악센트 + 그린 eyebrow.
- * 일관된 reading rhythm: 12~14px 본문, 타이트 간격, 번호 섹션. 법령이 요구하는
- * "시행일" 메타바도 렌더. **법문 텍스트(props/children)는 일절 수정하지 않음** —
- * 프레젠테이션만 FD 톤.
+ * ★2026-10-10 웹 리뉴얼('A 포스터' 웹, 웹 시안 WEB-C21~23): 흰 바탕 · 제목 Black Han Sans · 본문 16px 줄간 1.75 ·
+ *  영어 머리말(Terms of Service·Summary·Document) 없음 — 장 제목·번호만. 바깥 틀은 웹 가게 틀(StoreShell, 가운데 480).
+ *  **법문 글자(props/children)는 한 자도 바꾸지 않는다** — 모양만 바꾼다(예전 FD 톤 원칙 그대로).
+ *  eyebrow 는 예전 호출부 호환으로 받기만 하고 그리지 않는다.
  */
 export default function LegalDocument({
-  eyebrow,
   title,
   effectiveDate,
   summary,
   children,
 }: {
-  eyebrow: string
+  /** 예전 영어 머리말 — 그리지 않는다(호출부 호환). */
+  eyebrow?: string
   title: string
   /** ISO date, e.g. "2026-04-22" */
   effectiveDate: string
@@ -26,83 +24,35 @@ export default function LegalDocument({
   children: ReactNode
 }) {
   return (
-    <>
-      <section className="px-5 md:px-6 pt-8 md:pt-16 pb-2 md:pb-6 text-center">
-        <span
-          className="kicker"
-          style={{ color: 'var(--fd-green)', letterSpacing: '0.14em' }}
-        >
-          {eyebrow}
-        </span>
-        <h1
-          className="mt-3 md:mt-5 leading-[1.08] text-[28px] md:text-[46px] lg:text-[54px]"
-          style={{
-            fontWeight: 900,
-            color: 'var(--fd-pine)',
-            letterSpacing: '-0.035em',
-          }}
-        >
-          {title}
-        </h1>
-        <div
-          className="mt-2 md:mt-4 text-[11px] md:text-[12.5px] font-mono"
-          style={{
-            color: 'var(--fd-muted)',
-            letterSpacing: '0.08em',
-          }}
-        >
-          시행일 · {effectiveDate}
-        </div>
-      </section>
+    <div className="fts-legal" style={{ padding: '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+      <span style={{ fontSize: 14, fontWeight: 800, color: '#595959' }}>약관 · 정책</span>
+      <h1 className="d" style={{ margin: '6px 0 0', fontSize: 36, lineHeight: 1.1 }}>
+        {title}
+      </h1>
+      <span style={{ marginTop: 10, fontSize: 15, color: '#3D3D3D' }}>
+        시행일 <strong style={{ color: '#141414' }}>{koreanDate(effectiveDate)}</strong>
+      </span>
 
       {summary && (
-        <section className="px-5 md:px-6 mt-5 md:mt-8">
-          <div className="flex items-center gap-2 mb-3 md:mb-4">
-            <span className="kicker" style={{ color: 'var(--fd-green)', letterSpacing: '0.14em' }}>
-              Summary · 요약
-            </span>
-            <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
-          </div>
-          <div
-            className="rounded-lg px-5 py-4 md:px-7 md:py-6"
-            style={{
-              background: 'color-mix(in srgb, var(--fd-green) 8%, transparent)',
-              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fd-green) 28%, transparent)',
-            }}
-          >
-            <div
-              className="text-[12px] md:text-[14px] leading-relaxed"
-              style={{ color: 'var(--fd-pine)' }}
-            >
-              {summary}
-            </div>
-          </div>
+        <section aria-label="요약" style={{ marginTop: 22, padding: '16px 18px', background: '#F6F4F5', borderRadius: 4 }}>
+          <strong style={{ display: 'block', fontSize: 15, fontWeight: 800 }}>요약</strong>
+          <div style={{ marginTop: 8, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>{summary}</div>
         </section>
       )}
 
-      <section className="px-5 md:px-6 mt-5 md:mt-8 pb-10 md:pb-16">
-        <div className="flex items-center gap-2 mb-3 md:mb-4">
-          <span className="kicker" style={{ color: 'var(--fd-muted)', letterSpacing: '0.14em' }}>
-            Document · 전문
-          </span>
-          <div className="flex-1 h-px" style={{ background: 'var(--fd-line)' }} />
-        </div>
-        <article
-          className="rounded-lg px-5 py-5 md:px-8 md:py-8 text-[12px] md:text-[14px] leading-[1.78]"
-          style={{
-            background: 'var(--fd-cream)',
-            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-            color: 'var(--text)',
-          }}
-        >
-          {children}
-        </article>
-      </section>
-    </>
+      <span style={{ marginTop: 28, paddingBottom: 10, borderBottom: '2px solid #141414', fontSize: 14, fontWeight: 800, color: '#595959' }}>전문</span>
+      <article style={{ paddingTop: 4, fontSize: 16, lineHeight: 1.75, color: '#3D3D3D' }}>{children}</article>
+    </div>
   )
 }
 
-/** Numbered article header — e.g. 제1조 (목적) */
+/** '2026-10-02' → '2026년 10월 2일'. 형식이 아니면 그대로. */
+function koreanDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[1]}년 ${Number(m[2])}월 ${Number(m[3])}일` : iso
+}
+
+/** 번호 붙은 조 — 제1조 (목적) */
 export function Article({
   number,
   title,
@@ -113,38 +63,16 @@ export function Article({
   children: ReactNode
 }) {
   return (
-    <section className="mt-6 md:mt-8 first:mt-0">
-      <h2
-        className="text-[15px] md:text-[19px]"
-        style={{
-          color: 'var(--fd-pine)',
-          fontWeight: 900,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        <span
-          className="font-mono mr-1.5 md:mr-2 text-[11px] md:text-[13px]"
-          style={{
-            color: 'var(--fd-coral)',
-            letterSpacing: '0.12em',
-            fontWeight: 700,
-          }}
-        >
-          제{number}조
-        </span>
-        ({title})
+    <section style={{ paddingTop: 22 }}>
+      <h2 className="d" style={{ margin: 0, fontSize: 20, color: '#141414' }}>
+        제{number}조 {title}
       </h2>
-      <div
-        className="mt-2 md:mt-3 text-[12px] md:text-[14px] leading-[1.78] space-y-1.5 md:space-y-2"
-        style={{ color: 'var(--text)' }}
-      >
-        {children}
-      </div>
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </section>
   )
 }
 
-/** Standalone heading for privacy policy (not numbered by 조) */
+/** 번호 없는 장 — 개인정보처리방침·환불 정책 */
 export function Section({
   title,
   children,
@@ -153,47 +81,21 @@ export function Section({
   children: ReactNode
 }) {
   return (
-    <section className="mt-6 md:mt-8 first:mt-0">
-      <h2
-        className="text-[15px] md:text-[19px]"
-        style={{
-          color: 'var(--fd-pine)',
-          fontWeight: 900,
-          letterSpacing: '-0.02em',
-        }}
-      >
+    <section style={{ paddingTop: 22 }}>
+      <h2 className="d" style={{ margin: 0, fontSize: 20, color: '#141414' }}>
         {title}
       </h2>
-      <div
-        className="mt-2 md:mt-3 text-[12px] md:text-[14px] leading-[1.78] space-y-1.5 md:space-y-2"
-        style={{ color: 'var(--text)' }}
-      >
-        {children}
-      </div>
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </section>
   )
 }
 
-/** Compact ordered list used inside articles */
+/** 번호 목록 */
 export function OL({ children }: { children: ReactNode }) {
-  return (
-    <ol
-      className="list-decimal pl-5 md:pl-6 space-y-1 md:space-y-1.5 text-[12px] md:text-[14px]"
-      style={{ color: 'var(--text)' }}
-    >
-      {children}
-    </ol>
-  )
+  return <ol style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 6, listStyle: 'decimal' }}>{children}</ol>
 }
 
-/** Compact unordered list */
+/** 점 목록 */
 export function UL({ children }: { children: ReactNode }) {
-  return (
-    <ul
-      className="list-disc pl-5 md:pl-6 space-y-1 md:space-y-1.5 text-[12px] md:text-[14px]"
-      style={{ color: 'var(--text)' }}
-    >
-      {children}
-    </ul>
-  )
+  return <ul style={{ margin: 0, paddingLeft: 22, display: 'flex', flexDirection: 'column', gap: 6, listStyle: 'disc' }}>{children}</ul>
 }

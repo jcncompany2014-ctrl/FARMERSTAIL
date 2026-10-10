@@ -10,6 +10,7 @@
  * 여기 남는 건 배포 없이 바뀔 일이 없는 것 — 빠른 이동 버튼, 스마트스토어
  * 카드(제품 4종 컷), 앱 스토어, 인스타 주소, 그리고 DB 를 못 읽을 때의 폴백.
  */
+import { SUBSCRIPTION_DISCOUNT_PCT } from './pricing.ts'
 
 export type BioLink = {
   label: string
@@ -33,11 +34,13 @@ export const SMARTSTORE_URL =
  * 토스 일반결제 심사 전이라 자사몰은 팔 수 없지만 심사 때문에 막을 수도 없다. 그래서 인스타로
  * 오는 손님은 본 사이트(/start 설문 등)를 거치지 않고 /app 으로만 가게 한다(/app 엔 본 사이트로
  * 나가는 길이 없다). 심사가 끝나 상점을 열면 이 버튼을 상점으로 되돌린다. 규칙165.
+ * (되돌릴 때 = 웹 시안 C12 순서: ① '레시피 고르기 · 공식몰 · 500g 24,000원부터'(/store, 강조) ② 이 앱 줄(강조 해제) ③ 스마트스토어.)
+ * 문구는 웹 시안 C12(2026-10-10 웹 리뉴얼).
  */
 export const BIO_LINKS: BioLink[] = [
   {
-    label: '앱에서 맞춤 식단 받기',
-    sub: '하루 양 계산부터 정기배송까지',
+    label: '앱에서 맞춤 정기배송',
+    sub: `우리 아이 몫만큼 · ${SUBSCRIPTION_DISCOUNT_PCT}% 할인`,
     href: `/app?${UTM}&utm_campaign=linkinbio`,
     primary: true,
   },
@@ -65,8 +68,8 @@ export const STORE_CARD = {
   condition: '',
   title: '리뷰 최대 20% 포인트백',
   sub: '네이버 스마트스토어 오픈 기념 · 화식 4종',
-  // 홈·레시피 페이지와 같은 실제 패키지 컷(스마트스토어 대표 이미지와 동일).
-  images: ['/pouch-hanwoo.webp', '/pouch-blackpork.webp', '/pouch-duck.webp', '/pouch-chicken.webp'],
+  // 레시피 팩 스튜디오 사진(웹 가게와 같은 컷 — 웹 시안 C12, 2026-10-10). 순서 = 한우·흑돼지·오리·닭.
+  images: ['/store/studio-beef.webp', '/store/studio-pork.webp', '/store/studio-duck.webp', '/store/studio-chicken.webp'],
   href: SMARTSTORE_URL,
 } as const
 

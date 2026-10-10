@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2 } from 'lucide-react'
 
 /**
  * /contact 의 1:1 문의 폼.
@@ -11,7 +10,7 @@ import { CheckCircle2 } from 'lucide-react'
  * - honeypot 필드 "website" 는 hidden — 봇이 채우면 서버에서 차단.
  * - 제출 후 success state 로 전환 (잠시 후 자동 reset 없음 — 사용자가 다음
  *   행동 선택).
- * - 톤은 editorial — paper-tone + serif heading.
+ * - 모양은 웹 시안 WEB-C18(양식)·C18b(보낸 뒤) — 2026-10-10 웹 리뉴얼. 동작(검사·한도·honeypot·프리필)은 그대로.
  */
 
 const CATEGORIES = [
@@ -104,30 +103,51 @@ export default function ContactForm() {
   }
 
   if (status === 'success') {
+    // 시안 C18b — 2px 먹선 칸 · 검은 동그라미 체크 · 포스터 글꼴 한 줄.
     return (
-      <div className="text-center py-6 md:py-10">
-        <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full mb-4 md:mb-5"
-          style={{ background: 'color-mix(in srgb, var(--fd-green) 16%, transparent)' }}>
-          <CheckCircle2 className="w-6 h-6 md:w-7 md:h-7" strokeWidth={2} color="var(--fd-green)" />
-        </div>
-        <h3
-          className="text-[18px] md:text-[24px] font-black mb-2 md:mb-3"
-          style={{ color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}
+      <div
+        role="status"
+        style={{
+          padding: '32px 20px 28px',
+          borderRadius: 4,
+          border: '2px solid #141414',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: 12,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{ width: 60, height: 60, borderRadius: 30, background: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          메시지 잘 받았어요.
-        </h3>
-        <p
-          className="text-[12.5px] md:text-[14px] leading-relaxed mb-5 md:mb-6"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          평일 영업일 24시간 이내, 가능하면 더 빨리 답변드릴게요.
-          <br />입력하신 이메일로 접수 확인 메일도 함께 보냈어요.
-        </p>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        </span>
+        <strong className="d" style={{ fontSize: 28, fontWeight: 400, lineHeight: 1.2 }}>
+          메시지 잘 받았어요
+        </strong>
+        <span style={{ fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>
+          영업일에는 24시간 안에, 가능하면 더 빨리 답변드릴게요. 적어 주신 이메일로 접수 확인 메일도 보냈어요.
+        </span>
         <button
           type="button"
           onClick={() => setStatus('idle')}
-          className="text-[12px] md:text-[13px] font-bold underline underline-offset-2 hover:opacity-70"
-          style={{ color: 'var(--fd-coral-text)' }}
+          style={{
+            marginTop: 6,
+            height: 48,
+            padding: '0 8px',
+            border: 0,
+            background: 'transparent',
+            color: '#141414',
+            fontSize: 17,
+            fontWeight: 800,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            cursor: 'pointer',
+          }}
         >
           다른 문의 보내기
         </button>
@@ -136,50 +156,57 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-      <div className="grid md:grid-cols-2 gap-3 md:gap-4">
-        <Field
-          label="이름"
-          name="name"
-          required
-          maxLength={40}
-          placeholder="홍길동"
-          autoComplete="name"
-        />
-        <Field
-          label="이메일"
-          name="email"
-          type="email"
-          required
-          maxLength={120}
-          placeholder="story@example.com"
-          autoComplete="email"
-          inputMode="email"
-        />
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <Field label="이름" name="name" required maxLength={40} placeholder="홍길동" autoComplete="name" />
+      <Field
+        label="이메일"
+        name="email"
+        type="email"
+        required
+        maxLength={120}
+        placeholder="story@example.com"
+        autoComplete="email"
+        inputMode="email"
+      />
+
+      <div style={FIELD_WRAP}>
+        <label htmlFor="ft-category" style={LABEL}>
+          문의 종류
+        </label>
+        <span style={{ position: 'relative', display: 'block' }}>
+          <select
+            id="ft-category"
+            name="category"
+            defaultValue={defaultCategory}
+            style={{ ...CONTROL, width: '100%', padding: '0 44px 0 14px', background: '#FFFFFF', appearance: 'none', WebkitAppearance: 'none' }}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#141414"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            style={{ position: 'absolute', right: 14, top: 18, pointerEvents: 'none' }}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </span>
       </div>
 
-      <div>
-        <Label htmlFor="ft-category">문의 카테고리</Label>
-        <select
-          id="ft-category"
-          name="category"
-          defaultValue={defaultCategory}
-          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition"
-          style={{
-            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-            color: 'var(--fd-pine)',
-          }}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <Label htmlFor="ft-message">메시지</Label>
+      <div style={FIELD_WRAP}>
+        <label htmlFor="ft-message" style={LABEL}>
+          메시지
+        </label>
         <textarea
           id="ft-message"
           name="message"
@@ -188,61 +215,63 @@ export default function ContactForm() {
           maxLength={3000}
           rows={6}
           defaultValue={defaultMessage}
-          placeholder="자세한 내용을 적어 주세요. (10자 이상)"
-          className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition resize-y leading-relaxed"
-          style={{
-            boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-            color: 'var(--fd-pine)',
-            minHeight: 140,
-          }}
+          placeholder="자세한 내용을 적어 주세요 (10자 이상)"
+          style={{ ...CONTROL, height: 'auto', minHeight: 160, padding: 14, lineHeight: 1.6, resize: 'vertical' }}
         />
       </div>
 
       {/* honeypot — visible 0 size, name="website" */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
         <label htmlFor="ft-website">웹사이트 (작성하지 마세요)</label>
-        <input
-          id="ft-website"
-          name="website"
-          type="text"
-          tabIndex={-1}
-          autoComplete="off"
-        />
+        <input id="ft-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
       {status === 'error' && errorMsg && (
         <p
-          className="text-[11.5px] md:text-[12.5px] leading-relaxed"
-          style={{ color: 'var(--sale)' }}
           role="alert"
+          style={{ margin: 0, padding: '12px 14px', background: '#FDECEA', color: '#8A1F11', borderRadius: 4, fontSize: 15, fontWeight: 700, lineHeight: 1.55 }}
         >
           {errorMsg}
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-3 pt-1">
-        <p
-          className="text-[10.5px] md:text-[11.5px] leading-relaxed flex-1"
-          style={{ color: 'var(--fd-muted)' }}
-        >
-          개인정보 처리방침에 따라 문의 응대 목적에만 사용됩니다.
-        </p>
-        <button
-          type="submit"
-          disabled={status === 'submitting'}
-          className="px-6 py-2.5 md:px-8 md:py-3.5 rounded-full text-[12px] md:text-[14px] font-bold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-          style={{
-            background: 'var(--fd-pine)',
-            color: '#FFFFFF',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {status === 'submitting' ? '보내는 중…' : '메시지 보내기'}
-        </button>
-      </div>
+      <span style={{ fontSize: 15, lineHeight: 1.55, color: '#595959' }}>
+        적어 주신 내용은 개인정보처리방침에 따라 문의에 답하는 데만 써요.
+      </span>
+      <button
+        type="submit"
+        disabled={status === 'submitting'}
+        style={{
+          height: 60,
+          border: 0,
+          borderRadius: 4,
+          background: '#141414',
+          color: '#FFFFFF',
+          fontSize: 19,
+          fontWeight: 800,
+          cursor: status === 'submitting' ? 'not-allowed' : 'pointer',
+          opacity: status === 'submitting' ? 0.5 : 1,
+        }}
+      >
+        {status === 'submitting' ? '보내는 중…' : '메시지 보내기'}
+      </button>
     </form>
   )
 }
+
+/** 시안 C18 입력칸 — 높이 56 · 1.5px 회색 테 · 모서리 4 · 18px. */
+const CONTROL: React.CSSProperties = {
+  height: 56,
+  boxSizing: 'border-box',
+  padding: '0 14px',
+  borderRadius: 4,
+  border: '1.5px solid #8A8A8A',
+  fontFamily: 'inherit',
+  fontSize: 18,
+  color: '#141414',
+}
+const FIELD_WRAP: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 8 }
+const LABEL: React.CSSProperties = { fontSize: 16, fontWeight: 800 }
 
 function Field({
   label,
@@ -265,8 +294,10 @@ function Field({
 }) {
   const id = `ft-${name}`
   return (
-    <div>
-      <Label htmlFor={id}>{label}</Label>
+    <div style={FIELD_WRAP}>
+      <label htmlFor={id} style={LABEL}>
+        {label}
+      </label>
       <input
         id={id}
         name={name}
@@ -276,34 +307,8 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="w-full px-3 py-2.5 md:py-3 rounded text-[13px] md:text-[14px] bg-white focus:outline-none transition"
-        style={{
-          boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-          color: 'var(--fd-pine)',
-        }}
+        style={CONTROL}
       />
     </div>
-  )
-}
-
-function Label({
-  htmlFor,
-  children,
-}: {
-  htmlFor?: string
-  children: React.ReactNode
-}) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className="block mb-1.5 md:mb-2 text-[11px] md:text-[12px] font-bold"
-      style={{
-        color: 'var(--fd-muted)',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-      }}
-    >
-      {children}
-    </label>
   )
 }

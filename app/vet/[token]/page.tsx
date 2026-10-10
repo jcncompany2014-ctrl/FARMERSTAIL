@@ -1,17 +1,9 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import {
-  AlertCircle,
-  Stethoscope,
-  Scale,
-  ClipboardList,
-  AlertTriangle,
-} from 'lucide-react'
+import StoreShell from '@/components/store/StoreShell'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import VetSharePrintButton from './VetSharePrintButton'
 import { sensitivityAnalysis, type DogState } from '@/lib/counterfactual'
-import { TrendingUp } from 'lucide-react'
 import { petName, withHonorific } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
@@ -83,278 +75,255 @@ export default async function VetSharePage({
     message: '링크를 확인하지 못했어요. 잠시 후 다시 열어봐 주세요.',
   }) as RpcResult
 
+  // 모양 = 웹 시안 WEB-A35(열 수 없음, 2026-10-10 웹 리뉴얼). 링크 기한 14일 = app/api/dogs/[id]/vet-share(만든 날부터 14일).
   if (!result.ok) {
     return (
-      <main className="min-h-[80vh] flex items-center justify-center px-5 py-10" style={{ background: 'var(--bg)' }}>
-        <div className="max-w-sm w-full text-center rounded-2xl border bg-white px-6 py-7" style={{ borderColor: 'var(--rule)' }}>
-          <AlertCircle className="w-9 h-9 mx-auto text-sale" strokeWidth={1.8} />
-          <h1
-            className="font-serif mt-3"
-            style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}
-          >
-            진료 공유 링크 사용 불가
+      <StoreShell>
+        <section role="alert" style={{ padding: '48px 20px 72px', display: 'flex', flexDirection: 'column' }}>
+          <span aria-hidden style={{ width: 72, height: 72, boxSizing: 'border-box', border: '2.5px solid #B3261E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#B3261E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />
+              <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
+              <path d="M4 4l16 16" />
+            </svg>
+          </span>
+          <span style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#595959' }}>
+            <span aria-hidden style={{ width: 8, height: 8, background: '#141414' }} />
+            진료 참고용
+          </span>
+          <h1 className="d" style={{ margin: '10px 0 0', fontSize: 38, lineHeight: 1.15 }}>
+            진료 공유 링크를
+            <br />
+            열 수 없어요
           </h1>
-          <p className="mt-2 text-[12.5px] leading-relaxed text-text/70">
-            {result.message}
-          </p>
-        </div>
-      </main>
+          <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>{result.message}</p>
+          <div style={{ marginTop: 22, padding: 16, borderRadius: 4, background: '#F6F4F5', fontSize: 17, lineHeight: 1.6 }}>
+            보호자에게 새 링크를 보내 달라고 해 주세요. 링크는 만든 날부터 <strong style={{ fontWeight: 800 }}>14일</strong> 동안 열려요.
+          </div>
+        </section>
+      </StoreShell>
     )
   }
 
   const dog = result.dog
   const analysis = result.analysis
   const latestWeight = result.latestWeight
+  // 영양 구성은 정확한 %가 아니라 막대·범례로(성분 % 노출 금지 원칙) — 비율만 쓴다.
+  const macro = analysis ? [analysis.protein_pct, analysis.fat_pct, analysis.carb_pct].map((v) => Math.max(0, Number(v) || 0)) : null
 
+  // 모양 = 웹 시안 WEB-A32(2026-10-10 웹 리뉴얼) — 영어 약어(RER·MER·BCS) 대신 한국어 이름, 위 2px 먹선 표.
   return (
-    <main className="pb-12 vet-share-print" style={{ background: 'var(--bg)' }}>
-      <style>{`
-        @media print {
-          .vet-share-print { background: white !important; padding-bottom: 0 !important; }
-          .vet-share-print .no-print { display: none !important; }
-          .vet-share-print section { page-break-inside: avoid; }
-          .vet-share-print a { color: #1E1A14 !important; text-decoration: none !important; }
-        }
-      `}</style>
-      <section className="px-5 pt-6 pb-2 flex items-start justify-between gap-3">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: 'var(--bg-2)' }}>
-            <Stethoscope className="w-3 h-3" strokeWidth={2.2} style={{ color: 'var(--terracotta)' }} />
-            <span className="text-[10.5px] font-bold uppercase tracking-widest" style={{ color: 'var(--terracotta)' }}>
+    <StoreShell>
+      <div className="vet-share-print">
+        <style>{`
+          @media print {
+            .fts { background: #fff !important; }
+            .fts header, .fts footer, .no-print { display: none !important; }
+            .vet-share-print section { page-break-inside: avoid; }
+            .vet-share-print a { color: #141414 !important; text-decoration: none !important; }
+          }
+        `}</style>
+        <section style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <span style={{ height: 32, padding: '0 10px', boxSizing: 'border-box', borderRadius: 4, border: '1.5px solid #141414', display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 800 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 3v6a4 4 0 0 0 8 0V3" />
+                <path d="M10 13v3a5 5 0 0 0 10 0v-2" />
+                <circle cx="20" cy="12" r="2" />
+              </svg>
               진료 참고용
             </span>
+            {/* PDF / 인쇄 — window.print() — 브라우저가 PDF 저장 또는 실 인쇄 */}
+            <VetSharePrintButton />
           </div>
-        </div>
-        {/* PDF / 인쇄 — P15. window.print() — 브라우저가 PDF 저장 또는 실 인쇄 */}
-        <VetSharePrintButton />
-      </section>
-      <section className="px-5 pt-2 pb-2">
-        <h1
-          className="font-serif mt-3 leading-tight"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {petName(dog.name)}의 정보
-        </h1>
-        {result.owner.name && (
-          <p className="mt-1 text-[12px] text-muted">
-            보호자: {withHonorific(result.owner.name)}
-          </p>
-        )}
-      </section>
+          <h1 className="d" style={{ margin: '20px 0 0', fontSize: 40, lineHeight: 1.1, overflowWrap: 'anywhere' }}>
+            {petName(dog.name)}의 정보
+          </h1>
+          {result.owner.name && <p style={{ margin: '10px 0 0', fontSize: 17, color: '#595959' }}>보호자: {withHonorific(result.owner.name)}</p>}
+        </section>
 
-      {/* 강아지 메타 */}
-      <section className="px-5 mt-4">
-        <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
-          <span className="kicker" style={{ color: 'var(--muted)' }}>강아지 정보</span>
-          <div className="mt-2 grid grid-cols-2 gap-3 text-[12.5px]">
+        <section aria-labelledby="dog-title" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <h2 id="dog-title" className="d" style={{ margin: 0, fontSize: 24 }}>
+            강아지 정보
+          </h2>
+          <dl style={{ margin: '12px 0 0', borderTop: '2px solid #141414', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <Field label="이름" value={dog.name} />
-            <Field label="종" value={dog.breed ?? '—'} />
+            <Field label="견종" value={dog.breed ?? '—'} right />
             <Field label="성별" value={dog.gender === 'female' ? '여' : dog.gender === 'male' ? '남' : '—'} />
-            <Field label="중성화" value={dog.neutered ? '예' : '아니오'} />
-            <Field label="현재 체중" value={dog.weight != null ? `${dog.weight} kg` : '—'} />
-            <Field label="생년월일" value={dog.birth_date ?? '—'} />
+            <Field label="중성화" value={dog.neutered ? '예' : '아니오'} right />
+            <Field label="지금 체중" value={dog.weight != null ? `${dog.weight} kg` : '—'} />
+            <Field label="생년월일" value={dog.birth_date ?? '—'} right />
             <Field label="활동량" value={activityLabel(dog.activity_level)} />
             <Field
-              label="체중 측정"
-              value={
-                dog.weight_method
-                  ? `${weightMethodLabel(dog.weight_method)}${dog.weight_measured_at ? ` · ${dog.weight_measured_at.slice(0, 10)}` : ''}`
-                  : '—'
-              }
+              label="체중 잰 방법"
+              right
+              value={dog.weight_method ? weightMethodLabel(dog.weight_method) : '—'}
+              sub={dog.weight_method && dog.weight_measured_at ? dog.weight_measured_at.slice(0, 10) : undefined}
             />
-          </div>
-        </div>
-      </section>
-
-      {/* 알레르기 / 만성 질환 */}
-      {((dog.allergies?.length ?? 0) > 0 || (dog.chronic_conditions?.length ?? 0) > 0) && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
-            <span className="kicker flex items-center gap-1.5" style={{ color: 'var(--gold)' }}>
-              <AlertTriangle className="w-3 h-3" strokeWidth={2.2} />
-              알레르기 / 만성 질환
-            </span>
-            {dog.allergies && dog.allergies.length > 0 && (
-              <div className="mt-2">
-                <p className="text-[11px] uppercase tracking-wider font-bold text-muted">알레르기</p>
-                <p className="mt-1 text-[12.5px]" style={{ color: 'var(--ink)' }}>
-                  {dog.allergies.join(', ')}
-                  {dog.allergies_source && (
-                    <span className="text-muted ml-1.5">
-                      ({allergiesSourceLabel(dog.allergies_source)})
-                    </span>
-                  )}
-                </p>
-              </div>
-            )}
-            {dog.chronic_conditions && dog.chronic_conditions.length > 0 && (
-              <div className="mt-2">
-                <p className="text-[11px] uppercase tracking-wider font-bold text-muted">만성 질환</p>
-                <p className="mt-1 text-[12.5px]" style={{ color: 'var(--ink)' }}>
-                  {dog.chronic_conditions.join(', ')}
-                </p>
-              </div>
-            )}
-          </div>
+          </dl>
         </section>
-      )}
 
-      {/* 최신 분석 */}
-      {analysis ? (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
-            <span className="kicker flex items-center gap-1.5" style={{ color: 'var(--terracotta)' }}>
-              <ClipboardList className="w-3 h-3" strokeWidth={2.2} />
-              최신 분석 · {analysis.created_at.slice(0, 10)}
-            </span>
-            <div className="mt-2 grid grid-cols-2 gap-3 text-[12.5px]">
-              <Field label="RER" value={`${analysis.rer} kcal`} />
-              <Field label="MER" value={`${analysis.mer} kcal`} />
-              <Field label="활동 factor" value={`${analysis.factor}`} />
-              <Field label="라이프 스테이지" value={analysis.stage} />
-              <Field label="BCS" value={analysis.bcs_label} />
-              <Field label="단백질" value={`${analysis.protein_pct}%`} />
-              <Field label="지방" value={`${analysis.fat_pct}%`} />
-              <Field label="탄수" value={`${analysis.carb_pct}%`} />
-              <Field label="일일 권장" value={`${analysis.feed_g} g`} />
-              <Field label="Ca:P" value={analysis.ca_p_ratio?.toString() ?? '—'} />
+        {/* 알레르기 / 만성 질환 — 어떻게 안 값인지(보호자 관찰·수의사 확진)를 함께 */}
+        {((dog.allergies?.length ?? 0) > 0 || (dog.chronic_conditions?.length ?? 0) > 0) && (
+          <section aria-labelledby="care-title" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+            <h2 id="care-title" className="d" style={{ margin: 0, fontSize: 24 }}>
+              알레르기 · 만성 질환
+            </h2>
+            <dl style={{ margin: '12px 0 0', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+              {dog.allergies && dog.allergies.length > 0 && (
+                <div style={{ padding: '12px 0', borderBottom: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <dt style={{ fontSize: 14, color: '#595959' }}>알레르기</dt>
+                  <dd style={{ margin: 0, fontSize: 17, fontWeight: 800, lineHeight: 1.45 }}>
+                    {dog.allergies.join(', ')}
+                    {dog.allergies_source && <span style={{ marginLeft: 6, fontSize: 15, fontWeight: 600, color: '#595959' }}>({allergiesSourceLabel(dog.allergies_source)})</span>}
+                  </dd>
+                </div>
+              )}
+              {dog.chronic_conditions && dog.chronic_conditions.length > 0 && (
+                <div style={{ padding: '12px 0', borderBottom: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <dt style={{ fontSize: 14, color: '#595959' }}>만성 질환</dt>
+                  <dd style={{ margin: 0, fontSize: 17, fontWeight: 800, lineHeight: 1.45 }}>{dog.chronic_conditions.join(', ')}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        )}
+
+        {/* 최신 분석 */}
+        {analysis ? (
+          <section aria-labelledby="ana-title" style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
+            <h2 id="ana-title" className="d" style={{ margin: 0, fontSize: 24 }}>
+              최신 분석{' '}
+              <span style={{ fontFamily: 'var(--font-sans), sans-serif', fontSize: 16, fontWeight: 700, color: '#595959', letterSpacing: '-0.02em' }}>
+                {analysis.created_at.slice(0, 10)}
+              </span>
+            </h2>
+            <div style={{ marginTop: 12, border: '2px solid #141414', boxShadow: '4px 4px 0 #141414', borderRadius: 4, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+              <span style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#595959' }}>하루 권장 열량</span>
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  <span className="n" style={{ fontSize: 34, lineHeight: 1 }}>
+                    {analysis.mer}
+                  </span>
+                  <span style={{ fontSize: 16, fontWeight: 800 }}> kcal</span>
+                </span>
+              </span>
+              <span style={{ padding: 16, borderLeft: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#595959' }}>하루 권장 급여량</span>
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  <span className="n" style={{ fontSize: 34, lineHeight: 1 }}>
+                    {analysis.feed_g}
+                  </span>
+                  <span style={{ fontSize: 16, fontWeight: 800 }}> g</span>
+                </span>
+              </span>
             </div>
+            <dl style={{ margin: '16px 0 0', borderTop: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+              <Field label="쉴 때 필요한 열량" value={`${analysis.rer} kcal`} />
+              <Field label="활동 계수" value={`${analysis.factor}`} right />
+              <Field label="생애 단계" value={analysis.stage} />
+              <Field label="체형 점수" value={analysis.bcs_label} right />
+            </dl>
+            {macro && macro.some((v) => v > 0) && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ fontSize: 15, fontWeight: 800 }}>영양 구성</span>
+                <div aria-hidden style={{ height: 14, display: 'grid', gridTemplateColumns: macro.map((v) => `${v}fr`).join(' '), gap: 3 }}>
+                  <span style={{ background: '#141414' }} />
+                  <span style={{ background: '#8A8A8A' }} />
+                  <span style={{ background: '#D9D9D9' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 16, fontSize: 15, color: '#3D3D3D' }}>
+                  {[
+                    ['#141414', '단백질'],
+                    ['#8A8A8A', '지방'],
+                    ['#D9D9D9', '탄수화물'],
+                  ].map(([c, l]) => (
+                    <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ width: 12, height: 12, background: c }} />
+                      {l}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             {/*
               ⛔ '권장 보조제' 숨김 (2026-07-31 사장님 "출시 안 한 영양제가 보인다").
-
-              이 값(`analyses.supplements`)은 **폐지한 맞춤 영양제 박스**를 위해
-              만든 데이터다. 2026-07-13 에 분석 화면의 그 박스를 내렸고,
-              2026-07-16 엔 AI 프롬프트에서도 뺐다("영양제를 팔지 않는데 AI 가
-              없는 제품을 권한다") — 그런데 **이 수의사 리포트만 남아 있었다.**
-              한쪽만 고쳐진 그 부류다.
-
-              데이터·계산(getSupplements)은 그대로 살려 둔다. 영양제 라인이
-              나오거나, 임상 참고용으로 수의사에게는 보여주는 게 낫다고 판단하면
-              이 블록만 되살리면 된다.
+              이 값(analyses.supplements)은 폐지한 맞춤 영양제 박스를 위해 만든 데이터다 — 분석 화면(2026-07-13)·AI
+              프롬프트(2026-07-16)에서 뺐는데 이 수의사 리포트만 남아 있었다. 데이터·계산(getSupplements)은 살려 두고 이 자리만 비운다.
             */}
             {analysis.risk_flags && analysis.risk_flags.length > 0 && (
-              <div className="mt-3 rounded-lg px-3 py-2" style={{ background: 'color-mix(in srgb, var(--sale) 8%, white)' }}>
-                <p className="text-[11px] uppercase tracking-wider font-bold" style={{ color: 'var(--sale)' }}>
-                  Risk Flags
-                </p>
-                <p className="mt-1 text-[12px]" style={{ color: 'var(--ink)' }}>
-                  {analysis.risk_flags.join(' · ')}
-                </p>
+              <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 4, border: '1.5px solid #B3261E', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <strong style={{ fontSize: 15, fontWeight: 800, color: '#B3261E' }}>주의할 점</strong>
+                <span style={{ fontSize: 16, lineHeight: 1.55 }}>{analysis.risk_flags.join(' · ')}</span>
               </div>
             )}
             {analysis.vet_consult_recommended && (
-              <p className="mt-3 text-[12px] font-bold" style={{ color: 'var(--terracotta)' }}>
-                ⚠ 수의사 상담 권장
-              </p>
+              <p style={{ margin: '12px 0 0', fontSize: 16, fontWeight: 800, color: '#B3261E' }}>수의사 상담을 권해요</p>
             )}
-          </div>
-        </section>
-      ) : (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl border-dashed border bg-white px-5 py-4 text-center text-[12px] text-muted" style={{ borderColor: 'var(--rule)' }}>
-            아직 분석 데이터가 없어요
-          </div>
-        </section>
-      )}
+          </section>
+        ) : (
+          <section style={{ padding: '36px 20px 0' }}>
+            <p style={{ margin: 0, padding: '18px 16px', borderRadius: 4, background: '#F6F4F5', fontSize: 16, color: '#595959', textAlign: 'center' }}>아직 분석 데이터가 없어요</p>
+          </section>
+        )}
 
-      {/* 최근 체중 */}
-      {latestWeight && (
-        <section className="px-5 mt-3">
-          <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
-            <span className="kicker flex items-center gap-1.5" style={{ color: 'var(--moss)' }}>
-              <Scale className="w-3 h-3" strokeWidth={2.2} />
+        {/* 최근 체중 */}
+        {latestWeight && (
+          <section aria-labelledby="w-title" style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
+            <h2 id="w-title" className="d" style={{ margin: 0, fontSize: 24 }}>
               최근 체중
-            </span>
-            <p
-              className="mt-1.5 font-serif"
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
-              }}
-            >
-              {latestWeight.weight} kg
-              <span className="text-[11.5px] text-muted ml-2 font-normal">
-                · {latestWeight.measured_at.slice(0, 10)}
+            </h2>
+            <div style={{ marginTop: 12, padding: '14px 0', borderTop: '2px solid #141414', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <span style={{ whiteSpace: 'nowrap' }}>
+                <span className="n" style={{ fontSize: 30 }}>
+                  {latestWeight.weight}
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 800 }}> kg</span>
               </span>
-            </p>
-          </div>
-        </section>
-      )}
+              <span style={{ fontSize: 16, color: '#595959' }}>{latestWeight.measured_at.slice(0, 10)} 측정</span>
+            </div>
+          </section>
+        )}
 
-      {/* [C1] 반사실 sensitivity — 발명 모듈 G UI 노출. flag OFF 면 빈 array
-          반환 → section hide. 수의사가 어떤 변수 변화가 식단에 가장 큰 영향
-          줄지 판단 보조. */}
-      {(() => {
-        if (!analysis || !dog.weight) return null
-        const lifeStage: DogState['lifeStage'] = analysis.stage.includes('성장')
-          ? 'puppy'
-          : analysis.stage.includes('노령')
-            ? 'senior'
-            : 'adult'
-        const baseline: DogState = {
-          weightKg: dog.weight,
-          bcs: analysis.bcs_score ?? 5,
-          activityFactor: analysis.factor ?? 1.2,
-          lifeStage,
-          neutered: !!dog.neutered,
-        }
-        const results = sensitivityAnalysis(baseline)
-        if (results.length === 0) return null
-        return (
-          <section className="px-5 mt-3">
-            <div className="rounded-2xl border bg-white px-5 py-4" style={{ borderColor: 'var(--rule)' }}>
-              <span className="kicker flex items-center gap-1.5" style={{ color: 'var(--moss)' }}>
-                <TrendingUp className="w-3 h-3" strokeWidth={2.2} />
-                반사실 sensitivity (식단 영향력)
-              </span>
-              <p className="mt-1 text-[11.5px] text-muted leading-relaxed">
-                각 변수 1단위 변화 시 권장 그램의 변화량. 가장 영향이 큰 변수
-                를 보면 케어 priority 결정에 도움.
-              </p>
-              <ul className="mt-2 space-y-1">
+        {/* [C1] 반사실 민감도 — 발명 모듈 G. flag OFF 면 빈 배열 → 숨김. 어떤 변수 변화가 급여량을 가장 많이 바꾸는지. */}
+        {(() => {
+          if (!analysis || !dog.weight) return null
+          const lifeStage: DogState['lifeStage'] = analysis.stage.includes('성장') ? 'puppy' : analysis.stage.includes('노령') ? 'senior' : 'adult'
+          const baseline: DogState = {
+            weightKg: dog.weight,
+            bcs: analysis.bcs_score ?? 5,
+            activityFactor: analysis.factor ?? 1.2,
+            lifeStage,
+            neutered: !!dog.neutered,
+          }
+          const results = sensitivityAnalysis(baseline)
+          if (results.length === 0) return null
+          return (
+            <section aria-labelledby="sens-title" style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
+              <h2 id="sens-title" className="d" style={{ margin: 0, fontSize: 24 }}>
+                급여량에 영향이 큰 것
+              </h2>
+              <p style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.6, color: '#595959' }}>각 항목이 한 단계 바뀔 때 하루 권장 그램이 얼마나 바뀌는지예요.</p>
+              <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
                 {results.slice(0, 4).map((r) => (
-                  <li
-                    key={`${r.variable}-${r.delta}`}
-                    className="flex items-center justify-between text-[12px]"
-                  >
-                    <span style={{ color: 'var(--ink)' }}>{r.description}</span>
-                    <span
-                      className="font-mono tabular-nums"
-                      style={{
-                        color:
-                          r.delta > 0 ? 'var(--moss)' : 'var(--terracotta)',
-                      }}
-                    >
+                  <li key={`${r.variable}-${r.delta}`} style={{ minHeight: 48, borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 16 }}>
+                    <span>{r.description}</span>
+                    <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
                       {r.delta > 0 ? '+' : ''}
                       {r.delta} g/일
                     </span>
                   </li>
                 ))}
               </ul>
-            </div>
-          </section>
-        )
-      })()}
+            </section>
+          )
+        })()}
 
-      {/* 푸터 — 안내 + 만료 */}
-      <section className="px-5 mt-6">
-        <div className="text-[10.5px] text-muted leading-relaxed text-center">
-          이 페이지는 보호자가 발급한 토큰으로 read-only 공유돼요. {' '}
-          만료: {result.token.expiresAt.slice(0, 10)}.
-          <br />
-          <span className="inline-block mt-1">
-            farmerstail · <Link href="/" className="underline">farmerstail.kr</Link>
-          </span>
-        </div>
-      </section>
-    </main>
+        <p style={{ margin: '28px 20px 64px', padding: '14px 16px', borderRadius: 4, background: '#F6F4F5', fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
+          보호자가 보낸 링크로 읽기만 할 수 있게 공유된 페이지예요. 링크는 <strong style={{ color: '#141414' }}>{result.token.expiresAt.slice(0, 10)}</strong>까지 열려요.
+        </p>
+      </div>
+    </StoreShell>
   )
 }
 
@@ -393,13 +362,24 @@ type AnalysisRow = {
   next_review_date: string | null
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, sub, right }: { label: string; value: string; sub?: string; right?: boolean }) {
   return (
-    <div>
-      <div className="text-[10.5px] uppercase tracking-wider font-bold text-muted">
-        {label}
-      </div>
-      <div className="mt-0.5" style={{ color: 'var(--ink)' }}>{value}</div>
+    <div
+      style={{
+        padding: right ? '12px 0 12px 14px' : '12px 0',
+        borderBottom: '1px solid #E5E5E5',
+        borderLeft: right ? '1px solid #E5E5E5' : 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        minWidth: 0,
+      }}
+    >
+      <dt style={{ fontSize: 14, color: '#595959' }}>{label}</dt>
+      <dd style={{ margin: 0, fontSize: 17, fontWeight: 800, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
+        {value}
+        {sub && <span style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#595959' }}>{sub}</span>}
+      </dd>
     </div>
   )
 }

@@ -1,29 +1,20 @@
 import type { Metadata } from 'next'
-import { ArrowRight } from 'lucide-react'
-import WebChrome from '@/components/WebChrome'
-import WebMotion from '@/components/web/motion/WebMotion'
-import { createClient } from '@/lib/supabase/server'
-import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import Link from 'next/link'
+import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
-import Reveal from '@/components/landing/Reveal'
-// 멈추기 시점 문구 정본 — 화면마다 다르게 말하면 실제보다 엄한 마감이 생긴다.
-import { STOP_TIMING_COPY } from '@/lib/shipping-schedule'
-import FdSlider from '@/components/web/fd/FdSlider'
-import StickyCta from '@/components/web/fd/StickyCta'
-import {
-  Button,
-  Container,
-  Display,
-  Eyebrow,
-  PhotoSlot,
-  Section,
-} from '@/components/web/fd/ui'
-import { planHref } from '@/lib/funnel-cta'
+import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import { STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
 
 /**
- * /about — 브랜드 이야기 (farm v6 = FD 톤 리스타일, 2026-06-13).
- * AuthAwareShell 유지(앱/웹 dispatch 불변). 콘텐츠는 기존 서사 보존, 디자인만 FD.
- * 모든 CTA → 설문 퍼널(planHref).
+ * /about — 우리 이야기. 웹 시안 WEB-C06(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
+ *   머리말·제목·소개(2026 인천 송도) → 01 시작(눈밭 셸티) → 02 재료(기준 4줄) → 03 영양(회색 띠 + 교차검증표 줄)
+ *   → 04 주방(만드는 순서 5줄) → 05 분석(앱에서) → 06 약속(회색 띠, 하지 않는 것 4줄) → 함께하는 보호자들(모으는 중)
+ *   → 마무리(레시피 고르기 · 우리 음식 보기 · 앱 띠).
+ * 웹 전용(예전에도 WebChrome 만 썼다). 옛 설문 버튼(/start)은 가게(/store)로 — 설문 링크를 고르던 로그인 확인(getUser)도
+ * 함께 뺐다(다른 쓰임이 없었다). 예전 FD 톤 판은 git 이력.
+ * ★문구는 시안(사실 확인을 거쳐 줄인 판)대로 — 옛 화면의 AAFCO·WSAVA 약어, "BHA·BHT·에톡시퀸", "저온 동결건조",
+ *   "2주마다 냉동 배송", "첫 박스부터 부담 없이" 같은 구독 안내는 되살리지 않는다.
+ * 교차검증표 줄은 시안이 꺾쇠(안쪽 링크)라 표 미리보기·원문 PDF 가 있는 /science 로 보낸다.
  */
 export const revalidate = 3600
 
@@ -61,387 +52,274 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-
-
 // 실제 계약 농가·인증 확보 전까지는 구체 출처 대신 "원료를 고르는 기준"을 표기.
 // (실 계약 시 '재료 → 농가·등급' 형태로 복원 — partners 페이지와 동일 정책, 2026-06)
 const SOURCING = [
   { k: '육류', v: '사람이 먹는 등급을 기준으로' },
   { k: '생선', v: '출처를 밝힐 수 있는 것만' },
-  { k: '채소', v: '제철 · 신선 우선' },
-  { k: '곡물', v: '정제보다 통곡물 지향' },
-]
+  { k: '채소', v: '제철 · 신선한 것 먼저' },
+  { k: '곡물', v: '정제보다 통곡물' },
+] as const
 
+/** 만드는 순서(시안 C06) — 실제 순서라 번호가 정보다. */
 const STEPS = [
-  ['01', '원료 입고 · 출처 기록'],
-  ['02', '저온 세척 및 수의영양 기준 계량'],
-  ['03', '수비드 조리 또는 저온 동결건조'],
-  ['04', '급속 냉동 후 다중 포장 · 품질 검사'],
-  ['05', '2주마다 냉동 배송'],
-]
+  '원료 입고 · 출처 기록',
+  '저온 세척 · 영양 기준에 맞춰 계량',
+  '수비드 저온 조리',
+  '급속 냉동 · 포장 · 품질 검사',
+  '얼린 채로 보냉 상자에 담아 배송',
+] as const
 
 const PROMISES = [
-  { t: '익명 원료', b: '수입산 육류, 복합 곡물, 미상의 부산물은 쓰지 않습니다.' },
-  { t: '인공 보존료', b: 'BHA · BHT · 에톡시퀸 등의 인공 산화방지제를 첨가하지 않습니다.' },
-  { t: '과장 마케팅', b: '“모든 질병에 효과” 같은 문구를 쓰지 않습니다. 우리는 식단을 만듭니다.' },
-  { t: '원가 절감형 부재료', b: '글루텐 밀, 값싼 대두 단백, 설탕류로 단가를 맞추지 않습니다.' },
-]
+  { t: '익명 원료', b: '수입산 육류, 복합 곡물, 출처를 모르는 부산물은 쓰지 않아요.' },
+  { t: '인공 보존료', b: '인공 산화방지제를 넣지 않아요.' },
+  { t: '과장 광고', b: '“모든 질병에 효과” 같은 말을 쓰지 않아요. 우리는 식단을 만들어요.' },
+  { t: '값싼 부재료', b: '밀 글루텐, 값싼 콩 단백, 설탕류로 단가를 맞추지 않아요.' },
+] as const
+
+const P: React.CSSProperties = { margin: '14px 0 0', fontSize: 17, lineHeight: 1.75, color: '#3D3D3D' }
+
+function Chevron({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+function Arrow() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+/** 장 머리 — 번호(Anton) + 이름 + 제목(시안 C06). */
+function ChapterHead({ no, label, top, children }: { no: string; label: string; top?: number; children: React.ReactNode }) {
+  return (
+    <>
+      <span style={{ marginTop: top, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span className="n" style={{ fontSize: 18 }}>
+          {no}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>{label}</span>
+      </span>
+      <h2 className="d" style={{ margin: '6px 0 0', fontSize: 30, lineHeight: 1.12 }}>
+        {children}
+      </h2>
+    </>
+  )
+}
 
 export default async function AboutPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isAuthed = !!user
-
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '브랜드 이야기', path: '/about' },
   ])
 
   return (
-    <WebChrome>
-      <WebMotion />
-      <main>
-        <JsonLd id="ld-about-crumbs" data={crumbLd} />
-        {/* Hero — 미션 */}
-        <Section bg="offwhite" pad="md">
-          <Container size="lg">
-            <Reveal>
-              <Eyebrow>OUR STORY</Eyebrow>
-              <Display as="h1" size="xl" className="pt-4" style={{ color: 'var(--fd-pine)' }}>
-                {/* 글자 단위 스태거 등장(WebMotion). JS·reduced-motion 실패 시엔
-                    이 평문이 그대로 보인다 — 폴백 무손실. */}
-                <span data-gsap="hero-title" className="block">
-                  사람이 먹는 등급으로,
-                  <br />
-                  농장에서 꼬리까지
+    <StoreShell>
+      <JsonLd id="ld-about-crumbs" data={crumbLd} />
+      {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
+      <div style={{ lineHeight: 'normal' }}>
+        {/* ── 머리말 · 제목 · 소개 ── */}
+        <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>우리 이야기</span>
+          <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
+            사람이 먹는 등급으로
+            <br />
+            농장에서 꼬리까지
+          </h1>
+          <p style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>
+            파머스테일은 “내 강아지한테 먹일 수 있는 것만 만든다”는 원칙에서 시작했어요. 원료의 출처, 조리 방식, 포장까지 반려견의 식탁을 사람의 식탁과 같은 기준으로 다뤄요.
+          </p>
+          <span style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#595959' }}>
+            <span className="n" style={{ fontSize: 16, color: '#141414' }}>
+              2026
+            </span>
+            인천 송도에서 시작했어요
+          </span>
+        </section>
+
+        {/* ── 01 시작 — 2026-09-05 사장님: 눈밭의 셸티 실사('한 마리 개에게서 시작된 브랜드' 옆엔 그 개의 얼굴) ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/sheltie-snow-45.jpg"
+            alt="눈밭에서 눈을 뒤집어쓴 셰틀랜드 시프도그"
+            width={1000}
+            height={1250}
+            fetchPriority="high"
+            style={{ width: '100%', aspectRatio: '350 / 320', objectFit: 'cover', objectPosition: '50% 35%', borderRadius: 4, display: 'block' }}
+          />
+          <ChapterHead no="01" label="시작" top={24}>
+            한 마리 개에게서
+            <br />
+            시작된 브랜드
+          </ChapterHead>
+          <p style={P}>
+            열세 살 노견 ‘보리’의 만성 소화 문제로 사료 대신 직접 만든 화식을 먹이기 시작했어요. 수의사와 이야기하고, 영양을 계산하고, 재료를 구하는 일을 되풀이하며 알게 된 건
+            하나였어요. <strong style={{ fontWeight: 800, color: '#141414' }}>대부분의 반려견 식단은 ‘사람 음식 등급’으로 만들어지지 않는다는 것.</strong>
+          </p>
+          <p style={{ ...P, marginTop: 12 }}>
+            파머스테일은 그때 세운 규칙을 그대로 따라요. 사람이 먹을 수 있는 원료만 쓰고, 출처를 끝까지 확인하고, 익힌 뒤 바로 얼려 영양을 붙잡아요.
+          </p>
+        </section>
+
+        {/* ── 02 재료 — 원료를 고르는 기준 4줄 ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="02" label="재료">
+            재료는 이름이
+            <br />
+            있어야 해요
+          </ChapterHead>
+          <p style={P}>
+            원산지를 농장 단위까지 밝히는 것을 원칙으로 삼아요. 익명의 ‘수입산 육류’나 ‘복합 곡물’에 기대지 않고, 출처가 분명한 원료를 한 곳씩 찾아가고 있어요.
+          </p>
+          <dl style={{ margin: '16px 0 0', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            {SOURCING.map((row) => (
+              <div key={row.k} style={{ minHeight: 56, borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <dt className="d" style={{ fontSize: 19 }}>
+                  {row.k}
+                </dt>
+                <dd style={{ margin: 0, fontSize: 16, color: '#3D3D3D' }}>{row.v}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* ── 03 영양 — 회색 띠 + 교차검증표(표 미리보기·원문 PDF 는 /science) ── */}
+        <section style={{ marginTop: 56, padding: '44px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="03" label="영양">
+            수의영양학으로
+            <br />
+            만든 레시피
+          </ChapterHead>
+          <p style={P}>
+            모든 레시피는 공개된 개 영양 기준과 수의 단체의 품질 가이드를 기준으로 설계해요. ‘맛있어 보이는 음식’이 아니라 ‘영양이 맞는 식단’을 만드는 곳이에요.
+          </p>
+          <Link
+            href="/science#evidence"
+            style={{ marginTop: 18, padding: 16, borderRadius: 4, background: '#FFFFFF', display: 'grid', gridTemplateColumns: '44px 1fr 18px', columnGap: 12, alignItems: 'center', color: '#141414', textDecoration: 'none' }}
+          >
+            <span aria-hidden style={{ width: 44, height: 54, boxSizing: 'border-box', border: '1.5px solid #141414', padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ height: 4, background: '#141414' }} />
+              <span style={{ height: 3, background: '#CFCFCF' }} />
+              <span style={{ height: 3, background: '#CFCFCF' }} />
+              <span style={{ height: 3, background: '#CFCFCF' }} />
+              <span style={{ height: 3, background: '#CFCFCF' }} />
+            </span>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <strong style={{ fontSize: 17, fontWeight: 800 }}>영양 교차검증표</strong>
+              <span style={{ fontSize: 15, color: '#595959' }}>레시피 {STORE_RECIPES.length}종을 기준과 항목별로 대조했어요</span>
+            </span>
+            <Chevron />
+          </Link>
+        </section>
+
+        {/* ── 04 주방 — 만드는 순서 ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="04" label="주방">
+            조금씩 정성껏
+          </ChapterHead>
+          <p style={P}>
+            위생을 철저히 관리하는 주방에서 주 단위로 조금씩 조리해요. 완성된 식단은 바로 얼려 영양을 붙잡고, 빛과 공기를 막는 포장으로 보내드려요.
+          </p>
+          <ol style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            {STEPS.map((s, i) => (
+              <li key={s} style={{ minHeight: 56, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '40px 1fr', alignItems: 'center', fontSize: 17, fontWeight: 700 }}>
+                <span className="n" style={{ fontSize: 18 }}>
+                  {String(i + 1).padStart(2, '0')}
                 </span>
-              </Display>
-              <p
-                className="pt-5 text-[15px] md:text-[18px]"
-                style={{ maxWidth: 560, lineHeight: 1.7, color: 'var(--fd-muted)' }}
-              >
-                파머스테일은 “내 강아지한테 먹일 수 있는 것만 만든다”는 원칙에서
-                시작했습니다. 원료의 출처, 조리 방식, 포장까지 — 반려견의 식탁을
-                사람의 식탁과 같은 기준으로 다룹니다.
-              </p>
-              <p
-                className="pt-6 text-[12px]"
-                style={{ letterSpacing: '0.16em', color: 'var(--fd-green)', fontWeight: 700 }}
-              >
-                FARMER&rsquo;S TAIL — EST. 2026, INCHEON SONGDO
-              </p>
-            </Reveal>
-          </Container>
-        </Section>
+                {s}
+              </li>
+            ))}
+          </ol>
+          <Link
+            href="/why-fresh"
+            style={{ marginTop: 6, alignSelf: 'flex-start', height: 48, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'underline' }}
+          >
+            왜 화식인지 더 알아보기
+            <Chevron size={15} />
+          </Link>
+        </section>
 
-        {/* 01 Origin */}
-        <Section bg="cream">
-          <Container size="xl">
-            <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-              <Reveal>
-                {/* 2026-09-05 사장님: 밭길 뒷모습 → 눈밭의 셸티 실사로 교체.
-                    '한 마리 개에게서 시작된 브랜드' 옆엔 그 개의 얼굴이 맞다. */}
-                <PhotoSlot
-                  motion
-                  src="/sheltie-snow-45.jpg" alt="눈밭에서 눈을 뒤집어쓴 셰틀랜드 시프도그" label="반려견 실사"
-                  sub="브랜드의 시작을 보여주는 컷"
-                  ratio="4 / 5"
-                  tone="offwhite"
-                  rounded={10}
-                  className="w-full"
-                />
-              </Reveal>
-              <Reveal delay={100}>
-                <div>
-                  <Eyebrow>NO.01 — ORIGIN</Eyebrow>
-                  <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                    한 마리 개에게서
-                    <br />
-                    시작된 브랜드
-                  </Display>
-                  <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.75, color: 'var(--fd-muted)' }}>
-                    열세 살 노견 ‘보리’의 만성 소화 문제를 해결해 보려고, 사료 대신
-                    직접 만든 화식을 먹이기 시작했습니다. 수의사와의 대화, 영양소 계산,
-                    재료 수급을 반복하며 알게 된 사실은 하나였습니다 —{' '}
-                    <strong style={{ color: 'var(--fd-pine)' }}>
-                      대부분의 반려견 식단은 ‘사람 음식 등급’으로 만들어지지 않는다.
-                    </strong>
-                  </p>
-                  <p className="pt-3 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.75, color: 'var(--fd-muted)' }}>
-                    파머스테일은 그때 세운 규칙을 그대로 따릅니다. 사람이 먹을 수 있는
-                    원료만 쓰고, 출처는 농장 단위까지 추적하고, 조리 후 냉동·동결건조로
-                    영양소를 붙잡습니다.
-                  </p>
-                </div>
-              </Reveal>
-            </div>
-          </Container>
-        </Section>
+        {/* ── 05 분석 — 분석은 앱에서(웹엔 분석 화면이 없다) ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/store/sheltie-face.webp"
+            alt="웃고 있는 셰틀랜드 시프도그"
+            width={480}
+            height={480}
+            loading="lazy"
+            style={{ width: '100%', aspectRatio: '350 / 250', objectFit: 'cover', objectPosition: '50% 30%', borderRadius: 4, display: 'block' }}
+          />
+          <ChapterHead no="05" label="분석" top={24}>
+            내 강아지만을 위한 분석
+          </ChapterHead>
+          <p style={P}>견종·체중·활동량·못 먹는 음식을 반영해 권장 식단과 하루 양을 계산해요. 결과와 근거를 함께 보여드려, 주치의와 상의할 때도 쓸 수 있어요.</p>
+          <span style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: '#1D3B2F' }}>분석은 파머스테일 앱에서 해요</span>
+        </section>
 
-        {/* 02 Farm to Tail */}
-        <Section bg="white">
-          <Container size="md">
-            <Reveal>
-              <Eyebrow>NO.02 — FARM TO TAIL</Eyebrow>
-              <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                재료는 이름이 있어야 한다
-              </Display>
-              <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                재료의 원산지를 농장 단위까지 밝히는 것을 원칙으로 삼습니다. 익명의
-                ‘수입산 육류’나 ‘복합 곡물’에 기대지 않고, 출처가 분명한 원료를 한
-                곳씩 찾아가고 있어요.
-              </p>
-            </Reveal>
-            <Reveal delay={100}>
-              <ul className="pt-7 grid gap-0" style={{ borderTop: '1px solid var(--fd-line)' }}>
-                {SOURCING.map((row) => (
-                  <li
-                    key={row.k}
-                    className="flex items-center justify-between"
-                    style={{ borderBottom: '1px solid var(--fd-line)', padding: '14px 0' }}
-                  >
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--fd-pine)' }}>{row.k}</span>
-                    <span style={{ fontSize: 12.5, letterSpacing: '0.04em', color: 'var(--fd-muted)', fontWeight: 600 }}>
-                      {row.v}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-          </Container>
-        </Section>
-
-        {/* 03 Nutrition science */}
-        <Section bg="offwhite">
-          <Container size="xl">
-            <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-              <Reveal delay={100} className="order-2 md:order-1">
-                <div>
-                  <Eyebrow>NO.03 — NUTRITION SCIENCE</Eyebrow>
-                  <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                    수의영양학이 만든 레시피
-                  </Display>
-                  <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                    모든 레시피는 <strong style={{ color: 'var(--fd-pine)' }}>AAFCO</strong> 의 성견·자견
-                    영양 기준과 <strong style={{ color: 'var(--fd-pine)' }}>WSAVA</strong> 의 품질 가이드를
-                    기준으로 설계합니다. ‘맛있어 보이는 음식’이 아니라 ‘영양
-                    프로파일이 맞는 식단’을 만드는 곳입니다.
-                  </p>
-                </div>
-              </Reveal>
-              <Reveal className="order-1 md:order-2">
-                {/* 2026-09-04 사장님 지시: 분석 리포트 → 교차검증표(표만).
-                    합성 원본에서 표 영역만 크롭한 전용 자산 — 문서라 ratio 를
-                    크롭 실비율로(cover 잘림 방지). 세부 가독성은 요구 안 함
-                    ("자세하게 안 나와도 괜찮"), 원문 PDF 는 /science 에. */}
-                <PhotoSlot
-                  label="영양 교차검증표"
-                  // 2026-09-04b: 크롭본 → 드라이브 PDF(표만 원본) 4배율 렌더로 재교체
-                  // (사장님 지시 — 시트 가장자리 티 없이 선명). ratio=렌더 실비율.
-                  src="/nutrition-crossval-sheet.webp"
-                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
-                  sub="3대 국제 기준 교차 대조"
-                  ratio="1876 / 2105"
-                  tone="green"
-                  rounded={10}
-                  className="w-full"
-                />
-              </Reveal>
-            </div>
-          </Container>
-        </Section>
-
-        {/* 04 Kitchen */}
-        <Section bg="cream">
-          <Container size="md">
-            <Reveal>
-              <Eyebrow>NO.04 — KITCHEN</Eyebrow>
-              <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                소규모 배치로, 정성껏
-              </Display>
-              <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                위생을 철저히 관리하는 주방에서 주 단위 소규모 배치로 조리합니다.
-                완성된 식단은 급속 냉동 또는 저온 동결건조로 영양소를 포집한 뒤,
-                산소·빛을 차단하는 다중 포장으로 보내드립니다.
-              </p>
-            </Reveal>
-            <Reveal delay={100}>
-              <ul className="pt-7" style={{ borderTop: '1px solid var(--fd-line)' }}>
-                {STEPS.map(([n, t]) => (
-                  <li
-                    key={n}
-                    className="grid items-baseline"
-                    style={{ gridTemplateColumns: '40px 1fr', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--fd-line)' }}
-                  >
-                    <span className="font-chunky" style={{ fontSize: 18, color: 'var(--fd-coral)' }}>{n}</span>
-                    <span style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--fd-pine)', fontWeight: 600 }}>{t}</span>
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-            {/* 교육 페이지 딥링크 — 주방/신선 서사에서 '왜 신선식인가' /why-fresh 로 (FD IA: 스토리→교육) */}
-            <Reveal delay={160}>
-              <div className="pt-8 flex justify-center">
-                <Button href="/why-fresh" tone="outline" size="sm">
-                  왜 신선식인지 더 알아보기
-                  <ArrowRight size={15} strokeWidth={2.4} />
-                </Button>
+        {/* ── 06 약속 — 회색 띠, 하지 않는 것 ── */}
+        <section style={{ marginTop: 56, padding: '44px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="06" label="약속">
+            파머스테일이
+            <br />
+            하지 않는 것
+          </ChapterHead>
+          <dl style={{ margin: '16px 0 0', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            {PROMISES.map((row) => (
+              <div key={row.t} style={{ padding: '14px 0', borderBottom: '1px solid #D9D9D9', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <dt style={{ fontSize: 18, fontWeight: 800 }}>{row.t}</dt>
+                <dd style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>{row.b}</dd>
               </div>
-            </Reveal>
-          </Container>
-        </Section>
+            ))}
+          </dl>
+        </section>
 
-        {/* 05 AI nutritionist */}
-        <Section bg="white">
-          <Container size="xl">
-            <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-              <Reveal>
-                {/* 2026-07-03: 회색 placeholder → 강아지 실사진(기존 에셋).
-                    "내 강아지만을 위한 분석" 헤드라인과 감성 정합. */}
-                <PhotoSlot
-                  motion
-                  label="우리 아이"
-                  src="/dog-portrait.jpg"
-                  alt="분석을 기다리는 강아지"
-                  ratio="4 / 3"
-                  tone="cream"
-                  rounded={10}
-                  className="w-full"
-                />
-              </Reveal>
-              <Reveal delay={100}>
-                <div>
-                  <Eyebrow>NO.05 — AI ANALYSIS</Eyebrow>
-                  <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                    내 강아지만을 위한 분석
-                  </Display>
-                  <p className="pt-4 text-[14.5px] md:text-[16px]" style={{ lineHeight: 1.7, color: 'var(--fd-muted)' }}>
-                    견종·체중·활동량·민감한 음식을 반영해 권장 식단과 급여량을 계산합니다.
-                    단순 추천이 아니라 영양 프로파일 요약과 근거를 함께 — 주치의와 상의할
-                    수 있는 수준으로 보여드려요.
-                  </p>
-                </div>
-              </Reveal>
-            </div>
-          </Container>
-        </Section>
+        {/* ── 함께하는 보호자들 — 실제 후기가 모이기 전까지는 지어낸 카드 없이 상태만(규칙 28) ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <h2 className="d" style={{ margin: '0 0 14px', fontSize: 30, lineHeight: 1.12 }}>
+            함께하는 보호자들
+          </h2>
+          <div style={{ padding: 20, borderRadius: 4, border: '2px solid #141414', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <strong style={{ fontSize: 18, fontWeight: 800 }}>첫 후기를 모으는 중이에요</strong>
+            <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
+          </div>
+        </section>
 
-        {/* 06 Promises (dark) */}
-        <Section bg="pine">
-          <Container size="lg">
-            <Reveal>
-              <Eyebrow color="var(--fd-green-soft)">NO.06 — OUR PROMISES</Eyebrow>
-              <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
-                파머스테일이 하지 않는 것
-              </Display>
-            </Reveal>
-            <div className="pt-9 grid md:grid-cols-2 gap-3 md:gap-4">
-              {PROMISES.map((row, i) => (
-                <Reveal key={row.t} delay={i * 70}>
-                  <div
-                    className="h-full"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '20px 18px' }}
-                  >
-                    {/* 다크 위 텍스트 포인트 = 골드 (색 문법, globals.css 토큰 정의 참조 — 2026-08-01) */}
-                    <span style={{ fontSize: 11, letterSpacing: '0.2em', color: 'var(--fd-gold)', fontWeight: 800 }}>
-                      NO
-                    </span>
-                    <h3 className="pt-1.5 text-[17px] md:text-[19px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>
-                      {row.t}
-                    </h3>
-                    <p className="pt-2 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
-                      {row.b}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </Container>
-        </Section>
-
-        {/* 함께하는 보호자들 — 후기 캐러셀 (FD About 패턴, 정직 placeholder) */}
-        <Section bg="offwhite" pad="md">
-          <Container size="xl">
-            <Reveal>
-              <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-                <Eyebrow>OUR FAMILY</Eyebrow>
-                <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                  함께하는 보호자들
-                </Display>
-                <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-                  실제 후기가 모이면 이 자리에 그대로 담깁니다.
-                </p>
-              </div>
-            </Reveal>
-            <div className="pt-9">
-              <Reveal>
-                <FdSlider ariaLabel="보호자 후기">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="snap-start shrink-0 w-[280px] md:w-[340px]"
-                      style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px' }}
-                    >
-                      {/* 정직: 실제 후기 전엔 채운 별점 금지 — 윤곽선 빈 점(회차51/107/120 동일). */}
-                      <div className="flex gap-1" aria-hidden>
-                        {Array.from({ length: 5 }).map((_, j) => (
-                          <span key={j} style={{ width: 14, height: 14, borderRadius: 999, background: 'transparent', border: '1.5px solid var(--fd-line)', display: 'inline-block' }} />
-                        ))}
-                      </div>
-                      <div className="pt-4 flex flex-col gap-2" aria-hidden>
-                        <span style={{ display: 'block', height: 9, width: '94%', borderRadius: 4, background: '#EDEAE0' }} />
-                        <span style={{ display: 'block', height: 9, width: '88%', borderRadius: 4, background: '#EDEAE0' }} />
-                        <span style={{ display: 'block', height: 9, width: '72%', borderRadius: 4, background: '#EDEAE0' }} />
-                      </div>
-                      <div className="pt-5 flex items-center gap-3">
-                        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
-                        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>후기 자리 · 아이 이름</span>
-                      </div>
-                    </div>
-                  ))}
-                </FdSlider>
-              </Reveal>
-            </div>
-          </Container>
-        </Section>
-
-        {/* Closing CTA */}
-        <Section bg="coral">
-          <Container size="md">
-            <Reveal>
-              <div className="text-center">
-                <Display size="lg" style={{ color: '#FFFFFF' }}>
-                  내 강아지에게 맞는
-                  <br />
-                  식단을 찾는 데 2분
-                </Display>
-                <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 440, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-                  견종과 활동량을 알려주면, 수의영양학 기반의 맞춤 식단을 제안합니다.
-                  {/* ★ 예전 문구: "해지는 일요일까지 신청하면 다음 박스부터 적용돼요".
-                      실제보다 엄한 마감이었다 — 해지는 status 를 바꾸는 순간 반영되고
-                      청구 크론은 active 인 것만 고른다. 일요일 마감은 **박스 구성
-                      변경**에 붙는 것이다(월요일 원료 손질). 월요일에 저 문구를 읽은
-                      고객은 이미 늦었다고 생각해 원치 않는 박스를 한 번 더 받는다.
-                      문구 정본: lib/shipping-schedule 의 STOP_TIMING_COPY. */}
-                  첫 박스부터 부담 없이 — {STOP_TIMING_COPY}
-                </p>
-                <div className="pt-8 flex flex-col sm:flex-row justify-center gap-3">
-                  <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
-                    2분 설문 시작하기
-                    <ArrowRight size={19} strokeWidth={2.4} />
-                  </Button>
-                  <Button href="/our-food" tone="outlineLight" size="lg">
-                    우리 음식 보기
-                  </Button>
-                </div>
-              </div>
-            </Reveal>
-          </Container>
-        </Section>
-      </main>
-      <StickyCta href={planHref(isAuthed, false)} />
-    </WebChrome>
+        {/* ── 마무리 — 가게 · 우리 음식 · 앱 띠 ── */}
+        <section style={{ padding: '48px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+          <h2 className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>
+            내 강아지에게 줄 한 끼
+          </h2>
+          <Link
+            href="/store"
+            style={{ marginTop: 18, height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 19, fontWeight: 800 }}
+          >
+            레시피 고르기
+            <Arrow />
+          </Link>
+          <Link
+            href="/our-food"
+            style={{ marginTop: 10, height: 56, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', color: '#141414', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}
+          >
+            우리 음식 보기
+          </Link>
+          <Link
+            href="/app"
+            style={{ marginTop: 16, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
+          >
+            <span>
+              우리 아이 맞춤 정기배송은 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱에서 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
+            </span>
+            <Chevron />
+          </Link>
+        </section>
+      </div>
+    </StoreShell>
   )
 }

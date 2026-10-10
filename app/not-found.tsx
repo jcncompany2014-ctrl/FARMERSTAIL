@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { business } from '@/lib/business'
-import { Button, Eyebrow } from '@/components/web/fd/ui'
+import Link from 'next/link'
+import StoreShell from '@/components/store/StoreShell'
 import AppChrome from '@/components/AppChrome'
 import AppNotFoundScreen from '@/components/v3/system/AppNotFoundScreen'
 import { isAppContextServer } from '@/lib/app-context'
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
  * 화면(components/v3/system/AppNotFoundScreen — (main)/not-found 와 같은 화면)을 그린다. 예전엔 앱에서도
  * 이 웹 화면이 떴다 — 큰 404·영어 머리말에, 로그인한 앱 사용자를 비로그인 설문 퍼널(/start)로 보내는
  * CTA 까지((main)/not-found 주석의 바로 그 실수). 판정은 정본 isAppContextServer(쿠키·UA 표식).
- * 웹 갈래는 한 글자도 안 바꿨다(웹/앱 절대 분리). 요청 헤더를 읽으므로 이 화면은 요청마다 그려진다.
+ * 요청 헤더를 읽으므로 이 화면은 요청마다 그려진다. 2026-10-10 웹 리뉴얼: 웹 갈래 = 웹 시안 WEB-A29(새 웹 가게 틀, 길 안내는 가게로).
  */
 export default async function NotFound() {
   if (await isAppContextServer()) {
@@ -34,68 +34,48 @@ export default async function NotFound() {
     )
   }
 
+  // 웹 = 웹 시안 WEB-A29(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 길 안내는 가게로(웹 설문은 앱으로 옮겼다 — 기획서 D1).
   return (
-    <main
-      className="flex min-h-[100svh] flex-col items-center justify-center px-6 text-center"
-      style={{ background: 'var(--fd-offwhite)', color: 'var(--fd-pine)' }}
-    >
-      <div className="w-full" style={{ maxWidth: 520 }}>
-        <div
-          className="font-chunky select-none"
-          style={{
-            fontSize: 'clamp(76px, 22vw, 140px)',
-            lineHeight: 0.9,
-            color: 'var(--fd-pine)',
-            letterSpacing: '-0.04em',
-          }}
+    <StoreShell>
+      <section style={{ padding: '48px 20px 72px', display: 'flex', flexDirection: 'column' }}>
+        <span
+          aria-hidden
+          className="d"
+          style={{ width: 72, height: 72, background: '#141414', color: '#FFFFFF', fontSize: 46, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          404
-        </div>
-
-        <div className="mt-5">
-          <Eyebrow>PAGE NOT FOUND</Eyebrow>
-        </div>
-
-        <h1
-          className="mt-3"
-          style={{
-            fontSize: 'clamp(26px, 6vw, 40px)',
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.08,
-            color: 'var(--fd-pine)',
-          }}
-        >
+          ?
+        </span>
+        <h1 className="d" style={{ margin: '26px 0 0', fontSize: 42, lineHeight: 1.1 }}>
           길을 잃으셨나요?
         </h1>
-
-        <p
-          className="mx-auto mt-4 text-[14px] md:text-[16px]"
-          style={{ maxWidth: 380, color: 'var(--fd-muted)', lineHeight: 1.7 }}
-        >
-          주소가 바뀌었거나 사라진 페이지일 수 있어요. 아래에서 다시 시작해 보세요.
-        </p>
-
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button href="/start" tone="coral" size="lg">
-            2분 설문 시작하기
-          </Button>
-          <Button href="/" tone="outline" size="lg">
+        <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>주소가 바뀌었거나 사라진 페이지일 수 있어요. 아래에서 다시 시작해 보세요.</p>
+        <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Link
+            href="/store"
+            style={{ height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 18, fontWeight: 800, textDecoration: 'none' }}
+          >
+            레시피 고르기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+          <Link
+            href="/"
+            style={{ height: 58, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: '#141414', textDecoration: 'none' }}
+          >
             홈으로
-          </Button>
+          </Link>
         </div>
-
-        <p className="mt-7 text-[13px]" style={{ color: 'var(--fd-muted)' }}>
-          다른 도움이 필요하신가요?{' '}
-          <a
-            href={`mailto:${business.email}`}
-            className="font-bold underline underline-offset-2"
-            style={{ color: 'var(--fd-coral-text)' }}
+        <p style={{ margin: '22px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 16, color: '#595959' }}>
+          다른 도움이 필요하신가요?
+          <Link
+            href="/contact"
+            style={{ minHeight: 48, padding: '0 4px', display: 'flex', alignItems: 'center', fontWeight: 800, color: '#141414', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             고객센터 문의
-          </a>
+          </Link>
         </p>
-      </div>
-    </main>
+      </section>
+    </StoreShell>
   )
 }

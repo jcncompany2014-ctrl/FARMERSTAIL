@@ -28,6 +28,7 @@
  */
 
 import { createHash } from 'node:crypto'
+import { isStoreOrderNumber } from '../store/order-number.ts'
 
 const TOSS_API_BASE = 'https://api.tosspayments.com/v1'
 
@@ -95,23 +96,48 @@ export type TossResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; error: TossError }
 
-function requireSecretKey(): string {
+/**
+ * 토스 가맹점(MID) — ★2026-10-10 웹 가게(단품)가 생기며 둘이 됐다.
+ *   billing — 정기결제(카드 등록·자동결제) 계약. 키 TOSS_SECRET_KEY. 정기배송 주문(FT-…)의 승인·환불·조회.
+ *   widget  — 웹 가게 일회 결제(결제위젯) 계약. 키 TOSS_WIDGET_SECRET_KEY. 가게 주문(FTS-…)의 승인·환불·조회.
+ * 결제는 그 결제를 만든 가맹점 키로만 승인·환불·조회된다(다른 키로 부르면 결제를 못 찾는다) — 그래서 환불 경로마다
+ * 주문번호로 가맹점을 가린다(merchantForOrderNumber, 규칙172).
+ */
+export type TossMerchant = 'billing' | 'widget'
+/** 주문번호 → 가맹점. 웹 가게 주문(FTS-, lib/store/order-number)만 widget. */
+export function merchantForOrderNumber(orderNumber: string | null | undefined): TossMerchant {
+  return isStoreOrderNumber(orderNumber) ? 'widget' : 'billing'
+}
+/**
+ * 토스가 개발 문서에 공개한 결제위젯 **테스트** 키 쌍 — 위젯 계약 전(심사 중) 미리보기·로컬에서만 쓴다.
+ * 테스트 키 결제는 실제로 돈이 나가지 않는다. 운영(production)에선 절대 쓰지 않는다(아래 가드).
+ */
+export const TOSS_DOCS_TEST_WIDGET_CLIENT_KEY = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
+export const TOSS_DOCS_TEST_WIDGET_SECRET_KEY = 'test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6'
+
+export function tossSecretKey(merchant: TossMerchant = 'billing'): string {
+  if (merchant === 'widget') {
+    const w = process.env.TOSS_WIDGET_SECRET_KEY
+    if (w) return w
+    if (process.env.VERCEL_ENV !== 'production') return TOSS_DOCS_TEST_WIDGET_SECRET_KEY
+    throw new Error('TOSS_WIDGET_SECRET_KEY is not configured')
+  }
   const k = process.env.TOSS_SECRET_KEY
   if (!k) throw new Error('TOSS_SECRET_KEY is not configured')
   return k
 }
 
-function authHeader(): string {
-  const k = requireSecretKey()
+function authHeader(merchant: TossMerchant = 'billing'): string {
+  const k = tossSecretKey(merchant)
   // Toss v1 은 Basic auth with "secretKey:" (빈 password).
   return `Basic ${Buffer.from(`${k}:`).toString('base64')}`
 }
 
 async function tossFetch<T>(
   path: string,
-  init: RequestInit & { idempotencyKey?: string } = {},
+  init: RequestInit & { idempotencyKey?: string; merchant?: TossMerchant } = {},
 ): Promise<TossResult<T>> {
-  const { idempotencyKey, headers, ...rest } = init
+  const { idempotencyKey, headers, merchant, ...rest } = init
   // R85-A1: 이전엔 timeout 도 try/catch 도 없어서 Toss 가 hang 하면 fetch 가
   // 무한 대기 → Vercel function timeout(10s) → 504 blank → 사용자 cart 미정리 →
   // 재주문 시 두 번 결제 위험. AbortSignal.timeout(15s) + try/catch 로 안전화.
@@ -122,7 +148,7 @@ async function tossFetch<T>(
     res = await fetch(`${TOSS_API_BASE}${path}`, {
       ...rest,
       headers: {
-        Authorization: authHeader(),
+        Authorization: authHeader(merchant),
         'Content-Type': 'application/json',
         ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
         ...headers,
@@ -166,11 +192,15 @@ export async function confirmPayment(input: {
   paymentKey: string
   orderId: string
   amount: number
+  /** 기본 billing. 웹 가게 주문은 widget — merchantForOrderNumber(주문번호). */
+  merchant?: TossMerchant
 }): Promise<TossResult<TossPayment>> {
+  const { merchant, ...body } = input
   return tossFetch<TossPayment>('/payments/confirm', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
     idempotencyKey: `confirm:${input.orderId}:${input.paymentKey}`,
+    merchant,
   })
 }
 
@@ -189,6 +219,8 @@ export async function cancelPayment(input: {
   paymentKey: string
   cancelReason: string
   cancelAmount?: number
+  /** 기본 billing. 웹 가게 주문은 widget — merchantForOrderNumber(주문번호). */
+  merchant?: TossMerchant
 }): Promise<TossResult<TossPayment>> {
   const reasonShort = input.cancelReason.trim().slice(0, 200) || '고객 요청'
   const body: { cancelReason: string; cancelAmount?: number } = {
@@ -205,6 +237,7 @@ export async function cancelPayment(input: {
       body: JSON.stringify(body),
       // ★사유는 해시로 — 한글이 헤더에 실리면 fetch 가 전송 전에 터진다(상단 ★).
       idempotencyKey: `cancel:${input.paymentKey}${keyAmountPart}:${reasonKeyFragment(reasonShort)}`,
+      merchant: input.merchant,
     },
   )
 }
@@ -214,10 +247,11 @@ export async function cancelPayment(input: {
  */
 export async function fetchPayment(
   paymentKey: string,
+  merchant: TossMerchant = 'billing',
 ): Promise<TossResult<TossPayment>> {
   return tossFetch<TossPayment>(
     `/payments/${encodeURIComponent(paymentKey)}`,
-    { method: 'GET' },
+    { method: 'GET', merchant },
   )
 }
 
@@ -233,8 +267,9 @@ export async function fetchPayment(
  */
 export async function lookupPaymentByOrderId(
   orderId: string,
+  merchant: TossMerchant = merchantForOrderNumber(orderId),
 ): Promise<{ found: true; payment: TossPayment } | { found: false } | { found: null; error: TossError }> {
-  const r = await tossFetch<TossPayment>(`/payments/orders/${encodeURIComponent(orderId)}`, { method: 'GET' })
+  const r = await tossFetch<TossPayment>(`/payments/orders/${encodeURIComponent(orderId)}`, { method: 'GET', merchant })
   if (r.ok) return { found: true, payment: r.data }
   if (r.status === 404 && (r.error.code === 'NOT_FOUND_PAYMENT' || r.error.code === 'NOT_FOUND')) {
     return { found: false }

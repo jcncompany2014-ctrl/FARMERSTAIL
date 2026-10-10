@@ -1,42 +1,29 @@
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 
 /**
- * 앱 진입용 상단 고정바 — 토스식 (2026-09-05 사장님: "동그란 버튼이 아니라
- * 토스 화면처럼 상단 고정바에" — 떠 있는 원형 버튼 1차안 기각).
+ * 앱 진입용 윗줄 — 앱 깊은 화면과 같은 모양(2026-10-10 포스터 디자인: components/AppChrome 의 ← + 이름).
  *
- * 전폭 고정바(블러 + 헤어라인) 안에 ← 하나. 목적지는 히스토리 되감기가
- * 아니라 홈(/dashboard) — AppChrome 의 계층형 up-nav 규칙(R-feel
- * 2026-06-19)과 동일. env(safe-area-inset-top)으로 네이티브 상태바 회피.
- * sticky 라 흐름 안에서 자리(높이)를 차지하고 스크롤 시 상단에 붙는다.
+ * 이 화면은 AppChrome 밖(가게 틀도 아님)이라 윗줄을 직접 그린다. 높이 56 · 셸 색(--ft-native-bg) ·
+ * 꺾쇠 26px · 이름은 포스터 글꼴 22px. 목적지는 히스토리 되감기가 아니라 홈(/dashboard) — QR 로 앱이 바로
+ * 열리면 되감을 곳이 없다(계층형 up-nav). env(safe-area-inset-top)으로 네이티브 상태바를 피한다.
  */
-export default function AppTopBar() {
+export default function AppTopBar({ title }: { title: string }) {
   return (
-    <div
-      className="sticky top-0 z-50"
-      style={{
-        // 반투명도를 낮춰 스크롤 시 콘텐츠가 은은히 비치는 블러가 살도록
-        // (2026-09-05 사장님: "살짝 블러처리 하는 느낌도").
-        background: 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(14px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
-        borderBottom: '1px solid var(--fd-line)',
-        paddingTop: 'env(safe-area-inset-top)',
-      }}
-    >
-      <div
-        className="flex items-center"
-        style={{ minHeight: 52, padding: '0 8px' }}
-      >
+    <header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'var(--ft-native-bg)', paddingTop: 'env(safe-area-inset-top)' }}>
+      <div style={{ minHeight: 56, padding: '0 8px 0 6px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 4 }}>
         <Link
           href="/dashboard"
           aria-label="뒤로"
-          className="flex items-center justify-center transition active:scale-95"
-          style={{ padding: 12, color: 'var(--fd-pine)' }}
+          style={{ width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#141414' }}
         >
-          <ArrowLeft size={23} strokeWidth={2.2} aria-hidden />
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
         </Link>
+        <span className="d" style={{ fontSize: 22, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {title}
+        </span>
       </div>
-    </div>
+    </header>
   )
 }

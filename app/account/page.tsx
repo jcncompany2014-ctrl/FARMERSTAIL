@@ -1,42 +1,18 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import {
-  ChevronRight,
-  Package,
-  Repeat,
-  Dog,
-  Activity,
-  Smartphone,
-  UserCog,
-  BellRing,
-} from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import AuthAwareShell from '@/components/AuthAwareShell'
-import LogoutButton from '@/components/account/LogoutButton'
-import TierBadge from '@/components/account/TierBadge'
-import StampCard from '@/components/account/StampCard'
 import { isAppContextServer } from '@/lib/app-context'
-import { business } from '@/lib/business'
-import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
+import AccountWebView from './AccountWebView'
 
 /**
- * /account — 웹 사용자용 마이페이지 hub.
+ * /account — 웹 내 계정 허브(웹 시안 WEB-A19, 2026-10-10 웹 리뉴얼). 새 웹 가게 틀.
  *
- * (main)/mypage 는 AppChrome 로 감싸진 모바일 전용 hub. 웹 사용자도 자기 정보
- * 일부는 봐야 하니 별도 hub.
- *
- * # 정보 위계 (2026-06-27 개편, 사장님)
- *   - 메인 카드: 주문 내역 · 정기배송 관리(/account/subscriptions) ·
- *     우리 아이(/account/dogs) · 내 프로필 — 웹 구독결제가 되므로 구독/강아지도
- *     웹에서 직접.
- *   - 얕은 링크(박스 X, 비중↓): 고객센터 · 자주 묻는 질문 · 환불 정책 —
- *     중요도 낮은 정보라 카드로 안 키우고 텍스트 링크로.
- *   - 뉴스레터 구독은 hub 에서 제외(사장님).
- *   - 앱 전용 CTA: 일일 케어/분석 (정기배송은 이제 웹에서 가능 → 앱 카드에서
- *     빠짐. '적립금' 은 포인트 폐기로 2026-07-16 제거).
- *
- * 디자인: FD 랜딩과 동일 프리미티브(Container/Display/Eyebrow)·리듬·타이포.
+ * # 정보 위계 (2026-06-27 개편, 사장님 — 그대로)
+ *   - 등급·도장판: 등급 기준이 도장 개수라 이름 바로 밑(정본 lib/tiers·lib/stamps — 앱 내 정보와 같은 계산).
+ *   - 바로가기: 주문 내역 · 정기배송 관리(/account/subscriptions — 웹으로 가입했던 고객의 관리 화면은 유지, 기획서 §2) ·
+ *     우리 아이 · 내 프로필 · 알림·수신 설정(메일 푸터 수신거부가 여기로 온다).
+ *   - 앱 전용 안내(일일 케어·분석) · 얕은 도움말 링크 · 로그아웃.
+ * 앱의 계정 허브는 '내 정보'(/mypage) — 앱에서 이 주소가 열리면 그리로 보낸다(앱에선 이 화면으로 오는 링크가 없다).
  */
 
 export const dynamic = 'force-dynamic'
@@ -49,16 +25,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-type SectionItem = {
-  href: string
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
-  label: string
-  description?: string
-  badge?: string
-}
-
 export default async function AccountPage() {
-  const isApp = await isAppContextServer()
+  if (await isAppContextServer()) redirect('/mypage')
   const supabase = await createClient()
   const {
     data: { user },
@@ -74,8 +42,6 @@ export default async function AccountPage() {
   //   "주문 내역 **4**" 를 보여주는데 눌러서 들어간 목록은 "아직 주문 내역이
   //   없어요" 였다 — 결제된 적 없는 유령 주문(체크아웃하다 만 것·실패)을 세고
   //   있었던 것. 목록(app/mypage/orders)은 이미 그 4건을 일부러 숨긴다.
-  //   사장님이 "결제한 적 없는 주문이 뜬다"고 반복해서 답답해해 목록을 고친
-  //   게 2026-07-22 인데, **배지는 같이 안 고쳐져** 같은 혼란이 한 겹 남아 있었다.
   //   `paid_at` 이 정본 신호인 이유도 그쪽 주석에 적혀 있다(환불돼도 유지되므로
   //   payment_status enum 보다 견고).
   const [
@@ -95,7 +61,6 @@ export default async function AccountPage() {
       .eq('user_id', user.id)
       .not('paid_at', 'is', null)
       // FSM 의 실제 enum: pending → preparing → shipping → delivered.
-      // 'confirmed', 'shipped' 는 존재하지 않는 값이라 매번 0건 반환했음.
       .in('order_status', ['pending', 'preparing', 'shipping']),
     // '진짜 구독 중'만 카운트 = subscriptionState()==='active' 와 동일한 SQL 조건.
     // 카드 없이 status=active 인 '유령 활성'·결제 실패건 제외(사장님 2026-07-16).
@@ -119,289 +84,16 @@ export default async function AccountPage() {
     .eq('id', user.id)
     .maybeSingle()
 
-  // 메인 카드 — 웹에서 직접 하는 핵심 동선
-  const primaryItems: SectionItem[] = [
-    {
-      href: '/mypage/orders',
-      icon: Package,
-      label: '주문 내역',
-      description: pendingOrders
-        ? `진행 중 ${pendingOrders}건`
-        : '결제부터 배송까지 한눈에',
-      badge: totalOrders ? String(totalOrders) : undefined,
-    },
-    {
-      href: '/account/subscriptions',
-      icon: Repeat,
-      label: '정기배송 관리',
-      description: activeSubs
-        ? `구독 중 ${activeSubs}건 · 화식 비율·해지`
-        : '화식 비율 변경 · 일시정지 · 해지',
-      badge: activeSubs ? String(activeSubs) : undefined,
-    },
-    {
-      href: '/account/dogs',
-      icon: Dog,
-      label: '우리 아이',
-      description: dogCount ? `${dogCount}마리` : '등록한 반려견',
-      badge: dogCount ? String(dogCount) : undefined,
-    },
-    {
-      href: '/account/profile',
-      icon: UserCog,
-      label: '내 프로필',
-      description: '이름·연락처',
-    },
-    // 메일 푸터의 수신거부 링크가 여기로 온다(2026-07-31) — 허브에서도 찾을 수
-    // 있어야 "메일에서만 갈 수 있는 페이지" 가 되지 않는다.
-    {
-      href: '/account/notifications',
-      icon: BellRing,
-      label: '알림 · 수신 설정',
-      description: '광고·마케팅 정보 수신 여부',
-    },
-  ]
-
-  // 비중↓ — 박스 대신 얕은 텍스트 링크 (중요도 낮은 정보)
-  // 앱 문의는 카카오 채널로(사장님 2026-07-17). 카카오 URL 미설정 시 /contact 폼 폴백.
-  const kakaoInquiry = isApp && business.kakaoChannelUrl
-  const helpLinks: { href: string; label: string }[] = [
-    {
-      href: kakaoInquiry ? business.kakaoChannelUrl! : '/contact',
-      label: kakaoInquiry ? '카카오톡으로 문의' : '1:1 문의',
-    },
-    { href: '/faq', label: '자주 묻는 질문' },
-    { href: '/legal/refund', label: '환불 정책' },
-  ]
-
-  // '적립금' 항목 제거 (2026-07-16) — 포인트 전면 폐기로 갈 곳이 없어졌다.
-  const appOnlyItems: SectionItem[] = [
-    {
-      href: '/app-required',
-      icon: Activity,
-      label: '일일 케어 · 분석',
-      description: '기록 · 산책 · 영양 분석',
-    },
-  ]
-
-  const displayName = profile?.name ?? user.email?.split('@')[0] ?? '회원'
-
   return (
-    <AuthAwareShell>
-      <main
-        className="pb-16 md:pb-24"
-        style={{ background: 'var(--fd-offwhite)', minHeight: '72vh' }}
-      >
-        <Container size="lg" className="pt-4 md:pt-6">
-          {/* breadcrumb */}
-          <nav
-            aria-label="현재 위치"
-            className="flex items-center gap-1 text-[11px] md:text-[12px]"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            <Link href="/" className="hover:opacity-70 transition">
-              홈
-            </Link>
-            <ChevronRight className="w-3 h-3 opacity-50" strokeWidth={2} />
-            <span style={{ color: 'var(--fd-pine)', fontWeight: 700 }}>내 계정</span>
-          </nav>
-
-          {/* Hero — FD Display 헤드라인 */}
-          <header className="pt-8 md:pt-14 pb-8 md:pb-12">
-            <Eyebrow>My Account</Eyebrow>
-            <Display as="h1" size="md" className="mt-3 md:mt-4" style={{ color: 'var(--fd-pine)' }}>
-              {displayName} 님,
-              <br />
-              <span style={{ color: 'var(--fd-coral-text)' }}>오늘도 좋은 한 끼.</span>
-            </Display>
-            <p
-              className="mt-4 text-[12.5px] md:text-[14px]"
-              style={{ color: 'var(--fd-muted)' }}
-            >
-              {profile?.email ?? user.email}
-            </p>
-          </header>
-
-          {/* 회원 등급 + 스탬프 카드 — 등급 기준이 스탬프 개수라 붙여 둔다. */}
-          <div className="mb-7 md:mb-9">
-            <TierBadge
-              stampCount={
-                (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
-              }
-              tier={(profile as { tier?: string | null } | null)?.tier ?? null}
-            />
-            <div className="mt-3">
-              <StampCard
-                stampCount={
-                  (profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0
-                }
-                tier={(profile as { tier?: string | null } | null)?.tier ?? null}
-              />
-            </div>
-          </div>
-
-          {/* 바로가기 카드 */}
-          <Eyebrow className="block mb-3 md:mb-4">바로가기</Eyebrow>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-3.5">
-            {primaryItems.map((it) => (
-              <ItemCard key={it.label} item={it} />
-            ))}
-          </div>
-
-          {/* 앱 전용 안내 — 앱에서는 이미 다 가능하니 웹에서만 노출 */}
-          {!isApp && (
-            <div
-              className="mt-10 md:mt-16 rounded-[14px] overflow-hidden"
-              style={{ background: 'var(--fd-pine)', color: '#FFFFFF' }}
-            >
-              <div className="px-6 py-7 md:px-10 md:py-10">
-                <div className="flex items-center gap-2 mb-3">
-                  <Smartphone
-                    className="w-4 h-4 md:w-[18px] md:h-[18px]"
-                    strokeWidth={2}
-                    color="var(--fd-green-soft)"
-                  />
-                  <Eyebrow color="var(--fd-green-soft)">App Only</Eyebrow>
-                </div>
-                <Display as="h2" size="sm" style={{ color: '#FFFFFF' }}>
-                  일일 케어는 앱에서
-                </Display>
-                <p
-                  className="mt-3.5 text-[13px] md:text-[15px] leading-relaxed"
-                  style={{ color: 'rgba(245,240,230,0.8)', maxWidth: 580 }}
-                >
-                  일일 케어 기록, 산책·영양 분석은 모바일 앱에서 더 빠르게
-                  도와드려요.
-                </p>
-                <div className="mt-5 md:mt-6 grid grid-cols-1 md:grid-cols-2 gap-2.5 md:gap-3">
-                  {appOnlyItems.map((it) => {
-                    const Icon = it.icon
-                    return (
-                      <Link
-                        key={it.label}
-                        href={it.href}
-                        className="flex items-center gap-3 rounded-[10px] px-4 py-3.5 transition hover:brightness-110 active:scale-[0.99]"
-                        style={{
-                          background: 'rgba(255,255,255,0.08)',
-                          color: '#FFFFFF',
-                        }}
-                      >
-                        <Icon className="w-4 h-4 shrink-0" strokeWidth={2} />
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[13px] md:text-[14px] font-bold">
-                            {it.label}
-                          </div>
-                          {it.description && (
-                            <div
-                              className="text-[10.5px] md:text-[11.5px] mt-0.5"
-                              style={{ color: 'rgba(245,240,230,0.6)' }}
-                            >
-                              {it.description}
-                            </div>
-                          )}
-                        </div>
-                        <ChevronRight className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 도움말 — 비중↓ 얕은 텍스트 링크 (박스 X) */}
-          <div className="mt-10 md:mt-14">
-            <Eyebrow className="block mb-1.5">도움말</Eyebrow>
-            <div>
-              {helpLinks.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="flex items-center justify-between py-3 transition hover:opacity-70"
-                  style={{ borderBottom: '1px solid var(--fd-line)' }}
-                >
-                  <span className="text-[13px]" style={{ color: 'var(--fd-muted)' }}>
-                    {l.label}
-                  </span>
-                  <ChevronRight
-                    className="w-3.5 h-3.5"
-                    strokeWidth={2}
-                    style={{ color: 'var(--fd-muted)' }}
-                  />
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* 로그아웃 */}
-          <div className="mt-8 md:mt-12">
-            <LogoutButton />
-          </div>
-        </Container>
-      </main>
-    </AuthAwareShell>
-  )
-}
-
-function ItemCard({ item }: { item: SectionItem }) {
-  const Icon = item.icon
-  return (
-    <Link
-      href={item.href}
-      className="group flex items-center gap-4 rounded-[12px] px-5 py-4 md:px-6 md:py-5 transition hover:-translate-y-[1px] active:scale-[0.99]"
-      style={{
-        background: '#FFFFFF',
-        boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-      }}
-    >
-      <span
-        className="inline-flex w-11 h-11 md:w-12 md:h-12 rounded-full items-center justify-center shrink-0"
-        style={{ background: 'var(--fd-cream)' }}
-      >
-        <Icon
-          className="w-[18px] h-[18px]"
-          strokeWidth={2}
-        />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <div
-            className="text-[14.5px] md:text-[16px]"
-            style={{
-              fontWeight: 800,
-              color: 'var(--fd-pine)',
-              letterSpacing: '-0.015em',
-            }}
-          >
-            {item.label}
-          </div>
-          {item.badge && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full"
-              style={{
-                background: 'var(--fd-coral)',
-                color: '#FFFFFF',
-                fontWeight: 700,
-              }}
-            >
-              {item.badge}
-            </span>
-          )}
-        </div>
-        {item.description && (
-          <div
-            className="mt-0.5 text-[11.5px] md:text-[13px]"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            {item.description}
-          </div>
-        )}
-      </div>
-      <ChevronRight
-        className="w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5"
-        strokeWidth={2}
-        style={{ color: 'var(--fd-muted)' }}
-      />
-    </Link>
+    <AccountWebView
+      name={profile?.name ?? user.email?.split('@')[0] ?? '회원'}
+      email={profile?.email ?? user.email ?? ''}
+      stamps={(profile as { stamp_count?: number | null } | null)?.stamp_count ?? 0}
+      tierRaw={(profile as { tier?: string | null } | null)?.tier ?? null}
+      totalOrders={totalOrders ?? 0}
+      pendingOrders={pendingOrders ?? 0}
+      activeSubs={activeSubs ?? 0}
+      dogCount={dogCount ?? 0}
+    />
   )
 }

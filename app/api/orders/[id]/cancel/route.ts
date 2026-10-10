@@ -6,7 +6,7 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
-import { cancelPayment } from '@/lib/payments/toss'
+import { cancelPayment, merchantForOrderNumber } from '@/lib/payments/toss'
 import { selfCancelBlockedByConsent } from '@/lib/payments/no-cancel-consent'
 import { notifyOrderCancelled } from '@/lib/email'
 import { zOrderCancel } from '@/lib/api/schemas'
@@ -16,6 +16,7 @@ import {
   tagSentryRoute,
   captureBusinessEvent,
 } from '@/lib/sentry/trace'
+import { orderReservedStock } from '@/lib/commerce/stock-gate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -268,6 +269,8 @@ export async function POST(
     const cancelResult = await cancelPayment({
       paymentKey: order.payment_key,
       cancelReason: body.reason || '고객 요청',
+      // 웹 가게 주문(FTS-)은 결제위젯 계약 키로(규칙172).
+      merchant: merchantForOrderNumber(order.order_number),
     })
     if (!cancelResult.ok) {
       return NextResponse.json(
@@ -482,8 +485,8 @@ export async function POST(
      * order-expire 는 같은 이유로 `subscription_id === null` gate 를 이미
      * 달았다(그쪽 주석 참조) — 여기만 남아 있었다.
      */
-    const reservedStock =
-      (order as { subscription_id?: string | null }).subscription_id == null
+    // ★판정 정본 lib/commerce/stock-gate — 웹 가게 주문(FTS-)도 재고를 잡지 않는다(2026-10-10, 규칙172).
+    const reservedStock = orderReservedStock(order)
     for (const it of itemsArr) {
       const { error: itemRefundErr } = await admin
         .from('order_items')

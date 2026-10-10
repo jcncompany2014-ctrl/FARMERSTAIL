@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 import { isUserCancelledPayment } from '@/lib/payments/cancel-detect'
@@ -11,6 +10,7 @@ import { useEffect } from 'react'
 import { billingReturnHref } from '@/lib/payments/billing-urls'
 import { useIsAppContext } from '@/lib/app-context-client'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
+import WebResultScreen, { WebResultAction } from '@/components/store/WebResultScreen'
 import AppResultScreen, { ResultAction } from '@/components/v3/billing/AppResultScreen'
 import { V3 } from '@/lib/design/tokens'
 
@@ -101,73 +101,48 @@ function BillingFailInner() {
     )
   }
 
+  // ── 웹 모양(웹 시안 WEB-A26, 2026-10-10 웹 리뉴얼) — 문구 판정·이동 주소는 위 앱 갈래와 같다. 웹은 '정기배송 관리'.
   return (
-    <main
-      className="min-h-[100dvh] flex items-center justify-center px-6"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div className="text-center max-w-sm w-full">
-        <div
-          className="w-14 h-14 mx-auto mb-5 rounded-full flex items-center justify-center text-2xl"
-          style={{ background: 'var(--gold)', color: 'var(--ink)' }}
-        >
-          !
-        </div>
-        <p
-          className="font-serif text-[20px] font-black"
-          style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
-        >
-          {friendly}
-        </p>
-        <p
-          className="text-[12px] mt-3 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          정기배송은 결제수단이 등록되어야 자동 결제가 진행돼요. 지금 다시
-          시도하거나 마이페이지에서 나중에 등록할 수 있어요.
-        </p>
-        <div className="mt-6 flex flex-col gap-2">
-          {/* billing-auth 는 customerKey 필수('잘못된 접근' 가드) — 둘 다 있을 때만
-              원클릭 재시도. 없으면 구독 관리(키 재발급 경로)로 유도 (2026-07-03 감사). */}
+    <WebResultScreen
+      alert={!cancelled}
+      mark="card"
+      closeHref={billingReturnHref(isApp)}
+      // 큰 제목이라 끝 마침표는 뗀다 — 문장 자체는 앱과 같은 billingFailMessage.
+      title={friendly.replace(/\.$/, '')}
+      body="정기배송은 결제수단이 등록되어야 자동 결제가 진행돼요. 지금 다시 시도하거나, 정기배송 관리에서 나중에 등록할 수 있어요."
+      actions={
+        <>
+          {/* billing-auth 는 customerKey 필수('잘못된 접근' 가드) — 둘 다 있을 때만 원클릭 재시도. 없으면 구독 관리(키 재발급 경로)로(2026-07-03 감사). */}
           {subscriptionId && customerKey && (
-            <Link
+            <WebResultAction
+              primary
               href={`/subscribe/billing-auth?subscriptionId=${encodeURIComponent(subscriptionId)}&customerKey=${encodeURIComponent(customerKey)}`}
-              className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
             >
               다시 시도하기
-            </Link>
+            </WebResultAction>
           )}
-          <Link
-            href={billingReturnHref(isApp)}
-            className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
-            style={{
-              borderColor: 'var(--rule)',
-              color: 'var(--text)',
-            }}
-          >
+          <WebResultAction primary={!(subscriptionId && customerKey)} href={billingReturnHref(isApp)}>
             구독 관리로 가기
-          </Link>
-        </div>
-      </div>
-    </main>
+          </WebResultAction>
+        </>
+      }
+    />
   )
 }
 
 export default function BillingFailPage() {
-  // 불러오는 동안도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
-  const appLook = useServerAppContext()
+  // 기다리는 동안 흰 바탕·먹색 원 — 앱 새 디자인·웹 리뉴얼(2026-10-10) 둘 다.
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
+          style={{ background: '#FFFFFF' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: appLook ? V3.ink : 'var(--terracotta)',
+              borderColor: V3.ink,
               borderTopColor: 'transparent',
             }}
           />

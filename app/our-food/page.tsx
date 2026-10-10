@@ -1,39 +1,33 @@
 import type { Metadata } from 'next'
-import {
-  ArrowRight,
-  Check,
-  Minus,
-  Leaf,
-  ShieldCheck,
-  Soup,
-  Stethoscope,
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-import WebChrome from '@/components/WebChrome'
-import Reveal from '@/components/landing/Reveal'
-import StickyCta from '@/components/web/fd/StickyCta'
-import FdSlider from '@/components/web/fd/FdSlider'
+import Link from 'next/link'
+import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
+import { cred, VET_ADVISOR_ACTIVE } from '@/lib/copy/credibility'
 import {
-  Button,
-  Container,
-  Display,
-  Eyebrow,
-  PhotoSlot,
-  Section,
-} from '@/components/web/fd/ui'
-import { cred } from '@/lib/copy/credibility'
-import { planHref } from '@/lib/funnel-cta'
+  PACK_G,
+  RECIPE_BAND,
+  RECIPE_PRODUCT_NAME,
+  RECIPE_REAL_IMG,
+  RECIPE_STUDIO_IMG,
+  SIZE_PACKS,
+  STORE_RECIPES,
+  SUBSCRIPTION_DISCOUNT_PCT,
+  TRIAL_ITEM,
+  meatLine,
+  storeItem,
+} from '@/lib/store/catalog'
+import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 
 /**
- * 웹 /our-food — "우리 음식" (The Farmer's Dog /dog-food 실구조 복제, 2026-06-13 재구축).
- *
- * FD /dog-food 페이지는 홈과 거의 동일 구조(피처카드·비교·듀얼제품·캐러셀)지만
- * 음식 전면 강조(재료 그리드·조리). 그 깊이를 유지하며 FD 핵심 섹션 유형을 보강:
- * 히어로 → 재료 그리드 → 4 피처카드 → 저온 조리 → 완전·균형 → 2단 비교 →
- * 듀얼 제품 → 맞춤 안내 → 후기 캐러셀 → 마무리 CTA.
- * 제품/가격/SKU·레시피 노출 없음. 모든 CTA → 설문 퍼널. 사진 PhotoSlot, 가짜 후기 X.
+ * /our-food — 우리 음식. 웹 시안 WEB-C05(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
+ *   머리말·제목·소개 + 레시피 고르기/영양 근거 → 오리 화식 사진 → 원물(사진 + 6칸) → 타협하지 않는 네 가지(2×2)
+ *   → 수비드 → 완전한 한 끼(회색 띠) → 그동안의 사료와 비교(표) → 레시피 4종(가게 상품으로) + 앱 띠 → 후기(모으는 중)
+ *   → 자주 묻는 것 → 마무리(레시피 고르기).
+ * 웹 전용(예전에도 WebChrome 만 썼다). 옛 설문 버튼(/start)은 전부 가게(/store)로 — 그래서 설문 링크를 고르던 로그인 확인
+ * (getUser)도 함께 뺐다(다른 쓰임이 없었다). 예전 FD 톤 판은 git 이력.
+ * ★문구는 시안(사실 확인을 거쳐 줄인 판)대로 — 옛 화면의 "농가 · 품목 · 시기 표기", "우리 아이 맞춤 정량", 구독 해지 안내는 되살리지 않는다.
+ * ★숫자는 정본에서: 가격·팩 수 = lib/store/catalog, 출고 요일 = lib/store/shipping, 앱 할인 % = SUBSCRIPTION_DISCOUNT_PCT.
  */
 
 export const revalidate = 3600
@@ -51,7 +45,7 @@ export const metadata: Metadata = {
   // (이전 '우리 음식 — 파머스테일' 은 em-dash 변형이라 회차146 grep '| 파머스테일' 에 안 잡혀 잔존했음.)
   title: '우리 음식',
   description:
-    '사람이 먹을 수 있는 신선한 재료를, 수비드로 천천히 조리해 완전·균형 영양으로. 뭐가 들었는지 다 보이는 우리 아이 한 끼. 2분 설문이면 맞춤 구성을 시작해요.',
+    '사람이 먹을 수 있는 신선한 재료를, 수비드로 천천히 조리해 완전·균형 영양으로. 뭐가 들었는지 다 보이는 우리 아이 한 끼. 500g 한 봉부터 시작해요.',
   alternates: { canonical: '/our-food' },
   openGraph: {
     title: '우리 음식 — 파머스테일',
@@ -74,547 +68,450 @@ export const metadata: Metadata = {
   },
 }
 
+const won = (n: number) => n.toLocaleString('ko-KR')
 
-
-// 1. Hero ====================================================================
-function FoodHero({ isAuthed }: { isAuthed: boolean }) {
-  return (
-    <Section bg="offwhite" pad="md" className="overflow-hidden">
-      <Container size="xl">
-        <div className="grid md:grid-cols-2 md:items-center gap-8 md:gap-12">
-          <div className="text-center md:text-left">
-            <Reveal>
-              <Eyebrow>OUR FOOD</Eyebrow>
-              <Display as="h1" size="xl" className="pt-4" style={{ color: 'var(--fd-pine)' }}>
-                진짜 음식은
-                <br />
-                이렇게 다릅니다
-              </Display>
-              <p className="pt-5 mx-auto md:mx-0 text-[15px] md:text-[18px]" style={{ maxWidth: 460, lineHeight: 1.6, color: 'var(--fd-muted)' }}>
-                사람이 먹을 수 있는 재료만, 수비드(저온 진공)로 천천히 조리해 그대로 담았어요.
-                보존제 없이 신선하게, 뭐가 들었는지 다 보이는 한 끼.
-              </p>
-              <div className="pt-7 flex flex-col sm:flex-row items-center md:items-start gap-3">
-                <Button href={planHref(isAuthed, false)} tone="coral" size="lg">
-                  2분 설문 시작하기
-                  <ArrowRight size={19} strokeWidth={2.4} />
-                </Button>
-                <Button href="/science" tone="outline" size="lg">
-                  영양 설계 근거
-                </Button>
-              </div>
-              <p className="pt-4 text-[13px]" style={{ color: 'var(--fd-muted)', fontWeight: 600 }}>
-                사람이 먹는 등급 원물 · 수비드 저온 조리 · 성분 전부 공개
-              </p>
-            </Reveal>
-          </div>
-          <Reveal delay={120}>
-            {/* 2026-09-02 실촬영분 — 오리 레시피 완성 컷. -45 = 4:5 세로 전용
-                크롭(전체 컷을 cover 하면 왼쪽에 파우치 조각이 걸렸다). */}
-            <PhotoSlot src="/recipe-duck-45.jpg" alt="그릇에 담긴 신선한 화식 한 끼" label="완성된 화식 한 끼 사진" sub="그릇에 담긴 신선식 한 끼" ratio="4 / 5" tone="cream" rounded={10} className="w-full" />
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 2. Ingredients grid ========================================================
+/** 원물 6칸(시안 C05) — 이름 + 한 줄. */
 const INGREDIENTS = [
-  { label: '닭고기', sub: '담백한 단백질', tone: 'offwhite' as const, img: '/ing-chicken.jpg' },
-  { label: '오리고기', sub: '부드러운 단백질', tone: 'cream' as const, img: '/ing-duck.jpg' },
-  { label: '단호박', sub: '천천히 타는 에너지', tone: 'green' as const, img: '/ing-pumpkin.jpg' },
-  { label: '당근', sub: '색이 살아있는 채소', tone: 'coral' as const, img: '/ing-carrot.jpg' },
-  { label: '브로콜리', sub: '한 끼에 더하는 초록', tone: 'pine' as const, img: '/ing-broccoli.jpg' },
-  { label: '현미', sub: '든든한 곡물', tone: 'offwhite' as const, img: '/ing-brownrice.jpg' },
-]
+  { label: '닭고기', sub: '담백한 단백질' },
+  { label: '오리고기', sub: '부드러운 단백질' },
+  { label: '단호박', sub: '천천히 타는 에너지' },
+  { label: '당근', sub: '색이 살아 있는 채소' },
+  { label: '브로콜리', sub: '한 끼에 더하는 초록' },
+  { label: '현미', sub: '든든한 곡물' },
+] as const
 
-function Ingredients() {
-  return (
-    <Section bg="cream" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>REAL INGREDIENTS</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              사람이 먹는 등급,
-              <br />
-              그대로 우리 아이에게
-            </Display>
-            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 460, lineHeight: 1.65, color: 'var(--fd-muted)' }}>
-              정체 모를 첨가물 대신, 눈에 보이는 진짜 재료. 사람이 먹을 수 있는
-              기준으로 고른 원물만 한 끼에 담아요.
-            </p>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {INGREDIENTS.map((ing, i) => (
-            <Reveal key={ing.label} delay={i * 70}>
-              <div>
-                <PhotoSlot src={ing.img} alt={ing.label} label={ing.label} ratio="1 / 1" tone={ing.tone} rounded={8} className="w-full" />
-                <p className="pt-3 text-[13.5px] md:text-[14px]" style={{ fontWeight: 700, color: 'var(--fd-pine)', letterSpacing: '-0.01em' }}>{ing.sub}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Container>
-    </Section>
-  )
-}
+/**
+ * 넷째 약속 — 지금은 시안 문구(공개된 개 영양 기준). 실제 자문 수의사·영양사를 맡기면(VET_ADVISOR_ACTIVE)
+ * lib/copy/credibility 의 강한 카피로 한 번에 돌아간다(그 스위치는 그대로 둔다).
+ */
+const NUTRITION_PILLAR = VET_ADVISOR_ACTIVE
+  ? { t: cred.recipeCardTitle, d: cred.recipeCardBodyShort }
+  : { t: '영양 기준 설계', d: '공개된 개 영양 기준에 맞춰 영양 비율을 설계.' }
 
-// 3. Feature cards ×4 (FD 핵심) ==============================================
-const FEATURES = [
-  { Icon: Leaf, k: 'REAL FOOD', t: '진짜 음식', d: '눈에 보이는 신선한 원물. 정체 모를 첨가물 없이.' },
-  { Icon: ShieldCheck, k: 'SAFE', t: '사람 등급 안전', d: '사람이 먹어도 되는 등급을 식품 안전 기준으로.' },
-  { Icon: Soup, k: 'SOUS-VIDE', t: '수비드 저온 조리', d: '고온 압출 대신 수비드(진공 저온)로 천천히 익혀, 바로 급속 냉동.' },
-  // 실 자문 없을 땐 톤다운(lib/copy/credibility 토글).
-  { Icon: Stethoscope, k: cred.recipeKicker, t: cred.recipeCardTitle, d: cred.recipeCardBodyShort },
-]
+/** 타협하지 않는 네 가지(시안 C05) — 아이콘은 시안의 선 그림 그대로. */
+const PILLARS = [
+  {
+    t: '진짜 음식',
+    d: '눈에 보이는 신선한 원물. 정체 모를 첨가물 없이.',
+    icon: (
+      <>
+        <path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14" />
+        <path d="M5 19l7-7" />
+      </>
+    ),
+  },
+  {
+    t: '사람 등급 안전',
+    d: '사람이 먹어도 되는 등급을 식품 안전 기준으로.',
+    icon: (
+      <>
+        <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
+        <path d="M9 12l2 2 4-4" />
+      </>
+    ),
+  },
+  {
+    t: '수비드 저온 조리',
+    d: '진공 저온으로 천천히 익혀 바로 급속 냉동.',
+    icon: (
+      <>
+        <path d="M4 11h16v3a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z" />
+        <path d="M9 4c0 1.5 1 1.5 1 3M13 4c0 1.5 1 1.5 1 3" />
+      </>
+    ),
+  },
+  {
+    t: NUTRITION_PILLAR.t,
+    d: NUTRITION_PILLAR.d,
+    icon: (
+      <>
+        <path d="M8 4h8l1 3H7z" />
+        <path d="M6 7h12v13H6z" />
+        <path d="M9 13l2 2 4-4" />
+      </>
+    ),
+  },
+] as const
 
-function FeatureCards() {
-  return (
-    <Section bg="white" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>WHAT MAKES IT DIFFERENT</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              네 가지를 타협하지 않아요
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-          {FEATURES.map((f, i) => {
-            const Icon = f.Icon
-            return (
-              <Reveal key={f.t} delay={i * 70}>
-                <div className="h-full" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
-                  <span className="inline-flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
-                    <Icon size={24} strokeWidth={2} color="var(--fd-coral)" />
-                  </span>
-                  <div className="pt-4 text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{f.k}</div>
-                  <h3 className="pt-1.5 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{f.t}</h3>
-                  <p className="pt-2 text-[12.5px] md:text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{f.d}</p>
-                </div>
-              </Reveal>
-            )
-          })}
-        </div>
-      </Container>
-    </Section>
-  )
-}
+/** 완전한 한 끼(시안 C05) — 체크 세 줄. */
+const COMPLETE_POINTS = [
+  { t: '완전·균형 영양', d: '필요한 영양소를 빠짐없이, 표준 기준에 맞춰' },
+  { t: '하루 줄 양 안내', d: '몸무게만 넣으면 하루에 줄 양을 알려드려요' },
+  { t: '만든 그대로', d: '신선함을 살려 한 끼로' },
+] as const
 
-// 4. How it's made ===========================================================
-function HowItsMade() {
-  return (
-    <Section bg="cream" pad="md">
-      <Container size="xl">
-        <div className="grid md:grid-cols-2 md:items-center gap-9 md:gap-14">
-          <Reveal>
-            {/* 2026-09-02 실촬영분 — 실제 수비드 머신·조리 장면(드라이브 '웹 이미지 교체용'). */}
-            <PhotoSlot src="/kitchen-sousvide.jpg" alt="수비드 저온으로 조리하는 주방" label="수비드 조리 / 주방 사진" sub="진공 저온으로 천천히 익히는 과정" ratio="5 / 4" tone="offwhite" rounded={10} className="w-full" />
-          </Reveal>
-          <Reveal delay={100}>
-            <div>
-              <Eyebrow>SOUS-VIDE</Eyebrow>
-              <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                높은 불에 태우지 않고,
-                <br />
-                수비드로 천천히
-              </Display>
-              <p className="pt-5 text-[15px] md:text-[17px]" style={{ maxWidth: 440, lineHeight: 1.65, color: 'var(--fd-muted)' }}>
-                재료가 가진 영양을 지키려면 조리 방식이 중요해요. 센 불에 빠르게
-                굽는 대신, 진공 포장한 재료를 알맞은 저온에서 천천히 익히는
-                수비드 방식으로 영양·수분·풍미 손실을 줄였어요.
-              </p>
-              <p className="pt-4 text-[15px] md:text-[17px]" style={{ maxWidth: 440, lineHeight: 1.65, color: 'var(--fd-muted)' }}>
-                조리 후 신선하게 식혀 그대로 담고, 보존제는 넣지 않아요. 만든
-                그대로의 한 끼가 우리 아이에게 갑니다.
-              </p>
-            </div>
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 5. Complete & balanced =====================================================
-const NUTRITION_POINTS = [
-  { t: '완전·균형 영양', d: '필요한 영양소를 빠짐없이, 표준 기준에 맞춰.' },
-  { t: '우리 아이 정량', d: '하루에 필요한 양만큼만 정확하게.' },
-  { t: '수비드 저온 조리', d: '만든 그대로, 신선함을 살려 한 끼로.' },
-]
-
-function CompleteBalanced() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="lg">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 640 }}>
-            <Eyebrow>COMPLETE &amp; BALANCED</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              간식이 아니라,
-              <br />
-              매일 먹는 완전한 한 끼
-            </Display>
-            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 460, lineHeight: 1.65, color: 'var(--fd-muted)' }}>
-              우리 아이가 매일 먹어도 부족함 없도록, 수의영양 기준에 맞춰 완전하고
-              균형 있게 설계했어요.
-            </p>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid md:grid-cols-3 gap-4 md:gap-6">
-          {NUTRITION_POINTS.map((p, i) => (
-            <Reveal key={p.t} delay={i * 80}>
-              <div className="text-center px-4">
-                <div className="mx-auto flex items-center justify-center" style={{ width: 64, height: 64, borderRadius: 999, background: 'var(--fd-cream)' }}>
-                  <Check size={28} strokeWidth={2.4} color="var(--fd-green)" />
-                </div>
-                <h3 className="pt-4 text-[17px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{p.t}</h3>
-                <p className="pt-1.5 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{p.d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 6. Comparison — 2단 (FD 핵심) ==============================================
+/** 그동안의 사료와 비교(시안 C05). */
 const COMPARE_ROWS = [
-  { label: '보관 방식', old: '상온 수개월 유통기한 재고', us: '주문 후 만들어 급속 냉동' },
-  { label: '원료 표기', old: '‘수입산 육류’ 같은 익명', us: '농가 · 품목 · 시기 표기' },
-  { label: '조리', old: '고온 압출 가공', us: '수비드 저온 조리로 영양 보존' },
-  { label: '급여량', old: '한 봉지 일괄 기준', us: '우리 아이 맞춤 정량' },
-]
+  { label: '보관', old: '상온에서 몇 달씩', us: '조금씩 만들어 바로 냉동' },
+  { label: '원료', old: '‘수입산 육류’ 같은 익명', us: '원재료 전부 공개' },
+  { label: '조리', old: '고온 압출 가공', us: '수비드 저온 조리' },
+  { label: '하루 양', old: '한 봉지 일괄 기준', us: '몸무게로 계산' },
+] as const
 
-function Comparison() {
-  return (
-    <Section bg="cream" pad="md">
-      <Container size="lg">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
-            <Eyebrow>THE DIFFERENCE</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              그동안의 사료와는
-              <br />다르게 만듭니다
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-9 md:pt-12 grid md:grid-cols-2 gap-3 md:gap-4">
-          <Reveal>
-            <div className="h-full" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '22px 22px' }}>
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-muted)' }}>
-                <Minus size={18} strokeWidth={3} />
-                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>그동안의 사료</span>
-              </div>
-              <ul className="pt-4 grid gap-3">
-                {COMPARE_ROWS.map((r) => (
-                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
-                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)', opacity: 0.8 }}>{r.label}</span>
-                    <span className="text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.5 }}>{r.old}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-          <Reveal delay={90}>
-            <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
-              {/* 다크 위 텍스트 포인트 = 골드 (색 문법, globals.css 토큰 정의 참조 — 2026-08-01) — 랜딩 비교 카드와 같은 수정(복제된 패턴, 둘 다 고침) */}
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-gold)' }}>
-                <Check size={18} strokeWidth={3} />
-                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>파머스테일</span>
-              </div>
-              <ul className="pt-4 grid gap-3">
-                {COMPARE_ROWS.map((r) => (
-                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
-                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-green-soft)' }}>{r.label}</span>
-                    <span className="text-[13.5px]" style={{ color: '#FFFFFF', fontWeight: 600, lineHeight: 1.5 }}>{r.us}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-        </div>
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const
+/** 가게 출고 요일(정본 lib/store/shipping) — '화요일과 목요일'. */
+const SHIP_DAYS = STORE_SHIP_WEEKDAYS.map((d) => `${WEEKDAY_KO[d]}요일`).join('과 ')
 
-        {/* 교육 페이지 딥링크 — 비교에서 '왜 신선식인가' /why-fresh 로 (FD IA: 콘텐츠→교육) */}
-        <Reveal delay={120}>
-          <div className="pt-8 flex justify-center">
-            <Button href="/why-fresh" tone="outline" size="sm">
-              왜 신선식인지 더 알아보기
-              <ArrowRight size={15} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 7. Dual product showcase (FD 핵심) =========================================
-function DualProduct({ isAuthed }: { isAuthed: boolean }) {
-  return (
-    <Section bg="white" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>A COMPLETE BOWL</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              한 그릇을 완성하는 구성
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid gap-4 md:gap-6 max-w-2xl mx-auto">
-          {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/pouch-ft.webp' },
-          ].map((p, i) => (
-            <Reveal key={p.t} delay={i * 90}>
-              <div style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                <PhotoSlot src={p.img} alt={p.t} label={p.label} sub={p.sub} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
-                <div style={{ padding: '20px 22px' }}>
-                  <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
-                  <h3 className="pt-1.5 text-[18px] md:text-[20px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{p.t}</h3>
-                  <p className="pt-2 text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{p.d}</p>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-        <Reveal delay={120}>
-          <div className="pt-9 flex justify-center">
-            <Button href={planHref(isAuthed, false)} tone="coral" size="lg">
-              우리 아이 구성 보기
-              <ArrowRight size={19} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 8. Personalized 안내 (green) ===============================================
-function FoodPersonalized({ isAuthed }: { isAuthed: boolean }) {
-  return (
-    <Section bg="green" pad="md">
-      <Container size="md">
-        <Reveal>
-          <div className="text-center">
-            <Eyebrow color="var(--fd-green-soft)">FOR YOUR DOG</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
-              우리 아이에게 맞는 구성은
-              <br />
-              설문으로 찾아드려요
-            </Display>
-            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 440, lineHeight: 1.65, color: '#FFFFFF' }}>
-              견종·나이·체중·활동량·민감한 음식까지. 2분 설문이면 우리 아이 몸에
-              맞는 구성과 하루 정량을 계산해드려요.
-            </p>
-            <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
-                2분 설문 시작하기
-                <ArrowRight size={19} strokeWidth={2.4} />
-              </Button>
-            </div>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 9. Social proof carousel (FD 핵심, placeholder) ============================
-function ReviewCard() {
-  return (
-    <div className="snap-start shrink-0 w-[280px] md:w-[340px]" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '24px 22px', minHeight: 208 }}>
-      {/* 정직: 실제 후기 전엔 채운 별점 금지 — 윤곽선 빈 점(회차51/107/120 동일). */}
-      <div className="flex gap-1" aria-hidden>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <span key={i} style={{ width: 14, height: 14, borderRadius: 999, background: 'transparent', border: '1.5px solid var(--fd-line)', display: 'inline-block' }} />
-        ))}
-      </div>
-      <div className="pt-4 flex flex-col gap-2" aria-hidden>
-        <span style={{ display: 'block', height: 9, width: '94%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '88%', borderRadius: 4, background: '#EDEAE0' }} />
-        <span style={{ display: 'block', height: 9, width: '72%', borderRadius: 4, background: '#EDEAE0' }} />
-      </div>
-      <div className="pt-5 flex items-center gap-3">
-        <span style={{ width: 38, height: 38, borderRadius: 999, background: 'var(--fd-cream)', display: 'inline-block' }} />
-        <span className="text-[12.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)' }}>후기 자리 · 아이 이름</span>
-      </div>
-    </div>
-  )
-}
-
-function SocialProof() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>REVIEWS</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              먹어본 아이들의 변화
-            </Display>
-            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-              실제 후기가 모이면 이 자리에 채워집니다.
-            </p>
-          </div>
-        </Reveal>
-        <div className="pt-9">
-          <Reveal>
-            <FdSlider ariaLabel="고객 후기">
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-              <ReviewCard />
-            </FdSlider>
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 10. Final CTA ==============================================================
-// 인라인 FAQ 아코디언 (FD /our-food 패턴 — 구매 직전 이의 해소). /faq 의 native
-// <details> 스타일과 일치(JS 불필요·서버 컴포넌트 호환). 정직: 효능·질병 단정 없이
-// 음식·배송·보관·구독 사실만. 회차116.
+/**
+ * 먹이기 전 자주 묻는 것(시안 C05 — 질문 넷, 첫 답은 시안 그대로).
+ * 닫힌 셋의 답은 시안에 없어 옛 승인 문구를 웹 가게 사실로 고쳤다: 구독 해지·'첫 박스'·'배송비는 구독료에 포함'은
+ * 웹 단품 가게와 맞지 않아 뺐고, 체험팩·출고 요일은 정본(lib/store/catalog·shipping), 해지 마감은 앱 정본 문구
+ * ("다음 결제 전까지 … 그만둘 수 있어요. 위약금은 없어요")를 따른다. 보이는 질문 = FAQ 구조화 데이터(아래 faqLd).
+ */
 const FOOD_FAQ = [
-  { q: '사람이 먹는 등급이 정말 안전한가요?', a: '사람 식품과 같은 위생 기준으로 다루고, 원물은 농가·품목·시기를 표기해요. 막연한 ‘수입산 육류’ 표기와 다릅니다.' },
-  { q: '입이 짧은 아이도 잘 먹을까요?', a: '신선한 화식은 기호성이 높은 편이지만 개체차가 있어요. 첫 박스로 먼저 반응을 확인해 보세요 — 잘 안 맞으면 다음 결제 전까지 해지할 수 있어요.' },
-  { q: '배송과 보관은 어떻게 하나요?', a: '급속 냉동해 콜드체인으로 문 앞까지 보내요(배송비는 구독료에 포함). 받으면 냉동 보관하고, 급여 전 냉장에서 해동해 주세요.' },
-  { q: '약정이 있나요?', a: '없어요. 첫 박스만 받아보고 그만두셔도 괜찮아요. 일시정지·해지는 다음 결제 전까지, 화식 비율 변경은 조리를 시작하기 전인 발송 전 금요일 밤까지 하시면 돼요.' },
-]
+  {
+    q: '사람이 먹는 등급이 정말 안전한가요?',
+    a: '사람 식품과 같은 위생 기준으로 다루고, 들어간 원재료를 전부 공개해요. 막연한 ‘수입산 육류’ 표기와 달라요.',
+  },
+  {
+    q: '입이 짧은 아이도 잘 먹을까요?',
+    a: `신선한 화식은 잘 먹는 편이지만 아이마다 차이가 있어요. 처음이라면 ${STORE_RECIPES.length}종을 ${PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)으로 먼저 반응을 확인해 보세요.`,
+  },
+  {
+    q: '배송과 보관은 어떻게 하나요?',
+    a: `${SHIP_DAYS}에 냉동으로 출고해요. 받으면 냉동실에 보관하고, 먹이기 전날 냉장실에서 녹여 주세요. 녹인 팩은 3일 안에 주세요.`,
+  },
+  {
+    q: '정기배송에 약정이 있나요?',
+    a: '없어요. 정기배송은 앱에서 신청하고, 다음 결제 전까지 미루거나 그만둘 수 있어요. 위약금은 없어요.',
+  },
+] as const
 
-function FoodFaq() {
+function Chevron({ size = 18 }: { size?: number }) {
   return (
-    <Section bg="offwhite" pad="md">
-      <Container size="md">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
-            <Eyebrow>FAQ</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              먹이기 전, 자주 묻는 것들
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-8 md:pt-10 mx-auto" style={{ maxWidth: 680 }}>
-          {FOOD_FAQ.map((it, i) => (
-            <details
-              key={it.q}
-              className="group"
-              style={{
-                background: '#FFFFFF',
-                borderLeft: '1px solid var(--fd-line)',
-                borderRight: '1px solid var(--fd-line)',
-                borderTop: '1px solid var(--fd-line)',
-                borderBottom: i === FOOD_FAQ.length - 1 ? '1px solid var(--fd-line)' : 'none',
-                padding: '18px 20px',
-              }}
-            >
-              <summary
-                className="flex items-start justify-between gap-3 cursor-pointer list-none"
-                style={{ color: 'var(--fd-pine)' }}
-              >
-                <span className="flex-1 text-[14px] md:text-[16px]" style={{ fontWeight: 700, letterSpacing: '-0.015em' }}>
-                  {it.q}
-                </span>
-                <span
-                  aria-hidden
-                  className="shrink-0 mt-0.5 transition-transform group-open:rotate-45 text-[20px] leading-none"
-                  style={{ color: 'var(--fd-coral)' }}
-                >
-                  +
-                </span>
-              </summary>
-              <p className="mt-3 text-[13px] md:text-[14.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.7 }}>
-                {it.a}
-              </p>
-            </details>
-          ))}
-        </div>
-        <Reveal delay={100}>
-          <div className="pt-7 flex justify-center">
-            <Button href="/faq" tone="outline" size="sm">
-              자주 묻는 질문 더 보기
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
   )
 }
 
-function FinalCta({ isAuthed }: { isAuthed: boolean }) {
+function Arrow() {
   return (
-    <Section bg="coral" pad="md">
-      <Container size="md">
-        <Reveal>
-          <div className="text-center">
-            <Display size="lg" style={{ color: '#FFFFFF' }}>
-              우리 아이 한 끼,
-              <br />
-              오늘 시작해요
-            </Display>
-            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-              첫 박스부터 부담 없이. 다음 결제 전까지 해지.
-            </p>
-            <div className="pt-8 flex justify-center">
-              <Button href={planHref(isAuthed, false)} tone="cream" size="lg">
-                2분 설문 시작하기
-                <ArrowRight size={19} strokeWidth={2.4} />
-              </Button>
-            </div>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
   )
 }
 
-// Page =======================================================================
+/** 섹션 제목(시안 C05 — 포스터 글꼴 30px). */
+function H2({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <h2 className="d" style={{ margin: 0, fontSize: 30, lineHeight: 1.12, ...style }}>
+      {children}
+    </h2>
+  )
+}
+
+/** 주 버튼(먹색 60px) — 레시피 고르기. */
+const PRIMARY_BTN: React.CSSProperties = {
+  height: 60,
+  borderRadius: 4,
+  background: '#141414',
+  color: '#FFFFFF',
+  textDecoration: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 10,
+  fontSize: 19,
+  fontWeight: 800,
+}
+
+const BODY_P: React.CSSProperties = { margin: '12px 0 0', fontSize: 17, lineHeight: 1.7, color: '#3D3D3D' }
+
 export default async function OurFoodPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const isAuthed = !!user
-
   // Breadcrumb 구조화 데이터 — 검색결과 "홈 › 우리 음식" 표시(회차117). faq 패턴 일치.
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '우리 음식', path: '/our-food' },
   ])
 
-  // FAQPage 구조화데이터 — FoodFaq(가시 아코디언, 음식 특화 4문항)를 검색 FAQ
+  // FAQPage 구조화데이터 — 아래 '자주 묻는 것'(보이는 아코디언, 음식 특화 4문항)을 검색 FAQ
   // 리치결과 대상으로(회차138). /faq 와 다른 URL·다른 질문셋이라 별도 FAQPage 정당.
-  const faqLd = buildFaqJsonLd(
-    FOOD_FAQ.map((it) => ({ question: it.q, answer: it.a })),
-  )
+  const faqLd = buildFaqJsonLd(FOOD_FAQ.map((it) => ({ question: it.q, answer: it.a })))
 
   return (
-    <WebChrome>
-      <main>
-        <JsonLd id="ld-our-food-crumbs" data={crumbLd} />
-        <JsonLd id="ld-our-food-faq" data={faqLd} />
-        <FoodHero isAuthed={isAuthed} />
-        <Ingredients />
-        <FeatureCards />
-        <HowItsMade />
-        <CompleteBalanced />
-        <Comparison />
-        <DualProduct isAuthed={isAuthed} />
-        <FoodPersonalized isAuthed={isAuthed} />
-        <SocialProof />
-        <FoodFaq />
-        <FinalCta isAuthed={isAuthed} />
-      </main>
-      <StickyCta href={planHref(isAuthed, false)} />
-    </WebChrome>
+    <StoreShell>
+      <JsonLd id="ld-our-food-crumbs" data={crumbLd} />
+      <JsonLd id="ld-our-food-faq" data={faqLd} />
+      {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
+      <div style={{ lineHeight: 'normal' }}>
+        {/* ── 머리말 · 제목 · 소개 · 버튼 둘 ── */}
+        <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>우리 음식</span>
+          <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
+            진짜 음식은
+            <br />
+            이렇게 달라요
+          </h1>
+          <p style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>
+            사람이 먹을 수 있는 재료만 수비드로 천천히 익혀 그대로 담았어요. 보존제 없이, 뭐가 들었는지 다 보이는 한 끼예요.
+          </p>
+          <span style={{ marginTop: 12, fontSize: 15, fontWeight: 700, color: '#595959' }}>사람이 먹는 등급 원물 · 수비드 저온 조리 · 원재료 전부 공개</span>
+          <Link href="/store" style={{ ...PRIMARY_BTN, marginTop: 22 }}>
+            레시피 고르기
+            <Arrow />
+          </Link>
+          <Link
+            href="/science"
+            style={{ marginTop: 10, height: 56, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', color: '#141414', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}
+          >
+            영양 근거 보기
+          </Link>
+        </section>
+
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={RECIPE_REAL_IMG.duck}
+          alt="나무 식탁 위 오리고기 화식 한 그릇과 봉투"
+          width={1200}
+          height={800}
+          fetchPriority="high"
+          style={{ marginTop: 28, width: '100%', aspectRatio: '390 / 300', objectFit: 'cover', objectPosition: '55% 55%', display: 'block' }}
+        />
+
+        {/* ── 원물 — 사진 + 6칸 ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            사람이 먹는 등급
+            <br />
+            그대로 우리 아이에게
+          </H2>
+          <p style={BODY_P}>정체 모를 첨가물 대신 눈에 보이는 진짜 재료. 사람이 먹을 수 있는 기준으로 고른 원물만 담아요.</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/raw-ingredients.jpg"
+            alt="닭가슴살·당근·단호박·브로콜리·현미 같은 원물"
+            width={1300}
+            height={971}
+            loading="lazy"
+            style={{ marginTop: 18, width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }}
+          />
+          <dl style={{ margin: '14px 0 0', display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: '2px solid #141414' }}>
+            {INGREDIENTS.map((ing, i) => (
+              <div
+                key={ing.label}
+                style={{
+                  padding: i % 2 === 1 ? '12px 0 12px 14px' : '12px 0',
+                  borderBottom: '1px solid #E5E5E5',
+                  borderLeft: i % 2 === 1 ? '1px solid #E5E5E5' : undefined,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                }}
+              >
+                <dt className="d" style={{ fontSize: 19 }}>
+                  {ing.label}
+                </dt>
+                <dd style={{ margin: 0, fontSize: 15, color: '#595959' }}>{ing.sub}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* ── 타협하지 않는 네 가지 ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            네 가지를
+            <br />
+            타협하지 않아요
+          </H2>
+          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {PILLARS.map((p) => (
+              <div key={p.t} style={{ padding: '16px 14px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  {p.icon}
+                </svg>
+                <strong style={{ fontSize: 17, fontWeight: 800 }}>{p.t}</strong>
+                <span style={{ fontSize: 15, lineHeight: 1.5, color: '#3D3D3D' }}>{p.d}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 수비드 — 실촬영 주방 컷(2026-09-02) ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/kitchen-sousvide.jpg"
+            alt="진공 포장한 고기를 수비드 기계로 익히고 있어요"
+            width={2048}
+            height={1365}
+            loading="lazy"
+            style={{ width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }}
+          />
+          <H2 style={{ marginTop: 20 }}>
+            높은 불에 태우지 않고
+            <br />
+            수비드로 천천히
+          </H2>
+          <p style={BODY_P}>
+            영양을 지키려면 조리 방식이 중요해요. 센 불에 빠르게 굽는 대신, 진공 포장한 재료를 알맞은 저온에서 천천히 익혀 영양·수분·풍미 손실을 줄였어요.
+          </p>
+          <p style={{ ...BODY_P, marginTop: 10 }}>익힌 뒤 바로 식혀 그대로 담고, 보존제는 넣지 않아요.</p>
+        </section>
+
+        {/* ── 완전한 한 끼 — 회색 띠 ── */}
+        <section style={{ marginTop: 56, padding: '44px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            간식이 아니라
+            <br />
+            매일 먹는 완전한 한 끼
+          </H2>
+          <p style={BODY_P}>매일 먹어도 부족함이 없도록 영양 기준에 맞춰 완전하고 균형 있게 설계했어요.</p>
+          <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            {COMPLETE_POINTS.map((pt) => (
+              <li key={pt.t} style={{ padding: '13px 0', borderBottom: '1px solid #D9D9D9', display: 'grid', gridTemplateColumns: '30px 1fr', alignItems: 'start' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ marginTop: 2 }}>
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <strong style={{ fontSize: 17, fontWeight: 800 }}>{pt.t}</strong>
+                  <span style={{ fontSize: 15, color: '#3D3D3D' }}>{pt.d}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ── 그동안의 사료와 비교 — 표 ── */}
+        <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            그동안의 사료와는
+            <br />
+            다르게 만들어요
+          </H2>
+          <table
+            style={{ marginTop: 16, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: 16, lineHeight: 1.45, borderTop: '2px solid #141414' }}
+          >
+            <thead>
+              <tr>
+                <th scope="col" style={{ width: 64, padding: '12px 0' }}>
+                  <span className="sr-only">항목</span>
+                </th>
+                <th scope="col" style={{ padding: '12px 8px', textAlign: 'left', fontSize: 15, fontWeight: 700, color: '#595959' }}>
+                  그동안의 사료
+                </th>
+                <th scope="col" className="d" style={{ padding: '12px 8px', textAlign: 'left', fontSize: 18, color: '#FFFFFF', background: '#141414' }}>
+                  파머스테일
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_ROWS.map((r, i) => (
+                <tr key={r.label} style={{ borderTop: '1px solid #E5E5E5', borderBottom: i === COMPARE_ROWS.length - 1 ? '2px solid #141414' : undefined }}>
+                  <th scope="row" style={{ padding: '13px 0', textAlign: 'left', fontWeight: 500, color: '#595959' }}>
+                    {r.label}
+                  </th>
+                  <td style={{ padding: '13px 8px', color: '#595959' }}>{r.old}</td>
+                  <td style={{ padding: '13px 8px', background: '#F6F4F5', fontWeight: 800 }}>{r.us}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Link
+            href="/why-fresh"
+            style={{ marginTop: 6, alignSelf: 'flex-start', height: 48, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'underline' }}
+          >
+            왜 화식인지 더 알아보기
+            <Chevron size={15} />
+          </Link>
+        </section>
+
+        {/* ── 레시피 4종 — 가게 상품으로(가격 = 정본 500g 정가) + 앱 띠 ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2>레시피 {STORE_RECIPES.length}종</H2>
+          <p style={{ margin: '8px 0 6px', fontSize: 16, color: '#595959' }}>
+            모두 {PACK_G}g 팩 {SIZE_PACKS['500g']}개, 500g 한 봉이에요
+          </p>
+          {STORE_RECIPES.map((r) => (
+            <Link
+              key={r}
+              href={`/store/${r}`}
+              style={{ minHeight: 80, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '60px 1fr auto', columnGap: 14, alignItems: 'center', color: '#141414', textDecoration: 'none' }}
+            >
+              <span style={{ position: 'relative', width: 60, height: 60, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={RECIPE_STUDIO_IMG[r]} alt="" width={120} height={120} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[r] }} />
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="d" style={{ fontSize: 19 }}>
+                  {RECIPE_PRODUCT_NAME[r]}
+                </span>
+                <span style={{ fontSize: 15, color: '#595959' }}>{meatLine(r).split('·').join(' · ')}</span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 1, whiteSpace: 'nowrap' }}>
+                <span className="n" style={{ fontSize: 20 }}>
+                  {won(storeItem(`${r}-500g`).price)}
+                </span>
+                <span className="d" style={{ fontSize: 14 }}>
+                  원
+                </span>
+              </span>
+            </Link>
+          ))}
+          <Link
+            href="/app"
+            style={{ marginTop: 16, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
+          >
+            <span>
+              우리 아이 맞춤 정기배송은 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱에서 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
+            </span>
+            <Chevron />
+          </Link>
+        </section>
+
+        {/* ── 후기 — 실제 후기가 모이기 전까지는 지어낸 카드 없이 상태만(규칙 28) ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2 style={{ marginBottom: 14 }}>후기</H2>
+          <div style={{ padding: 20, borderRadius: 4, border: '2px solid #141414', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <strong style={{ fontSize: 18, fontWeight: 800 }}>첫 후기를 모으는 중이에요</strong>
+            <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
+          </div>
+        </section>
+
+        {/* ── 자주 묻는 것 — details 라 JS 없이 열고 닫는다. 첫 질문만 열어 둔다. ── */}
+        <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            먹이기 전에
+            <br />
+            자주 묻는 것들
+          </H2>
+          <div style={{ marginTop: 14, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            {FOOD_FAQ.map((f, i) => (
+              <details key={f.q} open={i === 0} style={{ borderBottom: '1px solid #E5E5E5' }}>
+                <summary
+                  style={{ minHeight: 64, padding: '10px 0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}
+                >
+                  {f.q}
+                  <span aria-hidden className="fts-acc-plus" style={{ fontSize: 26, fontWeight: 300 }}>
+                    +
+                  </span>
+                  <span aria-hidden className="fts-acc-minus" style={{ fontSize: 26, fontWeight: 300 }}>
+                    −
+                  </span>
+                </summary>
+                <p style={{ margin: '0 0 20px', fontSize: 17, lineHeight: 1.7, color: '#3D3D3D' }}>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 마무리 — 가게로 ── */}
+        <section style={{ padding: '48px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+          <H2>
+            우리 아이 한 끼
+            <br />
+            오늘 시작해요
+          </H2>
+          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>500g 한 봉부터 부담 없이 시작해요.</p>
+          <Link href="/store" style={{ ...PRIMARY_BTN, marginTop: 18 }}>
+            레시피 고르기
+            <Arrow />
+          </Link>
+        </section>
+      </div>
+    </StoreShell>
   )
 }

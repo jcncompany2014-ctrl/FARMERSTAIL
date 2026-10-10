@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
-import { confirmPayment, cancelPayment } from '@/lib/payments/toss'
+import { confirmPayment, cancelPayment, merchantForOrderNumber } from '@/lib/payments/toss'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
@@ -192,6 +192,8 @@ export async function POST(req: Request) {
   }
 
   // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
+  //    ★가맹점: 웹 가게 주문(FTS-)은 결제위젯 계약 키로 승인·환불한다(규칙172).
+  const merchant = merchantForOrderNumber(order.order_number)
   // Sentry 트레이싱 wrap — 결제 confirm 실패율 + latency 추적.
   const result = await traceBusiness(
     'order.payment.confirm',
@@ -199,7 +201,7 @@ export async function POST(req: Request) {
       'order.id': orderId,
       'order.amount': amount,
     },
-    () => confirmPayment({ paymentKey, orderId, amount }),
+    () => confirmPayment({ paymentKey, orderId, amount, merchant }),
   )
 
   if (!result.ok) {
@@ -301,6 +303,7 @@ export async function POST(req: Request) {
     const cancelResult = await cancelPayment({
       paymentKey,
       cancelReason: '주문 상태 race — 결제 후 만료 감지',
+      merchant,
     })
     if (!cancelResult.ok) {
       // ★insert 는 throw 하지 않는다 — 결과를 본다 (2026-09-25 3차 점검, 규칙95 확장이 찾음).
@@ -355,6 +358,7 @@ export async function POST(req: Request) {
       const cancelResult = await cancelPayment({
         paymentKey,
         cancelReason: 'DB 업데이트 실패에 의한 자동 환불',
+        merchant,
       })
       if (!cancelResult.ok) {
         // service-role 로 queue 에 기록 — 다음 cron 사이클에서 재시도.

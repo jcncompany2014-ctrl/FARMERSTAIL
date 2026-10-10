@@ -1,15 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import {
-  ChevronRight,
-  HelpCircle,
-  MessageCircle,
-  Phone,
-  Mail,
-  Building2,
-  FileText,
-} from 'lucide-react'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import SiteShell from '@/components/store/SiteShell'
 import { business } from '@/lib/business'
 import { isAppContextServer } from '@/lib/app-context'
 import type { ReactNode } from 'react'
@@ -34,7 +26,8 @@ import {
  *
  * 2026-10-09 앱 새 디자인('A 포스터', 시안 M18): 앱이면 HelpAppView — 큰 제목(제목 글꼴 32) + 위 2px 먹선 목록
  * (줄 높이 76 · 동그라미 그림 44). 카카오톡 문의는 먹색 동그라미 + '앱 밖으로 열려요' 그림. 문의 창구 분기(아래)는 그대로.
- * 웹 마크업은 그대로 — 한 픽셀도 바꾸지 않았다(AGENTS.md R14).
+ * 2026-10-10 웹 리뉴얼: 웹은 HelpWebView(웹 시안 WEB-C17) — 새 웹 가게 틀(SiteShell)에 머리말·큰 제목 + 같은 세 묶음.
+ * 예전 웹 판(둥근 카드 목록)은 git 이력.
  */
 export const dynamic = 'force-dynamic'
 
@@ -43,47 +36,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-function Row({
-  href,
-  Icon,
-  label,
-  sub,
-  external,
-}: {
-  href: string
-  Icon: typeof HelpCircle
-  label: string
-  sub?: string
-  external?: boolean
-}) {
-  const inner = (
-    <>
-      <span className="w-8 h-8 rounded-full bg-bg flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-terracotta" strokeWidth={2} />
-      </span>
-      <span className="flex-1 min-w-0 text-left">
-        <span className="block text-[13.5px] font-bold text-text">{label}</span>
-        {sub && <span className="block text-[10.5px] text-muted mt-0.5">{sub}</span>}
-      </span>
-      <ChevronRight className="w-4 h-4 text-muted shrink-0" strokeWidth={2} />
-    </>
-  )
-  const cls =
-    'flex items-center gap-3 w-full px-4 py-3.5 hover:bg-bg/40 transition'
-  return external ? (
-    <a href={href} className={cls}>
-      {inner}
-    </a>
-  ) : (
-    <Link href={href} className={cls}>
-      {inner}
-    </Link>
-  )
-}
-
 export default async function HelpPage() {
   // 문의 창구 — 앱: 카카오 채널 1:1 채팅으로 외부 연결(사장님 2026-07-17 "앱 문의는
-  // 전부 카카오톡으로"). 웹: 기존 문의 폼(/contact, 그 안에 카카오 버튼도 있음).
+  // 전부 카카오톡으로"). 웹: 문의 양식(/contact, 그 안에 카카오 채널 줄도 있음).
   // 카카오 URL 미설정(env 비어있음)이면 앱에서도 /contact 폼으로 안전 폴백.
   const isApp = await isAppContextServer()
   const kakaoUrl = business.kakaoChannelUrl
@@ -99,80 +54,125 @@ export default async function HelpPage() {
   }
 
   return (
-    <AuthAwareShell>
-      <main className="pb-16" style={{ minHeight: '72vh' }}>
-        <section className="px-5 pt-8 pb-1">
-          <h1
-            className="font-sans"
-            style={{
-              fontSize: 26,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-            }}
-          >
-            무엇을 도와드릴까요?
-          </h1>
-          <p className="text-[12px] text-muted mt-2">
-            평일 영업일 24시간 이내 답변드려요.
-          </p>
-        </section>
+    <SiteShell>
+      <HelpWebView />
+    </SiteShell>
+  )
+}
 
-        {/* 상담 없이 해결 */}
-        <section className="px-5 mt-5">
-          <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted mb-2 px-1">
-            상담 없이 해결할 수 있어요
-          </div>
-          <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden divide-y divide-rule">
-            <Row
-              href="/faq"
-              Icon={HelpCircle}
-              label="자주 묻는 질문"
-              sub="식단 · 배송 · 결제 · 정기배송"
-            />
-          </div>
-        </section>
+/** 고객센터 — 웹 모양(웹 시안 WEB-C17). 묶음·순서·주소는 앱과 같다(웹 문의 = /contact 양식). */
+function HelpWebView() {
+  return (
+    <main>
+      <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>고객센터</span>
+        <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
+          무엇을
+          <br />
+          도와드릴까요?
+        </h1>
+        <p style={{ margin: '14px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>영업일에는 24시간 안에 답변드려요.</p>
+      </section>
 
-        {/* 문의 */}
-        <section className="px-5 mt-4">
-          <div className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted mb-2 px-1">
-            직접 문의하기
-          </div>
-          <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden divide-y divide-rule">
-            <Row
-              href={inquiryHref}
-              Icon={MessageCircle}
-              label={inquiryToKakao ? '카카오톡으로 문의' : '1:1 문의 남기기'}
-              sub={inquiryToKakao ? '카카오톡 채널로 바로 연결돼요' : undefined}
-              external={inquiryToKakao}
-            />
-            <Row
-              href={`tel:${business.phone.replace(/[^0-9]/g, '')}`}
-              Icon={Phone}
-              label="전화 문의"
-              sub={business.phone}
-              external
-            />
-            <Row
-              href={`mailto:${business.email}`}
-              Icon={Mail}
-              label="이메일 문의"
-              sub={business.email}
-              external
-            />
-          </div>
-        </section>
+      <section aria-labelledby="help-web-self" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h2 id="help-web-self" style={{ margin: 0, fontFamily: 'inherit', fontSize: 15, fontWeight: 800, letterSpacing: 'inherit', color: '#595959' }}>
+          상담 없이 해결할 수 있어요
+        </h2>
+        <div style={{ marginTop: 10, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+          <WebRow href="/faq" icon={<QuestionIcon size={20} color="#141414" />} label="자주 묻는 질문">
+            <span style={{ fontSize: 15, color: '#595959' }}>식단 · 배송 · 결제 · 정기배송</span>
+          </WebRow>
+        </div>
+      </section>
 
-        {/* 하단 — 사업자정보 · 약관 */}
-        <section className="px-5 mt-4">
-          <div className="rounded-[12px] bg-bg-3 border border-rule overflow-hidden divide-y divide-rule">
-            <Row href="/business" Icon={Building2} label="사업자 정보" />
-            <Row href="/legal" Icon={FileText} label="이용약관 · 개인정보처리방침" />
-          </div>
-        </section>
-      </main>
-    </AuthAwareShell>
+      <section aria-labelledby="help-web-ask" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h2 id="help-web-ask" style={{ margin: 0, fontFamily: 'inherit', fontSize: 15, fontWeight: 800, letterSpacing: 'inherit', color: '#595959' }}>
+          직접 문의하기
+        </h2>
+        <div style={{ marginTop: 10, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+          <WebRow href="/contact" icon={<InquiryIcon />} label="1:1 문의 남기기" />
+          <WebRow href={`tel:${business.phone.replace(/[^0-9]/g, '')}`} external icon={<PhoneIcon size={20} color="#141414" />} label="전화 문의">
+            <span className="n" style={{ fontSize: 16, color: '#3D3D3D' }}>
+              {business.phone}
+            </span>
+          </WebRow>
+          <WebRow href={`mailto:${business.email}`} external icon={<MailIcon size={20} color="#141414" />} label="이메일 문의">
+            <span style={{ fontSize: 15, color: '#3D3D3D', wordBreak: 'break-all' }}>{business.email}</span>
+          </WebRow>
+        </div>
+      </section>
+
+      <nav aria-label="회사·약관" style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+          <WebRow href="/business" icon={<BuildingIcon size={20} />} label="사업자 정보" short />
+          <WebRow href="/legal" icon={<TermsIcon size={20} />} label="이용약관 · 개인정보처리방침" short />
+        </div>
+      </nav>
+    </main>
+  )
+}
+
+/** 1:1 문의 그림(웹 시안 C17 — 네모 말풍선). 앱의 TalkIcon(카카오톡 말풍선)과 구분한다 — 웹 문의는 양식이다. */
+function InquiryIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 5h14v10H9l-4 4z" />
+    </svg>
+  )
+}
+
+/** 웹 시안 C17 의 줄 — 40px 동그라미 그림 · 굵은 이름(+ 아래 한 줄) · 꺾쇠. 바닥 두 줄은 조금 낮다(short). */
+function WebRow({
+  href,
+  icon,
+  label,
+  external,
+  short,
+  children,
+}: {
+  href: string
+  icon: ReactNode
+  label: string
+  /** 전화·메일 — 앱 밖으로 나가는 <a>. */
+  external?: boolean
+  short?: boolean
+  children?: ReactNode
+}) {
+  const style = {
+    minHeight: short ? 68 : 76,
+    borderBottom: '1px solid #E5E5E5',
+    display: 'grid',
+    gridTemplateColumns: '44px 1fr 18px',
+    columnGap: 10,
+    alignItems: 'center',
+    color: '#141414',
+    textDecoration: 'none',
+  }
+  const inner = (
+    <>
+      <span
+        aria-hidden
+        style={{ width: 40, height: 40, borderRadius: 20, background: '#F6F4F5', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        {icon}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 18, fontWeight: 800 }}>{label}</span>
+        {children}
+      </span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    </>
+  )
+  return external ? (
+    <a href={href} style={style}>
+      {inner}
+    </a>
+  ) : (
+    <Link href={href} style={style}>
+      {inner}
+    </Link>
   )
 }
 

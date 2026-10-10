@@ -7,6 +7,7 @@ import { trackSignUp } from '@/lib/analytics'
 import { safeNextPath } from '@/lib/auth/safe-next'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
 import AgeGateAppView from '@/components/v3/auth/AgeGateAppView'
+import AgeGateWebView from '@/components/store/AgeGateWebView'
 
 /**
  * /onboarding/age-gate
@@ -140,130 +141,34 @@ function AgeGateInner() {
     )
   }
 
+  // 웹 = 웹 시안 WEB-A09·A10(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀, 앱과 같은 상태. 예전 웹 판은 git 이력.
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6 py-12"
-      style={{ background: 'var(--bg)' }}
-    >
-      <div className="max-w-sm w-full">
-        <span className="kicker">14세 확인</span>
-        <h1
-          // R28: font-serif → font-sans (v3 app 톤 — onboarding 흐름은 app 컨텍스트)
-          className="font-sans mt-2 text-[24px]"
-          style={{
-            color: 'var(--ink)',
-            fontWeight: 800,
-            letterSpacing: '-0.025em',
-            lineHeight: 1.25,
-          }}
-        >
-          출생 연도를 알려주세요
-        </h1>
-        <p
-          className="text-[12.5px] mt-3 leading-relaxed"
-          style={{ color: 'var(--muted)' }}
-        >
-          파머스테일은 만 14세 이상만 이용할 수 있어요. 개인정보보호법에 따라
-          한 번만 확인할게요. 입력하신 연도는 이후 가입 흐름에서 다시 묻지
-          않아요.
-        </p>
-
-        <label
-          className="block text-[11px] font-bold mt-6 mb-1.5"
-          style={{ color: 'var(--text)' }}
-        >
-          출생 연도
-        </label>
-        <select
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          disabled={saving}
-          className="w-full px-4 py-3 rounded-lg border text-sm"
-          style={{
-            borderColor: isUnder14 ? 'var(--sale)' : 'var(--rule-2)',
-            background: '#FDFDFD',
-            color: 'var(--text)',
-          }}
-        >
-          <option value="">선택해 주세요</option>
-          {Array.from({ length: currentYear - MIN_YEAR + 1 }).map((_, i) => {
-            const y = currentYear - i
-            return (
-              <option key={y} value={y}>
-                {y}년
-              </option>
-            )
-          })}
-        </select>
-
-        {isUnder14 && (
-          <p
-            className="text-[11px] mt-2 font-semibold leading-relaxed"
-            style={{ color: 'var(--sale)' }}
-          >
-            만 14세 미만은 가입할 수 없어요. 보호자와 상의해 주세요.
-          </p>
-        )}
-
-        {error && !isUnder14 && (
-          <p
-            className="text-[11px] mt-2 font-semibold leading-relaxed"
-            style={{ color: 'var(--sale)' }}
-          >
-            {error}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={isUnder14 ? handleUnder14Acknowledge : handleSubmit}
-          disabled={saving || !year || (!isUnder14 && !isValid)}
-          className="mt-5 w-full py-3.5 rounded-full text-[13px] font-bold disabled:opacity-50 transition active:scale-[0.98]"
-          style={{
-            // R28: ink → terracotta primary CTA + 카트 grammar 그림자.
-            // under-14 거부 케이스는 sale 색 유지 (위험/거부 시그널).
-            background: isUnder14 ? 'var(--sale)' : 'var(--terracotta)',
-            color: '#fff',
-            border: '1px solid',
-            borderColor: isUnder14 ? 'transparent' : 'rgba(178, 58, 26, 0.6)',
-            boxShadow: isUnder14
-              ? 'none'
-              : '0 6px 20px -8px rgba(220, 83, 42, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22)',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          {saving
-            ? '저장 중...'
-            : isUnder14
-              ? '확인 — 가입을 종료할게요'
-              : '계속하기'}
-        </button>
-
-        <p
-          className="text-[10.5px] mt-4 leading-relaxed text-center"
-          style={{ color: 'var(--muted)' }}
-        >
-          개인정보보호법 제22조의2에 따라 만 14세 이상 사용자만 이용할 수 있어요.
-        </p>
-      </div>
-    </main>
+    <AgeGateWebView
+      year={year}
+      years={Array.from({ length: currentYear - MIN_YEAR + 1 }, (_, i) => currentYear - i)}
+      onYearChange={setYear}
+      isUnder14={isUnder14}
+      error={error}
+      saving={saving}
+      canSubmit={!(saving || !year || (!isUnder14 && !isValid))}
+      onPrimary={isUnder14 ? handleUnder14Acknowledge : handleSubmit}
+    />
   )
 }
 
 export default function AgeGatePage() {
-  // 앱이면 기다리는 동안도 흰 바탕·먹색 원(앱 새 디자인) — 웹은 예전 그대로.
-  const appLook = useServerAppContext()
+  // 기다리는 동안 흰 바탕·먹색 원 — 앱 새 디자인·웹 리뉴얼(2026-10-10) 둘 다.
   return (
     <Suspense
       fallback={
         <main
           className="min-h-screen flex items-center justify-center"
-          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
+          style={{ background: '#FFFFFF' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: appLook ? '#141414' : 'var(--terracotta)',
+              borderColor: '#141414',
               borderTopColor: 'transparent',
             }}
           />

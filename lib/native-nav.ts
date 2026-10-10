@@ -81,7 +81,7 @@ export function nativeTargetPath(raw: unknown): string | null {
  *
  * 이 함수가 그 URL 을 돌려주면 호출처(NativeShellBridge)는 SPA 라우팅 대신
  * **WebView 전체 내비게이션**으로 URL 을 그대로 연다. 서버 라우트가 실행되고,
- * 그 응답(예: `/newsletter?status=confirmed` 로 redirect)은 AuthAwareShell 이
+ * 그 응답(예: `/newsletter?status=confirmed` 로 redirect)은 SiteShell 이(2026-10-10 웹 리뉴얼 — 예전엔 AuthAwareShell)
  * 앱 크롬으로 렌더한다 — 웹 화면이 앱에 보이는 일은 없다.
  *
  * # 경계

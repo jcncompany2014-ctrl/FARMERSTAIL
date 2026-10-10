@@ -119,8 +119,11 @@ const BagIcon = ({ size = 26 }: { size?: number }) => (
 
 export default function OrdersAppView({
   orders,
+  variant = 'app',
 }: {
   orders: OrderRow[]
+  /** 'web' = 웹 가게(2026-10-10 웹 리뉴얼) — 같은 목록, 빈 화면 안내만 가게로(앱 전용 /dogs 금지). */
+  variant?: 'app' | 'web'
 }) {
   const [filter, setFilter] = useState<FilterKey>('all')
 
@@ -172,10 +175,12 @@ export default function OrdersAppView({
         </span>
         {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다. */}
         <h2 style={{ margin: '16px 0 0', fontSize: 24, lineHeight: 1.2 }}>아직 주문 내역이 없어요</h2>
-        <p style={{ margin: '8px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>우리 아이 첫 박스를 시작해 보세요</p>
-        {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 우리 아이 허브 /dogs 로. */}
+        <p style={{ margin: '8px 0 0', fontSize: 16, lineHeight: 1.6, color: V3.inkSoft }}>
+          {variant === 'web' ? '처음이라면 체험팩부터 골라 보세요' : '우리 아이 첫 박스를 시작해 보세요'}
+        </p>
+        {/* ★로그인 상태라 /start(비로그인 설문→가입) 금지 — 앱은 우리 아이 허브 /dogs, 웹은 가게(/dogs 는 앱 전용). */}
         <Link
-          href="/dogs"
+          href={variant === 'web' ? '/store' : '/dogs'}
           className="active:opacity-80"
           style={{
             marginTop: 20,
@@ -191,7 +196,7 @@ export default function OrdersAppView({
             alignItems: 'center',
           }}
         >
-          정기배송 시작하기
+          {variant === 'web' ? '레시피 고르러 가기' : '정기배송 시작하기'}
         </Link>
       </section>
     )

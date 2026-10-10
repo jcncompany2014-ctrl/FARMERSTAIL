@@ -25,6 +25,8 @@ export type TrackingFetchState =
 
 type Props = {
   orderNumber: string
+  /** 웹(시안 WEB-A16) — 웹은 흰 바탕·먹색만(색은 레시피 띠에서만): 송장 카드 흰색·송장번호 칸 회색·지나온 단계 먹색. */
+  web?: boolean
   carrierLabel: string | null
   trackingNumber: string | null
   /** 택배사·송장번호가 둘 다 있을 때만 조회할 게 있다. */
@@ -155,7 +157,7 @@ function NoticeCard({ label, icon, title, lines, action }: { label: string; icon
   )
 }
 
-function ProgressSteps({ state }: { state: TrackingResult['state'] }) {
+function ProgressSteps({ state, web }: { state: TrackingResult['state']; web?: boolean }) {
   const cur = STATE_INDEX[state] ?? -1
   return (
     <section aria-labelledby="track-step-title" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
@@ -166,7 +168,7 @@ function ProgressSteps({ state }: { state: TrackingResult['state'] }) {
         {/* 첫 칸 가운데 ~ 끝 칸 가운데(칸 폭 20% → 양끝 10%). 지나온 구간만 머스타드. */}
         <span aria-hidden style={{ position: 'absolute', left: '10%', right: '10%', top: 31, height: 3, background: V3.rule }} />
         {cur > 0 && (
-          <span aria-hidden style={{ position: 'absolute', left: '10%', top: 31, height: 3, width: `${cur * 20}%`, background: V3.mustard }} />
+          <span aria-hidden style={{ position: 'absolute', left: '10%', top: 31, height: 3, width: `${cur * 20}%`, background: web ? V3.ink : V3.mustard }} />
         )}
         <ol style={{ position: 'relative', margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
           {STEP_LABELS.map((label, i) => {
@@ -367,7 +369,7 @@ export default function TrackingAppView(p: Props) {
   } else {
     body = (
       <>
-        {fetched.status === 'ok' && <ProgressSteps state={fetched.data.state} />}
+        {fetched.status === 'ok' && <ProgressSteps state={fetched.data.state} web={p.web} />}
         <History fetchState={fetched} onReload={p.onReload} />
       </>
     )
@@ -378,7 +380,7 @@ export default function TrackingAppView(p: Props) {
     <div style={{ paddingBottom: 32, color: V3.ink, lineHeight: 'normal' }}>
       {orderLine}
 
-      {/* 송장 정보 — 화면의 핵심 카드(머스타드 + 도장 그림자) */}
+      {/* 송장 정보 — 화면의 핵심 카드(머스타드 + 도장 그림자 · 웹은 흰색 + 도장 그림자) */}
       <section
         aria-label="송장 정보"
         style={{
@@ -387,7 +389,7 @@ export default function TrackingAppView(p: Props) {
           border: `2px solid ${V3.ink}`,
           boxShadow: V3Shadow.stamp,
           borderRadius: 4,
-          background: V3.mustard,
+          background: p.web ? '#FFFFFF' : V3.mustard,
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
@@ -410,7 +412,7 @@ export default function TrackingAppView(p: Props) {
               boxSizing: 'border-box',
               padding: '6px 12px',
               borderRadius: 4,
-              background: 'rgba(255,255,255,0.5)',
+              background: p.web ? V3.soft : 'rgba(255,255,255,0.5)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',

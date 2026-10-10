@@ -40,7 +40,9 @@ editorial (serif heading / white card / rounded-xl) 톤은 유지해야 한다.
 | `app/products/page.tsx`, `app/products/[slug]/**` | top-level, AuthAwareShell 분기 |
 | `app/mypage/orders/**` | top-level web/app 공유 |
 | `components/ui/**` (Toast, Button, Form, BottomSheet, EmptyState, Skeleton, Spinner, ErrorScreen, CopyButton, Motion, ProgressiveDisclosure) | UI primitives — web 페이지도 import |
-| `components/auth/AuthHero.tsx` | login/signup 에서 사용 — web/app 공통 |
+
+> 2026-10-10 웹 리뉴얼: 웹 화면은 `components/store/*`(StoreShell·SiteShell, `.fts` 범위)로 다시 지었다 — 로그인·가입 웹 판의
+> 옛 `components/auth/AuthHero.tsx` 는 지웠다(git 이력). 웹 새 화면은 웹 시안(canvas-web WEB-A·C)이 px 정본이다.
 
 ## ✅ R14 — variant prop 으로 공유 컴포넌트 분기
 

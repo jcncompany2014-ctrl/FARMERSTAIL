@@ -1,12 +1,15 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import AuthAwareShell from "@/components/AuthAwareShell"
+import SiteShell from '@/components/store/SiteShell'
 import LegalDocument, {
   Article as WebArticle,
   OL as WebOL,
   UL as WebUL,
 } from '@/components/LegalDocument'
 import { business } from '@/lib/business'
+import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
+
+const won = (n: number) => n.toLocaleString('ko-KR')
 import { isAppContextServer } from '@/lib/app-context'
 import {
   APP_LEGAL_LINK,
@@ -36,7 +39,10 @@ export const metadata: Metadata = {
 // ★2026-10-02 개정 — 주말 조리 일정(토 결제 · 금 마감)·결제 후 취소 제한(결제 전 별도 동의 회차)·카드 전용 결제.
 //   사장님 "실 결제 고객 한 명도 없음, 바로 해도 돼" — 첫 실제 청구(서포터즈 10/6) 전이라 즉시 시행.
 //   근거·문안 docs/LEGAL_REVISION_2026_10.md §2·§5. 다음 개정부터는 다시 제3조 공지 기간을 지킨다.
-const EFFECTIVE_DATE = '2026-10-02'
+// ★2026-10-10 개정 — 웹 스토어 단품(일회 결제·배송비·화·목 출고) 조항을 **더했다**(정기배송 조항은 그대로).
+//   사장님 "공지 안 해도 돼 이용자 없어" — 단품 이용자가 아직 없고 기존 회원에게 불리한 변경이 없어 즉시 시행.
+//   시행일 = 웹 가게 배포일(배포하는 날 이 값을 맞춘다). 문안 docs/LEGAL_REVISION_2026_10.md §6, 숫자 정본 lib/store/shipping.
+const EFFECTIVE_DATE = '2026-10-10'
 
 /**
  * 이용약관 — Terms of Service.
@@ -59,9 +65,10 @@ export default async function TermsPage() {
 
   const summary = (
           <>
-            파머스테일 서비스 이용 시 적용되는 기본 규칙입니다. 결제는
-            토스페이먼츠 카드 정기결제로 처리되고, 정기배송은 결제 전까지
-            해지·일시정지·미루기할 수 있습니다. 결제 전에 별도로 안내하고
+            파머스테일 서비스 이용 시 적용되는 기본 규칙입니다. 정기배송
+            결제는 토스페이먼츠 카드 정기결제로 처리되고, 정기배송은 결제 전까지
+            해지·일시정지·미루기할 수 있습니다. 웹 스토어 단품은 주문할 때 한
+            번에 결제하고, 받은 날부터 7일 안에 뜯지 않은 상품은 환불됩니다. 결제 전에 별도로 안내하고
             동의를 받은 정기배송 회차는 반려견에 맞춰 조리되므로 결제 후
             단순 변심으로 취소·환불되지 않으며, 상품 하자 시 3개월 내
             교환·환불을 보장합니다.{' '}
@@ -226,8 +233,11 @@ export default async function TermsPage() {
               그대로 발송됩니다(취소·환불 기준은 제9조와 환불 정책).
             </li>
             <li>
-              결제는 신용·체크카드 정기결제(토스페이먼츠)로만 이루어지며,
-              취소·환불은 신용카드사의 정책에 따라 처리됩니다.
+              정기배송 결제는 신용·체크카드 정기결제(토스페이먼츠)로
+              이루어집니다. 웹 스토어에서 낱개로 구매하는 상품(이하
+              &ldquo;단품&rdquo;)은 주문할 때 토스페이먼츠 결제창에서 제공하는
+              신용·체크카드 또는 간편결제로 한 번에 결제합니다. 취소·환불은
+              결제수단 제공사의 정책에 따라 처리됩니다.
             </li>
           </OL>
         </Article>
@@ -245,17 +255,25 @@ export default async function TermsPage() {
                    (lib/shipping-schedule LEAD_DAYS). 도착은 요일로 약속하지 않는다(사장님 "수요일 도착이라는
                    말을 쓰지 말고") — "지역에 따라 하루나 이틀". */}
             <li>
-              배송지는 대한민국 내에 한하며, 배송비는 구독료에 포함되어
-              있습니다. 도서·산간 지역을 포함해 추가로 청구되는 배송비는
-              없습니다.
+              배송지는 대한민국 내에 한합니다. 정기배송의 배송비는 구독료에
+              포함되어 있으며, 도서·산간 지역을 포함해 추가로 청구되는 배송비는
+              없습니다. 단품의 배송비는 주문 1건당 {won(SHIPPING_FEE)}원이며,
+              상품 금액이 {FREE_SHIPPING_MIN / 10_000}만 원 이상이면 무료입니다(도서·산간 추가
+              배송비 없음).
             </li>
             <li>
-              회사는 맞춤 소량 생산 방식에 따라 <strong>매주 화요일</strong>에
-              상품을 발송합니다. 해당 주 화요일 발송분의 주문 마감은 직전
+              정기배송 상품은 맞춤 소량 생산 방식에 따라 <strong>매주 화요일</strong>에
+              발송합니다. 해당 주 화요일 발송분의 주문 마감은 직전
               금요일 밤(조리 시작 전)이며, 마감 이후 시작·변경된 주문은 다음
               화요일 발송분에 포함됩니다. 발송 후 도착까지는 지역에 따라
               하루나 이틀이 걸리며, 도서·산간은 하루 정도 더 걸릴 수 있습니다.
               연휴, 물류사 사정, 품절 등의 사유로 지연될 수 있습니다.
+            </li>
+            <li>
+              단품은 냉동 보관 중인 상품을 매주 <strong>화요일과 목요일</strong>에
+              출고합니다. 출고일 전날 밤 12시까지 주문하면 그 출고일에 출고되며,
+              출고 후 도착까지는 지역에 따라 하루나 이틀이 걸리고 도서·산간은
+              하루 정도 더 걸릴 수 있습니다.
             </li>
             <li>
               회원이 입력한 배송지 오류로 인한 미수령·오배송의 책임은
@@ -417,16 +435,16 @@ export default async function TermsPage() {
 
   if (isApp) {
     return (
-      <AuthAwareShell>
+      <SiteShell>
         <AppLegalDocument effectiveDate={EFFECTIVE_DATE} summary={summary}>
           {body}
         </AppLegalDocument>
-      </AuthAwareShell>
+      </SiteShell>
     )
   }
 
   return (
-    <AuthAwareShell><div className="mx-auto" style={{ maxWidth: 880, background: "var(--fd-offwhite)" }}>
+    <SiteShell>
       <LegalDocument
         eyebrow="Terms of Service"
         title="이용약관"
@@ -435,6 +453,6 @@ export default async function TermsPage() {
       >
         {body}
       </LegalDocument>
-    </div></AuthAwareShell>
+    </SiteShell>
   )
 }

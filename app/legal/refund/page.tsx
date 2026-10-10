@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import AuthAwareShell from "@/components/AuthAwareShell"
+import SiteShell from '@/components/store/SiteShell'
 import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
 import { isAppContextServer } from '@/lib/app-context'
 import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
@@ -36,7 +36,7 @@ export default async function RefundPage() {
   const Section = isApp ? AppSection : WebSection
   const UL = isApp ? AppUL : WebUL
   return (
-    <AuthAwareShell>
+    <SiteShell>
       <LegalFrame
         isApp={isApp}
         eyebrow="Refund Policy"
@@ -279,6 +279,6 @@ export default async function RefundPage() {
           </p>
         </Section>
       </LegalFrame>
-    </AuthAwareShell>
+    </SiteShell>
   )
 }

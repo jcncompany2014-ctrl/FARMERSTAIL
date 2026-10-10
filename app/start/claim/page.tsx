@@ -7,6 +7,8 @@
 //   ① 강아지 보유(기존 회원) → 홈(app=/dashboard, web=/mypage/orders)
 //   ② 강아지 無 + 설문 초안 완성 → applyAutosignupDraft 이관 → /dogs/{id}/analysis
 //   ③ 강아지 無 + 초안 無 → /start(설문). 카카오로 그냥 로그인한 신규도 설문으로.
+//      ★2026-10-10 웹 리뉴얼: ③은 앱만. 웹은 회원만 사는 단품 가게(카카오 1초 가입, /signup)라 강아지 없이도
+//      보던 곳(?to=)·주문 내역으로 간다 — 웹 설문은 앱으로 옮겼다.
 //
 // 진입 경로: /start 결과 "카카오로 시작하기"(next=/start/claim) AND /login 의
 //   카카오/Apple(next=/start/claim) 둘 다 → /auth/callback → (출생연도 없으면)
@@ -118,7 +120,9 @@ export default function StartClaimPage() {
       }
 
       // ③ 이관 실패 — 기존 회원이면 홈(초안은 남겨 둔다), 강아지 無 이면 설문으로(설문 없이 진입 불가).
-      if (!cancelled) router.replace(count && count > 0 ? home : '/start')
+      //   ★앱만(2026-10-10 웹 리뉴얼) — 웹은 회원만 사는 단품 가게(카카오 1초 가입)라 강아지 없이도 보던 곳·주문 내역으로.
+      //   웹 설문은 앱으로 옮겼다(기획서 D1).
+      if (!cancelled) router.replace((count && count > 0) || !isApp ? home : '/start')
     })()
     return () => {
       cancelled = true

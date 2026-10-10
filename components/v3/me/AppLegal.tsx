@@ -196,11 +196,10 @@ export function LegalFrame({
       </AppLegalDocument>
     )
   }
+  // 웹 — 2026-10-10 웹 리뉴얼: 바깥 칸(가운데 480)은 웹 가게 틀(SiteShell → StoreShell)이 준다.
   return (
-    <div className="mx-auto" style={{ maxWidth: 880, background: 'var(--fd-offwhite)' }}>
-      <LegalDocument eyebrow={eyebrow} title={title} effectiveDate={effectiveDate} summary={summary}>
-        {children}
-      </LegalDocument>
-    </div>
+    <LegalDocument eyebrow={eyebrow} title={title} effectiveDate={effectiveDate} summary={summary}>
+      {children}
+    </LegalDocument>
   )
 }

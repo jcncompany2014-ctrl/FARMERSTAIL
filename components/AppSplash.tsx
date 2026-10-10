@@ -24,6 +24,12 @@
  * 영상: 사장님 Higgsfield 영상(4.5MB)에서 도장만 오려 바탕색 위에 다시 얹은 384px H.264(150KB, 1.7초 반복).
  *   v2 = 흰 바탕(셸 3세대·설치형 PWA) · v1 = 종이색 바탕(2세대 셸). 같은 장면·같은 잉크, 바탕만 다르다(BT.601 제한 범위로 인코딩).
  * 정지 도장(첫 장면, 22KB)이 밑에 깔리고 영상이 재생되기 시작하면 그 위를 덮는다 — 같은 그림이라 이음새가 없다.
+ *
+ * ★꼬리 그림 장면(2026-10-10 사장님 아이폰 화면 "왜또 꼬리가 안움직여" — 배터리 아이콘이 노란색 = 저전력 모드):
+ * 아이폰 저전력 모드는 영상 재생(play())을 거절한다(WebKit 버그 216887 — Capacitor 앱도 같다). 그러면 정지 도장만
+ * 남고 점만 돌았다. 영상이 거절되거나 오류가 나면(그리고 장면 신호 requestVideoFrameCallback 이 없는 옛 웹뷰는 처음부터)
+ * 꼬리가 실제로 움직이는 네모만 51장면 묶음 그림(200KB, 저전력·옛 웹뷰일 때만 받는다)으로 CSS 가 넘긴다 — 그림·CSS
+ * 애니메이션은 안 막힌다. 영상 앞 장면의 도장 '쿵'(최대 5% 커짐)도 CSS 로 같이(globals.css .ft-splash__bob).
  * 웹 브라우저(standalone 아님)에선 display:none 이고 src 도 안 붙여 아무것도 받지 않는다.
  *
  * 노출 게이트·세션당 한 번(ft-splash-skip)은 app/layout.tsx head 인라인 스크립트가 정한다. (server component)
@@ -34,6 +40,9 @@ export const SPLASH_WAG_SRC = '/splash/stamp-wag-v2.mp4'
 /** 2세대 셸(FtShell/2 — 폰 화면이 종이색)용 — 종이색 위에 구운 같은 도장. 그 셸이 남아 있는 동안 지우지 말 것(규칙166). */
 export const PAPER_SHELL_STILL_SRC = '/splash/stamp-v1.webp'
 export const PAPER_SHELL_WAG_SRC = '/splash/stamp-wag-v1.mp4'
+/** 영상이 막힐 때의 꼬리 그림 장면(3열×17행 = 51장면, 정지 도장과 같은 396 기준) — 흰 바탕(v2)·종이색(v1). 칸 자리·크기는 globals.css. */
+export const SPLASH_TAIL_SRC = '/splash/stamp-tail-v2.webp'
+export const PAPER_SHELL_TAIL_SRC = '/splash/stamp-tail-v1.webp'
 
 /** 앱 바탕(--paper, 흰색 — 2026-10-09 앱 새 디자인) — 로딩 바탕·폰 화면·상태바·홈바가 모두 이 색(규칙149·84). 도장 그림·영상(v2)도 이 바탕 위에 구웠다. */
 export const APP_PAPER = '#FFFFFF'
@@ -81,15 +90,19 @@ var info=Promise.resolve();
 if(ios){place(0)}
 else if(nat){place(gap>1?Math.max(0,gap-24):0);
 info=call('StatusBar','getInfo').then(function(i){if(i&&typeof i.height==='number'&&gap>1)place(i.overlays?0:Math.min(i.height+0.5,gap))},function(){})}
-var pic=el.querySelector('.ft-splash__still'),wag=el.querySelector('.ft-splash__wag');
+var pic=el.querySelector('.ft-splash__still'),wag=el.querySelector('.ft-splash__wag'),tail=el.querySelector('.ft-splash__tail');
 pic.src=(oldShell&&pic.getAttribute('data-src-paper'))||pic.getAttribute('data-src');
 var ready=pic.decode?pic.decode().catch(function(){}):new Promise(function(r){pic.onload=pic.onerror=r});
-var calm=(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)||typeof wag.requestVideoFrameCallback!=='function';
-if(!calm){wag.muted=true;wag.setAttribute('muted','');wag.src=(oldShell&&wag.getAttribute('data-src-paper'))||wag.getAttribute('data-src');var frames=0;var onFrame=function(){if(++frames>=2)el.classList.add('ft-splash--wag');else wag.requestVideoFrameCallback(onFrame)};wag.requestVideoFrameCallback(onFrame)}
+var calm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+var rvfc=typeof wag.requestVideoFrameCallback==='function';
+var wagOn=false,tailOn=false;
+if(!calm&&rvfc){wag.muted=true;wag.setAttribute('muted','');wag.src=(oldShell&&wag.getAttribute('data-src-paper'))||wag.getAttribute('data-src');var frames=0;var onFrame=function(){if(tailOn)return;if(++frames>=2){wagOn=true;el.classList.add('ft-splash--wag')}else wag.requestVideoFrameCallback(onFrame)};wag.requestVideoFrameCallback(onFrame);wag.addEventListener('error',function(){startTail()})}
+var stopWag=function(){try{wag.pause();wag.removeAttribute('src');wag.load()}catch(e){}};
 var shown=false,gone=false,t0=0;
-var out=function(){if(gone)return;gone=true;sbWhite();el.classList.add('ft-splash--out');setTimeout(function(){el.style.display='none';try{wag.pause();wag.removeAttribute('src');wag.load()}catch(e){}},450)};
+var startTail=function(){if(tailOn||wagOn||gone||calm||!tail)return;tailOn=true;stopWag();var src=(oldShell&&tail.getAttribute('data-src-paper'))||tail.getAttribute('data-src');var im=new Image();im.src=src;(im.decode?im.decode():new Promise(function(r,j){im.onload=r;im.onerror=j})).then(function(){if(gone)return;tail.style.backgroundImage='url('+src+')';el.classList.add('ft-splash--tail')},function(){})};
+var out=function(){if(gone)return;gone=true;sbWhite();el.classList.add('ft-splash--out');setTimeout(function(){el.style.display='none';stopWag()},450)};
 var reveal=function(){if(shown)return;shown=true;t0=Date.now();hideNative();
-if(!calm){var p=wag.play();if(p&&p.catch)p.catch(function(){})}
+if(!calm){if(rvfc){var p=wag.play();if(p&&p.catch)p.catch(function(){startTail()})}else startTail()}
 var loaded=function(){setTimeout(out,Math.max(0,1600-(Date.now()-t0)))};
 if(document.readyState==='complete')loaded();else addEventListener('load',loaded,{once:true});
 setTimeout(out,4500)};
@@ -105,15 +118,20 @@ export default function AppSplash() {
       <div className="ft-splash__stamp">
         {/* src 는 스크립트가 앱일 때만 붙인다(웹 브라우저는 받지 않음). */}
         {/* 옛 셸(2세대·옛 아이폰)은 data-src-paper(종이색 위에 구운 v1) — 스크립트가 html.ft-paper-shell·ft-old-shell-ios 를 보고 고른다. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="ft-splash__still"
-          data-src={SPLASH_STILL_SRC}
-          data-src-paper={PAPER_SHELL_STILL_SRC}
-          alt=""
-          width={396}
-          height={396}
-        />
+        {/* 정지 도장 + 꼬리 그림 장면은 '쿵' 칸 안 — 그림 장면으로 돌 때 둘이 같이 커졌다 돌아온다(영상엔 '쿵'이 들어 있다). */}
+        <div className="ft-splash__bob">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="ft-splash__still"
+            data-src={SPLASH_STILL_SRC}
+            data-src-paper={PAPER_SHELL_STILL_SRC}
+            alt=""
+            width={396}
+            height={396}
+          />
+          {/* 영상이 막힐 때(아이폰 저전력 모드)의 꼬리 — 스크립트가 묶음 그림을 받아 다 풀린 뒤 배경으로 붙인다. */}
+          <div className="ft-splash__tail" data-src={SPLASH_TAIL_SRC} data-src-paper={PAPER_SHELL_TAIL_SRC} />
+        </div>
         <video
           className="ft-splash__wag"
           data-src={SPLASH_WAG_SRC}

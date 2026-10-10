@@ -1,1035 +1,214 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import {
-  ArrowRight,
-  Check,
-  Minus,
-  Leaf,
-  ShieldCheck,
-  Soup,
-  Stethoscope,
-  ClipboardList,
-  Truck,
-  RefreshCw,
-  MessageCircle,
-} from 'lucide-react'
 import Link from 'next/link'
-import { createClient, getSafeUser } from '@/lib/supabase/server'
-import { isAppContextServer } from '@/lib/app-context'
-import WebChrome from '@/components/WebChrome'
-import Reveal from '@/components/landing/Reveal'
-import Parallax from '@/components/landing/Parallax'
-import WebMotion from '@/components/web/motion/WebMotion'
-import StickyCta from '@/components/web/fd/StickyCta'
+import StoreShell from '@/components/store/StoreShell'
+import ShipLine from '@/components/store/ShipLine'
+import RecipeGrid from '@/components/store/RecipeGrid'
+import HomeCalculator from '@/components/store/HomeCalculator'
+import StoreFaq from '@/components/store/StoreFaq'
 import { ogImageUrl } from '@/lib/seo/jsonld'
-import {
-  Button,
-  Container,
-  Display,
-  Eyebrow,
-  PhotoSlot,
-  Section,
-} from '@/components/web/fd/ui'
-import { cred } from '@/lib/copy/credibility'
+import { RECIPE_BAND, STORE_RECIPES, TRIAL_ITEM, storeItem } from '@/lib/store/catalog'
+import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
+import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 
 /**
- * 웹 홈 — farm v6 (The Farmer's Dog 충실 복제, 2026-06-13 / 재구축).
- *
- * thefarmersdog.com 실구조(리더 프록시 분석, FARMERSDOG_FIDELITY_SPEC.md)의
- * 섹션 순서·유형·인터랙션을 복제: 히어로 → 신뢰 → 가치제안 → 4 피처카드 →
- * 비교 → 건강 3단 → 듀얼 제품 → 3스텝 → 과학/근거 → 수의자문 캐러셀 →
- * 후기 캐러셀 → 마무리 CTA. 카피는 한글 신규, 사진은 PhotoSlot,
- * 모든 CTA → 설문 퍼널. 가짜 기관/언론 보증·가짜 후기·질병 단정 금지(정직 가드).
+ * 홈 — 웹 리뉴얼(2026-10-10, 사장님 "웹 = 단품 가게"·"시안 숫자 그대로"). 웹 시안 Main 그대로:
+ * 셸티 첫 화면("이거 제 밥 맞죠?!") → 레시피 4종(가격·담기) → 체험팩 → 앱 정기배송 한 줄 → 500g 며칠분 계산기 →
+ * 손질부터 배송까지 → 자주 묻는 질문 → 법정 바닥.
+ * 예전 홈(설문 퍼널 — 모든 버튼이 /start)은 git 이력에 있다. 웹 설문·웹 정기배송 신청은 앱으로 옮겼다(기획서 D1·D2).
+ * 출고일은 브라우저 시계로(ShipLine) — 이 화면은 캐시해 두므로 서버에서 날짜를 박지 않는다.
  */
-
 export const revalidate = 3600
 
-// R99-A 패턴: Next openGraph shallow-merge 라 페이지가 images 미지정 시 layout
-// 기본 OG 상속 못 함 → 공유 카드 썸네일 0. 홈 명시 OG 추가(회차161).
+const won = (n: number) => n.toLocaleString('ko-KR')
+const FROM_PRICE = Math.min(...STORE_RECIPES.map((r) => storeItem(`${r}-500g`).price))
+
 const HOME_OG = ogImageUrl({
-  title: '사료 대신, 진짜 음식 한 끼',
-  subtitle: '수의영양 기준 신선 화식 · 2분 맞춤 설문',
+  title: '국내산 고기를 수비드로 익힌 화식',
+  subtitle: `500g ${won(FROM_PRICE)}원부터 · 화·목 출고`,
 })
 
 export const metadata: Metadata = {
-  title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
-  description:
-    '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 몸에 딱 맞는 맞춤 화식을 시작할 수 있어요. 부담 없이 시작, 다음 결제 전까지 해지.',
+  title: '파머스테일 — 국내산 고기를 수비드로 익힌 강아지 화식',
+  description: `닭고기·오리고기·흑돼지·한우 화식, 500g ${won(FROM_PRICE)}원부터. 사료에 곁들여도, 한 끼로 줘도 돼요. 화·목 출고, ${FREE_SHIPPING_MIN / 10_000}만 원 이상 무료배송.`,
   alternates: { canonical: '/' },
   openGraph: {
-    title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
-    description:
-      '사람이 먹을 수 있는 신선한 재료를 수의영양 기준에 맞춰. 2분 설문이면 우리 아이 맞춤 화식을 시작할 수 있어요.',
+    title: '파머스테일 — 국내산 고기를 수비드로 익힌 강아지 화식',
+    description: `500g ${won(FROM_PRICE)}원부터. 사료에 곁들여도, 한 끼로 줘도 돼요.`,
     type: 'website',
-    // Next openGraph shallow-merge: 페이지 openGraph 설정 시 layout 의 locale/
-    // siteName 상속 못 함 → 명시(회차163). 공유 카드 브랜드명·언어 정보.
     locale: 'ko_KR',
     siteName: '파머스테일',
     url: '/',
-    images: [{ url: HOME_OG, width: 1200, height: 630, alt: '파머스테일' }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '파머스테일 — 사료 대신, 진짜 음식 한 끼',
-    description: '사람이 먹는 등급의 신선한 재료, 2분 맞춤 설문으로.',
-    images: [HOME_OG],
+    images: [{ url: HOME_OG, width: 1200, height: 630 }],
   },
 }
 
-/**
- * 홈 CTA 목적지.
- *
- * ★2026-08-05 — 로그인 상태면 `/dogs/new` 였는데, 그건 **앱 전용 경로**다
- *   (proxy APP_ONLY_PREFIXES). 웹으로 가입한 고객이 홈에 다시 오면 CTA **7개가
- *   전부** /app-required 앱 설치 벽으로 튕겼다. 버튼은 "2분 설문 시작하기"라고
- *   써 있는데 설문이 안 열린다.
- *   같은 결함을 /account/dogs 와 /mypage/orders 에서는 이미 고쳐 뒀는데
- *   (웹이면 웹 경로로) **가장 많이 밟는 홈만 남아 있었다.**
- *   웹 고객은 /account/dogs 로 — 거기서 강아지를 고르거나 등록 안내를 받는다.
- */
-function planHref(isAuthed: boolean, isApp: boolean) {
-  if (!isAuthed) return '/start'
-  return isApp ? '/dogs/new' : '/account/dogs'
-}
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: '사료랑 같이 줘도 되나요?',
+    a: '네, 건사료 위에 올려 주면 돼요. 화식을 준 만큼 건사료를 줄여 주세요. 몸무게별 양은 상품 페이지에서 계산할 수 있어요.',
+  },
+  {
+    q: '언제 보내 주나요?',
+    a: `화요일과 목요일에 출고해요. 출고 전날 밤 12시까지 주문하면 그 출고일에 나가요. 배송비는 ${won(SHIPPING_FEE)}원이고, ${FREE_SHIPPING_MIN / 10_000}만 원 이상이면 무료예요.`,
+  },
+  {
+    q: '보관과 해동은 어떻게 해요?',
+    a: '받으면 바로 냉동실에 넣어 주세요. 냉동실에서 180일 보관돼요. 먹이기 전날 밤 냉장실로 옮겨 녹이고, 녹인 팩은 3일 안에 주세요.',
+  },
+  {
+    q: '앱 정기배송과 뭐가 달라요?',
+    a: `웹에서는 500g 한 봉씩 정가에 사요. 앱 정기배송은 몸무게에 맞춘 양을 2주마다 ${SUBSCRIPTION_DISCOUNT_PCT}% 낮은 가격으로 보내드려요.`,
+  },
+]
 
-// 1. ========================================================================
-// Hero — 풀폭 2단 + 듀얼 CTA
-// ===========================================================================
-function HomeHero({ ctaHref }: { ctaHref: string }) {
-  // FD식 풀배경 사진 히어로(사장님 2026-06-15). 사진 위 하단 정렬 흰 텍스트 +
-  // 코랄 CTA + 'Or give us a call' 식 작은 흰 밑줄 링크('우리 음식 보기').
+function Chevron({ size = 18 }: { size?: number }) {
   return (
-    <section className="relative overflow-hidden" aria-label="히어로">
-      {/* 풀배경 사진(사장님 실촬영, 2026-09-02 셸티 식탁 컷 — 좌우 반전본).
-          LCP 후보 — next/image fill+priority 로 포맷(AVIF/WebP)·모바일 리사이즈
-          자동 최적화(2026-07-17 perf).
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
 
-          ★사장님 지시(2026-09-02): "좌우 반전 + 확대하지 마" —
-          - 반전은 CSS 가 아니라 **파일 자체**를 sharp .flop() 으로 구웠다
-            (scaleX(-1) 은 위 오버레이·objectPosition 좌표 감각까지 뒤집는다).
-          - 옛 켄번스(1.06 스케일)와 패럴랙스용 -6% 블리드 래퍼를 제거했다 —
-            둘이 합쳐 사진을 상시 확대해 보여주던 원인. 정지 한 장으로 둔다.
-          파일명이 바뀐 이유: next/image 최적화 캐시가 URL 기준 1년이라 같은
-          이름으로 덮으면 옛 사진이 계속 나온다. */}
-      <div aria-hidden className="absolute inset-0">
-        <Image
-          src="/hero-dinner.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          // 45%=모바일 가로 크롭에서 얼굴 프레이밍(x — 데스크톱은 가로가 꽉 차
-          // x 무효), 40%=데스크톱 세로 크롭에서 얼굴 프레이밍(y). 라이브 튜닝값.
-          style={{ objectPosition: '45% 40%' }}
-        />
-      </div>
-      {/* 텍스트 가독성 — 하단을 어둡게 하는 그라데이션 오버레이 */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to bottom, rgba(22,20,15,0.06) 0%, rgba(22,20,15,0) 28%, rgba(22,20,15,0.48) 70%, rgba(22,20,15,0.82) 100%)',
-        }}
-      />
-      {/* 좌측 스크림(데스크톱) — 셸티 식탁 컷(2026-09-02)은 강아지가 화면
-          중앙이라 흰 가슴털이 텍스트 컬럼과 겹친다. 이 사진은 가로가 꽉 차는
-          비율이라 objectPosition 으로는 좌우 이동이 불가(세로만 잘림) — 대신
-          텍스트 뒤만 살짝 어둡게. 모바일은 텍스트가 중앙+하단이라 위 하단
-          그라데이션이 이미 담당한다. */}
-      <div
-        aria-hidden
-        className="hidden md:block absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to right, rgba(22,20,15,0.52) 0%, rgba(22,20,15,0.28) 30%, rgba(22,20,15,0) 55%)',
-        }}
-      />
-      {/* 모바일 보강 스크림 — 세로 크롭에선 강아지 흰 가슴이 화면 중하단을
-          가득 채워, 기본 하단 그라데이션(70%부터)으로는 헤드라인이 흰 털 위에
-          얹힌다(2026-09-02 실측: 흰 글자가 통째로 사라져 보였다). 얼굴이 있는
-          상단은 건드리지 않고 헤드라인 존부터만 어둡게. */}
-      <div
-        aria-hidden
-        className="md:hidden absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to bottom, rgba(22,20,15,0) 34%, rgba(22,20,15,0.5) 60%, rgba(22,20,15,0.8) 100%)',
-        }}
-      />
-      {/* 레이어 2 — 떠 있는 실사 그릇 (2026-08-01, 데스크톱만).
-          풀배경 사진 + 텍스트 한 장짜리 히어로는 평면적이다. 실제 화식 그릇이
-          흰 매트 액자로 살짝 기울어 떠 있고, 스크롤보다 빠르게 흘러(전경 패럴랙스)
-          깊이를 만든다. 장식이므로 aria-hidden. */}
-      <div
-        aria-hidden
-        className="hidden lg:block absolute"
-        style={{ right: '5%', bottom: '14%', width: 300, zIndex: 2, transform: 'rotate(-3deg)' }}
-      >
-        <div data-gsap-y="14">
-          <span className="block overflow-hidden" style={{ borderRadius: 14, border: '6px solid #FFFFFF', boxShadow: '0 24px 60px -24px rgba(22,20,15,0.5)' }}>
-            <span className="relative block" style={{ aspectRatio: '4 / 3' }}>
-              <Image src="/bowl-eating.jpg" alt="" fill sizes="300px" className="object-cover" />
+export default function HomePage() {
+  return (
+    <StoreShell>
+      {/* 첫 화면 — 셸티 사진 + 손글씨 말풍선(홈 한 곳만) + 흰 카드 */}
+      <section style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'relative', height: 560, overflow: 'hidden' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/store/hero-sheltie-table.webp"
+            alt="식탁 앞 의자에 앉아 화식 그릇을 기다리는 셸티"
+            width={1200}
+            height={800}
+            fetchPriority="high"
+            style={{ width: '100%', height: 560, objectFit: 'cover', objectPosition: '80% 0%', display: 'block' }}
+          />
+          <p
+            className="hand"
+            style={{ position: 'absolute', right: 18, top: 44, margin: 0, background: '#FFFFFF', border: '2px solid #141414', borderRadius: 14, padding: '12px 16px 14px', fontSize: 26, lineHeight: 1.15, color: '#141414' }}
+          >
+            이거 제 밥
+            <br />
+            맞죠?!
+          </p>
+        </div>
+        <div style={{ position: 'relative', zIndex: 2, marginTop: -40, background: '#FFFFFF', borderRadius: '12px 12px 0 0', padding: '26px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <h1 className="d" style={{ margin: 0, fontSize: 40, lineHeight: 1.1 }}>
+            국내산 고기를
+            <br />
+            수비드로 익혔어요
+          </h1>
+          <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: '#3D3D3D' }}>사료에 곁들여도, 한 끼로 줘도 돼요.</p>
+          <Link
+            href="/store"
+            style={{ marginTop: 20, height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 19, fontWeight: 800 }}
+          >
+            레시피 고르기
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+          <ShipLine />
+        </div>
+      </section>
+
+      {/* 레시피 4종 */}
+      <section id="recipes" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.1 }}>
+          레시피 4종
+        </h2>
+        <p style={{ margin: '8px 0 0', fontSize: 17, color: '#595959' }}>모두 100g 팩 5개, 500g 한 봉이에요</p>
+        <div style={{ marginTop: 20 }}>
+          <RecipeGrid />
+        </div>
+
+        <Link
+          href="/store?tab=trial"
+          style={{ marginTop: 28, border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', color: '#141414', textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
+        >
+          <span aria-hidden style={{ height: 10, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+            {STORE_RECIPES.map((r) => (
+              <span key={r} style={{ background: RECIPE_BAND[r] }} />
+            ))}
+          </span>
+          <span style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>처음이라면</span>
+              <span className="d" style={{ fontSize: 24, lineHeight: 1.1 }}>
+                {TRIAL_ITEM.name}
+              </span>
+              <span style={{ fontSize: 15, color: '#3D3D3D' }}>4종 100g씩 맛보기</span>
+            </span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>
+              <span className="n" style={{ fontSize: 28 }}>
+                {won(TRIAL_ITEM.price)}
+              </span>
+              <span className="d" style={{ fontSize: 17 }}>
+                원
+              </span>
             </span>
           </span>
+        </Link>
+
+        <Link
+          href="/app"
+          style={{ marginTop: 12, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
+        >
+          <span>
+            매일 먹인다면 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱 정기배송 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
+          </span>
+          <Chevron />
+        </Link>
+      </section>
+
+      {/* 500g 며칠분 */}
+      <section style={{ marginTop: 64, padding: '48px 20px 44px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+        <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
+          500g 한 봉,
+          <br />
+          며칠 먹을까요?
+        </h2>
+        <p style={{ margin: '10px 0 0', fontSize: 17, color: '#595959' }}>닭고기를 건사료에 곁들여 줄 때 기준이에요</p>
+        <HomeCalculator />
+      </section>
+
+      {/* 손질부터 배송까지 */}
+      <section style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
+          손질부터 배송까지
+          <br />
+          직접 해요
+        </h2>
+        <figure style={{ margin: '22px 0 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kitchen-sousvide.jpg" alt="진공 포장한 고기를 수비드 기계로 익히고 있어요" width={1200} height={800} loading="lazy" style={{ width: '100%', aspectRatio: '350 / 236', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+          <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <strong style={{ fontSize: 19, fontWeight: 800 }}>물속에서 천천히 익혀요</strong>
+            <span style={{ fontSize: 16, lineHeight: 1.55, color: '#595959' }}>진공 포장한 재료를 정해진 온도의 물에 담가 수비드로 익혀요.</span>
+          </figcaption>
+        </figure>
+        <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+          <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/prep-hygiene-43.jpg" alt="위생 장갑을 낀 손으로 고기를 손질하고 있어요" width={600} height={700} loading="lazy" style={{ width: '100%', aspectRatio: '170 / 200', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+            <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <strong style={{ fontSize: 17, fontWeight: 800 }}>사람 음식처럼 손질</strong>
+              <span style={{ fontSize: 15, color: '#595959' }}>국내산 고기만 써요</span>
+            </figcaption>
+          </figure>
+          <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/box-coldchain-43.jpg" alt="파머스테일 테이프를 두른 보냉 상자" width={600} height={700} loading="lazy" style={{ width: '100%', aspectRatio: '170 / 200', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+            <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <strong style={{ fontSize: 17, fontWeight: 800 }}>얼린 채로 배송</strong>
+              <span style={{ fontSize: 15, color: '#595959' }}>보냉 상자에 담아요</span>
+            </figcaption>
+          </figure>
         </div>
-      </div>
-      <Container size="xl">
-        <div className="relative flex min-h-[76vh] md:min-h-[82vh] flex-col justify-end pt-20 pb-12 md:pb-16">
-          {/* 첫 로드 연출(2026-08-01): 헤드라인은 줄 단위 마스크 리빌(.fv-line),
-              아이브로·본문·CTA 는 fv-rise 스태거. 스크롤 Reveal 은 히어로엔
-              부적합 — 첫 화면은 로드 즉시 연출이 시작돼야 한다. */}
-          <div className="max-w-[600px] text-center md:text-left">
-              <div className="fv-rise">
-                <Eyebrow color="#FFFFFF">FRESH FOOD FOR DOGS</Eyebrow>
-              </div>
-              <Display
-                as="h1"
-                size="xl"
-                className="pt-3"
-                style={{ color: '#FFFFFF', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}
-              >
-                {/* GSAP SplitText 가 글자 단위로 쪼개 스태거 등장(WebMotion).
-                    reduced-motion·JS 실패 시엔 이 평문이 그대로 보인다 — 폴백 무손실. */}
-                <span data-gsap="hero-title" className="block">
-                  사료 대신,
-                  <br />
-                  진짜 음식 한 끼
-                </span>
-              </Display>
-              <p
-                className="fv-rise fv-rise-2 pt-4 mx-auto md:mx-0 text-[15px] md:text-[18px]"
-                style={{
-                  maxWidth: 460,
-                  lineHeight: 1.6,
-                  color: 'rgba(255,255,255,0.94)',
-                  textShadow: '0 1px 10px rgba(0,0,0,0.3)',
-                }}
-              >
-                사람이 먹을 수 있는 신선한 재료를, 수의영양 기준에 맞춰 우리 아이
-                몸에 딱 맞게. 2분이면 시작해요.
-              </p>
-              <div className="fv-rise fv-rise-3 pt-7 flex flex-col items-center md:items-start gap-4">
-                <Button href={ctaHref} tone="coral" size="lg">
-                  2분 설문 시작하기
-                  <ArrowRight size={19} strokeWidth={2.4} />
-                </Button>
-                {/* FD 'Or give us a call' 식 — 작은 흰 밑줄 텍스트 링크 */}
-                <Link
-                  href="/our-food"
-                  className="text-[14px] font-bold underline underline-offset-[5px]"
-                  style={{ color: '#FFFFFF', textShadow: '0 1px 8px rgba(0,0,0,0.4)' }}
-                >
-                  우리 음식 보기
-                </Link>
-              </div>
-            </div>
-        </div>
-      </Container>
-    </section>
-  )
-}
+      </section>
 
-// 2. ========================================================================
-// Trust strip — 신뢰 band (가짜 로고/보증 X, 사실 태그)
-// ===========================================================================
-const TRUST = ['수의영양학 기준 설계', '사람이 먹는 등급 원물', '무항생제', '국내 제조 · 정직한 표시', '다음 결제 전까지 해지']
-
-function TrustStrip() {
-  // FD 신뢰 strip — 정적 행이 아니라 가로로 끊김없이 흐르는 마퀴(회차27).
-  // globals .fv-marquee(가장자리 페이드·호버 일시정지·reduced-motion 가드 내장)
-  // + 아이템 2배 복제 → -50% 이동 무한 루프. 복제본은 aria-hidden(SR 중복 방지).
-  // 각 아이템 동일 marginRight → 절반 지점 seam 정확히 일치(끊김 없음).
-  return (
-    <div style={{ background: '#FFFFFF', borderTop: '1px solid var(--fd-line)', borderBottom: '1px solid var(--fd-line)' }}>
-      <div className="fv-marquee py-4">
-        <div className="fv-marquee-track" style={{ animationDuration: '22s' }}>
-          {[...TRUST, ...TRUST].map((t, i) => (
-            <span
-              key={`${t}-${i}`}
-              aria-hidden={i >= TRUST.length || undefined}
-              className="inline-flex items-center gap-1.5 text-[12.5px] md:text-[13.5px] shrink-0"
-              style={{ fontWeight: 700, color: 'var(--fd-muted)', letterSpacing: '-0.01em', marginRight: 40 }}
-            >
-              <Check size={14} strokeWidth={2.6} color="var(--fd-green)" />
-              {t}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// 3. ========================================================================
-// Value proposition — 신념 band + CTA
-// ===========================================================================
-function ValueProp({ ctaHref }: { ctaHref: string }) {
-  return (
-    // 리듬 파괴(2026-08-01): 가운데 정렬 band → 비대칭 에디토리얼.
-    // 초대형 고스트 워터마크 + 제목 좌 / 본문·CTA 우측 오프셋. 문구는 그대로.
-    <Section bg="cream" pad="md" className="relative overflow-hidden">
-      <Container size="lg">
-        <div className="relative grid md:grid-cols-12 gap-8 md:gap-6 md:items-end">
-          <div className="md:col-span-7">
-            <Reveal variant="left">
-              {/* 고스트는 **제목에 붙인다** (사장님 2026-08-01). 섹션 배경에 깔았더니
-                  모바일에서 글자가 중간에 잘려 정체불명 네모 블록으로 보였다 —
-                  워터마크는 단어 전체가 한눈에 읽혀야 성립한다. 제목 위에 살짝
-                  겹치는 크기로, 잘리지 않게, 모바일에선 숨긴다. */}
-              <div className="relative">
-                <span
-                  aria-hidden
-                  className="fv-ghost font-chunky hidden md:block"
-                  style={{
-                    fontSize: 'clamp(56px, 7.5vw, 96px)',
-                    top: '-0.52em',
-                    left: '-0.04em',
-                    bottom: 'auto',
-                    right: 'auto',
-                  }}
-                >
-                  WHY FRESH
-                </span>
-                <Eyebrow>WHY FRESH</Eyebrow>
-                <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                  제품을 파는 게 아니라,
-                  <br />한 끼를 책임집니다
-                </Display>
-              </div>
-            </Reveal>
-          </div>
-          <div className="md:col-span-5 md:pb-2">
-            <Reveal variant="right" delay={90}>
-              {/* 신념 문구 위에 **설립자와 반려견 실사** (2026-08-01) — "한 끼를
-                  책임집니다" 는 말에 얼굴이 붙어야 브랜드가 된다. 오프셋 프레임
-                  (사진 뒤로 살짝 어긋난 코랄 면)이 수공예 디테일. */}
-              <div className="relative mb-6" style={{ maxWidth: 400 }}>
-                {/* 액자 매트 — 코랄 틴트는 크림 배경과 부딪혔다(색 역할 규칙:
-                    코랄은 행동·초점 전용, 장식 틴트로 쓰지 않는다). 흰 매트 + 헤어라인. */}
-                <span
-                  aria-hidden
-                  className="absolute"
-                  style={{ inset: '10px -10px -10px 10px', background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 12 }}
-                />
-                <span className="relative block overflow-hidden" style={{ aspectRatio: '4 / 3', borderRadius: 12 }}>
-                  {/* 2026-09-05 사장님: 밭길 뒷모습 → 강아지 발을 맞잡은 손
-                      실사로 교체 — "한 끼를 책임집니다"의 약속을 손으로. */}
-                  <Image src="/paw-hold.jpg" alt="보호자의 손이 강아지 발을 감싸 쥔 모습" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
-                </span>
-              </div>
-              <p
-                className="text-[15px] md:text-[16px]"
-                style={{ lineHeight: 1.75, color: 'var(--fd-muted)', borderLeft: '2px solid var(--fd-coral)', paddingLeft: 18 }}
-              >
-                화식은 ‘일관된 영양’과 ‘신선도’를 동시에 잡는 방식이에요. 우리 아이가
-                평생 먹을 음식이라면, 사람의 식탁과 같은 기준으로 만들어야 한다고
-                생각했어요.
-              </p>
-              <div className="pt-6">
-                <Button href={ctaHref} tone="coral" size="md">
-                  맞춤 플랜 만들기
-                  <ArrowRight size={18} strokeWidth={2.4} />
-                </Button>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 4. ========================================================================
-// Feature cards ×4 — 진짜 음식 / 사람 등급 / 저온 조리 / 수의 설계
-// ===========================================================================
-const FEATURES = [
-  { Icon: Leaf, k: 'REAL FOOD', t: '진짜 음식', d: '눈에 보이는 신선한 원물. 정체 모를 첨가물 없이, 사람이 먹는 재료 그대로.' },
-  { Icon: ShieldCheck, k: 'SAFE', t: '사람 등급 안전', d: '사람이 먹어도 되는 등급의 재료를 식품 안전 기준에 맞춰 다룹니다.' },
-  { Icon: Soup, k: 'SOUS-VIDE', t: '수비드 저온 조리', d: '고온 압출 대신 수비드(진공 저온)로 천천히 익혀 영양·수분·풍미를 지키고, 바로 급속 냉동해요.' },
-  // 실 자문 없을 땐 'GUIDELINE-BASED · 수의영양학 기준 설계'로 톤다운(lib/copy/credibility).
-  { Icon: Stethoscope, k: cred.recipeKicker, t: cred.recipeCardTitle, d: cred.recipeCardBody },
-]
-
-function FeatureCards() {
-  return (
-    <Section bg="white" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>WHAT MAKES IT DIFFERENT</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              네 가지를 타협하지 않아요
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-          {FEATURES.map((f, i) => {
-            const Icon = f.Icon
-            return (
-              /* 지그재그(홀수 카드 lg:mt-8) — 4장 평평한 그리드가 한 덩어리로
-                 읽히던 것을 리듬 있게. 스케일 진입 + 호버 리프트(2026-08-01). */
-              <Reveal key={f.t} delay={i * 80} variant="scale" className={i % 2 === 1 ? 'lg:mt-8' : undefined}>
-                <div className="h-full fv-lift" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 8, padding: 'clamp(18px,4vw,26px)' }}>
-                  <span className="inline-flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}>
-                    {/* 아이콘은 검증의 목소리 = 초록으로 통일(2026-08-01 색 역할 규칙) */}
-                    <Icon size={24} strokeWidth={2} color="var(--fd-green)" />
-                  </span>
-                  <div className="pt-4 text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{f.k}</div>
-                  <h3 className="pt-1.5 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{f.t}</h3>
-                  <p className="pt-2 text-[12.5px] md:text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{f.d}</p>
-                </div>
-              </Reveal>
-            )
-          })}
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 5. ========================================================================
-// Comparison — 2단 대비(그동안의 사료 vs 파머스테일). 정직: 카테고리 사실 대비.
-// ===========================================================================
-const COMPARE_ROWS = [
-  { label: '보관 방식', old: '상온 수개월 유통기한 재고', us: '주문 후 만들어 급속 냉동' },
-  { label: '원료 표기', old: '‘수입산 육류’ 같은 익명', us: '농가 · 품목 · 시기 표기' },
-  { label: '조리', old: '고온 압출 가공', us: '수비드 저온 조리로 영양 보존' },
-  { label: '급여량', old: '한 봉지 일괄 기준', us: '우리 아이 맞춤 정량' },
-]
-
-function Comparison() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="lg">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
-            <Eyebrow>THE DIFFERENCE</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              그동안의 사료와는
-              <br />다르게 만듭니다
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-9 md:pt-12 grid md:grid-cols-2 gap-3 md:gap-4">
-          {/* 그동안의 사료 — 좌에서, 파머스테일은 우에서 마주 들어온다(2026-08-01) */}
-          <Reveal variant="left">
-            <div className="h-full" style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 10, padding: '22px 22px' }}>
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-muted)' }}>
-                <Minus size={18} strokeWidth={3} aria-hidden />
-                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>그동안의 사료</span>
-              </div>
-              <ul className="pt-4 grid gap-3">
-                {COMPARE_ROWS.map((r) => (
-                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
-                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-muted)', opacity: 0.8 }}>{r.label}</span>
-                    <span className="text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.5 }}>{r.old}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-          {/* 파머스테일 */}
-          <Reveal variant="right" delay={90}>
-            <div className="h-full" style={{ background: 'var(--fd-pine)', borderRadius: 10, padding: '22px 22px' }}>
-              {/* 다크 위 텍스트 포인트 = 골드 (색 문법 — 사장님 2026-08-01 두 번째 지적).
-                  파인 카드 위 코랄 라벨이 정확히 그 떨리는 조합이었다. */}
-              <div className="flex items-center gap-2" style={{ color: 'var(--fd-gold)' }}>
-                <Check size={18} strokeWidth={3} aria-hidden />
-                <span className="text-[13px]" style={{ fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>파머스테일</span>
-              </div>
-              <ul className="pt-4 grid gap-3">
-                {COMPARE_ROWS.map((r) => (
-                  <li key={r.label} className="grid items-baseline" style={{ gridTemplateColumns: '76px 1fr', gap: 10 }}>
-                    <span className="text-[11.5px]" style={{ fontWeight: 700, color: 'var(--fd-green-soft)' }}>{r.label}</span>
-                    <span className="text-[13.5px]" style={{ color: '#FFFFFF', fontWeight: 600, lineHeight: 1.5 }}>{r.us}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-        </div>
-
-        {/* 교육 페이지 딥링크 — 비교에서 '왜 신선식인가' /why-fresh 로 (FD IA: 홈→교육) */}
-        <Reveal delay={120}>
-          <div className="pt-8 flex justify-center">
-            <Button href="/why-fresh" tone="outline" size="sm">
-              왜 신선식인지 더 알아보기
-              <ArrowRight size={15} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 6. ========================================================================
-// How we make it healthy — 3단
-// ===========================================================================
-/* 아이콘 → **실사** (2026-08-01 사장님 "지금까지 한 게 최선이야?").
-   public/ 에 사진 34장이 있는데 랜딩이 2장만 쓰고 있었다 — 아이콘 카드투성이가
-   "AI 가 만든 사이트" 인상의 진짜 원인. 각 단계에 실제 사진을 얹는다. 문구 그대로. */
-const MAKE = [
-  // 2026-09-02 실촬영분 배치(드라이브 '웹 이미지 교체용').
-  // *-43 파일 = 이 카드 전용 크롭 — data-gsap-img 가 모바일에서 1.26배(데스크톱
-  // 1.14배) 확대하므로, 원본 그대로 넣으면 줌 후 손·그릇이 잘렸다(실효 크롭
-  // 시뮬레이션으로 검증). 여유 마진을 두고 잘라 줌 후에도 구도가 완성된다.
-  // 파일명 신규 — next/image 최적화 캐시가 URL 기준 1년(같은 이름 덮기 금지).
-  { Icon: ShieldCheck, img: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 사람 등급 원물을 손질하는 모습', t: '사람 등급 기준', d: '사람이 먹는 등급의 재료를, 사람 식품과 같은 위생 기준으로 다룹니다.' },
-  { Icon: ClipboardList, img: '/serving-custom-43.jpg', alt: '우리 아이 옆에서 맞춤 정량을 덜어 주는 모습', t: '우리 아이 맞춤', d: '견종·체중·활동량·민감한 음식을 반영해 식단과 정량을 계산해요.' },
-  // ★sub-box.jpg 는 타사 브랜드("The Wholesome Dog") 박스가 박힌 AI 사진이었다
-  //   (2026-09-02 실사 검수에서 발견 — 8월 타사브랜드 소탕에서 살아남은 것).
-  // 2026-09-05 사장님: 파우치 냉동 컷 → 파머스테일 테이프가 붙은 실제 배송
-  //   박스(주방 실촬영)로 교체 — '배송' 단계에 배송 박스가 맞는 그림.
-  { Icon: Truck, img: '/box-coldchain-43.jpg', alt: '파머스테일 테이프로 포장한 콜드체인 배송 박스', t: '며칠 내 신선 배송', d: '주문이 확정된 만큼만 조리·냉동해 콜드체인으로 문 앞까지.' },
-]
-
-function HowWeMakeIt() {
-  return (
-    <Section bg="cream" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>OUR PROCESS</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              건강한 한 끼는 이렇게 만들어져요
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-14 grid md:grid-cols-3 gap-4 md:gap-6">
-          {MAKE.map((m, i) => {
-            const Icon = m.Icon
-            return (
-              <Reveal key={m.t} delay={i * 80}>
-                <div className="fv-lift" style={{ borderRadius: 12, overflow: 'hidden', background: '#FFFFFF', border: '1px solid var(--fd-line)', height: '100%' }}>
-                  {/* 사진이 주인공 — 아이콘은 사진 위 작은 배지로 강등 */}
-                  {/* ★overflow:hidden 필수 — data-gsap-img 는 WebMotion 이 사진을
-                      ±drift 미끄러뜨리고 1.26배(모바일) 확대한다. 액자가 안 자르면
-                      사진이 카드 안 제목·본문을 덮는다(2026-08-11 폰 실증 — 정본
-                      PhotoSlot(ui.tsx)엔 있는데 이 인라인 액자에만 빠져 있었다). */}
-                  <div data-gsap-img className="relative" style={{ aspectRatio: '4 / 3', overflow: 'hidden' }}>
-                    <Image src={m.img} alt={m.alt} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
-                    <span
-                      className="absolute flex items-center justify-center"
-                      style={{ left: 14, bottom: 14, width: 44, height: 44, borderRadius: 999, background: 'rgba(255,255,255,0.92)', boxShadow: '0 4px 14px rgba(22,20,15,0.18)' }}
-                    >
-                      <Icon size={21} strokeWidth={2.1} color="var(--fd-green)" />
-                    </span>
-                  </div>
-                  <div className="text-left" style={{ padding: '18px 20px 22px' }}>
-                    <h3 className="text-[17px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)' }}>{m.t}</h3>
-                    <p className="pt-1.5 text-[13.5px] md:text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55 }}>{m.d}</p>
-                  </div>
-                </div>
-              </Reveal>
-            )
-          })}
-        </div>
-      </Container>
-
-      {/* 원물 사진 스트립 (2026-08-01) — 신선식 브랜드의 시그니처. 실제 재료
-          사진 6장이 끊김없이 흐른다. 텍스트 마퀴(신뢰 띠)와 달리 이건 눈으로
-          "진짜 재료"를 증명하는 장식이라 alt 불필요(aria-hidden). */}
-      <div aria-hidden className="fv-marquee mt-10 md:mt-14">
-        <div data-gsap-marquee className="fv-marquee-track" style={{ animationDuration: '36s' }}>
-          {[...INGREDIENT_STRIP, ...INGREDIENT_STRIP].map((src, i) => (
-            <span
-              key={`${src}-${i}`}
-              className="relative shrink-0 overflow-hidden"
-              style={{ width: 168, height: 118, borderRadius: 10, marginRight: 14 }}
-            >
-              <Image src={src} alt="" fill sizes="168px" className="object-cover" />
-            </span>
-          ))}
-        </div>
-      </div>
-    </Section>
-  )
-}
-
-/** 원물 실사 — public/ing-* 전부. 순서는 색 대비(초록·주황·갈색 교차)로. */
-const INGREDIENT_STRIP = [
-  '/ing-chicken.jpg',
-  '/ing-broccoli.jpg',
-  '/ing-carrot.jpg',
-  '/ing-duck.jpg',
-  '/ing-pumpkin.jpg',
-  '/ing-brownrice.jpg',
-]
-
-// 7. ========================================================================
-// Complete meal plan — 듀얼 제품 쇼케이스
-// ===========================================================================
-function CompleteMealPlan({ ctaHref }: { ctaHref: string }) {
-  return (
-    <Section bg="white" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>A COMPLETE BOWL</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              한 그릇을 완성하는 구성
-            </Display>
-          </div>
-        </Reveal>
-        {/* 실사 강화(2026-08-01): 메인 카드 옆에 **레시피 4종 실사** 2×2 갤러리.
-            public/recipe-*.jpg 가 전부 놀고 있었다 — 파는 음식을 눈으로 보여준다.
-            영양제 카드를 되살리면 이 갤러리 자리를 조정한다. */}
-        <div className="pt-10 md:pt-14 grid md:grid-cols-2 gap-4 md:gap-6 mx-auto md:items-stretch" style={{ maxWidth: 980 }}>
-          <Reveal variant="left">
-            <div className="grid grid-cols-2 gap-3 h-full">
-              {[
-                // 2026-09-02 사장님 지시: 이 2×2 는 **파우치 패키지 목업 4종**으로.
-                // (음식 클로즈업 *-sq 는 하루 살고 교체됨 — 파일은 남겨둠.)
-                // 원본 2000² 에서 중앙 80% 크롭 — 원본 그대로면 파우치가 작아
-                // 떠 보이고, 72% 는 가장자리가 타일에 닿았다(3안 비교 검수).
-                { src: '/pouch-chicken.webp', alt: '파머스테일 닭고기 레시피 파우치 패키지' },
-                { src: '/pouch-hanwoo.webp', alt: '파머스테일 한우 레시피 파우치 패키지' },
-                { src: '/pouch-duck.webp', alt: '파머스테일 오리 레시피 파우치 패키지' },
-                { src: '/pouch-blackpork.webp', alt: '파머스테일 흑돼지 레시피 파우치 패키지' },
-              ].map((r) => (
-                <span key={r.src} className="relative block overflow-hidden fv-lift" style={{ borderRadius: 10, aspectRatio: '1 / 1' }}>
-                  <Image src={r.src} alt={r.alt} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />
-                </span>
-              ))}
-            </div>
-          </Reveal>
-          <div className="grid gap-4 md:gap-6 md:content-center">
-          {[
-            { label: '신선 화식 레시피 사진', sub: '단백질별 메인 한 끼', k: '메인', t: '신선 화식', d: '하루 정량에 맞춘 완전·균형 한 끼.', img: '/pouch-ft.webp', alt: '파머스테일 레시피 파우치' },
-            // ⛔ '영양제 소스' 카드 제거 (2026-07-31 사장님) — **아직 출시 안 한
-            //    제품**이다. 랜딩에 있으면 없는 걸 파는 것처럼 보인다.
-            //    (2026-07-13 에 이미 분석 화면의 '맞춤 영양제 박스'를 같은 이유로
-            //     내렸는데, 랜딩만 남아 있었다 — 한쪽만 고쳐진 그 부류.)
-            //    영양제 라인이 실제로 나오면 이 줄을 되살리면 된다:
-            //    { label: '영양제 소스 사진', sub: '한 끼에 더하는 영양 소스',
-            //      k: '플러스', t: '영양제 소스', d: '하루 한 캡슐, 목적별 영양을
-            //      한 끼에 더하는 데일리 소스.', img: '/supplement-box.webp',
-            //      alt: '파머스테일 영양제 패키지' },
-          ].map((p, i) => (
-            <Reveal key={p.t} delay={i * 80}>
-              <div className="fv-lift" style={{ background: 'var(--fd-offwhite)', border: '1px solid var(--fd-line)', borderRadius: 10, overflow: 'hidden' }}>
-                <PhotoSlot label={p.label} sub={p.sub} src={p.img} alt={p.alt} ratio="16 / 10" tone="cream" rounded={0} className="w-full" />
-                <div style={{ padding: '20px 22px' }}>
-                  <div className="text-[10px]" style={{ fontWeight: 800, letterSpacing: '0.14em', color: 'var(--fd-green)' }}>{p.k}</div>
-                  <h3 className="pt-1.5 text-[18px] md:text-[20px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{p.t}</h3>
-                  <p className="pt-2 text-[13.5px] md:text-[14.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{p.d}</p>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-          </div>
-        </div>
-        <Reveal delay={120}>
-          <div className="pt-9 flex justify-center">
-            <Button href={ctaHref} tone="coral" size="lg">
-              우리 아이 구성 보기
-              <ArrowRight size={19} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 7.5 ======================================================================
-// Plan benefits — 서비스/배송 혜택 4아이콘 (FD #9, FIDELITY_SPEC §8 보강).
-// 커머스 거래 아님: 배송포함·콜드체인·유연성·문의지원 = 사실 기반 신뢰/서비스
-// 메시지(프로모바와 일치). 가짜 숫자·미검증 친환경 주장 없음.
-// ===========================================================================
-const BENEFITS = [
-  { Icon: Truck, t: '배송 포함', d: '배송비는 구독료에 포함, 추가 비용 없어요.' },
-  { Icon: Leaf, t: '콜드체인 신선', d: '급속 냉동해 신선함 그대로 문 앞까지.' },
-  { Icon: RefreshCw, t: '약정 없음', d: '첫 박스부터 부담 없이. 다음 결제 전까지 멈추거나 그만둘 수 있어요.' },
-  { Icon: MessageCircle, t: '1:1 문의 지원', d: '궁금한 점은 평일 영업일 24시간 이내 답해 드려요.' },
-]
-
-function PlanBenefits() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 560 }}>
-            <Eyebrow>WHY IT&rsquo;S EASY</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              시작도, 이어가기도 쉽게
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-9 md:pt-12 grid grid-cols-2 lg:grid-cols-4 gap-7 md:gap-8">
-          {BENEFITS.map((b, i) => {
-            const Icon = b.Icon
-            return (
-              <Reveal key={b.t} delay={i * 80}>
-                <div className="text-center">
-                  <span
-                    className="inline-flex items-center justify-center"
-                    style={{ width: 54, height: 54, borderRadius: 999, background: '#FFFFFF', border: '1px solid var(--fd-line)' }}
-                  >
-                    <Icon size={24} strokeWidth={2} color="var(--fd-green)" />
-                  </span>
-                  <h3 className="pt-4 text-[16px] md:text-[18px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.02em' }}>{b.t}</h3>
-                  <p className="pt-2 text-[12.5px] md:text-[13.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.55, maxWidth: 220, marginLeft: 'auto', marginRight: 'auto' }}>{b.d}</p>
-                </div>
-              </Reveal>
-            )
-          })}
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 8. ========================================================================
-// How it works — 3스텝 (다크)
-// ===========================================================================
-const STEPS = [
-  { n: '01', t: '우리 아이 알려주기', d: '2분 설문으로 견종·나이·체중·활동량·민감한 음식을 알려주세요.' },
-  { n: '02', t: '맞춤 조리 · 배송', d: '수의영양 기준에 맞춰 신선하게 만들고 정량 포장해 문 앞까지.' },
-  { n: '03', t: '더 건강한 하루', d: '잘 먹고, 잘 싸고, 컨디션 좋은 매일. 잘 맞으면 정기배송으로.' },
-]
-
-function HowItWorks({ ctaHref }: { ctaHref: string }) {
-  return (
-    <Section bg="pine" pad="md" className="fv-sheet-top overflow-hidden">
-      {/* 다크 섹션이 앞 섹션 위로 둥근 모서리를 물고 올라온다 — 시트 레이어감(2026-08-01) */}
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center">
-            <Eyebrow color="var(--fd-green-soft)">HOW IT WORKS</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
-              3단계면 시작이에요
-            </Display>
-          </div>
-        </Reveal>
-        <div className="pt-10 md:pt-16 grid md:grid-cols-3 gap-8 md:gap-10">
-          {STEPS.map((s, i) => (
-            <Reveal key={s.n} delay={i * 80}>
-              <div data-gsap-step className="text-center md:text-left">
-                {/* 다크 위 텍스트 포인트 = 골드(로고 톤) — 코랄 텍스트는 파인 위에서
-                    떨린다(사장님 2026-08-01). 코랄은 채운 CTA 필로만 다크 위에 남는다. */}
-                <span className="font-chunky" style={{ fontSize: 'clamp(40px, 9vw, 58px)', color: 'var(--fd-gold)', lineHeight: 1 }}>{s.n}</span>
-                {/* 번호 밑 룰이 진입 시 자라난다(.fv-draw — Reveal is-in 이 발화) */}
-                <span
-                  aria-hidden
-                  className="fv-draw mx-auto md:mx-0"
-                  style={{ display: 'block', width: 44, height: 3, background: 'var(--fd-gold)', marginTop: 12, opacity: 0.85 }}
-                />
-                <h3 className="pt-3 text-[19px] md:text-[21px]" style={{ fontWeight: 800, color: '#FFFFFF' }}>{s.t}</h3>
-                <p className="pt-2 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>{s.d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-        <Reveal delay={120}>
-          <div className="pt-11 md:pt-14 flex justify-center">
-            <Button href={ctaHref} tone="coral" size="lg">
-              2분 설문 시작하기
-              <ArrowRight size={19} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 9. ========================================================================
-// Science & expertise — 불릿 + /science
-// ===========================================================================
-const SCIENCE = [
-  '수의영양학 표준 기준에 맞춘 영양 설계',
-  '단백질·지방·미네랄·미량영양소 비율 균형',
-  '견종·나이·체중·활동량 반영한 1일 권장 칼로리',
-  '근거가 되는 가이드라인을 공개 — 슬로건이 아니라 출처로',
-]
-
-function ScienceExpertise() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="xl">
-        {/* 2단은 좌우에서 마주 들어온다 — 전 섹션이 '아래→위' 하나로 뜨는
-            단조로움이 AI 티의 원인이었다(2026-08-01). */}
-        <div className="grid md:grid-cols-2 md:items-end gap-6 md:gap-14">
-          <Reveal variant="left">
-            <div>
-              <Eyebrow>THE SCIENCE</Eyebrow>
-              <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-                마케팅이 아니라
-                <br />수의영양학으로
-              </Display>
-            </div>
-          </Reveal>
-          <Reveal variant="right" delay={80}>
-            <ul className="grid gap-3">
-              {SCIENCE.map((s) => (
-                <li key={s} className="grid items-baseline" style={{ gridTemplateColumns: '20px 1fr', gap: 10 }}>
-                  <Check size={17} strokeWidth={3} color="var(--fd-green)" />
-                  <span className="text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{s}</span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-
-        {/* 교차검증표(2026-09-04 사장님 제작) — "이미지가 너무 작다" 제보로
-            2단 반쪽 칸에서 꺼내 전폭(최대 880px) 문서 매트로. 문서 이미지라
-            ratio 를 원본 비율로 정확히 — cover 크롭되면 표가 잘린다.
-            원문 PDF 는 /science 의 실물 근거 섹션에. */}
-        <Reveal delay={100}>
-          <div className="relative mx-auto mt-10 md:mt-14" style={{ maxWidth: 880 }}>
-            <Parallax speed={0.05}>
-              <div style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 16, padding: 14, boxShadow: '0 30px 70px -34px rgba(22,20,15,0.35)' }}>
-                <PhotoSlot
-                  src="/nutrition-crossval-landing.webp"
-                  alt="AAFCO·FEDIAF·NRC 3대 영양기준 교차검증표 — 레시피 4종 전 항목 검증"
-                  label="영양 교차검증표"
-                  ratio="3141 / 3010"
-                  tone="green"
-                  rounded={8}
-                  className="w-full"
-                />
-              </div>
-            </Parallax>
-            {/* 도장 배지 — 표 우상단에 살짝 겹치는 검증 스탬프. 수치(43/43)는
-                표 자체의 사실 표기 재인용이라 표시광고 무리 없음. */}
-            <div aria-hidden className="absolute" style={{ top: -16, right: 14, transform: 'rotate(-8deg)', zIndex: 2 }}>
-              <span
-                className="flex flex-col items-center justify-center text-center"
-                style={{ width: 92, height: 92, borderRadius: 999, background: 'var(--fd-coral)', color: '#FFFFFF', border: '3px solid #FFFFFF', boxShadow: '0 10px 24px -10px rgba(22,20,15,0.4)' }}
-              >
-                <span className="font-chunky" style={{ fontSize: 21, lineHeight: 1 }}>43/43</span>
-                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.08em', marginTop: 4 }}>항목 충족</span>
-              </span>
-            </div>
-          </div>
-        </Reveal>
-        <Reveal delay={140}>
-          <div className="mt-6 md:mt-8 flex flex-col items-center gap-4 text-center">
-            <p className="text-[12px] md:text-[13px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6, maxWidth: 560 }}>
-              레시피 4종 × 43개 영양 항목을 AAFCO·FEDIAF·NRC 기준과 항목별로
-              교차 대조했습니다. 기준치는 칼로리 기반 환산치, 설계값은 재료
-              영양성분 분석에 기반한 추정치예요.
-            </p>
-            <Button href="/science" tone="pine" size="md">
-              영양 설계 근거 보기
-              <ArrowRight size={18} strokeWidth={2.4} />
-            </Button>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 10. =======================================================================
-// Vet voices — 수의 자문 캐러셀 (placeholder, 가짜 인용 X)
-// ===========================================================================
-// 가짜 전문가 자문 카드(QuoteCard) 제거 — 표시광고법(미검증 전문가 보증 금지).
-// VetVoices 는 자사 영양 설계 원칙(실사실)으로 대체. 실 자문 확보 시 별도 섹션.
-
-function VetVoices() {
-  return (
-    // 다크 섹션이 앞 섹션 위로 둥근 모서리를 물고 올라온다 — 시트 레이어감(2026-08-01).
-    <Section bg="pine" pad="md" className="fv-sheet-top overflow-hidden">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow color="var(--fd-green-soft)">OUR STANDARD · 영양 설계</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: '#FFFFFF' }}>
-              표준에 맞춰, 빠짐없이
-            </Display>
-            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 480, color: 'var(--fd-green-soft)', lineHeight: 1.6 }}>
-              미국 AAFCO · 유럽 FEDIAF · 국내 NIAS, 세 영양 표준을 동시에 충족하도록 설계했어요.
-            </p>
-          </div>
-        </Reveal>
-        <div className="pt-9">
-          <Reveal>
-            <ul className="grid gap-3 md:grid-cols-2 mx-auto" style={{ maxWidth: 720 }}>
-              {[
-                '세 영양 표준 중 가장 엄격한 기준을 채택하고, +15% 안전 마진을 더했어요.',
-                '단백질·지방·미네랄 비율을 표준에 맞춰 균형 있게 구성했어요.',
-                '심장 등 자연 원물에서 타우린을, 연어유에서 오메가-3를 공급해요.',
-                '급여 전환은 7~10일에 걸쳐 천천히 — 아이의 변 상태를 보며 조절하길 권장해요.',
-              ].map((t) => (
-                <li key={t} className="rounded-[12px] px-5 py-4 text-left" style={{ background: 'rgba(255,255,255,0.06)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)' }}>
-                  <span className="text-[14px]" style={{ lineHeight: 1.6, color: '#FFFFFF' }}>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 10b. ======================================================================
-// Study / 근거 — "기대 변화" 4콜아웃 (FD Study 섹션 대응). 정직: 가이드라인 근거 ·
-// 생활개선 표현(질병 치료/효능 단정 금지) · 가짜 수치 없음 · /science 링크.
-// ===========================================================================
-const EVIDENCE = [
-  { n: '01', t: '소화 · 변 상태', d: '소화가 잘 되는 재료와 균형으로 매일의 컨디션을 살펴요.' },
-  { n: '02', t: '피부 · 모질', d: '단백질·필수지방산 균형으로 윤기와 피부 컨디션을 챙겨요.' },
-  { n: '03', t: '활력 · 하루 컨디션', d: '필요 칼로리에 맞춘 급여로 하루 활력을 지켜요.' },
-  { n: '04', t: '적정 체중', d: '몸에 맞춘 정량 급여로 적정 체중 관리를 도와요.' },
-]
-
-function Evidence() {
-  return (
-    <Section bg="offwhite" pad="md">
-      <Container size="lg">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 620 }}>
-            <Eyebrow>WHY IT MATTERS</Eyebrow>
-            <Display size="md" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              꾸준한 균형 식단이
-              <br className="hidden md:block" /> 만드는 변화
-            </Display>
-            <p className="pt-4 text-[14px] md:text-[15px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.7 }}>
-              매 끼니 같은 수의영양 기준으로 균형 잡힌 신선식을 이어갈 때, 보호자분들이
-              일상에서 살펴볼 수 있는 부분이에요. 개체차가 있으며 치료 효과를 보장하지는
-              않아요.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="pt-8 md:pt-10 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {EVIDENCE.map((it, i) => (
-            <Reveal key={it.n} delay={i * 80}>
-              <div
-                className="fv-lift"
-                style={{ background: '#FFFFFF', border: '1px solid var(--fd-line)', borderRadius: 8, padding: '20px 18px', height: '100%' }}
-              >
-                <span className="font-chunky" style={{ fontSize: 18, color: 'var(--fd-coral)' }}>{it.n}</span>
-                <div className="mt-2.5 text-[15px]" style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.015em' }}>{it.t}</div>
-                <p className="mt-1.5 text-[12.5px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.6 }}>{it.d}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-
-        <Reveal delay={120}>
-          <div className="pt-7 md:pt-9 text-center">
-            <Link
-              href="/science"
-              className="inline-flex items-center gap-1.5 no-underline text-[13.5px]"
-              style={{ color: 'var(--fd-coral-text)', fontWeight: 700 }}
-            >
-              영양 설계 근거 보기
-              <ArrowRight size={15} strokeWidth={2.4} />
-            </Link>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// 11. =======================================================================
-// Social proof — 고객 후기 캐러셀 (placeholder, 가짜 후기 X)
-// ===========================================================================
-// 가짜 후기 카드(ReviewCard) 제거 — 표시광고법(허위 후기 금지).
-// SocialProof 는 "후기 준비중" 정직 placeholder 로 대체. 실 후기 도착 시 교체.
-
-function SocialProof() {
-  return (
-    <Section bg="cream" pad="md">
-      <Container size="xl">
-        <Reveal>
-          <div className="text-center mx-auto" style={{ maxWidth: 600 }}>
-            <Eyebrow>REVIEWS</Eyebrow>
-            <Display size="lg" className="pt-3" style={{ color: 'var(--fd-pine)' }}>
-              보호자도, 아이도 좋아해요
-            </Display>
-            <p className="pt-4 mx-auto text-[14px] md:text-[15px]" style={{ maxWidth: 440, color: 'var(--fd-muted)', lineHeight: 1.6 }}>
-              출시 후, 신선식으로 한 끼를 바꾼 보호자들의 진짜 이야기를 이곳에 담을게요.
-            </p>
-          </div>
-        </Reveal>
-        <div className="pt-9">
-          <Reveal>
-            <div className="rounded-[12px] mx-auto text-center" style={{ maxWidth: 520, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)', padding: '28px 24px' }}>
-              <p className="text-[14px]" style={{ color: 'var(--fd-muted)', lineHeight: 1.65 }}>
-                아직 후기를 모으는 중이에요. 첫 보호자들의 솔직한 후기가 도착하면
-                이곳에서 그대로 보여드릴게요.
-              </p>
-            </div>
-          </Reveal>
-        </div>
-      </Container>
-    </Section>
-  )
-}
-
-// 12. =======================================================================
-// Final CTA
-// ===========================================================================
-function FinalCta({ ctaHref }: { ctaHref: string }) {
-  return (
-    <Section bg="coral" pad="md">
-      <Container size="md">
-        <Reveal>
-          <div className="text-center">
-            <Display size="lg" style={{ color: '#FFFFFF' }}>
-              우리 아이의 진짜 한 끼,
-              <br />
-              오늘 시작해요
-            </Display>
-            <p className="pt-4 mx-auto text-[15px] md:text-[16px]" style={{ maxWidth: 420, lineHeight: 1.65, color: 'rgba(255,255,255,0.92)' }}>
-              무료 분석 먼저, 부담 없이 시작. 다음 결제 전까지 해지.
-            </p>
-            <div className="pt-8 flex justify-center">
-              <Button href={ctaHref} tone="cream" size="lg">
-                2분 설문 시작하기
-                <ArrowRight size={19} strokeWidth={2.4} />
-              </Button>
-            </div>
-            <p className="pt-5 text-[12.5px]" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>
-              수의영양학 기반 · 무항생제 원물 · 구독 강요 없음
-            </p>
-          </div>
-        </Reveal>
-      </Container>
-    </Section>
-  )
-}
-
-// ===========================================================================
-// Page — FD 실구조 순서
-// ===========================================================================
-export default async function LandingPage() {
-  const supabase = await createClient()
-  const user = await getSafeUser(supabase)
-  const isAuthed = !!user
-  // 앱 컨텍스트를 함께 봐야 한다 — 로그인 CTA 목적지가 앱 전용 경로이기 때문.
-  const isApp = await isAppContextServer()
-  const ctaHref = planHref(isAuthed, isApp)
-
-  return (
-    <WebChrome>
-      <WebMotion />
-      <main>
-        <HomeHero ctaHref={ctaHref} />
-        <TrustStrip />
-        <ValueProp ctaHref={ctaHref} />
-        <FeatureCards />
-        <Comparison />
-        <HowWeMakeIt />
-        <CompleteMealPlan ctaHref={ctaHref} />
-        <PlanBenefits />
-        <HowItWorks ctaHref={ctaHref} />
-        <ScienceExpertise />
-        <VetVoices />
-        <Evidence />
-        <SocialProof />
-        <FinalCta ctaHref={ctaHref} />
-      </main>
-      <StickyCta href={ctaHref} />
-    </WebChrome>
+      <StoreFaq items={FAQ} />
+    </StoreShell>
   )
 }

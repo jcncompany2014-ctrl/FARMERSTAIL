@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import StoreShell from '@/components/store/StoreShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { Container, Display, Eyebrow } from '@/components/web/fd/ui'
@@ -95,6 +96,26 @@ export default async function AccountSubscriptionsPage({
    * 앱 화면(/mypage/subscriptions)은 2026-07-30 에 같은 이유로 먼저 고쳤다.
    * 이 화면은 웹 전용이라 그때 빠졌다 — 같은 결함의 나머지 절반.
    */
+  if (subsErr && !(await isAppContextServer())) {
+    // 웹(시안 WEB-A23 틀) — 실패 안내. 아래 앱 갈래와 같은 말.
+    return (
+      <SubscriptionsWebFrame subtitle={null}>
+        <section role="alert" style={{ margin: '24px 20px 64px', padding: '22px 20px 20px', border: '1.5px solid #C63D2A', borderRadius: 4, display: 'flex', flexDirection: 'column' }}>
+          <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 22, fontWeight: 800, letterSpacing: 'inherit' }}>정기배송 정보를 불러오지 못했어요</h2>
+          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
+            잠시 뒤에 다시 열어 봐 주세요. 계속 이러면 알려 주세요 — 진행 중인 정기배송은 그대로 있어요.
+          </p>
+          <Link
+            href="/mypage/orders"
+            style={{ marginTop: 18, height: 52, borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, textDecoration: 'none' }}
+          >
+            결제·주문 내역 보기
+          </Link>
+        </section>
+      </SubscriptionsWebFrame>
+    )
+  }
+
   if (subsErr) {
     return (
       <AuthAwareShell>
@@ -250,6 +271,29 @@ export default async function AccountSubscriptionsPage({
     }
   }
 
+  // 웹 = 웹 시안 WEB-A23(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 아래는 앱 갈래(앱 안에서 열린 경우 — 예전 토큰 스왑 그대로).
+  if (!isApp) {
+    return (
+      <SubscriptionsWebFrame
+        subtitle={activeCount > 0 ? `구독 중 ${activeCount}건 · 화식 비율·일정·해지를 직접 관리하세요` : '화식 비율 변경, 일시정지, 해지를 한 곳에서'}
+      >
+        <section aria-label="정기배송 목록" style={{ padding: '24px 20px 64px' }}>
+          <SubscriptionsWebClient
+            trial={await getTrialState(user.id)}
+            chargeTiming={chargeTiming}
+            paidPreparingSubIds={paidPreparingSubIds}
+            paidPreparingAt={paidPreparingAt}
+            paidStateUnknown={paidStateUnknown}
+            initialSubs={initialSubs}
+            focusSubId={sp.focus ?? null}
+            priceProposal={priceProposal}
+            isApp={false}
+          />
+        </section>
+      </SubscriptionsWebFrame>
+    )
+  }
+
   return (
     <AuthAwareShell>
       <main
@@ -345,5 +389,29 @@ export default async function AccountSubscriptionsPage({
         </Container>
       </main>
     </AuthAwareShell>
+  )
+}
+
+/** 웹 틀(시안 WEB-A23) — ← 내 계정 · 큰 제목 · 한 줄 설명. */
+function SubscriptionsWebFrame({ subtitle, children }: { subtitle: string | null; children: React.ReactNode }) {
+  return (
+    <StoreShell>
+      <section style={{ padding: '12px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <Link
+          href="/account"
+          style={{ alignSelf: 'flex-start', minHeight: 48, marginLeft: -6, paddingRight: 8, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#3D3D3D', textDecoration: 'none' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          내 계정
+        </Link>
+        <h1 className="d" style={{ margin: '4px 0 0', fontSize: 36, lineHeight: 1.1 }}>
+          정기배송 관리
+        </h1>
+        {subtitle && <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>{subtitle}</p>}
+      </section>
+      {children}
+    </StoreShell>
   )
 }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import SiteShell from '@/components/store/SiteShell'
 import { carrierMeta } from '@/lib/tracking'
 import { isAppContextServer } from '@/lib/app-context'
 import TrackingView from './TrackingView'
@@ -66,33 +67,37 @@ export default async function TrackPage({ params }: { params: Params }) {
     )
   }
 
+  // 웹 — 2026-10-10 웹 리뉴얼(웹 시안 WEB-A16): 앱과 같은 운송장 화면(TrackingAppView — 송장 카드·진행 상태·배송 이력)을
+  //   새 웹 가게 틀(SiteShell)에 담고, 위에 '← 주문 상세'·큰 제목만 더한다(앱은 윗줄이 맡는다).
+  //   예전 웹 판(영어 머리말 Tracking·세리프 제목)은 git 이력.
   return (
-    <AuthAwareShell>
-    <main className="pb-8 mx-auto" style={{ maxWidth: 1024 }}>
-      <section className="px-5 pt-6 md:pt-8 md:px-6">
+    <SiteShell>
+      <section style={{ padding: '12px 20px 0', display: 'flex', flexDirection: 'column' }}>
         <Link
           href={`/mypage/orders/${order.id}`}
-          className="ft-app-back-hide text-[11px] md:text-[12.5px] text-muted hover:text-terracotta inline-flex items-center gap-1 font-semibold"
-        >
-          ← 주문 상세
-        </Link>
-        <span className="kicker mt-3 block">Tracking</span>
-        <h1
-          className="font-serif mt-1.5 md:mt-3 text-[22px] md:text-[34px] lg:text-[40px]"
           style={{
-            fontWeight: 800,
-            color: 'var(--ink)',
-            letterSpacing: '-0.025em',
-            lineHeight: 1.1,
+            alignSelf: 'flex-start',
+            minHeight: 48,
+            marginLeft: -6,
+            paddingRight: 8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            fontSize: 16,
+            fontWeight: 700,
+            color: '#3D3D3D',
+            textDecoration: 'none',
           }}
         >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          주문 상세
+        </Link>
+        <h1 className="d" style={{ margin: '4px 0 0', fontSize: 36, lineHeight: 1.1 }}>
           운송장 조회
         </h1>
-        <p className="text-[11px] md:text-[13px] text-muted mt-1 md:mt-2 font-mono">
-          {order.order_number}
-        </p>
       </section>
-
       <TrackingView
         carrier={order.carrier}
         carrierLabel={meta?.label ?? null}
@@ -103,8 +108,8 @@ export default async function TrackPage({ params }: { params: Params }) {
         recipientName={order.recipient_name}
         trackerDeepLink={trackerDeepLink}
         supportsInline={Boolean(meta?.deliveryTrackerId)}
+        app={{ orderNumber: order.order_number, web: true }}
       />
-    </main>
-    </AuthAwareShell>
+    </SiteShell>
   )
 }

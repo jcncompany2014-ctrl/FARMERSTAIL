@@ -45,8 +45,8 @@ const STRONG: CredCopy = {
     '수의영양 자문으로 단백질·지방·미네랄 비율을 표준 기준에 맞춰 설계.',
   recipeCardBodyShort: '수의영양 자문으로 영양 비율을 표준 기준에.',
   brandRecipeTitle: '수의영양학 자문 레시피',
-  brandRecipeBody:
-    '수의영양학 자문으로 단백질·지방·미네랄 비율을 맞춰 설계. 표준 영양 기준에 맞춘 배합으로 영양 격차 없이.',
+  // /brand 약속 줄(웹 시안 C02, 2026-10-10) — 약어 없이 쉬운 말로.
+  brandRecipeBody: '수의영양학 자문을 받아, 공개된 개 영양 기준의 권장 범위에 맞춰 단백질·지방·미네랄을 설계해요.',
   showVetQuoteSlot: true,
 }
 
@@ -61,8 +61,8 @@ const TONED: CredCopy = {
   recipeCardBodyShort:
     '수의영양학 가이드라인(NRC·AAFCO·FEDIAF)에 맞춰 영양 비율을 설계.',
   brandRecipeTitle: '수의영양학 기준 레시피',
-  brandRecipeBody:
-    '수의영양학 가이드라인(NRC·AAFCO·FEDIAF)의 권장 비율에 맞춰 단백질·지방·미네랄을 설계. 표준 영양 기준에 맞춘 배합으로 영양 격차 없이.',
+  // /brand 약속 줄(웹 시안 C02, 2026-10-10) — 약어(NRC·AAFCO·FEDIAF) 없이 쉬운 말로.
+  brandRecipeBody: '미국·유럽 등에서 공개한 개 영양 기준의 권장 범위에 맞춰 단백질·지방·미네랄을 설계해요.',
   showVetQuoteSlot: false,
 }
 

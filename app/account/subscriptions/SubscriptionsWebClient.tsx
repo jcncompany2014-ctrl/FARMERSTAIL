@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * SubscriptionsWebClient — /account/subscriptions 의 인터랙티브 본체 (FD 톤).
+ * SubscriptionsWebClient — /account/subscriptions 의 인터랙티브 본체(모양 = 웹 시안 WEB-A23, 2026-10-10 웹 리뉴얼).
  *
  * 비즈니스 로직은 app 의 SubscriptionsClient(audit #101) 와 **동일** — 모든 액션은
  * RLS 보호 subscriptions 테이블 update + 카드재등록만 /subscribe/billing-auth
@@ -20,7 +20,6 @@ import {
   Play,
   Bell,
   BellOff,
-  AlertTriangle,
   CreditCard,
   Soup,
   X,
@@ -38,7 +37,10 @@ import {
   paidBoxShipIso,
   type ChargeTiming,
   type UpcomingBox,
+  weekdayKo,
 } from '@/lib/shipping-schedule'
+import { pouchLineFromName } from '@/lib/design/pouch'
+import { RECIPE_BAND } from '@/lib/store/catalog'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import {
   trackSubscriptionPaused,
@@ -94,13 +96,13 @@ type Props = {
 //   갖고 있어서, 결제가 깨진 고객이 메일→웹("결제수단 재등록 필요")을 보고
 //   앱을 열면("결제 확인 필요") 다른 문제인 줄 알았다. 결제 실패 메일의 CTA 가
 //   규칙16 때문에 **의도적으로 웹**이라, 이 둘은 실제로 연달아 보인다.
-//   색만 FD 톤으로 여기서 고른다.
-const STATE_COLOR_FD: Record<SubState, string> = {
-  needs_card: 'var(--fd-coral)',
-  active: 'var(--fd-green)',
-  paused: '#C28A2B',
-  card_failed: 'var(--fd-coral)',
-  cancelled: 'var(--fd-muted)',
+//   색만 웹 시안(A23 — 구독 중 = 숲색, 결제 문제 = 빨강)으로 여기서 고른다.
+const STATE_COLOR_WEB: Record<SubState, string> = {
+  needs_card: '#B3261E',
+  active: '#1D3B2F',
+  paused: '#3D3D3D',
+  card_failed: '#B3261E',
+  cancelled: '#767676',
 }
 
 
@@ -118,27 +120,37 @@ function kstMonthDay(iso: string): string {
   })
 }
 
+/** yyyy-mm-dd → '10월 13일(화)' (KST). */
+function kstMonthDayWd(iso: string): string {
+  return `${kstMonthDay(iso)}(${weekdayKo(iso)})`
+}
+
 /**
- * 카드 머리의 일정 한 줄 — 판정은 lib/shipping-schedule describeUpcomingBox 정본(2026-10-01).
+ * 카드의 '다음 박스' 두 줄(큰 글씨 = 발송 · 작은 글씨 = 결제, 웹 시안 A23 2026-10-10) — 판정은 lib/shipping-schedule
+ * describeUpcomingBox 정본(2026-10-01). 예전 한 줄 칩(scheduleChip)과 같은 판정·같은 말을 두 줄로 나눴다.
  * next_delivery_date 는 **발송일**이고, 결제일은 결제 시점으로 정한다(일반 = 조리 직전 토요일,
  * 서포터즈 체험 구간 = 발송일). 결제 시점을 모르면(chargeIso null) 결제 요일을 말하지 않는다.
  *  · in_progress — 결제됐고 아직 안 나간 박스. 정지 중이어도 결제된 박스는 나가므로 상태와 무관하게 말한다.
  *  · 정지 등 결제가 일어나지 않는 상태(live=false)면 다음 일정을 말하지 않는다 — 그 날짜는 다시 시작할 때의 기준일 뿐이다.
  *  · 지난 날짜를 "발송"이라 단정하지 않는다(2026-08-07) — 결제가 미끄러지면 날짜가 과거로 흘러간다.
  */
-function scheduleChip(box: UpcomingBox | null, live: boolean, today: string): string | null {
+function scheduleLines(
+  box: UpcomingBox | null,
+  live: boolean,
+  today: string,
+): { label: string; main: string; sub: string | null } | null {
   if (!box) return null
   if (box.kind === 'in_progress') {
     return box.shipIso < today
-      ? '결제 완료 · 발송 준비 중'
-      : `결제 완료 · ${kstMonthDay(box.shipIso)} 발송`
+      ? { label: '이번 박스', main: '발송 준비 중', sub: '결제 완료' }
+      : { label: '이번 박스', main: `${kstMonthDayWd(box.shipIso)} 발송`, sub: '결제 완료' }
   }
   if (!live) return null
-  if (box.kind === 'charge_check') return '결제 확인 중'
-  if (box.shipIso < today) return `${kstMonthDay(box.shipIso)} 예정 · 확인 중`
-  if (!box.chargeIso) return `${kstMonthDay(box.shipIso)} 발송`
-  if (box.chargeIso === box.shipIso) return `${kstMonthDay(box.shipIso)} 결제·발송`
-  return `${kstMonthDay(box.chargeIso)} 결제 · ${kstMonthDay(box.shipIso)} 발송`
+  if (box.kind === 'charge_check') return { label: '다음 박스', main: '결제 확인 중', sub: null }
+  if (box.shipIso < today) return { label: '다음 박스', main: `${kstMonthDayWd(box.shipIso)} 예정`, sub: '확인 중' }
+  if (!box.chargeIso) return { label: '다음 박스', main: `${kstMonthDayWd(box.shipIso)} 발송`, sub: null }
+  if (box.chargeIso === box.shipIso) return { label: '다음 박스', main: `${kstMonthDayWd(box.shipIso)} 결제·발송`, sub: null }
+  return { label: '다음 박스', main: `${kstMonthDayWd(box.shipIso)} 발송`, sub: `${kstMonthDayWd(box.chargeIso)} 결제` }
 }
 
 export default function SubscriptionsWebClient({
@@ -502,58 +514,44 @@ export default function SubscriptionsWebClient({
 
   if (visibleSubs.length === 0) {
     return (
-      <div
-        className="rounded-[var(--fd-r-card)] px-6 py-10 md:px-10 md:py-12 text-center"
-        style={{ background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-      >
-        <span
-          className="inline-flex w-14 h-14 rounded-full items-center justify-center mb-4"
-          style={{ background: 'var(--fd-cream)' }}
-        >
-          <Soup className="w-6 h-6" strokeWidth={1.75} style={{ color: 'var(--fd-pine)' }} />
-        </span>
-        <div
-          className="text-[17px] md:text-[19px]"
-          style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.015em' }}
-        >
-          아직 정기배송이 없어요
-        </div>
-        <p
-          className="mt-3 text-[12.5px] md:text-[14px] leading-relaxed"
-          style={{ color: 'var(--fd-muted)', maxWidth: 420, marginInline: 'auto' }}
-        >
-          우리 아이 맞춤 식단을 설계하고 정기배송을 시작해 보세요.
+      <div style={{ padding: '28px 20px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+        <strong style={{ fontSize: 20, fontWeight: 800 }}>아직 정기배송이 없어요</strong>
+        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
+          {isApp ? '우리 아이 맞춤 식단을 설계하고 정기배송을 시작해 보세요.' : '맞춤 정기배송은 앱에서 시작할 수 있어요. 웹에서는 레시피를 하나씩 살 수 있어요.'}
         </p>
         {/*
-          ★로그인 상태(이 페이지는 auth 필수)라 비로그인 설문 퍼널 /start(→가입)로
-          보내면 안 됨(사장님 2026-07-23). 우리 아이 허브 /dogs 로 — 강아지가 있으면
-          골라서 플랜, 없으면 등록으로 자연 분기.
-
-          ★단, `/dogs` 는 **앱 전용**이다(proxy APP_ONLY_PREFIXES, R84-2).
-          웹에서 "우리 아이 식단 시작하기" 를 누르면 식단이 아니라 앱 설치
-          안내로 튕겼다 — 버튼이 거짓말을 하고 있었다(2026-07-31).
-          그때는 목적지를 그대로 두고 **문구를 사실대로** 바꿨다("앱에서 …").
-
-          ★2026-08-03 검수 — 이제 반대로 고친다. 그 뒤 웹 구독 경로가 생겼기
-          때문이다(/account/dogs → /account/subscribe/[dogId] → 결제까지 웹에서
-          끝난다). 여기가 **웹 정기배송 관리 화면**인데 유일한 CTA 가 앱 설치
-          벽으로 보내는 건, 할 수 있는 일을 못 한다고 말하는 것이다.
-          문구를 사실에 맞추는 게 아니라 **목적지를 웹 허브로** 돌린다.
+          ★로그인 상태(이 페이지는 auth 필수)라 비로그인 설문 퍼널 /start(→가입)로 보내면 안 됨(사장님 2026-07-23).
+          앱은 우리 아이 허브 /dogs. 웹은 2026-10-10 웹 리뉴얼(기획서 D1)로 정기배송 신청이 앱으로 옮겨 갔다 → 앱 소개(/app).
+          (/dogs 는 앱 전용 — 웹에서 누르면 앱 설치 안내로 튕긴다, 2026-07-31.)
         */}
         <Link
-          href={isApp ? '/dogs' : '/account/dogs'}
-          className="mt-6 inline-flex items-center gap-1.5 px-6 py-3 rounded-full text-[13px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
-          style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+          href={isApp ? '/dogs' : '/app'}
+          style={{
+            marginTop: 8,
+            height: 52,
+            padding: '0 18px',
+            borderRadius: 4,
+            background: '#141414',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            fontSize: 17,
+            fontWeight: 800,
+            textDecoration: 'none',
+          }}
         >
-          우리 아이 식단 시작하기
-          <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} />
+          {isApp ? '우리 아이 식단 시작하기' : '앱에서 정기배송 시작하기'}
+          <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
         </Link>
       </div>
     )
   }
 
+  // 모양 = 웹 시안 WEB-A23(2026-10-10 웹 리뉴얼) — 먹색 2px 테 카드 · 상태 네모 · 다음 박스 큰 글씨 · 레시피 띠 썸네일 ·
+  //   회색 띠(주기·금액) · 배송 전 알림 스위치 · 2열 버튼. 판정·동작은 그대로(위 핸들러들).
   return (
-    <div className="flex flex-col gap-4 md:gap-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {priceProposal && <PriceChangeConsentModal proposal={priceProposal} />}
       {visibleSubs.map((sub) => {
         const state = subscriptionState(sub)
@@ -577,7 +575,7 @@ export default function SubscriptionsWebClient({
             : null
         const status = {
           label: SUB_STATE_LABEL[state],
-          color: STATE_COLOR_FD[state],
+          color: STATE_COLOR_WEB[state],
         }
         const isActive = state === 'active'
         const isPaused = state === 'paused'
@@ -588,262 +586,170 @@ export default function SubscriptionsWebClient({
           !isCancelled &&
           (needsRenewal || (sub.failed_charge_count ?? 0) > 0 || !!sub.next_retry_at)
         const isLoading = actionLoading === sub.id
-        const chip = isCancelled
-          ? null
-          : scheduleChip(box, isActive || state === 'card_failed', todayKstIsoDate())
+        const lines = isCancelled ? null : scheduleLines(box, isActive || state === 'card_failed', todayKstIsoDate())
+        const tp = trialPricing(trial, sub.total_amount)
 
         return (
-          <div
+          <article
             key={sub.id}
             id={`sub-${sub.id}`}
-            className="rounded-[var(--fd-r-card)] overflow-hidden"
+            aria-label={sub.dogs ? `${sub.dogs.name} 정기배송` : '정기배송'}
             style={{
-              background: '#FFFFFF',
-              boxShadow: `inset 0 0 0 1px ${needsRenewal ? 'var(--fd-coral)' : 'var(--fd-line)'}`,
+              border: `2px solid ${needsRenewal ? '#B3261E' : '#141414'}`,
+              borderRadius: 4,
+              display: 'flex',
+              flexDirection: 'column',
               opacity: isCancelled ? 0.6 : 1,
             }}
           >
-            {/* 상태 헤더 */}
-            <div
-              className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: '1px solid var(--fd-line)', background: 'var(--fd-offwhite)' }}
-            >
-              <div className="flex flex-wrap items-center gap-2 min-w-0">
-                <span
-                  aria-hidden
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: status.color }}
-                />
-                <span
-                  className="text-[11px] font-bold uppercase tracking-wider shrink-0"
-                  style={{ color: status.color }}
-                >
-                  {status.label}
-                </span>
-                {sub.dogs && (
-                  <span
-                    className="text-[11px] px-2 py-0.5 rounded-full shrink-0"
-                    style={{ background: 'var(--fd-cream)', color: 'var(--fd-pine)', fontWeight: 700 }}
-                  >
-                    🐶 {sub.dogs.name}
-                  </span>
-                )}
-                {sub.coverage_weeks && (
-                  <span
-                    className="text-[11px] px-2 py-0.5 rounded-full shrink-0 truncate"
-                    style={{ background: 'var(--fd-cream)', color: 'var(--fd-pine)', fontWeight: 700 }}
-                  >
-                    {freshTierLabel(sub.fresh_ratio)}
-                  </span>
-                )}
-              </div>
-              {chip && (
-                <span
-                  className="text-[11px] font-mono shrink-0"
-                  style={{ color: 'var(--fd-muted)', letterSpacing: '0.04em' }}
-                >
-                  {chip}
-                </span>
-              )}
+            {/* 상태 · 아이 · 화식 비율 */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E5E5', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 800, color: status.color }}>
+                <span aria-hidden style={{ width: 10, height: 10, background: status.color }} />
+                {status.label}
+              </span>
+              {sub.dogs && <span style={CHIP}>{sub.dogs.name}</span>}
+              {sub.coverage_weeks && <span style={{ ...CHIP, fontWeight: 700, color: '#3D3D3D' }}>{freshTierLabel(sub.fresh_ratio)}</span>}
             </div>
 
-            {/* 결제 실패 / 카드 재등록 배너 */}
+            {/* 결제 실패 / 카드 재등록 */}
             {hasFailureSignal && (
-              <div
-                className="px-5 py-3.5"
-                style={{
-                  borderBottom: '1px solid var(--fd-line)',
-                  background: 'color-mix(in srgb, var(--fd-coral) 7%, transparent)',
-                }}
-              >
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle
-                    className="w-4 h-4 shrink-0 mt-0.5"
-                    strokeWidth={2.2}
-                    style={{ color: 'var(--fd-coral)' }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] font-bold" style={{ color: 'var(--fd-coral-text)' }}>
-                      {needsRenewal
-                        ? '결제수단을 다시 등록해 주세요'
-                        : sub.next_retry_at
-                          ? '결제가 일시 실패했어요'
-                          : `결제 ${sub.failed_charge_count}회 실패`}
-                    </div>
-                    {sub.last_failed_charge_reason && (
-                      <div className="text-[11px] mt-0.5" style={{ color: 'var(--fd-muted)' }}>
-                        {sub.last_failed_charge_reason}
-                      </div>
-                    )}
-                    {sub.next_retry_at && !needsRenewal && (
-                      <div className="text-[11px] mt-0.5" style={{ color: 'var(--fd-muted)' }}>
-                        {formatRetryAt(sub.next_retry_at)} 재시도 예정
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleReRegisterCard(sub)}
-                      className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition hover:brightness-[0.94] active:scale-[0.98]"
-                      style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
-                    >
-                      <CreditCard className="w-3.5 h-3.5" strokeWidth={2.2} />
-                      결제 카드 재등록
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 상품 라인 */}
-            <div className="px-5 py-4 flex flex-col gap-3">
-              {sub.subscription_items.map((it, idx) => (
-                <div key={idx} className="flex items-center gap-3">
-                  <span
-                    className="relative w-11 h-11 rounded-[var(--fd-r-thumb)] overflow-hidden shrink-0"
-                    style={{ background: 'var(--fd-cream)' }}
-                  >
-                    {it.product_image_url ? (
-                      <Image
-                        src={it.product_image_url}
-                        alt={it.product_name}
-                        fill
-                        sizes="44px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <Soup className="w-5 h-5" strokeWidth={1.5} style={{ color: 'var(--fd-muted)' }} />
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13.5px] font-bold truncate" style={{ color: 'var(--fd-pine)' }}>
-                      {it.product_name}
-                    </div>
-                    <div className="text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                      {formatKRW(it.unit_price)} · {it.quantity}개
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 메타 — 주기 / 금액 */}
-            <div
-              className="px-5 py-3 flex items-center justify-between"
-              style={{ borderTop: '1px solid var(--fd-line)', background: 'var(--fd-offwhite)' }}
-            >
-              <span className="text-[12px]" style={{ color: 'var(--fd-muted)' }}>
-                배송 주기{' '}
-                <b style={{ color: 'var(--fd-pine)' }}>
-                  2주마다
-                </b>
-              </span>
-              <span className="text-[13px] font-extrabold" style={{ color: 'var(--fd-pine)' }}>
-                {(() => {
-                  const tp = trialPricing(trial, sub.total_amount)
-                  if (!tp) return formatKRW(sub.total_amount)
-                  return (
-                    <>
-                      <span style={{ textDecoration: 'line-through', opacity: 0.5, fontWeight: 500, marginRight: 6 }}>
-                        {formatKRW(sub.total_amount)}
-                      </span>
-                      {formatKRW(tp.chargeAmount)}
-                    </>
-                  )
-                })()}
-              </span>
-            </div>
-
-            {/* 배송 주기 변경 패널 제거 (2026-07-16) — 박스는 14일치 고정이라
-                매주로 바꾸면 음식이 두 배로 오고, 4주로 바꾸면 2주 뒤에 굶는다.
-                옛 낱개 커머스 모델의 잔재. */}
-            {/* 배송 알림 토글 */}
-            {!isCancelled && (
-              <div
-                className="px-5 py-3 flex items-center justify-between"
-                style={{ borderTop: '1px solid var(--fd-line)' }}
-              >
-                <div className="flex items-center gap-2">
-                  {sub.reminder_enabled ? (
-                    <Bell className="w-3.5 h-3.5" strokeWidth={2} style={{ color: 'var(--fd-pine)' }} />
-                  ) : (
-                    <BellOff className="w-3.5 h-3.5" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
-                  )}
-                  <span className="text-[12px]" style={{ color: 'var(--fd-pine)' }}>
-                    배송 전 알림
-                  </span>
-                </div>
+              <div role="alert" style={{ padding: '14px 16px', borderBottom: '1px solid #E5E5E5', background: '#FDECEA', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <strong style={{ fontSize: 17, fontWeight: 800, color: '#8A1F11' }}>
+                  {needsRenewal
+                    ? '결제수단을 다시 등록해 주세요'
+                    : sub.next_retry_at
+                      ? '결제가 일시 실패했어요'
+                      : `결제 ${sub.failed_charge_count}회 실패`}
+                </strong>
+                {sub.last_failed_charge_reason && <span style={{ fontSize: 15, color: '#3D3D3D' }}>{sub.last_failed_charge_reason}</span>}
+                {sub.next_retry_at && !needsRenewal && <span style={{ fontSize: 15, color: '#3D3D3D' }}>{formatRetryAt(sub.next_retry_at)} 재시도 예정</span>}
                 <button
                   type="button"
-                  role="switch"
-                  aria-checked={sub.reminder_enabled}
-                  onClick={() => handleToggleReminder(sub.id, !sub.reminder_enabled)}
-                  className="relative w-10 h-6 rounded-full transition before:absolute before:-inset-2.5 before:content-['']"
-                  style={{ background: sub.reminder_enabled ? 'var(--fd-green)' : 'var(--fd-line)' }}
+                  onClick={() => handleReRegisterCard(sub)}
+                  style={{ ...BTN, marginTop: 6, alignSelf: 'flex-start', padding: '0 14px', border: 0, background: '#141414', color: '#FFFFFF' }}
                 >
-                  <span
-                    className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-                    style={{ left: 2, transform: sub.reminder_enabled ? 'translateX(16px)' : 'translateX(0)' }}
-                  />
+                  <CreditCard className="w-4 h-4" strokeWidth={2.2} />
+                  결제 카드 재등록
                 </button>
               </div>
             )}
 
-            {/* 액션 버튼들 */}
+            {/* 다음 박스 — 판정은 describeUpcomingBox 정본(scheduleLines) */}
+            {lines && (
+              <div style={{ padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 15, color: '#595959' }}>{lines.label}</span>
+                <span className="d" style={{ fontSize: 28, lineHeight: 1.1 }}>
+                  {lines.main}
+                </span>
+                {lines.sub && <span style={{ fontSize: 16, color: '#3D3D3D' }}>{lines.sub}</span>}
+              </div>
+            )}
+
+            {/* 상품 라인 — 썸네일 위 레시피 띠(웹 레시피 색) */}
+            <ul style={{ margin: 0, padding: '0 16px', listStyle: 'none', borderTop: lines ? '1px solid #E5E5E5' : 0, display: 'flex', flexDirection: 'column' }}>
+              {sub.subscription_items.map((it, idx) => {
+                const line = pouchLineFromName(it.product_name)
+                return (
+                  <li
+                    key={idx}
+                    style={{
+                      padding: '12px 0',
+                      borderBottom: idx < sub.subscription_items.length - 1 ? '1px solid #E5E5E5' : 0,
+                      display: 'grid',
+                      gridTemplateColumns: '52px 1fr',
+                      columnGap: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ position: 'relative', width: 52, height: 52, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                      {it.product_image_url ? (
+                        <Image src={it.product_image_url} alt="" fill sizes="52px" style={{ objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Soup className="w-5 h-5" strokeWidth={1.5} color="#8A8A8A" />
+                        </span>
+                      )}
+                      {line && <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[line] }} />}
+                    </span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                      <span style={{ fontSize: 17, fontWeight: 800 }}>{it.product_name}</span>
+                      <span style={{ fontSize: 15, color: '#595959' }}>
+                        {formatKRW(it.unit_price)} · {it.quantity}개
+                      </span>
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+
+            {/* 주기 · 금액(체험단이면 체험가 — 청구와 같은 판정) */}
+            <div style={{ padding: '12px 16px', background: '#F6F4F5', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+              <span style={{ fontSize: 16, color: '#595959' }}>
+                배송 주기 <strong style={{ color: '#141414', fontWeight: 800 }}>2주마다</strong>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+                {tp && <span style={{ fontSize: 15, color: '#767676', textDecoration: 'line-through' }}>{formatKRW(sub.total_amount)}</span>}
+                <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                  <span className="n" style={{ fontSize: 26 }}>
+                    {(tp ? tp.chargeAmount : sub.total_amount).toLocaleString('ko-KR')}
+                  </span>
+                  <span className="d" style={{ fontSize: 16 }}>
+                    원
+                  </span>
+                </span>
+              </span>
+            </div>
+
+            {/* 배송 주기 변경 패널 제거 (2026-07-16) — 박스는 14일치 고정이라 매주로 바꾸면 음식이 두 배로 오고,
+                4주로 바꾸면 2주 뒤에 굶는다. 옛 낱개 커머스 모델의 잔재. */}
+            {/* 배송 전 알림 */}
             {!isCancelled && (
-              <div className="px-5 py-3.5 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--fd-line)' }}>
+              <div style={{ minHeight: 60, padding: '0 16px', borderTop: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <span id={`reminder-${sub.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17, fontWeight: 700 }}>
+                  {sub.reminder_enabled ? <Bell className="w-4 h-4" strokeWidth={2} /> : <BellOff className="w-4 h-4" strokeWidth={2} color="#767676" />}
+                  배송 전 알림
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={sub.reminder_enabled}
+                  aria-labelledby={`reminder-${sub.id}`}
+                  onClick={() => handleToggleReminder(sub.id, !sub.reminder_enabled)}
+                  style={{
+                    width: 64,
+                    height: 36,
+                    padding: 3,
+                    boxSizing: 'border-box',
+                    border: 0,
+                    borderRadius: 18,
+                    background: sub.reminder_enabled ? '#141414' : '#BDBDBD',
+                    display: 'flex',
+                    justifyContent: sub.reminder_enabled ? 'flex-end' : 'flex-start',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ width: 30, height: 30, borderRadius: 15, background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+                </button>
+              </div>
+            )}
+
+            {/* 동작 — 2열 */}
+            {!isCancelled && (
+              <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {needsCard && (
                   <button
                     type="button"
                     onClick={() => handleReRegisterCard(sub)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98]"
-                    style={{ background: 'var(--fd-coral)', color: '#FFFFFF' }}
+                    style={{ ...BTN, gridColumn: '1 / -1', border: 0, background: '#141414', color: '#FFFFFF' }}
                   >
                     결제수단 등록하고 시작하기
                   </button>
                 )}
                 {isActive && (
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => handlePause(sub.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-                  >
-                    <Pause className="w-3.5 h-3.5" strokeWidth={2} />
+                  <button type="button" disabled={isLoading} onClick={() => handlePause(sub.id)} style={{ ...BTN, opacity: isLoading ? 0.5 : 1 }}>
+                    <Pause className="w-4 h-4" strokeWidth={2} />
                     일시정지
-                  </button>
-                )}
-                {/* 미룬 박스 되돌리기(2026-10-06) — 실수로 미뤄도 원래 회차 마감 전이면 스스로 되돌린다.
-                    시각은 옆 버튼과 같은 클래스 — 웹 톤 보존, 색만 강조(coral). */}
-                {isActive && undoTo && sub.next_delivery_date && (
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => handleUndoSkip(sub.id, sub.next_delivery_date!, undoTo)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ color: 'var(--fd-coral-text)', boxShadow: 'inset 0 0 0 1px var(--fd-coral)' }}
-                  >
-                    <Undo2 className="w-3.5 h-3.5" strokeWidth={2} />
-                    미룬 박스 되돌리기 · {kstMonthDay(undoTo)} 발송
-                  </button>
-                )}
-                {/* ★ 정상 구독에도 결제수단 교체 (2026-07-30). 예전엔 카드 미등록·
-                    실패 상태에서만 이 버튼이 떴다 — **카드가 잘 걸린 사람은 카드를
-                    바꿀 방법이 없었다.** FAQ 는 교체가 된다고 안내하고 있었고,
-                    이동 로직(handleReRegisterCard)도 이미 있어서 진입점만 없었다.
-                    시각은 위 '일시정지' 버튼과 **같은 클래스·같은 토큰** — 웹 톤 보존. */}
-                {isActive && (
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => handleReRegisterCard(sub)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ color: 'var(--fd-pine)', boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-                  >
-                    <CreditCard className="w-3.5 h-3.5" strokeWidth={2} />
-                    결제수단 바꾸기
                   </button>
                 )}
                 {isPaused && (
@@ -851,40 +757,57 @@ export default function SubscriptionsWebClient({
                     type="button"
                     disabled={isLoading}
                     onClick={() => handleResume(sub.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                    style={{ background: 'var(--fd-green)', color: '#FFFFFF' }}
+                    style={{ ...BTN, border: 0, background: '#141414', color: '#FFFFFF', opacity: isLoading ? 0.5 : 1 }}
                   >
-                    <Play className="w-3.5 h-3.5" strokeWidth={2} />
+                    <Play className="w-4 h-4" strokeWidth={2} />
                     다시 시작
                   </button>
                 )}
-                {/* 화식 비율 변경 (2026-07-31 신설) — 예전엔 신청할 때 고른 값을
-                    영영 못 바꿔서, 올리고 싶은 사람도 낮추고 싶은 사람도
-                    '해지 후 재신청' 말고는 길이 없었다(실제로는 그냥 해지로 끝난다). */}
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => setRatioSubId(sub.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                  style={{
-                    color: 'var(--fd-pine)',
-                    boxShadow: 'inset 0 0 0 1px var(--fd-line)',
-                  }}
-                >
+                {/* 화식 비율 변경 (2026-07-31 신설) — 예전엔 신청할 때 고른 값을 영영 못 바꿔서, 올리고 싶은 사람도
+                    낮추고 싶은 사람도 '해지 후 재신청' 말고는 길이 없었다(실제로는 그냥 해지로 끝난다). */}
+                <button type="button" disabled={isLoading} onClick={() => setRatioSubId(sub.id)} style={{ ...BTN, opacity: isLoading ? 0.5 : 1 }}>
                   화식 비율
                 </button>
+                {/* 미룬 박스 되돌리기(2026-10-06) — 실수로 미뤄도 원래 회차 마감 전이면 스스로 되돌린다. */}
+                {isActive && undoTo && sub.next_delivery_date && (
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => handleUndoSkip(sub.id, sub.next_delivery_date!, undoTo)}
+                    style={{ ...BTN, gridColumn: '1 / -1', opacity: isLoading ? 0.5 : 1 }}
+                  >
+                    <Undo2 className="w-4 h-4" strokeWidth={2} />
+                    미룬 박스 되돌리기 · {kstMonthDay(undoTo)} 발송
+                  </button>
+                )}
+                {/* ★ 정상 구독에도 결제수단 교체 (2026-07-30). 예전엔 카드 미등록·실패 상태에서만 이 버튼이 떴다 —
+                    **카드가 잘 걸린 사람은 카드를 바꿀 방법이 없었다.** */}
+                {isActive && (
+                  <button type="button" disabled={isLoading} onClick={() => handleReRegisterCard(sub)} style={{ ...BTN, opacity: isLoading ? 0.5 : 1 }}>
+                    <CreditCard className="w-4 h-4" strokeWidth={2} />
+                    결제수단 바꾸기
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={isLoading}
                   onClick={() => setCancelSubId(sub.id)}
-                  className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-bold transition active:scale-[0.98] disabled:opacity-50"
-                  style={{ color: 'var(--fd-muted)' }}
+                  style={{
+                    ...BTN,
+                    border: 0,
+                    background: 'transparent',
+                    color: '#595959',
+                    fontWeight: 700,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 3,
+                    opacity: isLoading ? 0.5 : 1,
+                  }}
                 >
                   해지
                 </button>
               </div>
             )}
-          </div>
+          </article>
         )
       })}
 
@@ -892,15 +815,10 @@ export default function SubscriptionsWebClient({
           계산·저장은 전부 서버(/api/subscriptions/[id]/fresh-ratio). */}
       {ratioSubId && (
         <div
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-4 md:pb-0"
-          style={{ background: 'rgba(0,0,0,0.35)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 16px 16px', background: 'rgba(0,0,0,0.35)' }}
           onClick={() => setRatioSubId(null)}
         >
-          <div
-            className="w-full max-w-md rounded-[var(--fd-r-sheet,18px)] p-5"
-            style={{ background: '#FFFFFF' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div style={{ width: '100%', maxWidth: 448, borderRadius: 4, padding: 20, background: '#FFFFFF' }} onClick={(e) => e.stopPropagation()}>
             <FreshRatioSheet
               subscriptionId={ratioSubId}
               onClose={() => setRatioSubId(null)}
@@ -913,7 +831,7 @@ export default function SubscriptionsWebClient({
         </div>
       )}
 
-      {/* 해지 확인 모달 */}
+      {/* 해지 확인 */}
       {cancelSubId && (
         <CancelModal
           paidBoxShipIso={(() => {
@@ -948,6 +866,36 @@ export default function SubscriptionsWebClient({
   )
 }
 
+/** 동작 버튼(시안 A23) — 높이 48 · 먹색 1.5px 테 · 모서리 4. */
+const BTN: React.CSSProperties = {
+  height: 48,
+  boxSizing: 'border-box',
+  borderRadius: 4,
+  border: '1.5px solid #141414',
+  background: '#FFFFFF',
+  color: '#141414',
+  fontFamily: 'inherit',
+  fontSize: 16,
+  fontWeight: 800,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 6,
+  cursor: 'pointer',
+}
+
+/** 머리 칩(아이 이름·화식 비율) — 회색 면 · 높이 28. */
+const CHIP: React.CSSProperties = {
+  height: 28,
+  padding: '0 10px',
+  borderRadius: 4,
+  background: '#F6F4F5',
+  fontSize: 15,
+  fontWeight: 800,
+  display: 'flex',
+  alignItems: 'center',
+}
+
 function CancelModal({
   paidBoxShipIso,
   loading,
@@ -967,80 +915,69 @@ function CancelModal({
   // 파괴적 다이얼로그 a11y — Esc·포커스 트랩·스크롤 락·포커스 복귀(2026-07-17).
   const panelRef = useRef<HTMLDivElement>(null)
   useModalA11y({ open: true, onClose, containerRef: panelRef })
+  const row: React.CSSProperties = {
+    minHeight: 64,
+    padding: '10px 14px',
+    boxSizing: 'border-box',
+    borderRadius: 4,
+    border: '1.5px solid #141414',
+    background: '#FFFFFF',
+    fontFamily: 'inherit',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    cursor: 'pointer',
+  }
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="정기배송 해지"
-      style={{ background: 'rgba(22,20,15,0.4)' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(20,20,20,0.4)' }}
       onClick={onClose}
     >
       <div
         ref={panelRef}
-        className="w-full md:max-w-md rounded-t-[var(--fd-r-sheet)] md:rounded-[var(--fd-r-sheet)] p-6"
-        style={{ background: '#FFFFFF' }}
+        style={{ width: '100%', maxWidth: 480, boxSizing: 'border-box', borderRadius: '12px 12px 0 0', padding: '24px 20px calc(20px + env(safe-area-inset-bottom))', background: '#FFFFFF' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between">
-          <div
-            className="text-[18px]"
-            style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.015em' }}
-          >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <strong className="d" style={{ fontSize: 26, fontWeight: 400, lineHeight: 1.2 }}>
             정기배송을 해지할까요?
-          </div>
-          <button type="button" onClick={onClose} aria-label="닫기" className="p-1 -m-1">
-            <X className="w-5 h-5" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
+          </strong>
+          <button type="button" onClick={onClose} aria-label="닫기" style={{ width: 44, height: 44, margin: '-8px -8px 0 0', border: 0, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X className="w-5 h-5" strokeWidth={2.2} color="#141414" />
           </button>
         </div>
         {/* ★결제된 박스는 그대로 나간다(사장님 2026-10-01) — 일반 고객은 발송 3일 전 토요일에 결제되므로
             토~화 사이에 해지하면 그 박스는 이미 결제·조리 중이다. "다음 배송이 진행되지 않아요"는 그때 거짓이었다.
             결제된 박스를 모르면(조회 실패 포함) 두 경우 모두 참인 문장으로 말한다. */}
-        <p className="mt-2.5 text-[13px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
+        <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
           {paidBoxShipIso
             ? `이미 결제된 박스는 ${kstMonthDay(paidBoxShipIso)}에 그대로 보내드리고, 그다음 박스부터 결제와 배송이 멈춰요.`
             : '해지하면 다음 결제부터 결제와 배송이 멈춰요. 이미 결제된 박스가 있다면 그대로 보내드려요.'}{' '}
           잠시 쉬어가는 거라면 일시정지나 2주 미루기를 추천드려요.
         </p>
 
-        <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onSkipInstead}
-            disabled={loading}
-            className="flex items-center justify-between px-4 py-3 rounded-[var(--fd-r-row)] text-left transition active:scale-[0.99] disabled:opacity-50"
-            style={{ boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-          >
-            <span>
-              <span className="block text-[13.5px] font-bold" style={{ color: 'var(--fd-pine)' }}>
-                {/* 앱은 '2주 미루기' 였다 — 같은 동작을 두 이름으로 부르고 있어
-                    FAQ 도 어느 쪽을 따라야 할지 갈렸다(2026-07-30 통일). */}
-                2주 미루기
-              </span>
-              <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                {paidBoxShipIso
-                  ? '결제된 박스는 그대로 보내고, 그다음 박스만 미뤄요'
-                  : '다음 배송만 미루고 정기배송은 유지'}
+        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button type="button" onClick={onSkipInstead} disabled={loading} style={{ ...row, opacity: loading ? 0.5 : 1 }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* 앱은 '2주 미루기' 였다 — 같은 동작을 두 이름으로 부르고 있어 FAQ 도 어느 쪽을 따라야 할지 갈렸다(2026-07-30 통일). */}
+              <span style={{ fontSize: 17, fontWeight: 800, color: '#141414' }}>2주 미루기</span>
+              <span style={{ fontSize: 15, color: '#595959' }}>
+                {paidBoxShipIso ? '결제된 박스는 그대로 보내고, 그다음 박스만 미뤄요' : '다음 배송만 미루고 정기배송은 유지'}
               </span>
             </span>
-            <ChevronRight className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
+            <ChevronRight className="w-4 h-4" strokeWidth={2.2} color="#141414" />
           </button>
-          <button
-            type="button"
-            onClick={onPauseInstead}
-            disabled={loading}
-            className="flex items-center justify-between px-4 py-3 rounded-[var(--fd-r-row)] text-left transition active:scale-[0.99] disabled:opacity-50"
-            style={{ boxShadow: 'inset 0 0 0 1px var(--fd-line)' }}
-          >
-            <span>
-              <span className="block text-[13.5px] font-bold" style={{ color: 'var(--fd-pine)' }}>
-                일시정지
-              </span>
-              <span className="block text-[11.5px]" style={{ color: 'var(--fd-muted)' }}>
-                원하실 때 다시 시작할 수 있어요
-              </span>
+          <button type="button" onClick={onPauseInstead} disabled={loading} style={{ ...row, opacity: loading ? 0.5 : 1 }}>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 17, fontWeight: 800, color: '#141414' }}>일시정지</span>
+              <span style={{ fontSize: 15, color: '#595959' }}>원하실 때 다시 시작할 수 있어요</span>
             </span>
-            <ChevronRight className="w-4 h-4" strokeWidth={2} style={{ color: 'var(--fd-muted)' }} />
+            <ChevronRight className="w-4 h-4" strokeWidth={2.2} color="#141414" />
           </button>
         </div>
 
@@ -1048,8 +985,20 @@ function CancelModal({
           type="button"
           onClick={onConfirm}
           disabled={loading}
-          className="mt-4 w-full py-3 rounded-full text-[13px] font-bold transition active:scale-[0.99] disabled:opacity-50"
-          style={{ color: 'var(--fd-coral-text)', boxShadow: 'inset 0 0 0 1px var(--fd-coral)' }}
+          style={{
+            marginTop: 14,
+            width: '100%',
+            height: 52,
+            borderRadius: 4,
+            border: '1.5px solid #B3261E',
+            background: '#FFFFFF',
+            color: '#B3261E',
+            fontFamily: 'inherit',
+            fontSize: 17,
+            fontWeight: 800,
+            cursor: 'pointer',
+            opacity: loading ? 0.5 : 1,
+          }}
         >
           {loading ? '해지하는 중…' : '네, 해지할게요'}
         </button>

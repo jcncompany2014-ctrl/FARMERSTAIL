@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ChevronRight, FileText, RotateCcw, Shield, Building, HelpCircle, Mail } from 'lucide-react'
+import { FileText, RotateCcw, Shield, Building, HelpCircle, Mail } from 'lucide-react'
 import AuthAwareShell from '@/components/AuthAwareShell'
+import SiteShell from '@/components/store/SiteShell'
 import { isAppContextServer } from '@/lib/app-context'
 import { V3 } from '@/lib/design/tokens'
 import { SCREEN_ROOT } from '@/components/v3/me/MeParts'
@@ -126,49 +127,34 @@ export default async function LegalHubPage() {
     )
   }
 
+  // 웹 — 2026-10-10 웹 리뉴얼('A 포스터' 웹): 새 웹 가게 틀 + 영어 머리말 없음.
   return (
-    <AuthAwareShell>
-      <main className="pb-12 px-5 max-w-md mx-auto">
-      <section className="pt-6 pb-2">
-        <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--fd-green)' }}>Legal · 정책</span>
-        <h1
-          className="mt-1.5"
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: 'var(--fd-pine)',
-            letterSpacing: '-0.02em',
-          }}
-        >
+    <SiteShell>
+      <main style={{ padding: '28px 20px 64px' }}>
+        <h1 className="d" style={{ margin: 0, fontSize: 34, lineHeight: 1.1 }}>
           약관 · 정책
         </h1>
-        <p className="text-[12px] text-[var(--fd-muted)] mt-2 leading-relaxed">
-          전자상거래법·개인정보보호법·정보통신망법에 따른 표시 의무 항목이에요.
+        <p style={{ margin: '10px 0 0', fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
+          전자상거래법·개인정보보호법·정보통신망법에 따라 꼭 알려 드려야 하는 내용이에요.
         </p>
-      </section>
-
-      <section className="mt-4">
-        <ul className="bg-white rounded-[12px] border border-[var(--fd-line)] overflow-hidden">
-          {ITEMS.map(({ href, Icon, label, desc }, i) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className={`flex items-center gap-3 px-4 py-3.5 hover:bg-[var(--fd-cream)] transition ${
-                  i < ITEMS.length - 1 ? 'border-b border-[var(--fd-line)]' : ''
-                }`}
-              >
-                <Icon className="w-4 h-4 text-[var(--fd-pine)]" strokeWidth={1.5} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-bold text-[var(--fd-pine)]">{label}</div>
-                  <div className="text-[11px] text-[var(--fd-muted)] mt-0.5">{desc}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-[var(--fd-muted)]" strokeWidth={2} />
-              </Link>
-            </li>
+        <nav aria-label="약관과 정책" style={{ marginTop: 20, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+          {ITEMS.map(({ href, label, desc }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{ minHeight: 76, borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, color: '#141414', textDecoration: 'none' }}
+            >
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 18, fontWeight: 800 }}>{label}</span>
+                <span style={{ fontSize: 15, color: '#595959' }}>{desc}</span>
+              </span>
+              <span aria-hidden style={{ fontSize: 22 }}>
+                ›
+              </span>
+            </Link>
           ))}
-        </ul>
-      </section>
+        </nav>
       </main>
-    </AuthAwareShell>
+    </SiteShell>
   )
 }

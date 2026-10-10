@@ -19,8 +19,7 @@
  * blew up.
  *
  * ★2026-10-09 앱 갈래 (앱 새 디자인 'A 포스터', 시안 B04) — 이 파일은 웹·앱 공용이다.
- * 웹 화면(아래 두 번째 return)은 한 픽셀도 바꾸지 않았다(웹/앱 절대 분리 — 웹 쪽 '500'·영어 머리말·
- * 문제 코드 정리는 웹 리뉴얼 때). 앱(네이티브·설치형 PWA)이면 앱 상태 화면을 그린다:
+ * 웹 화면(아래 두 번째 return)은 2026-10-10 웹 리뉴얼로 웹 시안 WEB-A31 모양('500'·영어 머리말 없음). 앱(네이티브·설치형 PWA)이면 앱 상태 화면을 그린다:
  * 휴대폰 그림 · "앱을 불러오지 못했어요" · 새로고침 · 홈으로 — 오류 번호·영어 없음(결정: 오류는 뜨는
  * 순간 자동 기록되니 고객에게 문제 코드를 보이지 않는다). 위 Sentry 호출은 두 갈래 공통.
  * 앱 판정: 정본 isAppRequest(ft_app 쿠키·UA 표식) + Capacitor 브리지. 서버가 그린 HTML 은 항상 웹
@@ -32,21 +31,11 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { RotateCw } from 'lucide-react'
 import { isAppRequest } from '@/lib/app-context-request'
+import { business } from '@/lib/business'
 import { isNativeApp } from '@/lib/capacitor'
 import { V3 } from '@/lib/design/tokens'
 import AppStatusScreen from '@/components/v3/system/AppStatusScreen'
 import { AppCrashIcon } from '@/components/v3/system/StatusIcons'
-
-// FD 브랜드 토큰 inline mirror — globals.css 없이도 쓰려고 복제(루트 layout 붕괴
-// 시엔 var(--fd-*) 가 안 잡힘). globals.css 가 바뀌면 여기도 수동으로 맞춰야 한다.
-// (회차170: 옛 v4 warm-brown → FD 팔레트로 동기화. accent 는 흰 텍스트 AA pass.)
-const TOKENS = {
-  bg: '#F7F5F0', // --fd-offwhite
-  text: '#173B33', // --fd-pine
-  muted: '#5A6C61', // --fd-muted
-  terracotta: '#B63619', // --fd-coral-text (흰 텍스트 버튼 배경, AA pass)
-  rule: '#DCD6C4', // --fd-line
-} as const
 
 /** ft_app 쿠키 값(없으면 null) — 앱/웹 판정 자체는 정본 isAppRequest 가 한다(규칙58). */
 function appCookieValue(): string | null {
@@ -128,128 +117,76 @@ export default function GlobalError({
     )
   }
 
+  // ── 웹 = 웹 시안 WEB-A31(2026-10-10 웹 리뉴얼) — 흰 바탕·먹색, 왼쪽 정렬. 여기엔 globals.css·글꼴 변수가 없어
+  //    전부 인라인이고 제목은 시스템 굵은 글꼴이다. 문제 코드(복사)는 웹만 — 웹 손님은 고객센터에 코드를 불러 줄 수 있다.
   return (
     <html lang="ko">
       <body
         style={{
           margin: 0,
           minHeight: '100dvh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          backgroundColor: TOKENS.bg,
-          color: TOKENS.text,
-          fontFamily:
-            "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
-          letterSpacing: '-0.005em',
+          backgroundColor: '#FFFFFF',
+          color: '#141414',
+          fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+          letterSpacing: '-0.02em',
+          wordBreak: 'keep-all',
         }}
       >
-        <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
-          {/* Oversized code numeral — layout CSS가 없어도 시각적 계층은 생긴다. */}
-          <div
-            aria-hidden
-            style={{
-              fontSize: 88,
-              lineHeight: 1,
-              fontWeight: 900,
-              letterSpacing: '-0.02em',
-              color: 'rgba(30,26,20,0.08)',
-              fontVariantNumeric: 'tabular-nums',
-              userSelect: 'none',
-            }}
-          >
-            500
-          </div>
-
-          <div
-            style={{
-              marginTop: 16,
-              fontSize: 10,
-              fontWeight: 600,
-              color: TOKENS.muted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.22em',
-            }}
-          >
-            Critical Error · 잠깐 멈췄어요
-          </div>
-          <h1
-            style={{
-              marginTop: 6,
-              fontSize: 22,
-              fontWeight: 900,
-              letterSpacing: '-0.01em',
-              wordBreak: 'keep-all',
-            }}
-          >
-            앱을 불러오지 못했어요
+        <main style={{ maxWidth: 480, margin: '0 auto', padding: '72px 20px 48px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+          <span aria-hidden style={{ width: 72, height: 72, boxSizing: 'border-box', border: '2.5px solid #141414', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="13" rx="1.5" />
+              <path d="M9 21h6M12 17v4M9.5 8.5l5 5M14.5 8.5l-5 5" />
+            </svg>
+          </span>
+          <span style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#595959' }}>
+            <span aria-hidden style={{ width: 8, height: 8, background: '#141414' }} />
+            잠깐 멈췄어요
+          </span>
+          <h1 style={{ margin: '10px 0 0', fontSize: 40, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.03em' }}>
+            화면을
+            <br />
+            불러오지 못했어요
           </h1>
-          <p
-            style={{
-              marginTop: 8,
-              fontSize: 13,
-              color: TOKENS.muted,
-              lineHeight: 1.6,
-              wordBreak: 'keep-all',
-            }}
-          >
-            새로고침으로 해결되지 않으면 문제 코드를 고객센터에 알려 주세요.
-          </p>
+          <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>새로고침해도 안 되면 고객센터에 알려 주세요.</p>
 
           {error.digest && (
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 10.5,
-                fontFamily:
-                  "'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace",
-                color: TOKENS.muted,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span>문제 코드 · {error.digest}</span>
+            <p style={{ margin: '14px 0 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, color: '#595959', overflowWrap: 'anywhere' }}>
+              <span>
+                문제 코드 <strong style={{ color: '#141414', userSelect: 'all' }}>{error.digest}</strong>
+              </span>
               <button
+                type="button"
                 onClick={copyDigest}
-                aria-label={copied ? '복사됨' : '문제 코드 복사'}
-                style={{
-                  width: 20,
-                  height: 20,
-                  padding: 0,
-                  borderRadius: 4,
-                  border: 'none',
-                  background: 'transparent',
-                  color: copied ? '#6B7F3A' : TOKENS.muted,
-                  cursor: 'pointer',
-                  fontSize: 10,
-                  fontWeight: 700,
-                }}
+                aria-label={copied ? '복사했어요' : '문제 코드 복사'}
+                style={{ height: 32, padding: '0 10px', borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
               >
-                {copied ? '✓' : '⎘'}
+                {copied ? '복사했어요' : '복사'}
               </button>
-            </div>
+            </p>
           )}
 
           <button
-            onClick={() => {
-              if (typeof window !== 'undefined') window.location.reload()
-            }}
+            type="button"
+            onClick={reload}
             style={{
-              marginTop: 24,
-              width: '100%',
-              padding: '14px 0',
-              borderRadius: 12,
-              background: TOKENS.terracotta,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 900,
-              border: 'none',
+              marginTop: 30,
+              height: 60,
+              border: 0,
+              borderRadius: 4,
+              background: '#141414',
+              color: '#FFFFFF',
+              fontFamily: 'inherit',
+              fontSize: 18,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
               cursor: 'pointer',
-              letterSpacing: '-0.01em',
             }}
           >
+            <RotateCw size={20} strokeWidth={2.4} aria-hidden />
             새로고침
           </button>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
@@ -258,30 +195,22 @@ export default function GlobalError({
               페이지 재로드. */}
           <a
             href="/"
-            style={{
-              display: 'inline-block',
-              marginTop: 12,
-              fontSize: 12.5,
-              color: TOKENS.muted,
-              textDecoration: 'underline',
-              textUnderlineOffset: 2,
-            }}
+            style={{ alignSelf: 'center', marginTop: 10, minHeight: 48, padding: '0 8px', display: 'flex', alignItems: 'center', fontSize: 17, fontWeight: 700, color: '#3D3D3D', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
             홈으로 돌아가기
           </a>
-        </div>
-        {/* Hair rule bottom accent — 에디토리얼 감성 유지. */}
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 1,
-            background: TOKENS.rule,
-          }}
-        />
+          <div style={{ marginTop: 26, padding: 16, borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 15, color: '#595959' }}>고객센터</span>
+            <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <a href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} style={{ fontSize: 24, fontWeight: 900, color: '#141414', textDecoration: 'none' }}>
+                {business.phone}
+              </a>
+              <a href={`mailto:${business.email}`} style={{ fontSize: 16, color: '#3D3D3D' }}>
+                {business.email}
+              </a>
+            </span>
+          </div>
+        </main>
       </body>
     </html>
   )

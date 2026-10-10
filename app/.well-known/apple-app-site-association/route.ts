@@ -48,6 +48,13 @@ export async function GET() {
               { '/': '/api/*', exclude: true },
               { '/': '/auth/callback', exclude: true },
               { '/': '/.well-known/*', exclude: true },
+              // 웹 가게(단품)는 브라우저에서 산다(2026-10-10 웹 리뉴얼, 기획서 §6) — 앱은 단품을 팔지 않고, 앱에서 /store 를
+              // 열면 앱 홈으로 간다. 그래서 앱이 깔린 아이폰에서 가게·행사 링크를 누르면 앱 홈으로 튕겼다. /link(인스타
+              // 링크 모음)도 웹 전용 한 장이라 같이 뺀다. (안드로이드는 매니페스트라 새 앱 빌드에서 — 규칙175)
+              { '/': '/store', exclude: true },
+              { '/': '/store/*', exclude: true },
+              { '/': '/p/*', exclude: true },
+              { '/': '/link', exclude: true },
               // 그 외 모든 경로 deep-link 허용.
               { '/': '/*' },
             ],

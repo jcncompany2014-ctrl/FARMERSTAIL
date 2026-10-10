@@ -6,6 +6,8 @@ import { isAdmin } from '@/lib/auth/admin'
 import { recordAdminAction } from '@/lib/admin-audit'
 import { recordPaymentEvent } from '@/lib/payment-events'
 import { notifyOrderCancelled } from '@/lib/email'
+import { merchantForOrderNumber, tossSecretKey } from '@/lib/payments/toss'
+import { orderReservedStock } from '@/lib/commerce/stock-gate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -185,7 +187,13 @@ export async function POST(
     )
   }
 
-  const secretKey = process.env.TOSS_SECRET_KEY
+  // 웹 가게 주문(FTS-)은 결제위젯 계약 키로 환불한다(규칙172) — 다른 가맹점 키로 부르면 결제를 못 찾는다.
+  let secretKey: string | null = null
+  try {
+    secretKey = tossSecretKey(merchantForOrderNumber(order.order_number))
+  } catch {
+    secretKey = null
+  }
   if (!secretKey) {
     return NextResponse.json(
       { code: 'SERVER_CONFIG', message: '서버 설정 오류' },
@@ -352,8 +360,8 @@ export async function POST(
     // ★구독 청구 주문은 재고를 차감하지 않았으므로 복원도 없다 — 무조건
     //  복원하면 취소마다 재고가 유령 증가한다(2026-08-08 동시성 감사,
     //  고객 취소 라우트·order-expire 와 같은 gate).
-    const reservedStock =
-      (order as { subscription_id?: string | null }).subscription_id == null
+    // ★판정 정본 lib/commerce/stock-gate — 웹 가게 주문(FTS-)도 재고를 잡지 않는다(2026-10-10, 규칙172).
+    const reservedStock = orderReservedStock(order)
     for (const it of restoreArr) {
       if (!reservedStock) break
       const { error: restoreErr } = await admin.rpc('restore_stock', {

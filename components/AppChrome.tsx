@@ -93,6 +93,10 @@ const DEEP_TITLES: Record<string, string> = {
   '/dogs/:id/subscription': '정기배송',
   '/dogs/:id/year-in-review': '연말 결산',
   '/faq': '자주 묻는 질문',
+  // 문의 양식 — 앱은 카카오 채널 주소가 비었을 때만 온다(/help 폴백). 2026-10-10 웹 리뉴얼로 이 화면이 앱 틀(SiteShell)에 담기며 제목을 준다.
+  '/contact': '문의하기',
+  // 뉴스레터 — 앱엔 들어오는 곳이 없고 메일 링크로만 온다. 2026-10-10 웹 리뉴얼로 SiteShell(앱 틀)에 담기며 제목을 준다.
+  '/newsletter': '뉴스레터',
   '/help': '고객센터',
   '/mypage/orders': '주문 내역',
   // 주문 상세 아래 두 화면(시안 M09·M10) — 예전엔 접두사 규칙에 걸려 둘 다 '주문 상세'로 떴다(2026-10-09).

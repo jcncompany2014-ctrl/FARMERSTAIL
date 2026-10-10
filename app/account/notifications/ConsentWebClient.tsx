@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Mail, MessageSquare, AlertCircle } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { MARKETING_POLICY_VERSION, CONSENT_LABEL } from '@/lib/consent'
 import { formatKstLongDate } from '@/lib/datetime-kst'
 
 /**
- * 광고·마케팅 수신동의 — **웹 톤** client.
+ * 광고·마케팅 수신동의 — **웹** client(모양 = 웹 시안 WEB-A22, 2026-10-10 웹 리뉴얼).
  *
  * 앱 화면(`app/(main)/mypage/consent/ConsentSettingsClient.tsx`)을 재사용하지
  * 않는 이유는 `/account/subscriptions` 와 같다: 그쪽은 v3 앱 토큰(bg-bg-3 ·
@@ -80,11 +80,18 @@ export default function ConsentWebClient({ initial }: { initial: Initial }) {
     setSaving(null)
   }
 
+  // 모양 = 웹 시안 WEB-A22(2026-10-10 웹 리뉴얼) — 켜진 채널은 먹색 2px 테·검은 동그라미, 꺼진 채널은 회색 1px 테.
   return (
-    <div className="max-w-2xl">
-      <div className="flex flex-col gap-3">
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <ConsentCard
-          icon={<Mail className="w-4 h-4" strokeWidth={2} />}
+          id="consent-email"
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M3 7l9 6 9-6" />
+            </svg>
+          }
           label={CONSENT_LABEL.email}
           on={state.agree_email}
           at={state.agree_email_at}
@@ -92,7 +99,12 @@ export default function ConsentWebClient({ initial }: { initial: Initial }) {
           onChange={(v) => toggle('email', v)}
         />
         <ConsentCard
-          icon={<MessageSquare className="w-4 h-4" strokeWidth={2} />}
+          id="consent-sms"
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 5h14v10H9l-4 4z" />
+            </svg>
+          }
           label={CONSENT_LABEL.sms}
           on={state.agree_sms}
           at={state.agree_sms_at}
@@ -102,20 +114,9 @@ export default function ConsentWebClient({ initial }: { initial: Initial }) {
       </div>
 
       {error && (
-        <div
-          role="alert"
-          className="mt-3 text-[12px] font-bold rounded-[10px] px-3.5 py-2.5 flex items-start gap-2"
-          style={{
-            color: 'var(--fd-coral)',
-            background: 'color-mix(in srgb, var(--fd-coral) 7%, transparent)',
-          }}
-        >
-          <AlertCircle
-            className="w-3.5 h-3.5 shrink-0 mt-0.5"
-            strokeWidth={2.5}
-          />
-          <span>{error}</span>
-        </div>
+        <p role="alert" style={{ margin: '12px 0 0', padding: '12px 14px', background: '#FDECEA', color: '#8A1F11', borderRadius: 4, fontSize: 15, fontWeight: 700 }}>
+          {error}
+        </p>
       )}
 
       {/*
@@ -123,27 +124,19 @@ export default function ConsentWebClient({ initial }: { initial: Initial }) {
         알림 설정에서 변경" 이라고만 말해서, 여기 왔는데 주문·배송 메일을 끄는
         토글이 없으면 "고장났다" 로 읽힌다. 없는 게 아니라 끌 수 없는 것임을 밝힌다.
       */}
-      <p
-        className="mt-5 text-[12px] leading-relaxed"
-        style={{ color: 'var(--fd-muted)' }}
-      >
-        주문·배송·결제·환불 등 <strong>거래 안내는 이 설정과 무관하게</strong>{' '}
-        계속 발송됩니다. 앱 푸시 알림(카테고리·조용시간·기기)은 앱의 알림 설정에서
-        관리하실 수 있어요.
+      <p style={{ margin: '22px 0 0', padding: 16, borderRadius: 4, background: '#F6F4F5', fontSize: 16, lineHeight: 1.6, color: '#141414' }}>
+        <strong style={{ fontWeight: 800 }}>주문·배송·결제·환불 같은 거래 안내</strong>는 이 설정과 상관없이 계속 보내드려요. 앱 푸시 알림(종류·조용한
+        시간·기기)은 앱의 알림 설정에서 바꿀 수 있어요.
       </p>
-
-      <p
-        className="text-[11px] mt-3 leading-relaxed"
-        style={{ color: 'var(--fd-muted)' }}
-      >
-        수신동의는 언제든 철회할 수 있으며, 철회 즉시 해당 채널의 광고·마케팅
-        정보 발송이 중단됩니다.
+      <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.6, color: '#595959' }}>
+        수신 동의는 이 화면에서 바로 끌 수 있고, 끄면 그 채널의 광고·마케팅 발송이 바로 멈춰요.
       </p>
     </div>
   )
 }
 
 function ConsentCard({
+  id,
   icon,
   label,
   on,
@@ -151,6 +144,7 @@ function ConsentCard({
   saving,
   onChange,
 }: {
+  id: string
   icon: React.ReactNode
   label: string
   on: boolean
@@ -160,70 +154,65 @@ function ConsentCard({
 }) {
   return (
     <div
-      className="rounded-[14px] p-5"
       style={{
-        background: '#FFFFFF',
-        boxShadow: 'inset 0 0 0 1px var(--fd-line)',
+        minHeight: 88,
+        boxSizing: 'border-box',
+        padding: 16,
+        borderRadius: 4,
+        border: on ? '2px solid #141414' : '1px solid #BDBDBD',
+        display: 'grid',
+        gridTemplateColumns: '44px 1fr 64px',
+        columnGap: 14,
+        alignItems: 'center',
       }}
     >
-      <div className="flex items-start gap-3">
-        <span
-          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-          style={
-            on
-              ? {
-                  background:
-                    'color-mix(in srgb, var(--fd-coral) 12%, transparent)',
-                  color: 'var(--fd-coral)',
-                }
-              : { background: 'var(--fd-offwhite)', color: 'var(--fd-muted)' }
-          }
-          aria-hidden
-        >
-          {icon}
+      <span
+        aria-hidden
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          background: on ? '#141414' : '#F6F4F5',
+          color: on ? '#FFFFFF' : '#141414',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+        <span id={id} style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.35 }}>
+          {label}
         </span>
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-[13.5px] font-bold"
-            style={{ color: 'var(--fd-pine)' }}
-          >
-            {label}
-          </p>
-          <p
-            className="text-[11px] mt-0.5 leading-relaxed"
-            style={{ color: 'var(--fd-muted)' }}
-          >
-            {on && at
-              ? `${formatKstLongDate(at)} 동의`
-              : on
-                ? '수신 중'
-                : '현재 미동의'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange(!on)}
-          disabled={saving}
-          role="switch"
-          aria-checked={on}
-          aria-label={label}
-          className="relative w-10 h-6 rounded-full transition shrink-0 mt-1 disabled:opacity-50"
-          style={{ background: on ? 'var(--fd-pine)' : 'var(--fd-line)' }}
-        >
-          <span
-            className={`absolute top-0.5 w-5 h-5 rounded-full transition-all ${
-              on ? 'left-[18px]' : 'left-0.5'
-            }`}
-            style={{ background: '#FFFFFF' }}
-          />
-          {saving && (
-            <Loader2
-              className="absolute inset-0 m-auto w-3 h-3 animate-spin text-white"
-              strokeWidth={2.5}
-            />
-          )}
-        </button>
-      </div>
+        <span style={{ fontSize: 15, color: '#595959' }}>{on && at ? `${formatKstLongDate(at)} 동의` : on ? '받고 있어요' : '지금은 받지 않아요'}</span>
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(!on)}
+        disabled={saving}
+        role="switch"
+        aria-checked={on}
+        aria-labelledby={id}
+        style={{
+          position: 'relative',
+          width: 64,
+          height: 36,
+          padding: 3,
+          boxSizing: 'border-box',
+          border: 0,
+          borderRadius: 18,
+          background: on ? '#141414' : '#BDBDBD',
+          display: 'flex',
+          justifyContent: on ? 'flex-end' : 'flex-start',
+          cursor: saving ? 'wait' : 'pointer',
+          opacity: saving ? 0.6 : 1,
+        }}
+      >
+        <span style={{ width: 30, height: 30, borderRadius: 15, background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {saving && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} color="#141414" />}
+        </span>
+      </button>
     </div>
   )
 }

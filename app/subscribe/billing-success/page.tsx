@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from 'react'
 import { userFacingError } from '@/lib/error-message'
 import * as Sentry from '@sentry/nextjs'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   trackSubscriptionBillingCompleted,
   trackPurchase,
@@ -23,6 +22,7 @@ import { useIsAppContext } from '@/lib/app-context-client'
 import { NATIVE_BACK_EVENT } from '@/lib/native-back'
 import { NO_CANCEL_CONSENT_PARAM } from '@/lib/payments/no-cancel-consent'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
+import WebResultScreen, { WebPayMethodChip, WebResultAction } from '@/components/store/WebResultScreen'
 import AppResultScreen, { PayMethodChip, ResultAction } from '@/components/v3/billing/AppResultScreen'
 import { V3 } from '@/lib/design/tokens'
 
@@ -190,7 +190,13 @@ function BillingSuccessInner() {
         if (cancelled) return
         if (!res.ok || !data.ok) {
           setStatus('failed')
-          setErrorMsg(data.message ?? '등록에 실패했어요')
+          // 입력 검증 실패(VALIDATION_FAILED)의 message 는 검증 도구 원문('잘못된 customerKey'·영어 길이 오류)이다 —
+          // 고객에게는 다시 할 길만 말한다(규칙125 '원문 오류 금지'). '다시 시도하기'가 토스 창부터 새로 연다.
+          setErrorMsg(
+            data.code === 'VALIDATION_FAILED'
+              ? '카드 등록 정보가 올바르지 않아요. 처음부터 다시 등록해 주세요.'
+              : (data.message ?? '등록에 실패했어요'),
+          )
           // 고객 화면에만 뜨고 끝나던 실패 — 어떤 코드로 막혔는지 사장님이 봐야 고친다(2026-09-24).
           if (data.code !== 'ALREADY_REGISTERED') {
             Sentry.captureMessage('billing success exchange failed', {
@@ -303,7 +309,10 @@ function BillingSuccessInner() {
           label: '로그인하고 이어서 등록하기',
         }
       : failKind === 'gone'
-        ? { href: isApp || appLook ? '/dogs' : '/account/dogs', label: '다시 신청하기' }
+        ? // 웹은 정기배송 신청이 없다(2026-10-10 웹 리뉴얼 D2) — 다시 신청은 앱에서.
+          isApp || appLook
+          ? { href: '/dogs', label: '다시 신청하기' }
+          : { href: '/app', label: '앱에서 다시 신청하기' }
         : failKind === 'already'
           ? { href: subsHref, label: '등록된 결제수단 확인하기' }
           : {
@@ -380,217 +389,87 @@ function BillingSuccessInner() {
     )
   }
 
+  // ── 웹 모양(웹 시안 WEB-A25·실패, 2026-10-10 웹 리뉴얼) — 상태·판정·주소는 위 앱 갈래와 그대로. 웹은 '정기배송 관리'.
+  if (status === 'exchanging') {
+    return (
+      <WebResultScreen
+        mark="spin"
+        title="등록 처리 중이에요"
+        body={
+          <>
+            잠시만 기다려 주세요.
+            <br />
+            <strong style={{ fontWeight: 800, color: '#141414' }}>페이지를 닫지 마세요.</strong>
+          </>
+        }
+      />
+    )
+  }
+  if (status === 'succeeded') {
+    const chipText = [card?.brand, card?.last4 ? `**** ${card.last4}` : null].filter(Boolean).join(' ')
+    return (
+      <WebResultScreen
+        mark="done"
+        closeHref={subsHref}
+        title={method.doneTitle}
+        chip={chipText ? <WebPayMethodChip text={chipText} /> : undefined}
+        body={
+          <>
+            {/* 결제일은 고객마다 다르다(일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일 — 2026-10-01). 이 화면은 결제 시점을
+                모르므로 두 경우 모두 참인 "보내기 전"으로만 말한다. */}
+            2주마다 박스를 보내기 전에 {method.label}로 자동 결제돼요. 정기배송 관리에서 다음 결제 전까지 해지할 수 있어요.
+          </>
+        }
+        actions={
+          <WebResultAction primary onClick={() => router.push(`${subsHref}?new=1`)}>
+            내 정기배송 보기
+          </WebResultAction>
+        }
+      />
+    )
+  }
+  // 실패 — ★1순위 버튼을 실패 원인에 맞춘다(2026-08-14 4라운드 감사: 세션이 끊긴 401 에 '다시 시도'만 있으면 무한 왕복).
+  //   주소는 위 failPrimary(로그인·다시 신청·확인·다시 시도) 그대로.
   return (
-    <main
-      className="min-h-[100dvh] flex items-center justify-center px-6"
-      style={{
-        background: 'var(--bg)',
-        // 짧은 화면(가로 모드·작은 폰)에서 내용이 가장자리에 붙지 않게.
-        // safe-area 는 top-level 라우트라 AppChrome 이 안 챙겨 준다
-        // (billing-auth 헤더가 같은 이유로 이미 inset 을 더하고 있다).
-        paddingTop: 'calc(32px + env(safe-area-inset-top, 0px))',
-        paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
-      }}
-    >
-      {/* ★상태 전환을 SR 에 발표한다 (2026-08-07 a11y 감사).
-          없으면 "등록 처리 중"만 듣고 성공/실패가 발표되지 않아 —
-          실패를 모른 채 이탈하면 첫 배송이 스케줄되지 않는다.
-          실패 분기는 assertive(즉시 끊고 알림), 나머지는 polite. */}
-      <div
-        className="text-center max-w-sm w-full"
-        role={status === 'failed' ? 'alert' : 'status'}
-        aria-live={status === 'failed' ? 'assertive' : 'polite'}
-      >
-        {status === 'exchanging' && (
-          <>
-            <div
-              className="w-10 h-10 mx-auto mb-4 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: 'var(--terracotta)',
-                borderTopColor: 'transparent',
-              }}
-            />
-            <p
-              className="text-[14px]"
-              style={{ color: 'var(--text)', fontWeight: 700 }}
-            >
-              등록 처리 중이에요
-            </p>
-            <p
-              className="text-[11.5px] mt-1.5"
-              style={{ color: 'var(--muted)' }}
-            >
-              잠시만 기다려 주세요. 페이지를 닫지 마세요.
-            </p>
-          </>
-        )}
-
-        {status === 'succeeded' && (
-          <>
-            <div
-              className="w-16 h-16 mx-auto mb-7 rounded-full flex items-center justify-center text-[26px]"
-              style={{ background: 'var(--moss)', color: 'var(--bg)' }}
-            >
-              ✓
-            </div>
-            <p
-              className="font-serif text-[23px] font-black leading-tight"
-              style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
-            >
-              {method.doneTitle}
-            </p>
-            {(card?.brand || card?.last4) && (
-              <p
-                className="text-[12px] mt-2"
-                style={{ color: 'var(--muted)' }}
-              >
-                {card.brand ? `${card.brand} ` : ''}
-                {card.last4 ? `**** ${card.last4}` : ''}
-              </p>
-            )}
-            <p
-              className="text-[13px] leading-[1.75] mt-5"
-              style={{ color: 'var(--text)' }}
-            >
-              {/* 결제일은 고객마다 다르다(일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일 —
-                  2026-10-01). 이 화면은 결제 시점을 모르므로 두 경우 모두 참인 "보내기 전"으로만 말한다. */}
-              2주마다 박스를 보내기 전에 {method.label}로 자동 결제돼요.
-              <br />
-              마이페이지에서 다음 결제 전까지 해지할 수 있어요.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push(`${subsHref}?new=1`)}
-              className="mt-9 w-full py-4 rounded-full text-[13.5px] font-bold"
-              style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-            >
-              내 정기배송 보기
-            </button>
-          </>
-        )}
-
-        {status === 'failed' && (
-          <>
-            <div
-              className="w-16 h-16 mx-auto mb-7 rounded-full flex items-center justify-center text-[26px]"
-              style={{ background: 'var(--sale)', color: 'var(--bg)' }}
-            >
-              !
-            </div>
-            <p
-              className="font-serif text-[20px] font-black"
-              style={{ color: 'var(--ink)', letterSpacing: '-0.02em' }}
-            >
-              {failKind === 'auth'
-                ? '로그인이 풀렸어요'
-                : failKind === 'already'
-                  ? '이미 등록돼 있어요'
-                  : failKind === 'gone'
-                    ? '신청이 만료됐어요'
-                    : '등록에 실패했어요'}
-            </p>
-            <p
-              className="text-[12px] mt-3 leading-relaxed"
-              style={{ color: 'var(--muted)' }}
-            >
-              {errorMsg ?? '잠시 후 다시 시도해 주세요.'}
-            </p>
-            <div className="mt-6 flex flex-col gap-2">
-              {/**
-               * ★1순위 버튼을 실패 원인에 맞춘다 (2026-08-14 4라운드 감사).
-               *
-               * 전에는 어떤 실패든 '다시 시도하기'(→ billing-auth)가 1순위였다.
-               * 그런데 세션이 끊겨 401 이 난 경우 billing-auth 에는 인증 검사가
-               * 없어서 토스 창이 다시 뜨고, 돌아와 또 401 이 난다 — **화면
-               * 어디에도 로그인 링크가 없어** 카드 등록이 무한 왕복이 됐다.
-               * 결제 직전 단계라 여기서 막히면 그대로 이탈이다.
-               *
-               * next 는 **통째로 encodeURIComponent** 한다. 날것으로 붙이면
-               * `&customerKey` 가 /login 의 형제 파라미터로 파싱돼 next 가
-               * `?subscriptionId=..` 까지만 잘리고, billing-auth 의
-               * isInvalidEntry 가 '잘못된 접근이에요' 라는 **새 막다른 길**을
-               * 만든다(고치려다 더 나빠지는 형태).
-               */}
-              {failKind === 'auth' ? (
-                <Link
-                  href={
-                    subscriptionId && customerKey
-                      ? `/login?next=${encodeURIComponent(
-                          billingAuthFallbackHref({
-                            subscriptionId,
-                            customerKey,
-                          }),
-                        )}`
-                      : '/login'
-                  }
-                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-                >
-                  로그인하고 이어서 등록하기
-                </Link>
-              ) : failKind === 'gone' ? (
-                <Link
-                  href={isApp ? '/dogs' : '/account/dogs'}
-                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-                >
-                  다시 신청하기
-                </Link>
-              ) : failKind === 'already' ? (
-                <Link
-                  href={subsHref}
-                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-                >
-                  등록된 결제수단 확인하기
-                </Link>
-              ) : (
-                <Link
-                  href={
-                    subscriptionId && customerKey
-                      ? billingAuthFallbackHref({ subscriptionId, customerKey })
-                      : subsHref
-                  }
-                  className="w-full py-3 rounded-full text-[13px] font-bold text-center"
-                  style={{ background: 'var(--ink)', color: 'var(--bg)' }}
-                >
-                  다시 시도하기
-                </Link>
-              )}
-              {failKind !== 'already' && (
-                <Link
-                  href={subsHref}
-                  className="w-full py-3 rounded-full text-[13px] font-bold text-center border"
-                  style={{
-                    borderColor: 'var(--rule)',
-                    color: 'var(--text)',
-                  }}
-                >
-                  나중에 등록할게요
-                </Link>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+    <WebResultScreen
+      alert
+      mark="fail"
+      closeHref={subsHref}
+      title={
+        failKind === 'auth'
+          ? '로그인이 풀렸어요'
+          : failKind === 'already'
+            ? '이미 등록돼 있어요'
+            : failKind === 'gone'
+              ? '신청이 만료됐어요'
+              : '등록에 실패했어요'
+      }
+      body={errorMsg ?? '잠시 후 다시 시도해 주세요.'}
+      actions={
+        <>
+          <WebResultAction primary href={failPrimary.href}>
+            {failPrimary.label}
+          </WebResultAction>
+          {failKind !== 'already' && <WebResultAction href={subsHref}>나중에 등록할게요</WebResultAction>}
+        </>
+      }
+    />
   )
 }
 
 export default function BillingSuccessPage() {
-  // 불러오는 동안도 앱이면 흰 바탕·먹색(서버 판정) — 웹은 예전 그대로.
-  const appLook = useServerAppContext()
+  // 기다리는 동안 흰 바탕·먹색 원 — 앱 새 디자인·웹 리뉴얼(2026-10-10) 둘 다.
   return (
     <Suspense
       fallback={
         <main
           className="min-h-[100dvh] flex items-center justify-center"
-          style={{ background: appLook ? '#FFFFFF' : 'var(--bg)' }}
+          style={{ background: '#FFFFFF' }}
         >
           <div
             className="w-10 h-10 border-2 rounded-full animate-spin"
             style={{
-              borderColor: appLook ? V3.ink : 'var(--terracotta)',
+              borderColor: V3.ink,
               borderTopColor: 'transparent',
             }}
           />
