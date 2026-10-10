@@ -61,8 +61,11 @@ android {
         //    12 (2026-09-24): intent:·market:·앱 전용 스킴 링크 처리(MainActivity) — 카카오
         //                     웹 로그인의 "카카오톡으로 로그인"·카드사 앱 전환이 무반응이던 것.
         //                     에뮬레이터 실측(미설치→스토어, 대체주소→앱 안, 충돌 0). 아직 미업로드.
-        versionCode 12
-        versionName "1.0.11"
+        //    13 (2026-10-10): 앱 새 디자인('A 포스터') 켜는 날 — 셸 3세대(흰 네이티브 바탕·로딩·상태바, FtShell/3) +
+        //                     Capacitor 8.4.3 보안 + 오프라인 안내 화면. 12(1.0.11)는 올리지 않고 이걸로 대신한다
+        //                     (12 가 이미 올라갔어도 13 은 그대로 올릴 수 있다).
+        versionCode 13
+        versionName "1.0.12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
