@@ -513,11 +513,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
                   className="flex items-center transition active:scale-95"
                   style={{ height: 48 }}
                 >
+                  {/* 2026-10-10 사장님 "로고가 너무 작고 위쪽에 있는 느낌" — 시안 17px → 24px. 그림 아래 23% 가 작은
+                      'FARM·TO·TAIL' 줄이라 그림을 가운데 두면 글자(위 77%)가 3px 위로 떠 보인다 → 3px 내려 글자를 가운데로. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/logo-ink.png"
                     alt="파머스테일"
-                    style={{ height: 17, width: 'auto', display: 'block' }}
+                    style={{ height: 24, width: 'auto', display: 'block', position: 'relative', top: 3 }}
                     fetchPriority="high"
                   />
                 </Link>
