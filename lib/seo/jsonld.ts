@@ -33,6 +33,8 @@
  *
  * canonical 은 www 포함 (app/layout.tsx, app/sitemap.ts, app/robots.ts 와 통일).
  */
+import { business } from '../business.ts'
+
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
 
@@ -91,9 +93,11 @@ export function buildOrganizationJsonLd() {
     alternateName: SITE_NAME_EN,
     url: SITE_URL,
     logo: LOGO_URL,
+    // 2026-10-11: 옛 '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 브랜드' → 웹 리뉴얼 문구(검색 요약이 이 말을 가져간다).
     description:
-      '수의영양학 기반 레시피로 만든 프리미엄 반려견 식품 브랜드. Farm to Tail.',
-    sameAs: SOCIAL_PROFILES.map((s) => s.href),
+      '국내산 고기를 수비드로 익힌 강아지 화식 브랜드. 웹에서는 500g 단품으로, 앱에서는 2주마다 정기배송으로 받아요.',
+    // 같은 회사의 공식 채널 — 푸터에 보이는 SNS(SOCIAL_PROFILES) + 카카오 채널·네이버 스마트스토어(검색 결과에 같이 뜨는 공식 창구).
+    sameAs: [...SOCIAL_PROFILES.map((s) => s.href), ...(business.kakaoChannelUrl ? [business.kakaoChannelUrl] : []), 'https://smartstore.naver.com/farmerstail'],
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',

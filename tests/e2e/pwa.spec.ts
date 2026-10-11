@@ -26,10 +26,11 @@ test.describe('PWA basics', () => {
     expect(text).toContain('CACHE_NAME')
   })
 
-  test('PWA 아이콘 SVG 200 (audit #45)', async ({ request }) => {
-    const res = await request.get('/icons/icon.svg')
-    expect(res.ok()).toBeTruthy()
-    const maskable = await request.get('/icons/icon-maskable.svg')
-    expect(maskable.ok()).toBeTruthy()
+  // 2026-10-11: 옛 테라코타 'FT' SVG 아이콘(audit #45)을 빼고 도장 로고 PNG 로 — maskable·아이폰 홈 화면은 불투명 PNG.
+  test('PWA·아이폰 홈 화면 아이콘 200', async ({ request }) => {
+    for (const path of ['/icons/maskable-192.png', '/icons/maskable-512.png', '/icons/apple-touch-icon.png']) {
+      const res = await request.get(path)
+      expect(res.ok()).toBeTruthy()
+    }
   })
 })

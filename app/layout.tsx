@@ -199,26 +199,32 @@ const supabaseOrigin = (() => {
   }
 })();
 
+const SITE_TITLE = "파머스테일 — 국내산 고기를 수비드로 익힌 강아지 화식";
+const SITE_DESCRIPTION =
+  "국내산 고기를 수비드로 익힌 강아지 화식 — 닭고기·오리고기·흑돼지·한우 4종. 웹에서는 500g 한 봉씩, 앱에서는 2주마다 정기배송으로 받아요.";
+const SITE_SHARE_DESCRIPTION =
+  "국내산 고기를 수비드로 익힌 강아지 화식. 웹에서는 500g 한 봉씩, 앱에서는 2주마다 정기배송으로.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // 기본값 = 제목·설명을 따로 두지 않은 화면과 공유 미리보기(카톡·인스타)의 바탕. 2026-10-11 웹 리뉴얼 문구로 —
+  // 옛 "프리미엄 반려견 식품 · 수의영양학 기반 맞춤 화식 정기배송"이 스토어·앱 소개·약관의 공유 카드에 그대로 떴다.
+  // 웹 문구에 '맞춤'은 쓰지 않는다(웹 = 단품, 양 맞추기는 앱).
   title: {
-    default: "파머스테일 | Farmer's Tail",
+    default: SITE_TITLE,
     template: "%s | 파머스테일",
   },
-  description:
-    "우리 아이를 위한 프리미엄 반려견 식품. 수의영양학 기반 맞춤 화식 정기배송 — Farm to Tail.",
+  description: SITE_DESCRIPTION,
   applicationName: "파머스테일",
   keywords: [
     "파머스테일",
     "Farmer's Tail",
-    "반려견 식품",
+    "강아지 화식",
     "반려견 화식",
-    "프리미엄 강아지 사료",
-    "강아지 간식",
-    "수의영양학",
-    "정기배송",
-    "D2C 펫푸드",
-    "Farm to Tail",
+    "수비드 화식",
+    "국내산 화식",
+    "강아지 화식 체험팩",
+    "화식 정기배송",
   ],
   authors: [{ name: "Farmer's Tail" }],
   creator: "Farmer's Tail",
@@ -234,23 +240,21 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: siteUrl,
     siteName: "파머스테일",
-    title: "파머스테일 | Farmer's Tail",
-    description:
-      "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
+    title: SITE_TITLE,
+    description: SITE_SHARE_DESCRIPTION,
     images: [
       {
         url: "/og",
         width: 1200,
         height: 630,
-        alt: "파머스테일 — 우리 아이를 위한 프리미엄 반려견 식품",
+        alt: "파머스테일",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "파머스테일 | Farmer's Tail",
-    description:
-      "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail",
+    title: SITE_TITLE,
+    description: SITE_SHARE_DESCRIPTION,
     images: ["/og"],
   },
   other: {
@@ -286,25 +290,21 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    // iOS Safari pins this as the home-screen icon when users install.
-    apple: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
+    // 아이폰 '홈 화면에 추가' 아이콘 — 불투명(흰 바탕)이어야 한다. 투명 PNG 를 주면 iOS 가 투명한 곳을 검게 칠해
+    // 갈색 도장이 검은 네모 위에 뜬다(2026-10-11 점검). 180×180 이 iOS 기준 크기.
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     shortcut: "/icons/icon-192.png",
   },
-  alternates: {
-    canonical: "/",
-  },
+  // canonical 은 여기 두지 않는다 — 루트에 "/" 를 두면 제 canonical 이 없는 화면(링크 모음 등)이 전부 "홈과 같은 화면"으로
+  // 신고됐다(2026-10-11 점검: /link 의 canonical 이 홈). 화면마다 자기 alternates.canonical 을 둔다(홈은 app/page.tsx).
 };
 
 export const viewport: Viewport = {
-  // audit #110: theme-color media 분기 — 다크모드 OS 사용자의 status bar 아이콘
-  // (흰색) 과 terracotta 배경 충돌 방지. 라이트는 시그니처 terracotta 유지,
-  // 다크는 --bg 다크 값으로 연속.
-  // 다크 분기 제거(2026-08-05) — 화면은 항상 라이트인데 OS 다크 사용자만
+  // 다크 분기는 두지 않는다(2026-08-05) — 화면은 항상 라이트인데 OS 다크 사용자만
   // **상태바가 검게** 떠서 헤더와 어긋났다.
-  themeColor: "#A0452E",
+  // 2026-10-11 웹 리뉴얼·앱 흰 바탕: 옛 테라코타(#A0452E)는 안드로이드 크롬 주소창·설치형 웹앱 상태바를 옛 색으로 칠했다.
+  //   흰 머리줄과 이어지게 흰색(네이티브 앱의 상태바는 AppSplash 가 StatusBar 플러그인으로 따로 칠한다).
+  themeColor: "#FFFFFF",
   width: "device-width",
   initialScale: 1,
   // 확대/축소 차단 (2026-07-12 사장님 지시 — "앱 전체 확대 축소 절대 안되게").

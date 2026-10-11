@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
+import { permanentRedirect, redirect } from 'next/navigation'
 import WebChrome from '@/components/WebChrome'
 import { Suspense } from 'react'
 import FirstScreenFlow from './first/FirstScreenFlow'
@@ -63,9 +63,10 @@ export default async function StartPage({ searchParams }: { searchParams: Promis
   // ★2026-10-10 웹 리뉴얼(기획서 D1, 사장님 "기획서대로"): 웹 설문은 앱으로 옮겼다 — 웹 손님은 앱 소개(/app)로.
   //   단 행사 링크(?p=코드 — 배너·전단에 이미 인쇄된 QR)는 지금 흐름(설문 → 가입할 때 혜택이 계정에 박힘 → 앱 첫 정기배송에
   //   적용)을 그대로 둔다. 그 손님의 끝 화면(/start/done)이 앱으로 이어 준다. 행사 화면을 새로 만들면(/p/코드) 여기도 정리.
+  //   308(영구) — 307(임시)이면 구글이 옛 설문 화면('새로 오셨어요?…')을 색인에 붙잡고 있다(10/11 검색 실측).
   const sp = await searchParams
   const promo = normalizePromoCode(Array.isArray(sp.p) ? sp.p[0] : sp.p)
-  if (!isApp && !promo) redirect('/app')
+  if (!isApp && !promo) permanentRedirect('/app')
   // ★ 익명 전용 퍼널 가드 (사장님 제보 2026-08-24, 규칙62): 이 퍼널의 끝은
   //   가입 폼이라 로그인 사용자는 끝까지 가도 "이미 가입된 이메일" 에서 막힌다.
   //   CTA 는 planHref 가 이미 분기하지만 직접 진입(북마크·QR)은 CTA 를 안

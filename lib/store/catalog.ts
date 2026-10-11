@@ -94,10 +94,17 @@ export function fullIngredients(r: StoreRecipe): string[] {
 }
 
 /** 상품 상세 한 줄. 예: 닭가슴살에 염통과 간까지, 브로콜리와 블루베리를 더했어요 */
+/**
+ * 무항생제 고기 — 닭가슴살·오리 안심만(사장님 2026-10-11 "강점이 둘 다 무항생제"). 흑돼지·한우·간·염통에는 붙이지 않는다.
+ * 재료 정본(lib/recipe-ingredients)의 이름은 그대로 두고(라벨·주문 품목과 엮임) 화면 문구에서만 쓴다.
+ */
+export const ANTIBIOTIC_FREE_MAIN: Readonly<Partial<Record<StoreRecipe, true>>> = { chicken: true, duck: true }
+
 export function recipeIntro(r: StoreRecipe): string {
   const ing = ingredientsOf(r)
   const [t1, t2] = ing.toppings
-  return `${ing.main}에 염통과 간까지, ${waGwa(t1)} ${eulReul(t2)} 더했어요`
+  const main = ANTIBIOTIC_FREE_MAIN[r] ? `무항생제 ${ing.main}` : ing.main
+  return `${main}에 염통과 간까지, ${waGwa(t1)} ${eulReul(t2)} 더했어요`
 }
 
 /**

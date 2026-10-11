@@ -6,6 +6,7 @@ import ProductDetail from '@/components/store/ProductDetail'
 import CartView from '@/components/store/CartView'
 import StoreBrowse from '@/components/store/StoreBrowse'
 import RecipeGrid from '@/components/store/RecipeGrid'
+import MagazineDraftPreview from './MagazineDraftPreview'
 import { widgetClientKey } from '@/lib/store/toss-widget'
 import ReceiptWebView from '@/app/mypage/orders/[id]/receipt/ReceiptWebView'
 import type { ReceiptAppModel } from '@/app/mypage/orders/[id]/receipt/ReceiptAppView'
@@ -111,9 +112,11 @@ function subsFixture(): Subscription[] {
   ]
 }
 
-export default async function DesignCheckStorePage({ searchParams }: { searchParams: Promise<{ s?: string }> }) {
+export default async function DesignCheckStorePage({ searchParams }: { searchParams: Promise<{ s?: string; m?: string; f?: string }> }) {
   if (process.env.VERCEL_ENV === 'production') notFound()
-  const { s } = await searchParams
+  const { s, m, f } = await searchParams
+  // 매거진 초안 미리보기 — docs/magazine/<m>/<f>.md 를 글 화면 모양으로(사장님 확인용, 2026-10-11).
+  if (s === 'magazine-draft') return <MagazineDraftPreview month={m ?? '2026-10'} file={f ?? ''} />
   if (s === 'receipt') return <ReceiptWebView m={RECEIPT_WEB} orderId="design-check" print={false} />
   // 자사몰 결제 막음(스마트스토어 안내) — 운영에만 켜지는 모양이라(미리보기·로컬은 테스트 키) 여기서 켠 채로 본다(규칙177).
   if (s === 'paused-home')

@@ -106,3 +106,44 @@ describe('renderMarkdown — 정상 렌더 (회귀 가드)', () => {
     assert.match(out, /&lt;script&gt;/)
   })
 })
+
+describe('renderMarkdown — 매거진 읽기 좋은 모양(2026-10-11)', () => {
+  it('목록 뒤 문단은 따로 <p> 가 된다(목록이 다음 문단을 삼키지 않는다)', () => {
+    const out = renderMarkdown('- 하나\n- 둘\n\n그다음 문단')
+    assert.match(out, /<\/ul>\s*<p>그다음 문단<\/p>/)
+    const ol = renderMarkdown('1. 첫째\n2. 둘째\n\n그다음 문단')
+    assert.match(ol, /<ol><li>첫째<\/li><li>둘째<\/li><\/ol>\s*<p>그다음 문단<\/p>/)
+  })
+
+  it('표 — 머리 줄 + 구분 줄 + 칸(굵게 유지)', () => {
+    const out = renderMarkdown('| 방식 | 하루 양 |\n|---|---|\n| 반반 | **126g** |')
+    assert.match(out, /<table><thead><tr><th>방식<\/th><th>하루 양<\/th><\/tr><\/thead><tbody><tr><td>반반<\/td><td><strong>126g<\/strong><\/td><\/tr><\/tbody><\/table>/)
+  })
+
+  it('형광펜 ==강조==', () => {
+    assert.match(renderMarkdown('화식이 ==새로워서==예요'), /<mark>새로워서<\/mark>/)
+  })
+
+  it('상자 — 요약·팁·주의(제목 없으면 기본 제목), 안쪽도 마크다운', () => {
+    const sum = renderMarkdown(':::요약 세 줄 요약\n- **일주일**에 걸쳐\n- 하루 양\n:::')
+    assert.match(sum, /<aside class="md-box md-sum"><p class="md-box-t">세 줄 요약<\/p><ul><li><strong>일주일<\/strong>에 걸쳐<\/li><li>하루 양<\/li><\/ul>/)
+    assert.match(renderMarkdown(':::주의\n수의사와 먼저\n:::'), /<aside class="md-box md-warn"><p class="md-box-t">이럴 땐 수의사와 먼저<\/p><p>수의사와 먼저<\/p><\/aside>/)
+    assert.match(renderMarkdown(':::팁\n알아 두기\n:::'), /md-tip/)
+  })
+
+  it('질문 칸 — 펼쳐 보는 details, 제목은 이스케이프', () => {
+    const out = renderMarkdown(':::질문 <b>화식만</b> 먹여야 하나요?\n아니요.\n:::')
+    assert.match(out, /<details class="md-qa"><summary>/)
+    assert.match(out, /&lt;b&gt;화식만&lt;\/b&gt; 먹여야 하나요\?/)
+    assert.match(out, /<div class="md-a"><p>아니요.<\/p><\/div><\/details>/)
+  })
+
+  it('상자 안의 위험한 HTML 도 이스케이프된다', () => {
+    const out = renderMarkdown(':::팁\n<script>alert(1)</script>\n:::')
+    assert.doesNotMatch(out, /<script>/)
+  })
+
+  it('닫히지 않은 상자는 글자 그대로(조용히 사라지지 않는다)', () => {
+    assert.match(renderMarkdown(':::팁\n닫는 줄이 없다'), /:::팁/)
+  })
+})

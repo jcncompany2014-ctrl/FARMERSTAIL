@@ -340,7 +340,7 @@ export default async function FaqPage() {
 
   // 웹 — 2026-10-10 웹 리뉴얼(웹 = 단품 가게): 맨 위에 '웹에서 살 때'(가게 기준 — 숫자는 코드 정본 lib/store),
   // 그 아래 DB FAQ. DB 답은 **앱 정기배송 기준**(화요일 발송·배송비 포함·카드 자동결제)이라 '앱 정기배송' 제목 아래로 묶어
-  // 가게 기준(화·목 출고·배송비 4,000원)과 헷갈리지 않게 한다. 식단·영양은 둘 다 해당돼 앞에 둔다.
+  // 가게 기준(화·목 출고·배송비 5,000원)과 헷갈리지 않게 한다. 식단·영양은 둘 다 해당돼 앞에 둔다.
   const storeGroup: Group = { title: '웹에서 살 때', items: STORE_FAQ }
   const general = groups.filter((g) => g.title.includes('식단'))
   const subs = groups.filter((g) => !g.title.includes('식단'))

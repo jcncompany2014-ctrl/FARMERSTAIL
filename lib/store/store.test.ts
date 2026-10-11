@@ -64,7 +64,8 @@ test('카드 한 줄 원재료 — 정본(lib/recipe-ingredients)에서, 고기 
 })
 
 test('상세 한 줄·다른 레시피 권유 — 정본 원재료·알레르기 교차 반응에서', () => {
-  assert.equal(recipeIntro('chicken'), '닭가슴살에 염통과 간까지, 브로콜리와 블루베리를 더했어요')
+  assert.equal(recipeIntro('chicken'), '무항생제 닭가슴살에 염통과 간까지, 브로콜리와 블루베리를 더했어요')
+  assert.equal(recipeIntro('duck'), '무항생제 오리 안심에 염통과 간까지, 애호박과 사과를 더했어요')
   assert.equal(recipeIntro('pork'), '흑돼지 뒷다리살에 염통과 간까지, 무와 양배추를 더했어요')
   // 오리는 닭과 교차 반응 — 닭고기 대안에서 빠진다(시안의 "오리고기나 한우"를 정본이 고친다).
   assert.ok(!alternativeRecipes('chicken').includes('duck'))
@@ -81,10 +82,11 @@ test('상품 id 판정 — 상품표에 없는 것은 거른다', () => {
   assert.ok(!isStoreItemId(undefined))
 })
 
-test('배송비 4,000원 · 5만 원 이상 무료 · 빈 장바구니 0', () => {
+test('배송비 5,000원 · 5만 원 이상 무료 · 빈 장바구니 0', () => {
+  assert.equal(SHIPPING_FEE, 5_000, '사장님 10/11 "배송비 전부다 5000원으로" — 바꾸려면 약관 시행일·공지부터')
   assert.equal(shippingFeeFor(0), 0)
   assert.equal(shippingFeeFor(24_000), SHIPPING_FEE)
-  assert.equal(shippingFeeFor(49_990), 4_000)
+  assert.equal(shippingFeeFor(49_990), 5_000)
   assert.equal(shippingFeeFor(50_000), 0)
   assert.equal(untilFreeShipping(24_000), 26_000)
   assert.equal(untilFreeShipping(60_000), 0)
@@ -170,9 +172,9 @@ test('재고 되돌림 판정 — 정기배송·웹 가게 주문은 재고를 �
   assert.equal(orderReservedStock({ subscription_id: null, order_number: 'FT-20260601-OLD' }), true)
 })
 
-test('장바구니 합계 — 시안 예시(닭 500g 28,000원 / 닭+오리 51,000원 무료배송)', () => {
+test('장바구니 합계 — 닭 500g 29,000원(배송비 5,000원) / 닭+오리 51,000원 무료배송', () => {
   const one = cartSummary([{ id: 'chicken-500g', qty: 1 }])
-  assert.deepEqual([one.subtotal, one.shippingFee, one.total, one.untilFree], [24_000, 4_000, 28_000, 26_000])
+  assert.deepEqual([one.subtotal, one.shippingFee, one.total, one.untilFree], [24_000, 5_000, 29_000, 26_000])
   const two = cartSummary([
     { id: 'chicken-500g', qty: 1 },
     { id: 'duck-500g', qty: 1 },

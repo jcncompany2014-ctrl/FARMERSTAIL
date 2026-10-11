@@ -23,9 +23,324 @@
   border-bottom: 1px solid #e5e5e5;
 }
 
-/* 첫 화면 */
+/* 첫 화면 — 2026-10-11 '저울은 넣어 두세요'(사장님 "얼마나 줘야 할지 매번 헷갈리셨죠?") */
 .hero {
-  padding: 36px 20px 40px;
+  padding: 40px 20px 32px;
+}
+.heroAsk {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #595959;
+}
+.heroPhoto {
+  position: relative;
+  margin: 0 20px;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f6f4f5;
+}
+.portionChip {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 10px 14px 12px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 2px solid #141414;
+  box-shadow: 4px 4px 0 #141414;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.portionLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #595959;
+}
+.portionValue {
+  font-size: 34px;
+  line-height: 1;
+}
+.portionSub {
+  font-size: 13px;
+  font-weight: 800;
+  color: #141414;
+}
+
+/* 소제목 — 매거진과 같은 결: 위 굵은 선 + 회색 Anton 번호 + 포스터 제목 */
+.secHead {
+  padding-top: 26px;
+  border-top: 2px solid #141414;
+}
+.secHeadDark {
+  border-top-color: #ffffff;
+}
+.secNum {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: #8c8c8c;
+}
+.secBody {
+  margin: 12px 0 0;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #3d3d3d;
+}
+
+/* 01 이렇게 끝나요 — 큰 번호 + 세로선 */
+.steps {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  padding-bottom: 32px;
+}
+.step::after {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 50px;
+  bottom: 8px;
+  width: 2px;
+  background: #e5e5e5;
+}
+.step:last-child {
+  padding-bottom: 0;
+}
+.step:last-child::after {
+  display: none;
+}
+.stepNum {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #141414;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  min-width: 0;
+}
+.stepTitle {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.stepText {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3d3d3d;
+}
+.stepPhoto {
+  position: relative;
+  margin-top: 10px;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f6f4f5;
+}
+.stepPhone {
+  margin-top: 12px;
+  width: 180px;
+  aspect-ratio: 169 / 250;
+  box-sizing: border-box;
+  border-radius: 28px 28px 0 0;
+  background: #000000;
+  padding: 7px 7px 0;
+  overflow: hidden;
+}
+.stepPhone img {
+  width: 100%;
+  height: auto;
+  border-radius: 22px 22px 0 0;
+  display: block;
+}
+
+/* 02 그동안 vs 파머스테일 */
+.compare {
+  margin-top: 56px;
+  padding: 0 20px 44px;
+  background: #f6f4f5;
+}
+.compare .secHead {
+  padding-top: 40px;
+  border-top: 0;
+}
+.cmpGrid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.cmpBefore,
+.cmpAfter {
+  padding: 18px 16px 20px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cmpBefore {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+}
+.cmpAfter {
+  background: #141414;
+  color: #ffffff;
+}
+.cmpLabel {
+  font-size: 14px;
+  font-weight: 800;
+  color: #8c8c8c;
+}
+.cmpAfter .cmpLabel {
+  color: #d4a24c;
+}
+.cmpBefore ul,
+.cmpAfter ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cmpBefore li {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #8c8c8c;
+  text-decoration: line-through;
+  text-decoration-color: #c4c4c4;
+}
+.cmpAfter li {
+  font-size: 24px;
+  line-height: 1.15;
+}
+.cmpAfter .cmpEnd {
+  font-size: 44px;
+  color: #d4a24c;
+}
+
+/* 03 레시피 4종 */
+.recipes {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 10px;
+  row-gap: 20px;
+}
+.recipe {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.recipeImg {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f6f4f5;
+}
+.recipeTag {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  background: #1d3b2f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.recipeName {
+  margin-top: 10px;
+  font-size: 21px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+.recipeMeat {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #595959;
+}
+
+/* 05 자주 묻는 것 — 매거진 Q 칸과 같은 결 */
+.faq {
+  margin-top: 16px;
+  border-top: 2px solid #141414;
+}
+.qa {
+  border-bottom: 1px solid #e5e5e5;
+}
+.qa > summary {
+  min-height: 62px;
+  padding: 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.45;
+  list-style: none;
+  cursor: pointer;
+}
+.qa > summary::-webkit-details-marker {
+  display: none;
+}
+.q {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #141414;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.qText {
+  flex: 1;
+  min-width: 0;
+}
+.qIcon::before {
+  content: '+';
+  font-size: 26px;
+  font-weight: 300;
+}
+.qa[open] .qIcon::before {
+  content: '−';
+}
+.a {
+  margin: 0;
+  padding: 0 0 18px 38px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #3d3d3d;
+}
+
+.finalTitle {
+  margin: 0;
+  font-size: clamp(34px, 11vw, 44px);
+  line-height: 1.08;
+  font-weight: 400;
 }
 .kicker {
   display: flex;
@@ -95,7 +410,7 @@
 
 /* 먹색 칸 — 정기배송 15% */
 .dark {
-  padding: 44px 20px 0;
+  padding: 44px 20px 40px;
   background: #141414;
   color: #ffffff;
   overflow: hidden;
@@ -133,53 +448,6 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
   font-size: 18px;
 }
-.phoneStage {
-  position: relative;
-  margin: 40px auto 0;
-  width: 350px;
-  max-width: 100%;
-  height: 360px;
-}
-.phoneBig {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
-  width: 230px;
-  height: 360px;
-  box-sizing: border-box;
-  border-radius: 34px 34px 0 0;
-  background: #000000;
-  padding: 8px 8px 0;
-  overflow: hidden;
-}
-.phoneBig img {
-  width: 214px;
-  height: auto;
-  border-radius: 26px 26px 0 0;
-  display: block;
-}
-.chip {
-  position: absolute;
-  left: 4px;
-  top: 210px;
-  padding: 10px 12px;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #141414;
-  box-shadow: 4px 4px 0 #000000;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.chipLabel {
-  font-size: 13px;
-  color: #595959;
-}
-.chipValue {
-  font-size: 22px;
-}
-
 /* 앱에서 할 수 있는 것 */
 .section {
   padding: 56px 20px 0;

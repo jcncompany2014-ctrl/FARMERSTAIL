@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ogImageUrl, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
 import StoreShell from '@/components/store/StoreShell'
+import { QaList, SecHead } from '@/components/store/Editorial'
 import { SUBSCRIPTION_DISCOUNT_PCT, TRIAL_PRICE } from '@/lib/store/catalog'
 
 /**
@@ -108,6 +109,8 @@ function Arrow() {
   )
 }
 
+// 2026-10-11 매거진 결로 다듬음(사장님 "이 느낌대로 … 이쁘게"): 본문 장 제목 = 번호 소제목(Editorial SecHead), 자주 묻는 것 = Q 칸.
+//   H2 는 맨 끝 마무리 제목에만 남는다.
 function H2({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <h2 className="d" style={{ margin: 0, fontSize: 30, lineHeight: 1.12, ...style }}>
@@ -167,7 +170,7 @@ export default async function WhyFreshPage() {
         />
 
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>무엇이 다른가요?</H2>
+          <SecHead n={1}>무엇이 다른가요?</SecHead>
           <p style={LEAD}>건강 효과를 단정하진 않을게요. 다만 어떻게 만들고 무엇이 들어가는지는 분명히 달라요.</p>
           <table style={{ marginTop: 18, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: 16, lineHeight: 1.45, borderTop: '2px solid #141414' }}>
             <thead>
@@ -198,11 +201,11 @@ export default async function WhyFreshPage() {
         </section>
 
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={2}>
             사람이 먹는 등급
             <br />
             그대로
-          </H2>
+          </SecHead>
           <p style={LEAD}>특별한 재료가 아니에요. 우리가 먹을 수 있는 신선한 정육·채소를 같은 기준으로 골라 손질하고 익힐 뿐이에요.</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -226,7 +229,7 @@ export default async function WhyFreshPage() {
         </section>
 
         <section style={{ marginTop: 56, padding: '44px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
-          <H2>촉촉하고 맛있게</H2>
+          <SecHead n={3}>촉촉하고 맛있게</SecHead>
           <p style={LEAD}>비밀은 거창하지 않아요. 수분, 향, 그리고 결이에요. 효능을 단정하진 않을게요. 다만 그릇에 담기는 마지막 모습은 분명히 달라요.</p>
           <ol style={{ margin: '18px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {TASTE.map((t, i) => (
@@ -244,27 +247,12 @@ export default async function WhyFreshPage() {
         </section>
 
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={4}>
             화식에 대해
             <br />
             자주 묻는 것들
-          </H2>
-          <div style={{ marginTop: 14, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
-            {WHYFRESH_FAQ.map((f, i) => (
-              <details key={f.q} open={i === 0} style={{ borderBottom: '1px solid #E5E5E5' }}>
-                <summary style={{ minHeight: 64, padding: '10px 0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}>
-                  {f.q}
-                  <span aria-hidden className="fts-acc-plus" style={{ fontSize: 26, fontWeight: 300 }}>
-                    +
-                  </span>
-                  <span aria-hidden className="fts-acc-minus" style={{ fontSize: 26, fontWeight: 300 }}>
-                    −
-                  </span>
-                </summary>
-                <p style={{ margin: '0 0 20px', fontSize: 17, lineHeight: 1.7, color: '#3D3D3D' }}>{f.a}</p>
-              </details>
-            ))}
-          </div>
+          </SecHead>
+          <QaList items={WHYFRESH_FAQ.map((f) => ({ q: f.q, a: f.a }))} style={{ marginTop: 16 }} />
           <Link
             href="/faq"
             style={{ marginTop: 6, alignSelf: 'flex-start', height: 48, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'underline', textUnderlineOffset: 3 }}

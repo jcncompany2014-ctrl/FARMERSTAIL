@@ -7,6 +7,10 @@ import { createClient } from '@/lib/supabase/server'
 import StoreShell from '@/components/store/StoreShell'
 import ShareButton from '@/components/ShareButton'
 import { renderMarkdown } from '@/lib/markdown'
+import { fillRecipeCards } from '@/lib/magazine/recipe-card'
+import { withToc } from '@/lib/magazine/toc'
+import { MAGAZINE_POST_CSS } from '@/lib/magazine/post-css'
+import MagazineRecipeEnd from '@/components/store/MagazineRecipeEnd'
 import JsonLd from '@/components/JsonLd'
 import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
@@ -16,7 +20,7 @@ import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
  * # 2026-10-10 웹 리뉴얼 — 웹 시안 WEB-C09
  * 가게 틀(StoreShell) 안에서 위에서부터: ← 매거진 → 카테고리 · 큰 제목 · 요약 → 날짜·읽는 시간 줄(오른쪽 공유)
  *   → 표지 사진 → 본문 → 같은 주제의 글(2칸).
- * 본문은 DB 글(lib/markdown 렌더 결과) 그대로다 — 우리가 고치지 않는다. 모양만 아래 POST_CSS(.ftb-post)로
+ * 본문은 DB 글(lib/markdown 렌더 결과) 그대로다 — 우리가 고치지 않는다. 모양만 MAGAZINE_POST_CSS(lib/magazine/post-css, .ftb-post)로
  * 시안의 글 칸(17px·줄 1.8·포스터 글꼴 소제목·먹선 목록·회색 인용)에 맞췄다. 예전 .ft-md(명조 제목·주황 링크)는
  * 전역 css 라 웹 리뉴얼 밖 화면(어드민 미리보기)도 쓰므로 그대로 두고, 이 화면만 클래스를 바꿨다.
  * 조회수 숫자는 시안에 없어 뺐다(조회수 올리기 RPC 는 그대로). 예전 하단 설문 버튼(StickyCta → /start)은 없앴다
@@ -130,48 +134,6 @@ function formatDate(iso: string | null) {
   })
 }
 
-/**
- * 본문 글 칸(시안 C09 의 article) — lib/markdown 이 만드는 태그(h1~h6·p·ul/li·blockquote·hr·img·a·strong·em·code·pre)만 다룬다.
- * 가게 틀(.fts main h1·h2)이 소제목을 포스터 글꼴로 이미 바꾸므로 여기선 크기·간격만 준다.
- * 목록 바로 뒤 구분선(ul + hr)은 숨긴다 — 목록 줄마다 아래 선이 있어 hr 까지 그리면 빈 줄 하나처럼 보였다(간격은 다음 칸이 갖는다).
- * 공유 단추(.ftb-share) — 공용 ShareButton 의 동작(카카오 → 기기 공유 → 주소 복사)을 그대로 쓰고, 아이콘만 시안 원본 path
- * (M12 3v13 · M7 8l5-5 5 5 · M5 13v6…)로 씌운다. 공용 부품은 고치지 않는다.
- */
-const SHARE_ICON =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3v13'/%3E%3Cpath d='M7 8l5-5 5 5'/%3E%3Cpath d='M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6'/%3E%3C/svg%3E\")"
-
-const POST_CSS = `
-.ftb-post { font-size: 17px; line-height: 1.8; color: #141414; overflow-wrap: break-word; }
-.ftb-post > * { margin: 0; }
-.ftb-post > * + * { margin-top: 16px; }
-.ftb-post > h1, .ftb-post > h2 { margin-top: 40px; }
-.ftb-post > h3 { margin-top: 32px; }
-.ftb-post > h4, .ftb-post > h5, .ftb-post > h6 { margin-top: 28px; }
-.ftb-post > :first-child { margin-top: 0; }
-.ftb-post > h1 + *, .ftb-post > h2 + *, .ftb-post > h3 + *, .ftb-post > h4 + * { margin-top: 12px; }
-.ftb-post h1 { font-size: 28px; line-height: 1.2; }
-.ftb-post h2 { font-size: 24px; line-height: 1.25; }
-.ftb-post h3 { font-family: var(--font-poster), var(--font-sans), sans-serif; font-weight: 400; letter-spacing: -0.01em; font-size: 20px; line-height: 1.3; }
-.ftb-post h4, .ftb-post h5, .ftb-post h6 { font-size: 17px; font-weight: 800; line-height: 1.5; }
-.ftb-post strong { font-weight: 800; }
-.ftb-post em { font-style: normal; }
-.ftb-post a { color: #141414; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
-.ftb-post ul { padding: 0; list-style: none; border-top: 2px solid #141414; }
-.ftb-post li { position: relative; padding: 14px 0 14px 22px; border-bottom: 1px solid #E5E5E5; line-height: 1.6; }
-.ftb-post li::before { content: ''; position: absolute; left: 2px; top: calc(14px + 0.8em - 4px); width: 8px; height: 8px; background: #141414; }
-.ftb-post > blockquote { margin-top: 40px; padding: 18px; border-left: 4px solid #141414; background: #F6F4F5; font-size: 16px; line-height: 1.7; }
-.ftb-post > blockquote + blockquote { margin-top: 8px; }
-.ftb-post > hr { border: 0; border-top: 1px solid #E5E5E5; }
-.ftb-post > hr, .ftb-post > hr + * { margin-top: 36px; }
-.ftb-post > ul + hr { display: none; }
-.ftb-post img { display: block; width: 100%; height: auto; border-radius: 4px; }
-.ftb-post > img { margin-top: 20px; }
-.ftb-post code { padding: 0.1em 0.4em; border-radius: 4px; background: #F6F4F5; font-size: 0.9em; }
-.ftb-post pre { padding: 16px; border-radius: 4px; background: #F6F4F5; overflow-x: auto; font-size: 15px; line-height: 1.6; }
-.ftb-post pre code { padding: 0; background: none; }
-.ftb-share svg { display: none; }
-.ftb-share::before { content: ''; width: 22px; height: 22px; background: currentColor; -webkit-mask: ${SHARE_ICON} center / contain no-repeat; mask: ${SHARE_ICON} center / contain no-repeat; }
-`
 
 export default async function BlogPostPage({ params }: { params: Params }) {
   const { slug } = await params
@@ -253,12 +215,14 @@ export default async function BlogPostPage({ params }: { params: Params }) {
     Math.round((post.content || '').replace(/<[^>]+>/g, '').length / 500),
   )
   const metaLine = [formatDate(post.published_at), `${readingMin}분 읽기`].filter(Boolean).join(' · ')
+  // 본문 속 레시피 카드 자리(::레시피 …)를 가게 상품 카드로 — 쓰인 레시피는 글 끝 '이어지는 화식'이 받는다.
+  const body = fillRecipeCards(renderMarkdown(post.content))
 
   return (
     <StoreShell>
       <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
       <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
-      <style>{POST_CSS}</style>
+      <style>{MAGAZINE_POST_CSS}</style>
 
       <div style={{ lineHeight: 'normal' }}>
         {/* ── ← 매거진 · 카테고리 · 큰 제목 · 요약 · 날짜/읽는 시간 + 공유 · 표지 ── */}
@@ -335,12 +299,15 @@ export default async function BlogPostPage({ params }: { params: Params }) {
           )}
         </section>
 
-        {/* ── 본문 — DB 글 그대로(lib/markdown), 모양은 POST_CSS ── */}
+        {/* ── 본문 — DB 글 그대로(lib/markdown), 모양은 MAGAZINE_POST_CSS ── */}
         <article
           className="ftb-post"
           style={{ padding: '28px 20px 0' }}
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+          dangerouslySetInnerHTML={{ __html: withToc(body.html).html }}
         />
+
+        {/* ── 이 글과 이어지는 화식(본문에 넣은 레시피, 없으면 4종) + 앱 정기배송 한 줄 ── */}
+        <MagazineRecipeEnd keys={body.keys} />
 
         {/* ── 같은 주제의 글 — 같은 카테고리 최신 글(최대 3편), 2칸 ── */}
         {relatedPosts.length > 0 ? (

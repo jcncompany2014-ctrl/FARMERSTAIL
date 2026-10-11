@@ -32,6 +32,7 @@ import s from './link.module.css'
 export const metadata: Metadata = {
   title: '링크 모음',
   description: '파머스테일 — 신선 화식, 앱 맞춤 정기배송, 이벤트 바로가기',
+  alternates: { canonical: '/link' },
 }
 
 export const revalidate = 300

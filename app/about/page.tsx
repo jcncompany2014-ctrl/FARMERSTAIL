@@ -3,7 +3,8 @@ import Link from 'next/link'
 import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
-import { STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
+import { STORE_RECIPES } from '@/lib/store/catalog'
+import { AppLine, StepList, SummaryBox } from '@/components/store/Editorial'
 
 /**
  * /about — 우리 이야기. 웹 시안 WEB-C06(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
@@ -15,6 +16,9 @@ import { STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
  * ★문구는 시안(사실 확인을 거쳐 줄인 판)대로 — 옛 화면의 AAFCO·WSAVA 약어, "BHA·BHT·에톡시퀸", "저온 동결건조",
  *   "2주마다 냉동 배송", "첫 박스부터 부담 없이" 같은 구독 안내는 되살리지 않는다.
  * 교차검증표 줄은 시안이 꺾쇠(안쪽 링크)라 표 미리보기·원문 PDF 가 있는 /science 로 보낸다.
+ * 2026-10-11 매거진 결로 다듬음(사장님 "이 느낌대로 브랜드 이야기도 이쁘게"): 맨 위 '한눈에 보기', 장 머리 = 위 굵은 선 + 번호·이름 + 제목
+ *   (사진은 제목 아래로), 주방 순서 = 세로선 단계(Editorial StepList), 앱 줄 = 공통 AppLine('맞춤' 없음). 닭가슴살·오리 안심 무항생제(사장님 10/11).
+ * ★01 시작의 '보리' 문단은 사장님이 "조금 달라요"(10/11) — 실제 내용을 받으면 고친다(그 전엔 손대지 않는다).
  */
 export const revalidate = 3600
 
@@ -30,12 +34,12 @@ export const metadata: Metadata = {
   // (중복 '| 파머스테일' 방지, 회차147). OG/twitter 는 template 미적용=풀네임 유지.
   title: '브랜드 이야기',
   description:
-    '수의영양학 기반의 프리미엄 반려견 식단. 농장에서 꼬리까지, 사람이 먹는 등급의 재료로. 파머스테일이 어떻게 시작되었고 무엇을 약속하는지.',
+    '사람이 먹는 등급의 재료로, 농장에서 꼬리까지. 파머스테일이 어떻게 시작되었고 무엇을 약속하는지.',
   alternates: { canonical: '/about' },
   openGraph: {
     title: '브랜드 이야기 | 파머스테일',
     description:
-      '수의영양학 기반의 프리미엄 반려견 식단. 농장에서 꼬리까지, 사람이 먹는 등급의 재료로.',
+      '사람이 먹는 등급의 재료로, 농장에서 꼬리까지. 파머스테일이 어떻게 시작되었고 무엇을 약속하는지.',
     type: 'article',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -46,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '브랜드 이야기 | 파머스테일',
     description:
-      '수의영양학 기반의 프리미엄 반려견 식단. 농장에서 꼬리까지, 사람이 먹는 등급의 재료로.',
+      '사람이 먹는 등급의 재료로, 농장에서 꼬리까지. 파머스테일이 어떻게 시작되었고 무엇을 약속하는지.',
     images: [ABOUT_OG],
   },
   robots: { index: true, follow: true },
@@ -55,7 +59,7 @@ export const metadata: Metadata = {
 // 실제 계약 농가·인증 확보 전까지는 구체 출처 대신 "원료를 고르는 기준"을 표기.
 // (실 계약 시 '재료 → 농가·등급' 형태로 복원 — partners 페이지와 동일 정책, 2026-06)
 const SOURCING = [
-  { k: '육류', v: '사람이 먹는 등급을 기준으로' },
+  { k: '육류', v: '사람이 먹는 등급 — 닭가슴살·오리 안심은 무항생제' },
   { k: '생선', v: '출처를 밝힐 수 있는 것만' },
   { k: '채소', v: '제철 · 신선한 것 먼저' },
   { k: '곡물', v: '정제보다 통곡물' },
@@ -95,20 +99,20 @@ function Arrow() {
   )
 }
 
-/** 장 머리 — 번호(Anton) + 이름 + 제목(시안 C06). */
-function ChapterHead({ no, label, top, children }: { no: string; label: string; top?: number; children: React.ReactNode }) {
+/** 장 머리 — 위 굵은 선 + 번호(Anton, 회색) · 이름 + 제목(매거진 소제목과 같은 결). */
+function ChapterHead({ no, label, children }: { no: string; label: string; children: React.ReactNode }) {
   return (
-    <>
-      <span style={{ marginTop: top, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span className="n" style={{ fontSize: 18 }}>
+    <div style={{ paddingTop: 24, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span className="n" style={{ fontSize: 16, letterSpacing: '0.06em', color: '#8C8C8C' }}>
           {no}
         </span>
         <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>{label}</span>
       </span>
-      <h2 className="d" style={{ margin: '6px 0 0', fontSize: 30, lineHeight: 1.12 }}>
+      <h2 className="d" style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.12 }}>
         {children}
       </h2>
-    </>
+    </div>
   )
 }
 
@@ -140,10 +144,29 @@ export default async function AboutPage() {
             </span>
             인천 송도에서 시작했어요
           </span>
+          <SummaryBox
+            style={{ marginTop: 22 }}
+            items={[
+              <>
+                <strong>내 강아지한테 먹일 수 있는 것만</strong> 만들어요
+              </>,
+              <>
+                출처가 분명한 원료 — 닭가슴살·오리 안심은 <strong>무항생제</strong>
+              </>,
+              <>
+                주 단위로 조금씩 익혀 <strong>바로 얼려</strong> 보내요
+              </>,
+            ]}
+          />
         </section>
 
         {/* ── 01 시작 — 2026-09-05 사장님: 눈밭의 셸티 실사('한 마리 개에게서 시작된 브랜드' 옆엔 그 개의 얼굴) ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="01" label="시작">
+            한 마리 개에게서
+            <br />
+            시작된 브랜드
+          </ChapterHead>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/sheltie-snow-45.jpg"
@@ -151,13 +174,8 @@ export default async function AboutPage() {
             width={1000}
             height={1250}
             fetchPriority="high"
-            style={{ width: '100%', aspectRatio: '350 / 320', objectFit: 'cover', objectPosition: '50% 35%', borderRadius: 4, display: 'block' }}
+            style={{ marginTop: 18, width: '100%', aspectRatio: '350 / 320', objectFit: 'cover', objectPosition: '50% 35%', borderRadius: 4, display: 'block' }}
           />
-          <ChapterHead no="01" label="시작" top={24}>
-            한 마리 개에게서
-            <br />
-            시작된 브랜드
-          </ChapterHead>
           <p style={P}>
             열세 살 노견 ‘보리’의 만성 소화 문제로 사료 대신 직접 만든 화식을 먹이기 시작했어요. 수의사와 이야기하고, 영양을 계산하고, 재료를 구하는 일을 되풀이하며 알게 된 건
             하나였어요. <strong style={{ fontWeight: 800, color: '#141414' }}>대부분의 반려견 식단은 ‘사람 음식 등급’으로 만들어지지 않는다는 것.</strong>
@@ -226,16 +244,7 @@ export default async function AboutPage() {
           <p style={P}>
             위생을 철저히 관리하는 주방에서 주 단위로 조금씩 조리해요. 완성된 식단은 바로 얼려 영양을 붙잡고, 빛과 공기를 막는 포장으로 보내드려요.
           </p>
-          <ol style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
-            {STEPS.map((s, i) => (
-              <li key={s} style={{ minHeight: 56, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '40px 1fr', alignItems: 'center', fontSize: 17, fontWeight: 700 }}>
-                <span className="n" style={{ fontSize: 18 }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                {s}
-              </li>
-            ))}
-          </ol>
+          <StepList steps={STEPS.map((t) => ({ t }))} style={{ marginTop: 20 }} />
           <Link
             href="/why-fresh"
             style={{ marginTop: 6, alignSelf: 'flex-start', height: 48, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'underline' }}
@@ -247,6 +256,9 @@ export default async function AboutPage() {
 
         {/* ── 05 분석 — 분석은 앱에서(웹엔 분석 화면이 없다) ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <ChapterHead no="05" label="분석">
+            내 강아지만을 위한 분석
+          </ChapterHead>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/store/sheltie-face.webp"
@@ -254,11 +266,8 @@ export default async function AboutPage() {
             width={480}
             height={480}
             loading="lazy"
-            style={{ width: '100%', aspectRatio: '350 / 250', objectFit: 'cover', objectPosition: '50% 30%', borderRadius: 4, display: 'block' }}
+            style={{ marginTop: 18, width: '100%', aspectRatio: '350 / 250', objectFit: 'cover', objectPosition: '50% 30%', borderRadius: 4, display: 'block' }}
           />
-          <ChapterHead no="05" label="분석" top={24}>
-            내 강아지만을 위한 분석
-          </ChapterHead>
           <p style={P}>견종·체중·활동량·못 먹는 음식을 반영해 권장 식단과 하루 양을 계산해요. 결과와 근거를 함께 보여드려, 주치의와 상의할 때도 쓸 수 있어요.</p>
           <span style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: '#1D3B2F' }}>분석은 파머스테일 앱에서 해요</span>
         </section>
@@ -309,15 +318,7 @@ export default async function AboutPage() {
           >
             우리 음식 보기
           </Link>
-          <Link
-            href="/app"
-            style={{ marginTop: 16, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
-          >
-            <span>
-              우리 아이 맞춤 정기배송은 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱에서 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
-            </span>
-            <Chevron />
-          </Link>
+          <AppLine style={{ marginTop: 16 }} />
         </section>
       </div>
     </StoreShell>

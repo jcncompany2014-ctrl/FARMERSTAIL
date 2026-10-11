@@ -4,19 +4,8 @@ import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { cred, VET_ADVISOR_ACTIVE } from '@/lib/copy/credibility'
-import {
-  PACK_G,
-  RECIPE_BAND,
-  RECIPE_PRODUCT_NAME,
-  RECIPE_REAL_IMG,
-  RECIPE_STUDIO_IMG,
-  SIZE_PACKS,
-  STORE_RECIPES,
-  SUBSCRIPTION_DISCOUNT_PCT,
-  TRIAL_ITEM,
-  meatLine,
-  storeItem,
-} from '@/lib/store/catalog'
+import { PACK_G, RECIPE_REAL_IMG, SIZE_PACKS, STORE_RECIPES, TRIAL_ITEM } from '@/lib/store/catalog'
+import { AppLine, Mark, QaList, RecipeCards, SecHead, SummaryBox } from '@/components/store/Editorial'
 import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 
 /**
@@ -28,6 +17,10 @@ import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
  * (getUser)도 함께 뺐다(다른 쓰임이 없었다). 예전 FD 톤 판은 git 이력.
  * ★문구는 시안(사실 확인을 거쳐 줄인 판)대로 — 옛 화면의 "농가 · 품목 · 시기 표기", "우리 아이 맞춤 정량", 구독 해지 안내는 되살리지 않는다.
  * ★숫자는 정본에서: 가격·팩 수 = lib/store/catalog, 출고 요일 = lib/store/shipping, 앱 할인 % = SUBSCRIPTION_DISCOUNT_PCT.
+ * 2026-10-11 매거진 결로 다듬음(사장님 "이 느낌대로 브랜드 이야기·우리 음식도 이쁘게"): 맨 위 '한눈에 보기', 소제목 번호(Editorial SecHead),
+ *   레시피 4종 = 2칸 카드(무항생제 꼬리표), 자주 묻는 것 = Q 칸. 닭가슴살·오리 안심 무항생제(사장님 10/11 — 흑돼지·한우엔 안 붙인다).
+ *   원물 사진(raw-ingredients.jpg)은 사장님 요청(10/11 "AI 티 안 나게, 하얀 스튜디오에서 예쁜 그릇 위에")으로 대리석 판 → 하얀 스튜디오
+ *   접시 사진(힉스필드 A안)으로 같은 파일 이름에 갈아 넣었다 — 매거진 '주면 안 되는 음식' 표지(DB cover_url)도 같은 파일이라 함께 바뀐다.
  */
 
 export const revalidate = 3600
@@ -72,8 +65,8 @@ const won = (n: number) => n.toLocaleString('ko-KR')
 
 /** 원물 6칸(시안 C05) — 이름 + 한 줄. */
 const INGREDIENTS = [
-  { label: '닭고기', sub: '담백한 단백질' },
-  { label: '오리고기', sub: '부드러운 단백질' },
+  { label: '닭가슴살', sub: '무항생제 · 담백한 단백질' },
+  { label: '오리 안심', sub: '무항생제 · 부드러운 단백질' },
   { label: '단호박', sub: '천천히 타는 에너지' },
   { label: '당근', sub: '색이 살아 있는 채소' },
   { label: '브로콜리', sub: '한 끼에 더하는 초록' },
@@ -247,7 +240,20 @@ export default async function OurFoodPage() {
           <p style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>
             사람이 먹을 수 있는 재료만 수비드로 천천히 익혀 그대로 담았어요. 보존제 없이, 뭐가 들었는지 다 보이는 한 끼예요.
           </p>
-          <span style={{ marginTop: 12, fontSize: 15, fontWeight: 700, color: '#595959' }}>사람이 먹는 등급 원물 · 수비드 저온 조리 · 원재료 전부 공개</span>
+          <SummaryBox
+            style={{ marginTop: 20 }}
+            items={[
+              <>
+                <strong>사람이 먹는 등급</strong> 원물만 — 닭가슴살·오리 안심은 <strong>무항생제</strong>
+              </>,
+              <>
+                <strong>수비드 저온 조리</strong> 후 바로 급속 냉동, 보존제 없이
+              </>,
+              <>
+                들어간 <strong>원재료를 전부</strong> 적어 둬요
+              </>,
+            ]}
+          />
           <Link href="/store" style={{ ...PRIMARY_BTN, marginTop: 22 }}>
             레시피 고르기
             <Arrow />
@@ -272,16 +278,15 @@ export default async function OurFoodPage() {
 
         {/* ── 원물 — 사진 + 6칸 ── */}
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={1} sub="정체 모를 첨가물 대신 눈에 보이는 진짜 재료. 사람이 먹을 수 있는 기준으로 고른 원물만 담아요.">
             사람이 먹는 등급
             <br />
             그대로 우리 아이에게
-          </H2>
-          <p style={BODY_P}>정체 모를 첨가물 대신 눈에 보이는 진짜 재료. 사람이 먹을 수 있는 기준으로 고른 원물만 담아요.</p>
+          </SecHead>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/raw-ingredients.jpg"
-            alt="닭가슴살·당근·단호박·브로콜리·현미 같은 원물"
+            alt="하얀 접시에 담은 닭가슴살·오리 안심·단호박·당근·브로콜리와 현미"
             width={1300}
             height={971}
             loading="lazy"
@@ -311,11 +316,11 @@ export default async function OurFoodPage() {
 
         {/* ── 타협하지 않는 네 가지 ── */}
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={2}>
             네 가지를
             <br />
             타협하지 않아요
-          </H2>
+          </SecHead>
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {PILLARS.map((p) => (
               <div key={p.t} style={{ padding: '16px 14px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -331,6 +336,11 @@ export default async function OurFoodPage() {
 
         {/* ── 수비드 — 실촬영 주방 컷(2026-09-02) ── */}
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+          <SecHead n={3}>
+            높은 불에 태우지 않고
+            <br />
+            수비드로 천천히
+          </SecHead>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/kitchen-sousvide.jpg"
@@ -338,27 +348,21 @@ export default async function OurFoodPage() {
             width={2048}
             height={1365}
             loading="lazy"
-            style={{ width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }}
+            style={{ marginTop: 18, width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }}
           />
-          <H2 style={{ marginTop: 20 }}>
-            높은 불에 태우지 않고
-            <br />
-            수비드로 천천히
-          </H2>
-          <p style={BODY_P}>
-            영양을 지키려면 조리 방식이 중요해요. 센 불에 빠르게 굽는 대신, 진공 포장한 재료를 알맞은 저온에서 천천히 익혀 영양·수분·풍미 손실을 줄였어요.
+          <p style={{ ...BODY_P, marginTop: 16 }}>
+            영양을 지키려면 조리 방식이 중요해요. 센 불에 빠르게 굽는 대신, 진공 포장한 재료를 알맞은 저온에서 천천히 익혀 <Mark>영양·수분·풍미 손실을 줄였어요</Mark>.
           </p>
           <p style={{ ...BODY_P, marginTop: 10 }}>익힌 뒤 바로 식혀 그대로 담고, 보존제는 넣지 않아요.</p>
         </section>
 
         {/* ── 완전한 한 끼 — 회색 띠 ── */}
         <section style={{ marginTop: 56, padding: '44px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={4} sub="매일 먹어도 부족함이 없도록 영양 기준에 맞춰 완전하고 균형 있게 설계했어요.">
             간식이 아니라
             <br />
             매일 먹는 완전한 한 끼
-          </H2>
-          <p style={BODY_P}>매일 먹어도 부족함이 없도록 영양 기준에 맞춰 완전하고 균형 있게 설계했어요.</p>
+          </SecHead>
           <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
             {COMPLETE_POINTS.map((pt) => (
               <li key={pt.t} style={{ padding: '13px 0', borderBottom: '1px solid #D9D9D9', display: 'grid', gridTemplateColumns: '30px 1fr', alignItems: 'start' }}>
@@ -376,11 +380,11 @@ export default async function OurFoodPage() {
 
         {/* ── 그동안의 사료와 비교 — 표 ── */}
         <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={5}>
             그동안의 사료와는
             <br />
             다르게 만들어요
-          </H2>
+          </SecHead>
           <table
             style={{ marginTop: 16, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: 16, lineHeight: 1.45, borderTop: '2px solid #141414' }}
           >
@@ -420,51 +424,18 @@ export default async function OurFoodPage() {
 
         {/* ── 레시피 4종 — 가게 상품으로(가격 = 정본 500g 정가) + 앱 띠 ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>레시피 {STORE_RECIPES.length}종</H2>
-          <p style={{ margin: '8px 0 6px', fontSize: 16, color: '#595959' }}>
-            모두 {PACK_G}g 팩 {SIZE_PACKS['500g']}개, 500g 한 봉이에요
-          </p>
-          {STORE_RECIPES.map((r) => (
-            <Link
-              key={r}
-              href={`/store/${r}`}
-              style={{ minHeight: 80, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '60px 1fr auto', columnGap: 14, alignItems: 'center', color: '#141414', textDecoration: 'none' }}
-            >
-              <span style={{ position: 'relative', width: 60, height: 60, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={RECIPE_STUDIO_IMG[r]} alt="" width={120} height={120} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[r] }} />
-              </span>
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span className="d" style={{ fontSize: 19 }}>
-                  {RECIPE_PRODUCT_NAME[r]}
-                </span>
-                <span style={{ fontSize: 15, color: '#595959' }}>{meatLine(r).split('·').join(' · ')}</span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 1, whiteSpace: 'nowrap' }}>
-                <span className="n" style={{ fontSize: 20 }}>
-                  {won(storeItem(`${r}-500g`).price)}
-                </span>
-                <span className="d" style={{ fontSize: 14 }}>
-                  원
-                </span>
-              </span>
-            </Link>
-          ))}
-          <Link
-            href="/app"
-            style={{ marginTop: 16, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
-          >
-            <span>
-              우리 아이 맞춤 정기배송은 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱에서 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
-            </span>
-            <Chevron />
-          </Link>
+          <SecHead n={6} sub={`모두 ${PACK_G}g 팩 ${SIZE_PACKS['500g']}개, 500g 한 봉이에요. 닭가슴살·오리 안심은 무항생제예요.`}>
+            레시피 {STORE_RECIPES.length}종
+          </SecHead>
+          <RecipeCards style={{ marginTop: 18 }} />
+          <AppLine style={{ marginTop: 22 }} />
         </section>
 
         {/* ── 후기 — 실제 후기가 모이기 전까지는 지어낸 카드 없이 상태만(규칙 28) ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2 style={{ marginBottom: 14 }}>후기</H2>
+          <SecHead n={7} style={{ marginBottom: 14 }}>
+            후기
+          </SecHead>
           <div style={{ padding: 20, borderRadius: 4, border: '2px solid #141414', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <strong style={{ fontSize: 18, fontWeight: 800 }}>첫 후기를 모으는 중이에요</strong>
             <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
@@ -473,29 +444,12 @@ export default async function OurFoodPage() {
 
         {/* ── 자주 묻는 것 — details 라 JS 없이 열고 닫는다. 첫 질문만 열어 둔다. ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <H2>
+          <SecHead n={8}>
             먹이기 전에
             <br />
             자주 묻는 것들
-          </H2>
-          <div style={{ marginTop: 14, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
-            {FOOD_FAQ.map((f, i) => (
-              <details key={f.q} open={i === 0} style={{ borderBottom: '1px solid #E5E5E5' }}>
-                <summary
-                  style={{ minHeight: 64, padding: '10px 0', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 18, fontWeight: 700, lineHeight: 1.4 }}
-                >
-                  {f.q}
-                  <span aria-hidden className="fts-acc-plus" style={{ fontSize: 26, fontWeight: 300 }}>
-                    +
-                  </span>
-                  <span aria-hidden className="fts-acc-minus" style={{ fontSize: 26, fontWeight: 300 }}>
-                    −
-                  </span>
-                </summary>
-                <p style={{ margin: '0 0 20px', fontSize: 17, lineHeight: 1.7, color: '#3D3D3D' }}>{f.a}</p>
-              </details>
-            ))}
-          </div>
+          </SecHead>
+          <QaList items={FOOD_FAQ.map((f) => ({ q: f.q, a: f.a }))} style={{ marginTop: 16 }} />
         </section>
 
         {/* ── 마무리 — 가게로 ── */}

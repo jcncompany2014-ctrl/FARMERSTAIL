@@ -47,16 +47,17 @@ npx cap add android
 
 ## 2단계 — 아이콘·스플래시 자동 생성 (맥)
 
-원본은 이미 `assets/` 에 만들어 뒀습니다. 한 줄이면 iOS·Android 의 모든 크기가
-자동으로 채워집니다.
+원본(도장 로고)은 `assets/` 에 있습니다 — `icon-only.png`·`icon-foreground.png`(1024px).
+아이콘은 아래 두 스크립트가 정본입니다(2026-10-11 고침 — 예전 안내의 테라코타 'FT' 아이콘·`@capacitor/assets` 는 쓰지 않습니다).
 
 ```bash
-npx @capacitor/assets generate --iconBackgroundColor '#A0452E' --splashBackgroundColor '#F5F0E6'
+node scripts/gen-android-icons.mjs
+node scripts/gen-ios-icons.mjs
 ```
 
-원본을 다시 만들어야 하면(로고가 바뀌면) `node scripts/generate-native-assets.mjs`
-를 먼저 돌리세요. 그 스크립트는 **iOS 아이콘에 투명도가 없는지 검사**합니다 —
-투명도가 있으면 앱스토어가 거절하기 때문에 일부러 실패시킵니다.
+⚠️ 아이콘에 `npx @capacitor/assets generate` 를 쓰지 마세요 — 안드로이드 적응형 아이콘을 절반 해상도로 뽑아
+모든 기기에서 흐려집니다(2026-08-23 실측, 규칙61). iOS 아이콘은 투명도가 있으면 앱스토어가 거절하므로
+gen-ios-icons.mjs 가 불투명으로 만듭니다.
 
 ## 3단계 — 애플 개발자 설정 (developer.apple.com)
 

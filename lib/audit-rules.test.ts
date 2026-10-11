@@ -6665,7 +6665,7 @@ test('규칙176: 웹 설문은 행사 링크(?p=)만 — 그 밖의 웹 /start �
    * 단 배너·전단에 인쇄된 행사 QR(/start?p=코드)은 설문 → 가입 때 혜택이 계정에 박히는 흐름이라 그대로 둔다.
    */
   const start = stripComments(read(join(ROOT, 'app', 'start', 'page.tsx')))
-  assert.match(start, /if \(!isApp && !promo\) redirect\('\/app'\)/, '웹 /start 가 행사 코드 없이도 옛 설문을 그린다(앱 소개로 가야 한다)')
+  assert.match(start, /if \(!isApp && !promo\) permanentRedirect\('\/app'\)/, '웹 /start 가 행사 코드 없이도 옛 설문을 그리거나, 임시(307)로 넘겨 구글이 옛 설문 화면을 색인에 붙잡는다(영구 308 이어야 한다)')
   assert.match(start, /const promo = normalizePromoCode\(/, '웹 /start 가 행사 코드를 정본(normalizePromoCode)으로 읽지 않는다')
   const done = stripComments(read(join(ROOT, 'app', 'start', 'done', 'page.tsx'))) + stripComments(read(join(ROOT, 'app', 'start', 'done', 'DoneWebView.tsx')))
   assert.ok(!/account\/subscribe|\/account\/dogs/.test(done), '가입 완료 화면이 없어진 웹 정기배송 신청으로 보낸다')
@@ -6740,4 +6740,108 @@ test('규칙177: 자사몰 결제 막음(심사 신청 전) — 가게의 담기
   const pp = stripComments(read(join(ROOT, 'components', 'store', 'PayPaused.tsx')))
   assert.match(pp, /href=\{SMARTSTORE_URL\}\s*target="_blank"\s*rel="noopener noreferrer"/, '초록 버튼이 스마트스토어(lib/links)로 새 창에서 열리지 않는다')
   assert.ok(pp.includes('준비 중') && pp.includes('스마트스토어를 이용해 주세요'), '안내에 "자사몰 결제 준비 중 · 단품은 스마트스토어" 말이 없다')
+})
+
+test('규칙178: 검색·공유·홈 화면에 옛 흔적이 없다 — 사이트 기본 소개·테마색·아이콘·canonical·사이트맵 날짜', () => {
+  /**
+   * # 왜 (2026-10-11 사장님 "구글에서 파머스테일 쳤는데 옛잔재가 나오지는 않는지, 파비콘은 다 괜찮은지")
+   * 구글은 리뉴얼 전 첫 화면·설문·앱 소개를 그대로 보여 주고 있었고, 우리 쪽에도 옛 흔적이 남아 있었다:
+   *  · 사이트 기본 소개("프리미엄 반려견 식품 · 수의영양학 기반 맞춤 화식 정기배송")가 스토어·앱 소개·약관의 공유 카드에 떴다.
+   *  · 루트 canonical "/" 를 물려받아 링크 모음이 '홈의 사본'으로 신고됐다.
+   *  · 테마색이 옛 테라코타(#A0452E) — 안드로이드 크롬 주소창·설치형 웹앱 상태바가 옛 색.
+   *  · 설치형 웹앱 아이콘 목록 맨 앞이 옛 테라코타 'FT' SVG, 아이폰 홈 화면 아이콘은 투명 PNG(검은 바탕으로 뜬다).
+   *  · 사이트맵 lastmod 가 늘 '지금' — 구글은 이런 날짜를 믿지 않아 바뀐 화면을 먼저 다시 가져가지 않는다.
+   */
+  const layout = stripComments(read(join(ROOT, 'app', 'layout.tsx')))
+  const metaBlock = layout.slice(layout.indexOf('export const metadata'), layout.indexOf('export const viewport'))
+  assert.ok(metaBlock.length > 500, '루트 metadata 를 못 찾았다 — 검사가 망가졌다')
+  assert.ok(!/canonical\s*:/.test(metaBlock), '루트 metadata 에 canonical 이 있다 — 자기 canonical 이 없는 화면이 전부 홈의 사본으로 신고된다')
+  const OLD = ['프리미엄 반려견 식품', '수의영양학 기반 맞춤', '수의영양학 기반 레시피']
+  for (const w of OLD) assert.ok(!layout.includes(w), `사이트 기본 소개에 옛 문구 "${w}"가 남아 있다`)
+  assert.match(layout, /themeColor:\s*"#FFFFFF"/, '테마색이 흰색이 아니다(옛 테라코타면 크롬 주소창이 옛 색)')
+  assert.match(layout, /apple:\s*\[\{\s*url:\s*"\/icons\/apple-touch-icon\.png"/, '아이폰 홈 화면 아이콘이 불투명 apple-touch-icon.png 가 아니다')
+
+  // 아이콘 파일 — PNG 머리(IHDR)의 색 형식: 0·2 = 불투명(회색조·RGB), 4·6 = 투명 가능.
+  const ICONS: [string, number][] = [
+    ['public/icons/apple-touch-icon.png', 180],
+    ['public/icons/maskable-192.png', 192],
+    ['public/icons/maskable-512.png', 512],
+  ]
+  for (const [rel, size] of ICONS) {
+    const buf = readFileSync(join(ROOT, ...rel.split('/')))
+    assert.equal(`${buf.readUInt32BE(16)}x${buf.readUInt32BE(20)}`, `${size}x${size}`, `${rel}: 크기가 ${size}×${size} 가 아니다`)
+    assert.ok(buf[25] === 0 || buf[25] === 2, `${rel}: 투명도가 있다(색 형식 ${buf[25]}) — 아이폰은 검은 바탕, 안드로이드 마스크는 빈 테두리로 뜬다`)
+  }
+
+  const manifest = JSON.parse(read(join(ROOT, 'public', 'manifest.json'))) as {
+    theme_color?: string
+    description?: string
+    icons?: { src: string; purpose?: string }[]
+  }
+  assert.equal(manifest.theme_color?.toUpperCase(), '#FFFFFF', '설치형 웹앱 테마색이 흰색이 아니다')
+  assert.ok(!(manifest.icons ?? []).some((i) => i.src.endsWith('.svg')), '설치형 웹앱 아이콘에 SVG 가 있다(옛 테라코타 FT 모노그램이 그 자리였다)')
+  const maskable = (manifest.icons ?? []).filter((i) => i.purpose === 'maskable').map((i) => i.src).sort()
+  assert.deepEqual(maskable, ['/icons/maskable-192.png', '/icons/maskable-512.png'], '마스크용 아이콘이 불투명 maskable PNG 가 아니다(투명 도장을 마스크에 넣으면 테두리가 비거나 잘린다)')
+  for (const w of OLD) assert.ok(!(manifest.description ?? '').includes(w), `설치형 웹앱 소개에 옛 문구 "${w}"`)
+
+  const ld = read(join(ROOT, 'lib', 'seo', 'jsonld.ts'))
+  const org = stripComments(ld.slice(ld.indexOf('export function buildOrganizationJsonLd'), ld.indexOf('export function buildWebSiteJsonLd')))
+  assert.ok(org.includes("'@type': 'Organization'"), '검색용 회사 소개(JSON-LD)를 못 찾았다 — 검사가 망가졌다')
+  for (const w of OLD) assert.ok(!org.includes(w), `검색용 회사 소개(JSON-LD)에 옛 문구 "${w}"`)
+
+  // 사이트맵 — 고정 화면은 '지금' 대신 실제로 바뀐 날.
+  const sitemap = stripComments(read(join(ROOT, 'app', 'sitemap.ts')))
+  const statics = sitemap.slice(sitemap.indexOf('const staticRoutes'), sitemap.indexOf('const postRoutes'))
+  assert.ok(statics.length > 200, '사이트맵 고정 화면 목록을 못 찾았다 — 검사가 망가졌다')
+  assert.ok(!/lastModified:\s*now\b/.test(statics), '사이트맵 고정 화면 lastmod 가 늘 "지금"이다 — 구글이 날짜를 믿지 않는다')
+  assert.match(sitemap, /const \{ data: posts, error \} = await supabase/, '사이트맵이 글 목록 조회 오류를 꺼내지 않는다(실패가 "글 없음"으로 읽힌다)')
+
+  // 링크 모음은 자기 canonical · 옛 숏URL 은 가게로 한 번에(두 번 튕기지 않게).
+  assert.match(stripComments(read(join(ROOT, 'app', 'link', 'page.tsx'))), /alternates:\s*\{\s*canonical:\s*'\/link'\s*\}/, '링크 모음에 자기 canonical 이 없다')
+  for (const rel of ['app/best/page.tsx', 'app/new/page.tsx']) {
+    assert.match(stripComments(read(join(ROOT, ...rel.split('/')))), /permanentRedirect\('\/store'\)/, `${rel}: 옛 숏URL 이 가게로 영구 이동하지 않는다`)
+  }
+})
+
+test('규칙179: 무항생제는 닭가슴살·오리 안심에만 — 흑돼지·한우·간·염통으로 넓히지 않는다', () => {
+  /**
+   * # 왜 (2026-10-11 사장님 "우리 닭가슴살, 오리 안심 강점이 둘 다 무항생제")
+   * '무항생제'는 축산물 인증 이름이라 확인된 원료에만 쓸 수 있다. 사장님이 확인한 건 닭가슴살·오리 안심 둘뿐이다
+   * (흑돼지·한우는 확인 안 됨 — 사장님 할 일 #67 덤에서도 '무항생제 한우 목심'은 납품 근거 있으면만). 문구를 늘리다 보면
+   * "모든 고기 무항생제", "무항생제 한우"로 조용히 넓어진다 — 화면·매거진 초안 전체에서 막는다.
+   */
+  const catalog = stripComments(read(join(ROOT, 'lib', 'store', 'catalog.ts')))
+  assert.match(catalog, /export const ANTIBIOTIC_FREE_MAIN: Readonly<Partial<Record<StoreRecipe, true>>> = \{ chicken: true, duck: true \}/, '무항생제 정본(ANTIBIOTIC_FREE_MAIN)이 닭·오리 둘이 아니다')
+  const editorial = stripComments(read(join(ROOT, 'components', 'store', 'Editorial.tsx')))
+  const tagBlock = /ANTIBIOTIC_FREE_TAG[^=]*=\s*\{([\s\S]*?)\}/.exec(editorial)?.[1] ?? ''
+  assert.ok(tagBlock.includes('chicken') && tagBlock.includes('duck'), '읽을거리 화면의 무항생제 꼬리표 표를 못 찾았다 — 검사가 망가졌다')
+  assert.ok(!/\b(pork|beef)\b/.test(tagBlock), '무항생제 꼬리표가 흑돼지·한우에 붙었다')
+
+  const BAD_AFTER = /무항생제\s*(흑돼지|한우|돼지|소고기|간|염통|고기|육류)/
+  const BAD_BEFORE = /(흑돼지|한우|돼지고기|소고기)[^\n.。]{0,12}무항생제/
+  const files: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules' || name.startsWith('.')) continue
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (/\.(tsx?|md)$/.test(name) && !/\.test\.ts$/.test(name)) files.push(p)
+    }
+  }
+  for (const d of ['app', 'components', 'lib', join('docs', 'magazine')]) {
+    if (existsSync(join(ROOT, d))) walk(join(ROOT, d))
+  }
+  assert.ok(files.length > 100, `검사할 파일을 ${files.length}개밖에 못 찾았다 — 검사가 망가졌다`)
+  const offenders: string[] = []
+  for (const p of files) {
+    const text = read(p)
+    if (!text.includes('무항생제')) continue
+    text.split('\n').forEach((line, i) => {
+      if (!line.includes('무항생제')) return
+      // 이 규칙 자신·금지를 설명하는 주석 줄("…에는 붙이지 않는다")은 뺀다.
+      if (/붙이지 않|쓰지 말|쓰지 않|넓히지 않|확인 안 됨|금지/.test(line)) return
+      if (BAD_AFTER.test(line) || BAD_BEFORE.test(line)) offenders.push(`${p.replace(ROOT, '')}:${i + 1}`)
+    })
+  }
+  assert.deepEqual(offenders, [], '무항생제를 닭가슴살·오리 안심 밖으로 넓혔다')
 })

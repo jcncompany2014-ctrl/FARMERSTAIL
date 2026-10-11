@@ -16,6 +16,7 @@ import DaysBox from './DaysBox'
 import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import { useShipDate } from './useShipDate'
 import {
+  ANTIBIOTIC_FREE_MAIN,
   RECIPE_BAND,
   RECIPE_NAME,
   RECIPE_PRODUCT_NAME,
@@ -152,6 +153,12 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
 
       {/* 이름·가격 */}
       <section style={{ padding: '22px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        {/* 무항생제 꼬리표 — 닭가슴살·오리 안심만(사장님 2026-10-11, 정본 ANTIBIOTIC_FREE_MAIN) */}
+        {ANTIBIOTIC_FREE_MAIN[recipe] && (
+          <span style={{ alignSelf: 'flex-start', marginBottom: 10, padding: '5px 10px', borderRadius: 2, background: '#1D3B2F', color: '#FFFFFF', fontSize: 14, fontWeight: 800 }}>
+            무항생제 {ing.main}
+          </span>
+        )}
         <h1 className="d" style={{ margin: 0, fontSize: 38, lineHeight: 1.1 }}>
           {RECIPE_PRODUCT_NAME[recipe]}
         </h1>

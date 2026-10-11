@@ -92,20 +92,23 @@ function Arrow() {
   )
 }
 
-/** 장 머리 — 번호(Anton) + 이름 + 제목. */
+/**
+ * 장 머리 — 위 굵은 선 + 번호(Anton, 회색) · 이름 + 제목. 2026-10-11 매거진 소제목과 같은 결로(사장님 "이 느낌대로 브랜드 이야기도 이쁘게").
+ * ★01 시작의 '보리' 문단은 사장님이 "조금 달라요"(10/11) — 실제 내용을 받으면 고친다(그 전엔 손대지 않는다).
+ */
 function ChapterHead({ no, label, children }: { no: string; label: string; children: React.ReactNode }) {
   return (
-    <>
+    <div style={{ paddingTop: 24, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
       <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span className="n" style={{ fontSize: 18 }}>
+        <span className="n" style={{ fontSize: 16, letterSpacing: '0.06em', color: '#8C8C8C' }}>
           {no}
         </span>
         <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>{label}</span>
       </span>
-      <h2 className="d" style={{ margin: '6px 0 0', fontSize: 30, lineHeight: 1.12 }}>
+      <h2 className="d" style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.12 }}>
         {children}
       </h2>
-    </>
+    </div>
   )
 }
 
@@ -262,7 +265,7 @@ export default async function BrandPage() {
             <br />
             이름 있는 농가
           </ChapterHead>
-          <p style={P}>‘수입산 육류’ 같은 익명 표기를 쓰지 않아요. 원산지가 분명한 국내산 원물을 써요.</p>
+          <p style={P}>‘수입산 육류’ 같은 익명 표기를 쓰지 않아요. 원산지가 분명한 국내산 원물을 쓰고, 닭가슴살과 오리 안심은 무항생제예요.</p>
           <p style={P2}>
             재료 가격이 지나치게 흔들릴 때는 시세를 따라가는 대신 메뉴를 잠시 빼요. 좋은 재료가 들어가지 않으면 만들지 않는다. 가장 단순한 규칙이에요.
           </p>

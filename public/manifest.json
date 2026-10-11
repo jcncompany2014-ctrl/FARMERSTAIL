@@ -1,13 +1,13 @@
 {
   "name": "파머스테일 - Farmer's Tail",
   "short_name": "파머스테일",
-  "description": "우리 아이를 위한 프리미엄 반려견 식품 — 수의영양학 기반 레시피, Farm to Tail.",
+  "description": "국내산 고기를 수비드로 익힌 강아지 화식. 하루 양 계산부터 기록·정기배송까지 파머스테일 앱에서.",
   "start_url": "/dashboard",
   "id": "/dashboard",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#FFFFFF",
-  "theme_color": "#A0452E",
+  "theme_color": "#FFFFFF",
   "orientation": "portrait",
   "scope": "/",
   "lang": "ko-KR",
@@ -20,28 +20,10 @@
   },
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-maskable.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    },
-    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
@@ -50,7 +32,13 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
