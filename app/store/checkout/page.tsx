@@ -3,7 +3,7 @@ import StoreShell from '@/components/store/StoreShell'
 import CheckoutClient from '@/components/store/CheckoutClient'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { isStoreItemId } from '@/lib/store/catalog'
-import { widgetClientKey, widgetCustomerKey } from '@/lib/store/toss-widget'
+import { storeSalesPaused, widgetClientKey, widgetCustomerKey } from '@/lib/store/toss-widget'
 
 /**
  * 주문·결제 — 웹 시안 Checkout. 회원만(사장님 10/10). 로그인 전이면 카카오 로그인부터.
@@ -50,6 +50,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         buy={buyId ? { id: buyId, qty: buyQty } : null}
         clientKey={widgetClientKey()}
         customerKey={user ? widgetCustomerKey(user.id) : null}
+        paused={storeSalesPaused()}
       />
     </StoreShell>
   )

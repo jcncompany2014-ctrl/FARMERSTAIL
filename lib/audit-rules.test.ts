@@ -6679,3 +6679,65 @@ test('규칙176: 웹 설문은 행사 링크(?p=)만 — 그 밖의 웹 /start �
     assert.match(stripComments(read(join(ROOT, ...rel.split('/')))), /permanentRedirect\('\/app'\)/, `${rel}: 옛 이벤트 주소가 앱 소개가 아닌 곳으로 간다`)
   }
 })
+
+test('규칙177: 자사몰 결제 막음(심사 신청 전) — 가게의 담기·구매·결제는 회색, 바로 위에 초록 스마트스토어 안내, 켜고 끄기는 서버 한 곳', () => {
+  /**
+   * # 왜 (2026-10-11 사장님 — "심사 신청하기 전까지 결제 부분은 회색, 위에 초록색 스마트스토어 바로가기, 단품은 스마트스토어로")
+   * 운영엔 아직 결제위젯 키가 없어서 손님은 담고 → 장바구니 → 주문서까지 와서야 '결제 준비 중'을 만났다.
+   * 켜고 끄기는 lib/store/toss-widget 의 storeSalesPaused() 한 곳 — 심사를 신청할 때 SMARTSTORE_NOTICE 를 false 로(계속 막으면
+   * 심사가 안 된다 — 규칙165 의 이유), 잊어도 운영 위젯 키가 들어오면 저절로 꺼진다. 화면은 받은 값(paused)만 따른다.
+   * 화면마다 따로 판정하거나 버튼 하나를 갈래 밖에 두면, 막아야 할 때 그 버튼만 조용히 눌린다.
+   */
+  const widget = stripComments(read(join(ROOT, 'lib', 'store', 'toss-widget.ts')))
+  assert.match(
+    widget,
+    /export function storeSalesPaused\(\): boolean \{\s*return SMARTSTORE_NOTICE && widgetClientKey\(\) === null\s*\}/,
+    '결제 막음 판정이 "스위치 && 운영 위젯 키 없음"이 아니다 — 키가 들어와도 안 꺼지거나, 스위치를 꺼도 안 꺼진다',
+  )
+
+  // 화면 5곳이 서버 판정값을 그대로 넘긴다(부품이 스스로 정하지 않는다).
+  const PAGES: [string, string][] = [
+    ['app/page.tsx', 'RecipeGrid'],
+    ['app/store/page.tsx', 'StoreBrowse'],
+    ['app/store/[slug]/page.tsx', 'ProductDetail'],
+    ['app/store/cart/page.tsx', 'CartView'],
+    ['app/store/checkout/page.tsx', 'CheckoutClient'],
+  ]
+  for (const [rel, comp] of PAGES) {
+    const code = stripComments(read(join(ROOT, ...rel.split('/'))))
+    assert.match(code, new RegExp(`<${comp}\\b[^>]*\\bpaused=\\{storeSalesPaused\\(\\)\\}`), `${rel}: ${comp} 에 결제 막음 판정(storeSalesPaused)을 넘기지 않는다`)
+  }
+
+  // 부품: paused 는 꼭 받는 값 · 초록 안내가 있다 · 구매 버튼마다 바로 앞에 회색 갈래(paused ? 회색 : 진짜)가 있다.
+  const COMPONENTS: [string, RegExp[]][] = [
+    ['components/store/RecipeGrid.tsx', [/onClick=\{\(\) => cart\.add\(item\.id\)\}/]],
+    ['components/store/StoreBrowse.tsx', [/onClick=\{\(\) => cart\.add\(TRIAL_ITEM\.id\)\}/]],
+    ['components/store/ProductDetail.tsx', [/onClick=\{openSheet\}/]],
+    ['components/store/CartView.tsx', [/onClick=\{\(\) => cart\.add\(g\.id\)\}/, /router\.push\('\/store\/checkout'\)/]],
+    ['components/store/CheckoutClient.tsx', [/onClick=\{pay\}/]],
+  ]
+  for (const [rel, triggers] of COMPONENTS) {
+    const code = stripComments(read(join(ROOT, ...rel.split('/'))))
+    assert.match(code, /\bpaused: boolean\b/, `${rel}: paused 를 받지 않는다`)
+    assert.ok(!/\bpaused\?: boolean/.test(code), `${rel}: paused 가 선택값이다 — 새로 쓰는 곳이 빠뜨리면 막힘 없이 열린다`)
+    assert.ok(code.includes('<PayPausedNotice'), `${rel}: 결제 막음일 때 스마트스토어 안내가 없다`)
+    for (const t of triggers) {
+      const hits = [...code.matchAll(new RegExp(t.source, 'g'))]
+      assert.ok(hits.length > 0, `${rel}: 구매 버튼(${t.source})을 못 찾았다 — 검사가 망가졌다`)
+      for (const h of hits) {
+        const before = code.slice(Math.max(0, (h.index ?? 0) - 2000), h.index)
+        const at = before.lastIndexOf('paused ? (')
+        assert.ok(at >= 0, `${rel}: 구매 버튼(${h[0]})이 결제 막음 갈래(paused ? …) 밖에 있다 — 막혀야 할 때도 눌린다`)
+        const branch = before.slice(at)
+        assert.ok(branch.includes('PAUSED_BTN') && /\)\s*:/.test(branch), `${rel}: 결제 막음일 때 구매 버튼(${h[0]})이 회색(PAUSED_BTN)으로 바뀌지 않는다`)
+      }
+    }
+  }
+  const checkout = stripComments(read(join(ROOT, 'components', 'store', 'CheckoutClient.tsx')))
+  assert.match(checkout, /const canPay = !paused && /, '결제 막음인데 주문서가 결제위젯을 연다')
+
+  // 초록 버튼 = 사장님이 준 스마트스토어 마케팅 링크(lib/links), 새 창.
+  const pp = stripComments(read(join(ROOT, 'components', 'store', 'PayPaused.tsx')))
+  assert.match(pp, /href=\{SMARTSTORE_URL\}\s*target="_blank"\s*rel="noopener noreferrer"/, '초록 버튼이 스마트스토어(lib/links)로 새 창에서 열리지 않는다')
+  assert.ok(pp.includes('준비 중') && pp.includes('스마트스토어를 이용해 주세요'), '안내에 "자사몰 결제 준비 중 · 단품은 스마트스토어" 말이 없다')
+})

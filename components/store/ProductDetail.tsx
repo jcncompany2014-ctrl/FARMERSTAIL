@@ -7,11 +7,13 @@
  * 이렇게 만들어요 · 상품 정보(원재료·등록성분·도착·배송환불·제공고시) · 후기 · 다른 레시피 · 아래 고정 구매 바.
  * 숫자는 상품표(lib/store/catalog)·급여 계산(lib/store/feeding)·배송(lib/store/shipping), 법정 표시는 DB 라벨 칸.
  * 웹에는 '맞춤'이라는 말을 쓰지 않는다 — 양은 일반 기준 예상치, 정확한 양은 앱.
+ * paused: 자사몰 결제 막음(storeSalesPaused) — 구매 버튼 두 곳(본문·아래 고정 바)을 회색으로, 바로 위에 스마트스토어(규칙177).
  */
 import { useState } from 'react'
 import Link from 'next/link'
 import AddSheet from './AddSheet'
 import DaysBox from './DaysBox'
+import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import { useShipDate } from './useShipDate'
 import {
   RECIPE_BAND,
@@ -66,7 +68,7 @@ function Acc({ title, children, open = false, id }: { title: string; children: R
   )
 }
 
-export default function ProductDetail({ recipe, label }: { recipe: StoreRecipe; label: RecipeLabel | null }) {
+export default function ProductDetail({ recipe, label, paused }: { recipe: StoreRecipe; label: RecipeLabel | null; paused: boolean }) {
   const ship = useShipDate()
   const [size, setSize] = useState<StoreSize>('500g')
   const [kg, setKg] = useState(5)
@@ -252,14 +254,28 @@ export default function ProductDetail({ recipe, label }: { recipe: StoreRecipe; 
             이 아이에겐 500g이 일주일을 못 가요. <strong>1kg이 덜 번거로워요.</strong>
           </p>
         )}
-        <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
-          <button type="button" onClick={openSheet} style={{ height: 58, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
-            장바구니 담기
-          </button>
-          <button type="button" onClick={openSheet} style={{ height: 58, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
-            바로 구매
-          </button>
-        </div>
+        {paused ? (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <PayPausedNotice />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
+              <button type="button" disabled style={{ height: 58, borderRadius: 4, fontSize: 17, fontWeight: 800, ...PAUSED_BTN }}>
+                장바구니 담기
+              </button>
+              <button type="button" disabled style={{ height: 58, borderRadius: 4, fontSize: 17, fontWeight: 800, ...PAUSED_BTN }}>
+                바로 구매
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
+            <button type="button" onClick={openSheet} style={{ height: 58, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
+              장바구니 담기
+            </button>
+            <button type="button" onClick={openSheet} style={{ height: 58, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
+              바로 구매
+            </button>
+          </div>
+        )}
         {added && (
           <p role="status" style={{ margin: '10px 0 0', padding: '12px 14px', background: '#141414', color: '#FFFFFF', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 15 }}>
             장바구니에 담았어요
@@ -552,22 +568,38 @@ export default function ProductDetail({ recipe, label }: { recipe: StoreRecipe; 
         </div>
       </section>
 
-      {/* 아래 고정 구매 바 */}
+      {/* 아래 고정 구매 바 — 결제 막음이면 초록 스마트스토어 아래에 회색 버튼(값 줄은 본문에 있어 뺀다: 바가 너무 높아진다) */}
       <div style={{ position: 'sticky', bottom: 0, zIndex: 20, background: '#FFFFFF', borderTop: '1px solid #E5E5E5', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span style={{ fontSize: 14, color: '#595959', display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span className="n" style={{ fontSize: 20, color: '#141414' }}>
-            {won(item.price)}
-          </span>
-          원 · {name} {size} · 이 아이에게 약 {feed.days}일분
-        </span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
-          <button type="button" onClick={openSheet} style={{ height: 54, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
-            장바구니
-          </button>
-          <button type="button" onClick={openSheet} style={{ height: 54, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
-            바로 구매
-          </button>
-        </div>
+        {paused ? (
+          <>
+            <SmartStoreButton height={50} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
+              <button type="button" disabled style={{ height: 46, borderRadius: 4, fontSize: 17, fontWeight: 800, ...PAUSED_BTN }}>
+                장바구니
+              </button>
+              <button type="button" disabled style={{ height: 46, borderRadius: 4, fontSize: 17, fontWeight: 800, ...PAUSED_BTN }}>
+                바로 구매
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span style={{ fontSize: 14, color: '#595959', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span className="n" style={{ fontSize: 20, color: '#141414' }}>
+                {won(item.price)}
+              </span>
+              원 · {name} {size} · 이 아이에게 약 {feed.days}일분
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }}>
+              <button type="button" onClick={openSheet} style={{ height: 54, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
+                장바구니
+              </button>
+              <button type="button" onClick={openSheet} style={{ height: 54, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 17, fontWeight: 800, cursor: 'pointer' }}>
+                바로 구매
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <AddSheet
@@ -581,9 +613,11 @@ export default function ProductDetail({ recipe, label }: { recipe: StoreRecipe; 
         daysFor={daysFor}
         onAdded={() => setAdded(true)}
       />
-      <noscript>
-        <p style={{ padding: 20 }}>장바구니에 담으려면 브라우저에서 자바스크립트를 켜 주세요. 전화({business.phone})로도 주문할 수 있어요.</p>
-      </noscript>
+      {!paused && (
+        <noscript>
+          <p style={{ padding: 20 }}>장바구니에 담으려면 브라우저에서 자바스크립트를 켜 주세요. 전화({business.phone})로도 주문할 수 있어요.</p>
+        </noscript>
+      )}
     </>
   )
 }

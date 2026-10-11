@@ -3,6 +3,7 @@ import Link from 'next/link'
 import StoreShell from '@/components/store/StoreShell'
 import ShipLine from '@/components/store/ShipLine'
 import RecipeGrid from '@/components/store/RecipeGrid'
+import { storeSalesPaused } from '@/lib/store/toss-widget'
 import HomeCalculator from '@/components/store/HomeCalculator'
 import StoreFaq from '@/components/store/StoreFaq'
 import { ogImageUrl } from '@/lib/seo/jsonld'
@@ -120,7 +121,7 @@ export default function HomePage() {
         </h2>
         <p style={{ margin: '8px 0 0', fontSize: 17, color: '#595959' }}>모두 100g 팩 5개, 500g 한 봉이에요</p>
         <div style={{ marginTop: 20 }}>
-          <RecipeGrid />
+          <RecipeGrid paused={storeSalesPaused()} />
         </div>
 
         <Link

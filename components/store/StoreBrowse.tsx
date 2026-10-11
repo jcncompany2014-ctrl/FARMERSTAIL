@@ -4,12 +4,14 @@
  * 스토어(웹 시안 Store) — 탭 [레시피 4종 | 체험팩].
  *  레시피: 피하고 싶은 고기 고르기(그 카드는 흐리게 + 이유) · 2열 카드 · 한눈에 비교 표 · 앱 정기배송 한 줄.
  *  체험팩: 4종 100g씩 · 따로 사는 것보다 얼마 아끼나 · 먹여 보는 순서 · 담기.
+ *  paused: 자사몰 결제 막음(storeSalesPaused) — 담기를 회색으로, 바로 위에 스마트스토어 안내(규칙177).
  * 숫자는 전부 상품표(lib/store/catalog)·급여 계산(lib/store/feeding)에서.
  */
 import { useState } from 'react'
 import Link from 'next/link'
 import RecipeGrid, { QtyStepper } from './RecipeGrid'
 import { useStoreCart } from './useStoreCart'
+import { PAUSED_BTN, PayPausedNotice } from './PayPaused'
 import {
   RECIPE_BAND,
   RECIPE_NAME,
@@ -118,7 +120,7 @@ function CompareTable() {
   )
 }
 
-function TrialPanel() {
+function TrialPanel({ paused }: { paused: boolean }) {
   const cart = useStoreCart()
   const qty = cart.qtyOf(TRIAL_ITEM.id)
   const saving = TRIAL_ITEM.listPrice - TRIAL_ITEM.price
@@ -149,7 +151,14 @@ function TrialPanel() {
         100g 팩 {TRIAL_ITEM.packs}개 · 100g당 {won(Math.round(TRIAL_ITEM.price / TRIAL_ITEM.packs))}원
       </span>
       <div style={{ marginTop: 18 }}>
-        {qty === 0 ? (
+        {paused ? (
+          <>
+            <PayPausedNotice trial />
+            <button type="button" disabled style={{ marginTop: 10, width: '100%', height: 56, borderRadius: 4, fontSize: 18, fontWeight: 800, ...PAUSED_BTN }}>
+              체험팩 담기
+            </button>
+          </>
+        ) : qty === 0 ? (
           <button
             type="button"
             onClick={() => cart.add(TRIAL_ITEM.id)}
@@ -200,7 +209,7 @@ function TrialPanel() {
   )
 }
 
-export default function StoreBrowse({ initialTab = 'recipes' }: { initialTab?: 'recipes' | 'trial' }) {
+export default function StoreBrowse({ initialTab = 'recipes', paused }: { initialTab?: 'recipes' | 'trial'; paused: boolean }) {
   const [tab, setTab] = useState<'recipes' | 'trial'>(initialTab)
   const [avoid, setAvoid] = useState<Partial<Record<StoreRecipe, boolean>>>({})
   const tabs: { id: 'recipes' | 'trial'; label: string }[] = [
@@ -263,7 +272,7 @@ export default function StoreBrowse({ initialTab = 'recipes' }: { initialTab?: '
 
           <div style={{ padding: '22px 20px 0' }}>
             {shown.length > 0 ? (
-              <RecipeGrid recipes={shown} showDetail />
+              <RecipeGrid recipes={shown} showDetail paused={paused} />
             ) : (
               <p style={{ margin: 0, padding: '28px 16px', background: '#F6F4F5', borderRadius: 4, fontSize: 16, lineHeight: 1.6 }}>
                 네 가지 고기를 모두 뺐어요. 고기를 하나 이상 남겨 주세요.
@@ -291,7 +300,7 @@ export default function StoreBrowse({ initialTab = 'recipes' }: { initialTab?: '
         </>
       ) : (
         <>
-          <TrialPanel />
+          <TrialPanel paused={paused} />
           <div style={{ padding: '28px 20px 64px' }}>
             <AppLine />
           </div>

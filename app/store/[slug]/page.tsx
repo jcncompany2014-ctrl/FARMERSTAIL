@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import StoreShell from '@/components/store/StoreShell'
 import ProductDetail from '@/components/store/ProductDetail'
+import { storeSalesPaused } from '@/lib/store/toss-widget'
 import {
   RECIPE_PRODUCT_NAME,
   RECIPE_STUDIO_IMG,
@@ -70,7 +71,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <StoreShell header={{ variant: 'back', backHref: '/store' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
-      <ProductDetail recipe={recipe} label={label} />
+      <ProductDetail recipe={recipe} label={label} paused={storeSalesPaused()} />
     </StoreShell>
   )
 }

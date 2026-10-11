@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import StoreShell from '@/components/store/StoreShell'
 import StoreBrowse from '@/components/store/StoreBrowse'
+import { storeSalesPaused } from '@/lib/store/toss-widget'
 import { STORE_RECIPES, TRIAL_ITEM, storeItem } from '@/lib/store/catalog'
 
 /** 스토어 — 웹 시안 Store. ?tab=trial 이면 체험팩 탭으로 연다(홈·메뉴의 체험팩 링크). */
@@ -18,7 +19,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
   const initialTab = sp.tab === 'trial' ? 'trial' : 'recipes'
   return (
     <StoreShell>
-      <StoreBrowse initialTab={initialTab} />
+      <StoreBrowse initialTab={initialTab} paused={storeSalesPaused()} />
     </StoreShell>
   )
 }

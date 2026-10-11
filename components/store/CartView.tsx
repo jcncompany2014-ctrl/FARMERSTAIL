@@ -4,12 +4,14 @@
  * 장바구니(웹 시안 Cart) — 냉동 출고일 줄 · 담은 상품(수량·빼기·되돌리기) · 무료배송까지 · "하나만 더하면 배송비가 빠져요" ·
  * 금액 · 앱 정기배송으로 받으면 얼마 덜 내나 · [○원 주문하기]. 비었으면 체험팩·레시피로.
  * 금액은 전부 cartSummary(상품표에서 다시 계산) — 주문 생성 서버도 같은 함수를 쓴다.
+ * paused: 자사몰 결제 막음(storeSalesPaused) — 맨 위 스마트스토어 안내 · 더 담기·주문하기는 회색 · 아래 바는 초록 스마트스토어 아래 회색 주문(규칙177).
  */
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useStoreCart } from './useStoreCart'
 import { useShipDate } from './useShipDate'
+import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import {
   RECIPE_BAND,
   RECIPE_STUDIO_IMG,
@@ -45,7 +47,7 @@ function Thumb({ item, size = 64 }: { item: StoreItem; size?: number }) {
   )
 }
 
-export default function CartView() {
+export default function CartView({ paused }: { paused: boolean }) {
   const router = useRouter()
   const cart = useStoreCart()
   const ship = useShipDate()
@@ -95,6 +97,7 @@ export default function CartView() {
 
   return (
     <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {paused && <PayPausedNotice />}
       <section aria-label="냉동 상품" style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <span style={{ fontSize: 16, fontWeight: 800 }}>❄ 냉동 · {ship ? `${ship.label} 출고` : '화·목 출고'}</span>
@@ -185,9 +188,15 @@ export default function CartView() {
                     더 내는 돈 <strong style={{ color: '#141414' }}>{won(g.price - SHIPPING_FEE)}원</strong>
                   </span>
                 </span>
-                <button type="button" onClick={() => cart.add(g.id)} style={{ height: 44, padding: '0 16px', borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: 'pointer', color: '#141414' }}>
-                  담기
-                </button>
+                {paused ? (
+                  <button type="button" disabled style={{ height: 44, padding: '0 16px', borderRadius: 4, fontSize: 16, fontWeight: 800, ...PAUSED_BTN }}>
+                    담기
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => cart.add(g.id)} style={{ height: 44, padding: '0 16px', borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: 'pointer', color: '#141414' }}>
+                    담기
+                  </button>
+                )}
               </div>
             ))}
           </>
@@ -229,14 +238,23 @@ export default function CartView() {
         </Link>
       )}
 
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, margin: '0 -16px', padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5' }}>
-        <button
-          type="button"
-          onClick={() => router.push('/store/checkout')}
-          style={{ width: '100%', height: 60, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 19, fontWeight: 800, cursor: 'pointer' }}
-        >
-          {won(s.total)}원 주문하기
-        </button>
+      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, margin: '0 -16px', padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {paused ? (
+          <>
+            <SmartStoreButton height={50} />
+            <button type="button" disabled style={{ width: '100%', height: 52, borderRadius: 4, fontSize: 19, fontWeight: 800, ...PAUSED_BTN }}>
+              {won(s.total)}원 주문하기
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => router.push('/store/checkout')}
+            style={{ width: '100%', height: 60, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 19, fontWeight: 800, cursor: 'pointer' }}
+          >
+            {won(s.total)}원 주문하기
+          </button>
+        )}
       </div>
     </div>
   )

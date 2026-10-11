@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import StoreShell from '@/components/store/StoreShell'
 import CheckoutClient from '@/components/store/CheckoutClient'
+import ProductDetail from '@/components/store/ProductDetail'
+import CartView from '@/components/store/CartView'
+import StoreBrowse from '@/components/store/StoreBrowse'
+import RecipeGrid from '@/components/store/RecipeGrid'
 import { widgetClientKey } from '@/lib/store/toss-widget'
 import ReceiptWebView from '@/app/mypage/orders/[id]/receipt/ReceiptWebView'
 import type { ReceiptAppModel } from '@/app/mypage/orders/[id]/receipt/ReceiptAppView'
@@ -111,6 +115,39 @@ export default async function DesignCheckStorePage({ searchParams }: { searchPar
   if (process.env.VERCEL_ENV === 'production') notFound()
   const { s } = await searchParams
   if (s === 'receipt') return <ReceiptWebView m={RECEIPT_WEB} orderId="design-check" print={false} />
+  // 자사몰 결제 막음(스마트스토어 안내) — 운영에만 켜지는 모양이라(미리보기·로컬은 테스트 키) 여기서 켠 채로 본다(규칙177).
+  if (s === 'paused-home')
+    return (
+      <StoreShell>
+        <section style={{ padding: '64px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+          <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.1 }}>
+            레시피 4종
+          </h2>
+          <p style={{ margin: '8px 0 0', fontSize: 17, color: '#595959' }}>모두 100g 팩 5개, 500g 한 봉이에요</p>
+          <div style={{ marginTop: 20 }}>
+            <RecipeGrid paused />
+          </div>
+        </section>
+      </StoreShell>
+    )
+  if (s === 'paused-store' || s === 'paused-trial')
+    return (
+      <StoreShell>
+        <StoreBrowse initialTab={s === 'paused-trial' ? 'trial' : 'recipes'} paused />
+      </StoreShell>
+    )
+  if (s === 'paused-product')
+    return (
+      <StoreShell header={{ variant: 'back', backHref: '/store' }}>
+        <ProductDetail recipe="chicken" label={null} paused />
+      </StoreShell>
+    )
+  if (s === 'paused-cart')
+    return (
+      <StoreShell header={{ variant: 'title', title: '장바구니', backHref: '/store' }} footer={false}>
+        <CartView paused />
+      </StoreShell>
+    )
   // 웹 가입 완료(행사 링크 손님) — 혜택·추천 구성은 로그인한 사람만 보이는 칸이라 예시 값으로 확인한다.
   if (s === 'start-done')
     return <DoneWebView who="땅콩이" box={{ recipes: '치킨 · 흑돼지', dailyGrams: 240, total: 61800 }} promo={{ name: '부산 펫박람회', ratePct: 30 }} />
@@ -184,8 +221,9 @@ export default async function DesignCheckStorePage({ searchParams }: { searchPar
         email={null}
         prefill={{ name: '보호자', phone: '010-0000-0000', zip: '21990', address: '인천광역시 연수구 송도과학로28번길 50', addressDetail: '121호' }}
         buy={{ id: 'chicken-500g', qty: 2 }}
-        clientKey={widgetClientKey()}
+        clientKey={s === 'paused-checkout' ? null : widgetClientKey()}
         customerKey="ft-design-check-store"
+        paused={s === 'paused-checkout'}
       />
     </StoreShell>
   )

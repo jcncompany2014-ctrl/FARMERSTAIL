@@ -7,6 +7,8 @@
  * 흐름: [결제하기] → 서버가 주문을 만든다(/api/store/orders, 금액은 서버가 상품표로 계산) → 위젯 requestPayment →
  * 토스 결제창 → successUrl(/store/order/complete)이 승인(/api/payments/confirm) → 주문 완료 화면.
  * 결제위젯 키가 없으면(토스 일반결제 심사 전, 운영) 결제 대신 '결제 준비 중' 안내 + 전화·카카오톡 주문.
+ * paused(자사몰 결제 막음, storeSalesPaused — 심사 신청 전): 결제 칸에 스마트스토어 안내, 아래 바는 초록 스마트스토어 아래 회색
+ * 결제 버튼, 결제위젯은 열지 않는다(규칙177).
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -16,6 +18,7 @@ import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
 import { useStoreCart } from './useStoreCart'
 import { useShipDate } from './useShipDate'
+import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import { cartSummary, type CartLine } from '@/lib/store/cart'
 import { RECIPE_BAND, type StoreItemId } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN } from '@/lib/store/shipping'
@@ -59,6 +62,7 @@ export default function CheckoutClient({
   buy,
   clientKey,
   customerKey,
+  paused,
 }: {
   signedIn: boolean
   displayName: string | null
@@ -67,6 +71,7 @@ export default function CheckoutClient({
   buy: { id: StoreItemId; qty: number } | null
   clientKey: string | null
   customerKey: string | null
+  paused: boolean
 }) {
   const cart = useStoreCart()
   const ship = useShipDate()
@@ -89,7 +94,7 @@ export default function CheckoutClient({
   const widgetsRef = useRef<TossPaymentsWidgets | null>(null)
 
   const nextHref = `/store/checkout${buy ? `?buy=${buy.id}&qty=${buy.qty}` : ''}`
-  const canPay = signedIn && !!clientKey && !!customerKey && s.total > 0
+  const canPay = !paused && signedIn && !!clientKey && !!customerKey && s.total > 0
 
   // 결제위젯 — **한 번만** 만든다(토스: 결제수단 위젯은 한 화면에 하나 — 두 번 그리면 오류). 개발 모드는 화면 준비 코드를
   // 두 번 돌리므로(StrictMode) 시작 여부를 ref 로 막는다. 금액이 바뀌면 아래 effect 가 금액만 다시 넣는다.
@@ -292,7 +297,9 @@ export default function CheckoutClient({
         <h2 id="pay-title" className="d" style={{ margin: 0, fontSize: 26 }}>
           어떻게 결제할까요?
         </h2>
-        {!clientKey ? (
+        {paused ? (
+          <PayPausedNotice />
+        ) : !clientKey ? (
           <div style={{ padding: '16px', border: '2px solid #141414', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <strong style={{ fontSize: 17 }}>온라인 결제를 준비하고 있어요</strong>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
@@ -383,33 +390,40 @@ export default function CheckoutClient({
         )}
       </section>
 
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, marginTop: 20, padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5' }}>
-        <button
-          type="button"
-          onClick={pay}
-          disabled={!canPay || !widgetReady || busy}
-          style={{
-            width: '100%',
-            height: 60,
-            borderRadius: 4,
-            border: 0,
-            background: canPay && widgetReady && agreed && !busy ? '#141414' : '#E5E5E5',
-            color: canPay && widgetReady && agreed && !busy ? '#FFFFFF' : '#595959',
-            fontSize: 18,
-            fontWeight: 800,
-            cursor: canPay && widgetReady && !busy ? 'pointer' : 'default',
-          }}
-        >
-          {!signedIn
-            ? '로그인하면 주문할 수 있어요'
-            : !clientKey
-              ? '온라인 결제 준비 중이에요'
-              : busy
-                ? '결제창을 여는 중…'
-                : agreed
-                  ? `${won(s.total)}원 결제하기`
-                  : '위 내용에 동의하면 결제할 수 있어요'}
-        </button>
+      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, marginTop: 20, padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {paused && <SmartStoreButton height={50} />}
+        {paused ? (
+          <button type="button" disabled style={{ width: '100%', height: 52, borderRadius: 4, fontSize: 18, fontWeight: 800, ...PAUSED_BTN }}>
+            {won(s.total)}원 결제하기
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={pay}
+            disabled={!canPay || !widgetReady || busy}
+            style={{
+              width: '100%',
+              height: 60,
+              borderRadius: 4,
+              border: 0,
+              background: canPay && widgetReady && agreed && !busy ? '#141414' : '#E5E5E5',
+              color: canPay && widgetReady && agreed && !busy ? '#FFFFFF' : '#595959',
+              fontSize: 18,
+              fontWeight: 800,
+              cursor: canPay && widgetReady && !busy ? 'pointer' : 'default',
+            }}
+          >
+            {!signedIn
+              ? '로그인하면 주문할 수 있어요'
+              : !clientKey
+                ? '온라인 결제 준비 중이에요'
+                : busy
+                  ? '결제창을 여는 중…'
+                  : agreed
+                    ? `${won(s.total)}원 결제하기`
+                    : '위 내용에 동의하면 결제할 수 있어요'}
+          </button>
+        )}
       </div>
     </div>
   )
