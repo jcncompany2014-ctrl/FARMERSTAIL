@@ -5,7 +5,7 @@
  * 금지어: 처방·전문용어·정확한 %·"언제든"·도착 요일 약속(고객 문구 규칙).
  */
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from './shipping.ts'
-import { ONE_KG_DISCOUNT_PCT, TRIAL_ITEM } from './catalog.ts'
+import { ONE_KG_DISCOUNT_PCT, TRIAL_ITEM, TRIAL_PACK_G } from './catalog.ts'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '../pricing.ts'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -21,7 +21,7 @@ export const STORE_FAQ: { q: string; a: string }[] = [
   },
   {
     q: '어떤 용량이 있나요?',
-    a: `레시피마다 500g(100g 팩 5개)과 1kg(100g 팩 10개)이 있어요. 1kg은 500g 두 봉보다 ${ONE_KG_DISCOUNT_PCT}% 싸요. 처음이라면 4종을 100g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)도 있어요.`,
+    a: `레시피마다 500g(100g 팩 5개)과 1kg(100g 팩 10개)이 있어요. 1kg은 500g 두 봉보다 ${ONE_KG_DISCOUNT_PCT}% 싸요. 처음이라면 4종을 ${TRIAL_PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)도 있어요.`,
   },
   {
     q: '어떻게 결제해요?',

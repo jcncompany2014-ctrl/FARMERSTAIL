@@ -4,11 +4,12 @@
  * 금액은 언제나 상품표에서 다시 계산한다(cartSummary) — 브라우저가 보낸 값은 '무엇을 몇 개'뿐이다.
  * 주문 품목(order_items)은 레시피 행(products)을 가리킨다:
  *  - 레시피 500g·1kg → 그 레시피 행 1줄(이름 '닭고기 화식 500g', 단가 = 판매가, 수량 = 봉지 수).
- *  - 4종 체험팩 → 레시피 4행에 100g 한 팩씩 4줄(단가 = 체험팩 값 ÷ 4, 수량 = 세트 수). 합은 체험팩 값과 같다.
+ *  - 4종 체험팩 → 레시피 4행에 50g 한 팩씩 4줄(단가 = 체험팩 값 ÷ 4, 수량 = 세트 수). 합은 체험팩 값과 같다.
+ *    품목 이름에 팩 무게(TRIAL_PACK_G)를 넣는다 — 포장하는 사람이 이 이름을 보고 싼다(단품 100g 팩과 헷갈리지 않게).
  * 결제 승인(app/api/payments/confirm)이 품목 합 = 상품 금액을 다시 대조한다.
  */
 import { cartSummary, normalizeCart, type CartLine } from './cart.ts'
-import { RECIPE_PRODUCT_NAME, STORE_RECIPES, TRIAL_ITEM, type StoreRecipe } from './catalog.ts'
+import { RECIPE_PRODUCT_NAME, STORE_RECIPES, TRIAL_ITEM, TRIAL_PACK_G, type StoreRecipe } from './catalog.ts'
 import { formatKoreanMobile, isKoreanMobile } from '../phone.ts'
 
 export type Recipient = {
@@ -71,7 +72,7 @@ export function orderItemsFromCart(lines: CartLine[]): OrderItemDraft[] {
       for (const r of STORE_RECIPES) {
         out.push({
           recipe: r,
-          product_name: `${RECIPE_PRODUCT_NAME[r]} 100g (4종 체험팩)`,
+          product_name: `${RECIPE_PRODUCT_NAME[r]} ${TRIAL_PACK_G}g (4종 체험팩)`,
           variant_name: '4종 체험팩',
           unit_price: per,
           quantity: l.qty,

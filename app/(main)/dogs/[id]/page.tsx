@@ -9,6 +9,8 @@ import { getTrialState } from '@/lib/payments/trial-state'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { kstDateOf } from '@/lib/datetime-kst'
+import { paidBoxShipIso } from '@/lib/shipping-schedule'
 import type { UpcomingBoxHints } from './_components/SubscriptionCard'
 import { createClient } from '@/lib/supabase/server'
 import DogDetailClient from './DogDetailClient'
@@ -74,7 +76,7 @@ export default async function DogDetailPage({
       supabase
         .from('dog_formulas')
         .select(
-          'cycle_number, approval_status, applied_from, applied_until, ' +
+          'cycle_number, approval_status, applied_from, applied_until, created_at, ' +
             // daily_grams 는 안 뽑는다(2026-08-03) — 이 화면 어디에서도 안 그리는
             // 죽은 조회였고, 그 칸은 저장 당시 kcal 밀도로 굳어 있어 쓰면 옛
             // 숫자가 나온다. 필요해지면 dailyGramsOf 로 다시 셀 것(규칙 35).
@@ -180,6 +182,43 @@ export default async function DogDetailPage({
     }
   }
 
+  /**
+   * ★1회차 식단의 시작일 = 그 구독의 **첫 박스 발송일** (2026-10-12 점검).
+   * 1회차는 설계상 applied_from 이 비어 있는데(cycle.ts — 재제안 크론도 1회차는 처방 생성 시각부터 박스를 센다)
+   * 체크인 카드는 applied_from 만 봐서, 1회차 구독자 전원에게 2주차·4주차 체크인 링크가 한 번도 안 떴다
+   * (운영 dog_formulas 23행 전부 NULL · 체크인 1건). "박스 N = 시작일 + (N−1)×14" 라 첫 박스 발송일이 그 정의다.
+   * 크론과 같은 기준으로 처방 생성 이후 첫 결제 박스를 고르고, 실제 발송 기록(shipped_at)이 정본 · 아직이면 결제일
+   * 기준 발송 화요일(paidBoxShipIso). 조회 실패면 비워 둔다 — 틀린 D-day 보다 안 뜨는 게 낫다.
+   */
+  let cycleStart: string | null = null
+  if (
+    currentFormula &&
+    !currentFormula.applied_from &&
+    currentFormula.approval_status !== 'pending_approval' &&
+    currentFormula.created_at &&
+    subscriptions.length > 0
+  ) {
+    const { data: firstBox, error: firstBoxErr } = await supabase
+      .from('orders')
+      .select('shipped_at, paid_at, created_at')
+      .eq('user_id', user.id)
+      .in(
+        'subscription_id',
+        subscriptions.map((s) => s.id),
+      )
+      .in('payment_status', PAID_STATUSES)
+      .gte('created_at', currentFormula.created_at)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (firstBoxErr) {
+      console.error('[dogs/[id]] 첫 박스 조회 실패:', firstBoxErr.message)
+    } else if (firstBox) {
+      const fb = firstBox as { shipped_at: string | null; paid_at: string | null; created_at: string }
+      cycleStart = fb.shipped_at ? kstDateOf(fb.shipped_at) : paidBoxShipIso(null, fb.paid_at ?? fb.created_at)
+    }
+  }
+
   const surveyAnswers = ((surveyRes.data?.answers as unknown) ?? {}) as {
     bcsExact?: number
   }
@@ -281,7 +320,7 @@ export default async function DogDetailPage({
       chargePreview={chargePreview}
       dog={dog}
       initialWeightLogs={initialWeightLogs}
-      currentFormula={currentFormula}
+      currentFormula={currentFormula ? { ...currentFormula, cycle_start: cycleStart } : null}
       checkinStatus={checkinStatus}
       subscriptions={subscriptionsWithBox}
       subsQueryFailed={subsQueryFailed}

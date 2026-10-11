@@ -4,7 +4,7 @@ import { ogImageUrl, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jso
 import JsonLd from '@/components/JsonLd'
 import StoreShell from '@/components/store/StoreShell'
 import { QaList, SecHead } from '@/components/store/Editorial'
-import { SUBSCRIPTION_DISCOUNT_PCT, TRIAL_PRICE } from '@/lib/store/catalog'
+import { SUBSCRIPTION_DISCOUNT_PCT, TRIAL_PACK_G, TRIAL_PRICE } from '@/lib/store/catalog'
 
 /**
  * /why-fresh — "왜 화식인가" 교육 화면. 웹 시안 WEB-C04(2026-10-10 웹 리뉴얼) — 가게 틀 안에서 위에서부터:
@@ -284,7 +284,7 @@ export default async function WhyFreshPage() {
                 <span className="d" style={{ fontSize: 24, lineHeight: 1.1 }}>
                   4종 체험팩
                 </span>
-                <span style={{ fontSize: 15, color: '#3D3D3D' }}>4종 100g씩 맛보기</span>
+                <span style={{ fontSize: 15, color: '#3D3D3D' }}>4종 {TRIAL_PACK_G}g씩 맛보기</span>
               </span>
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>
                 <span className="n" style={{ fontSize: 28 }}>

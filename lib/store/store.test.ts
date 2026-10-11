@@ -28,7 +28,7 @@ import { orderItemsFromCart, orderNameFor, normalizeMobile, validateRecipient } 
 import { storeOrderNumber, isStoreOrderNumber } from './order-number.ts'
 import { orderReservedStock } from '../commerce/stock-gate.ts'
 
-test('상품표: 500g = 정가(lib/pricing), 1kg = 500g×2 의 5% 할인, 체험팩 19,900원', () => {
+test('상품표: 500g = 정가(lib/pricing), 1kg = 500g×2 의 5% 할인, 체험팩 = 4종 50g씩 14,000원(사장님 10/12)', () => {
   for (const r of STORE_RECIPES) {
     assert.equal(storeItem(`${r}-500g`).price, SKU_PRICING[r].listPack500g)
     assert.equal(storeItem(`${r}-500g`).packs, 5)
@@ -38,9 +38,11 @@ test('상품표: 500g = 정가(lib/pricing), 1kg = 500g×2 의 5% 할인, 체험
   assert.equal(storeItem('duck-1kg').price, 51_300)
   assert.equal(storeItem('pork-1kg').price, 57_950)
   assert.equal(storeItem('beef-1kg').price, 78_850)
-  assert.equal(TRIAL_ITEM.price, 19_900)
-  assert.equal(TRIAL_ITEM.listPrice, 24_600)
-  assert.ok(TRIAL_ITEM.price < TRIAL_ITEM.listPrice)
+  assert.equal(TRIAL_ITEM.price, 14_000)
+  assert.equal(TRIAL_ITEM.packs, 4)
+  assert.equal(TRIAL_ITEM.grams, 200)
+  // 50g 팩은 따로 팔지 않아 '따로 사면 얼마'가 없다 — 할인 전 값 = 판매가("○원 아껴요"가 안 뜬다).
+  assert.equal(TRIAL_ITEM.listPrice, TRIAL_ITEM.price)
 })
 
 test('1kg 도 앱 정기배송(100g 구독가)보다 비싸다 — 앱으로 갈 이유를 남긴다(기획서 D5)', () => {
@@ -136,7 +138,7 @@ test('장바구니는 저장된 값을 믿지 않는다 — 없는 상품·이�
   assert.deepEqual(normalizeCart('not an array'), [])
 })
 
-test('주문 품목 — 품목 합 = 상품 금액(체험팩은 4종 100g 한 팩씩 4,975원), 주문 이름·주문번호', () => {
+test('주문 품목 — 품목 합 = 상품 금액(체험팩은 4종 50g 한 팩씩 3,500원), 주문 이름·주문번호', () => {
   const lines = [
     { id: 'chicken-500g' as const, qty: 2 },
     { id: 'trial-4set' as const, qty: 1 },
@@ -148,7 +150,9 @@ test('주문 품목 — 품목 합 = 상품 금액(체험팩은 4종 100g 한 �
   assert.ok(items.every((it) => Number.isInteger(it.unit_price) && it.line_total === it.unit_price * it.quantity))
   const trial = items.filter((it) => it.variant_name === '4종 체험팩')
   assert.equal(trial.length, 4)
-  assert.ok(trial.every((it) => it.unit_price === 4_975))
+  assert.ok(trial.every((it) => it.unit_price === 3_500))
+  // 포장하는 사람이 품목 이름을 보고 싼다 — 체험팩 팩은 50g(단품 100g 팩과 헷갈리면 안 된다).
+  assert.ok(trial.every((it) => / 50g \(4종 체험팩\)$/.test(it.product_name)), '체험팩 품목 이름에 50g 이 없다')
   assert.equal(TRIAL_ITEM.price % STORE_RECIPES.length, 0, '체험팩 값이 4로 나누어떨어지지 않으면 품목 합이 어긋난다')
   assert.equal(orderNameFor(lines), '닭고기 화식 500g 외 2건')
   const no = storeOrderNumber(new Date('2026-10-10T15:30:00Z'), () => 0)

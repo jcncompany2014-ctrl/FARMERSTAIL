@@ -6,6 +6,19 @@
 import Link from 'next/link'
 import { business, ftcLookupUrl } from '@/lib/business'
 
+/**
+ * 둘러보기 — 검색엔진이 읽는 글자 링크(2026-10-12 점검). 메뉴(☰)는 닫혀 있으면 HTML 에 링크가 없어(StoreMenu) 홈·스토어·FAQ
+ * 어디에도 매거진·우리 음식으로 가는 내부 링크가 0개였다. StoreShell 화면에만 붙는다 — /app 앱 소개(규칙165)엔 이 바닥이 없다.
+ */
+const BROWSE_LINKS: ReadonlyArray<readonly [href: string, label: string]> = [
+  ['/store', '스토어'],
+  ['/blog', '매거진'],
+  ['/our-food', '우리 음식'],
+  ['/brand', '브랜드 이야기'],
+  ['/faq', '자주 묻는 질문'],
+  ['/app', '앱 정기배송'],
+]
+
 export default function StoreFooter() {
   const year = new Date().getFullYear()
   return (
@@ -32,6 +45,13 @@ export default function StoreFooter() {
             </a>
           )}
         </div>
+        <nav aria-label="둘러보기" style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2 }}>
+          {BROWSE_LINKS.map(([href, label]) => (
+            <Link key={href} href={href} style={{ height: 40, display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 700, color: '#FFFFFF', textDecoration: 'none' }}>
+              {label}
+            </Link>
+          ))}
+        </nav>
         <nav aria-label="약관과 정책" style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2 }}>
           <Link href="/legal/terms" style={{ height: 40, display: 'flex', alignItems: 'center', fontSize: 15, color: '#D9D9D9', textDecoration: 'none' }}>
             이용약관

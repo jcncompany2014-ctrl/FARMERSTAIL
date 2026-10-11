@@ -101,9 +101,10 @@ const RECIPE_DESCRIPTIONS: Record<string, string> = {
 // 2026-10-10 사장님: 제목 자리는 다시 팩 영어 이름을 크게 + 바로 아래 회색 한글(recipeTitle). 여기 name 은 팩 없는 라인·
 // 한 줄 자리용, sub 는 회색 줄의 특징("무항생제 닭"). line→단백질: weight=닭·premium=소·basic=오리·joint=돼지.
 const RECIPE_NAMES: Record<string, { name: string; sub: string }> = {
-  weight: { name: '닭고기', sub: '무항생제 닭' },
+  // 무항생제는 사장님이 확인한 부위만(닭가슴살·오리 안심) — '무항생제 닭'은 간·염통까지 무항생제로 읽혔다(2026-10-12 점검).
+  weight: { name: '닭고기', sub: '무항생제 닭가슴살' },
   premium: { name: '한우', sub: '프리미엄 한우' },
-  basic: { name: '오리', sub: '무항생제 오리' },
+  basic: { name: '오리', sub: '무항생제 오리 안심' },
   joint: { name: '흑돼지', sub: '제주산 흑돼지' },
 }
 

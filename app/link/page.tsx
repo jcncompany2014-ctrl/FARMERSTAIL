@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import { shareCard } from '@/lib/seo/share-card'
 import InAppBrowserNotice from '@/components/web/InAppBrowserNotice'
 import OpenExternalInChrome from '@/components/web/OpenExternalInChrome'
 import { business } from '@/lib/business'
@@ -29,10 +30,13 @@ import s from './link.module.css'
  * 진입 움직임(도장 '쿵'·한 박자씩 떠오르기·눌림)은 사장님 2026-09-25 요청이라 시안(정지 화면) 위에 그대로 둔다.
  * ⛔사진은 실물·생활감 스냅만.
  */
+const DESCRIPTION = '파머스테일 — 신선 화식, 앱 맞춤 정기배송, 이벤트 바로가기'
 export const metadata: Metadata = {
   title: '링크 모음',
-  description: '파머스테일 — 신선 화식, 앱 맞춤 정기배송, 이벤트 바로가기',
+  description: DESCRIPTION,
   alternates: { canonical: '/link' },
+  // 자기 공유 카드 — 없으면 루트 카드(홈 제목·주소)를 물려받았다(2026-10-12 점검). 인스타 소개 링크라 가장 많이 공유된다.
+  ...shareCard('링크 모음', DESCRIPTION, '/link'),
 }
 
 export const revalidate = 300

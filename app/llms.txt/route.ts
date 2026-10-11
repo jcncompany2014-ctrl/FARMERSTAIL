@@ -8,11 +8,14 @@ import {
   STORE_RECIPES,
   SUBSCRIPTION_DISCOUNT_PCT,
   TRIAL_ITEM,
+  TRIAL_PACK_G,
   fullIngredients,
   kcalPer100g,
   storeItem,
 } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE, STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
+import { storeSalesPaused } from '@/lib/store/toss-widget'
+import { SMARTSTORE_URL } from '@/lib/links'
 import { business } from '@/lib/business'
 import { SITE_URL } from '@/lib/seo/jsonld'
 
@@ -66,23 +69,33 @@ export async function GET() {
   const shipDays = STORE_SHIP_WEEKDAYS.map((d) => WEEKDAY_KO[d]).join('·')
   const freeMan = FREE_SHIPPING_MIN / 10_000
   const posts = await magazineLines()
+  // ★자사몰 결제 막음(규칙177) 동안엔 "웹 가게에서 판다"가 거짓이다 — 화면과 같은 판정 함수로(2026-10-12 점검).
+  const paused = storeSalesPaused()
 
   const lines = [
     "# 파머스테일 (Farmer's Tail)",
     '',
-    `> 국내산 원물을 진공 포장해 낮은 온도에서 천천히 익히는 수비드로 만든 강아지 화식(익힌 신선식) 브랜드예요. 웹 가게에서는 레시피 4종의 500g·1kg과 4종 체험팩을 팔고, 파머스테일 앱에서는 강아지 몸무게에 맞춘 하루 양을 2주마다 보내는 정기배송을 해요.`,
+    `> 국내산 원물을 진공 포장해 낮은 온도에서 천천히 익히는 수비드로 만든 강아지 화식(익힌 신선식) 브랜드예요. ${
+      paused
+        ? '웹 가게는 지금 결제를 준비 중이라 레시피 4종 단품은 네이버 스마트스토어에서 팔고'
+        : '웹 가게에서는 레시피 4종의 500g·1kg과 4종 체험팩을 팔고'
+    }, 파머스테일 앱에서는 강아지 몸무게에 맞춘 하루 양을 2주마다 보내는 정기배송을 해요.`,
     '',
     '## 핵심 사실',
     `- 레시피 4종: ${STORE_RECIPES.map((r) => RECIPE_PRODUCT_NAME[r]).join(', ')}. 4종 모두 고기는 한 가지 동물에서만 가져와요(살코기 + 같은 동물의 간·염통).`,
     `- 무항생제 원료: ${STORE_RECIPES.filter((r) => ANTIBIOTIC_FREE_MAIN[r]).map((r) => fullIngredients(r)[0]).join('·')}. (그 밖의 고기에는 무항생제라고 하지 않아요.)`,
     '- 사람이 먹는 등급의 원료, 익히자마자 급속 냉동, 보존료 없음.',
-    '- 레시피 4종 모두 공개된 개 영양 기준에 맞춰 한 끼로 완전하고 균형 있게 설계했어요(근거와 기준: /science).',
-    `- 포장: ${PACK_G}g 팩으로 나눠 담아 얼린 채로 보내요. 500g = ${SIZE_PACKS['500g']}팩, 1kg = ${SIZE_PACKS['1kg']}팩.`,
+    '- 레시피 4종 모두 공개된 개 영양 기준(성견 유지)에 맞춰 한 끼로 완전하고 균형 있게 설계했어요(근거와 기준: /science).',
+    // 팩 무게는 상품마다 다르다 — 단품 100g · 체험팩 50g · 앱 정기배송은 하루 양에 맞춰(팩 하나 = 하루 양이 아니다).
+    `- 포장(웹 가게): 단품은 ${PACK_G}g 팩(500g = ${SIZE_PACKS['500g']}팩, 1kg = ${SIZE_PACKS['1kg']}팩), 체험팩은 ${TRIAL_PACK_G}g 팩 ${TRIAL_ITEM.packs}개. 얼린 채로 보내요. 앱 정기배송은 하루 양에 맞춰 나눠 담아요.`,
     '- 보관: 냉동 180일(제조일부터). 먹이기 전날 냉장실에서 녹이고, 녹인 팩은 3일 안에 줘요. 다시 얼리지 않아요.',
     '',
     '## 레시피와 가격(웹 가게, 원)',
+    ...(paused
+      ? [`- 지금은 웹 결제를 준비 중이에요. 단품은 네이버 스마트스토어(${SMARTSTORE_URL})에서 살 수 있고, 4종 체험팩은 웹 결제가 열리면 팔아요.`]
+      : []),
     ...recipeLines(),
-    `- ${TRIAL_ITEM.name}: ${won(TRIAL_ITEM.price)}원 (4종을 ${PACK_G}g씩 — 어떤 고기를 잘 먹는지 먼저 볼 때)`,
+    `- ${TRIAL_ITEM.name}: ${won(TRIAL_ITEM.price)}원 (4종을 ${TRIAL_PACK_G}g씩 — 어떤 고기를 잘 먹는지 먼저 볼 때)`,
     `- 1kg은 500g 두 봉보다 ${ONE_KG_DISCOUNT_PCT}% 낮아요.`,
     '',
     '## 웹 가게 배송·환불',

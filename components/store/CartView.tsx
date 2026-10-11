@@ -13,10 +13,12 @@ import { useStoreCart } from './useStoreCart'
 import { useShipDate } from './useShipDate'
 import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import {
+  PACK_G,
   RECIPE_BAND,
   RECIPE_STUDIO_IMG,
   STORE_RECIPES,
   TRIAL_ITEM,
+  TRIAL_PACK_G,
   storeItem,
   subscriptionSaving,
   type StoreItem,
@@ -83,7 +85,14 @@ export default function CartView({ paused }: { paused: boolean }) {
     )
   }
 
-  const packs = s.lines.reduce((n, l) => n + l.item.packs * l.qty, 0)
+  // 팩 무게가 둘(단품 100g · 체험팩 50g) — 예전 "모두 N팩(100g씩)"은 체험팩이 섞이면 거짓이었다(2026-10-12).
+  const packsOf = (kind: StoreItem['kind']) => s.lines.reduce((n, l) => n + (l.item.kind === kind ? l.item.packs * l.qty : 0), 0)
+  const packsLabel = [
+    packsOf('recipe') ? `${PACK_G}g ${packsOf('recipe')}팩` : '',
+    packsOf('trial') ? `${TRIAL_PACK_G}g ${packsOf('trial')}팩` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
   const pct = Math.min(100, Math.round((s.subtotal / FREE_SHIPPING_MIN) * 100))
   // 하나만 더하면 무료배송이 되는 것 — 담겨 있지 않은 500g·체험팩 중 싼 순 둘. 더 내는 돈 = 값 − 아끼는 배송비.
   const suggests =
@@ -113,7 +122,7 @@ export default function CartView({ paused }: { paused: boolean }) {
                     <span className="d" style={{ fontSize: 18 }}>
                       {l.item.recipe ? l.item.name.replace(/\s(500g|1kg)$/, '') : l.item.name}
                     </span>
-                    <span style={{ fontSize: 14, color: '#595959' }}>{l.item.recipe ? `${l.item.size} · 100g 팩 ${l.item.packs}개` : '4종 100g씩'}</span>
+                    <span style={{ fontSize: 14, color: '#595959' }}>{l.item.recipe ? `${l.item.size} · ${PACK_G}g 팩 ${l.item.packs}개` : `4종 ${TRIAL_PACK_G}g씩`}</span>
                   </span>
                   <button
                     type="button"
@@ -152,7 +161,7 @@ export default function CartView({ paused }: { paused: boolean }) {
           ))}
         </ul>
         <p style={{ margin: 0, padding: '12px 14px', fontSize: 14, lineHeight: 1.55, color: '#3D3D3D' }}>
-          모두 <strong>{packs}팩(100g씩)</strong>이에요. 냉동실 자리를 먼저 확인해 주세요.
+          모두 <strong>{packsLabel}</strong>이에요. 냉동실 자리를 먼저 확인해 주세요.
         </p>
       </section>
 

@@ -3,7 +3,7 @@
  * 이름·부위·가격·사진은 가게 정본(lib/store/catalog) 그대로 — 글에 숫자를 적어 두지 않아 값이 바뀌어도 낡지 않는다.
  * 카드는 가게 상품 화면(/store/…)으로 간다. 웹 결제가 막혀 있으면(규칙177) 그 화면이 스마트스토어를 안내한다.
  */
-import { RECIPE_NAME, RECIPE_STUDIO_IMG, TRIAL_ITEM, meatLine, storeItem, type StoreRecipe } from '../store/catalog.ts'
+import { RECIPE_NAME, RECIPE_STUDIO_IMG, TRIAL_ITEM, TRIAL_PACK_G, meatLine, storeItem, type StoreRecipe } from '../store/catalog.ts'
 import { MAGAZINE_RECIPE_KEYS, type MagazineRecipeKey } from './recipe-block.ts'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -12,7 +12,7 @@ export type MagazineRecipeCard = { key: MagazineRecipeKey; href: string; img: st
 
 export function magazineRecipeCard(key: MagazineRecipeKey): MagazineRecipeCard {
   if (key === 'trial') {
-    return { key, href: '/store?tab=trial', img: RECIPE_STUDIO_IMG.chicken, name: '4종 체험팩', sub: '네 가지 맛을 100g씩', price: `${won(TRIAL_ITEM.price)}원` }
+    return { key, href: '/store?tab=trial', img: RECIPE_STUDIO_IMG.chicken, name: '4종 체험팩', sub: `네 가지 맛을 ${TRIAL_PACK_G}g씩`, price: `${won(TRIAL_ITEM.price)}원` }
   }
   const r: StoreRecipe = key
   return { key, href: `/store/${r}`, img: RECIPE_STUDIO_IMG[r], name: `${RECIPE_NAME[r]} 화식`, sub: meatLine(r), price: `500g ${won(storeItem(`${r}-500g`).price)}원` }

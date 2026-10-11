@@ -79,7 +79,9 @@ export default function CurrentFormulaCard({
   //   'YYYY-MM-DD'(UTC 자정)를 섞어 KST 기기에서 첫날 '-1일째'·체크인 D-1 어긋남이 났고,
   //   서버(UTC)와 브라우저가 다른 값을 그렸다.
   const today = todayKstIsoDate()
-  const appliedFrom = formula.applied_from ? formula.applied_from.slice(0, 10) : null
+  // 시작일 = applied_from, 없으면(1회차) page.tsx 가 채운 첫 박스 발송일 — 예전엔 applied_from 만 봐서
+  // 1회차엔 체크인 D-day 가 한 번도 안 떴다(2026-10-12 점검, types.ts cycle_start).
+  const appliedFrom = formula.applied_from ? formula.applied_from.slice(0, 10) : (formula.cycle_start ?? null)
   // 0 = 시작일. 음수 = 아직 시작 전(새 식단은 다음 박스부터 — cycle.ts newFormulaAppliedFrom).
   const daysIntoCycle = appliedFrom ? diffDaysKst(today, appliedFrom) : null
   const startLabel = appliedFrom

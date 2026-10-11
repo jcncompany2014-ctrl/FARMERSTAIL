@@ -154,6 +154,20 @@ const nextConfig: NextConfig = {
         destination: 'https://www.farmerstail.kr/blog',
         permanent: true,
       },
+      // 2026-10-12 점검 — 매거진 규칙(MAGAZINE_RULES_FROM) 이전 옛 글 5편 비공개(DB, 사장님 "해"). 약 상표명·'처방'·
+      //   효과 단정·영양소 %·보충제 용량·경쟁사 이름·틀린 숫자(자일리톨 치사량 등)가 있었고, 10/11 부터 글 끝 상품
+      //   카드가 붙어 사료 광고처럼 읽혔다. 색인된 주소는 404 대신 매거진 홈으로(폐지 URL 은 크롤 허용 + 308 이 정답).
+      ...[
+        'spring-autumn-dog-immunity-allergy',
+        'senior-dog-diet-7plus-protein-joint-kidney',
+        'foods-toxic-to-dogs-complete-list',
+        'bcs-body-condition-score-5-stages',
+        '4-week-dog-diet-plan-safe-weight-loss',
+      ].map((slug) => ({
+        source: `/blog/${slug}`,
+        destination: 'https://www.farmerstail.kr/blog',
+        permanent: true,
+      })),
       /**
        * apex(www 없는 주소) → www 정본화. **단 `/.well-known/*` 은 제외한다.**
        *

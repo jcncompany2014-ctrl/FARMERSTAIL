@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { shareCard } from '@/lib/seo/share-card'
 import { FileText, RotateCcw, Shield, Building, HelpCircle, Mail } from 'lucide-react'
 import AuthAwareShell from '@/components/AuthAwareShell'
 import SiteShell from '@/components/store/SiteShell'
@@ -26,12 +27,14 @@ import {
  * 영어 머리말("Legal · 정책")과 화면 안 제목은 앱에서 뺐다 — 윗줄이 화면 이름을 말한다. 웹 마크업은 그대로.
  */
 
+const DESCRIPTION = '이용약관 · 개인정보처리방침 · 환불 정책 · 사업자 정보 · 자주 묻는 질문 · 문의하기'
 export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차152).
   title: '약관 · 정책',
-  description: '이용약관 · 개인정보처리방침 · 환불 정책 · 사업자 정보 · 자주 묻는 질문 · 문의하기',
+  description: DESCRIPTION,
   alternates: { canonical: '/legal' },
   robots: { index: true, follow: true },
+  ...shareCard('약관 · 정책', DESCRIPTION, '/legal'),
 }
 
 const ITEMS = [

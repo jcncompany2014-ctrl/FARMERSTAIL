@@ -112,6 +112,18 @@ describe('buildArticleJsonLd', () => {
     assert.deepEqual(abs.image, ['https://images.example.com/a.jpg'])
   })
 
+  it('dateModified never precedes datePublished (draft saved first, published later — 2026-10-12)', () => {
+    const ld = buildArticleJsonLd({
+      title: 't',
+      slug: 's',
+      description: 'd',
+      coverUrl: null,
+      publishedAt: '2026-10-20T00:00:00Z',
+      updatedAt: '2026-10-11T00:00:00Z',
+    }) as { datePublished: string; dateModified: string }
+    assert.equal(ld.dateModified, '2026-10-20T00:00:00Z')
+  })
+
   it('links mentioned products with absolute URLs and prefers updatedAt for dateModified', () => {
     const ld = buildArticleJsonLd({
       title: 't',

@@ -1,16 +1,19 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import SiteShell from '@/components/store/SiteShell'
+import { shareCard } from '@/lib/seo/share-card'
 import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
 import { isAppContextServer } from '@/lib/app-context'
 import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
 import CookieConsentResetLink from '@/components/CookieConsentResetLink'
 import { business } from '@/lib/business'
 
+const DESCRIPTION =
+  '파머스테일의 개인정보 수집·이용·제공·파기에 관한 방침. 개인정보보호법 제30조에 따라 처리 목적, 보유 기간, 제3자 제공, 정보주체의 권리를 공개합니다.'
 export const metadata: Metadata = {
   title: '개인정보처리방침',
-  description:
-    '파머스테일의 개인정보 수집·이용·제공·파기에 관한 방침. 개인정보보호법 제30조에 따라 처리 목적, 보유 기간, 제3자 제공, 정보주체의 권리를 공개합니다.',
+  description: DESCRIPTION,
+  ...shareCard('개인정보처리방침', DESCRIPTION, '/legal/privacy'),
   // ★canonical 자기선언 (2026-08-12 4라운드 감사) — 없으면 루트 layout 의
   //   metadataBase alternates 를 상속해 **홈을 정본으로 선언**한다. 그러면
   //   sitemap 은 이 URL 을 올리는데 페이지는 '나는 홈이다' 라고 말해

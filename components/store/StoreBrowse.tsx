@@ -3,7 +3,8 @@
 /**
  * 스토어(웹 시안 Store) — 탭 [레시피 4종 | 체험팩].
  *  레시피: 피하고 싶은 고기 고르기(그 카드는 흐리게 + 이유) · 2열 카드 · 한눈에 비교 표 · 앱 정기배송 한 줄.
- *  체험팩: 4종 100g씩 · 따로 사는 것보다 얼마 아끼나 · 먹여 보는 순서 · 담기.
+ *  체험팩: 4종 50g씩(사장님 10/12, 예전 100g씩) · 100g당 값 · 먹여 보는 순서 · 담기. '따로 사는 것보다 아껴요'는 50g 팩을 따로
+ *  팔지 않아 비교 기준이 없어 뺐다 — 할인 전 값이 판매가보다 클 때만 다시 보인다.
  *  paused: 자사몰 결제 막음(storeSalesPaused) — 담기를 회색으로, 바로 위에 스마트스토어 안내(규칙177).
  * 숫자는 전부 상품표(lib/store/catalog)·급여 계산(lib/store/feeding)에서.
  */
@@ -18,6 +19,7 @@ import {
   RECIPE_STUDIO_IMG,
   STORE_RECIPES,
   TRIAL_ITEM,
+  TRIAL_PACK_G,
   fullIngredients,
   kcalPer100g,
   storeItem,
@@ -127,7 +129,7 @@ function TrialPanel({ paused }: { paused: boolean }) {
   const DAY = ['첫날', '둘째 날', '셋째 날', '넷째 날']
   return (
     <div style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column' }}>
-      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#3D3D3D' }}>네 가지 맛을 100g씩, 우리 아이가 직접 골라요.</p>
+      <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#3D3D3D' }}>네 가지 맛을 {TRIAL_PACK_G}g씩, 우리 아이가 직접 골라요.</p>
       <div style={{ marginTop: 16, position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, borderRadius: 4, overflow: 'hidden' }}>
         {STORE_RECIPES.map((r) => (
           // eslint-disable-next-line @next/next/no-img-element
@@ -144,11 +146,15 @@ function TrialPanel({ paused }: { paused: boolean }) {
             원
           </span>
         </span>
-        <span style={{ fontSize: 17, color: '#9A9A9A', textDecoration: 'line-through' }}>{won(TRIAL_ITEM.listPrice)}원</span>
+        {saving > 0 && (
+          <span style={{ fontSize: 17, color: '#9A9A9A', textDecoration: 'line-through' }}>{won(TRIAL_ITEM.listPrice)}원</span>
+        )}
       </div>
-      <span style={{ marginTop: 4, fontSize: 16, fontWeight: 800, color: '#C63D2A' }}>따로 사는 것보다 {won(saving)}원 아껴요</span>
+      {saving > 0 && (
+        <span style={{ marginTop: 4, fontSize: 16, fontWeight: 800, color: '#C63D2A' }}>따로 사는 것보다 {won(saving)}원 아껴요</span>
+      )}
       <span style={{ marginTop: 2, fontSize: 15, color: '#595959' }}>
-        100g 팩 {TRIAL_ITEM.packs}개 · 100g당 {won(Math.round(TRIAL_ITEM.price / TRIAL_ITEM.packs))}원
+        {TRIAL_PACK_G}g 팩 {TRIAL_ITEM.packs}개 · 100g당 {won(Math.round((TRIAL_ITEM.price / TRIAL_ITEM.grams) * 100))}원
       </span>
       <div style={{ marginTop: 18 }}>
         {paused ? (

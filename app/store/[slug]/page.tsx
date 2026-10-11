@@ -43,6 +43,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description,
     alternates: { canonical: `/store/${r}` },
     openGraph: { title: `${title} | 파머스테일`, description, type: 'website', locale: 'ko_KR', siteName: '파머스테일', url: `/store/${r}`, images: [{ url: RECIPE_STUDIO_IMG[r], width: 800, height: 800 }] },
+    // twitter 도 자기 것 — 없으면 루트(홈) 카드를 물려받았다(2026-10-12 점검: /store/duck 의 twitter:title 이 홈 제목).
+    twitter: { card: 'summary_large_image', title: `${title} | 파머스테일`, description, images: [RECIPE_STUDIO_IMG[r]] },
   }
 }
 
@@ -54,6 +56,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const label = await fetchRecipeLabel(recipe)
   const item500 = storeItem(`${recipe}-500g`)
   const item1k = storeItem(`${recipe}-1kg`)
+  // ★자사몰 결제 막음(규칙177) 동안엔 '이 페이지에서 지금 살 수 있다'(offers — 재고·배송·반품)를 내보내지 않는다. 화면은 "자사몰
+  //   결제는 아직 준비 중"인데 구조화 데이터만 InStock 이면 구글 판매자 정보·AI 답이 여기서 바로 주문하라고 안내한다(2026-10-12 점검).
+  //   상품 정보(이름·설명·열량·보관)는 그대로 두고, 결제가 열리면(storeSalesPaused=false) offers 가 저절로 돌아온다.
+  const paused = storeSalesPaused()
   // 상품 구조화 데이터(검색 결과의 가격 표시) — 후기가 생기기 전이라 평점은 넣지 않는다.
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -68,7 +74,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       { '@type': 'PropertyValue', name: '100g당 열량', value: kcalPer100g(recipe), unitText: 'kcal' },
       { '@type': 'PropertyValue', name: '보관', value: '냉동 180일' },
     ],
-    offers: [item500, item1k].map((it) => ({
+    ...(paused ? {} : { offers: [item500, item1k].map((it) => ({
       '@type': 'Offer',
       name: it.name,
       price: it.price,
@@ -97,7 +103,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         returnMethod: 'https://schema.org/ReturnByMail',
         returnFees: 'https://schema.org/ReturnShippingFees',
       },
-    })),
+    })) }),
   }
   const breadcrumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },

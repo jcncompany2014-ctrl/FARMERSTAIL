@@ -257,6 +257,9 @@ export default function BlogPostForm({
       category_id: form.category_id || null,
       is_published: shouldPublish,
       published_at: publishedAt,
+      // 고친 날 — 글 구조화 데이터의 dateModified·사이트맵이 읽는다. blog_posts 엔 updated_at 트리거가 없어(조회수 함수가 매번
+      // UPDATE 해서 전체 트리거를 걸 수 없다) 저장할 때 직접 찍는다. 예전엔 처음 저장 시각에 굳어 있었다(2026-10-12 점검).
+      updated_at: new Date().toISOString(),
     }
 
     if (mode === 'create') {

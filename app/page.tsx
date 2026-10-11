@@ -7,7 +7,7 @@ import { storeSalesPaused } from '@/lib/store/toss-widget'
 import HomeCalculator from '@/components/store/HomeCalculator'
 import StoreFaq from '@/components/store/StoreFaq'
 import { ogImageUrl } from '@/lib/seo/jsonld'
-import { RECIPE_BAND, STORE_RECIPES, TRIAL_ITEM, storeItem } from '@/lib/store/catalog'
+import { RECIPE_BAND, STORE_RECIPES, TRIAL_ITEM, TRIAL_PACK_G, storeItem } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 
@@ -139,7 +139,7 @@ export default function HomePage() {
               <span className="d" style={{ fontSize: 24, lineHeight: 1.1 }}>
                 {TRIAL_ITEM.name}
               </span>
-              <span style={{ fontSize: 15, color: '#3D3D3D' }}>4종 100g씩 맛보기</span>
+              <span style={{ fontSize: 15, color: '#3D3D3D' }}>4종 {TRIAL_PACK_G}g씩 맛보기</span>
             </span>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>
               <span className="n" style={{ fontSize: 28 }}>

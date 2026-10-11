@@ -1,15 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import SiteShell from '@/components/store/SiteShell'
+import { shareCard } from '@/lib/seo/share-card'
 import { Section as WebSection, UL as WebUL } from '@/components/LegalDocument'
 import { isAppContextServer } from '@/lib/app-context'
 import { AppSection, AppUL, LegalFrame } from '@/components/v3/me/AppLegal'
 import { business } from '@/lib/business'
 
+const DESCRIPTION =
+  '파머스테일의 교환·환불·반품 정책. 전자상거래법 제17조에 따른 청약철회 절차와 정기배송 해지 정책을 안내합니다.'
 export const metadata: Metadata = {
   title: '환불 정책',
-  description:
-    '파머스테일의 교환·환불·반품 정책. 전자상거래법 제17조에 따른 청약철회 절차와 정기배송 해지 정책을 안내합니다.',
+  description: DESCRIPTION,
+  ...shareCard('환불 정책', DESCRIPTION, '/legal/refund'),
   // ★canonical 자기선언 (2026-08-12 4라운드 감사) — 없으면 루트 layout 의
   //   metadataBase alternates 를 상속해 **홈을 정본으로 선언**한다. 그러면
   //   sitemap 은 이 URL 을 올리는데 페이지는 '나는 홈이다' 라고 말해

@@ -8,6 +8,7 @@ import { RECIPE_DB_SLUG, STORE_RECIPES, type StoreRecipe } from '@/lib/store/cat
 import { orderItemsFromCart, orderNameFor, validateRecipient } from '@/lib/store/order'
 import { storeOrderNumber } from '@/lib/store/order-number'
 import { isAppContextServer } from '@/lib/app-context'
+import { storeSalesPaused } from '@/lib/store/toss-widget'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
 
   if (await isAppContextServer()) {
     return NextResponse.json({ code: 'APP_NOT_STORE', message: '앱에서는 정기배송만 신청할 수 있어요' }, { status: 403 })
+  }
+
+  // ★자사몰 결제 막음(규칙177) 동안엔 주문도 만들지 않는다 — 화면 버튼만 회색이고 이 API 를 직접 부르면 결제 못 할 결제 대기
+  //   주문이 생겼다(30분 뒤 자동 취소되지만 어드민·지표에 쌓인다, 2026-10-12 점검). 화면과 같은 판정 함수.
+  if (storeSalesPaused()) {
+    return NextResponse.json(
+      { code: 'STORE_PAUSED', message: '자사몰 결제는 아직 준비 중이에요. 네이버 스마트스토어를 이용해 주세요.' },
+      { status: 403 },
+    )
   }
 
   const supabase = await createClient()

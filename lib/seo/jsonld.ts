@@ -217,10 +217,10 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput) {
   if (input.publishedAt) {
     data.datePublished = input.publishedAt
   }
-  if (input.updatedAt) {
-    data.dateModified = input.updatedAt
-  } else if (input.publishedAt) {
-    data.dateModified = input.publishedAt
+  // 수정일 = 고친 날과 게시일 중 늦은 쪽 — 초안으로 저장했다 나중에 게시하면 updated_at(처음 저장)이 게시일보다 앞섰다(2026-10-12 점검).
+  const stamps = [input.updatedAt, input.publishedAt].filter((v): v is string => typeof v === 'string' && v.length > 0)
+  if (stamps.length > 0) {
+    data.dateModified = stamps.reduce((a, b) => (Date.parse(b) > Date.parse(a) ? b : a))
   }
   return data
 }

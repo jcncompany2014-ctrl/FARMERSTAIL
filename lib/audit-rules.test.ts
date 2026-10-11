@@ -6879,3 +6879,22 @@ test('규칙180: SEO·GEO — AI 안내서(llms.txt)는 숫자를 정본에서, 
     'robots 가 AI 크롤러를 따로 다룬다 — 막으면 AI 검색에서 사라진다(의도라면 이 규칙부터 고칠 것)',
   )
 })
+
+test('규칙181: 1회차 식단도 체크인 D-day 가 뜬다 — 시작일 = applied_from, 없으면 그 구독의 첫 박스 발송일', () => {
+  /**
+   * 1회차 식단은 설계상 applied_from 이 비어 있는데(lib/personalization/cycle — 재제안 크론도 1회차는 처방 생성 시각부터
+   * 박스를 센다) 강아지 화면의 체크인 카드는 applied_from 만 봐서, 1회차 구독자 전원에게 2주차·4주차 체크인 링크가 한 번도
+   * 안 떴다(2026-10-12 점검: 운영 dog_formulas 23행 전부 NULL · 체크인 1건). page.tsx 가 처방 생성 이후 첫 결제 박스의
+   * 발송일로 cycle_start 를 채우고, 카드는 applied_from 이 없을 때 그걸 쓴다.
+   */
+  const card = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', '_components', 'CurrentFormulaCard.tsx')))
+  assert.match(
+    card,
+    /formula\.applied_from \? formula\.applied_from\.slice\(0, 10\) : \(formula\.cycle_start \?\? null\)/,
+    '체크인 카드가 applied_from 만 본다 — 1회차엔 D-day 가 안 뜬다',
+  )
+  const page = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'page.tsx')))
+  assert.match(page, /cycle_start: cycleStart/, '강아지 화면이 1회차 시작일(cycle_start)을 카드에 안 넘긴다')
+  assert.match(page, /\.gte\('created_at', currentFormula\.created_at\)/, '1회차 첫 박스를 처방 생성 이후 결제 박스로 안 고른다(재제안 크론과 같은 기준)')
+  assert.match(page, /paidBoxShipIso\(/, '발송 기록이 없을 때 결제일 기준 발송 화요일(paidBoxShipIso)로 안 센다')
+})

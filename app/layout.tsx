@@ -238,7 +238,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    url: siteUrl,
+    // url 은 두지 않는다 — 자기 openGraph 가 없는 화면이 루트 것을 통째로 물려받아 og:url 이 홈이 됐다(2026-10-12 점검:
+    // 링크 모음·약관 화면 공유 카드가 홈). 홈은 app/page.tsx 가 url '/' 를 단다. 간단한 화면은 lib/seo/share-card.
     siteName: "파머스테일",
     title: SITE_TITLE,
     description: SITE_SHARE_DESCRIPTION,

@@ -2,7 +2,7 @@
  * 웹 가게(단품) 상품표 — 2026-10-10 웹 리뉴얼(docs/WEB_STORE_RENEWAL_PLAN_2026_10.md §4).
  *
  * 사장님 10/10: 웹은 '단품 가게', 맞춤·정기배송은 앱. 숫자는 웹 시안 그대로 —
- * 500g = 100g 팩 5개(정가) · 1kg = 100g 팩 10개(5% 할인) · 4종 체험팩(4종 100g씩) 19,900원.
+ * 500g = 100g 팩 5개(정가) · 1kg = 100g 팩 10개(5% 할인) · 4종 체험팩(4종 50g씩) 14,000원(사장님 2026-10-12 — 시안은 100g씩 19,900원).
  *
  * # 왜 DB products 의 화식 4행을 쓰지 않나
  * 그 4행의 price·sale_price 는 **100g 당 정가·구독가**이고 정기배송 청구가 그 값을 그대로 쓴다(§4.3-1).
@@ -25,8 +25,10 @@ export const STORE_RECIPES: readonly StoreRecipe[] = ['chicken', 'duck', 'pork',
 export const PACK_G = 100
 /** 1kg 할인율 — 500g×2 보다 5% 싸게. 정기배송(15%)보다 비싸야 앱으로 갈 이유가 남는다(D5). */
 export const ONE_KG_DISCOUNT_PCT = 5
-/** 4종 체험팩 가격(시안, 사장님 10/10 "시안 숫자 그대로"). */
-export const TRIAL_PRICE = 19_900
+/** 체험팩 팩 하나 = 50g — 4종을 50g씩 한 세트(사장님 2026-10-12 "50그램씩 4개 해서 하나"). 단품 팩(PACK_G)과 다르다. */
+export const TRIAL_PACK_G = 50
+/** 4종 체험팩 가격 — 사장님 2026-10-12 "만사천원 정도"(예전 시안: 4종 100g씩 19,900원). */
+export const TRIAL_PRICE = 14_000
 
 /** 웹 레시피 색(팩 라벨 띠) — 웹 시안 정본. 앱 화면은 파우치 몸통 색(lib/design/tokens POUCH)을 쓴다. */
 export const RECIPE_BAND: Record<StoreRecipe, string> = {
@@ -148,7 +150,7 @@ export interface StoreItem {
   size: StoreSize | null
   /** 주문서·영수증 이름. 예: 닭고기 화식 500g · 4종 체험팩 */
   name: string
-  /** 100g 팩 개수. */
+  /** 팩 개수 — 단품은 100g 팩(PACK_G), 체험팩은 50g 팩(TRIAL_PACK_G). */
   packs: number
   grams: number
   /** 판매가(원). */
@@ -188,9 +190,11 @@ export const TRIAL_ITEM: StoreItem = {
   size: null,
   name: '4종 체험팩',
   packs: STORE_RECIPES.length,
-  grams: STORE_RECIPES.length * PACK_G,
+  grams: STORE_RECIPES.length * TRIAL_PACK_G,
   price: TRIAL_PRICE,
-  listPrice: STORE_RECIPES.reduce((s, r) => s + per100gPrice(r), 0),
+  // 50g 팩은 따로 팔지 않아 '따로 사면 얼마'가 없다 — 할인 전 값 = 판매가. 예전(100g씩)엔 100g 4개 값 24,600원과 비교해
+  // "4,700원 아껴요"를 썼는데, 50g씩이면 그 비교는 거짓이 된다(2026-10-12).
+  listPrice: TRIAL_PRICE,
   slug: 'trial',
 }
 

@@ -38,6 +38,13 @@ export type CurrentFormula = {
   // lib/personalization/dailyGrams 의 dailyGramsOf 로 kcal+비율에서 다시 센다.
   daily_kcal: number
   user_adjusted: boolean
+  created_at?: string
+  /**
+   * 화면용 이 식단의 시작일(KST yyyy-mm-dd) — applied_from, 없으면(1회차) 그 구독의 **첫 박스 발송일**.
+   * DB 칸이 아니다 — page.tsx 가 채운다. 1회차는 설계상 applied_from 이 비어 있어(lib/personalization/cycle)
+   * 체크인 D-day 가 한 번도 안 떴다(2026-10-12 점검: 운영 dog_formulas 23행 전부 NULL).
+   */
+  cycle_start?: string | null
 }
 
 export type CheckinStatus = {
