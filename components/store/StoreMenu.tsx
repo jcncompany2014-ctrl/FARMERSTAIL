@@ -171,7 +171,10 @@ export default function StoreMenu({ open, onClose }: { open: boolean; onClose: (
           </Row>
           <Row href="/mypage/orders">주문 조회</Row>
           <Row href="/faq">자주 묻는 질문</Row>
+          {/* 2026-10-11 SEO: 우리 음식·매거진은 새 웹 화면 어디에서도 들어가는 길이 없었다(검색엔진은 링크로 중요도를 본다). */}
+          <Row href="/our-food">우리 음식</Row>
           <Row href="/brand">브랜드 이야기</Row>
+          <Row href="/blog">매거진</Row>
         </nav>
 
         <div style={{ marginTop: 28, padding: '20px 16px', background: '#141414', color: '#FFFFFF', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>

@@ -53,12 +53,12 @@ export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차148).
   title: '자주 묻는 질문',
   description:
-    '식단 · 배송 · 결제 · 정기배송 — 파머스테일 이용에 자주 나오는 질문들을 모았어요.',
+    '강아지 화식 급여량·보관·해동부터 배송·환불·앱 정기배송까지 — 파머스테일에 자주 묻는 질문과 답을 한곳에 모았어요.',
   alternates: { canonical: '/faq' },
   openGraph: {
     title: '자주 묻는 질문 | 파머스테일',
     description:
-      '식단 · 배송 · 결제 · 정기배송 — 파머스테일 이용에 자주 나오는 질문들을 모았어요.',
+      '강아지 화식 급여량·보관·해동부터 배송·환불·앱 정기배송까지 — 파머스테일에 자주 묻는 질문과 답을 한곳에 모았어요.',
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '자주 묻는 질문 | 파머스테일',
     description:
-      '식단 · 배송 · 결제 · 정기배송 — 파머스테일 이용에 자주 나오는 질문들을 모았어요.',
+      '강아지 화식 급여량·보관·해동부터 배송·환불·앱 정기배송까지 — 파머스테일에 자주 묻는 질문과 답을 한곳에 모았어요.',
     images: [FAQ_OG],
   },
   robots: { index: true, follow: true },

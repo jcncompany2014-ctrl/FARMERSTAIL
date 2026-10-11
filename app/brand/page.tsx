@@ -26,12 +26,12 @@ export const metadata: Metadata = {
   // 페이지명만 둔다(중복 '| 파머스테일' 방지, 회차146). OG/twitter 는 template
   // 미적용이라 풀네임 유지. (/about 과 title 중복도 해소 — 가시 H1 '농장에서 꼬리까지' 정합.)
   title: '농장에서 꼬리까지',
-  description: '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
+  description: '농장에서 꼬리까지 — 사람이 먹는 등급의 국내산 원물을 수비드로 천천히 익혀 바로 얼리는 파머스테일의 약속과 여정. 닭가슴살·오리 안심은 무항생제예요.',
   alternates: { canonical: '/brand' },
   openGraph: {
     type: 'article',
     title: '농장에서 꼬리까지 | 파머스테일',
-    description: '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
+    description: '농장에서 꼬리까지 — 사람이 먹는 등급의 국내산 원물을 수비드로 천천히 익혀 바로 얼리는 파머스테일의 약속과 여정. 닭가슴살·오리 안심은 무항생제예요.',
     locale: 'ko_KR',
     siteName: '파머스테일',
     url: '/brand',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '농장에서 꼬리까지 | 파머스테일',
-    description: '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
+    description: '농장에서 꼬리까지 — 사람이 먹는 등급의 국내산 원물을 수비드로 천천히 익혀 바로 얼리는 파머스테일의 약속과 여정. 닭가슴살·오리 안심은 무항생제예요.',
     images: [BRAND_OG],
   },
   robots: { index: true, follow: true },
@@ -115,7 +115,7 @@ function ChapterHead({ no, label, children }: { no: string; label: string; child
 export default async function BrandPage() {
   const aboutLd = buildAboutPageJsonLd({
     name: '브랜드 이야기 — 파머스테일',
-    description: '농장에서 꼬리까지. 사람이 먹는 등급의 재료로 시작된 파머스테일의 약속과 여정.',
+    description: '농장에서 꼬리까지 — 사람이 먹는 등급의 국내산 원물을 수비드로 천천히 익혀 바로 얼리는 파머스테일의 약속과 여정. 닭가슴살·오리 안심은 무항생제예요.',
     url: `${SITE_URL}/brand`,
   })
   const crumbLd = buildBreadcrumbJsonLd([

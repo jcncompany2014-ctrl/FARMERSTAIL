@@ -7,11 +7,15 @@ import {
   RECIPE_PRODUCT_NAME,
   RECIPE_STUDIO_IMG,
   STORE_RECIPES,
+  kcalPer100g,
   recipeFromSlug,
   recipeIntro,
   storeItem,
 } from '@/lib/store/catalog'
 import { fetchRecipeLabel } from '@/lib/store/label'
+import { shippingFeeFor } from '@/lib/store/shipping'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
 /**
  * 상품 상세 — /store/chicken·duck·pork·beef (웹 시안 Product). /store/trial 은 스토어 체험팩 탭으로.
@@ -59,18 +63,51 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     image: `${SITE}${RECIPE_STUDIO_IMG[recipe]}`,
     brand: { '@type': 'Brand', name: '파머스테일' },
     sku: label?.sku ?? undefined,
+    // 2026-10-11 SEO·GEO: 100g 열량·보관을 숫자로(AI 가 화면 글을 다시 해석하지 않아도 되게). 값은 정본(catalog·상품 화면 '보관')과 같다.
+    additionalProperty: [
+      { '@type': 'PropertyValue', name: '100g당 열량', value: kcalPer100g(recipe), unitText: 'kcal' },
+      { '@type': 'PropertyValue', name: '보관', value: '냉동 180일' },
+    ],
     offers: [item500, item1k].map((it) => ({
       '@type': 'Offer',
       name: it.name,
       price: it.price,
       priceCurrency: 'KRW',
       availability: 'https://schema.org/InStock',
+      itemCondition: 'https://schema.org/NewCondition',
       url: `${SITE}/store/${recipe}`,
+      seller: { '@id': `${SITE}/#organization` },
+      // 배송비는 정본(shippingFeeFor — 5만 원 이상 무료)으로 상품마다. 출고 = 화·목(주문 다음 첫 화·목 → 1~5일), 출고 후 1~2일.
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: shippingFeeFor(it.price), currency: 'KRW' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'KR' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 2, unitCode: 'DAY' },
+        },
+      },
+      // 환불 정책과 같은 말 — 받은 날부터 7일 안·뜯지 않은 상품, 반품 배송비는 회원 부담(/legal/refund).
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'KR',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 7,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/ReturnShippingFees',
+      },
     })),
   }
+  const breadcrumbLd = buildBreadcrumbJsonLd([
+    { name: '홈', path: '/' },
+    { name: '스토어', path: '/store' },
+    { name: RECIPE_PRODUCT_NAME[recipe], path: `/store/${recipe}` },
+  ])
   return (
     <StoreShell header={{ variant: 'back', backHref: '/store' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <JsonLd id={`ld-breadcrumb-store-${recipe}`} data={breadcrumbLd} />
       <ProductDetail recipe={recipe} label={label} paused={storeSalesPaused()} />
     </StoreShell>
   )

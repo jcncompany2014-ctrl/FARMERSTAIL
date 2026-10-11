@@ -7,12 +7,13 @@ import { createClient } from '@/lib/supabase/server'
 import StoreShell from '@/components/store/StoreShell'
 import ShareButton from '@/components/ShareButton'
 import { renderMarkdown } from '@/lib/markdown'
-import { fillRecipeCards } from '@/lib/magazine/recipe-card'
+import { fillRecipeCards, magazineRecipeCard } from '@/lib/magazine/recipe-card'
+import { extractQa } from '@/lib/magazine/qa'
 import { withToc } from '@/lib/magazine/toc'
 import { MAGAZINE_POST_CSS } from '@/lib/magazine/post-css'
 import MagazineRecipeEnd from '@/components/store/MagazineRecipeEnd'
 import JsonLd from '@/components/JsonLd'
-import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/seo/jsonld'
 
 /**
  * /blog/[slug] — 매거진 글.
@@ -47,6 +48,7 @@ type Post = {
   cover_url: string | null
   category_id: string | null
   published_at: string | null
+  updated_at: string | null
   views: number | null
 }
 
@@ -55,7 +57,7 @@ const getPost = cache(async (slug: string): Promise<Post | null> => {
   const { data, error } = await supabase
     .from('blog_posts')
     .select(
-      'id, slug, title, excerpt, content, cover_url, category_id, published_at, views'
+      'id, slug, title, excerpt, content, cover_url, category_id, published_at, updated_at, views'
     )
     .eq('slug', slug)
     .eq('is_published', true)
@@ -191,6 +193,10 @@ export default async function BlogPostPage({ params }: { params: Params }) {
 
   const relatedPosts = related ?? []
 
+  // 본문 속 레시피 카드 자리(::레시피 …)를 가게 상품 카드로 — 쓰인 레시피는 글 끝 '이어지는 화식'이 받는다.
+  const body = fillRecipeCards(renderMarkdown(post.content))
+
+  // 2026-10-11 SEO·GEO: 기사 정보에 고친 날·글이 다루는 상품(::레시피 카드)을 싣고, '자주 묻는 것' 상자는 문답(FAQPage)으로 따로 낸다.
   const articleLd = buildArticleJsonLd({
     title: post.title,
     slug: post.slug,
@@ -199,7 +205,14 @@ export default async function BlogPostPage({ params }: { params: Params }) {
       post.content.slice(0, 180).replace(/\s+/g, ' '),
     coverUrl: post.cover_url,
     publishedAt: post.published_at,
+    updatedAt: post.updated_at,
+    mentions: body.keys.map((k) => {
+      const card = magazineRecipeCard(k)
+      return { name: card.name, url: card.href }
+    }),
   })
+  const qa = extractQa(post.content)
+  const faqLd = qa.length >= 2 ? buildFaqJsonLd(qa) : null
   const breadcrumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '매거진', path: '/blog' },
@@ -215,13 +228,12 @@ export default async function BlogPostPage({ params }: { params: Params }) {
     Math.round((post.content || '').replace(/<[^>]+>/g, '').length / 500),
   )
   const metaLine = [formatDate(post.published_at), `${readingMin}분 읽기`].filter(Boolean).join(' · ')
-  // 본문 속 레시피 카드 자리(::레시피 …)를 가게 상품 카드로 — 쓰인 레시피는 글 끝 '이어지는 화식'이 받는다.
-  const body = fillRecipeCards(renderMarkdown(post.content))
 
   return (
     <StoreShell>
       <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
       <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
+      {faqLd && <JsonLd id={`ld-faq-${post.slug}`} data={faqLd} />}
       <style>{MAGAZINE_POST_CSS}</style>
 
       <div style={{ lineHeight: 'normal' }}>

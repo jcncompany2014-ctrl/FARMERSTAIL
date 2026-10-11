@@ -25,12 +25,12 @@ const BUSINESS_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '사업자 정보',
   description:
-    '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+    '파머스테일 사업자 등록번호·통신판매업 신고번호·사업장 주소와 고객센터(전화·이메일·카카오톡) 연락처를 안내해요.',
   alternates: { canonical: '/business' },
   openGraph: {
     title: '사업자 정보 | 파머스테일',
     description:
-      '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+      '파머스테일 사업자 등록번호·통신판매업 신고번호·사업장 주소와 고객센터(전화·이메일·카카오톡) 연락처를 안내해요.',
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '사업자 정보 | 파머스테일',
     description:
-      '파머스테일 사업자 등록 정보, 통신판매업 신고번호, 고객센터 안내.',
+      '파머스테일 사업자 등록번호·통신판매업 신고번호·사업장 주소와 고객센터(전화·이메일·카카오톡) 연락처를 안내해요.',
     images: [BUSINESS_OG],
   },
   robots: { index: true, follow: true },

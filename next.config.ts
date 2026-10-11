@@ -140,8 +140,17 @@ const nextConfig: NextConfig = {
          * 뒤에 두면 apex 로 온 이 URL 이 [apex→www]→[/blog] 2-hop 이 된다
          * (Next 는 첫 매치 규칙 하나만 적용하고 응답한다). 상대경로 /blog 로
          * 두면 apex 방문자가 apex/blog 로 남으니 절대 URL 이어야 1-hop 이다.
+         *
+         * ★2026-10-11: 같은 질문("단품 vs 정기배송")에 지금 정책으로 답하는 새 글(single-pack-vs-app-subscription)이
+         *   공개됐다 — 옛 글의 색인·링크는 블로그 홈 대신 그 글로 넘긴다.
          */
         source: '/blog/subscription-vs-onetime-pet-food',
+        destination: 'https://www.farmerstail.kr/blog/single-pack-vs-app-subscription',
+        permanent: true,
+      },
+      {
+        // 2026-10-11 사장님 "관절 보조제만 내리고" — 안 파는 보조제 글을 비공개로 돌렸다(DB). 색인된 주소는 404 대신 매거진 홈으로.
+        source: '/blog/glucosamine-chondroitin-joint-care',
         destination: 'https://www.farmerstail.kr/blog',
         permanent: true,
       },

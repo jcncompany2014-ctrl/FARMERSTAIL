@@ -103,6 +103,31 @@ describe('buildArticleJsonLd', () => {
     }) as { author: { '@type': string } }
     assert.equal(ld.author['@type'], 'Person')
   })
+
+  // 2026-10-11 SEO·GEO — 새 매거진 표지는 '/magazine/x.webp' 상대 주소다. 그대로 실으면 구글이 그림을 못 찾는다.
+  it('absolutizes a relative cover path, keeps absolute ones', () => {
+    const rel = buildArticleJsonLd({ title: 't', slug: 's', description: 'd', coverUrl: '/magazine/x.webp', publishedAt: null }) as { image: string[] }
+    assert.deepEqual(rel.image, [`${SITE_URL}/magazine/x.webp`])
+    const abs = buildArticleJsonLd({ title: 't', slug: 's', description: 'd', coverUrl: 'https://images.example.com/a.jpg', publishedAt: null }) as { image: string[] }
+    assert.deepEqual(abs.image, ['https://images.example.com/a.jpg'])
+  })
+
+  it('links mentioned products with absolute URLs and prefers updatedAt for dateModified', () => {
+    const ld = buildArticleJsonLd({
+      title: 't',
+      slug: 's',
+      description: 'd',
+      coverUrl: null,
+      publishedAt: '2026-10-01T00:00:00Z',
+      updatedAt: '2026-10-11T00:00:00Z',
+      mentions: [{ name: '닭고기 화식', url: '/store/chicken' }],
+    }) as { dateModified: string; mentions: { '@type': string; name: string; url: string }[] }
+    assert.equal(ld.dateModified, '2026-10-11T00:00:00Z')
+    assert.deepEqual(
+      ld.mentions.map((m) => [m['@type'], m.name, m.url]),
+      [['Product', '닭고기 화식', `${SITE_URL}/store/chicken`]],
+    )
+  })
 })
 
 describe('buildFaqJsonLd', () => {

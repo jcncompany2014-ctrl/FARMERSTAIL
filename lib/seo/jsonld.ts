@@ -98,14 +98,24 @@ export function buildOrganizationJsonLd() {
       '국내산 고기를 수비드로 익힌 강아지 화식 브랜드. 웹에서는 500g 단품으로, 앱에서는 2주마다 정기배송으로 받아요.',
     // 같은 회사의 공식 채널 — 푸터에 보이는 SNS(SOCIAL_PROFILES) + 카카오 채널·네이버 스마트스토어(검색 결과에 같이 뜨는 공식 창구).
     sameAs: [...SOCIAL_PROFILES.map((s) => s.href), ...(business.kakaoChannelUrl ? [business.kakaoChannelUrl] : []), 'https://smartstore.naver.com/farmerstail'],
+    // 2026-10-11 SEO·GEO: 푸터·사업자 정보에 이미 공개된 전화·주소를 같은 값으로 — 검색·AI 가 한 회사로 묶는 근거(이름·주소·전화 일치).
+    telephone: business.phone,
+    address: { '@type': 'PostalAddress', streetAddress: business.address, addressCountry: 'KR' },
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
       areaServed: 'KR',
       availableLanguage: ['Korean'],
       email: 'story@farmerstail.kr',
+      telephone: business.phone,
     },
   } as const
+}
+
+/** '/magazine/x.webp' 같은 상대 주소 → 절대 주소. 구조화 데이터의 그림·주소는 절대 주소여야 검색엔진이 따라간다. */
+export function absoluteUrl(pathOrUrl: string): string {
+  if (/^https?:\/\//.test(pathOrUrl)) return pathOrUrl
+  return `${SITE_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`
 }
 
 /**
@@ -166,6 +176,8 @@ export type ArticleJsonLdInput = {
   updatedAt?: string | null
   /** 기본 author = 브랜드. 게스트 작가가 있으면 넣는다. */
   authorName?: string
+  /** 글이 다루는 우리 상품(본문 ::레시피 카드) — AI·검색이 글과 상품을 잇는 근거. */
+  mentions?: { name: string; url: string }[]
 }
 
 /**
@@ -188,12 +200,19 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput) {
     },
     publisher: {
       '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
       name: SITE_NAME,
       logo: { '@type': 'ImageObject', url: LOGO_URL },
     },
+    inLanguage: 'ko-KR',
+    isPartOf: { '@type': 'Blog', name: `${SITE_NAME} 매거진`, url: `${SITE_URL}/blog` },
   }
   if (input.coverUrl) {
-    data.image = [input.coverUrl]
+    // ★2026-10-11: 새 표지는 '/magazine/x.webp' 상대 주소라 그대로 넣으면 구글이 그림을 못 찾는다 — 절대 주소로.
+    data.image = [absoluteUrl(input.coverUrl)]
+  }
+  if (input.mentions && input.mentions.length > 0) {
+    data.mentions = input.mentions.map((m) => ({ '@type': 'Product', name: m.name, url: absoluteUrl(m.url), brand: { '@type': 'Brand', name: SITE_NAME } }))
   }
   if (input.publishedAt) {
     data.datePublished = input.publishedAt

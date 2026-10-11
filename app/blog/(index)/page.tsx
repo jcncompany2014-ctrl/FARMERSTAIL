@@ -27,15 +27,19 @@ const BLOG_OG = ogImageUrl({
   variant: 'editorial',
 })
 
+// 2026-10-11 SEO: 설명이 27자라 검색 결과에서 구글이 아무 문장이나 뽑아 썼다 — 매거진이 답하는 질문을 그대로 적는다.
+const BLOG_DESCRIPTION =
+  '강아지 화식을 처음 시작할 때 궁금한 것들 — 바꾸는 법, 하루 양, 사료에 곁들이는 법, 알레르기가 의심될 때까지 파머스테일이 차근차근 정리했어요.'
+
 export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명을 1회 붙이므로 페이지명만
   // (중복 '| 파머스테일' 방지, 회차147). OG/twitter 는 template 미적용=풀네임 유지.
-  title: '매거진',
-  description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
+  title: '매거진 — 강아지 화식·영양 이야기',
+  description: BLOG_DESCRIPTION,
   alternates: { canonical: '/blog' },
   openGraph: {
     title: '매거진 | 파머스테일',
-    description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
+    description: BLOG_DESCRIPTION,
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -45,7 +49,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '매거진 | 파머스테일',
-    description: '반려견 영양·건강·케어에 관한 파머스테일의 이야기',
+    description: BLOG_DESCRIPTION,
     images: [BLOG_OG],
   },
   robots: { index: true, follow: true },

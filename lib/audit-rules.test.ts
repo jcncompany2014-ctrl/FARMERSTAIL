@@ -6845,3 +6845,37 @@ test('규칙179: 무항생제는 닭가슴살·오리 안심에만 — 흑돼지
   }
   assert.deepEqual(offenders, [], '무항생제를 닭가슴살·오리 안심 밖으로 넓혔다')
 })
+
+test('규칙180: SEO·GEO — AI 안내서(llms.txt)는 숫자를 정본에서, 상품·글 구조화 데이터는 배송·반품·문답·절대 주소, 메뉴에서 매거진·우리 음식으로', () => {
+  /**
+   * # 왜 (2026-10-11 사장님 "seo geo 최적화")
+   * AI 검색(챗GPT·퍼플렉시티·구글 AI 요약)은 /llms.txt 와 구조화 데이터를 그대로 인용한다. 여기 숫자를 손으로 적으면
+   * 가격·배송비가 바뀌는 날(10/11 배송비 4,000 → 5,000 처럼) AI 가 옛 값을 퍼뜨린다 — 정본(catalog·shipping)에서만 읽는다.
+   * 새 매거진 표지는 상대 주소라 기사 정보에 그대로 실으면 구글이 그림을 못 찾았다. 매거진·우리 음식은 새 웹 화면
+   * 어디에서도 들어가는 길이 없었다(검색엔진은 링크로 중요도를 본다).
+   */
+  const llms = stripComments(read(join(ROOT, 'app', 'llms.txt', 'route.ts')))
+  assert.match(llms, /from '@\/lib\/store\/catalog'/, 'llms.txt 가 가격 정본(catalog)을 안 읽는다')
+  assert.match(llms, /from '@\/lib\/store\/shipping'/, 'llms.txt 가 배송 정본(shipping)을 안 읽는다')
+  assert.ok(!/\d{1,3},\d{3}/.test(llms), 'llms.txt 에 금액을 손으로 적었다 — 정본 상수로')
+  assert.match(llms, /ANTIBIOTIC_FREE_MAIN/, 'llms.txt 의 무항생제는 정본(ANTIBIOTIC_FREE_MAIN)으로만')
+
+  const product = stripComments(read(join(ROOT, 'app', 'store', '[slug]', 'page.tsx')))
+  for (const k of ['shippingDetails', 'hasMerchantReturnPolicy', 'shippingFeeFor(', 'merchantReturnDays: 7']) {
+    assert.ok(product.includes(k), `상품 구조화 데이터에 ${k} 가 없다`)
+  }
+  const post = stripComments(read(join(ROOT, 'app', 'blog', '[slug]', 'page.tsx')))
+  assert.ok(post.includes('extractQa(') && post.includes('buildFaqJsonLd('), '매거진 글의 문답이 구조화 데이터(FAQPage)로 안 나간다')
+  assert.ok(post.includes('updatedAt: post.updated_at'), '매거진 글의 고친 날(dateModified)이 빠졌다')
+  const jsonld = stripComments(read(join(ROOT, 'lib', 'seo', 'jsonld.ts')))
+  assert.match(jsonld, /data\.image = \[absoluteUrl\(input\.coverUrl\)\]/, '기사 표지 그림이 절대 주소가 아니다')
+
+  const menu = stripComments(read(join(ROOT, 'components', 'store', 'StoreMenu.tsx')))
+  assert.ok(menu.includes('href="/blog"') && menu.includes('href="/our-food"'), '웹 메뉴에서 매거진·우리 음식으로 가는 길이 없다')
+
+  const robots = stripComments(read(join(ROOT, 'app', 'robots.ts')))
+  assert.ok(
+    !/GPTBot|ClaudeBot|PerplexityBot|Google-Extended|OAI-SearchBot|CCBot/.test(robots),
+    'robots 가 AI 크롤러를 따로 다룬다 — 막으면 AI 검색에서 사라진다(의도라면 이 규칙부터 고칠 것)',
+  )
+})
