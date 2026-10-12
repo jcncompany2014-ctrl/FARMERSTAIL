@@ -351,7 +351,7 @@ export default function AdminPartnersClient({
                 />
               </Field>
 
-              <Field label="인증" hint="예: 1++ 등급, 무농약 인증, 유기농 인증">
+              <Field label="인증" hint="인증서가 있는 것만 — 예: 1++ 등급, 무항생제 인증(인증 번호)">
                 <input
                   type="text"
                   value={cert}

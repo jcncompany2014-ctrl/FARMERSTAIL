@@ -713,7 +713,7 @@ export default function ProductForm({
               type="text"
               value={form.certifications ?? ''}
               onChange={(e) => update('certifications', e.target.value)}
-              placeholder="예: 무농약 인증, USDA Grade A, 자가품질검사 통과"
+              placeholder="인증서가 있는 것만 — 예: 주원료 무항생제 인증(인증 번호)"
               className={inputClass}
             />
           </Field>

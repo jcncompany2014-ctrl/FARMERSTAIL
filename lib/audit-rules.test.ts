@@ -6898,3 +6898,21 @@ test('규칙181: 1회차 식단도 체크인 D-day 가 뜬다 — 시작일 = ap
   assert.match(page, /\.gte\('created_at', currentFormula\.created_at\)/, '1회차 첫 박스를 처방 생성 이후 결제 박스로 안 고른다(재제안 크론과 같은 기준)')
   assert.match(page, /paidBoxShipIso\(/, '발송 기록이 없을 때 결제일 기준 발송 화요일(paidBoxShipIso)로 안 센다')
 })
+
+test('규칙182: GAP·무농약 표기는 쓰지 않는다 — 인증서 없는 법정 인증 표시(사장님 10/12 "관련 내용 다 없애")', () => {
+  /**
+   * 상품정보 제공고시 '인증·원료' 칸의 '현미 GAP'·'채소 무농약'은 법정 인증 표시라 인증서가 있어야 하는데 증빙이 없었다
+   * (2026-10-12 최종 점검). 사장님 지시로 DB 4행에서 지웠고(기록 마이그레이션 20261012010000), 코드에선 관리자 입력
+   * 예시에만 있던 것도 지웠다. 다시 쓰려면 인증서(인증 번호)를 먼저 받고 이 규칙부터 고친다.
+   */
+  const hits: string[] = []
+  for (const f of ['app', 'components', 'lib'].flatMap((d) => walk(join(ROOT, d)))) {
+    if (/무농약|\bGAP\b/.test(read(f))) hits.push(f.slice(ROOT.length + 1))
+  }
+  assert.deepEqual(hits, [], `GAP·무농약 표기가 남았다: ${hits.join(', ')}`)
+  const mig = join(ROOT, 'supabase', 'migrations', '20261012010000_remove_gap_pesticide_free_labels.sql')
+  assert.ok(
+    existsSync(mig) && /array_remove\(array_remove\(certifications, '현미 GAP'\), '채소 무농약'\)/.test(read(mig)),
+    'DB 인증 칸에서 GAP·무농약을 지우는 기록 마이그레이션이 없다 — 옛 마이그레이션을 다시 돌리면 되살아난다',
+  )
+})
