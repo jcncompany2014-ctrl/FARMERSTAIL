@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { visibleMagazineCategories } from '@/lib/magazine/categories'
 import StoreShell from '@/components/store/StoreShell'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 import JsonLd from '@/components/JsonLd'
@@ -130,18 +132,23 @@ export default async function BlogIndexPage({
     .order('sort_order', { ascending: true })
   if (catsErr) console.error('[blog] categories query failed', catsErr)
   const cats = (categories ?? []) as Category[]
-  const activeCategory = catSlug ? cats.find((c) => c.slug === catSlug) : null
 
-  let query = supabase
+  // 공개 글은 한 번에 다 읽는다 — 카테고리별 글 수(빈 카테고리 숨김)와 카테고리 거르기를 같은 목록으로 한다.
+  const { data: posts, error: postsErr } = await supabase
     .from('blog_posts')
     .select('id, slug, title, excerpt, cover_url, category_id, published_at, views')
     .eq('is_published', true)
     .order('published_at', { ascending: false, nullsFirst: false })
-  if (activeCategory) query = query.eq('category_id', activeCategory.id)
-
-  const { data: posts, error: postsErr } = await query
   if (postsErr) console.error('[blog] posts query failed', postsErr)
-  const rows = (posts ?? []) as Post[]
+  const allRows = (posts ?? []) as Post[]
+
+  // ★공개 글이 0편인 카테고리는 단추를 숨긴다 — 눌렀더니 빈 '준비 중' 화면이 나오지 않게(2026-10-13 토스 심사 준비, 규칙212).
+  //   글 수는 실제 공개 글로 센다. 조회가 실패하면 글 수를 모르므로(0편이 아니다 — AGENTS 규칙1) 지금처럼 다 보인다.
+  const shownCats = visibleMagazineCategories(cats, postsErr ? null : allRows)
+  const activeCategory = catSlug ? shownCats.find((c) => c.slug === catSlug) : null
+  // 글이 없는 카테고리 주소(옛 링크·직접 입력)로 오면 전체 목록으로 — 빈 화면 대신.
+  if (catSlug && !postsErr && !activeCategory && cats.some((c) => c.slug === catSlug)) redirect('/blog')
+  const rows = activeCategory ? allRows.filter((p) => p.category_id === activeCategory.id) : allRows
   const catById = new Map(cats.map((c) => [c.id, c]))
   const [hero, ...rest] = rows
   const heroCat = hero?.category_id ? catById.get(hero.category_id) : undefined
@@ -154,7 +161,7 @@ export default async function BlogIndexPage({
   ])
 
   // 카테고리 단추 칸 — 시안은 4칸 한 줄(전체 + 셋). DB 카테고리가 더 많으면 3칸씩 줄을 늘려 이름이 잘리지 않게 한다.
-  const navCols = cats.length + 1 <= 4 ? 4 : 3
+  const navCols = shownCats.length + 1 <= 4 ? 4 : 3
 
   return (
     <StoreShell>
@@ -173,7 +180,7 @@ export default async function BlogIndexPage({
             <CategoryButton href="/blog" active={!activeCategory}>
               전체
             </CategoryButton>
-            {cats.map((c) => (
+            {shownCats.map((c) => (
               <CategoryButton key={c.id} href={`/blog?category=${c.slug}`} active={activeCategory?.id === c.id}>
                 {c.name}
               </CategoryButton>

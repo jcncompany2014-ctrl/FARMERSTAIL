@@ -36,7 +36,9 @@ import {
 } from '@/lib/store/catalog'
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
+import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
 import type { RecipeLabel } from '@/lib/store/label'
+import { Acc, NoticeList, ShippingRefundInfo } from './ProductInfo'
 import { business } from '@/lib/business'
 import { RECIPE_INGREDIENTS } from '@/lib/recipe-ingredients'
 import { SKU_MODEL } from '@/lib/personalization/skuModel'
@@ -49,23 +51,6 @@ function Chevron({ size = 18 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M9 6l6 6-6 6" />
     </svg>
-  )
-}
-
-function Acc({ title, children, open = false, id }: { title: string; children: React.ReactNode; open?: boolean; id?: string }) {
-  return (
-    <details id={id} open={open} style={{ borderBottom: '1px solid #E5E5E5' }}>
-      <summary style={{ minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 18, fontWeight: 700 }}>
-        {title}
-        <span aria-hidden className="fts-acc-plus" style={{ fontSize: 26, fontWeight: 300 }}>
-          +
-        </span>
-        <span aria-hidden className="fts-acc-minus" style={{ fontSize: 26, fontWeight: 300 }}>
-          −
-        </span>
-      </summary>
-      <div style={{ paddingBottom: 20 }}>{children}</div>
-    </details>
   )
 }
 
@@ -291,8 +276,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             </Link>
           </p>
         )}
-        <p style={{ margin: '12px 0 0', fontSize: 14, color: '#595959' }}>
-          받은 날부터 7일 안, 뜯지 않았다면 환불돼요.{' '}
+        <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.55, color: '#595959' }}>
+          {REFUND_RULE_HAEYO}{' '}
           <a href="#shipping" style={{ fontWeight: 700, color: '#141414' }}>
             교환·환불 안내
           </a>
@@ -473,21 +458,17 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               ))}
             </ol>
           </Acc>
-          <Acc title="배송·교환·환불" id="shipping">
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D', whiteSpace: 'pre-line' }}>
-              화·목요일에 냉동으로 출고해요. 출고 후 하루나 이틀이면 받아요(지역에 따라 달라요). 배송비는 {won(SHIPPING_FEE)}원이고 {FREE_SHIPPING_MIN / 10_000}만 원 이상이면 무료예요.
-              {'\n\n'}상품에 문제가 있으면 사진 한 장이면 돼요. 확인하고 다시 보내드리거나 환불해 드려요. 단순 변심은 받은 날부터 7일 안, 뜯지 않은 상품만 환불돼요.{' '}
-              <Link href="/legal/refund" style={{ fontWeight: 700, color: '#141414' }}>
-                환불정책 전체
-              </Link>
-            </p>
+          {/* 처음부터 펼친다 — 반품 배송비·환불 조건을 찾지 않아도 보이게(토스 일반결제 심사 준비, 규칙210). */}
+          <Acc title="배송·교환·환불" id="shipping" open>
+            <ShippingRefundInfo />
           </Acc>
           <Acc title="상품정보 제공고시">
             {label ? (
-              <dl style={{ margin: 0, display: 'flex', flexDirection: 'column' }}>
-                {[
+              <NoticeList
+                rows={[
                   ['제품명', `${RECIPE_PRODUCT_NAME[recipe]} ${size}`],
                   ['내용량', `${item.grams}g (100g × ${item.packs}팩)`],
+                  ['가격', `${won(item.price)}원`],
                   ['사료의 종류', label.petFoodClass],
                   ['원산지', label.origin],
                   ['제조원', [label.manufacturer, label.manufacturerAddress].filter(Boolean).join(' · ')],
@@ -499,15 +480,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
                   ['포장 국가', label.countryOfPackaging],
                   ['상품 번호', label.sku],
                   ['고객센터', business.phone],
-                ]
-                  .filter((row): row is [string, string] => !!row[1])
-                  .map(([k, v]) => (
-                    <div key={k} style={{ padding: '10px 0', borderBottom: '1px solid #F0F0F0', display: 'grid', gridTemplateColumns: '96px 1fr', gap: 10 }}>
-                      <dt style={{ fontSize: 14, color: '#595959' }}>{k}</dt>
-                      <dd style={{ margin: 0, fontSize: 15, lineHeight: 1.55 }}>{v}</dd>
-                    </div>
-                  ))}
-              </dl>
+                ]}
+              />
             ) : (
               <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>
                 정보를 불러오지 못했어요. 팩 라벨을 확인하시거나 {business.phone}로 물어봐 주세요.
@@ -622,7 +596,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       />
       {!paused && (
         <noscript>
-          <p style={{ padding: 20 }}>장바구니에 담으려면 브라우저에서 자바스크립트를 켜 주세요. 전화({business.phone})로도 주문할 수 있어요.</p>
+          <p style={{ padding: 20 }}>장바구니에 담으려면 브라우저에서 자바스크립트를 켜 주세요. 궁금한 점은 전화({business.phone})로 물어보세요.</p>
         </noscript>
       )}
     </>

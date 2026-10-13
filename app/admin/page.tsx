@@ -27,6 +27,7 @@ import {
 import {
   tossKeyStatus,
   describeTossKeyStatus,
+  describeStoreWidgetKeyStatus,
 } from '@/lib/payments/key-mode'
 import {
   formatKstShortDateTime as formatDate,
@@ -665,12 +666,26 @@ export default async function AdminHome() {
           테스트키인 채로 출시하면 "결제 완료" 인데 입금이 없고, 키 짝이 안 맞으면
           고객이 카드를 긁은 뒤 승인이 거부된다. 둘 다 첫 실결제에서만 드러나는
           종류라 항상 보이는 자리에 띄운다. 정상(실결제 모드)일 땐 조용히 한 줄. */}
-      {(() => {
-        const s = tossKeyStatus(
-          process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-          process.env.TOSS_SECRET_KEY,
-        )
-        const d = describeTossKeyStatus(s)
+      {/* 두 줄 — 정기결제(카드 등록·자동결제) 키와 웹 가게 결제(결제위젯) 키. 같은 판정(tossKeyStatus)에 말만 다르다.
+          웹 가게 줄은 토스 일반결제 심사 동안 '시험 모드'(테스트 결제창 키만)가 정상이다(2026-10-13, 규칙209). 키 값은 내보내지 않는다. */}
+      {[
+        // 정기결제 줄 — 두 줄이 되어 어느 결제인지 제목 앞에 붙인다(웹 가게 줄은 제목에 이미 '웹 가게').
+        (() => {
+          const d = describeTossKeyStatus(
+            tossKeyStatus(
+              process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+              process.env.TOSS_SECRET_KEY,
+            ),
+          )
+          return { ...d, title: `정기결제 · ${d.title}` }
+        })(),
+        describeStoreWidgetKeyStatus(
+          tossKeyStatus(
+            process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY,
+            process.env.TOSS_WIDGET_SECRET_KEY,
+          ),
+        ),
+      ].map((d, i) => {
         const tone =
           d.tone === 'ok'
             ? 'text-muted-foreground'
@@ -684,7 +699,7 @@ export default async function AdminHome() {
               ? AlertTriangle
               : ShieldAlert
         return (
-          <Card className={`gap-0 py-3 ${d.tone === 'ok' ? '' : tone}`}>
+          <Card key={i} className={`gap-0 py-3 ${d.tone === 'ok' ? '' : tone}`}>
             <CardContent className="px-4">
               <p
                 className={`flex items-center gap-1.5 text-[13px] font-bold ${d.tone === 'ok' ? tone : ''}`}
@@ -701,7 +716,7 @@ export default async function AdminHome() {
             </CardContent>
           </Card>
         )
-      })()}
+      })}
 
       {/* 처리 대기 큐 — admin hot path. ★조회 실패 시 '모두 처리됨'으로
           위장되면 안 되므로 배너로 '못 봄'을 분리 표시(규칙1). */}

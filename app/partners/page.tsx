@@ -53,7 +53,9 @@ export const metadata: Metadata = {
       '재료의 출처를 농가 단위까지 추적합니다. 익명의 “수입산”은 들어가지 않아요.',
     images: [PARTNERS_OG],
   },
-  robots: { index: true, follow: true },
+  // ★검색에 올리지 않는다(2026-10-13 토스 심사 준비, 규칙213) — 공개된 농가가 아직 없어 '함께하고 싶어요' 빈 상자뿐인 화면이다.
+  //   페이지는 그대로 두고(브랜드 화면의 링크는 산다) 사이트맵에서도 뺐다(app/sitemap.ts). 농가를 공개하면 둘 다 되돌린다.
+  robots: { index: false, follow: true },
 }
 
 type Partner = {

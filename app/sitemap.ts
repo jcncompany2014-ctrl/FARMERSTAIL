@@ -89,13 +89,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     //   changeFrequency: 'weekly',
     //   priority: 0.7,
     // },
-    // 신규 콘텐츠 페이지 — 산지 / FAQ / 뉴스레터 / 과학 alias
-    {
-      url: `${siteUrl}/partners`,
-      lastModified: WEB_RENEWED,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
+    // 신규 콘텐츠 페이지 — FAQ / 뉴스레터 / 과학 alias
+    // /partners(농장 파트너)는 뺐다 — 공개된 농가가 없는 빈 화면이라 noindex(2026-10-13, 규칙213). 농가를 공개하면 되돌린다.
     {
       url: `${siteUrl}/faq`,
       lastModified: WEB_RENEWED,

@@ -3,6 +3,8 @@ import StoreShell from '@/components/store/StoreShell'
 import StoreBrowse from '@/components/store/StoreBrowse'
 import { storeSalesPaused } from '@/lib/store/toss-widget'
 import { STORE_RECIPES, TRIAL_ITEM, storeItem } from '@/lib/store/catalog'
+import { fetchRecipeLabels, trialNoticeRows } from '@/lib/store/label'
+import { business } from '@/lib/business'
 
 /** 스토어 — 웹 시안 Store. ?tab=trial 이면 체험팩 탭으로 연다(홈·메뉴의 체험팩 링크). */
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -29,13 +31,16 @@ export const metadata: Metadata = {
 export default async function StorePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams
   const initialTab = sp.tab === 'trial' ? 'trial' : 'recipes'
+  // 체험팩 상품정보 제공고시 — 레시피 4종 DB 라벨에서(규칙211). 못 읽으면 null → 화면은 "팩 라벨을 확인해 주세요".
+  const labels = await fetchRecipeLabels()
+  const trialNotice = labels ? trialNoticeRows(labels, { phone: business.phone }) : null
   return (
     <StoreShell>
       {/* 2026-10-11 SEO: 스토어엔 h1 이 없었다(시안은 탭부터 시작) — 화면은 그대로 두고 읽기 장치·검색엔진용 제목만 단다. */}
       <h1 style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
         파머스테일 스토어 — 강아지 화식 4종·체험팩
       </h1>
-      <StoreBrowse initialTab={initialTab} paused={storeSalesPaused()} />
+      <StoreBrowse initialTab={initialTab} trialNotice={trialNotice} paused={storeSalesPaused()} />
     </StoreShell>
   )
 }

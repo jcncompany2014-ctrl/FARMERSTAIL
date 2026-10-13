@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
-import { confirmPayment, cancelPayment, merchantForOrderNumber } from '@/lib/payments/toss'
+import {
+  confirmPayment,
+  cancelPayment,
+  merchantForOrderNumber,
+  type TossPayment,
+  type TossResult,
+} from '@/lib/payments/toss'
+import { STORE_TEST_MODE_CODE, STORE_TEST_MODE_MESSAGE, storeConfirmTestOnly } from '@/lib/store/toss-widget'
 import { notifyOrderPlaced, notifyVirtualAccountWaiting } from '@/lib/email'
 import { zPaymentConfirm } from '@/lib/api/schemas'
 import { parseRequest } from '@/lib/api/parseRequest'
@@ -194,15 +201,27 @@ export async function POST(req: Request) {
   // 3) 토스페이먼츠 승인 API 호출 — lib/payments/toss 가 Idempotency-Key 포함.
   //    ★가맹점: 웹 가게 주문(FTS-)은 결제위젯 계약 키로 승인·환불한다(규칙172).
   const merchant = merchantForOrderNumber(order.order_number)
+  // ★결제 시험 기간(토스 일반결제 심사, 사장님 2026-10-13 · 규칙209) — 운영 가게 주문인데 위젯 시크릿 키가 없거나 테스트 키(test_)거나
+  //   결제창을 테스트 키로 열었으면 **토스를 부르지 않고 paid 로 만들지 않는다**. 아래 실패 처리(failed + 원장)를 그대로 타고
+  //   고객에게는 "돈은 나가지 않았어요"를 보인다. 예전엔 시크릿이 없으면 '결제 서버와 통신할 수 없어요'가 떴다.
+  //   정기결제(billing) 주문은 이 갈래에 들어오지 않는다.
+  const storeTestOnly = merchant === 'widget' && storeConfirmTestOnly()
+  const storeTestResult: TossResult<TossPayment> = {
+    ok: false,
+    status: 0,
+    error: { code: STORE_TEST_MODE_CODE, message: STORE_TEST_MODE_MESSAGE },
+  }
   // Sentry 트레이싱 wrap — 결제 confirm 실패율 + latency 추적.
-  const result = await traceBusiness(
-    'order.payment.confirm',
-    {
-      'order.id': orderId,
-      'order.amount': amount,
-    },
-    () => confirmPayment({ paymentKey, orderId, amount, merchant }),
-  )
+  const result = storeTestOnly
+    ? storeTestResult
+    : await traceBusiness(
+        'order.payment.confirm',
+        {
+          'order.id': orderId,
+          'order.amount': amount,
+        },
+        () => confirmPayment({ paymentKey, orderId, amount, merchant }),
+      )
 
   if (!result.ok) {
     const prevStatus = order.payment_status
@@ -238,12 +257,16 @@ export async function POST(req: Request) {
       },
     })
 
-    // 매출 영향 이벤트 — Sentry 운영 채널에 알림.
-    captureBusinessEvent('warning', 'order.payment.confirm.failed', {
-      orderId,
-      amount,
-      errorCode: result.error.code ?? null,
-    })
+    // 매출 영향 이벤트 — Sentry 운영 채널에 알림. 결제 시험 기간의 시험 결제는 매출 실패가 아니라 기록만(info).
+    if (storeTestOnly) {
+      captureBusinessEvent('info', 'order.payment.confirm.store_test_mode', { orderId, amount })
+    } else {
+      captureBusinessEvent('warning', 'order.payment.confirm.failed', {
+        orderId,
+        amount,
+        errorCode: result.error.code ?? null,
+      })
+    }
 
     return NextResponse.json(
       { code: result.error.code, message: result.error.message },

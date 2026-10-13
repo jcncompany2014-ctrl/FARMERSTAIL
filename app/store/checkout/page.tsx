@@ -3,12 +3,13 @@ import StoreShell from '@/components/store/StoreShell'
 import CheckoutClient from '@/components/store/CheckoutClient'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import { isStoreItemId } from '@/lib/store/catalog'
-import { storeSalesPaused, widgetClientKey, widgetCustomerKey } from '@/lib/store/toss-widget'
+import { storeSalesPaused, widgetClientKey, widgetCustomerKey, widgetTestMode } from '@/lib/store/toss-widget'
 
 /**
  * 주문·결제 — 웹 시안 Checkout. 회원만(사장님 10/10). 로그인 전이면 카카오 로그인부터.
  * ?buy=<상품>&qty=<n> 이면 바로 구매(장바구니를 건드리지 않고 그 상품만), 아니면 장바구니.
  * 받는 분은 기본 배송지(앱과 같은 addresses) → 없으면 프로필로 미리 채운다.
+ * 결제 시험 모드(운영 + 토스 테스트 결제창 키)면 결제 버튼 위에 안내(규칙209).
  */
 export const metadata: Metadata = {
   title: '주문·결제',
@@ -51,6 +52,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         clientKey={widgetClientKey()}
         customerKey={user ? widgetCustomerKey(user.id) : null}
         paused={storeSalesPaused()}
+        testMode={widgetTestMode()}
       />
     </StoreShell>
   )

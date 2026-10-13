@@ -8,6 +8,8 @@ import StoreBrowse from '@/components/store/StoreBrowse'
 import RecipeGrid from '@/components/store/RecipeGrid'
 import MagazineDraftPreview from './MagazineDraftPreview'
 import { widgetClientKey } from '@/lib/store/toss-widget'
+import { fetchRecipeLabels, trialNoticeRows } from '@/lib/store/label'
+import { business } from '@/lib/business'
 import ReceiptWebView from '@/app/mypage/orders/[id]/receipt/ReceiptWebView'
 import type { ReceiptAppModel } from '@/app/mypage/orders/[id]/receipt/ReceiptAppView'
 import TrackingView from '@/app/mypage/orders/[id]/track/TrackingView'
@@ -22,6 +24,7 @@ import { carrierMeta } from '@/lib/tracking'
 /**
  * /design-check-store — 웹 가게 점검(로그인 없이 시안과 나란히). **실제 사이트(production)에선 404.**
  *  · 기본: 주문서(로그인한 모습 + 토스 결제위젯 테스트 키). [결제하기]는 주문 서버가 로그인을 요구해 막힌다(401).
+ *  · ?s=testmode-checkout: 같은 주문서 + 결제 시험 기간 안내(운영 + 테스트 결제창 키일 때만 켜지는 모양, 규칙209).
  *  · ?s=receipt: 웹 영수증(시안 WEB-A15) — 실제 ReceiptWebView 에 예시 값.
  *  · ?s=track: 웹 운송장 조회(시안 WEB-A16) 머리 + 실제 TrackingView(앱 화면). 조회 API 는 로그인이 없어 실패 카드가 뜬다.
  *  · ?s=account: 웹 내 계정(시안 WEB-A19) — 실제 AccountWebView 에 예시 값(새싹 등급·도장 23개 — 시안과 같은 값).
@@ -133,12 +136,14 @@ export default async function DesignCheckStorePage({ searchParams }: { searchPar
         </section>
       </StoreShell>
     )
-  if (s === 'paused-store' || s === 'paused-trial')
+  if (s === 'paused-store' || s === 'paused-trial') {
+    const labels = await fetchRecipeLabels()
     return (
       <StoreShell>
-        <StoreBrowse initialTab={s === 'paused-trial' ? 'trial' : 'recipes'} paused />
+        <StoreBrowse initialTab={s === 'paused-trial' ? 'trial' : 'recipes'} trialNotice={labels ? trialNoticeRows(labels, { phone: business.phone }) : null} paused />
       </StoreShell>
     )
+  }
   if (s === 'paused-product')
     return (
       <StoreShell header={{ variant: 'back', backHref: '/store' }}>
@@ -227,6 +232,7 @@ export default async function DesignCheckStorePage({ searchParams }: { searchPar
         clientKey={s === 'paused-checkout' ? null : widgetClientKey()}
         customerKey="ft-design-check-store"
         paused={s === 'paused-checkout'}
+        testMode={s === 'testmode-checkout'}
       />
     </StoreShell>
   )

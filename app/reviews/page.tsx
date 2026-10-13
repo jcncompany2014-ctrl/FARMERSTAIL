@@ -5,7 +5,7 @@ import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { SMARTSTORE_URL } from '@/lib/links'
-import { PACK_G, RECIPE_BAND, STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT, TRIAL_ITEM } from '@/lib/store/catalog'
+import { RECIPE_BAND, STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT, TRIAL_ITEM, TRIAL_PACK_G } from '@/lib/store/catalog'
 
 /**
  * 웹 후기 — /reviews. 웹 시안 WEB-C07(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
@@ -194,7 +194,7 @@ export default async function ReviewsPage() {
                   {TRIAL_ITEM.name}
                 </span>
                 <span style={{ fontSize: 15, color: '#3D3D3D' }}>
-                  {STORE_RECIPES.length}종 {PACK_G}g씩 맛보기
+                  {STORE_RECIPES.length}종 {TRIAL_PACK_G}g씩 맛보기
                 </span>
               </span>
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>

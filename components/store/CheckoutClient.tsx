@@ -6,7 +6,8 @@
  *
  * 흐름: [결제하기] → 서버가 주문을 만든다(/api/store/orders, 금액은 서버가 상품표로 계산) → 위젯 requestPayment →
  * 토스 결제창 → successUrl(/store/order/complete)이 승인(/api/payments/confirm) → 주문 완료 화면.
- * 결제위젯 키가 없으면(토스 일반결제 심사 전, 운영) 결제 대신 '결제 준비 중' 안내 + 전화·카카오톡 주문.
+ * 결제위젯 키가 없으면(토스 일반결제 심사 전, 운영) 결제 대신 '결제 준비 중' 안내 + 전화·카카오톡 문의.
+ * testMode(운영 + 토스 테스트 결제창 키 — 심사 기간): 결제 버튼 위에 "실제 결제·배송은 되지 않아요"(승인 라우트가 paid 로 만들지 않는다).
  * paused(자사몰 결제 막음, storeSalesPaused — 심사 신청 전): 결제 칸에 스마트스토어 안내, 아래 바는 초록 스마트스토어 아래 회색
  * 결제 버튼, 결제위젯은 열지 않는다(규칙177).
  */
@@ -22,6 +23,7 @@ import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
 import { cartSummary, type CartLine } from '@/lib/store/cart'
 import { RECIPE_BAND, type StoreItemId } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN } from '@/lib/store/shipping'
+import { REFUND_RULE_HAEYO, returnFeeForOrder } from '@/lib/store/refund-copy'
 import { validateRecipient } from '@/lib/store/order'
 import { business } from '@/lib/business'
 
@@ -63,6 +65,7 @@ export default function CheckoutClient({
   clientKey,
   customerKey,
   paused,
+  testMode,
 }: {
   signedIn: boolean
   displayName: string | null
@@ -72,6 +75,8 @@ export default function CheckoutClient({
   clientKey: string | null
   customerKey: string | null
   paused: boolean
+  /** 결제 시험 모드(운영 + 토스 테스트 결제창 키, lib/store/toss-widget widgetTestMode) — 결제 버튼 위에 "실제 결제·배송은 되지 않아요". */
+  testMode: boolean
 }) {
   const cart = useStoreCart()
   const ship = useShipDate()
@@ -302,12 +307,13 @@ export default function CheckoutClient({
         ) : !clientKey ? (
           <div style={{ padding: '16px', border: '2px solid #141414', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <strong style={{ fontSize: 17 }}>온라인 결제를 준비하고 있어요</strong>
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
-              곧 카드·간편결제로 바로 살 수 있어요. 지금은 전화({business.phone})나 카카오톡으로 주문을 도와드려요.
+            {/* 토스 밖 직거래로 읽히지 않게 — 주문을 받는 곳이 아니라 묻는 곳(사장님 2026-10-13). */}
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
+              곧 카드·간편결제로 바로 살 수 있어요. 궁금한 점은 전화({business.phone})·카카오톡으로 물어보세요.
             </p>
             {business.kakaoChannelUrl && (
               <a href={business.kakaoChannelUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 4, height: 52, borderRadius: 4, background: '#FEE500', color: '#191919', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, textDecoration: 'none' }}>
-                카카오톡으로 주문하기
+                카카오톡으로 물어보기
               </a>
             )}
           </div>
@@ -370,7 +376,7 @@ export default function CheckoutClient({
           주문 내용을 확인했고 결제에 동의해요
         </label>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#595959' }}>
-          받은 날부터 7일 안, 뜯지 않은 상품은 환불돼요. 상품에 문제가 있으면 사진 한 장이면 돼요.{' '}
+          {REFUND_RULE_HAEYO} 단순 변심으로 돌려보낼 때 배송비는 {returnFeeForOrder(s.shippingFee)}이에요. 상품에 문제가 있으면 사진 한 장이면 되고, 그때 배송비는 저희가 내요.{' '}
           <Link href="/legal/terms" style={{ color: '#141414', fontWeight: 700 }}>
             이용약관
           </Link>{' '}
@@ -392,6 +398,12 @@ export default function CheckoutClient({
 
       <div style={{ position: 'sticky', bottom: 0, zIndex: 20, marginTop: 20, padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {paused && <SmartStoreButton height={50} />}
+        {/* 결제 시험 기간(토스 일반결제 심사, 규칙209) — 결제창은 열리지만 승인하지 않는다(승인 라우트 STORE_TEST_MODE). */}
+        {testMode && !paused && (
+          <p role="note" style={{ margin: 0, padding: '8px 12px', background: '#F6F4F5', borderRadius: 4, fontSize: 14, lineHeight: 1.55, color: '#3D3D3D' }}>
+            지금은 토스 결제 연동을 시험하는 기간이에요. 결제창은 열리지만 실제 결제·배송은 되지 않아요.
+          </p>
+        )}
         {paused ? (
           <button type="button" disabled style={{ width: '100%', height: 52, borderRadius: 4, fontSize: 18, fontWeight: 800, ...PAUSED_BTN }}>
             {won(s.total)}원 결제하기
