@@ -8,9 +8,12 @@ import LegalDocument, {
   UL as WebUL,
 } from '@/components/LegalDocument'
 import { business } from '@/lib/business'
-import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
+import { FREE_SHIPPING_MIN, SHIPPING_FEE, returnShippingFeeFor } from '@/lib/store/shipping'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
+/** 단품 단순 변심 반품 배송비 — 배송비를 내고 받았으면 편도, 무료배송으로 받았으면 왕복(정본 lib/store/shipping). */
+const RETURN_FEE_ONE_WAY = returnShippingFeeFor(SHIPPING_FEE)
+const RETURN_FEE_ROUND_TRIP = returnShippingFeeFor(0)
 import { isAppContextServer } from '@/lib/app-context'
 import {
   APP_LEGAL_LINK,
@@ -47,7 +50,13 @@ export const metadata: Metadata = {
 //   시행일 = 웹 가게 배포일(배포하는 날 이 값을 맞춘다). 문안 docs/LEGAL_REVISION_2026_10.md §6, 숫자 정본 lib/store/shipping.
 // ★2026-10-11 개정 — 단품 배송비 4,000원 → 5,000원(사장님 "배송비 전부다 5000원으로"). 무료 기준·정기배송 조항은 그대로.
 //   단품 주문이 아직 0건(웹 결제는 토스 심사 전까지 멈춤 — DB 10/11 확인)이라 10/10 때와 같이 즉시 시행. 시행일 = 배포일.
-const EFFECTIVE_DATE = '2026-10-11'
+// ★2026-10-13 개정 — 토스 일반결제(결제위젯) 홈페이지 심사 준비. ① 제6조 ④ 미성년자 취소권(법정대리인 동의 없는 구매)
+//   ② 제13조 ③ 관할을 '회사 본사 소재지 전속관할'에서 전자상거래 표준약관 방식(제소 당시 회원의 주소·거소 관할 지방법원)으로
+//   ③ 요약·제9조 ①의 환불 문장을 합니다체 정본 하나로("상품을 받은 날부터 7일 이내, 진공 포장(팩)을 개봉하지 않았다면 …")
+//   ④ 제9조 ④에 단품 반품 배송비 금액(정본 lib/store/shipping 의 returnShippingFeeFor — 숫자를 손으로 적지 않는다).
+//   모두 회원에게 불리하지 않은 변경(관할은 회원 쪽으로 옮기고, 금액은 처음 밝힌 것)이고 단품 주문 0건이라 즉시 시행.
+//   기록 docs/LEGAL_REVISION_2026_10.md §6.
+const EFFECTIVE_DATE = '2026-10-13'
 
 /**
  * 이용약관 — Terms of Service.
@@ -73,7 +82,9 @@ export default async function TermsPage() {
             파머스테일 서비스 이용 시 적용되는 기본 규칙입니다. 정기배송
             결제는 토스페이먼츠 카드 정기결제로 처리되고, 정기배송은 결제 전까지
             해지·일시정지·미루기할 수 있습니다. 웹 스토어 단품은 주문할 때 한
-            번에 결제하고, 받은 날부터 7일 안에 뜯지 않은 상품은 환불됩니다. 결제 전에 별도로 안내하고
+            번에 결제하고, 상품을 받은 날부터 7일 이내, 진공 포장(팩)을
+            개봉하지 않았다면 청약철회(환불)할 수 있습니다. 상품을 확인하려고
+            배송 상자를 연 것은 개봉으로 보지 않습니다. 결제 전에 별도로 안내하고
             동의를 받은 정기배송 회차는 반려견에 맞춰 조리되므로 결제 후
             단순 변심으로 취소·환불되지 않으며, 상품 하자 시 3개월 내
             교환·환불을 보장합니다.{' '}
@@ -82,7 +93,7 @@ export default async function TermsPage() {
               className={linkClass}
                 style={linkStyle}
             >
-              환불 정책 전문
+              배송·교환·환불 정책 전문
             </Link>
             과{' '}
             <Link
@@ -215,6 +226,11 @@ export default async function TermsPage() {
               주문을 수락하지 않을 수 있으며, 이 경우 지체 없이 회원에게
               통지하고 결제 금액을 환불합니다.
             </li>
+            {/* 2026-10-13 — 미성년자 취소권(민법 제5조, 전자상거래 표준약관 방식). 토스 일반결제 심사 준비. */}
+            <li>
+              미성년자가 법정대리인의 동의 없이 구매 계약을 체결한 경우,
+              미성년자 본인 또는 법정대리인이 그 계약을 취소할 수 있습니다.
+            </li>
           </OL>
         </Article>
 
@@ -235,7 +251,7 @@ export default async function TermsPage() {
               (체험단) 할인 회차는 그 회차의 발송일 오전에 결제됩니다.
               회원은 정기배송 관리 화면에서 결제 전까지 해지·일시정지·미루기를
               할 수 있으며, 이미 결제된 회차는 회원의 반려견에 맞춰 조리되어
-              그대로 발송됩니다(취소·환불 기준은 제9조와 환불 정책).
+              그대로 발송됩니다(취소·환불 기준은 제9조와 배송·교환·환불 정책).
             </li>
             <li>
               정기배송 결제는 신용·체크카드 정기결제(토스페이먼츠)로
@@ -289,9 +305,11 @@ export default async function TermsPage() {
 
         <Article number={9} title="청약철회 및 환불">
           <OL>
+            {/* 2026-10-13 — 환불 조건 합니다체 정본(요약·환불정책 3항과 같은 문장). */}
             <li>
-              회원은 상품 수령일로부터 7일 이내에 별도 사유 없이 청약을
-              철회할 수 있습니다.
+              회원은 상품을 받은 날부터 7일 이내, 진공 포장(팩)을 개봉하지
+              않았다면 청약철회(환불)할 수 있습니다. 상품을 확인하려고 배송
+              상자를 연 것은 개봉으로 보지 않습니다.
             </li>
             <li>
               다음 각 호의 경우 청약철회가 제한됩니다(전자상거래법 제17조
@@ -303,7 +321,7 @@ export default async function TermsPage() {
                 </li>
                 <li>
                   회원의 사용 또는 일부 소비로 상품의 가치가 현저히
-                  감소한 경우
+                  감소한 경우 (예: 진공 포장(팩)을 개봉한 식품)
                 </li>
                 <li>
                   시간이 지나 재판매가 곤란할 정도로 상품의 가치가
@@ -326,7 +344,10 @@ export default async function TermsPage() {
             </li>
             <li>
               청약철회 시 상품 반환에 필요한 비용은 단순 변심의 경우
-              회원이, 상품 하자 또는 오배송의 경우 회사가 부담합니다.
+              회원이, 상품 하자 또는 오배송의 경우 회사가 부담합니다. 단품의
+              단순 변심 반품 배송비는 편도 {won(RETURN_FEE_ONE_WAY)}원이며,
+              상품 금액이 {FREE_SHIPPING_MIN / 10_000}만 원 이상이어서
+              무료배송으로 받은 경우에는 왕복 {won(RETURN_FEE_ROUND_TRIP)}원입니다.
             </li>
             <li>
               환불은 반품 확인일로부터 3영업일 이내에 원 결제수단으로
@@ -336,7 +357,7 @@ export default async function TermsPage() {
                 className={linkClass}
                 style={linkStyle}
               >
-                환불 정책
+                배송·교환·환불 정책
               </Link>
               을 참고해 주세요.
             </li>
@@ -423,9 +444,13 @@ export default async function TermsPage() {
               </a>
               의 조정을 신청할 수 있습니다.
             </li>
+            {/* 2026-10-13 — 관할을 회사 본사 소재지 전속관할에서 전자상거래 표준약관 방식(회원 주소·거소 관할)으로. */}
             <li>
-              본 약관은 대한민국 법을 준거법으로 하며, 회사의 본사
-              소재지 관할 법원을 전속 관할 법원으로 합니다.
+              본 약관은 대한민국 법을 준거법으로 합니다. 회사와 회원 사이에
+              제기된 전자상거래 소송은 제소 당시 회원의 주소에 의하고, 주소가
+              없는 경우에는 거소를 관할하는 지방법원의 전속관할로 합니다. 다만
+              제소 당시 회원의 주소 또는 거소가 분명하지 않거나 외국 거주자의
+              경우에는 민사소송법상의 관할법원에 제기합니다.
             </li>
           </OL>
         </Article>

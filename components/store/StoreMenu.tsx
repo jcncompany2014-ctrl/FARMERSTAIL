@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
-import { business } from '@/lib/business'
+import { business, CUSTOMER_CENTER_HOURS } from '@/lib/business'
 import {
   RECIPE_BAND,
   RECIPE_PRODUCT_NAME,
@@ -178,10 +178,12 @@ export default function StoreMenu({ open, onClose }: { open: boolean; onClose: (
         </nav>
 
         <div style={{ marginTop: 28, padding: '20px 16px', background: '#141414', color: '#FFFFFF', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 15, color: '#BDBDBD' }}>전화나 카카오톡으로도 주문을 도와드려요</span>
+          {/* 2026-10-13 토스 일반결제 심사 준비 — 전화·카카오톡은 '물어보는 곳'(토스 밖 직거래 주문으로 읽히지 않게). 바닥(StoreFooter)과 같은 말. */}
+          <span style={{ fontSize: 15, color: '#BDBDBD' }}>주문이 어렵거나 궁금하면 전화·카카오톡으로 물어보세요</span>
           <a href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} className="n" style={{ fontSize: 30, color: '#FFFFFF', textDecoration: 'none' }}>
             {business.phone}
           </a>
+          <span style={{ fontSize: 14, color: '#BDBDBD' }}>전화 {CUSTOMER_CENTER_HOURS}</span>
           {business.kakaoChannelUrl && (
             <a
               href={business.kakaoChannelUrl}

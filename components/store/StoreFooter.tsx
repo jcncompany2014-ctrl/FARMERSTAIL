@@ -2,9 +2,12 @@
  * 웹 가게 법정 바닥(웹 시안 Main footer) — 먹색 띠. 전화·카카오톡 · 약관·정책 · 사업자 정보.
  * 사업자 정보 항목은 예전 바닥(SiteFooter)과 같은 것을 같은 정본(lib/business)에서 읽는다 — 토스 심사 항목
  * (상호·대표·사업자등록번호·통신판매업 신고·주소·연락처)이 빠지면 안 된다.
+ *
+ * 2026-10-13 토스 일반결제 심사 준비: 전화·카카오톡은 '물어보는 곳'으로만 말한다(토스 밖 직거래 주문으로 읽히지 않게) ·
+ * 호스팅 제공자·고객센터 운영시간(정본 CUSTOMER_CENTER_HOURS) 줄 · 약관 줄에 사업자 정보(/business) · 주소 앞 '주소' 라벨.
  */
 import Link from 'next/link'
-import { business, ftcLookupUrl } from '@/lib/business'
+import { business, CUSTOMER_CENTER_HOURS, ftcLookupUrl } from '@/lib/business'
 
 /**
  * 둘러보기 — 검색엔진이 읽는 글자 링크(2026-10-12 점검). 메뉴(☰)는 닫혀 있으면 HTML 에 링크가 없어(StoreMenu) 홈·스토어·FAQ
@@ -27,7 +30,7 @@ export default function StoreFooter() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-paper.png" alt="파머스테일" width={117} height={20} style={{ height: 20, width: 'auto', alignSelf: 'flex-start', display: 'block' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 15, color: '#BDBDBD' }}>전화나 카카오톡으로도 주문을 도와드려요</span>
+          <span style={{ fontSize: 15, color: '#BDBDBD' }}>주문이 어렵거나 궁금하면 전화·카카오톡으로 물어보세요</span>
           <a href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} className="n" style={{ fontSize: 32, color: '#FFFFFF', textDecoration: 'none' }}>
             {business.phone}
           </a>
@@ -60,7 +63,10 @@ export default function StoreFooter() {
             개인정보처리방침
           </Link>
           <Link href="/legal/refund" style={{ height: 40, display: 'flex', alignItems: 'center', fontSize: 15, color: '#D9D9D9', textDecoration: 'none' }}>
-            환불정책
+            배송·교환·환불 정책
+          </Link>
+          <Link href="/business" style={{ height: 40, display: 'flex', alignItems: 'center', fontSize: 15, color: '#D9D9D9', textDecoration: 'none' }}>
+            사업자 정보
           </Link>
           <a href={ftcLookupUrl()} target="_blank" rel="noopener noreferrer" style={{ height: 40, display: 'flex', alignItems: 'center', fontSize: 15, color: '#D9D9D9', textDecoration: 'none' }}>
             사업자정보 확인
@@ -72,13 +78,14 @@ export default function StoreFooter() {
           </span>
           <span>사업자등록번호 {business.businessNumber}</span>
           <span>통신판매업 {business.mailOrderNumber}</span>
-          <span>{business.address}</span>
+          <span>주소 {business.address}</span>
           <span>
-            고객센터 {business.phone} · {business.email}
+            고객센터 {business.phone} ({CUSTOMER_CENTER_HOURS}) · {business.email}
           </span>
           <span>
             개인정보 책임자 {business.privacyOfficer} ({business.privacyOfficerEmail})
           </span>
+          <span>호스팅 {business.hostingProvider}</span>
         </div>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: '#9A9A9A' }}>
           파머스테일은 통신판매중개자가 아닌 통신판매업자로서 상품 주문·결제·배송·환불에 대한 책임을 직접 집니다. 결제 정보는
