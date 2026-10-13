@@ -29,6 +29,7 @@
  */
 import { block, EMAIL_COLORS, escape, renderLayout, SITE_URL } from '../layout.ts'
 import { withHonorific } from '../../korean.ts'
+import { formatKoMonthDay } from '../../datetime-kst.ts'
 
 export type SubscriptionReminderItem = {
   productName: string
@@ -143,20 +144,11 @@ export function renderSubscriptionReminder(input: {
 }
 
 /**
- * 한국어 날짜 — `04월 28일 화요일`. KST 강제.
- * dashboard 의 동일 헬퍼와 같은 구현. 거래 메일 한 곳에서만 쓰여 co-locate.
+ * 한국어 날짜 — `4월 28일 화요일`. KST. 정본은 lib/datetime-kst formatKoMonthDay(푸시와 같은 모양, 규칙237).
+ * 예전엔 여기서 0을 채워 `04월 28일`·`12월 01일`이라 같은 일을 알리는 푸시('12월 1일')와 날짜 모양이 달랐다.
  */
 function formatKoDate(iso: string): string {
-  const date = new Date(iso.length === 10 ? `${iso}T00:00:00+09:00` : iso)
-  const fmt = new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    month: '2-digit',
-    day: '2-digit',
-    weekday: 'long',
-  })
-  const parts = fmt.formatToParts(date)
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
-  return `${get('month').padStart(2, '0')}월 ${get('day').padStart(2, '0')}일 ${get('weekday')}`
+  return formatKoMonthDay(iso, { weekday: true })
 }
 
 /**

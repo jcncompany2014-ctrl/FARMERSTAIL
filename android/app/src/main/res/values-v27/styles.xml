@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 안드로이드 8.1(API 27)+ 의 앱 화면 테마 — 공통 항목은 values/styles.xml Base.AppTheme.NoActionBar.
+         ★2026-10-14 다음 앱 빌드(셸 정리, 규칙240): 아래 손짓 막대 구간을 흰 셸(FtShell/3)에 맞춰 흰 바탕 · 어두운 버튼으로.
+         · 안드로이드 8.1~14: navigationBarColor 가 그대로 막대 색이 된다.
+         · 안드로이드 15+ (targetSdk 35 이상): 가장자리까지 그리기가 강제라 navigationBarColor 는 무시되고 막대는 투명 —
+           그 자리는 웹이 그리거나(viewport-fit=cover + 웹뷰 140+ 일 때 Capacitor SystemBars 가 여백을 웹에 넘긴다) 창 바탕
+           (Base 의 windowBackground 흰색)이 보인다. 어느 쪽이든 흰색이라 충돌이 없다.
+         · 버튼 색은 Capacitor SystemBars 가 켜질 때 style 설정으로 다시 정한다 — capacitor.config.ts plugins.SystemBars.style
+           'LIGHT'(어두운 버튼)이어야 기기가 다크 모드일 때 흰 막대에 흰 버튼이 되지 않는다. -->
+    <style name="AppTheme.NoActionBar" parent="Base.AppTheme.NoActionBar">
+        <item name="android:navigationBarColor">@color/ft_splash_bg</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

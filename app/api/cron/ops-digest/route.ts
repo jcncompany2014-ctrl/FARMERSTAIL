@@ -15,6 +15,9 @@
  *   2) payment_refund_queue — pending/permanently_failed 적체 (오래된 것 우선)
  *   3) orders — payment_status='pending' & created_at 24h+ 경과 미결제 적체
  *      (결제창 이탈 누적 비정상 감지)
+ *   4) products — 재고 부족(아래 본문 주석)
+ *   5) email_suppressions × profiles — 메일 못 받는 손님(거래 메일까지 막힘, 2026-10-14 규칙238).
+ *      새로 막힌 손님(24h)만 이상으로 세고, 전체 숫자는 메일이 갈 때 같이 싣는다.
  *
  * # 스팸 방지
  *   이상이 0건이면 메일 발송 skip → { ok:true, skipped:'no_issues' }.
@@ -46,6 +49,7 @@ import {
   renderOpsDigest,
   type CronErrorRow,
   type LowStockRow,
+  type MailBlockedSummary,
   type RefundQueueRow,
   type StalePendingOrderRow,
 } from '@/lib/email/templates/ops-digest'
@@ -142,13 +146,18 @@ async function runOpsDigest(): Promise<Response> {
   if (lowStockErr) failures.push(`재고 조회 실패: ${lowStockErr.message}`)
   const lowStock = (lowStockRaw ?? []) as LowStockRow[]
 
+  const mailBlocked = await loadMailBlocked(supabase, since24h, failures)
+
   // 집계 실패 = 그 자체가 알려야 할 사건. 0건과 같은 취급을 하면
   // "이상 없음"으로 위장된다.
+  // 메일 못 받는 손님은 **새로 막힌 사람(24시간)** 만 이상으로 센다 — 예전부터 막힌 손님 때문에 매일 메일이 오면
+  // 이 메일이 소음이 된다. 다른 이상으로 메일이 갈 때는 전체 숫자가 같이 실린다.
   const issueCount =
     cronErrors.length +
     refundRows.length +
     staleOrders.length +
     lowStock.length +
+    (mailBlocked?.newIn24h ?? 0) +
     failures.length
 
   // ── 이상 0건 → 발송 skip (스팸 방지). 실패가 하나라도 있으면 여기 안 걸린다. ──
@@ -159,6 +168,7 @@ async function runOpsDigest(): Promise<Response> {
   // ── HTML 다이제스트 작성 — 공용 메일 틀(lib/email/templates/ops-digest, 규칙225) ──
   const { subject, html } = renderOpsDigest({
     failures,
+    mailBlocked,
     cronErrors,
     refundRows,
     refundPending,
@@ -170,7 +180,7 @@ async function runOpsDigest(): Promise<Response> {
   })
 
   const totalIssues =
-    cronErrors.length + refundRows.length + staleOrders.length + lowStock.length
+    cronErrors.length + refundRows.length + staleOrders.length + lowStock.length + (mailBlocked?.newIn24h ?? 0)
   const result = await sendEmail({
     to: business.email,
     subject,
@@ -199,8 +209,56 @@ async function runOpsDigest(): Promise<Response> {
       refundPending,
       refundPermanentlyFailed: refundPermFailed,
       stalePendingOrders: staleOrders.length,
+      mailBlockedCustomers: mailBlocked?.customers ?? 0,
+      mailBlockedNew24h: mailBlocked?.newIn24h ?? 0,
     },
     emailSent: result.ok === true,
     emailSkipped: result.ok === false && result.skipped === true,
   })
+}
+
+/**
+ * 메일 못 받는 손님 — 수신차단 목록(email_suppressions) 중 회원(profiles.email) 주소만 센다(2026-10-14 메일 점검 M4, 규칙238).
+ *
+ * 수신차단은 거래 메일까지 막는다(lib/email/client). 막힌 사실은 Sentry 이벤트로만 남아, 알림 규칙이 없으면 사장님은
+ * "결제됐는데 메일이 안 온다"는 손님 연락을 받고서야 안다. 그래서 운영 점검 메일에 숫자로 싣는다.
+ * 조회 실패는 0명이 아니다 — failures 에 넣어 '숫자를 믿지 마세요' 경고로 올린다(규칙39와 같은 이유).
+ * 차단 목록은 작다(하드바운스·스팸 신고만) — 최근 것부터 200개까지 본다.
+ */
+async function loadMailBlocked(
+  supabase: ReturnType<typeof createAdminClient>,
+  since24hIso: string,
+  failures: string[],
+): Promise<MailBlockedSummary | null> {
+  const { data: suppRows, error: suppErr } = await supabase
+    .from('email_suppressions')
+    .select('email, reason, created_at')
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (suppErr) {
+    failures.push(`메일 수신차단 목록 조회 실패: ${suppErr.message}`)
+    return null
+  }
+  const rows = suppRows ?? []
+  if (rows.length === 0) return null
+  const { data: profRows, error: profErr } = await supabase
+    .from('profiles')
+    .select('email')
+    .in(
+      'email',
+      rows.map((r) => r.email),
+    )
+  if (profErr) {
+    failures.push(`메일 못 받는 손님 조회 실패: ${profErr.message}`)
+    return null
+  }
+  const members = new Set((profRows ?? []).map((p) => (p.email ?? '').toLowerCase()).filter(Boolean))
+  const blocked = rows.filter((r) => members.has(r.email.toLowerCase()))
+  if (blocked.length === 0) return null
+  return {
+    customers: blocked.length,
+    newIn24h: blocked.filter((r) => r.created_at >= since24hIso).length,
+    hardBounce: blocked.filter((r) => r.reason === 'hard_bounce').length,
+    complaint: blocked.filter((r) => r.reason === 'complaint').length,
+  }
 }

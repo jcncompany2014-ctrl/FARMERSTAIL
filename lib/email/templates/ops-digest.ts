@@ -37,9 +37,26 @@ export type LowStockRow = {
   stock: number | null
 }
 
+/**
+ * 메일 못 받는 손님 — 수신차단 목록(email_suppressions: 주소 없음 반송·스팸 신고)에 걸린 회원 수(2026-10-14 메일 점검 M4, 규칙238).
+ * 이 손님들에겐 주문·결제·입금·가격 변경 안내 메일이 **하나도** 안 나간다(lib/email/client). 해제 화면이 없어 사장님이
+ * 모르면 영영 모른다 — 그래서 운영 점검 메일에 숫자로 싣는다. 새로 생긴 손님(24시간)이 있으면 그 자체로 점검 메일을 보낸다.
+ */
+export type MailBlockedSummary = {
+  /** 지금 메일을 못 받는 회원 수. */
+  customers: number
+  /** 그중 최근 24시간에 새로 막힌 회원 수. */
+  newIn24h: number
+  /** 이유별 — 주소 없음 반송(hard_bounce) · 스팸 신고(complaint). */
+  hardBounce: number
+  complaint: number
+}
+
 export type OpsDigestInput = {
   /** 집계 자체가 실패한 항목 — 숫자를 못 믿는다는 경고를 맨 위에 싣는다. */
   failures: string[]
+  /** 메일 못 받는 손님(없으면 줄을 싣지 않는다). */
+  mailBlocked?: MailBlockedSummary | null
   cronErrors: CronErrorRow[]
   refundRows: RefundQueueRow[]
   refundPending: number
@@ -118,7 +135,8 @@ export function renderOpsDigest(input: OpsDigestInput): { subject: string; html:
   const { failures, cronErrors, refundRows, refundPending, refundPermFailed, staleOrders, lowStock } = input
   const now = input.generatedAt
 
-  const totalIssues = cronErrors.length + refundRows.length + staleOrders.length + lowStock.length
+  const mailBlocked = input.mailBlocked && input.mailBlocked.customers > 0 ? input.mailBlocked : null
+  const totalIssues = cronErrors.length + refundRows.length + staleOrders.length + lowStock.length + (mailBlocked?.newIn24h ?? 0)
   const subject = `[파머스테일 운영] 점검 필요 ${totalIssues}건 — ${formatKstDate(now)}`
 
   const sections: string[] = []
@@ -145,6 +163,11 @@ export function renderOpsDigest(input: OpsDigestInput): { subject: string; html:
     summaryItems.push(`환불 큐 적체 ${refundRows.length}건 (대기 ${refundPending} / 영구실패 ${refundPermFailed})`)
   if (staleOrders.length > 0) summaryItems.push(`미결제 적체 ${staleOrders.length}건`)
   if (lowStock.length > 0) summaryItems.push(`재고 부족 ${lowStock.length}종`)
+  if (mailBlocked) {
+    summaryItems.push(
+      `메일 못 받는 손님 ${mailBlocked.customers}명${mailBlocked.newIn24h > 0 ? ` (최근 24시간 새로 ${mailBlocked.newIn24h}명)` : ''}`,
+    )
+  }
 
   sections.push(
     block.callout(
@@ -235,6 +258,19 @@ export function renderOpsDigest(input: OpsDigestInput): { subject: string; html:
         rowsTable(rowsHtml),
         lowStock.length > MAX_ROWS ? `외 ${lowStock.length - MAX_ROWS}종 더 있어요.` : null,
         { label: '상품 관리에서 보기', href: `${SITE_URL}/admin/products` },
+      ),
+    )
+  }
+
+  // 5) 메일 못 받는 손님 — 수신차단 목록에 걸린 회원(규칙238). 거래 메일까지 안 나가므로 다른 길로 연락해야 한다.
+  if (mailBlocked) {
+    sections.push(
+      sectionBlock(
+        `✉️ 메일 못 받는 손님 (${mailBlocked.customers}명)`,
+        `주문·결제·입금·가격 변경 안내 메일이 이 손님들에게 가지 않아요(주소 없음 반송 ${mailBlocked.hardBounce}명 · 스팸 신고 ${mailBlocked.complaint}명). 앱 알림이나 전화로 연락하고, 주소를 고쳤다면 차단을 풀어 주세요(email_suppressions).`,
+        '',
+        mailBlocked.newIn24h > 0 ? `최근 24시간에 새로 막힌 손님 ${mailBlocked.newIn24h}명` : null,
+        { label: '회원 관리에서 보기', href: `${SITE_URL}/admin/users` },
       ),
     )
   }

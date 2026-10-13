@@ -63,11 +63,12 @@
 	<array>
 		<string>armv7</string>
 	</array>
+	<!-- 아이폰은 세로만(2026-10-14 셸 정리, 규칙240) — 가로로 돌리면 첫 화면 이름 칸이 가려졌다. 안드로이드 MainActivity
+	     screenOrientation portrait 와 같다. 아이패드 목록(~ipad)은 그대로 둔다 — 이 앱은 아이폰 전용(TARGETED_DEVICE_FAMILY 1)이라
+	     아이패드에서도 아이폰 목록을 쓰고, 나중에 아이패드를 열면 화면 분할 규칙상 네 방향이 다 있어야 심사를 통과한다. -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

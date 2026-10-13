@@ -22,7 +22,7 @@
  *    써놓고 스케줄러가 다른 날을 잡으면 그 자체로 거짓말이 되므로, 화면 카피와
  *    billing-issue 의 next_delivery_date 가 반드시 여기서 나와야 한다.
  */
-import { addDaysKst, kstDateOf, todayKstIsoDate } from './datetime-kst.ts'
+import { addDaysKst, formatKoMonthDay, kstDateOf, todayKstIsoDate } from './datetime-kst.ts'
 
 /** 발송 요일 — 화요일. JS getUTCDay(): 0=일 … 2=화. */
 export const SHIP_WEEKDAY = 2
@@ -133,6 +133,30 @@ export function paidBoxShipIso(nextDeliveryDate: string | null, paidAtIso: strin
   const bumped = nextDeliveryDate ? addDaysKst(nextDeliveryDate, -14) : null
   if (bumped && bumped >= firstShip && bumped <= addDaysKst(firstShip, 7)) return bumped
   return firstShip
+}
+
+/**
+ * 정기결제가 **성공한 직후** 고객 푸시 본문 — 결제 시점(chargeTimingFor)마다 박스 사정이 다르다(2026-10-14 메일 점검 M3, 규칙237).
+ *  · 일반(before_cooking) — 토요일 아침 조리 직전에 결제된다 → 주말에 만들어 화요일에 보낸다.
+ *  · 서포터즈 체험 구간(ship_day) — 발송일(화) 아침에 결제된다 → **이미 만들어 둔 박스가 그날 나간다**.
+ * 예전 문구 "곧 박스를 준비할게요"는 서포터즈에게 틀렸다 — 결제 알림을 받은 그날 박스가 떠난다.
+ * 도착 요일은 말하지 않는다(도착은 지역·택배사 사정 — shipTimingLabel 원칙, '수요일 도착' 금지).
+ *
+ * shipIso = 이 결제로 나가는 박스의 발송일(화) — 크론은 paidBoxShipIso(새 next_delivery_date, 결제 시각)를 넘긴다.
+ */
+export function chargePaidPushBody(i: {
+  amount: number
+  timing: ChargeTiming
+  shipIso: string
+  /** KST yyyy-mm-dd */
+  todayIso: string
+}): string {
+  const won = `${i.amount.toLocaleString('ko-KR')}원`
+  if (i.shipIso <= i.todayIso) return `${won} · 만들어 둔 박스를 오늘 보내드려요`
+  const ship = formatKoMonthDay(i.shipIso, { weekday: true })
+  return i.timing === 'before_cooking'
+    ? `${won} · 주말에 만들어 ${ship}에 보내드려요`
+    : `${won} · 박스는 ${ship}에 보내드려요`
 }
 
 /**

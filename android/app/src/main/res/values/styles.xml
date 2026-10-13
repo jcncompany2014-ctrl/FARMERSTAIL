@@ -9,11 +9,21 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <!-- 앱 화면(웹뷰) 테마 — Capacitor BridgeActivity 가 켜질 때 이 테마로 바꾼다(R.style.AppTheme_NoActionBar).
+         ★2026-10-14 다음 앱 빌드(셸 정리, 규칙240): 아래 손짓 막대 구간이 검은 띠였다 — 흰 셸(FtShell/3)과 맞춘다.
+         · windowBackground 흰색: 안드로이드 15+ 는 가장자리까지 그리기가 강제라(targetSdk 36) 막대 색(navigationBarColor)을
+           무시하고 그 자리에 창 바탕을 보인다(Capacitor SystemBars 가 decorView 바탕을 windowBackground 로 칠한다).
+           DayNight 기본 바탕은 기기가 다크 모드면 어둡다 — 그래서 흰색으로 못 박는다.
+         · 막대 색·밝은 막대(어두운 버튼)는 values-v27/styles.xml — windowLightNavigationBar 가 API 27 부터라 그 아래(24~26)에서
+           흰 막대를 칠하면 흰 버튼이 흰 바탕에 묻힌다. 공통 항목은 Base 에 두고 v27 판이 그걸 이어받는다. -->
+    <style name="Base.AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/ft_splash_bg</item>
     </style>
+
+    <style name="AppTheme.NoActionBar" parent="Base.AppTheme.NoActionBar" />
 
 
     <!-- 부모가 Theme.SplashScreen.IconBackground 여야 아래 아이콘 뒷면 색이 안드로이드 12+ 에 실제로 넘어간다

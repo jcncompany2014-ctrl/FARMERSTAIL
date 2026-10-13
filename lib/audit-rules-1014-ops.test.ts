@@ -237,7 +237,8 @@ test('규칙219: 어드민 주문 상태 버튼은 송장 중복(409)을 확인 
    * O8: profiles 의 고객 UPDATE 화이트리스트에 동의 칸 5개가 남아(운영 실측), 고객이 동의 값을 바꾸면 동의 기록(consent_log) 없이 값만 바뀐다.
    */
   const ctl = code('app', 'admin', 'orders', '[id]', 'OrderStatusControl.tsx')
-  assert.match(ctl, /body: JSON\.stringify\(\{ orderStatus: next, confirmDuplicate \}\)/, '상태 버튼이 confirmDuplicate 를 보내지 않는다')
+  // 2026-10-14 규칙239 — 밤 알림 확인 값(nightPush)이 같은 본문에 덧붙을 수 있다.
+  assert.match(ctl, /body: JSON\.stringify\(\{ orderStatus: next, confirmDuplicate(, nightPush)? \}\)/, '상태 버튼이 confirmDuplicate 를 보내지 않는다')
   assert.match(ctl, /if \(res\.status === 409\) \{[\s\S]{0,300}data\.code === DUPLICATE_TRACKING \|\| data\.code === DUPLICATE_TRACKING_CHECK_FAILED/, '상태 버튼이 송장 중복 409 를 가르지 않는다')
   assert.match(ctl, /window\.confirm\([\s\S]{0,200}res = await send\(true\)/, '확인 창 뒤 confirmDuplicate:true 로 다시 보내지 않는다')
 

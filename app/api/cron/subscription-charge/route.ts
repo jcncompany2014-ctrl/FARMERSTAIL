@@ -7,9 +7,10 @@ import {
   chargeDateFor,
   CHARGE_BEFORE_SHIP_DAYS,
   paidBoxShipIso,
+  chargePaidPushBody,
   type ChargeTiming,
 } from '@/lib/shipping-schedule'
-import { addDaysKst } from '@/lib/datetime-kst'
+import { addDaysKst, formatKoMonthDay } from '@/lib/datetime-kst'
 import { chargeBillingKey, cancelPayment, lookupPaymentByOrderId, fetchPayment, orderPaymentOutcome } from '@/lib/payments/toss'
 import { verifyAmbiguousCharges } from '@/lib/payments/ambiguous-charges'
 import { keyMode } from '@/lib/payments/key-mode'
@@ -1585,7 +1586,8 @@ async function runSubscriptionCharge(): Promise<Response> {
               //   반값 구간은 아직 체험 중이라 발송일 결제 그대로.
               const nextChargeDate = chargeDateFor(nextShip, nextPhase === 'full' ? 'before_cooking' : 'ship_day')
               const won = `${nextPricing.chargeAmount.toLocaleString()}원`
-              const md = (iso: string) => `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`
+              // 날짜 모양은 메일(renderTrialPriceChange)과 같은 정본 하나 — "12월 1일"(규칙237).
+              const md = (iso: string) => formatKoMonthDay(iso)
               const body =
                 nextPhase === 'half'
                   ? `서포터즈 100원 박스가 모두 끝났어요. 다음 박스(${md(nextShip)})부터는 반값 혜택가 ${won}으로 결제돼요. 다음 결제 전까지 정기배송 탭에서 미루거나 해지할 수 있어요.`
@@ -1789,11 +1791,18 @@ async function runSubscriptionCharge(): Promise<Response> {
         }
         // 푸시는 있으면 좋은 것 — 실패해도 흐름을 막지 않는다(VAPID 미등록이면
         // ensureConfigured 가 no-op 으로 돌려준다).
+        // ★문구는 결제 시점별로(lib/shipping-schedule chargePaidPushBody, 규칙237) — 서포터즈 체험 구간은 발송일(화)
+        //   아침 결제라 이미 만든 박스가 그날 나가는데, 예전엔 모두에게 "곧 박스를 준비할게요"라고 했다.
         await pushToUser(
           sub.user_id,
           {
             title: '결제가 완료됐어요',
-            body: `${chargeAmount.toLocaleString()}원 · 곧 박스를 준비할게요`,
+            body: chargePaidPushBody({
+              amount: chargeAmount,
+              timing: timingOf(sub),
+              shipIso: paidBoxShipIso(nextDate, successIso),
+              todayIso: today,
+            }),
             url: `/mypage/orders/${orderRow!.id}`,
           },
           { category: 'order' },

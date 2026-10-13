@@ -13,6 +13,16 @@ import {
   duplicateTrackingMessage,
   findTrackingDuplicates,
 } from '@/lib/admin/tracking-duplicates'
+import {
+  isNightPushHourKst,
+  NIGHT_PUSH_CONFIRM,
+  nightPushMessage,
+  parseNightPushChoice,
+} from '@/lib/admin/night-push'
+import { currentKstHour } from '@/lib/datetime-kst'
+
+/** 송장이 바뀌었을 때 손님에게 가는 알림 제목 — 밤 확인(규칙239)과 실제 발송이 같은 값을 쓴다. */
+const TRACKING_PUSH_TITLE = '운송장 정보가 업데이트됐어요'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,7 +51,7 @@ type Params = Promise<{ id: string }>
 export async function PATCH(req: Request, { params }: { params: Params }) {
   const { id } = await params
 
-  let body: { carrier?: unknown; trackingNumber?: unknown; confirmDuplicate?: unknown }
+  let body: { carrier?: unknown; trackingNumber?: unknown; confirmDuplicate?: unknown; nightPush?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -136,6 +146,16 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     }
   }
 
+  // ★밤(KST 22~8시)엔 '운송장이 업데이트됐어요' 알림 전에 묻는다 — 상태 변경 라우트와 같은 확인(규칙239).
+  //   알림은 배송 중인 주문에만 가므로 그때만 묻는다. 쓰기 전에 물어 아무것도 바뀌지 않게 한다.
+  const nightPush = parseNightPushChoice(body.nightPush)
+  if (order.order_status === 'shipping' && nightPush === null && isNightPushHourKst(currentKstHour())) {
+    return NextResponse.json(
+      { code: NIGHT_PUSH_CONFIRM, message: nightPushMessage(TRACKING_PUSH_TITLE) },
+      { status: 409 },
+    )
+  }
+
   // 쓰기는 service_role — orders 는 컬럼 UPDATE 권한을 회수한 결제 원장이다
   // (20260731000000). 관리자 검증은 위에서 끝났고 범위는 .eq('id', id) 가 책임진다.
   const { error: updateError } = await (
@@ -163,12 +183,13 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   }
 
   // 번호가 바뀐 경우에만 한 번 알린다. 배송 시작 알림은 재발송하지 않는다.
-  if (order.order_status === 'shipping') {
+  // 밤에 사장님이 '알림 없이'를 골랐으면 보내지 않는다(규칙239).
+  if (order.order_status === 'shipping' && nightPush !== 'skip') {
     // await — 응답 뒤 인스턴스가 멈추면 새 송장번호 알림이 사라진다(규칙73 형제, 2026-09-25).
     await pushToUser(
       order.user_id,
       {
-        title: '운송장 정보가 업데이트됐어요',
+        title: TRACKING_PUSH_TITLE,
         body: `${carrierLabel(carrier) ?? '택배'} · ${trackingNumber}`,
         url: `/mypage/orders/${order.id}`,
         tag: `order-${order.id}-tracking`,
@@ -189,10 +210,10 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
         tracking_number: order.tracking_number,
       },
       after: { carrier, tracking_number: trackingNumber },
-      meta: { order_number: order.order_number },
+      meta: { order_number: order.order_number, night_push: nightPush },
     },
     req,
   })
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, pushSkipped: nightPush === 'skip' })
 }
