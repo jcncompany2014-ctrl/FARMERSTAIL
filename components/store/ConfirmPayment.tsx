@@ -17,6 +17,8 @@ export default function ConfirmPayment() {
   const sp = useSearchParams()
   const started = useRef(false)
   const [error, setError] = useState<string | null>(null)
+  // 결제 시험 기간(승인 라우트 code STORE_TEST_MODE, 규칙209) — 제목도 '시험 기간'으로. 문구는 서버가 준 것을 그대로 보인다.
+  const [testMode, setTestMode] = useState(false)
 
   const paymentKey = sp.get('paymentKey')
   const orderId = sp.get('orderId')
@@ -33,8 +35,9 @@ export default function ConfirmPayment() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentKey, orderId, amount }),
         })
-        const data = (await res.json().catch(() => null)) as { ok?: boolean; message?: string } | null
+        const data = (await res.json().catch(() => null)) as { ok?: boolean; code?: string; message?: string } | null
         if (!res.ok || !data?.ok) {
+          setTestMode(data?.code === 'STORE_TEST_MODE')
           setError(data?.message ?? '결제를 마무리하지 못했어요. 돈이 나갔다면 자동으로 취소돼요.')
           return
         }
@@ -56,7 +59,7 @@ export default function ConfirmPayment() {
     return (
       <div style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <strong className="d" style={{ fontSize: 26 }}>
-          결제를 마무리하지 못했어요
+          {testMode && !missing ? '지금은 결제 시험 기간이에요' : '결제를 마무리하지 못했어요'}
         </strong>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{shownError}</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

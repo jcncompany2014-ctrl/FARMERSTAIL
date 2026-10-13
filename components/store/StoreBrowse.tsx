@@ -5,6 +5,8 @@
  *  레시피: 피하고 싶은 고기 고르기(그 카드는 흐리게 + 이유) · 2열 카드 · 한눈에 비교 표 · 앱 정기배송 한 줄.
  *  체험팩: 4종 50g씩(사장님 10/12, 예전 100g씩) · 100g당 값 · 먹여 보는 순서 · 담기. '따로 사는 것보다 아껴요'는 50g 팩을 따로
  *  팔지 않아 비교 기준이 없어 뺐다 — 할인 전 값이 판매가보다 클 때만 다시 보인다.
+ *  체험팩은 상세 화면이 없어 탭 아래에 상품 상세와 같은 칸(ProductInfo) — 4종 원재료 · 배송·교환·환불(펼침) · 상품정보 제공고시
+ *  (서버가 레시피 4종 DB 라벨로 만든 줄, 규칙211).
  *  paused: 자사몰 결제 막음(storeSalesPaused) — 담기를 회색으로, 바로 위에 스마트스토어 안내(규칙177).
  * 숫자는 전부 상품표(lib/store/catalog)·급여 계산(lib/store/feeding)에서.
  */
@@ -13,6 +15,8 @@ import Link from 'next/link'
 import RecipeGrid, { QtyStepper } from './RecipeGrid'
 import { useStoreCart } from './useStoreCart'
 import { PAUSED_BTN, PayPausedNotice } from './PayPaused'
+import { Acc, NoticeList, ShippingRefundInfo } from './ProductInfo'
+import { business } from '@/lib/business'
 import {
   RECIPE_BAND,
   RECIPE_NAME,
@@ -122,7 +126,7 @@ function CompareTable() {
   )
 }
 
-function TrialPanel({ paused }: { paused: boolean }) {
+function TrialPanel({ paused, notice }: { paused: boolean; notice: [string, string][] | null }) {
   const cart = useStoreCart()
   const qty = cart.qtyOf(TRIAL_ITEM.id)
   const saving = TRIAL_ITEM.listPrice - TRIAL_ITEM.price
@@ -193,29 +197,44 @@ function TrialPanel({ paused }: { paused: boolean }) {
         </ol>
         <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>가장 잘 먹은 날의 고기로 500g을 고르세요.</p>
       </div>
-      <details style={{ marginTop: 16, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5' }}>
-        <summary style={{ minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 17, fontWeight: 700 }}>
-          4종 원재료 전체
-          <span aria-hidden className="fts-acc-plus" style={{ fontSize: 24, fontWeight: 300 }}>
-            +
-          </span>
-          <span aria-hidden className="fts-acc-minus" style={{ fontSize: 24, fontWeight: 300 }}>
-            −
-          </span>
-        </summary>
-        <div style={{ paddingBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {STORE_RECIPES.map((r) => (
-            <p key={r} style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
-              <strong style={{ color: '#141414' }}>{RECIPE_NAME[r]}</strong> {fullIngredients(r).join(', ')}
+      {/* 상품 정보 — 체험팩은 상세 화면이 없어 상품 상세와 같은 칸(원재료·배송·교환·환불·제공고시)을 여기 둔다(규칙211). */}
+      <div style={{ marginTop: 16, borderTop: '1px solid #E5E5E5' }}>
+        <Acc title="4종 원재료 전체">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {STORE_RECIPES.map((r) => (
+              <p key={r} style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
+                <strong style={{ color: '#141414' }}>{RECIPE_NAME[r]}</strong> {fullIngredients(r).join(', ')}
+              </p>
+            ))}
+          </div>
+        </Acc>
+        <Acc title="배송·교환·환불" id="trial-shipping" open>
+          <ShippingRefundInfo />
+        </Acc>
+        <Acc title="상품정보 제공고시" id="trial-notice">
+          {notice ? (
+            <NoticeList rows={notice} />
+          ) : (
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>
+              정보를 불러오지 못했어요. 팩 라벨을 확인하시거나 {business.phone}로 물어봐 주세요.
             </p>
-          ))}
-        </div>
-      </details>
+          )}
+        </Acc>
+      </div>
     </div>
   )
 }
 
-export default function StoreBrowse({ initialTab = 'recipes', paused }: { initialTab?: 'recipes' | 'trial'; paused: boolean }) {
+export default function StoreBrowse({
+  initialTab = 'recipes',
+  trialNotice,
+  paused,
+}: {
+  initialTab?: 'recipes' | 'trial'
+  /** 체험팩 상품정보 제공고시 줄 — 서버가 레시피 4종 DB 라벨로 만든다(lib/store/label trialNoticeRows). 못 읽었으면 null. */
+  trialNotice: [string, string][] | null
+  paused: boolean
+}) {
   const [tab, setTab] = useState<'recipes' | 'trial'>(initialTab)
   const [avoid, setAvoid] = useState<Partial<Record<StoreRecipe, boolean>>>({})
   const tabs: { id: 'recipes' | 'trial'; label: string }[] = [
@@ -306,7 +325,7 @@ export default function StoreBrowse({ initialTab = 'recipes', paused }: { initia
         </>
       ) : (
         <>
-          <TrialPanel paused={paused} />
+          <TrialPanel paused={paused} notice={trialNotice} />
           <div style={{ padding: '28px 20px 64px' }}>
             <AppLine />
           </div>

@@ -117,3 +117,54 @@ export function describeTossKeyStatus(s: TossKeyStatus): {
       '토스 심사가 끝나면 운영키로 바꿔야 해요.',
   }
 }
+
+/**
+ * 웹 가게 결제(결제위젯 — NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY · TOSS_WIDGET_SECRET_KEY) 한 줄 요약(2026-10-13, 규칙209).
+ * 판정은 같은 tossKeyStatus 로, 말만 가게 사정에 맞춘다: 토스 일반결제 심사 동안엔 운영에 **테스트 결제창 키만** 넣는다 →
+ * 결제창은 열리고 승인 라우트는 승인하지 않는다(STORE_TEST_MODE — 손님 돈이 나가지 않음). 키 값은 절대 포함하지 않는다.
+ */
+export function describeStoreWidgetKeyStatus(s: TossKeyStatus): {
+  tone: 'ok' | 'warn' | 'danger'
+  title: string
+  detail: string
+} {
+  if (s.client === 'unknown' || s.secret === 'unknown') {
+    return {
+      tone: 'danger',
+      title: '웹 가게 결제 키 형식이 이상해요',
+      detail: '키가 test_ 또는 live_ 로 시작하지 않아요. 붙여넣을 때 공백이 들어갔거나 글자가 빠졌는지 확인해 주세요.',
+    }
+  }
+  if (s.client === 'missing') {
+    return {
+      tone: 'warn',
+      title: '웹 가게 결제: 결제창 키가 없어요',
+      detail: '가게의 담기·결제는 스마트스토어 안내로 막혀 있어요. 심사용 테스트 결제창 키(test_gck…)를 넣으면 결제창이 열려요.',
+    }
+  }
+  if (s.client === 'test') {
+    return {
+      tone: 'warn',
+      title: '웹 가게 결제: 시험 모드예요',
+      detail:
+        '결제창은 열리지만 승인하지 않아요 — 손님 돈은 나가지 않고 주문은 실패로 남아요. ' +
+        '토스 승인이 나면 결제창 키와 시크릿 키를 둘 다 운영 키(live_)로 넣어 주세요.',
+    }
+  }
+  // 여기부터 결제창 키는 운영(live).
+  if (s.secret === 'missing') {
+    return {
+      tone: 'danger',
+      title: '웹 가게 결제: 시크릿 키가 없어요',
+      detail: '운영 결제창 키만 있어서 손님이 결제창에서 결제해도 승인이 안 돼요(돈은 나가지 않아요). 운영 시크릿 키(live_gsk…)를 넣어 주세요.',
+    }
+  }
+  if (s.mismatched) {
+    return {
+      tone: 'danger',
+      title: '웹 가게 결제 키가 서로 짝이 안 맞아요',
+      detail: '결제창 키는 운영 키인데 시크릿 키가 테스트 키예요. 이 상태로는 승인하지 않아요 — 시크릿 키도 운영 키로 맞춰 주세요.',
+    }
+  }
+  return { tone: 'ok', title: '웹 가게 실결제 모드예요', detail: '가게에서 결제하면 진짜 돈이 오갑니다.' }
+}
