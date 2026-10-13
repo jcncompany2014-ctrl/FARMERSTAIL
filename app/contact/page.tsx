@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import SiteShell from '@/components/store/SiteShell'
-import { business } from '@/lib/business'
+import { business, CUSTOMER_CENTER_HOURS } from '@/lib/business'
 import { isAppContextServer } from '@/lib/app-context'
 import ContactForm from './ContactForm'
 import { ogImageUrl, buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
@@ -77,7 +77,7 @@ export default async function ContactPage() {
             <Channel href={`mailto:${business.email}`} label="이메일" icon={<MailIcon />}>
               <span style={{ fontSize: 17, fontWeight: 800, wordBreak: 'break-all' }}>{business.email}</span>
             </Channel>
-            <Channel href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} label="전화 · 평일 10:00–18:00" icon={<PhoneIcon />}>
+            <Channel href={`tel:${business.phone.replace(/[^\d+]/g, '')}`} label={`전화 · ${CUSTOMER_CENTER_HOURS}`} icon={<PhoneIcon />}>
               <span className="n" style={{ fontSize: 19 }}>
                 {business.phone}
               </span>

@@ -4,8 +4,8 @@
  * /faq 웹 화면이 이걸 맨 위에, DB 질문은 '앱 정기배송' 아래로 묶어 보여 준다.
  * 금지어: 처방·전문용어·정확한 %·"언제든"·도착 요일 약속(고객 문구 규칙).
  */
-import { FREE_SHIPPING_MIN, SHIPPING_FEE } from './shipping.ts'
-import { ONE_KG_DISCOUNT_PCT, TRIAL_ITEM, TRIAL_PACK_G } from './catalog.ts'
+import { FREE_SHIPPING_MIN, SHIPPING_FEE, returnShippingFeeFor } from './shipping.ts'
+import { ONE_KG_DISCOUNT_PCT, PACK_G, SIZE_PACKS, TRIAL_ITEM, TRIAL_PACK_G } from './catalog.ts'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '../pricing.ts'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
@@ -21,7 +21,8 @@ export const STORE_FAQ: { q: string; a: string }[] = [
   },
   {
     q: '어떤 용량이 있나요?',
-    a: `레시피마다 500g(100g 팩 5개)과 1kg(100g 팩 10개)이 있어요. 1kg은 500g 두 봉보다 ${ONE_KG_DISCOUNT_PCT}% 싸요. 처음이라면 4종을 ${TRIAL_PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)도 있어요.`,
+    // 팩 무게는 상수로 — 단품은 PACK_G(100g) 팩, 체험팩은 TRIAL_PACK_G(50g) 팩이라 숫자를 손으로 적으면 둘이 섞인다(2026-10-13).
+    a: `레시피마다 500g(${PACK_G}g 팩 ${SIZE_PACKS['500g']}개)과 1kg(${PACK_G}g 팩 ${SIZE_PACKS['1kg']}개)이 있어요. 1kg은 500g 두 봉보다 ${ONE_KG_DISCOUNT_PCT}% 싸요. 처음이라면 4종을 ${TRIAL_PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)도 있어요.`,
   },
   {
     q: '어떻게 결제해요?',
@@ -33,7 +34,8 @@ export const STORE_FAQ: { q: string; a: string }[] = [
   },
   {
     q: '환불은 어떻게 돼요?',
-    a: '받은 날부터 7일 안에 뜯지 않은 상품은 환불돼요. 상품에 문제가 있으면 사진 한 장을 보내 주세요. 확인하고 다시 보내드리거나 환불해 드려요.',
+    // 환불 조건 해요체 정본(사장님 2026-10-13) — 환불정책·약관의 합니다체 문장과 같은 뜻. 반품 배송비는 정본 returnShippingFeeFor.
+    a: `받은 날부터 7일 안, 팩(진공 포장)을 뜯지 않았다면 환불돼요. 상자를 열어 확인한 건 괜찮아요. 단순 변심 반품 배송비는 편도 ${won(returnShippingFeeFor(SHIPPING_FEE))}원이에요(${FREE_SHIPPING_MIN / 10_000}만 원 이상 무료배송으로 받았다면 왕복 ${won(returnShippingFeeFor(0))}원). 상품에 문제가 있으면 사진 한 장을 보내 주세요. 확인하고 다시 보내드리거나 환불해 드리고, 이때 배송비는 저희가 내요.`,
   },
   {
     q: '하루에 얼마나 줘야 하나요?',
