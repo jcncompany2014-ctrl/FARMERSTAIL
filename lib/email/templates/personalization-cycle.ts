@@ -5,7 +5,7 @@
  * row 를 생성한 직후. push 알림과 함께 발송 (push 가 OFF 인 사용자도 메일은
  * 받게).
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { block, EMAIL_COLORS, escape, renderLayout, SITE_URL } from '../layout.ts'
 import { petName, withHonorific } from '../../korean.ts'
 
 export type PersonalizationCycleEmailInput = {
@@ -24,39 +24,20 @@ export function renderPersonalizationCycle(
 ): { subject: string; html: string } {
   const subject = `[파머스테일] ${petName(input.dogName)}의 다음 박스 준비됐어요`
 
-  const reasoningChips = input.reasoningLabels
-    .slice(0, 4)
-    .map(
-      (label) => `
-        <span style="
-          display:inline-block;
-          background:#FFFFFF;
-          color:#173B33;
-          font-size:11px;
-          font-weight:700;
-          padding:4px 10px;
-          border-radius:99px;
-          margin:0 4px 6px 0;
-          box-shadow:inset 0 0 0 1px #DCD6C4;
-        ">${escape(label)}</span>`,
-    )
-    .join('')
+  // 결정 근거 칩 — 공용 틀(block.chips, 먹선 2px 모서리). 옛 칩은 Gmail 이 지우는 box-shadow 로 테두리를 그렸다.
+  const reasoningChips = block.chips(input.reasoningLabels.slice(0, 4))
 
   const calloutHtml = `
-    <div style="font-size:11px;font-weight:800;color:#B63619;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">
-      다음 박스 레시피
-    </div>
-    <div style="font-family:Pretendard,sans-serif;font-size:22px;font-weight:800;color:#173B33;letter-spacing:-0.02em;line-height:1.2;">
-      ${escape(input.recipeLabel)}
-    </div>
+    ${block.label('다음 박스 레시피')}
+    ${block.big(escape(input.recipeLabel))}
   `
 
   const body = `
     <p style="margin:0 0 14px 0;">
       ${escape(withHonorific(input.recipientName))}, 안녕하세요.
     </p>
-    <p style="margin:0 0 18px 0;">
-      <strong style="color:#173B33;">${escape(petName(input.dogName))}의
+    <p style="margin:0 0 20px 0;">
+      <strong style="color:${EMAIL_COLORS.ink};">${escape(petName(input.dogName))}의
       다음 박스</strong>가 준비됐어요. 그동안의 체크인 응답을 반영해 구성을 조정했어요.
     </p>
 
@@ -65,24 +46,20 @@ export function renderPersonalizationCycle(
     ${
       reasoningChips
         ? `
-    <div style="margin:22px 0 8px 0;">
-      <div style="font-size:11px;font-weight:700;color:#5A6C61;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px;">
-        결정 근거
-      </div>
+    <div style="margin:24px 0 8px 0;">
+      ${block.label('결정 근거')}
       <div>${reasoningChips}</div>
     </div>`
         : ''
     }
 
-    <p style="margin:24px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
+    <p style="margin:20px 0 0 0;font-size:16px;color:${EMAIL_COLORS.inkSoft};line-height:1.7;">
       레시피 구성과 다음 박스를 이렇게 정한 이유를 정기배송 화면에서 확인할 수 있어요.
     </p>
 
-    <p style="margin:18px 0 0 0;font-size:11px;color:#5A6C61;line-height:1.65;">
-      결제는 박스를 보내기 전에 진행돼요. 바꾸고 싶은 게 있다면
-      <a href="${SITE_URL}/account/subscriptions" style="color:#B63619;">구독 관리</a>
-      에서 다음 결제 전까지 바꿀 수 있어요.
-    </p>
+    ${block.note(`결제는 박스를 보내기 전에 진행돼요. 바꾸고 싶은 게 있다면
+      ${block.link(`${SITE_URL}/account/subscriptions`, '구독 관리')}
+      에서 다음 결제 전까지 바꿀 수 있어요.`)}
   `
 
   return {
@@ -98,7 +75,6 @@ export function renderPersonalizationCycle(
         label: '정기배송 확인하기',
         href: `${SITE_URL}/account/subscriptions`,
       },
-      icon: '🐾',
     }),
   }
 }
@@ -150,7 +126,7 @@ export function renderPersonalizationApprovalNeeded(input: {
       ${input.forced ? '안전을 위해 필요한 변경이라 꼭 확인해 주세요.' : ''}
     </p>
     ${block.dl(rows)}
-    <p style="margin:14px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
+    <p style="margin:18px 0 0 0;font-size:16px;color:${EMAIL_COLORS.inkSoft};line-height:1.7;">
       동의하시면 다음 박스부터 바뀌어요. ${input.days}일 안에 답이 없으면 지금 레시피와
       금액을 그대로 이어가요.
     </p>
@@ -163,7 +139,6 @@ export function renderPersonalizationApprovalNeeded(input: {
       heading: `${dog} 다음 박스 제안`,
       body,
       cta: { label: input.ctaLabel, href: `${SITE_URL}${input.ctaPath}` },
-      icon: '🐾',
     }),
   }
 }
@@ -193,7 +168,6 @@ export function renderPersonalizationKeptPrevious(input: {
       heading: '지금 레시피 그대로예요',
       body,
       cta: { label: '정기배송 확인하기', href: `${SITE_URL}/account/subscriptions` },
-      icon: '🐾',
     }),
   }
 }

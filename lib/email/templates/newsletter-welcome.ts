@@ -16,7 +16,7 @@
  *   라는 단어 X — 정확도/정밀도 사용. 회사 표기는 lib/business.ts 의
  *   companyName ("파머스테일 (Farmer's Tail)") 가 single source.
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
+import { renderLayout, escape, SITE_URL, block, EMAIL_COLORS } from '../layout.ts'
 
 export function renderNewsletterWelcome(input: {
   email: string
@@ -51,27 +51,25 @@ export function renderNewsletterWelcome(input: {
       아직 안 해보셨다면, 파머스테일 앱의 2분 설문으로 우리 아이에게 맞는 화식부터 확인해 보세요.
       앱 정기배송은 할인이 기본으로 들어가요.
     </p>
-    <div style="margin:18px 0 6px 0;background:#EFEADF;border:1px solid #DCD6C4;border-radius:8px;padding:18px 20px;text-align:center;">
-      <div style="font-size:11px;color:#5A6C61;font-weight:700;">앱 · 2분 설문</div>
-      <div style="margin-top:6px;font-size:20px;font-weight:800;color:#173B33;letter-spacing:-0.02em;">우리 아이 맞춤 화식</div>
-      <div style="margin-top:8px;font-size:11px;color:#5A6C61;">체형·건강에 맞춰 하루 급여량까지 계산해 드려요</div>
+    <div style="margin:20px 0 6px 0;">
+      ${block.stamp(`
+      ${block.label('앱 · 2분 설문')}
+      ${block.big('우리 아이 맞춤 화식')}
+      <div style="margin-top:8px;font-size:14px;line-height:1.6;color:${EMAIL_COLORS.mute};">체형·건강에 맞춰 하루 급여량까지 계산해 드려요</div>`)}
     </div>
-    <p style="margin:18px 0 0 0;">
+    <p style="margin:20px 0 0 0;">
       다음 메일에서 만나요.<br />
       — 파머스테일 드림
     </p>
-    <div style="margin-top:22px;padding-top:14px;border-top:1px solid #DCD6C4;font-size:10px;color:#9A9A9A;line-height:1.6;">
-      본 메일은 ${escape(input.email)} 으로 신청해 주신 파머스테일 뉴스레터예요.
+    ${block.fine(`본 메일은 ${escape(input.email)} 으로 신청해 주신 파머스테일 뉴스레터예요.
       더 이상 받지 않으시려면
-      <a href="${escape(unsubscribeUrl)}" style="color:#5A6C61;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.
-    </div>
+      <a href="${escape(unsubscribeUrl)}" style="color:${EMAIL_COLORS.ink};font-weight:700;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.`)}
   `
 
   const html = renderLayout({
     preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     kicker: 'Welcome · 첫 메일',
     heading: '환영해요. 첫 메일이에요.',
-    icon: '🐾',
     body,
     // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.
     cta: {

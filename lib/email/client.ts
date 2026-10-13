@@ -253,6 +253,9 @@ function stripHtml(html: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|tr|h\d|li)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
+    // 미리보기 줄 뒤를 채우는 보이지 않는 글자(lib/email/layout PREHEADER_FILL)는 글자 판에서 뺀다.
+    .replace(/[͏‌]/g, '')
+    .replace(/ {2,}/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')

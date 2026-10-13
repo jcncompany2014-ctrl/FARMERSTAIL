@@ -9,7 +9,7 @@
  * - confirm 메일: 사용자가 직접 신청한 절차의 응답 → 거래성 (광고 표기 X)
  * - unsubscribe 결과 메일: 동일 — 거래성 (광고 표기 X)
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
+import { renderLayout, escape, SITE_URL, block, EMAIL_COLORS } from '../layout.ts'
 
 /**
  * 뉴스레터 가입 confirm 메일.
@@ -36,7 +36,7 @@ export function renderNewsletterConfirm(input: {
       'gold',
       '24시간 안에 확인하지 않으시면 신청이 자동 취소돼요.',
     )}
-    <p style="margin:14px 0 0 0;font-size:11px;color:#9A9A9A;line-height:1.6;">
+    <p style="margin:18px 0 0 0;font-size:14px;line-height:1.65;color:${EMAIL_COLORS.mute};">
       본 메일은 ${escape(input.email)} 으로 신청된 뉴스레터 구독 절차 안내예요.
       신청한 적이 없다면 무시하셔도 자동으로 취소돼요.
     </p>
@@ -79,7 +79,7 @@ export function renderUnsubscribeAck(input: {
       'moss',
       `더 이상 ${escape(channelLabel)} 마케팅 메시지를 보내드리지 않아요. 거래·배송·결제 안내처럼 서비스 이용에 꼭 필요한 메시지는 계속 발송돼요.`,
     )}
-    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
+    <p style="margin:18px 0 0 0;font-size:14px;line-height:1.65;color:${EMAIL_COLORS.mute};">
       다시 받고 싶으시면 알림 설정(웹은 계정 &gt; 알림 · 수신 설정, 앱은 내 정보 &gt; 알림)에서
       켤 수 있어요.
     </p>
@@ -145,7 +145,7 @@ export function renderConsentResult(input: {
       block.row('처리 일시', escape(at)),
       block.row('처리 결과', escape(result)),
     ])}
-    <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
+    <p style="margin:18px 0 0 0;font-size:14px;line-height:1.65;color:${EMAIL_COLORS.mute};">
       ${
         input.granted
           ? '원하지 않으시면 알림 설정(웹은 계정 &gt; 알림 · 수신 설정, 앱은 내 정보 &gt; 알림)에서 끌 수 있어요.'

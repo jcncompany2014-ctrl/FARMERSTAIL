@@ -5,7 +5,7 @@
  * (lib/email/index.ts) 에서. 템플릿을 순수 함수로 유지하면 단위 테스트에서
  * 메일 바디 회귀 스냅샷도 찍기 쉬움.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { block, EMAIL_COLORS, escape, renderLayout, SITE_URL } from '../layout.ts'
 import { carrierLabel, carrierTrackerUrl } from '../../tracking.ts'
 import { bankCodeLabel, formatDueDate } from '../../payments/toss.ts'
 import { withHonorific } from '../../korean.ts'
@@ -63,26 +63,22 @@ export function renderOrderConfirmation(
       '배송비',
       input.shippingFee === 0 ? '무료' : `${input.shippingFee.toLocaleString()}원`,
     ),
-    block.row(
-      '총 결제 금액',
-      `<span style="color:#B5533A;font-size:14px;">${input.totalAmount.toLocaleString()}원</span>`,
-    ),
+    block.total('총 결제 금액', `${input.totalAmount.toLocaleString()}원`),
   ]
 
   const html = renderLayout({
     kicker: 'Order Placed · 주문 접수',
     heading: `${withHonorific(input.recipientName)}, 주문이 접수됐어요`,
-    icon: '🐾',
     preview: `총 ${input.totalAmount.toLocaleString()}원 주문을 잘 받았어요`,
     body: `
       <p style="margin:0 0 16px 0;">
         주문을 잘 받았어요. 박스가 발송되면 송장번호와 함께 다시 알려드릴게요.
       </p>
       <div style="margin-top:12px;">
-        <div style="font-size:10px;color:#7A7A7A;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;margin-bottom:8px;">주문 상품</div>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:1px solid #E6DDC8;border-bottom:1px solid #E6DDC8;">${itemsRows.join('')}</table>
+        ${block.label('주문 상품')}
+        ${block.items(itemsRows)}
       </div>
-      ${block.hr()}
+      <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
       ${block.dl(summaryRows)}
     `,
     cta: {
@@ -108,7 +104,7 @@ export function renderVirtualAccountWaiting(
   const due = input.dueDate ? formatDueDate(input.dueDate) : null
   const body = `
     <p style="margin:0 0 14px 0;">
-      가상계좌가 발급됐어요. 아래 계좌로 <strong style="color:#1E1A14;">${input.totalAmount.toLocaleString()}원</strong>
+      가상계좌가 발급됐어요. 아래 계좌로 <strong style="color:${EMAIL_COLORS.ink};">${input.totalAmount.toLocaleString()}원</strong>
       을 입금해 주세요. 입금이 확인되면 상품 준비를 시작해요.
     </p>
     ${block.callout(
@@ -118,21 +114,18 @@ export function renderVirtualAccountWaiting(
         block.row('입금 은행', escape(bank)),
         block.row(
           '계좌번호',
-          `<span style="font-family:monospace;font-size:13px;">${escape(input.accountNumber)}</span>`,
+          `<span style="font-family:monospace;font-size:16px;">${escape(input.accountNumber)}</span>`,
         ),
         ...(input.accountHolder ? [block.row('예금주', escape(input.accountHolder))] : []),
-        ...(due ? [block.row('입금 기한', `<span style="color:#C44B3A;">${escape(due)}</span>`)] : []),
+        ...(due ? [block.row('입금 기한', `<span style="color:${EMAIL_COLORS.red};">${escape(due)}</span>`)] : []),
       ])}
     `,
     )}
-    <p style="margin:16px 0 0 0;font-size:11px;color:#7A7A7A;">
-      기한까지 입금되지 않으면 주문이 자동 취소돼요.
-    </p>
+    ${block.note('기한까지 입금되지 않으면 주문이 자동 취소돼요.')}
   `
   const html = renderLayout({
     kicker: 'Awaiting Deposit · 입금 대기',
     heading: '입금을 기다리고 있어요',
-    icon: '⏳',
     preview: `${input.totalAmount.toLocaleString()}원 가상계좌 입금을 기다리고 있어요`,
     body,
     cta: {
@@ -171,16 +164,13 @@ export function renderOrderShipped(
     </p>
     ${block.dl(rows)}
     ${trackerHref
-      ? `<p style="margin:16px 0 0 0;font-size:11px;color:#7A7A7A;">
-         택배사 사이트에서 직접 조회하려면
-         <a href="${escape(trackerHref)}" style="color:#B5533A;">여기</a> 를 눌러주세요.
-       </p>`
+      ? block.note(`택배사 사이트에서 직접 조회하려면
+         ${block.link(trackerHref, '여기')} 를 눌러주세요.`)
       : ''}
   `
   const html = renderLayout({
     kicker: 'In Transit · 배송 시작',
     heading: '배송이 시작됐어요',
-    icon: '📦',
     preview: carrierName
       ? `${carrierName} · ${input.trackingNumber ?? ''}`
       : '주문하신 상품이 배송을 시작했어요',
@@ -206,7 +196,6 @@ export function renderOrderDelivered(
   const html = renderLayout({
     kicker: 'Delivered · 배송 완료',
     heading: '주문이 잘 도착했어요',
-    icon: '🐾',
     preview: `${input.orderNumber} 배송이 완료됐어요`,
     body,
     cta: {
@@ -231,12 +220,7 @@ export function renderOrderCancelled(
   ]
   if (input.reason) rows.push(block.row('사유', escape(input.reason)))
   if (input.refundAmount && input.refundAmount > 0) {
-    rows.push(
-      block.row(
-        '환불 금액',
-        `<span style="color:#C44B3A;">${input.refundAmount.toLocaleString()}원</span>`,
-      ),
-    )
+    rows.push(block.total('환불 금액', `${input.refundAmount.toLocaleString()}원`))
   }
 
   const body = `
@@ -254,7 +238,6 @@ export function renderOrderCancelled(
   const html = renderLayout({
     kicker: 'Cancelled · 주문 취소',
     heading: '주문이 취소됐어요',
-    icon: '✖',
     preview: `${input.orderNumber} 주문이 취소됐어요`,
     body,
     cta: {
@@ -276,7 +259,7 @@ export function renderWelcome(input: {
       "이건 진짜 맛있다" 고 눈을 반짝이는 음식만 골라 담아요.
     </p>
     <p style="margin:0 0 8px 0;">
-      아직 안 해보셨다면, 파머스테일 앱의 <strong style="color:#B5533A;">2분 설문</strong>으로 우리 아이에게
+      아직 안 해보셨다면, 파머스테일 앱의 ${block.mark('2분 설문')}으로 우리 아이에게
       맞는 화식부터 확인해 보세요. 체형·건강에 맞춰 하루 급여량까지 계산해 드려요.
     </p>
   `
@@ -287,7 +270,6 @@ export function renderWelcome(input: {
   const html = renderLayout({
     kicker: 'Welcome · 반가워요',
     heading: '가족이 되어주셔서 감사해요',
-    icon: '🐶',
     preview: '파머스테일에 가입해주셔서 감사해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     body,
     // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.

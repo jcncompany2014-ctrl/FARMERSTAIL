@@ -13,6 +13,7 @@
 
 import { NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email/client'
+import { renderContactAck, renderContactAdmin } from '@/lib/email/templates/contact'
 import { ipFromRequest, rateLimit, rateLimitDB } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { business } from '@/lib/business'
@@ -98,11 +99,11 @@ export async function POST(req: Request) {
   const categoryLabel = CATEGORY_LABEL[category] ?? '기타'
 
   // 1) admin 알림 — story@farmerstail.kr
-  const adminHtml = renderAdminEmail({ name, email, categoryLabel, message })
+  const adminMail = renderContactAdmin({ name, email, categoryLabel, message })
   const adminResult = await sendEmail({
     to: business.email,
-    subject: `[문의·${categoryLabel}] ${name} 님`,
-    html: adminHtml,
+    subject: adminMail.subject,
+    html: adminMail.html,
     replyTo: email,
     tag: 'contact-admin',
   })
@@ -151,11 +152,11 @@ export async function POST(req: Request) {
   }
   if (!recipientOk) return NextResponse.json({ ok: true }, { status: 200 })
 
-  const userHtml = renderUserEmail({ categoryLabel })
+  const userMail = renderContactAck({ categoryLabel })
   const userResult = await sendEmail({
     to: email,
-    subject: '[파머스테일] 문의가 접수됐어요',
-    html: userHtml,
+    subject: userMail.subject,
+    html: userMail.html,
     tag: 'contact-user',
   })
 
@@ -165,74 +166,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true }, { status: 200 })
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-function renderAdminEmail({
-  name,
-  email,
-  categoryLabel,
-  message,
-}: {
-  name: string
-  email: string
-  categoryLabel: string
-  message: string
-}): string {
-  return `<!DOCTYPE html>
-<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;word-break:keep-all;overflow-wrap:break-word;">
-  <table style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #E6DDC8;">
-    <tr><td style="padding:24px 28px;">
-      <div style="font-size:11px;letter-spacing:0.18em;color:#7A7A7A;text-transform:uppercase;font-weight:700;">새 문의 · Contact</div>
-      <h1 style="font-size:22px;font-weight:800;color:#1E1A14;margin:8px 0 14px;letter-spacing:-0.02em;">${escapeHtml(name)} 님의 문의</h1>
-      <table style="width:100%;font-size:13px;line-height:1.6;border-collapse:collapse;">
-        <tr><td style="padding:6px 0;color:#7A7A7A;width:90px;">카테고리</td><td style="padding:6px 0;font-weight:600;color:#1E1A14;">${escapeHtml(categoryLabel)}</td></tr>
-        <tr><td style="padding:6px 0;color:#7A7A7A;">이메일</td><td style="padding:6px 0;"><a href="mailto:${escapeHtml(email)}" style="color:#B5533A;text-decoration:none;font-weight:600;">${escapeHtml(email)}</a></td></tr>
-        <tr><td style="padding:6px 0;color:#7A7A7A;">이름</td><td style="padding:6px 0;color:#1E1A14;">${escapeHtml(name)}</td></tr>
-      </table>
-      <div style="margin-top:18px;padding:14px 16px;background:#FAF6EE;border-radius:6px;border:1px solid #E6DDC8;font-size:13.5px;line-height:1.7;color:#2C2A26;white-space:pre-wrap;">${escapeHtml(message)}</div>
-      <p style="margin-top:18px;font-size:11.5px;color:#7A7A7A;">"답장" 버튼으로 바로 회신 가능합니다 (Reply-To: ${escapeHtml(email)}).</p>
-    </td></tr>
-  </table>
-</body></html>`
-}
-
-function renderUserEmail({
-  categoryLabel,
-}: {
-  categoryLabel: string
-}): string {
-  return `<!DOCTYPE html>
-<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#FAF6EE;padding:24px;color:#2C2A26;word-break:keep-all;overflow-wrap:break-word;">
-  <table style="max-width:560px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #E6DDC8;">
-    <tr><td style="padding:28px 28px 24px;">
-      <div style="font-size:11px;letter-spacing:0.18em;color:#B5533A;text-transform:uppercase;font-weight:700;">파머스테일 · 문의 접수</div>
-      <h1 style="font-size:22px;font-weight:800;color:#1E1A14;margin:10px 0 6px;letter-spacing:-0.02em;">문의가 잘 접수됐어요.</h1>
-      <p style="font-size:13.5px;line-height:1.7;color:#2C2A26;margin:14px 0 0;">
-        평일 영업일 24시간 이내, 가능하면 더 빨리 답변드릴게요. 만약 응답이
-        늦어진다면 <a href="mailto:${escapeHtml(business.email)}" style="color:#B5533A;text-decoration:none;font-weight:600;">${escapeHtml(business.email)}</a> 로 다시 한 번 연락 주세요.
-      </p>
-
-      <div style="margin-top:22px;padding-top:18px;border-top:1px solid #E6DDC8;">
-        <div style="font-size:10.5px;letter-spacing:0.18em;color:#7A7A7A;text-transform:uppercase;font-weight:700;margin-bottom:8px;">접수한 내용</div>
-        <table style="width:100%;font-size:12.5px;line-height:1.6;border-collapse:collapse;">
-          <tr><td style="padding:4px 0;color:#7A7A7A;width:80px;">카테고리</td><td style="padding:4px 0;color:#1E1A14;font-weight:600;">${escapeHtml(categoryLabel)}</td></tr>
-        </table>
-      </div>
-
-      <p style="margin-top:24px;font-size:11px;line-height:1.6;color:#7A7A7A;">
-        파머스테일 · ${escapeHtml(business.address)}<br/>
-        사업자등록 ${escapeHtml(business.businessNumber)} · 통신판매업 ${escapeHtml(business.mailOrderNumber)}
-      </p>
-    </td></tr>
-  </table>
-</body></html>`
 }

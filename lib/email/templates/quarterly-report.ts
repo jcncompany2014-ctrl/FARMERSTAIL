@@ -9,7 +9,7 @@
  * 거래/정보성 메일(본인 강아지 데이터, 광고 없음) — renderLayout 의 정보성
  * 푸터를 그대로 사용한다.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { block, EMAIL_COLORS, escape, renderLayout, SITE_URL } from '../layout.ts'
 import { petName, withHonorific } from '../../korean.ts'
 
 export type QuarterlyReportEmailInput = {
@@ -75,14 +75,14 @@ export function renderQuarterlyReport(
       ${escape(withHonorific(input.recipientName))}, 안녕하세요.
     </p>
     <p style="margin:0 0 18px 0;">
-      <strong style="color:#173B33;">${escape(name)}의 ${escape(input.quarterLabel)} 맞춤 영양 리포트</strong>가
+      <strong style="color:${EMAIL_COLORS.ink};">${escape(name)}의 ${escape(input.quarterLabel)} 맞춤 영양 리포트</strong>가
       도착했어요. 그동안 쌓인 분석을 바탕으로 우리 아이의 현재 상태를 정리했어요.
-      <span style="color:#5A6C61;">(새싹 등급 이상 회원 혜택)</span>
+      <span style="color:${EMAIL_COLORS.mute};">(새싹 등급 이상 회원 혜택)</span>
     </p>
 
     ${statsTable ? block.callout('moss', statsTable) : ''}
 
-    <p style="margin:22px 0 0 0;font-size:13px;color:#173B33;line-height:1.7;">
+    <p style="margin:22px 0 0 0;font-size:16px;color:${EMAIL_COLORS.inkSoft};line-height:1.7;">
       라인별 분배·결정 근거·체크인 추세까지 더 자세한 분석은 아래에서 확인할 수
       있어요. 계절이 바뀌면 활동량·체중도 달라질 수 있으니, 변화가 느껴지면
       다시 분석해 보세요.
@@ -100,7 +100,6 @@ export function renderQuarterlyReport(
         label: '전체 분석 리포트 보기',
         href: `${SITE_URL}/dogs/${input.dogId}/analysis`,
       },
-      icon: '📋',
     }),
   }
 }

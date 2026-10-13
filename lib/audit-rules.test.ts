@@ -4059,10 +4059,13 @@ test('규칙94: AI 호출 경로는 사용자별 하루 한도를 걸고 Anthrop
     assert.match(src, /checkAiUserDailyLimit\(/, `${f}: 사용자별 하루 AI 한도가 없다`)
     assert.doesNotMatch(src, /message:\s*(?:data|err)\.error\?\.message/, `${f}: Anthropic 원문 오류를 고객에게 돌려준다`)
   }
+  // 문의 자동답장은 2026-10-14 공용 메일 틀로 옮겼다(lib/email/templates/contact.ts renderContactAck, 규칙225).
   const contact = stripComments(read(join(ROOT, 'app', 'api', 'contact', 'route.ts')))
-  const userMail = contact.slice(contact.indexOf('function renderUserEmail'))
-  assert.ok(userMail.length > 100, 'renderUserEmail 을 못 찾았다(카나리아)')
-  assert.doesNotMatch(userMail, /escapeHtml\((?:name|message)\)/, '문의 자동답장이 입력한 이름·내용을 인용한다 — 아무 주소로 피싱 문구를 보낼 수 있다')
+  assert.match(contact, /renderContactAck\(\{ categoryLabel \}\)/, '문의 자동답장에 카테고리 말고 다른 입력값을 넘긴다')
+  const contactTpl = stripComments(read(join(ROOT, 'lib', 'email', 'templates', 'contact.ts')))
+  const userMail = contactTpl.slice(contactTpl.indexOf('export function renderContactAck'))
+  assert.ok(userMail.length > 100, 'renderContactAck 를 못 찾았다(카나리아)')
+  assert.doesNotMatch(userMail, /input\.(?:name|message|email)\b/, '문의 자동답장이 입력한 이름·내용을 인용한다 — 아무 주소로 피싱 문구를 보낼 수 있다')
   const schemas = stripComments(read(join(ROOT, 'lib', 'api', 'schemas.ts')))
   assert.match(schemas, /refine\(isAllowedPushEndpoint/, '웹 푸시 구독 스키마가 푸시 서비스 주소를 검사하지 않는다')
   const push = stripComments(read(join(ROOT, 'lib', 'push.ts')))

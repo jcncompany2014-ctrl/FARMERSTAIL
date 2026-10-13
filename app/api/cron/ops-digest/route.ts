@@ -41,7 +41,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { sendEmail } from '@/lib/email/client'
-import { renderLayout, block, escape, SITE_URL } from '@/lib/email/layout'
+import {
+  OPS_DIGEST_MAX_ROWS,
+  renderOpsDigest,
+  type CronErrorRow,
+  type LowStockRow,
+  type RefundQueueRow,
+  type StalePendingOrderRow,
+} from '@/lib/email/templates/ops-digest'
 import { business } from '@/lib/business'
 import { STOCK_LOW_THRESHOLD } from '@/lib/products/stock'
 
@@ -49,30 +56,8 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const DAY_MS = 24 * 60 * 60 * 1000
-// 표시 상한 — 메일이 비대해지지 않게 섹션별 최근/오래된 것 N개만.
-const MAX_ROWS = 15
-
-type CronErrorRow = {
-  path: string
-  error_message: string | null
-  executed_at: string
-}
-
-type RefundQueueRow = {
-  id: string
-  order_id: string
-  status: string
-  attempts: number
-  last_error: string | null
-  created_at: string
-}
-
-type StalePendingOrderRow = {
-  id: string
-  order_number: string
-  total_amount: number
-  created_at: string
-}
+// 표시 상한 — 메일이 비대해지지 않게 섹션별 최근/오래된 것 N개만(메일 템플릿과 같은 값).
+const MAX_ROWS = OPS_DIGEST_MAX_ROWS
 
 export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {
@@ -171,8 +156,8 @@ async function runOpsDigest(): Promise<Response> {
     return NextResponse.json({ ok: true, skipped: 'no_issues' })
   }
 
-  // ── HTML 다이제스트 작성 ──
-  const html = renderDigest({
+  // ── HTML 다이제스트 작성 — 공용 메일 틀(lib/email/templates/ops-digest, 규칙225) ──
+  const { subject, html } = renderOpsDigest({
     failures,
     cronErrors,
     refundRows,
@@ -180,6 +165,7 @@ async function runOpsDigest(): Promise<Response> {
     refundPermFailed,
     staleOrders,
     lowStock,
+    lowStockThreshold: STOCK_LOW_THRESHOLD,
     generatedAt: now,
   })
 
@@ -187,7 +173,7 @@ async function runOpsDigest(): Promise<Response> {
     cronErrors.length + refundRows.length + staleOrders.length + lowStock.length
   const result = await sendEmail({
     to: business.email,
-    subject: `[파머스테일 운영] 점검 필요 ${totalIssues}건 — ${formatKstDate(now)}`,
+    subject,
     html,
     tag: 'ops-digest',
   })
@@ -217,281 +203,4 @@ async function runOpsDigest(): Promise<Response> {
     emailSent: result.ok === true,
     emailSkipped: result.ok === false && result.skipped === true,
   })
-}
-
-// ── KST 날짜/시각 포맷 ──
-function formatKstDate(ms: number): string {
-  const kst = new Date(ms + 9 * 60 * 60 * 1000)
-  const y = kst.getUTCFullYear()
-  const m = String(kst.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(kst.getUTCDate()).padStart(2, '0')
-  return `${y}.${m}.${d}`
-}
-
-function formatKstDateTime(iso: string): string {
-  const kst = new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000)
-  const m = String(kst.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(kst.getUTCDate()).padStart(2, '0')
-  const hh = String(kst.getUTCHours()).padStart(2, '0')
-  const mm = String(kst.getUTCMinutes()).padStart(2, '0')
-  return `${m}.${d} ${hh}:${mm}`
-}
-
-function hoursAgo(iso: string, now: number): string {
-  const diffH = Math.floor((now - new Date(iso).getTime()) / (60 * 60 * 1000))
-  if (diffH < 24) return `${diffH}시간 전`
-  return `${Math.floor(diffH / 24)}일 전`
-}
-
-// ── 다이제스트 HTML ──
-type LowStockRow = {
-  name: string | null
-  slug: string | null
-  stock: number | null
-}
-
-function renderDigest(input: {
-  /** 집계 자체가 실패한 항목 — 숫자를 못 믿는다는 경고를 맨 위에 싣는다. */
-  failures: string[]
-  cronErrors: CronErrorRow[]
-  refundRows: RefundQueueRow[]
-  refundPending: number
-  refundPermFailed: number
-  staleOrders: StalePendingOrderRow[]
-  lowStock: LowStockRow[]
-  generatedAt: number
-}): string {
-  const {
-    failures,
-    cronErrors,
-    refundRows,
-    refundPending,
-    refundPermFailed,
-    staleOrders,
-    lowStock,
-  } = input
-  const now = input.generatedAt
-
-  const sections: string[] = []
-
-  // ★맨 위 — 집계 자체가 실패했으면 아래 숫자를 믿으면 안 된다고 먼저 말한다.
-  //   "0건"과 "못 셌음"은 다르고, 그 차이를 아는 건 사람뿐이다.
-  if (failures.length > 0) {
-    sections.push(
-      block.callout(
-        'sale',
-        `<strong>이 메일의 숫자를 그대로 믿지 마세요.</strong><br />` +
-          `아래 항목을 집계하지 못했습니다 — 실제 문제가 더 있을 수 있어요.<br />` +
-          failures.map((f) => `· ${escape(f)}`).join('<br />'),
-      ),
-    )
-  }
-
-  // 상단 요약 라인
-  const summaryItems: string[] = []
-  if (failures.length > 0) summaryItems.push(`집계 실패 ${failures.length}건`)
-  if (cronErrors.length > 0)
-    summaryItems.push(`cron 실패 ${cronErrors.length}건`)
-  if (refundRows.length > 0)
-    summaryItems.push(
-      `환불 큐 적체 ${refundRows.length}건 (대기 ${refundPending} / 영구실패 ${refundPermFailed})`,
-    )
-  if (staleOrders.length > 0)
-    summaryItems.push(`미결제 적체 ${staleOrders.length}건`)
-  if (lowStock.length > 0) summaryItems.push(`재고 부족 ${lowStock.length}종`)
-
-  sections.push(
-    block.callout(
-      'sale',
-      `<strong>최근 24시간 운영 점검 결과</strong><br/>${summaryItems
-        .map((s) => `· ${escape(s)}`)
-        .join('<br/>')}`,
-    ),
-  )
-
-  // 1) cron 실패
-  if (cronErrors.length > 0) {
-    const shown = cronErrors.slice(0, MAX_ROWS)
-    const rowsHtml = shown
-      .map(
-        (c) => `<tr>
-          <td style="padding:8px 0;font-size:12px;color:#1E1A14;border-bottom:1px solid #F0EADB;">
-            <div style="font-weight:700;">${escape(c.path)}</div>
-            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">${escape(
-              formatKstDateTime(c.executed_at),
-            )} · ${escape(hoursAgo(c.executed_at, now))}</div>
-            ${
-              c.error_message
-                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-word;">${escape(
-                    c.error_message.slice(0, 240),
-                  )}</div>`
-                : ''
-            }
-          </td>
-        </tr>`,
-      )
-      .join('')
-    sections.push(
-      sectionBlock(
-        `🔴 cron 실패 (${cronErrors.length}건)`,
-        '예약 작업이 24시간 내 실패했어요. Vercel Cron Logs / Sentry 에서 원인을 확인하세요.',
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rowsHtml}</table>`,
-        cronErrors.length > MAX_ROWS
-          ? `외 ${cronErrors.length - MAX_ROWS}건 더 있어요.`
-          : null,
-      ),
-    )
-  }
-
-  // 2) 환불 큐 적체
-  if (refundRows.length > 0) {
-    const shown = refundRows.slice(0, MAX_ROWS)
-    const rowsHtml = shown
-      .map((r) => {
-        const statusLabel =
-          r.status === 'permanently_failed' ? '영구 실패' : '대기'
-        const statusColor =
-          r.status === 'permanently_failed' ? '#C44B3A' : '#B5533A'
-        return `<tr>
-          <td style="padding:8px 0;font-size:12px;color:#1E1A14;border-bottom:1px solid #F0EADB;">
-            <div>
-              <span style="font-weight:700;color:${statusColor};">${escape(
-                statusLabel,
-              )}</span>
-              · 주문 ${escape(r.order_id.slice(0, 8))} · 재시도 ${r.attempts}회
-            </div>
-            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">${escape(
-              formatKstDateTime(r.created_at),
-            )} 등록 · ${escape(hoursAgo(r.created_at, now))}</div>
-            ${
-              r.last_error
-                ? `<div style="font-size:11px;color:#C44B3A;margin-top:3px;word-break:break-word;">${escape(
-                    r.last_error.slice(0, 200),
-                  )}</div>`
-                : ''
-            }
-          </td>
-        </tr>`
-      })
-      .join('')
-    sections.push(
-      sectionBlock(
-        `💳 환불 큐 적체 (${refundRows.length}건)`,
-        `자동 환불이 처리되지 않고 남아 있어요 (대기 ${refundPending} · 영구실패 ${refundPermFailed}). 영구 실패 건은 운영자 수동 환불이 필요합니다.`,
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rowsHtml}</table>`,
-        refundRows.length > MAX_ROWS
-          ? `외 ${refundRows.length - MAX_ROWS}건 더 있어요.`
-          : null,
-        { label: '환불 관리에서 보기', href: `${SITE_URL}/admin/refunds` },
-      ),
-    )
-  }
-
-  // 3) 미결제 적체
-  if (staleOrders.length > 0) {
-    const shown = staleOrders.slice(0, MAX_ROWS)
-    const rowsHtml = shown
-      .map(
-        (o) => `<tr>
-          <td style="padding:8px 0;font-size:12px;color:#1E1A14;border-bottom:1px solid #F0EADB;">
-            <div style="font-weight:700;">주문번호 ${escape(o.order_number)}</div>
-            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">${o.total_amount.toLocaleString()}원 · ${escape(
-              formatKstDateTime(o.created_at),
-            )} 생성 · ${escape(hoursAgo(o.created_at, now))}</div>
-          </td>
-        </tr>`,
-      )
-      .join('')
-    sections.push(
-      sectionBlock(
-        `🧾 미결제 적체 (${staleOrders.length}건)`,
-        '결제창에서 이탈해 24시간 넘게 미결제로 남은 주문이에요. 평소보다 많다면 결제 플로우 장애를 의심하세요.',
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rowsHtml}</table>`,
-        staleOrders.length > MAX_ROWS
-          ? `외 ${staleOrders.length - MAX_ROWS}건 더 있어요.`
-          : null,
-        { label: '주문 관리에서 보기', href: `${SITE_URL}/admin/orders` },
-      ),
-    )
-  }
-
-  if (lowStock.length > 0) {
-    const shown = lowStock.slice(0, MAX_ROWS)
-    const rowsHtml = shown
-      .map(
-        (p) => `<tr>
-          <td style="padding:8px 0;font-size:12px;color:#1E1A14;border-bottom:1px solid #F0EADB;">
-            <div style="font-weight:700;">${escape(p.name ?? p.slug ?? '(이름 없음)')}</div>
-            <div style="font-size:11px;color:#7A7A7A;margin-top:2px;">남은 재고 ${p.stock ?? 0}개</div>
-          </td>
-        </tr>`,
-      )
-      .join('')
-    sections.push(
-      sectionBlock(
-        `📦 재고 부족 (${lowStock.length}종)`,
-        `${STOCK_LOW_THRESHOLD}개 이하로 남은 판매중 상품이에요. 화요일 발송분에 이 레시피가 들어가면 박스가 못 나갑니다.`,
-        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">${rowsHtml}</table>`,
-        lowStock.length > MAX_ROWS
-          ? `외 ${lowStock.length - MAX_ROWS}종 더 있어요.`
-          : null,
-        { label: '상품 관리에서 보기', href: `${SITE_URL}/admin/products` },
-      ),
-    )
-  }
-
-  sections.push(
-    `<p style="margin:18px 0 0;font-size:11px;color:#9A9A9A;line-height:1.6;">
-      이 메일은 매일 오전 8시 운영 점검 cron(ops-digest)이 이상 발견 시에만 자동
-      발송해요. 이상이 없는 날은 보내지 않습니다. 집계 기준 ${escape(
-        formatKstDate(now),
-      )}.
-    </p>`,
-  )
-
-  return renderLayout({
-    preview: `운영 점검 ${
-      cronErrors.length + refundRows.length + staleOrders.length
-    }건 — 확인이 필요해요`,
-    kicker: 'Ops Digest · 운영 점검',
-    heading: '운영 점검이 필요해요',
-    icon: '🛠️',
-    body: sections.join('\n'),
-    cta: { label: '관리자 대시보드 열기', href: `${SITE_URL}/admin` },
-  })
-}
-
-/** 섹션 제목 + 설명 + 본문 테이블 + (선택) more 라인 + (선택) 섹션 CTA 링크. */
-function sectionBlock(
-  title: string,
-  description: string,
-  tableHtml: string,
-  more: string | null,
-  link?: { label: string; href: string },
-): string {
-  return `<div style="margin-top:22px;">
-    <div style="font-size:14px;font-weight:800;color:#1E1A14;letter-spacing:-0.01em;">${escape(
-      title,
-    )}</div>
-    <div style="font-size:12px;color:#7A7A7A;line-height:1.6;margin:4px 0 8px;">${escape(
-      description,
-    )}</div>
-    ${tableHtml}
-    ${
-      more
-        ? `<div style="font-size:11px;color:#9A9A9A;margin-top:8px;">${escape(
-            more,
-          )}</div>`
-        : ''
-    }
-    ${
-      link
-        ? `<div style="margin-top:10px;"><a href="${escape(
-            link.href,
-          )}" style="font-size:12px;color:#B5533A;text-decoration:none;font-weight:700;">${escape(
-            link.label,
-          )} →</a></div>`
-        : ''
-    }
-  </div>`
 }
