@@ -742,6 +742,8 @@ export default async function PickingListPage({
   //   마세요" 라고 말해도 합계가 이미 그 물량을 시켰다. 라벨 필터와 **같은
   //   목록**을 쓴다(판정이 갈리면 또 어긋난다).
   // 이미 보낸 박스는 다시 인쇄·포장하지 않는다(11차 점검 B).
+  // ★알레르기 때문에 담지 못한 몫(held)이 있는 박스도 뺀다(2026-10-14 O1) — 화면은 '보내지 마세요'인데 합계가
+  //   그 물량을 시켰다. 판정은 ship-block 의 held 가 한다(라벨·CSV 와 같은 함수).
   const shippable = rows.filter(isShippable)
   const cookTotals = new Map<string, { packs: number; grams: number }>()
   for (const r of shippable) {
@@ -965,6 +967,9 @@ export default async function PickingListPage({
                   <Badge tone="red">청구 지연 — 결제 전, 보내지 마세요</Badge>
                 ) : r.notChargedAfterRun ? (
                   <Badge tone="red">청구 시각 지남 — 미청구, 보내지 마세요</Badge>
+                ) : r.held.length > 0 ? (
+                  // 판정 순서 = lib/admin/ship-block(라벨·조리 합계·CSV 와 같은 기준, 2026-10-14 O1).
+                  <Badge tone="red">알레르기 확인 필요 — 보내지 마세요</Badge>
                 ) : r.pausedAfterCharge ? (
                   <Badge tone="amber">결제 후 정지됨 — 확인 필요</Badge>
                 ) : r.dateMovedAfterCharge ? (

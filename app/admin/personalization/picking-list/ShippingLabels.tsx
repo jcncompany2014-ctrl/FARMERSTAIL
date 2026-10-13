@@ -37,6 +37,7 @@ function labelHtml(rows: PickingRow[], date: string): string {
   //   경고를 못 보고 무료 박스가 나간다 — 특히 '청구 불가(카드 영구거절)' 는
   //   화면이 "발송하지 마세요" 라고 말하면서 라벨은 뽑아 주고 있었다.
   //   금지 사유는 화면 배지와 **같은 목록**을 쓴다(판정이 갈리면 또 어긋난다).
+  //   알레르기 때문에 담지 못한 몫(held)이 있는 박스도 여기서 빠진다(2026-10-14 O1 — ship-block 의 held).
   const cards = rows
     .filter(isShippable)
     .map((r) => {

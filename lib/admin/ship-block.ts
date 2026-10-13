@@ -51,6 +51,14 @@ export type ShipBlockInput = {
    * 인쇄·포장하면 같은 박스가 두 번 나간다 — 라벨·조리 합계·CSV 에서 뺀다. 문제 건수(확인 필요)엔 넣지 않는다.
    */
   alreadyShipped?: unknown
+  /**
+   * ★알레르기 때문에 **담지 못한 몫**(boxPricing computeBoxPlan 의 held) — 2026-10-14 점검 O1.
+   * 화면은 빨간 '확인 필요 — 이대로 보내지 마세요'를 띄우는데, 이 판정에 빠져 있어 **라벨이 인쇄되고 조리 합계에 들어가고
+   * CSV 엔 '청구완료'로** 나갔다. 덜 담긴 박스(또는 고객과 확인 전의 박스)가 그대로 나갈 수 있었다. 돈 문제는 아니지만
+   * 같은 기준(이 함수)으로 뺀다. 한 개라도 있으면 발송 금지. 값은 담지 못한 몫의 **배열**(PickingRow.held) —
+   * 타입은 alreadyShipped 처럼 넓게 둔다(배열이 아니면 '없음').
+   */
+  held?: unknown
 }
 
 export type ShipBlockReason =
@@ -60,13 +68,15 @@ export type ShipBlockReason =
   | 'skipped_not_charged'
   | 'overdue_not_charged'
   | 'not_charged_after_run'
+  | 'allergy_check_needed'
   | 'already_shipped'
   | null
 
 /**
  * 발송을 막아야 하는 사유. null 이면 발송 가능.
  * 우선순위 = 확실한 것부터(카드 자체가 못 쓰는 상태 → 오늘 실패 → 고객 정지 →
- * 고객 미룸). 어느 사유든 공통 = **돈 받은 증거가 없다**.
+ * 고객 미룸 → 알레르기 확인). 돈 사유 공통 = **돈 받은 증거가 없다**. 알레르기 확인은 돈을 받았어도 막는다 —
+ * 돈 사유와 겹치면 돈 사유가 먼저 보이고, CSV 는 hasAllergyHold 로 알레르기를 덧붙인다(가려지지 않게).
  */
 export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
   // 이미 보낸 박스가 맨 앞 — 그 뒤의 미결제 판정은 의미가 없다(결제됐고 나갔다).
@@ -77,7 +87,13 @@ export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
   if (input.skippedNotCharged) return 'skipped_not_charged'
   if (input.overdueNotCharged) return 'overdue_not_charged'
   if (input.notChargedAfterRun) return 'not_charged_after_run'
+  if (hasAllergyHold(input)) return 'allergy_check_needed'
   return null
+}
+
+/** 알레르기 때문에 담지 못한 몫이 있나 — 판정·CSV 덧붙임이 같은 함수를 쓴다. */
+export function hasAllergyHold(input: Pick<ShipBlockInput, 'held'>): boolean {
+  return Array.isArray(input.held) && input.held.length > 0
 }
 
 /** 라벨·조리 합계가 쓰는 한 줄 판정. */
@@ -96,6 +112,7 @@ export const SHIP_BLOCK_LABEL: Record<
   skipped_not_charged: '고객미룸-미청구(발송금지)',
   overdue_not_charged: '청구지연-미결제(발송금지)',
   not_charged_after_run: '청구시각지남-미청구(발송금지)',
+  allergy_check_needed: '알레르기확인필요(발송금지)',
   already_shipped: '발송완료(라벨제외)',
 }
 
