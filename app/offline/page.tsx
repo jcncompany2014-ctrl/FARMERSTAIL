@@ -2,8 +2,12 @@
 
 import '@/components/store/store.css'
 import { useServerAppContext } from '@/components/app/ServerAppContext'
-import { AuthAppMain, AuthIconBox, AuthPrimaryButton, AuthResultPanel } from '@/components/v3/auth/AuthAppParts'
+import { AuthAppMain, AuthIconBox, AuthPrimaryAnchor, AuthResultPanel } from '@/components/v3/auth/AuthAppParts'
 
+// '다시 시도하기'는 앱·웹 둘 다 **일반 링크**다(2026-10-13, 규칙200) — 오프라인에선 스크립트 묶음이 안 와 이 화면이 하이드레이션
+// 되지 않아 onClick 이 붙지 않았다(안드로이드 에뮬레이터 재현: 눌러도 먹통). href="/" 는 스크립트가 하나도 없을 때의 길이고,
+// data-ft-retry 표식이 붙은 링크는 offline/layout 의 인라인 스크립트(lib/offline-retry)가 지금 주소로 바꾸고, 인터넷이
+// 돌아오면 그 주소로 다시 불러온다.
 export default function OfflinePage() {
   const appLook = useServerAppContext()
   // 앱 새 디자인('A 포스터', 2026-10-09 캔버스 W18) — 앱이면 앱 모양(이모지 📡 대신 아이콘, 앱시안 결정 3번 '문구').
@@ -33,13 +37,13 @@ export default function OfflinePage() {
             </>
           }
           action={
-            <AuthPrimaryButton onClick={() => window.location.reload()}>
+            <AuthPrimaryAnchor href="/" data-ft-retry="">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M20 12a8 8 0 1 1-2.3-5.6" />
                 <path d="M20 4v4.5h-4.5" />
               </svg>
               다시 시도하기
-            </AuthPrimaryButton>
+            </AuthPrimaryAnchor>
           }
         />
       </AuthAppMain>
@@ -80,12 +84,14 @@ export default function OfflinePage() {
             <br />
             와이파이나 모바일 데이터를 확인해 주세요.
           </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- 오프라인 화면은 하이드레이션이 안 돼 next/link 가 아니라 전체 새로 불러오기 링크여야 한다(규칙200) */}
+          <a
+            href="/"
+            data-ft-retry=""
             style={{
               marginTop: 32,
               height: 60,
+              boxSizing: 'border-box',
               border: 0,
               borderRadius: 4,
               background: '#141414',
@@ -98,6 +104,7 @@ export default function OfflinePage() {
               justifyContent: 'center',
               gap: 8,
               cursor: 'pointer',
+              textDecoration: 'none',
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -105,7 +112,7 @@ export default function OfflinePage() {
               <path d="M20 4v4.5h-4.5" />
             </svg>
             다시 시도하기
-          </button>
+          </a>
         </section>
       </div>
     </main>

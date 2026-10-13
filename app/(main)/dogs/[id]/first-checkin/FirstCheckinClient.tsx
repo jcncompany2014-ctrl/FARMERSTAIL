@@ -17,6 +17,7 @@
  */
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
@@ -308,9 +309,27 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
         >
           {submitting ? '저장 중…' : '의견 보내기'}
         </button>
-        <span style={{ textAlign: 'center', fontSize: 15, color: V3.inkMute }}>
-          나중에 응답하시려면 그냥 닫으셔도 돼요
-        </span>
+        {/* 나가는 길(2026-10-13, 규칙202) — 몰입 화면이라 윗줄 ← 도 아래 탭도 없는데 "그냥 닫으셔도 돼요"라고만 적혀
+            있었다. 아이폰은 하드웨어 뒤로가 없고 우리 화면에선 밀어서 뒤로도 꺼져 있어(AppDelegate — 사장님 결정: 화면 안
+            계층형 뒤로) 갇혔다. 계층형 위 = 이 강아지 화면(AppChrome parentForPath 와 같은 곳). replace — 닫은 화면이
+            안드로이드 뒤로가기에 다시 끼지 않게. */}
+        <Link
+          href={`/dogs/${dogId}`}
+          replace
+          className="active:opacity-70"
+          style={{
+            minHeight: 48,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 16,
+            fontWeight: 700,
+            color: V3.inkSoft,
+            textDecoration: 'none',
+          }}
+        >
+          나중에 할게요
+        </Link>
       </div>
     </div>
   )

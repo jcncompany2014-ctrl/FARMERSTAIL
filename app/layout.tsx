@@ -27,6 +27,8 @@ import ConsentBootstrap from "@/components/ConsentBootstrap";
 import JsonLd from "@/components/JsonLd";
 import WebVitalsReporter from "@/components/WebVitalsReporter";
 import AppContextCookieSync from "@/components/AppContextCookieSync";
+import { withAppZoomLock } from "@/lib/app-viewport";
+import { isAppContextServer } from "@/lib/app-context";
 import NativeShellBridge from "@/components/NativeShellBridge";
 import NativeUpdateNotice from "@/components/NativeUpdateNotice";
 import {
@@ -300,7 +302,7 @@ export const metadata: Metadata = {
   // 신고됐다(2026-10-11 점검: /link 의 canonical 이 홈). 화면마다 자기 alternates.canonical 을 둔다(홈은 app/page.tsx).
 };
 
-export const viewport: Viewport = {
+const BASE_VIEWPORT: Viewport = {
   // 다크 분기는 두지 않는다(2026-08-05) — 화면은 항상 라이트인데 OS 다크 사용자만
   // **상태바가 검게** 떠서 헤더와 어긋났다.
   // 2026-10-11 웹 리뉴얼·앱 흰 바탕: 옛 테라코타(#A0452E)는 안드로이드 크롬 주소창·설치형 웹앱 상태바를 옛 색으로 칠했다.
@@ -308,21 +310,22 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF",
   width: "device-width",
   initialScale: 1,
-  // 확대/축소 차단 (2026-07-12 사장님 지시 — "앱 전체 확대 축소 절대 안되게").
-  //   · maximumScale=1 + userScalable=false → 핀치 줌 + iOS 인풋 포커스 자동 줌
-  //     (숫자 입력 시 화면 확대) 모두 차단.
-  //   · ⚠️ 옛 audit #41 은 이를 WCAG 1.4.4(Resize Text) 위반이라 일부러 뺐었음
-  //     (저시력 사용자 핀치 줌). 사장님이 네이티브 앱 느낌 위해 명시 오버라이드.
-  //   · 플랫폼 실제 동작: 설치형 PWA(iOS standalone)·Android/데스크톱 = 잠김.
-  //     iOS Safari 브라우저는 Apple 이 접근성 위해 이 값을 무시 → 웹 방문자는
-  //     iOS 에서 여전히 확대 가능(웹 접근성은 iOS 에서 보존됨).
-  maximumScale: 1,
-  userScalable: false,
   // R-feel: 노치/홈인디케이터 아래 안전영역까지 화면을 펼친다. AppChrome 헤더가
   // 이미 env(safe-area-inset-*) 패딩으로 노치를 피하므로, 이 값이 있어야 그
   // 패딩이 실제 값으로 작동하고 standalone 에서 위아래 띠가 사라진다.
   viewportFit: "cover",
 };
+
+/**
+ * 확대/축소 — 웹은 허용, 앱만 잠근다(2026-10-13 사장님 결정 "웹만 풀기", 규칙203).
+ *   · 2026-07-12 "앱 전체 확대 축소 절대 안되게"로 여기(루트 viewport)에 maximumScale=1 · userScalable=false 를 박았는데,
+ *     루트라 웹(가게·매거진)까지 잠겨 손님이 글자를 키울 수 없었다(옛 audit #41 · WCAG 1.4.4).
+ *   · 이제 요청마다 앱 문맥(ft_app 쿠키 · UA 표식 — isAppContextServer 정본)을 보고 앱일 때만 잠근다(lib/app-viewport).
+ *     요청 정보를 읽어도 잃는 캐시가 없다 — 이 사이트 화면은 이미 전부 요청 때 그려진다(그 근거와 주의는 lib/app-viewport).
+ */
+export async function generateViewport(): Promise<Viewport> {
+  return withAppZoomLock(BASE_VIEWPORT, await isAppContextServer());
+}
 
 export default function RootLayout({
   children,

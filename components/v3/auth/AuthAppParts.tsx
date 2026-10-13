@@ -13,7 +13,7 @@
  */
 
 import Link from 'next/link'
-import { useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useState, type AnchorHTMLAttributes, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode } from 'react'
 import { V3 } from '@/lib/design/tokens'
 import './auth-app.css'
 
@@ -185,6 +185,18 @@ export function AuthPrimaryLink({ href, children, style }: { href: string; child
     <Link href={href} className="active:opacity-80" style={{ ...PRIMARY, ...style }}>
       {children}
     </Link>
+  )
+}
+
+/**
+ * 주 버튼 모양의 **일반 링크(<a>)** — 스크립트 묶음 없이도 동작해야 하는 곳(오프라인 화면의 '다시 시도하기' — 규칙200)과
+ * 앱 밖(외부 브라우저)으로 여는 곳(가게 안내 — 규칙205). next/link 는 하이드레이션 뒤 앱 안 이동으로 바뀌어 두 경우에 안 맞는다.
+ */
+export function AuthPrimaryAnchor({ style, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a {...rest} className="active:opacity-80" style={{ ...PRIMARY, ...style }}>
+      {children}
+    </a>
   )
 }
 
