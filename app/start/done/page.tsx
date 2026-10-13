@@ -46,6 +46,8 @@ async function loadBoxSummary(dogId: string): Promise<DoneBox | null> {
       },
       dailyKcal: data.formula.dailyKcal,
       freshRatio: data.initialFresh,
+      // 앱 주문 화면과 같은 원천의 알레르기(2026-10-13 E1).
+      blockedLines: data.blockedLines,
     })
 
     return {

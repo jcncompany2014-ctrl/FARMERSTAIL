@@ -354,10 +354,13 @@ function applyCoatSignal(
       }
       reasoning.push({
         trigger: `4주차 털 ${week4.coatScore}/5 (윤기 부족)`,
-        action: '피부·털 보강 쪽 비중을 올렸어요 (오메가-3 ↑)',
-        chipLabel: '털 윤기↓ → 피부·털 보강 ↑',
+        action: '피부·털 쪽 레시피 비중을 올렸어요',
+        chipLabel: '피부·털 쪽 레시피를 골랐어요',
         priority: 5,
         ruleId: 'next-coat-low',
+        // 옮긴 곳이 연어(판매 안 함 — 게이트가 다른 레시피로 옮긴다). 연어가 박스에 없으면 '보강했어요'는 사실이 아니라
+        // finalizeReasoning 이 뺀다(2026-10-13 E10, firstBox 피부염 규칙과 같은 이유).
+        promisedLines: ['skin'],
       })
       return newRatios
     }

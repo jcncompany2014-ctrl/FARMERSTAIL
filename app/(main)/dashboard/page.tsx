@@ -24,6 +24,7 @@ import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { petName } from '@/lib/korean'
 import { subscriptionState } from '@/lib/subscription-state'
 import { dailyPortionTotalG } from '@/lib/personalization/boxPricing'
+import { currentServingFormula } from '@/lib/personalization/servingFormula'
 import type { FoodLine } from '@/lib/personalization/types'
 import { formatKg } from '@/lib/korean'
 
@@ -152,7 +153,8 @@ export default async function DashboardPage() {
     // 같은 dailyGramsFromMix 를 쓴다.
     supabase
       .from('dog_formulas')
-      .select('dog_id, cycle_number, daily_kcal, formula, created_at')
+      // approval_status·applied_from — '지금 먹는 식단'을 고르는 데 쓴다(lib/personalization/servingFormula, 2026-10-13 E4).
+      .select('dog_id, cycle_number, daily_kcal, formula, created_at, approval_status, applied_from')
       .eq('user_id', user.id)
       // ★created_at 정렬 — 회차 번호가 큰 것이 최신이 아니다(2026-07-30 감사).
       // 청구·피킹 리스트와 같은 처방을 가리켜야 급여량이 실제 박스와 맞는다.
@@ -475,12 +477,20 @@ export default async function DashboardPage() {
   // ── '오늘 화식 급여량' (g) — 최신 처방 daily_grams × 화식비율/100 ──────────
   // OrderClient 의 박스 "하루 Xg" 와 같은 식(daily_grams×freshRatio/100). 구독
   // 전이면 완전화식(100%) 기준. 처방이 없으면(첫 설문 전) null → '--'.
+  // ★'지금 먹는 식단' — 승인 대기·거절·시작 전 제안은 거른다(2026-10-13 E4, 정본 servingFormula).
+  //   예전엔 최신 1건이라 동의 안 한 새 제안의 양이 '오늘 화식'으로 떴다. 피킹 리스트·청구 대조와 같은 규칙.
   const firstDogFormulaRow = firstDog
-    ? ((dogFormulaGrams ?? []) as Array<{
-        dog_id: string
-        daily_kcal: number | null
-        formula: { lineRatios: Record<string, number> } | null
-      }>).find((f) => f.dog_id === firstDog.id) ?? null
+    ? currentServingFormula(
+        ((dogFormulaGrams ?? []) as Array<{
+          dog_id: string
+          daily_kcal: number | null
+          formula: { lineRatios: Record<string, number> } | null
+          created_at: string | null
+          approval_status: string | null
+          applied_from: string | null
+        }>).filter((f) => f.dog_id === firstDog.id),
+        todayKst,
+      )
     : null
   const firstDogFreshRatio = firstDog
     ? ((dogSubRatios ?? []) as Array<{

@@ -49,10 +49,20 @@ describe('diffFormulas — 미세 변화', () => {
     assert.equal(d.meaningful, false)
   })
 
-  it('0 → 15% 큰 라인 추가 → 여전히 meaningful (진짜 새 메인)', () => {
+  // 2026-10-13 E2: 레시피 판정은 **실제 박스(2종 스냅, 둘째 20% 미만은 뺌)** 기준이다. 엔진 비율로 15% 가 새로 생겨도
+  // 박스가 그대로면(오리 한 가지) 동의를 묻지 않는다. 박스에 실제로 둘째 레시피가 들어가면 그때 meaningful.
+  it('0 → 15% 라인 추가지만 박스는 그대로 → not meaningful (2026-10-13 E2)', () => {
     const d = diffFormulas(
       f({ lineRatios: { basic: 0.85, weight: 0, skin: 0, premium: 0.15, joint: 0 } }),
       f({ lineRatios: { basic: 0.7, weight: 0.15, skin: 0, premium: 0.15, joint: 0 } }),
+    )
+    assert.equal(d.meaningful, false)
+  })
+
+  it('0 → 30% 라인 추가로 박스에 둘째 레시피가 들어감 → meaningful (진짜 새 레시피)', () => {
+    const d = diffFormulas(
+      f({ lineRatios: { basic: 0.85, weight: 0, skin: 0, premium: 0.15, joint: 0 } }),
+      f({ lineRatios: { basic: 0.7, weight: 0.3, skin: 0, premium: 0, joint: 0 } }),
     )
     assert.equal(d.meaningful, true)
     assert.ok(d.changes.some((c) => c.includes('Weight') && c.includes('추가')))
@@ -60,7 +70,7 @@ describe('diffFormulas — 미세 변화', () => {
 })
 
 describe('diffFormulas — 의미 있는 변화', () => {
-  it('단일 라인 +10% → meaningful', () => {
+  it('박스의 둘째 레시피가 바뀜 → meaningful (박스 기준 — 오리·연어 → 오리·치킨)', () => {
     const d = diffFormulas(
       f(),
       f({
@@ -68,8 +78,10 @@ describe('diffFormulas — 의미 있는 변화', () => {
       }),
     )
     assert.equal(d.meaningful, true)
-    assert.ok(d.changes.some((c) => c.includes('Basic')))
+    // 박스는 오리 50 · 둘째(연어 → 치킨) 50 — 오리 몫은 그대로라 'Basic' 변화는 없다(2026-10-13 E2).
     assert.ok(d.changes.some((c) => c.includes('Weight')))
+    assert.ok(d.changes.some((c) => c.includes('Skin')))
+    assert.ok(!d.changes.some((c) => c.includes('Basic')))
   })
 
   it('새 라인 추가 → meaningful + 라인 추가 message', () => {

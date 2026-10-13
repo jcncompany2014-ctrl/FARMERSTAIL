@@ -90,6 +90,11 @@ export type PickingRow = {
    * 금액은 저장된 total_amount 로 그대로 청구되므로 고객은 제값을 내고 덜 받는다.
    */
   missing: Array<{ name: string; packG: number; count: number; reason: string }>
+  /**
+   * 알레르기 때문에 **담지 않은 몫** — 안전한 대체가 없거나 처방에 알레르기 레시피가 있다(2026-10-13 E1).
+   * 예전엔 판매 중지 대체가 알레르기를 보지 않고 다른 레시피로 옮겼다. 이제 옮기지 않고 '확인 필요'로 보인다.
+   */
+  held: Array<{ name: string; reason: string }>
   boxTotalG: number
 }
 

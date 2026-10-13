@@ -33,6 +33,7 @@ import {
   needsCalorieVetRoute,
   hasBcsWeightConflict,
 } from '@/lib/nutrition'
+import { LIFE_STAGE_VET_NOTICE, needsLifeStageVetNotice } from '@/lib/personalization/life-stage-notice'
 
 type Props = {
   dogId: string
@@ -187,6 +188,27 @@ export default function AnalysisMagazineSection({
       )}
       {/* 카드 순서 (사용자 지시 2026-05-21):
           BoxMix → RecommendationBox (정기배송+레시피 고르기) → MagCTA(보조) */}
+      {/* 아기·임신·수유 — 추천 레시피 **앞에** 사실을 말한다(2026-10-13 E11 사장님: 결제는 막지 않고 수의사 상담 안내).
+          판매 4종은 성견 유지용이라 '성장기 맞춤' 같은 말은 칩에서도 뺐다. */}
+      {!boxHidden && needsLifeStageVetNotice(stage, riskFlags) && (
+        <p
+          role="note"
+          style={{
+            margin: '28px 20px 0',
+            padding: '12px 14px',
+            borderRadius: 4,
+            background: V3.soft,
+            borderLeft: `6px solid ${V3.mustard}`,
+            fontSize: 15,
+            lineHeight: 1.6,
+            color: V3.ink,
+            fontWeight: 700,
+            wordBreak: 'keep-all',
+          }}
+        >
+          {LIFE_STAGE_VET_NOTICE}
+        </p>
+      )}
       {!boxHidden && (
         <MagBoxMix
           dogName={dogName}

@@ -22,6 +22,7 @@ import { petName } from '@/lib/korean'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { evaluateInterventionWindow } from '@/lib/intervention-window'
+import { isGrowingDog } from '@/lib/growth/growing'
 
 export const runtime = 'nodejs'
 /**
@@ -37,6 +38,8 @@ interface DogRow {
   user_id: string
   name: string
   weight: number | null
+  age_value: number | null
+  age_unit: string | null
 }
 
 interface WeightRow {
@@ -66,7 +69,7 @@ async function runAlerts(): Promise<Response> {
   // 1) 활성 dog (지난 30일 active dog — sub 또는 weight log 존재)
   const { data: dogsRaw, error: dogsRawErr } = await admin
     .from('dogs')
-    .select('id, user_id, name, weight')
+    .select('id, user_id, name, weight, age_value, age_unit')
     .limit(500)
   // ★조회 실패를 0건으로 접지 않는다(2026-08-05 · 규칙1). 여기서 접히면
   //   "경보 대상이 없었다"가 되어 크론은 초록인데 체중 이상이 방치된다.
@@ -129,6 +132,28 @@ async function runAlerts(): Promise<Response> {
     if (!latestSurveyByDog.has(s.dog_id)) latestSurveyByDog.set(s.dog_id, s)
   }
 
+  // 3-b) ★성장기 강아지는 뺀다 (2026-10-13 점검 E3) — 자라는 아이는 체중이 느는 게 정상인데, 그 추세로
+  //   '30일 안에 과체중' 경보를 보냈다. weight-change-detect·weight-reminder 와 같은 조건(12개월 미만이거나
+  //   마지막 분석이 성장기, lib/growth/growing). 단계 조회 실패를 '성장기 아님'으로 읽으면 자견 보호자에게
+  //   경보가 간다 — 모르면 이번 주는 멈춘다(다음 주 다시 돈다).
+  const { data: stageRows, error: stageErr } = await admin
+    .from('analyses')
+    .select('dog_id, stage, created_at')
+    .in('dog_id', dogIds)
+    .order('created_at', { ascending: false })
+  if (stageErr) {
+    console.error('[intervention-alerts] 분석 단계 조회 실패:', stageErr.message)
+    return NextResponse.json(
+      { ok: false, reason: 'lookup_failed', at: 'analyses', error: stageErr.message },
+      { status: 500 },
+    )
+  }
+  const latestStageByDog = new Map<string, string | null>()
+  for (const r of (stageRows ?? []) as Array<{ dog_id: string; stage: string | null }>) {
+    if (!latestStageByDog.has(r.dog_id)) latestStageByDog.set(r.dog_id, r.stage)
+  }
+  let skippedGrowing = 0
+
   // 4) 14일 dedupe — push_log.title pattern 으로 검색 (push_log.category 는
   //    PushCategory enum 제한이라 자체 dedupe key 못 쓰는 점 우회).
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86_400_000).toISOString()
@@ -166,6 +191,16 @@ async function runAlerts(): Promise<Response> {
 
   for (const dog of dogs) {
     if (!dog.weight) continue
+    if (
+      isGrowingDog({
+        ageValue: dog.age_value,
+        ageUnit: dog.age_unit,
+        latestStage: latestStageByDog.get(dog.id) ?? null,
+      })
+    ) {
+      skippedGrowing += 1
+      continue
+    }
     const logs = weightsByDog.get(dog.id) ?? []
     if (logs.length < 3) continue
     const survey = latestSurveyByDog.get(dog.id)
@@ -226,6 +261,8 @@ async function runAlerts(): Promise<Response> {
   return NextResponse.json({
     ok: true,
     dogsProcessed: dogs.length,
+    /** 성장기라 경보 대상에서 뺀 수. */
+    skippedGrowing,
     urgentCount,
     watchCount,
     pushedCount,

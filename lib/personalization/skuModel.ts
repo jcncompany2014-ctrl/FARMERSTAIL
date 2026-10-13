@@ -161,7 +161,10 @@ export const SKU_MODEL: Record<ProteinKey, SkuDef> = {
     novel: true,
     muellerAllergyRate: 0.5,
     blockingAllergies: ['오리'],
-    crossReactWith: ['닭·칠면조'],
+    // ★닭 알레르기여도 오리는 '권함'으로 통일(2026-10-13 점검 E9 사장님 결정). 예전엔 닭·칠면조 교차 반응으로
+    //   '오리 비슷한 단백질 주의' 칩을 띄우고 가게 대체 추천에서 오리를 뺐다 — 웹 상세·매거진은 "닭·소가 안 맞는
+    //   아이도 편하게"라고 말해 앱과 거꾸로였다. 닭·칠면조 자체 차단(치킨)은 그대로다.
+    crossReactWith: [],
     careGoalAffinity: ['allergy_avoid'],
     profile: {
       kcalPer100g: 125, // v4.0 확정(2026-07-18)

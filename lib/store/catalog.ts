@@ -113,7 +113,7 @@ export function recipeIntro(r: StoreRecipe): string {
  * "이런 아이에겐 다른 레시피를 권해요" — 이 레시피를 먹고 탈이 났다면 고를 다른 레시피 둘.
  * 정본 SKU_MODEL 의 알레르기·교차 반응으로 거른다: 이 레시피의 원료(차단·교차)와 겹치는 레시피, 이 레시피 원료와
  * 교차 반응하는 레시피는 빼고, 알레르기 보고가 적은 순(muellerAllergyRate)으로 둘.
- * 예: 닭고기 → 오리는 닭과 교차 반응이라 빼고 흑돼지·한우.
+ * 예: 닭고기 → 오리고기·흑돼지(2026-10-13 E9 사장님 결정 — 닭이 안 맞아도 오리는 '권함', 예전엔 교차 반응이라 뺐다).
  */
 export function alternativeRecipes(r: StoreRecipe): StoreRecipe[] {
   const me = SKU_MODEL[r]

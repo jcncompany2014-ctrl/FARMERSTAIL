@@ -27,6 +27,7 @@
  * `lib/personalization/boxPricing` 정본으로 계산해서 넘긴다.**
  */
 import type { Formula } from './types.ts'
+import { snapBoxRatios } from './boxComposition.ts'
 
 export type FormulaDiff = {
   /** true 면 사용자 동의 필요. */
@@ -84,10 +85,15 @@ export function diffFormulas(
   let priceChanged = false
   let priceDelta = 0
 
-  // 1. 라인 비율 비교
+  // 1. 라인 비율 비교 — ★**실제 박스(snapBoxRatios) 기준**(2026-10-13 E2).
+  //   예전엔 스냅 전 엔진 비율을 비교해 '오리 100% → 오리 90 / 한우 10' 을 '새 라인 10%'로 보고 동의를 요청했다.
+  //   그런데 박스는 둘째가 20% 미만이면 빼서(boxComposition SECOND_LINE_MIN) 두 박스가 **똑같이** 오리 한 가지다 —
+  //   바뀌지 않은 박스에 "구성이 바뀔 수 있어요" 알림·메일이 나갔다. 열량·금액 판정(아래 3·3-b)은 그대로다.
+  const prevBox = snapBoxRatios(prev.lineRatios)
+  const nextBox = snapBoxRatios(next.lineRatios)
   for (const line of ['basic', 'weight', 'skin', 'premium', 'joint'] as const) {
-    const p = prev.lineRatios[line] ?? 0
-    const n = next.lineRatios[line] ?? 0
+    const p = prevBox[line] ?? 0
+    const n = nextBox[line] ?? 0
     const delta = n - p
 
     // 라인 추가/제거

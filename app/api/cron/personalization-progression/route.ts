@@ -5,13 +5,14 @@ import { trackCron } from '@/lib/cron-tracking'
 import { decideNextBox } from '@/lib/personalization/nextBox'
 import { treatCalorieFraction } from '@/lib/nutrition'
 import {
+  blockedLinesForAllergies,
   deriveAvailableLines,
   deriveAvailableToppers,
   gateAvailability,
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
-import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from '@/lib/personalization/skuModel'
+import { currentServingFormula } from '@/lib/personalization/servingFormula'
 import { ALL_LINES } from '@/lib/personalization/lines'
 import type { AlgorithmInput, Checkin, Formula } from '@/lib/personalization/types'
 import { recipeName } from '@/lib/personalization/format'
@@ -153,15 +154,16 @@ export async function GET(req: Request) {
     applied_from: string | null
     applied_until: string | null
     created_at: string
+    approval_status: string | null
   }
+  const FORMULA_COLS =
+    'id, dog_id, user_id, cycle_number, formula, transition_strategy, ' +
+    'daily_kcal, daily_grams, algorithm_version, user_adjusted, reasoning, ' +
+    'applied_from, applied_until, created_at, approval_status'
 
   const { data: candidates, error: fetchErr } = await supabase
     .from('dog_formulas')
-    .select(
-      'id, dog_id, user_id, cycle_number, formula, transition_strategy, ' +
-        'daily_kcal, daily_grams, algorithm_version, user_adjusted, reasoning, ' +
-        'applied_from, applied_until, created_at',
-    )
+    .select(FORMULA_COLS)
     // 적용 시작(applied_from)이 21일 이전 — cycle 1 은 applied_from 이 null 이라
     // created_at 으로 본다. (승인 대기 중인 row 도 applied_from=null 이지만,
     // 아래 nextExists 가드가 같은 dog 의 중복 진행을 막는다.)
@@ -286,18 +288,56 @@ export async function GET(req: Request) {
   //    3번째 박스의 order 를 못 보고 지나쳐 한 주기를 통째로 미룬다(조용한 지연).
   //    → vercel.json 에서 charge=KST 09:10 / 이 크론=KST 10:10 로 분리했다.
   const dogIds = subscribedDogIds.slice(0, MAX_PER_RUN)
-  const targets: FormulaRow[] = []
+  /**
+   * cur = 회차 번호가 가장 큰 행(다음 회차 번호·중복 방지용), serving = **지금 먹는 식단**(비교 기준·박스 카운트 시작점).
+   * ★2026-10-13 E4: 예전엔 cur 하나로 둘 다 했다 — cur 가 거절된 제안이면 그 거절안을 '이전 처방'으로 비교해,
+   *   거절한 구성과 같은 새 제안이 '변화 없음'으로 **동의 없이 자동 적용**될 수 있었다. 박스도 거절안 생성 시각부터 셌다.
+   *   고르는 규칙은 화면·피킹 리스트와 같은 정본(lib/personalization/servingFormula).
+   */
+  const targets: Array<{ cur: FormulaRow; serving: FormulaRow }> = []
   let notEnoughBoxes = 0
   // 박스 수를 못 센 건(조회 실패) 별도로 센다 — 0박스와 섞으면 조용한 정지가 된다.
   let countFailed = 0
+  /** 최신 회차가 아직 승인 대기라 새 제안을 겹쳐 만들지 않은 수. */
+  let pendingOutstanding = 0
+  /** 먹는 식단을 못 찾은 수(전부 거절·시작 전 등) — 사람이 볼 일. */
+  let noServingFormula = 0
   for (const dogId of dogIds) {
     const cur = latestByDog.get(dogId)!
     const billing = billingByDog.get(dogId)
     if (!billing) continue
 
-    // 이 처방이 적용된 시점 — cycle 1 은 applied_from 이 null 이라 created_at. 새 처방의 첫 박스 주문은 결제일(발송
+    // 아직 답하지 않은 제안 위에 새 제안을 겹치지 않는다(승인 대기 2건이 동시에 뜨는 것 방지).
+    if (cur.approval_status === 'pending_approval') {
+      pendingOutstanding += 1
+      continue
+    }
+
+    const { data: dogRows, error: dogRowsErr } = await supabase
+      .from('dog_formulas')
+      .select(FORMULA_COLS)
+      .eq('dog_id', dogId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    // 규칙1 — 못 읽었으면 '먹는 식단 없음'이 아니다. 이번 회차는 건드리지 않고 올린다.
+    if (dogRowsErr) {
+      captureBusinessEvent('error', 'personalization.progression.serving_lookup_failed', {
+        dogId,
+        dbError: dogRowsErr.message,
+      })
+      countFailed += 1
+      continue
+    }
+    const serving = currentServingFormula((dogRows ?? []) as unknown as FormulaRow[], today)
+    if (!serving) {
+      captureBusinessEvent('warning', 'personalization.progression.no_serving_formula', { dogId })
+      noServingFormula += 1
+      continue
+    }
+
+    // 지금 먹는 식단이 적용된 시점 — cycle 1 은 applied_from 이 null 이라 created_at. 새 처방의 첫 박스 주문은 결제일(발송
     // 3일 전 토요일)에 생기므로 그날 0시부터 센다(정본 boxCountSince, 10차 점검 A F1).
-    const since = boxCountSince(cur.applied_from, cur.created_at)
+    const since = boxCountSince(serving.applied_from, serving.created_at)
     const { count: boxesShipped, error: boxesErr } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
@@ -344,7 +384,7 @@ export async function GET(req: Request) {
       console.error('[personalization-progression] 다음 회차 확인 실패, 건너뜀:', nextExistsErr.message)
       continue
     }
-    if (!nextExists) targets.push(cur)
+    if (!nextExists) targets.push({ cur, serving })
   }
 
   // admin override — 모든 강아지에 동일 (한 batch). 한 번만 fetch.
@@ -442,7 +482,7 @@ export async function GET(req: Request) {
   /** 변화가 없어 알림을 보내지 않은 cycle 수 (처방 row 는 생성됨). */
   let silentNoChange = 0
 
-  for (const cur of targets) {
+  for (const { cur, serving } of targets) {
     try {
       // 강아지 + 최신 survey + analysis + 현재 cycle checkins 조회.
       const [
@@ -485,7 +525,8 @@ export async function GET(req: Request) {
               'appetite_score, overall_satisfaction, responded_at',
           )
           .eq('dog_id', cur.dog_id)
-          .eq('cycle_number', cur.cycle_number),
+          // 체크인은 지금 먹는 식단의 회차로 받는다(강아지 화면 체크인 카드가 그 회차 링크를 띄운다 — E4).
+          .eq('cycle_number', serving.cycle_number),
         // 칼로리 v2 M10 3b — 이번 cycle 기간의 최신 재측정 조정.
         // reweighs 는 신규 테이블이라 generated types 미반영 → cast
         // (refund_order_points 신규 RPC 선례와 동일 패턴).
@@ -494,7 +535,7 @@ export async function GET(req: Request) {
           .from('reweighs')
           .select('new_der, weight_delta_pct, created_at')
           .eq('dog_id', cur.dog_id)
-          .gt('created_at', cur.created_at)
+          .gt('created_at', serving.created_at)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle() as Promise<{ data: { new_der: number } | null }>,
@@ -641,16 +682,18 @@ export async function GET(req: Request) {
         respondedAt: c.responded_at,
       }))
 
+      // ★비교 기준 = **지금 먹는 식단**(serving) — 거절·승인 대기 제안이 아니다(2026-10-13 E4).
+      //   회차 번호(cycleNumber: cur+1)만 최신 행에서 잇는다(번호 충돌 방지).
       const previousFormula: Formula = {
-        lineRatios: cur.formula.lineRatios,
-        toppers: cur.formula.toppers,
-        reasoning: cur.reasoning,
-        transitionStrategy: cur.transition_strategy,
-        dailyKcal: cur.daily_kcal,
-        dailyGrams: cur.daily_grams,
-        cycleNumber: cur.cycle_number,
-        algorithmVersion: cur.algorithm_version,
-        userAdjusted: cur.user_adjusted,
+        lineRatios: serving.formula.lineRatios,
+        toppers: serving.formula.toppers,
+        reasoning: serving.reasoning,
+        transitionStrategy: serving.transition_strategy,
+        dailyKcal: serving.daily_kcal,
+        dailyGrams: serving.daily_grams,
+        cycleNumber: serving.cycle_number,
+        algorithmVersion: serving.algorithm_version,
+        userAdjusted: serving.user_adjusted,
       }
 
       const next = decideNextBox({
@@ -659,6 +702,8 @@ export async function GET(req: Request) {
         surveyInput,
         cycleNumber: cur.cycle_number + 1,
       })
+      // 알레르기로 막힌 라인 — 정본 하나(skuMap.blockedLinesForAllergies, 2026-10-13 E1).
+      const allergyBlockedLines = blockedLinesForAllergies(surveyInput.allergies)
 
       // ── cycle 2+ 안전 게이트 (계획 §F-2, 2026-07-25) ──────────────────
       // compute route 의 5.5a·5.5c 가 cycle 1 에만 있어서 cycle 2+ 는 무방비였다.
@@ -675,6 +720,8 @@ export async function GET(req: Request) {
           availableLines: deriveAvailableLines(activeSlugs),
           availableToppers: deriveAvailableToppers(activeSlugs),
           reasoning: next.reasoning,
+          // 대체가 알레르기 레시피로 가지 않게(2026-10-13 E1 — compute 5.5a 와 대칭).
+          blockedLines: allergyBlockedLines,
         })
         next.lineRatios = gated.lineRatios
         next.toppers = gated.toppers
@@ -685,11 +732,7 @@ export async function GET(req: Request) {
       //     한다(nextBox.ts 271줄 주석에 명시). cycle 1 에서 퍼저가 잡은 것과
       //     같은 경로다. 원인 불문 "출고 라인의 차단성분 ∩ 선언 알레르기" 로 판정.
       const shippedAllergenLeak = ALL_LINES.some(
-        (l) =>
-          (next.lineRatios[l] ?? 0) > 0 &&
-          SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) =>
-            surveyInput.allergies.includes(b),
-          ),
+        (l) => (next.lineRatios[l] ?? 0) > 0 && allergyBlockedLines.includes(l),
       )
       if (shippedAllergenLeak) {
         // ★최종감사 #5 (2026-07-29): 아래 푸시가 "결제는 잠시 멈춰둘게요"라고
@@ -756,6 +799,7 @@ export async function GET(req: Request) {
                 formula: next,
                 freshRatio: billing.freshRatio,
                 products: activeProducts,
+                blockedLines: allergyBlockedLines,
               }).total
               return nextTotal > 0
                 ? { prevTotal: billing.currentTotal, nextTotal }
@@ -1037,6 +1081,10 @@ export async function GET(req: Request) {
       /** 아직 박스가 3개 안 나가 만기가 아닌 수 (정상 — 대기 중). */
       notEnoughBoxes,
       countFailed,
+      /** 최신 회차가 아직 승인 대기라 새 제안을 겹치지 않은 수. */
+      pendingOutstanding,
+      /** 지금 먹는 식단을 못 찾은 수(사람이 볼 일). */
+      noServingFormula,
       /** 변화가 없어 알림을 보내지 않은 수 (row 는 생성됨). */
       silentNoChange,
     })

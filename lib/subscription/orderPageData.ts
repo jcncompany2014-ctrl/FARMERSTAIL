@@ -5,6 +5,8 @@ import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { ALL_LINES } from '@/lib/personalization/lines'
 import { ratiosFromPicks, MAX_PICKS } from '@/lib/personalization/boxPicks'
 import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
+import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
+import { hasPancreatitisGate } from '@/lib/personalization/consultation-gate'
 
 /**
  * 구독 신청 화면의 **서버 데이터 준비** — 앱·웹이 같이 쓴다.
@@ -66,6 +68,11 @@ export type OrderPageData =
       profile: OrderProfileShape
       initialFresh: 30 | 50 | 100
       pickedRecipes: FoodLine[]
+      /**
+       * 최신 설문 알레르기로 막힌 라인 — 주문 화면의 박스 계산(computeBoxPlan)에 넘긴다(2026-10-13 E1).
+       * 신청 API 도 같은 설문으로 다시 계산하므로 화면 금액과 갈라지지 않는다.
+       */
+      blockedLines: FoodLine[]
       /**
        * 결제 시점(서포터즈 체험 구간 = 발송일 · 그 외 = 조리 직전 토요일). 조회 실패 = null(모름).
        * 주문 화면이 가격 미리보기를 기다리며 첫 발송일·마감 요일을 바꿔 보이던 것(10차 점검 D) — 서버가 먼저 안다.
@@ -162,7 +169,8 @@ export async function loadOrderPageData(
     // ★안전 게이트 — 판매 레시피가 전부 알레르기라 자동 추천이 불가한 강아지는
     // 결제로 못 넘어간다 (2026-07-24: 이 게이트 없으면 알레르기 성분 박스가
     // 결제까지 갔다). 어디로 돌려보낼지는 호출부가 정한다.
-    if (f.formula.needsConsultation) {
+    // ★급성·중증 췌장염(2026-10-13 E8) — needsConsultation 칸이 생기기 전 저장된 처방도 근거 ruleId 로 막는다.
+    if (f.formula.needsConsultation || hasPancreatitisGate(f.reasoning)) {
       return { ok: false, reason: 'needs_consultation' }
     }
     formula = {
@@ -197,6 +205,14 @@ export async function loadOrderPageData(
     //   달라져 검산에서 거부되고, 플랜에서 레시피를 고른 고객은 가입 자체가
     //   막힌다(2026-07-30 점검에서 발견).
     pickedRecipes = picked
+  }
+
+  // 최신 설문 알레르기 → 막힌 라인(박스 계산 입력, 2026-10-13 E1). 실패는 '알레르기 없음'이 아니다 — 던진다(규칙1).
+  let blockedLines: FoodLine[] = []
+  if (formula) {
+    const blocks = await loadDogBlockedLines(supabase, dogId)
+    if (!blocks.ok) throw new Error(`order page survey lookup failed: ${blocks.error}`)
+    blockedLines = blocks.blockedLines
   }
 
   // products map (slug → row). formula 없으면 client 가 안내문만 노출 — fetch skip.
@@ -259,6 +275,7 @@ export async function loadOrderPageData(
     profile,
     initialFresh,
     pickedRecipes,
+    blockedLines,
     chargeTiming: await getChargeTiming(user.id),
   }
 }

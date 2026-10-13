@@ -41,13 +41,20 @@ export type ItemProduct = BoxProduct & {
 }
 
 /**
- * 화면에 쓰는 품목명 — "한우 (165g 한 끼)" / "채소 토퍼 (100g 팩)".
+ * 화면에 쓰는 품목명 — "한우 (165g · 하루 한 팩)" / "한우 (80g · 하루 두 팩 중 하나)" / "채소 토퍼 (100g 팩)".
  *
- * 메인 라인은 **한 끼 분량**으로, 토퍼는 **팩 g** 으로 쓴다. 토퍼는 하루에
- * 뿌리는 양이라 '한 끼'라고 하면 틀린 말이 된다.
+ * ★'한 끼'가 아니다(2026-10-13 점검 E6). boxPricing 은 메인 라인마다 **하루 화식 분량을 한 팩**(mealPortionG)으로,
+ *   14일치 = 14팩을 담는다(quantity = cycleDays).
+ *    · 레시피 1종 박스(pct 100) — 팩 하나 = **하루치**. 하루에 한 팩.
+ *    · 레시피 2종 박스(칼로리 50:50, pct 50) — 레시피마다 14팩씩 → 하루에 **두 팩**(레시피별 한 팩씩).
+ *      팩 하나 = 하루치의 절반이다.
+ *   하루 두세 번 나눠 주는 집이 많아 '한 끼'는 사실과 달랐다. 토퍼는 100g 고정 팩이라 '팩 g'.
+ * 이 이름은 '이름 (괄호)' 꼴을 지킨다 — 화면들이 괄호를 떼어 레시피 이름을 읽는다(SubscriptionCard shortRecipe).
  */
 export function itemDisplayName(item: BoxItem<ItemProduct>): string {
-  const portionTag = item.line ? `${item.mealG}g 한 끼` : `${item.packG}g 팩`
+  const portionTag = item.line
+    ? `${item.mealG}g · ${item.pct >= 100 ? '하루 한 팩' : '하루 두 팩 중 하나'}`
+    : `${item.packG}g 팩`
   return `${item.product.name} (${portionTag})`
 }
 

@@ -59,11 +59,12 @@ import {
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { FRESH_TIERS, type FreshRatio } from '@/lib/subscription/freshTier'
 import {
-  computeBoxItems,
+  computeBoxPlan,
   priceBox,
   subscribableItems,
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
+import { hasPancreatitisGate } from '@/lib/personalization/consultation-gate'
 import { bowlImageForLine } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
@@ -236,6 +237,11 @@ export type OrderClientProps = {
   pickedRecipes?: FoodLine[]
   /** 서버가 조회한 결제 시점 — 모르면 null(가격 미리보기로 추정). lib/payments/charge-timing. */
   chargeTiming?: ChargeTiming | null
+  /**
+   * 최신 설문 알레르기로 막힌 라인(lib/subscription/orderPageData) — 박스 계산에 넘긴다(2026-10-13 E1).
+   * 신청 API 가 같은 설문으로 다시 계산하므로 화면 금액과 갈라지지 않는다. 점검 화면 예시는 빈 배열.
+   */
+  blockedLines?: FoodLine[]
 }
 
 export default function OrderClient({
@@ -249,6 +255,7 @@ export default function OrderClient({
   initialFresh,
   pickedRecipes,
   chargeTiming = null,
+  blockedLines = [],
 }: OrderClientProps) {
   const router = useRouter()
   const supabase = createClient()
@@ -344,9 +351,14 @@ export default function OrderClient({
   // ── 라인 + 토퍼 → 항목 빌드 (freshRatio 변경 시 자동 재계산) ────────
   // 계산 본체는 lib/personalization/boxPricing (정본). 모델 설명·가격 규칙은
   // 그 파일 docstring 참조. 승인 화면이 같은 함수를 쓰므로 금액이 갈라지지 않는다.
-  const items: LineItem[] = formula
-    ? computeBoxItems({ formula, freshRatio, products })
-    : []
+  // 알레르기 때문에 담지 못한 몫(heldShares)이 있으면 결제 버튼을 막는다 — 신청 API 도 같은 계산으로 거절한다(2026-10-13 E1).
+  const boxPlan = formula
+    ? computeBoxPlan({ formula, freshRatio, products, blockedLines })
+    : null
+  const items: LineItem[] = boxPlan ? boxPlan.items : []
+  const heldShares = boxPlan ? boxPlan.held : []
+  // 급성·중증 췌장염 — 결제하지 않고 상담으로(2026-10-13 E8). 서버(주문 화면 데이터·신청 API)가 먼저 막지만 화면도 막는다.
+  const pancreatitisGate = hasPancreatitisGate(formula?.reasoning)
 
   /**
    * ★ 화면에 쓰는 금액은 **청구 정본과 같은 함수·같은 항목**에서 나와야 한다
@@ -841,6 +853,33 @@ export default function OrderClient({
               </section>
             )
           })()}
+
+          {/* 알레르기 때문에 담지 못한 레시피가 있으면 결제를 막고 이유를 말한다(2026-10-13 E1). 판매 중지된 레시피를
+              알레르기 없는 다른 레시피로 바꿀 수 없을 때다 — 조용히 다른 레시피로 채우지 않는다. */}
+          {heldShares.length > 0 && (
+            <section
+              role="alert"
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                margin: '0 0 16px',
+                padding: '14px 16px',
+                borderRadius: 4,
+                background: 'color-mix(in srgb, var(--terracotta) 9%, white)',
+                border: '1px solid color-mix(in srgb, var(--terracotta) 38%, transparent)',
+              }}
+            >
+              <AlertCircle size={16} strokeWidth={2.2} color="var(--terracotta)" style={{ marginTop: 1, flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <strong style={{ fontSize: 16, color: 'var(--ink)' }}>지금은 이 구성으로 시작할 수 없어요</strong>
+                <span style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--text)' }}>
+                  알려주신 알레르기 때문에 담을 수 없는 레시피가 있어요. 함께 안전한 방법을 찾아드릴게요 — 카카오톡으로
+                  문의해 주세요.
+                </span>
+              </div>
+            </section>
+          )}
 
           {/* 받는 박스 — 기본 접힘. 이 페이지의 목적은 **배송지 입력**인데 박스
               내역·배송 리듬이 먼저 꽉 차 있어서 주소창까지 스크롤이 너무 길었다
@@ -1425,7 +1464,7 @@ export default function OrderClient({
             <button
               type="button"
               onClick={handleSubscribe}
-              disabled={submitting || items.length === 0}
+              disabled={submitting || items.length === 0 || heldShares.length > 0 || pancreatitisGate}
               className="ord-paybar-btn"
             >
               {submitting ? (

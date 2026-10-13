@@ -37,6 +37,9 @@ export type RiskFlagInfo = {
 //   (2026-09-25 출시 전 점검 4차). 유산균·글루코사민·코코넛오일은 판매 레시피 4종 어디에도
 //   없는데 분석 화면이 넣었다고 말했다 — 실제 고객이 봤다(표시광고법 거짓 표시·보조제 중단 위험).
 //   성분은 products.ingredients 에 있는 것만. 보조제는 '수의사와 상의' 권유로만. 규칙104.
+// ★하지 않은 조정도 '했어요'라고 쓰지 않는다(2026-10-13 점검 E7). 레시피 4종은 고정이라 인·나트륨·지방·탄수화물·
+//   식이섬유를 아이마다 바꾸지 않는다 — 실제로 하는 건 열량(하루 양)과 레시피 고르기뿐이다. 라벨도 질환 '케어' 같은
+//   효능 대신 상태와 '수의사와 함께'로 쓴다(E10 사장님 결정).
 export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   REFEEDING_RISK: {
     label: '응급 · 심하게 마른 상태',
@@ -46,19 +49,19 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   },
   SEVERE_UNDERWEIGHT: {
     label: '많이 말랐어요',
-    desc: '단백질과 열량을 보강했어요. 숨은 질환이 없는지 수의사 진료를 권해요.',
+    desc: '열량을 조금 더했어요. 숨은 질환이 없는지 수의사 진료를 권해요.',
     severity: 'critical',
   },
   UNDERWEIGHT: {
     label: '조금 말랐어요',
     term: '저체중',
-    desc: '단백질과 열량을 더했어요. 6주 뒤에 체형을 다시 확인해요.',
+    desc: '열량을 조금 더했어요. 6주 뒤에 체형을 다시 확인해요.',
     severity: 'info',
   },
   OVERWEIGHT: {
     label: '조금 통통해요',
     term: '과체중',
-    desc: '천천히 감량해요. 단백질은 유지하고 지방·탄수화물만 줄여요.',
+    desc: '천천히 감량해요. 하루 양을 지키고 간식은 줄여 주세요.',
     severity: 'info',
   },
   SEVERE_OBESITY: {
@@ -74,61 +77,61 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
     severity: 'info',
   },
   KETOGENIC_DIET: {
-    label: '발작 케어 · 지방 위주 식단',
+    label: '발작(뇌전증) · 수의사와 함께',
     term: '뇌전증 · 케토제닉 식이',
-    desc: '지방 위주 식단으로 관리해요. 발작약을 바꿀 때는 수의사와 바로 상담하세요.',
+    desc: '이 화식은 지방 위주(케토제닉) 식단이 아니에요. 발작 관리 식단과 약은 수의사와 정해 주세요.',
     severity: 'high',
   },
   CKD_DIET_REQUIRED: {
-    label: '신장 케어 · 미네랄 조절',
+    label: '신장 질환 · 수의사와 함께',
     term: '만성 신장질환 · CKD',
-    desc: '신장 부담을 줄이려고 인(미네랄)을 낮추고 오메가-3를 더했어요. 신장은 상태 단계마다 관리가 달라서, 수의사와 단계를 꼭 확인하세요.',
+    desc: '이 화식은 저단백·저인 식단이 아니에요. 신장은 단계마다 식단이 달라서, 식단은 수의사와 정해 주세요.',
     severity: 'high',
   },
   DIABETIC_DIET_REQUIRED: {
-    label: '당뇨 · 맞춤 식단',
+    label: '당뇨 · 수의사와 함께',
     term: '당뇨',
-    desc: '혈당이 천천히 오르도록 탄수화물을 줄이고 식이섬유를 늘렸어요. 인슐린을 바꿀 때는 수의사와 함께하세요.',
+    desc: '하루 열량에 맞춰 양을 정했어요. 인슐린과 식사 시간은 수의사와 함께 맞춰 주세요.',
     severity: 'high',
   },
   CARDIAC_LOW_SODIUM: {
-    label: '심장 케어 · 나트륨 낮춤',
+    label: '심장 질환 · 수의사와 함께',
     term: '심장질환',
-    desc: '심장 부담을 줄이려고 나트륨을 낮추고 심장에 좋은 영양(타우린·오메가-3)을 더했어요. 심장 상태에 맞춰 조절해요.',
+    desc: '레시피는 그대로예요. 짠 간식은 피하고, 심장 검진은 수의사와 정기적으로 해 주세요.',
     severity: 'high',
   },
   LOW_FAT_REQUIRED: {
-    label: '췌장 케어 · 저지방',
+    label: '췌장염 · 지방이 적은 레시피',
     term: '췌장염',
-    desc: '췌장 부담을 줄이려고 지방을 크게 낮췄어요. 췌장은 상태에 따라 관리가 달라서 수의사와 꼭 확인하세요.',
+    desc: '첫 박스는 지방이 적은 레시피를 먼저 골라요. 지방이 아주 적은 식단은 아니라서, 상태에 맞는 식단은 수의사와 꼭 확인하세요.',
     severity: 'high',
   },
   HEPATIC_SUPPORT: {
-    label: '간 케어 · 단백질 균형',
+    label: '간 질환 · 수의사와 함께',
     term: '간질환',
-    desc: '간을 돕도록 단백질을 적정 수준으로 맞췄어요(너무 줄이면 근육이 빠져요). 수의사 진료를 권해요.',
+    desc: '한우 레시피는 빼고 골라요. 식단은 수의사와 꼭 상의해 주세요.',
     severity: 'high',
   },
   JOINT_SUPPORT: {
-    label: '관절 케어',
+    label: '관절 · 체중 관리가 중요해요',
     desc: '체중을 줄이면 관절 부담이 크게 줄어요. 모든 레시피에 오메가-3(연어유)가 들어 있고, 관절 보조제는 수의사와 상의해 주세요.',
     severity: 'info',
   },
   HYPOTHYROID_WEIGHT: {
     label: '갑상선 · 체중 관리',
     term: '갑상선 기능저하',
-    desc: '갑상선 문제로 살이 잘 쪄서, 지방을 낮추고 식이섬유를 늘렸어요.',
+    desc: '살이 잘 찌는 편이라 하루 열량에 맞춰 양을 정했어요. 약과 검사는 수의사와 함께해 주세요.',
     severity: 'high',
   },
   CUSHINGS_DIET: {
-    label: '쿠싱 · 식이 관리',
+    label: '쿠싱 · 수의사와 함께',
     term: '쿠싱증후군',
-    desc: '살이 잘 찌고 근육이 빠지기 쉬워요. 단백질은 유지하고 지방을 낮췄어요.',
+    desc: '살이 잘 찌고 근육이 빠지기 쉬워요. 약과 검사는 수의사와 함께해 주세요.',
     severity: 'high',
   },
   STEROID_SIDE_EFFECTS: {
-    label: '스테로이드 · 식이 보강',
-    desc: '스테로이드 복용 중엔 칼슘이 빠지고 식욕이 늘어요. 칼슘·오메가-3·식이섬유를 보강했어요.',
+    label: '스테로이드 복용 중',
+    desc: '스테로이드 복용 중엔 식욕이 늘고 칼슘이 빠지기 쉬워요. 체형과 혈당을 정기적으로 확인해 주세요.',
     severity: 'high',
   },
   EPI_ENZYME_REQUIRED: {
@@ -138,14 +141,14 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
     severity: 'high',
   },
   COGNITIVE_SUPPORT: {
-    label: '노령 인지 케어',
+    label: '노령 · 인지 변화 살피기',
     term: '인지기능 저하 · CDS',
     desc: '오메가-3(연어유)와 채소가 들어간 레시피예요. 밤에 헤매거나 낯설어하면 수의사와 상의해 주세요.',
     severity: 'info',
   },
   WEIGHT_LOSS_DIET: {
     label: '체중 관리',
-    desc: '단백질은 유지하고 지방·탄수화물을 줄였어요. 너무 빨리 빠지면 수의사와 점검해요.',
+    desc: '하루 열량에 맞춰 양을 정했어요. 너무 빨리 빠지면 수의사와 점검해요.',
     severity: 'info',
   },
   HYPOALLERGENIC_DIET: {
@@ -157,25 +160,25 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   SINGLE_PROTEIN_REQUIRED: {
     label: '예민한 장 · 한 가지 단백질',
     term: '염증성 장질환 · IBD',
-    desc: '한 종류 단백질과 부드러운 식이섬유로 장을 편하게 해요.',
+    desc: '한 가지 단백질로 시작해요. 증상이 계속되면 수의사와 상의해 주세요.',
     severity: 'high',
   },
   TRACHEAL_WEIGHT: {
-    label: '기관 케어 · 체중 관리',
+    label: '기관 허탈 · 체중 관리',
     term: '기관 허탈',
-    desc: '살이 찌면 기도가 더 눌려요. 지방을 낮추고 천천히 감량해요.',
+    desc: '살이 찌면 기도가 더 눌려요. 체중을 꾸준히 확인하고 천천히 감량해요.',
     severity: 'high',
   },
   IVDD_WEIGHT: {
-    label: '디스크 케어 · 체중 관리',
+    label: '디스크 · 체중 관리',
     term: '추간판 질환 · IVDD',
     desc: '체중이 디스크를 눌러요. 천천히 감량하고, 점프·계단은 피해주세요.',
     severity: 'high',
   },
   LOW_OXALATE_DIET: {
-    label: '요로결석 · 맞춤 식단',
+    label: '요로결석 · 수의사와 함께',
     term: '저옥살산 식이',
-    desc: '물을 충분히 주고, 결석이 잘 안 생기도록 미네랄을 조절했어요. 결석 종류에 따라 관리가 달라서 수의사와 확인하세요.',
+    desc: '한우 레시피는 빼고 골라요. 물을 충분히 주시고, 결석 종류에 맞는 식단은 수의사와 확인하세요.',
     severity: 'high',
   },
   PREGNANT: {
@@ -185,7 +188,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   },
   LACTATING: {
     label: '수유 중',
-    desc: '새끼 수에 맞춰 열량을 크게 올렸어요. 언제든 먹을 수 있게 자율 급여를 권하고, 수의사와 상담해요.',
+    desc: '새끼 수에 맞춰 열량을 크게 올렸어요. 자주 나눠 주시고, 식단은 수의사와 상담해요.',
     severity: 'high',
   },
   FACTOR_CAPPED_HIGH: {
@@ -201,7 +204,7 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
   MUSCLE_LOSS: {
     label: '근육이 줄고 있어요',
     term: '근육량 감소 · MCS',
-    desc: '단백질을 보강하고 가벼운 운동을 권해요. 계속 빠지면 숨은 질환이 없는지 수의사와 확인하세요.',
+    desc: '가벼운 운동을 권해요. 계속 빠지면 숨은 질환이 없는지 수의사와 확인하세요.',
     severity: 'high',
   },
   CHRONIC_CONFLICT: {
@@ -210,8 +213,8 @@ export const RISK_FLAG_INFO: Record<string, RiskFlagInfo> = {
     severity: 'high',
   },
   SKIN_BARRIER_COMPROMISED: {
-    label: '피부 장벽 케어',
-    desc: '피부에 좋은 오메가-3·아연을 보강했어요. 가려움이나 상처가 계속되면 수의사 진료를 권해요.',
+    label: '피부가 예민해요',
+    desc: '모든 레시피에 오메가-3(연어유)가 들어 있어요. 가려움이나 상처가 계속되면 수의사 진료를 권해요.',
     severity: 'high',
   },
   CONSTIPATION: {

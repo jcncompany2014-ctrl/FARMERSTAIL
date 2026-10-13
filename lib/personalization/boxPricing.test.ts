@@ -152,7 +152,7 @@ describe('computeBoxItems + priceBox — 정본 일관성', () => {
   }
 
   test('총액 = Σ cycleTotal (팩당 표시가 합산 아님)', () => {
-    const items = computeBoxItems({ formula, freshRatio: 100, products })
+    const items = computeBoxItems({ formula, freshRatio: 100, products, blockedLines: [] })
     assert.equal(items.length, 2, '항목이 0개면 아래 검사는 빈 배열 위에서 통과한다')
     const { total } = priceBox(items)
     assert.equal(total, items.reduce((s, it) => s + it.cycleTotal, 0))
@@ -162,7 +162,7 @@ describe('computeBoxItems + priceBox — 정본 일관성', () => {
   })
   test('각 항목: 표시가×팩수 ≥ cycleTotal, cycleTotal은 100원 배수, 팩그램=처방 1g 올림', () => {
     for (const fresh of [30, 60, 100]) {
-      const items = computeBoxItems({ formula, freshRatio: fresh, products })
+      const items = computeBoxItems({ formula, freshRatio: fresh, products, blockedLines: [] })
       assert.equal(items.length, 2, `fresh=${fresh}: 항목 0개면 아래 루프가 안 돈다`)
       for (const it of items) {
         assert.ok(it.pricePerPack * it.quantity >= it.cycleTotal)
@@ -201,14 +201,14 @@ describe('★ 조용히 빠지는 항목 — 피킹 리스트가 대조하는 �
   }
 
   test('레시피가 2종을 부른다 (전제 — 이게 깨지면 아래 검산이 무의미)', () => {
-    const items = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: full }))
+    const items = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: full, blockedLines: [] }))
     assert.equal(items.length, 2)
   })
 
   test('재고 0 은 담기지 않지만 "원래 담겼어야 할 것"에는 남는다', () => {
     const oos = { ...full, 'beef-premium': { ...full['beef-premium'], stock: 0 } }
-    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: oos }))
-    const intended = computeBoxItems({ formula, freshRatio: 100, products: oos })
+    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: oos, blockedLines: [] }))
+    const intended = computeBoxItems({ formula, freshRatio: 100, products: oos, blockedLines: [] })
     const packedSlugs = new Set(packed.map((it) => it.product.slug))
     const missing = intended.filter((it) => !packedSlugs.has(it.product.slug))
 
@@ -221,8 +221,8 @@ describe('★ 조용히 빠지는 항목 — 피킹 리스트가 대조하는 �
   test('판매중지(포장용 목록에서 빠진 상품)도 전체 목록으로는 잡힌다', () => {
     // 판매중지 = is_active=false → 포장용 조회(is_active=true)에서 아예 안 온다.
     const activeOnly = { 'chicken-basic': full['chicken-basic'] }
-    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: activeOnly }))
-    const intended = computeBoxItems({ formula, freshRatio: 100, products: full })
+    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: activeOnly, blockedLines: [] }))
+    const intended = computeBoxItems({ formula, freshRatio: 100, products: full, blockedLines: [] })
     const packedSlugs = new Set(packed.map((it) => it.product.slug))
     const missing = intended.filter((it) => !packedSlugs.has(it.product.slug))
 
@@ -231,8 +231,8 @@ describe('★ 조용히 빠지는 항목 — 피킹 리스트가 대조하는 �
   })
 
   test('정상일 땐 누락이 0 — 경고가 상시로 뜨면 아무도 안 본다', () => {
-    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: full }))
-    const intended = computeBoxItems({ formula, freshRatio: 100, products: full })
+    const packed = subscribableItems(computeBoxItems({ formula, freshRatio: 100, products: full, blockedLines: [] }))
+    const intended = computeBoxItems({ formula, freshRatio: 100, products: full, blockedLines: [] })
     const packedSlugs = new Set(packed.map((it) => it.product.slug))
     assert.deepEqual(intended.filter((it) => !packedSlugs.has(it.product.slug)), [])
   })

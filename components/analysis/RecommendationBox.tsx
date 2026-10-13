@@ -8,6 +8,7 @@ import { trackBoxRecommended, trackAnalysisViewed } from '@/lib/analytics'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { createClient } from '@/lib/supabase/client'
 import type { Formula } from '@/lib/personalization/types'
+import { PANCREATITIS_CONSULT_REASON } from '@/lib/personalization/consultation-gate'
 import { petName } from '@/lib/korean'
 import AdjustSheet from './AdjustSheet'
 import {
@@ -299,9 +300,11 @@ export function RecommendationPanel({
         {/* 서버 안내(consultationReason)는 "…맞춤 상담을 도와드릴게요"로 끝나서, 뒤에 붙이던
             "…함께 찾아드릴게요"와 같은 말을 두 번 했다(사장님 결정 목록). 상담 게이트는 알레르기 한 경우뿐이라
             (lib/personalization/v3/engine) 시안 문장 하나로 말한다. */}
+        {/* 상담 게이트는 알레르기 말고 급성·중증 췌장염도 있다(2026-10-13 E8) — 그 문장을 알레르기 문장으로 덮지 않는다. */}
         <p className="fb-card-body">
-          입력하신 알레르기로 지금 판매하는 레시피가 모두 빠졌어요. 알레르기를 피하면서도 잘 맞는 레시피를 함께
-          찾아드릴게요.
+          {state.reason === PANCREATITIS_CONSULT_REASON
+            ? PANCREATITIS_CONSULT_REASON
+            : '입력하신 알레르기로 지금 판매하는 레시피가 모두 빠졌어요. 알레르기를 피하면서도 잘 맞는 레시피를 함께 찾아드릴게요.'}
         </p>
         {business.kakaoChannelUrl && (
           <a

@@ -8,7 +8,8 @@ import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { FRESH_TIERS } from '@/lib/subscription/freshTier'
 import { quoteBox } from '@/lib/subscription/boxQuote'
-import type { Formula } from '@/lib/personalization/types'
+import type { Formula, FoodLine } from '@/lib/personalization/types'
+import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
 import { SHIP_WEEKDAY, weekdayOf, CHARGE_BEFORE_SHIP_DAYS } from '@/lib/shipping-schedule'
 import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
@@ -74,7 +75,7 @@ async function loadSubAndFormula(
   subId: string,
   userId: string,
 ): Promise<
-  | { ok: true; sub: SubRow; formula: FormulaRow }
+  | { ok: true; sub: SubRow; formula: FormulaRow; blockedLines: FoodLine[] }
   | { ok: false; status: number; code: string; message: string }
 > {
   const { data: subRaw, error: subErr } = await supabase
@@ -202,7 +203,17 @@ async function loadSubAndFormula(
       message: '적용 중인 식단이 없어 금액을 계산할 수 없어요',
     }
   }
-  return { ok: true, sub, formula: applied }
+  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 모르면 계산하지 않는다(규칙1).
+  const blocks = await loadDogBlockedLines(supabase, sub.dog_id)
+  if (!blocks.ok) {
+    return {
+      ok: false,
+      status: 503,
+      code: 'LOOKUP_FAILED',
+      message: '일시적인 오류가 있어요. 잠시 후 다시 시도해 주세요',
+    }
+  }
+  return { ok: true, sub, formula: applied, blockedLines: blocks.blockedLines }
 }
 
 /** GET — 지금 비율과 **세 티어의 금액**. 모르고 고르는 일이 없게 다 준다. */
@@ -237,6 +248,7 @@ export async function GET(
       formula: loaded.formula.formula,
       dailyKcal: loaded.formula.daily_kcal,
       freshRatio: t.ratio,
+      blockedLines: loaded.blockedLines,
     })
     // 계산 실패는 **0원이 아니라 '모름'** 이다 — 0 으로 그리면 공짜로 보인다.
     options.push({ ratio: t.ratio, amount: q ? q.total : null })
@@ -306,6 +318,7 @@ export async function PATCH(
     formula: loaded.formula.formula,
     dailyKcal: loaded.formula.daily_kcal,
     freshRatio: ratio,
+    blockedLines: loaded.blockedLines,
   })
   if (!quote) {
     // 금액을 못 만들면 **아무것도 바꾸지 않는다.** 비율만 바꾸고 금액을 두면

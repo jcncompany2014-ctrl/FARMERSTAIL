@@ -9,7 +9,8 @@
  * (2026-07-24 정리: 라인 비율%·요약 포매터 7종은 prod 미사용이라 삭제.
  *  고객 노출은 recipeName[원물명] + friendlyChangeReason[변경 사유] 둘뿐.)
  */
-import { FOOD_LINE_META, ALL_LINES } from './lines.ts'
+import { FOOD_LINE_META } from './lines.ts'
+import { snapBoxLines } from './boxComposition.ts'
 import type { Formula } from './types.ts'
 
 /**
@@ -23,11 +24,10 @@ import type { Formula } from './types.ts'
  * (사장님 2026-07-23: 알림에 "소고기 60% 메인" 같은 비율 표기 금지 —
  *  두 원물을 섞으면 무조건 반반이므로 %는 오해를 부른다. 원물+레시피로.)
  */
-export function recipeName(formula: Formula): string {
-  const active = ALL_LINES.filter((l) => formula.lineRatios[l] > 0)
-    .sort((a, b) => formula.lineRatios[b] - formula.lineRatios[a])
-    .slice(0, 2)
-    .map((l) => FOOD_LINE_META[l].nameKo)
+export function recipeName(formula: Pick<Formula, 'lineRatios'>): string {
+  // ★이름은 **실제 박스**(snapBoxLines) 기준(2026-10-13 E2). 예전엔 스냅 전 비율 상위 2개라 '오리 90/한우 10'이
+  //   '오리·한우 레시피'로 알림에 나갔는데, 박스는 둘째가 20% 미만이면 빼고 오리 한 가지만 담는다.
+  const active = snapBoxLines(formula.lineRatios).map(({ line }) => FOOD_LINE_META[line].nameKo)
   const label = active.length > 0 ? active.join('·') : '맞춤'
   return `${label} 레시피`
 }

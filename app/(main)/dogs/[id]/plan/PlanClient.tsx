@@ -375,6 +375,8 @@ export function PlanView({
         },
         freshRatio,
         products,
+        // 알레르기로 막힌 레시피(위 blocked — 처방 근거의 알레르기 차단)를 대체 대상에서 뺀다(2026-10-13 E1).
+        blockedLines: [...blocked],
       })
     : []
   // 앵커(정가 취소선)도 청구 대상 필터(priceBox 와 동일)를 태워야 할인 폭이

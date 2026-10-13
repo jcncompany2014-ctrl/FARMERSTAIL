@@ -22,13 +22,14 @@ import s from './app-intro.module.css'
  *
  * 2026-10-11 다시 짬(사장님 "얼마나 줘야 할지 매번 헷갈리셨죠? 저울로 재서 나누지 말고 딱 맞춰 드린다 — 오면 해동, 급여, 끝.
  * 이게 강점이 돼야 한다 · 디자인이 미완성 느낌"): 첫 화면 = '저울은 넣어 두세요', 3단계, 그동안 vs 파머스테일, 15%, 레시피 4종,
- * 자주 묻는 것. 사실 근거 — 정기배송 품목은 아이별 '한 끼 분량' 팩(lib/personalization/subscriptionItems·boxPricing mealPortionG).
+ * 자주 묻는 것. 사실 근거 — 정기배송 팩 하나는 아이의 **하루 화식 분량**이다(레시피 1종 = 하루 한 팩, 2종 = 레시피별 한 팩씩
+ * 하루 두 팩 — lib/personalization/subscriptionItems·boxPricing mealPortionG). 예전 '한 끼씩'은 사실과 달랐다(2026-10-13 E6).
  * 닭가슴살·오리 안심 무항생제는 사장님 확인(10/11) — 흑돼지·한우에는 붙이지 않는다.
  * 앱 안에서 이 주소가 열리면(앱 링크 등) 웹 화면이 앱에 뜨지 않게 앱 홈으로 보낸다.
  */
 // 2026-10-11 SEO: '파머스테일 앱 | 파머스테일' 은 이름만 두 번이었다 — 이 화면이 답하는 것(하루 양에 맞춰 나눈 정기배송)을 제목에.
 const APP_TITLE = '파머스테일 앱 — 하루 양에 맞춰 나눈 화식 정기배송'
-const APP_DESCRIPTION = '얼마나 줄지 고민 끝 — 우리 아이 하루 양을 그램까지 계산해 한 끼씩 나눠 담아 2주마다 보내드려요. 받으면 녹여서 주면 끝.'
+const APP_DESCRIPTION = '얼마나 줄지 고민 끝 — 우리 아이 하루 양을 그램까지 계산해 하루 한 팩씩 나눠 담아 2주마다 보내드려요. 받으면 녹여서 주면 끝.'
 export const metadata: Metadata = {
   title: APP_TITLE,
   description: APP_DESCRIPTION,
@@ -59,7 +60,7 @@ const MEAT: Record<StoreRecipe, { meat: string; tag?: string }> = {
 }
 
 const FAQ: { q: string; a: string }[] = [
-  { q: '한 끼 양은 어떻게 정해요?', a: '몸무게·나이·중성화·체형·활동량으로 하루에 필요한 열량을 계산하고, 레시피마다 열량에 맞춰 그램으로 바꿔 한 끼씩 나눠 담아요.' },
+  { q: '하루 양은 어떻게 정해요?', a: '몸무게·나이·중성화·체형·활동량으로 하루에 필요한 열량을 계산하고, 레시피마다 열량에 맞춰 그램으로 바꿔 하루 한 팩씩 나눠 담아요. 두 레시피를 섞으면 레시피마다 한 팩씩, 하루 두 팩이에요.' },
   { q: '체중이 바뀌면요?', a: '앱에 체중을 기록하면 다음 양에 반영돼요. 그래서 따로 다시 계산할 필요가 없어요.' },
   { q: '언제 보내 주나요?', a: '2주마다 화요일에 얼린 채로 보내드려요. 받으면 바로 냉동실에 넣고, 먹이기 전날 냉장실로 옮겨 녹여 주세요.' },
   { q: '미루거나 그만둘 수 있나요?', a: '네. 다음 결제 전까지 앱에서 미루거나 그만둘 수 있어요. 약정도 위약금도 없어요.' },
@@ -122,7 +123,7 @@ export default async function AppIntroPage() {
             <em>넣어 두세요</em>
           </h1>
           <p className={s.heroBody}>
-            우리 아이 하루 양을 그램까지 계산해 <strong>한 끼 양씩 나눠 담아</strong> 2주마다 보내드려요. 받으면 녹여서 그릇에 담으면 끝.
+            우리 아이 하루 양을 그램까지 계산해 <strong>하루 한 팩씩 나눠 담아</strong> 2주마다 보내드려요. 받으면 녹여서 그릇에 담으면 끝.
           </p>
           <Badges />
         </section>
@@ -130,7 +131,7 @@ export default async function AppIntroPage() {
         <div className={s.heroPhoto}>
           <Image src="/bowl-eating.jpg" alt="그릇에 담긴 화식을 먹는 셸티" fill priority sizes="(max-width: 460px) 100vw, 460px" style={{ objectFit: 'cover' }} />
           <span className={s.portionChip}>
-            <span className={s.portionLabel}>오늘 한 끼</span>
+            <span className={s.portionLabel}>오늘 하루 양</span>
             <span className={`${s.portionValue} ${num.className}`}>165g</span>
             <span className={s.portionSub}>재지 않아도 딱 그만큼</span>
           </span>
@@ -153,8 +154,8 @@ export default async function AppIntroPage() {
             <li className={s.step}>
               <span className={`${s.stepNum} ${num.className}`}>2</span>
               <div className={s.stepBody}>
-                <strong className={s.stepTitle}>한 끼 양씩 나눠 담아 보내드려요</strong>
-                <span className={s.stepText}>계산한 양 그대로 팩마다 나눠 담아, 2주마다 얼린 채로 보내드려요.</span>
+                <strong className={s.stepTitle}>하루 양씩 한 팩에 담아 보내드려요</strong>
+                <span className={s.stepText}>계산한 하루 양 그대로 팩마다 나눠 담아, 2주마다 얼린 채로 보내드려요.</span>
                 <span className={s.stepPhoto}>
                   <Image src="/pouch-freezer-43.jpg" alt="레시피 팩과 그릇에 담긴 화식" fill sizes="(max-width: 460px) calc(100vw - 92px), 368px" style={{ objectFit: 'cover' }} />
                 </span>

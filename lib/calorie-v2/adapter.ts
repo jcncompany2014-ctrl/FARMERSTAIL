@@ -29,6 +29,8 @@ export interface LegacyLadderInput {
   coldExposure?: boolean
   /** 4단계 — 견종 플래그 (breeds.breedFlagsFromLabel). 미전달 = 플래그 없음. */
   breedFlags?: BreedFlags
+  /** 최근 6개월 체중 추세(설문). 'lost' 면 견종 비만 경향 감산을 하지 않는다(2026-10-13 E12). */
+  weightTrend6mo?: 'stable' | 'gained' | 'lost' | 'unknown' | null
 }
 
 export function legacyAdultLadder(a: LegacyLadderInput): {
@@ -63,6 +65,7 @@ export function legacyAdultLadder(a: LegacyLadderInput): {
     housing: a.housing ?? 'indoor',
     coldExposure: !!a.coldExposure,
     isEasyKeeper: !!a.isEasyKeeper,
+    isLosingWeight: a.weightTrend6mo === 'lost',
   }
   return calculateAdultFactor(s, a.breedFlags ?? breedToFlags('unknown'), a.bcs)
 }

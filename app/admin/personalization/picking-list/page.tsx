@@ -6,9 +6,12 @@ import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
 import { SKU_MODEL } from '@/lib/personalization/skuModel'
 import {
   computeBoxItems,
+  computeBoxPlan,
   subscribableItems,
   type BoxItem,
 } from '@/lib/personalization/boxPricing'
+import { FOOD_LINE_META } from '@/lib/personalization/lines'
+import { loadBlockedLinesByDog } from '@/lib/personalization/dogAllergyBlocks'
 import type { Formula } from '@/lib/personalization/types'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
@@ -58,6 +61,7 @@ type FormulaRow = {
   user_adjusted: boolean
   approval_status: string | null
   applied_from: string | null
+  created_at: string | null
 }
 
 type SubRow = {
@@ -431,7 +435,7 @@ export default async function PickingListPage({
             .from('dog_formulas')
             .select(
               'id, dog_id, cycle_number, formula, daily_kcal, ' +
-                'transition_strategy, user_adjusted, approval_status, applied_from',
+                'transition_strategy, user_adjusted, approval_status, applied_from, created_at',
             )
             .in('dog_id', dogIds)
             // ★처방 정렬은 created_at — cycle_number 가 아니다 (2026-07-30 최종감사).
@@ -484,6 +488,8 @@ export default async function PickingListPage({
   //   auto_applied·approved = 발송 가능 / pending_approval(승인 대기)·
   //   declined(보호자 거절) = 발송 금지 → 그 이전 승인분으로 폴백.
   // (불변식: 승인 전엔 옛 처방·옛 금액 그대로.) cycle desc 정렬이라 첫 매치가 최신.
+  // (같은 규칙의 정본 함수가 lib/personalization/servingFormula 에 있다 — 홈·강아지 화면·재제안 크론이 쓴다.
+  //  여기는 기준일이 '오늘'이 아니라 **발송일**이다.)
   const formulaByDog: Record<string, FormulaRow> = {}
   for (const f of ((formulasRaw ?? []) as unknown) as FormulaRow[]) {
     if (f.approval_status === 'pending_approval' || f.approval_status === 'declined')
@@ -494,6 +500,15 @@ export default async function PickingListPage({
     //   이미 옛 처방·옛 금액으로 결제된 그날 박스가 새 처방으로 나왔다.
     if (f.applied_from && f.applied_from.slice(0, 10) > shipDate) continue
     if (!formulaByDog[f.dog_id]) formulaByDog[f.dog_id] = f
+  }
+
+  // 강아지별 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 판매 중지 대체가 알레르기 레시피로 가지 않게.
+  // 못 읽으면 팩 구성을 믿을 수 없다 — 위 처방 조회 실패와 같게 멈춘다(규칙1).
+  // service_role 로 읽는다(규칙8) — 다른 고객의 설문을 쿠키 클라이언트로 읽으면 RLS 가 0행을 돌려줘
+  // '알레르기 없음'으로 보일 수 있다. 범위는 이 발송일 구독의 강아지(dogIds)로 코드가 묶는다.
+  const blocks = await loadBlockedLinesByDog(createAdminClient(), dogIds)
+  if (!blocks.ok) {
+    throw new Error(`설문(알레르기) 조회 실패 — 팩 구성을 신뢰할 수 없어요: ${blocks.error}`)
   }
 
   const products: Record<string, PickProduct> = {}
@@ -541,6 +556,7 @@ export default async function PickingListPage({
 
     let packs: PickingRow['packs'] = []
     let missing: PickingRow['missing'] = []
+    let held: PickingRow['held'] = []
     if (f && !freshUnknown) {
       const boxInput = {
         formula: {
@@ -549,10 +565,18 @@ export default async function PickingListPage({
           dailyKcal: f.daily_kcal,
         },
         freshRatio,
+        blockedLines: (sub.dog_id && blocks.byDog.get(sub.dog_id)) || [],
       }
-      const items = subscribableItems(
-        computeBoxItems({ ...boxInput, products }),
-      )
+      const plan = computeBoxPlan({ ...boxInput, products })
+      // ★알레르기 때문에 담지 않은 몫 — 조용히 다른 레시피로 채우지 않고 사람이 보게 한다(2026-10-13 E1).
+      held = plan.held.map((h) => ({
+        name: `${FOOD_LINE_META[h.line].nameKo} 레시피`,
+        reason:
+          h.reason === 'allergen_in_formula'
+            ? '처방에 알레르기 레시피가 들어 있어요'
+            : '판매 중지 — 알레르기 없는 대체 레시피가 없어요',
+      }))
+      const items = subscribableItems(plan.items)
       packs = items.map((it: BoxItem<PickProduct>) => ({
         name: it.product.name,
         packG: it.packG,
@@ -674,6 +698,7 @@ export default async function PickingListPage({
       order: orderBySubId.get(sub.id) ?? (shipped ? { id: shipped.id, orderNumber: shipped.orderNumber, shipTo: null } : null),
       packs,
       missing,
+      held,
       boxTotalG: packs.reduce((s, p) => s + p.totalG, 0),
     }
   })
@@ -721,7 +746,8 @@ export default async function PickingListPage({
       r.notChargedAfterRun ||
       r.pausedAfterCharge ||
       r.dateMovedAfterCharge ||
-      r.missing.length > 0,
+      r.missing.length > 0 ||
+      r.held.length > 0,
   ).length
   const excludedFromTotals = rows.filter(
     (r) => r.noFormula || r.freshUnknown,
@@ -971,6 +997,24 @@ export default async function PickingListPage({
 
               {/* ★ 조용히 빠진 항목을 드러낸다 (2026-07-31). 예전엔 그냥
                   사라져서 3종 레시피가 2종으로 포장돼 나갔다 — 금액은 그대로. */}
+              {/* ★알레르기 때문에 담지 않은 몫(2026-10-13 E1) — 예전엔 판매 중지 대체가 알레르기를 보지 않고
+                  다른 레시피로 옮겼다. 이제 옮기지 않고 여기 보인다. 보내기 전에 고객과 확인해 주세요. */}
+              {r.held.length > 0 && (
+                <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3.5 py-3">
+                  <p className="text-[12.5px] font-bold text-red-700">
+                    ⚠ 확인 필요 — 알레르기 때문에 담지 않은 레시피가 {r.held.length}개 있어요.
+                    <strong> 이대로 보내지 말고 고객과 먼저 확인해 주세요.</strong>
+                  </p>
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {r.held.map((h) => (
+                      <li key={h.name} className="text-[12px] text-red-700">
+                        · <strong>{h.name}</strong> — {h.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {r.missing.length > 0 && (
                 <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-3">
                   <p className="text-[12.5px] font-bold text-amber-900">

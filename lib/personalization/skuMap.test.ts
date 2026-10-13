@@ -178,6 +178,7 @@ describe('부분 레코드 방어 (DB JSON 캐스팅 경로)', () => {
     },
     freshRatio: 100,
     products,
+    blockedLines: [],
   })
   assert.equal(items.length, 1, '프리미엄 라인이 박스에 남아야 한다')
   assert.ok(Number.isFinite(items[0]!.mealG), 'mealG 가 NaN 이면 안 된다')

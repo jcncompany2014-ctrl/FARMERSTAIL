@@ -42,7 +42,27 @@ const TRIGGER_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
  * **정확한 %**가 들어 있었다(사장님 규칙: 성분 % 노출 금지). 저장값과 무관하게 이 문구를 쓴다.
  */
 export const PANCREATITIS_GATE_COPY =
-  '이 아이에게는 화식 급여를 권하지 않아요 — 급성·중증 췌장염은 지방이 아주 적은 수의사 처방식이 필요한데, 저희 화식은 지방이 가장 적은 구성으로도 그 기준에 닿지 못해요. 꼭 수의사 처방식(저지방 식이요법)으로 급여해 주세요.'
+  // 2026-10-13 E8 — '처방' 말을 빼고, 결제 대신 상담으로 간다는 것까지 말한다(이제 결제가 막힌다).
+  '이 아이에게는 지금 화식을 권하지 않아요 — 급성·중증 췌장염은 지방이 아주 적은 식단이 필요한데, 저희 화식은 지방이 가장 적은 레시피로도 그 기준에 닿지 못해요. 식단은 수의사와 정해 주시고, 궁금한 점은 카카오톡으로 상담해 드릴게요.'
+
+/**
+ * 고객 화면에 그리지 않는 근거(ruleId) — 2026-10-13 E11 사장님 "'성장기 맞춤'·'대형견 아기 · 골격 보호' 칩은 빼기".
+ * 성견 유지용 화식이라 성장기에 맞췄다고 말하지 않는다. 엔진 기록(어드민 설문 기록)에는 남는다.
+ */
+export const HIDDEN_CUSTOMER_RULES: ReadonlySet<string> = new Set(['age-puppy', 'age-puppy-large-breed'])
+
+/**
+ * 2026-10-13 전에 저장된 **질환·효능 칩**('심장 케어 · 나트륨 낮춤'·'관절염 · 관절 보강'·'저활동 → 비만 예방'·'신장 케어 · 저단백' …).
+ * 엔진 문구는 '고른 이유'로 바꿨지만(E10) 이미 저장된 처방 근거(dog_formulas.reasoning)에는 옛 칩이 남아 있다 —
+ * 그 줄은 고객 화면에서 뺀다. 새 칩('○○ 레시피를 골랐어요'·'수의사와 함께 관리해요')은 이 말들을 쓰지 않는다.
+ */
+const OLD_EFFICACY_CHIP = /케어|보강|예방|저단백|저지방|고섬유|구리 제한|나트륨 낮춤|골격 보호|성장기 맞춤|단백질 유지/
+
+/** 이 근거 줄을 고객 화면(분석 '이렇게 추천했어요'·승인 화면·식단 기록)에 그려도 되나. */
+export function isCustomerVisibleReason(r: { ruleId: string; chipLabel: string }): boolean {
+  if (HIDDEN_CUSTOMER_RULES.has(r.ruleId)) return false
+  return !OLD_EFFICACY_CHIP.test(r.chipLabel ?? '')
+}
 
 export function plainTrigger(s: string): string {
   let out = s

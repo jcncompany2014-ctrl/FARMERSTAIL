@@ -19,6 +19,7 @@ type ApprovedBox = {
 }
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { quoteBox } from '@/lib/subscription/boxQuote'
+import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
 import { CYCLE_COVER_DAYS, newFormulaAppliedFrom } from '@/lib/personalization/cycle'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 
@@ -476,6 +477,13 @@ async function boxForApproved(
   if (subscriptionState(sub) !== 'active') return null
   if (sub.fresh_ratio == null || sub.fresh_ratio <= 0) return null
 
+  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 모르면 금액을 건드리지 않는다(null — 아래 호출부 규칙).
+  const blocks = await loadDogBlockedLines(supabase, dogId)
+  if (!blocks.ok) {
+    console.error('[personalization/approve] 설문 조회 실패 — 금액 계산 보류:', blocks.error)
+    return null
+  }
+
   // ★ 계산은 공용 헬퍼로 (2026-07-31). 화식 비율 변경 라우트가 **같은 계산**을
   //   비율만 바꿔서 쓴다 — 복사하면 금액을 만드는 곳이 둘이 된다.
   const quote = await quoteBox(supabase, {
@@ -483,6 +491,7 @@ async function boxForApproved(
     formula: row.formula,
     dailyKcal: row.daily_kcal,
     freshRatio: sub.fresh_ratio,
+    blockedLines: blocks.blockedLines,
   })
   if (!quote) return null
   return {

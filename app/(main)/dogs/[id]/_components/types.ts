@@ -45,6 +45,11 @@ export type CurrentFormula = {
    * 체크인 D-day 가 한 번도 안 떴다(2026-10-12 점검: 운영 dog_formulas 23행 전부 NULL).
    */
   cycle_start?: string | null
+  /**
+   * 아직 답하지 않은 새 제안(승인 대기)의 회차 — DB 칸이 아니다, page.tsx 가 채운다(2026-10-13 E4).
+   * 카드는 '지금 먹는 식단'을 그리고, 이 값이 있으면 '새 식단 확인하기' 버튼만 이 회차로 연다.
+   */
+  pending_cycle?: number | null
 }
 
 export type CheckinStatus = {

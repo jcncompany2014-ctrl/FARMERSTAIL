@@ -48,9 +48,14 @@ function fakeItem(over: Partial<BoxItem<ItemProduct>>): BoxItem<ItemProduct> {
   }
 }
 
-test('메인 라인은 "한 끼" 분량으로 이름을 만든다', () => {
+test('메인 라인은 "하루 한 팩" — 1종 박스는 팩 하나가 하루치다(2026-10-13 E6, 예전 \'한 끼\'는 사실과 달랐다)', () => {
   const name = itemDisplayName(fakeItem({ line: 'premium', mealG: 165 }))
-  assert.equal(name, '한우 (165g 한 끼)')
+  assert.equal(name, '한우 (165g · 하루 한 팩)')
+})
+
+test('2종 박스(칼로리 반반)는 레시피마다 하루 한 팩씩 — 팩 하나는 "하루 두 팩 중 하나"', () => {
+  const name = itemDisplayName(fakeItem({ line: 'premium', mealG: 80, pct: 50 }))
+  assert.equal(name, '한우 (80g · 하루 두 팩 중 하나)')
 })
 
 test('★ 토퍼는 "한 끼"가 아니라 팩 g — 하루에 뿌리는 양이다', () => {
@@ -75,7 +80,7 @@ test('행에는 구독 id 와 product_id 가 실린다 (order_items 는 NOT NULL
     product_id: 'id-beef-premium',
     quantity: 14,
     unit_price: 7150,
-    product_name: '한우 (165g 한 끼)',
+    product_name: '한우 (165g · 하루 한 팩)',
     product_image_url: null,
   })
 })
@@ -112,7 +117,7 @@ test('★ 품절·구독불가는 행에 들어가지 않는다 (박스에 안 �
   const rows = subscriptionItemRows('s', subscribableItems(items))
   assert.deepEqual(
     rows.map((r) => r.product_name),
-    ['한우 (165g 한 끼)'],
+    ['한우 (165g · 하루 한 팩)'],
   )
 })
 
@@ -135,6 +140,7 @@ test('실제 계산(computeBoxItems)에서 나온 항목으로도 행이 만들�
     },
     freshRatio: 1,
     products,
+    blockedLines: [],
   })
   const rows = subscriptionItemRows('sub-x', subscribableItems(items))
   // ★ 이 단정이 없으면 rows 가 0개일 때 아래 루프가 안 돌아 **헛돌며 통과**한다
@@ -144,6 +150,6 @@ test('실제 계산(computeBoxItems)에서 나온 항목으로도 행이 만들�
     assert.equal(r.subscription_id, 'sub-x')
     assert.ok(r.product_id.length > 0, 'product_id 가 있어야 한다')
     assert.ok(r.quantity > 0, 'quantity 가 있어야 한다')
-    assert.ok(/\(\d+g (한 끼|팩)\)$/.test(r.product_name), r.product_name)
+    assert.ok(/\(\d+g (· 하루 한 팩|· 하루 두 팩 중 하나|팩)\)$/.test(r.product_name), r.product_name)
   }
 })

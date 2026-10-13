@@ -6,12 +6,22 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
-import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
 import {
-  computeBoxItems,
+  LINE_TO_SLUG,
+  TOPPER_TO_SLUG,
+  blockedLinesForAllergies,
+} from '@/lib/personalization/skuMap'
+import {
+  computeBoxPlan,
   priceBox,
   subscribableItems,
 } from '@/lib/personalization/boxPricing'
+import { allergiesFromAnswers } from '@/lib/personalization/dogAllergyBlocks'
+import {
+  hasPancreatitisGate,
+  isSeverePancreatitis,
+  PANCREATITIS_CONSULT_REASON,
+} from '@/lib/personalization/consultation-gate'
 import {
   subscriptionItemRows,
   type ItemProduct,
@@ -144,7 +154,7 @@ export async function POST(req: Request) {
   // ── 처방: 주문 화면과 **같은 cycle 1** ──────────────────────────────
   const { data: formulaRow, error: formulaErr } = await supabase
     .from('dog_formulas')
-    .select('cycle_number, formula, daily_kcal')
+    .select('cycle_number, formula, daily_kcal, reasoning')
     .eq('dog_id', body.dogId)
     .eq('user_id', user.id)
     .eq('cycle_number', 1)
@@ -169,6 +179,7 @@ export async function POST(req: Request) {
       needsConsultation?: boolean
     }
     daily_kcal: number
+    reasoning: Array<{ ruleId?: string }> | null
   }
 
   // ★ 안전 게이트 — 판매 레시피가 전부 알레르기라 자동 추천이 불가한 강아지는
@@ -181,6 +192,48 @@ export async function POST(req: Request) {
         code: 'CONSULTATION_REQUIRED',
         message:
           '알려주신 알레르기 때문에 이 구성은 그대로 시작할 수 없어요. 함께 안전한 방법을 찾아드릴게요 — 카카오톡으로 문의해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
+
+  // ── 최신 설문 — 알레르기(박스 계산의 blockedLines)·급성 췌장염 게이트 ────────
+  // ★2026-10-13 E1: 박스 계산이 알레르기를 몰라 판매 중지 대체가 알레르기 레시피로 갈 수 있었다. 이제 항상 읽는다
+  //   (예전엔 고른 레시피가 있을 때만 읽었다). 규칙1 — 확인 못 하면 통과시키지 않는다.
+  const { data: latestSurvey, error: surveyErr } = await supabase
+    .from('surveys')
+    .select('answers, chronic_conditions')
+    .eq('dog_id', body.dogId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (surveyErr) {
+    captureBusinessEvent('error', 'subscription.create.survey_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: surveyErr.message })
+    return NextResponse.json(
+      { code: 'LOOKUP_FAILED', message: '설문 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
+      { status: 503 },
+    )
+  }
+  const surveyAnswers = (latestSurvey?.answers ?? null) as {
+    diagnosedSeverity?: Record<string, string>
+  } | null
+  const allergies = allergiesFromAnswers(latestSurvey?.answers ?? null)
+  const blockedLines = blockedLinesForAllergies(allergies)
+
+  // ★급성·중증 췌장염은 결제 전에 상담으로(2026-10-13 E8 사장님). 저장 처방의 근거(옛 처방)와 최신 설문 둘 다 본다 —
+  //   화면이 막는 건 화면일 뿐이라 이 API 가 마지막 문이다.
+  if (
+    hasPancreatitisGate(f.reasoning) ||
+    isSeverePancreatitis({
+      chronicConditions: (latestSurvey as { chronic_conditions?: string[] | null } | null)?.chronic_conditions ?? null,
+      diagnosedSeverity: surveyAnswers?.diagnosedSeverity ?? null,
+    })
+  ) {
+    return NextResponse.json(
+      {
+        code: 'CONSULTATION_REQUIRED',
+        message: `${PANCREATITIS_CONSULT_REASON} 카카오톡으로 문의해 주세요.`,
       },
       { status: 409 },
     )
@@ -212,27 +265,7 @@ export async function POST(req: Request) {
   //   적대적 직접 호출이나 화면 버그 시 알레르기 단백질 박스가 결제까지 갔다.
   //   adjust 라우트와 같은 검증(최신 surveys.answers.allergies × blockingAllergies).
   if (picks.length > 0) {
-    const { data: latestSurvey, error: surveyErr } = await supabase
-      .from('surveys')
-      .select('answers')
-      .eq('dog_id', body.dogId)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (surveyErr) {
-      // 규칙1 — 알레르기를 확인 못 하면 통과시키지 않는다(안전 우선).
-      captureBusinessEvent('error', 'subscription.create.survey_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: surveyErr.message })
-      return NextResponse.json(
-        { code: 'LOOKUP_FAILED', message: '설문 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
-        { status: 503 },
-      )
-    }
-    const allergies = Array.isArray(
-      (latestSurvey?.answers as { allergies?: unknown })?.allergies,
-    )
-      ? ((latestSurvey?.answers as { allergies: string[] }).allergies as string[])
-      : []
+    // 설문은 위에서 이미 읽었다(같은 최신 설문의 알레르기).
     for (const line of ALL_LINES) {
       const meta = FOOD_LINE_META[line]
       const conflict = meta.blockingAllergies.find((a) => allergies.includes(a))
@@ -270,7 +303,7 @@ export async function POST(req: Request) {
   }
 
   // ── 금액: 순수함수 정본. 화면 값은 검산에만 쓴다 ────────────────────
-  const items = computeBoxItems({
+  const plan = computeBoxPlan({
     formula: {
       lineRatios,
       toppers: f.formula.toppers,
@@ -278,7 +311,26 @@ export async function POST(req: Request) {
     },
     freshRatio: body.freshRatio,
     products,
+    blockedLines,
   })
+  // ★알레르기 때문에 담지 못한 몫이 있으면 만들지 않는다(2026-10-13 E1) — 조용히 다른 레시피로 채우지도,
+  //   덜 담은 박스를 제값에 팔지도 않는다. 주문 화면도 같은 계산이라 결제 버튼이 먼저 막혀 있다.
+  if (plan.held.length > 0) {
+    captureBusinessEvent('warning', 'subscription.create.held_allergen_share', {
+      userId: user.id,
+      dogId: body.dogId,
+      held: plan.held.map((h) => `${h.line}:${h.reason}`).join(','),
+    })
+    return NextResponse.json(
+      {
+        code: 'CONSULTATION_REQUIRED',
+        message:
+          '알려주신 알레르기 때문에 지금 담을 수 없는 레시피가 있어요. 함께 안전한 방법을 찾아드릴게요 — 카카오톡으로 문의해 주세요.',
+      },
+      { status: 409 },
+    )
+  }
+  const items = plan.items
   const billable = subscribableItems(items)
   if (billable.length === 0) {
     return NextResponse.json(

@@ -18,13 +18,18 @@ import {
 import { collapseToSingle } from '@/lib/personalization/boxComposition'
 import { finalizeReasoning } from '@/lib/personalization/reasoning-final'
 import {
+  blockedLinesForAllergies,
   deriveAvailableLines,
   deriveAvailableToppers,
   gateAvailability,
   LINE_TO_SLUG,
   TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
-import { SKU_MODEL, LEGACY_LINE_TO_PROTEIN } from '@/lib/personalization/skuModel'
+import {
+  hasPancreatitisGate,
+  isSeverePancreatitis,
+  PANCREATITIS_CONSULT_REASON,
+} from '@/lib/personalization/consultation-gate'
 import type { AlgorithmInput, Formula } from '@/lib/personalization/types'
 import {
   buildV3Recommendation,
@@ -321,12 +326,14 @@ export async function POST(req: Request) {
       needsConsultation?: boolean
       consultationReason?: string | null
     }
+      // ★급성·중증 췌장염 게이트(2026-10-13 E8)는 needsConsultation 칸이 생기기 전 저장분에도 걸린다 — 근거 ruleId 로 본다.
+      const pancreatitisGate = !stored.needsConsultation && hasPancreatitisGate(formula.reasoning)
       return NextResponse.json({
         ok: true,
         formula,
         v3,
-        needsConsultation: stored.needsConsultation ?? false,
-        consultationReason: stored.consultationReason ?? null,
+        needsConsultation: (stored.needsConsultation ?? false) || pancreatitisGate,
+        consultationReason: pancreatitisGate ? PANCREATITIS_CONSULT_REASON : (stored.consultationReason ?? null),
         cached: true,
       })
     }
@@ -661,9 +668,8 @@ export async function POST(req: Request) {
   // 비노출 원칙 위반). 정본 하나(=저장 처방)를 여기서 게이트하면 분석·플랜·
   // 주문·박스가 전부 같은 걸 본다 — line 546 의 교훈을 게이트에도 적용.
   // 알레르기로 막힌 라인 — 대체(연어 → ?)가 알레르기 레시피로 가지 않게(2026-10-01 펀치, 오리 알레르기).
-  const allergyBlockedLines = ALL_LINES.filter((l) =>
-    SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) => input.allergies.includes(b)),
-  )
+  // 정본 하나(skuMap.blockedLinesForAllergies) — 박스 계산·주문·피킹·재제안이 같은 표로 막는다(2026-10-13 E1).
+  const allergyBlockedLines = blockedLinesForAllergies(input.allergies)
   {
     const gated = gateAvailability(formula.lineRatios, formula.toppers, {
       availableLines: deriveAvailableLines(activeSlugs),
@@ -709,22 +715,27 @@ export async function POST(req: Request) {
   //   (v3.needsConsultation 과 별개 최종 방어선 — 그 강아지는 우리 제품을 하나도
   //   못 먹으므로 결제 대신 상담이 유일하게 안전한 답이다).
   const shippedAllergenLeak = ALL_LINES.some(
-    (l) =>
-      (formula.lineRatios[l] ?? 0) > 0 &&
-      SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) =>
-        input.allergies.includes(b),
-      ),
+    (l) => (formula.lineRatios[l] ?? 0) > 0 && allergyBlockedLines.includes(l),
   )
   // ★근거 문구 최종 정리 — 첫 박스 1종 접기·선호 우선이 끝난 **최종 박스** 기준(2026-10-01 사장님).
   //   연어 언급은 통째로 빼고, 최종 박스에 없는 레시피를 약속하는 문구('위장 민감 · 오리 위주' 등)도 뺀다.
   formula.reasoning = finalizeReasoning(formula.reasoning, formula.lineRatios, { blockedLines: allergyBlockedLines })
 
-  const needsConsultation =
+  // 5.5d) ★급성·중증 췌장염 — 결제 전에 상담으로(2026-10-13 E8 사장님 "급성은 막기"). 예전엔 경고 칩만 띄우고
+  //   주문·결제가 그대로 됐다. 알레르기 상담과 같은 길(주문 화면 → 분석 화면 상담 카드 · 신청 API 409)을 탄다.
+  const severePancreatitis = isSeverePancreatitis({
+    chronicConditions: input.chronicConditions,
+    diagnosedSeverity: input.diagnosedSeverity,
+  })
+  const allergyConsult =
     shippedAllergenLeak || (v3?.layerA?.needsConsultation ?? false)
-  const consultationReason = needsConsultation
+  const needsConsultation = allergyConsult || severePancreatitis
+  const consultationReason = allergyConsult
     ? (v3?.layerA?.consultationReason ??
       '입력하신 알레르기로 지금 판매하는 레시피가 모두 제외됐어요. 맞춤 상담을 도와드릴게요.')
-    : null
+    : severePancreatitis
+      ? PANCREATITIS_CONSULT_REASON
+      : null
 
   // 5.6) daily_grams 재계산 — 결정된 라인 mix 의 kcalPer100g 가중평균 기준.
   //

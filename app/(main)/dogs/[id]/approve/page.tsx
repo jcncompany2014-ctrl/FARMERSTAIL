@@ -22,6 +22,7 @@ import {
 } from '@/lib/personalization/boxPricing'
 import { subscriptionState, type SubLike } from '@/lib/subscription-state'
 import { dailyGramsOf } from '@/lib/personalization/dailyGrams'
+import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
 
 type Row = {
   formula: {
@@ -210,10 +211,17 @@ async function computePricing(
   }
   if (Object.keys(products).length === 0) return null
 
+  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 모르면 금액 패널을 그리지 않는다(틀린 금액보다 낫다).
+  const blocks = await loadDogBlockedLines(supabase, dogId)
+  if (!blocks.ok) {
+    console.error('[dogs/approve] 설문 조회 실패 — 금액 패널 생략:', blocks.error)
+    return null
+  }
   const next = priceForFormula({
     formula: pending,
     freshRatio: sub.fresh_ratio,
     products,
+    blockedLines: blocks.blockedLines,
   })
   // ★`> 0` 만으로는 Infinity 를 못 막는다(`Infinity > 0` 은 참). 금액 가드는
   //  유한성까지 본다 (2026-08-08 금액 감사).
