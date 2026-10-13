@@ -115,10 +115,10 @@ test('규칙206: 배송·교환·환불 정책 — 맨 앞 웹 스토어 단품 
   const catalog = await load<typeof import('./store/catalog.ts')>('lib', 'store', 'catalog.ts')
   assert.ok(trialQa && trialQa.a.includes(`${catalog.TRIAL_PACK_G}g씩`), '가게 FAQ 체험팩 팩 무게가 정본(TRIAL_PACK_G)과 다르다')
 
-  // 사업자 정보 '결제와 환불' — 단품 먼저, 정기배송은 '앱 정기배송은'.
+  // 사업자 정보 '결제와 환불' — 단품 먼저, 정기배송은 '앱 정기배송은'. 단품 문장은 2026-10-14 부터 정본 + 반품 배송비 한 줄(규칙222).
   const biz = flat('app', 'business', 'page.tsx')
   assert.ok(
-    biz.includes('웹 스토어 단품은 받은 날부터 7일 안에 팩을 뜯지 않았다면 환불돼요. 앱 정기배송은 결제 전까지'),
+    biz.includes('웹 스토어 단품은 {REFUND_RULE_HAEYO}') && biz.includes('이에요. 앱 정기배송은 결제 전까지'),
     "사업자 정보 '결제와 환불'에 단품 환불 문장(맨 앞)·'앱 정기배송은'이 없다",
   )
 })
@@ -156,7 +156,8 @@ test("규칙207: 가게 바닥·메뉴 — '주문을 도와드려요' 0회 · �
 test("규칙208: 이용약관 — 제6조 미성년자 취소권 · 제13조 관할은 전자상거래 표준약관 방식('회사 소재지' 전속관할 0회) · 환불 문장 정본 · 반품 배송비 정본", () => {
   const src = stripComments(read('app', 'legal', 'terms', 'page.tsx'))
   const doc = src.replace(/\s+/g, ' ')
-  assert.match(src, /const EFFECTIVE_DATE = '2026-10-13'/, '약관 시행일을 10/13 으로 올리지 않았다')
+  const eff = src.match(/const EFFECTIVE_DATE = '(\d{4}-\d{2}-\d{2})'/)?.[1] ?? ''
+  assert.ok(eff >= '2026-10-13', '약관 시행일을 10/13 으로 올리지 않았다')
 
   const art = (n: number) => doc.slice(doc.indexOf(`number={${n}}`), doc.indexOf(`number={${n + 1}}`))
   assert.ok(
@@ -171,11 +172,13 @@ test("규칙208: 이용약관 — 제6조 미성년자 취소권 · 제13조 관
   )
   assert.doesNotMatch(doc, /회사의? (본사 )?소재지 관할|소재지 관할 법원을 전속/, "약관에 '회사 소재지 전속관할'이 남았다")
 
-  // 요약과 제9조 ① — 합니다체 정본. 옛 말투 0.
+  // 요약과 제9조 — 2026-10-14 사장님 결정으로 ①은 10/13 전 문장('7일 이내 별도 사유 없이 철회'), 팩 조건은 ② 법정 제한 사유의
+  // 예시로만(규칙224 가 지킨다 — 제9조는 정기배송 회원에게도 적용돼 ①에 조건을 붙이면 불리한 변경으로 읽힌다). 여기선 '상자를 연 것은
+  // 개봉 아님'이 요약·제9조에 남았는지와 옛 말투 0 만 본다.
   const summary = doc.slice(0, doc.indexOf('const body'))
-  assert.ok(summary.includes(CANON_REFUND) && summary.includes(CANON_BOX_OK), '약관 요약의 단품 환불 문장이 합니다체 정본이 아니다')
+  assert.ok(summary.includes(CANON_BOX_OK), "약관 요약에 '상자를 연 것은 개봉 아님' 정본 문장이 없다")
   const art9 = art(9)
-  assert.ok(art9.includes(CANON_REFUND) && art9.includes(CANON_BOX_OK), '제9조 ①이 합니다체 정본 문장이 아니다')
+  assert.ok(art9.includes(CANON_BOX_OK.replace(/\.$/, '')), "제9조에 '상자를 연 것은 개봉 아님'이 없다")
   assert.doesNotMatch(doc, OLD_REFUND_COPY, '약관에 옛 환불 문구가 남았다')
 
   // 제9조 — 단품 반품 배송비는 정본 함수 값으로(손으로 적은 금액 0).

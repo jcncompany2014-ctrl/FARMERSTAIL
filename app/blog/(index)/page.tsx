@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { visibleMagazineCategories } from '@/lib/magazine/categories'
 import StoreShell from '@/components/store/StoreShell'
@@ -146,8 +145,9 @@ export default async function BlogIndexPage({
   //   글 수는 실제 공개 글로 센다. 조회가 실패하면 글 수를 모르므로(0편이 아니다 — AGENTS 규칙1) 지금처럼 다 보인다.
   const shownCats = visibleMagazineCategories(cats, postsErr ? null : allRows)
   const activeCategory = catSlug ? shownCats.find((c) => c.slug === catSlug) : null
-  // 글이 없는 카테고리 주소(옛 링크·직접 입력)로 오면 전체 목록으로 — 빈 화면 대신.
-  if (catSlug && !postsErr && !activeCategory && cats.some((c) => c.slug === catSlug)) redirect('/blog')
+  // 글이 없어 숨긴 카테고리 주소(옛 링크·직접 입력)는 없는 카테고리 값과 똑같이 '전체' 목록을 그대로 보여 준다(activeCategory 없음).
+  //   ★redirect 하지 않는다 — 로딩 화면(loading.tsx)이 먼저 흘러나간 뒤라 redirect 는 HTTP 200 + 빈 화면 + 1초 뒤 meta refresh 가
+  //   됐다(2026-10-14, 규칙223). 검색 정본은 이 목록 전체가 /blog 하나(metadata.alternates.canonical) — 카테고리 값마다 따로 두지 않는다.
   const rows = activeCategory ? allRows.filter((p) => p.category_id === activeCategory.id) : allRows
   const catById = new Map(cats.map((c) => [c.id, c]))
   const [hero, ...rest] = rows
