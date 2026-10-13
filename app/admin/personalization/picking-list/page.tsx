@@ -15,6 +15,7 @@ import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { addDaysKst, todayKstIsoDate, kstDateOf } from '@/lib/datetime-kst'
 import { chargeRunPassed, isShippable } from '@/lib/admin/ship-block'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
 import { weekdayOf, weekdayKo, SHIP_WEEKDAY, chargeTimingFor, chargeDateFor, type ChargeTiming } from '@/lib/shipping-schedule'
 import {
@@ -182,15 +183,17 @@ export default async function PickingListPage({
   ]
   const movedSubIds = new Set<string>()
   if (movedIds.length > 0) {
-    const { data: movedRaw, error: movedErr } = await supabase
-      .from('subscriptions')
-      .select(
-        'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
-          'recipient_name, recipient_phone, zip, address, address_detail, ' +
-          'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal, ' +
-        'last_failed_charge_at, last_failed_charge_code',
-      )
-      .in('id', movedIds)
+    const { data: movedRaw, error: movedErr } = await selectInChunks(movedIds, (chunk) =>
+      supabase
+        .from('subscriptions')
+        .select(
+          'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, total_amount, ' +
+            'recipient_name, recipient_phone, zip, address, address_detail, ' +
+            'delivery_memo, total_deliveries, has_billing_key, requires_billing_key_renewal, ' +
+          'last_failed_charge_at, last_failed_charge_code',
+        )
+        .in('id', chunk),
+    )
     if (movedErr) {
       throw new Error(
         `일정 이동 구독 조회 실패 — 목록을 신뢰할 수 없어요: ${movedErr.message}`,
@@ -215,6 +218,16 @@ export default async function PickingListPage({
    */
   const subIds = subs.map((s) => s.id)
   /**
+   * ★결제 증거 조회가 실패하면 목록을 계산하지 않는다 (2026-10-13 점검, 규칙190).
+   *
+   * 아래 두 조회(발송한 주문·발송 대기 주문)가 **결제 증거**다 — hasPaidOrder 가 이 둘로만 정해진다.
+   * 예전엔 실패해도 console.error 만 남기고 '결제 주문 없음'으로 계산을 이어 가서, 결제된 박스가
+   * 빨간 "고객이 미룸 — 미청구, 보내지 마세요"로 뜨고 라벨·조리 합계에서 빠졌다(돈 받고 안 보냄).
+   * 반대로 그 화면을 믿고 결제 안 된 박스를 보낼 수도 있다. 모르면 목록을 보여 주지 않는다.
+   * 구독이 많아 `.in()` 주소가 16KB 를 넘는 것도 같은 실패라 200개씩 나눠 묻는다(selectInChunks).
+   */
+  let paidEvidenceError: string | null = null
+  /**
    * ★이번 발송분 중 **이미 송장을 넣어 보낸** 주문 (11차 점검 B, 2026-10-06 첫 발송일).
    * 예전엔 결제 증거를 '결제됨 + preparing' 으로만 찾아서, 송장을 넣는 순간(shipping) 그 박스가 증거를 잃고
    * 빨간 "고객이 미룸 — 미청구, 보내지 마세요"로 바뀌었다(날짜는 이미 +14 라 skip 판정과 같아진다).
@@ -227,17 +240,21 @@ export default async function PickingListPage({
   >()
   if (subIds.length > 0) {
     const shippedSince = `${addDaysKst(shipDate, -6)}T00:00:00+09:00`
-    const { data: shippedRows, error: shippedErr } = await supabase
-      .from('orders')
-      .select('id, order_number, subscription_id, tracking_number, shipped_at')
-      .in('subscription_id', subIds)
-      .in('payment_status', PAID_STATUSES)
-      .in('order_status', ['shipping', 'delivered'])
-      .gte('shipped_at', shippedSince)
-      .order('shipped_at', { ascending: false })
+    // 구독 id 로 나눠 묻는다 — 한 구독의 주문은 한 묶음에만 있어 '구독마다 가장 최근 1건' 판정이 그대로다.
+    const { data: shippedRows, error: shippedErr } = await selectInChunks(subIds, (chunk) =>
+      supabase
+        .from('orders')
+        .select('id, order_number, subscription_id, tracking_number, shipped_at')
+        .in('subscription_id', chunk)
+        .in('payment_status', PAID_STATUSES)
+        .in('order_status', ['shipping', 'delivered'])
+        .gte('shipped_at', shippedSince)
+        .order('shipped_at', { ascending: false }),
+    )
     if (shippedErr) {
-      // 모르면 예전처럼 보인다(발송 완료 박스가 경고로) — 박스가 덜 나가는 쪽이라 화면은 멈추지 않는다.
+      // 모르는 채로 계산하면 이미 보낸(결제된) 박스가 '보내지 마세요'로 뜬다 — 목록을 멈춘다(규칙190).
       console.error('[picking-list] 발송 완료 주문 조회 실패', shippedErr.message)
+      paidEvidenceError = `발송한 주문 조회 실패: ${shippedErr.message}`
     }
     for (const o of (shippedRows ?? []) as Array<{
       id: string
@@ -259,18 +276,21 @@ export default async function PickingListPage({
     { id: string; orderNumber: string; shipTo: ShippingTarget | null }
   >()
   if (subIds.length > 0) {
-    const { data: orderRows, error: ordersErr } = await supabase
-      .from('orders')
-      .select(
-        'id, order_number, subscription_id, created_at, recipient_name, recipient_phone, zip, address, address_detail',
-      )
-      .in('subscription_id', subIds)
-      .in('payment_status', PAID_STATUSES)
-      .eq('order_status', 'preparing')
-      .order('created_at', { ascending: false })
+    const { data: orderRows, error: ordersErr } = await selectInChunks(subIds, (chunk) =>
+      supabase
+        .from('orders')
+        .select(
+          'id, order_number, subscription_id, created_at, recipient_name, recipient_phone, zip, address, address_detail',
+        )
+        .in('subscription_id', chunk)
+        .in('payment_status', PAID_STATUSES)
+        .eq('order_status', 'preparing')
+        .order('created_at', { ascending: false }),
+    )
     if (ordersErr) {
-      // 링크가 없는 건 견딜 수 있지만, 조용히 없는 것처럼 보이면 안 된다.
+      // 이 조회가 '결제됨' 증거다 — 실패를 '주문 없음'으로 읽으면 결제된 박스가 '보내지 마세요'가 된다(규칙190).
       console.error('[picking-list] 주문 조회 실패', ordersErr.message)
+      paidEvidenceError ??= `발송 대기 주문 조회 실패: ${ordersErr.message}`
     }
     for (const o of (orderRows ?? []) as Array<{
       id: string
@@ -299,6 +319,10 @@ export default async function PickingListPage({
         })
       }
     }
+  }
+
+  if (paidEvidenceError) {
+    return <PickingListUnreliable shipDate={shipDate} detail={paidEvidenceError} />
   }
 
   /**
@@ -337,15 +361,19 @@ export default async function PickingListPage({
     const admin = createAdminClient()
     const [{ data: addrRows, error: addrErr }, { data: profRows, error: profErr }] =
       await Promise.all([
-        admin
-          .from('addresses')
-          .select('user_id, recipient_name, phone, zip, address, address_detail')
-          .in('user_id', needCurrent)
-          .eq('is_default', true),
-        admin
-          .from('profiles')
-          .select('id, name, phone, zip, address, address_detail')
-          .in('id', needCurrent),
+        selectInChunks(needCurrent, (chunk) =>
+          admin
+            .from('addresses')
+            .select('user_id, recipient_name, phone, zip, address, address_detail')
+            .in('user_id', chunk)
+            .eq('is_default', true),
+        ),
+        selectInChunks(needCurrent, (chunk) =>
+          admin
+            .from('profiles')
+            .select('id, name, phone, zip, address, address_detail')
+            .in('id', chunk),
+        ),
       ])
     // 조회 실패를 '주소 없음'으로 접으면 라벨이 엉뚱한 주소로 찍힌다 — 목록 자체를 멈춘다.
     const lookupErr = addrErr ?? profErr
@@ -398,10 +426,13 @@ export default async function PickingListPage({
   {
     const userIds = [...new Set(subs.map((s) => s.user_id))]
     if (userIds.length > 0) {
-      const { data: trialRows, error: trialErr } = await createAdminClient()
-        .from('subscription_trials')
-        .select('user_id, cheap_remaining, half_remaining')
-        .in('user_id', userIds)
+      const trialClient = createAdminClient()
+      const { data: trialRows, error: trialErr } = await selectInChunks(userIds, (chunk) =>
+        trialClient
+          .from('subscription_trials')
+          .select('user_id, cheap_remaining, half_remaining')
+          .in('user_id', chunk),
+      )
       if (trialErr) {
         throw new Error(`서포터즈 상태 조회 실패 — 결제일을 판정할 수 없어요: ${trialErr.message}`)
       }
@@ -423,24 +454,25 @@ export default async function PickingListPage({
     { data: prodRaw },
     { data: prodAllRaw },
   ] = await Promise.all([
-      dogIds.length
-        ? supabase.from('dogs').select('id, name').in('id', dogIds)
-        : Promise.resolve({ data: [] as Array<{ id: string; name: string }>, error: null }),
-      dogIds.length
-        ? supabase
-            .from('dog_formulas')
-            .select(
-              'id, dog_id, cycle_number, formula, daily_kcal, ' +
-                'transition_strategy, user_adjusted, approval_status, applied_from',
-            )
-            .in('dog_id', dogIds)
-            // ★처방 정렬은 created_at — cycle_number 가 아니다 (2026-07-30 최종감사).
-            // 회차 번호가 큰 것이 최신이 아니다: 프로덕션 실측으로 cycle 2 가 cycle 1
-            // 보다 5일 **먼저** 생성돼 있었다. 회차로 고르면 청구(subscription-charge)와
-            // 다른 처방을 집어 "청구한 금액과 담는 박스가 다른 처방" 이 된다 —
-            // 사장님이 과거 지적한 "닭으로 추천받았는데 오리랑 소를 받아" 와 같은 부류.
-            .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] as unknown[], error: null }),
+      // 강아지 id 로 200개씩 나눠 묻는다(규칙190) — 한 강아지의 처방은 한 묶음에만 있어 '강아지마다 최신' 판정이 그대로다.
+      selectInChunks(dogIds, (chunk) =>
+        supabase.from('dogs').select('id, name').in('id', chunk),
+      ),
+      selectInChunks(dogIds, (chunk) =>
+        supabase
+          .from('dog_formulas')
+          .select(
+            'id, dog_id, cycle_number, formula, daily_kcal, ' +
+              'transition_strategy, user_adjusted, approval_status, applied_from',
+          )
+          .in('dog_id', chunk)
+          // ★처방 정렬은 created_at — cycle_number 가 아니다 (2026-07-30 최종감사).
+          // 회차 번호가 큰 것이 최신이 아니다: 프로덕션 실측으로 cycle 2 가 cycle 1
+          // 보다 5일 **먼저** 생성돼 있었다. 회차로 고르면 청구(subscription-charge)와
+          // 다른 처방을 집어 "청구한 금액과 담는 박스가 다른 처방" 이 된다 —
+          // 사장님이 과거 지적한 "닭으로 추천받았는데 오리랑 소를 받아" 와 같은 부류.
+          .order('created_at', { ascending: false }),
+      ),
       supabase
         .from('products')
         .select('slug, name, price, sale_price, stock, is_subscribable')
@@ -1068,6 +1100,37 @@ export default async function PickingListPage({
           {(totalGrams / 1000).toFixed(1)}kg
         </p>
       )}
+    </main>
+  )
+}
+
+/**
+ * 결제 증거 조회가 실패했을 때의 화면(규칙190) — 목록·라벨·조리 합계를 그리지 않는다.
+ * 틀린 목록(결제된 박스에 '보내지 마세요', 또는 그 반대)보다 빈 화면이 안전하다.
+ */
+function PickingListUnreliable({ shipDate, detail }: { shipDate: string; detail: string }) {
+  return (
+    <main className="px-5 py-6 max-w-6xl mx-auto">
+      <AdminHeader
+        title={`박스 패킹 — ${shipDate} (${weekdayKo(shipDate)})`}
+        sub="화요일 발송분 박스를 싸기 위한 리스트예요."
+      />
+      <AdminCard className="border-red-300 bg-red-50">
+        <p role="alert" className="text-[15px] font-bold text-red-800">
+          목록을 믿을 수 없어요, 새로고침해 주세요
+        </p>
+        <p className="mt-1.5 text-[13px] text-red-700">
+          결제된 주문을 확인하지 못했어요. 이대로 보여 주면 결제된 박스가 &lsquo;보내지 마세요&rsquo;로
+          보이거나 그 반대가 될 수 있어서 목록·라벨·조리 합계를 숨겼어요. 잠시 뒤 새로고침해 주세요.
+        </p>
+        <p className="mt-1.5 text-[12px] font-mono text-red-800">{detail}</p>
+        <a
+          href={`?date=${shipDate}`}
+          className="mt-3 inline-block rounded-full bg-foreground px-4 py-1.5 text-[12px] font-bold text-background"
+        >
+          새로고침
+        </a>
+      </AdminCard>
     </main>
   )
 }

@@ -165,8 +165,8 @@ function formatKoDate(iso: string): string {
  * 정기배송 자동결제 실패 알림.
  *
  * cron 이 Toss 결제 호출에 실패하면 발송. 카드 만료 / 잔액 부족이 가장 흔한
- * 원인. 거래성 메일 — (광고) 표기 불요. 사용자가 새 카드 등록을 위해 마이
- * 페이지로 가게끔 단일 CTA.
+ * 원인. 거래성 메일 — (광고) 표기 불요. 사용자가 새 카드 등록을 위해 웹
+ * 정기배송 관리(/account/subscriptions)로 가게끔 단일 CTA.
  *
  * # variant
  * - errorClass='permanent' (카드 만료/유효 X)  → 즉시 paused + 카드 재등록 CTA
@@ -218,11 +218,17 @@ export function renderSubscriptionChargeFailed(input: {
           ? '결제가 일시적으로 실패했어요'
           : '결제를 처리하지 못했어요'
 
-  const reasonLine = input.reason
-    ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">사유: ${escape(input.reason)}</p>`
-    : ''
+  // ★결과 확인 중이면 '사유'를 쓰지 않는다(2026-10-13 규칙192) — 실패가 아니라서 실패 사유가 없다.
+  const reasonLine = isUnknownOutcome
+    ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">카드사 응답이 늦어 결과를 확인하고 있어요</p>`
+    : input.reason
+      ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">사유: ${escape(input.reason)}</p>`
+      : ''
 
   // variant 별 본문
+  // ★순서: 카드 재등록 → **멈춤** → 결과 확인 중 → 일시 실패 → 그 외 (2026-10-13 규칙192).
+  //   예전엔 일시 실패(잔액부족류) 분기가 멈춤보다 먼저라, 3번째 거절로 **멈춘** 구독에게 "잠시 실패 —
+  //   내일 다시 시도할게요"를 보냈다. 멈춘 구독은 크론이 다시 긁지 않는다 — 카드를 다시 등록해야 시작된다.
   let mainBody = ''
   if (isPermanent) {
     mainBody = `
@@ -233,6 +239,16 @@ export function renderSubscriptionChargeFailed(input: {
       </p>
       <p style="margin:0 0 14px 0;">
         새 카드를 등록하시면 자동으로 다시 정기배송이 진행돼요.
+      </p>
+    `
+  } else if (input.paused) {
+    mainBody = `
+      <p style="margin:0 0 14px 0;">
+        <strong>${escape(input.productLabel)}</strong> 의 정기배송 결제가 3번 이어서 되지 않아
+        정기배송을 잠시 멈췄어요. 카드 한도·잔액 부족이나 카드 정보 변경이 흔한 원인이에요.
+      </p>
+      <p style="margin:0 0 14px 0;">
+        <strong>카드를 다시 등록하면 바로 다시 시작돼요.</strong>
       </p>
     `
   } else if (isUnknownOutcome) {
@@ -262,13 +278,21 @@ export function renderSubscriptionChargeFailed(input: {
     mainBody = `
       <p style="margin:0 0 14px 0;">
         <strong>${escape(input.productLabel)}</strong> 의 정기배송 결제가
-        ${input.paused
-          ? '연속 3회 실패해 자동으로 일시중단 처리됐어요.'
-          : `${input.attemptCount}회째 실패했어요.`}
+        ${input.attemptCount}회째 실패했어요.
         카드 만료나 잔액 부족이 가장 흔한 원인이에요.
       </p>
     `
   }
+
+  // 끝 줄 — 메일은 브라우저에서 열리므로 웹 '정기배송 관리'(/account/subscriptions) 기준으로 말한다.
+  //   앱에는 '마이페이지'가 없다(규칙195). 결과 확인 중이면 할 일이 없다 — 다른 카드 등록을 권하지 않는다.
+  const footLine = isUnknownOutcome
+    ? '따로 하실 일은 없어요. 결과가 확인되면 다시 알려드릴게요.'
+    : input.paused && !isPermanent
+      ? '정기배송 관리에서 카드를 다시 등록하면 바로 다시 시작돼요. 결제가 확인된 박스부터 준비해 보내드려요.'
+      : isTransient
+        ? '재시도 전에 미리 다른 카드를 등록해 두셔도 좋아요. 정기배송 관리에서 할 수 있어요.'
+        : '정기배송 관리에서 카드 정보를 새로 등록하시면 자동으로 다시 결제돼요. 결제가 확인된 박스부터 준비해 보내드려요.'
 
   const body = `
     <p style="margin:0 0 14px 0;">
@@ -276,23 +300,27 @@ export function renderSubscriptionChargeFailed(input: {
     </p>
     ${mainBody}
     ${block.callout(
-      isPermanent ? 'sale' : isTransient ? 'gold' : 'sale',
-      `결제 시도 금액: <strong>${input.amount.toLocaleString()}원</strong>${reasonLine}`,
+      isPermanent || input.paused ? 'sale' : isTransient || isUnknownOutcome ? 'gold' : 'sale',
+      `${isUnknownOutcome ? '결제 요청 금액' : '결제 시도 금액'}: <strong>${input.amount.toLocaleString()}원</strong>${reasonLine}`,
     )}
     <p style="margin:14px 0 0 0;font-size:12px;color:#7A7A7A;line-height:1.6;">
-      ${isTransient
-        ? '재시도 전에 미리 다른 카드를 등록해 두셔도 좋아요. 마이페이지에서 가능해요.'
-        : '마이페이지에서 카드 정보를 새로 등록하시면 자동으로 다시 결제돼요. 결제가 확인된 박스부터 준비해 보내드리고, 일시중단 상태도 카드 등록 시 자동 해제돼요.'}
+      ${footLine}
     </p>
   `
 
   const html = renderLayout({
     preview: heading,
-    kicker: isPermanent ? 'Card Renewal · 카드 재등록' : 'Charge Failed · 결제 실패',
+    kicker: isPermanent
+      ? 'Card Renewal · 카드 재등록'
+      : input.paused
+        ? 'Paused · 정기배송 멈춤'
+        : isUnknownOutcome
+          ? 'Checking · 결제 확인 중'
+          : 'Charge Failed · 결제 실패',
     heading,
     body,
     cta: {
-      label: isPermanent ? '카드 다시 등록하기' : '카드 정보 업데이트',
+      label: isPermanent || input.paused ? '카드 다시 등록하기' : isUnknownOutcome ? '정기배송 확인하기' : '카드 정보 업데이트',
       href: `${SITE_URL}/account/subscriptions`,
     },
   })

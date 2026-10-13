@@ -104,8 +104,12 @@ export default function PreferencesPanel({
     }
   }, [])
 
+  // ★저장 중엔 모든 칸을 잠근다(2026-10-13 규칙193). 예전엔 누른 칸만 잠가서, 저장이 끝나기 전에 다른 토글을
+  //   누르면 두 요청이 겹쳤고 실패한 쪽의 '원복'이 다른 칸의 성공까지 되돌렸다(prev 를 통째로 다시 깔기 때문).
+  const locked = saving !== null
+
   async function patch(partial: Partial<Prefs>, key: keyof Prefs | 'quiet') {
-    if (!prefs) return
+    if (!prefs || saving !== null) return
     setError(null)
     setSaving(key)
     const prev = prefs
@@ -117,10 +121,13 @@ export default function PreferencesPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(partial),
       })
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
-        const data = await res.json().catch(() => null)
         setError(data?.message ?? '저장하지 못했어요')
         setPrefs(prev)
+      } else if (data?.prefs) {
+        // 서버가 저장한 실제 값으로 맞춘다(낙관값과 다를 수 있다).
+        setPrefs(data.prefs as Prefs)
       }
     } catch {
       setError('네트워크가 불안정해요. 다시 시도해 주세요')
@@ -177,6 +184,7 @@ export default function PreferencesPanel({
   }
 
   const quietOn = prefs.quiet_hours_start !== null && prefs.quiet_hours_end !== null
+  // 시각 고르기는 두 시각을 같이 보낸다 — 서버는 바뀐 뒤의 두 값으로 검사한다(lib/push-preferences).
 
   return (
     <>
@@ -185,7 +193,7 @@ export default function PreferencesPanel({
         <RuleList style={{ marginTop: 12 }}>
           {CATEGORIES.map((c) => {
             const on = Boolean(prefs[c.key])
-            const busy = saving === c.key
+            const busy = locked
             return (
               <div
                 key={c.key}
@@ -234,6 +242,7 @@ export default function PreferencesPanel({
           <input
             type="checkbox"
             checked={quietOn}
+            disabled={locked}
             onChange={(e) =>
               patch(
                 e.target.checked
@@ -251,7 +260,10 @@ export default function PreferencesPanel({
             <select
               aria-label="시작 시각"
               value={prefs.quiet_hours_start ?? 22}
-              onChange={(e) => patch({ quiet_hours_start: Number(e.target.value) }, 'quiet')}
+              disabled={locked}
+              onChange={(e) =>
+                patch({ quiet_hours_start: Number(e.target.value), quiet_hours_end: prefs.quiet_hours_end ?? 8 }, 'quiet')
+              }
               style={SELECT_STYLE}
             >
               {Array.from({ length: 24 }).map((_, i) => (
@@ -264,7 +276,10 @@ export default function PreferencesPanel({
             <select
               aria-label="끝 시각"
               value={prefs.quiet_hours_end ?? 8}
-              onChange={(e) => patch({ quiet_hours_end: Number(e.target.value) }, 'quiet')}
+              disabled={locked}
+              onChange={(e) =>
+                patch({ quiet_hours_start: prefs.quiet_hours_start ?? 22, quiet_hours_end: Number(e.target.value) }, 'quiet')
+              }
               style={SELECT_STYLE}
             >
               {Array.from({ length: 24 }).map((_, i) => (

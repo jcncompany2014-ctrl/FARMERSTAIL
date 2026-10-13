@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { checkChatbotAccess } from '@/lib/chatbot/server'
 import ChatClient from './ChatClient'
-import { ChatCaution, ChatHero } from './ChatParts'
+import { ChatCaution, ChatHero, ChatSubscribersOnly } from './ChatParts'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,19 @@ export default async function ChatPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/chat')
+
+  // ★정기배송 중인 보호자만 쓴다(2026-10-13 사장님 결정, 규칙191) — API 와 같은 판정(lib/chatbot/server).
+  //   아니면 대화 칸 대신 안내와 정기배송 시작 길을 보여 준다. 조회 실패는 '아님'이 아니라 새로고침 안내.
+  const access = await checkChatbotAccess(user.id)
+  if (access !== 'allowed') {
+    return (
+      <div style={{ paddingBottom: 28, lineHeight: 'normal' }}>
+        <ChatHero />
+        <ChatSubscribersOnly state={access === 'lookup_failed' ? 'unknown' : 'not_subscriber'} />
+        <ChatCaution />
+      </div>
+    )
+  }
 
   const { data: dogs, error: dogsErr } = await supabase
     .from('dogs')

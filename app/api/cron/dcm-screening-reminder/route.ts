@@ -33,8 +33,9 @@ export const dynamic = 'force-dynamic'
  *   3. push CTA — /dogs/{dogId} (수의사 상담 카드 노출 자리).
  *
  * # 일정
- *   매주 수 KST 11시 (UTC 02:00). weight-change / protein-rotation 슬롯과
- *   분리. 운영 부하 분산.
+ *   ⛔ 2026-10-13 사장님 결정으로 **일정에서 뺐다**(vercel.json crons·functions 둘 다). 이 파일은 남겨 둔다 —
+ *   되살릴 때는 vercel.json 에 일정과 maxDuration 을 다시 넣고, LAUNCH_CHECKLIST 크론 표에도 한 줄 넣는다.
+ *   (옛 일정: 매주 수 KST 11시, UTC 02:00.)
  */
 export async function GET(req: Request) {
   if (!isAuthorizedCronRequest(req)) {

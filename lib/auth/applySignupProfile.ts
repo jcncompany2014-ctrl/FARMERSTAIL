@@ -75,8 +75,9 @@ export async function applySignupProfile(
   userId: string,
   d: PendingSignupProfile,
 ): Promise<ApplySignupResult> {
-  const now = new Date().toISOString()
-
+  // ★동의 칸(agree_*·시각·약관 버전)은 여기서 쓰지 않는다(2026-10-13 규칙197). 아래 RPC 가 동의 값·시각(now())·
+  //   동의 기록(consent_log)을 한 번에 남긴다. 예전엔 브라우저 시계로 시각을 넣고 consent_log 에 직접 INSERT 했다 —
+  //   고객 권한으로 동의 기록을 쓸 수 있다는 뜻이라(임의 날짜 가능) 그 권한을 회수했다.
   const { error: profErr } = await supabase
     .from('profiles')
     .update({
@@ -88,14 +89,6 @@ export async function applySignupProfile(
       birth_year: d.birthYear,
       birth_month: d.birthMonth,
       birth_day: d.birthDay,
-      agree_email: d.agreeMarketingEmail,
-      agree_sms: d.agreeMarketingSms,
-      agree_email_at: d.agreeMarketingEmail ? now : null,
-      agree_sms_at: d.agreeMarketingSms ? now : null,
-      marketing_policy_version:
-        d.agreeMarketingEmail || d.agreeMarketingSms
-          ? MARKETING_POLICY_VERSION
-          : null,
     })
     .eq('id', userId)
 
@@ -104,39 +97,32 @@ export async function applySignupProfile(
     return { underAge: true }
   }
 
-  // 마케팅 동의 증적 — profiles 플래그가 truth source, consent_log 는 부가 감사.
-  const consentInserts: Promise<unknown>[] = []
-  if (d.agreeMarketingEmail) {
-    consentInserts.push(
-      supabase.from('consent_log').insert({
-        user_id: userId,
-        channel: 'email',
-        granted: true,
-        policy_version: MARKETING_POLICY_VERSION,
-        source: 'signup',
-      }) as unknown as Promise<unknown>,
+  // 마케팅 동의 — 서버 함수 set_marketing_consent(SECURITY DEFINER)가 profiles 플래그·시각 + consent_log 를 같이 쓴다.
+  const wanted: Array<'email' | 'sms'> = [
+    ...(d.agreeMarketingEmail ? (['email'] as const) : []),
+    ...(d.agreeMarketingSms ? (['sms'] as const) : []),
+  ]
+  if (wanted.length > 0) {
+    const results = await Promise.all(
+      wanted.map(async (channel) => {
+        const { error } = await supabase.rpc('set_marketing_consent', {
+          p_channel: channel,
+          p_granted: true,
+          p_policy_version: MARKETING_POLICY_VERSION,
+          p_source: 'signup',
+        })
+        if (error) console.error('[applySignupProfile] set_marketing_consent 실패', channel, error.message)
+        return error ? null : channel
+      }),
     )
-  }
-  if (d.agreeMarketingSms) {
-    consentInserts.push(
-      supabase.from('consent_log').insert({
-        user_id: userId,
-        channel: 'sms',
-        granted: true,
-        policy_version: MARKETING_POLICY_VERSION,
-        source: 'signup',
-      }) as unknown as Promise<unknown>,
-    )
-  }
-  if (consentInserts.length > 0) {
-    await Promise.allSettled(consentInserts)
+    // 실제로 저장된 채널만 통지한다 — 저장 안 된 동의를 '처리됐어요'라고 알리지 않는다.
+    const channels = results.filter((c): c is 'email' | 'sms' => c !== null)
+    if (channels.length === 0) {
+      return { profileError: !!profErr && !profErr.message?.includes('UNDER_14') }
+    }
     // ★가입 때 받은 광고 수신 동의도 처리결과를 알린다 (정보통신망법 §50⑦, 2026-09-25).
     //   예전엔 거부만 알려서 가입 동의 고객은 통지를 한 통도 못 받았다. 한 통에 채널을 묶는다.
     //   로그인 직후 화면 이동이 있어 keepalive 로 보낸다.
-    const channels = [
-      ...(d.agreeMarketingEmail ? ['email'] : []),
-      ...(d.agreeMarketingSms ? ['sms'] : []),
-    ]
     void fetch('/api/consent/unsubscribe-ack', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

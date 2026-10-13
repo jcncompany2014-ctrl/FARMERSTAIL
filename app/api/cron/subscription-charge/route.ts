@@ -1849,6 +1849,10 @@ async function runSubscriptionCharge(): Promise<Response> {
         nextFailedCount = sub.failed_charge_count + 1
         shouldPause = nextFailedCount >= MAX_FAILED
       }
+      // ★멈추면 재시도 일정도 지운다(2026-10-13 규칙192). 확정 거절 3회째는 위에서 내일 재시도 시각을 넣은 뒤
+      //   멈춰서, 정지된 구독에 '내일 재시도 예정'이 남았다 — 메일·웹 화면이 "내일 다시 시도할게요"라고 말했지만
+      //   크론은 정지 구독을 다시 긁지 않는다. 다시 시작은 카드 재등록(billing-issue)이 한다.
+      if (shouldPause) nextRetryAt = null
 
       const subUpdate: Record<string, unknown> = {
         failed_charge_count: nextFailedCount,
@@ -1967,10 +1971,11 @@ async function runSubscriptionCharge(): Promise<Response> {
             : errorClass === 'transient'
               ? '결제가 잠시 실패 — 내일 다시 시도할게요'
               : '정기배송 결제 실패'
+      // 앱에는 '마이페이지'가 없다(하단 탭 '내 정보') — 이 알림을 누르면 열리는 정기배송 화면 기준으로 말한다(규칙195).
       const pushBody = shouldMarkRenewal
-        ? `${reasonShort} · 마이페이지에서 새 카드 등록`
+        ? `${reasonShort} · 정기배송 화면에서 새 카드를 등록해 주세요`
         : shouldPause
-          ? '연속 3회 실패. 마이페이지에서 카드 확인'
+          ? '결제가 3번 이어서 안 됐어요. 정기배송 화면에서 카드를 다시 등록하면 바로 다시 시작돼요'
           : outcomeUnknown
             ? '카드사 응답이 늦어요. 내일 아침 다시 확인하고, 두 번 결제되지는 않아요.'
             : reasonShort

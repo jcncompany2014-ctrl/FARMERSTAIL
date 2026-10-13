@@ -13,6 +13,7 @@ import {
   isOrderStatus,
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
+import { DUPLICATE_TRACKING, DUPLICATE_TRACKING_CHECK_FAILED } from '@/lib/admin/tracking-duplicates'
 
 /**
  * 발송 처리 패널 — 택배사/송장번호를 입력하고 order_status를 'shipping' 으로 전환.
@@ -106,21 +107,43 @@ export default function ShippingControl({
 
     // 발송 후에는 상태 전이가 아니라 운송장 정정이다. 배송 시작 알림은 다시
     // 나가지 않는다.
-    const res = isShipped
-      ? await fetch(`/api/admin/orders/${orderId}/tracking`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ carrier, trackingNumber: trimmed }),
-        })
-      : await fetch(`/api/admin/orders/${orderId}/status`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            orderStatus: 'shipping',
-            carrier,
-            trackingNumber: trimmed,
-          }),
-        })
+    const send = (confirmDuplicate: boolean) =>
+      isShipped
+        ? fetch(`/api/admin/orders/${orderId}/tracking`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ carrier, trackingNumber: trimmed, confirmDuplicate }),
+          })
+        : fetch(`/api/admin/orders/${orderId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderStatus: 'shipping',
+              carrier,
+              trackingNumber: trimmed,
+              confirmDuplicate,
+            }),
+          })
+    let res = await send(false)
+    // ★송장 중복 경고(2026-10-13 사장님 결정 — 화면 경고만, 규칙198). 같은 택배사·번호가 다른 주문에 있거나
+    //   확인 조회가 실패하면 서버가 409 로 묻는다 — 사장님이 확인해야 저장된다(합포장이면 정상).
+    if (res.status === 409) {
+      const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string }
+      if (data.code === DUPLICATE_TRACKING || data.code === DUPLICATE_TRACKING_CHECK_FAILED) {
+        const ok = window.confirm(`${data.message ?? '같은 송장번호가 다른 주문에 있어요.'}\n\n그래도 저장할까요?`)
+        if (!ok) {
+          setLoading(false)
+          setError('저장하지 않았어요 — 송장번호를 확인해 주세요')
+          return
+        }
+        res = await send(true)
+      } else {
+        // 다른 409 — 본문을 이미 읽었으니 여기서 안내하고 끝낸다.
+        setLoading(false)
+        setError(data.message ?? (isShipped ? '운송장 수정에 실패했어요' : '발송 처리에 실패했어요'))
+        return
+      }
+    }
     setLoading(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

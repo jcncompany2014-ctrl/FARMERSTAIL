@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from 'react'
 import WeightInputSheet from '@/components/v3/dog/WeightInputSheet'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 
 interface QuickWeightSheetProps {
   open: boolean
@@ -137,6 +138,8 @@ export default function QuickWeightSheet({
         dog_id: dogId,
         user_id: user.id,
         weight: value,
+        // ★잰 날짜 = 한국 날짜(2026-10-13 규칙194) — DB 기본값(UTC)에 맡기면 아침 9시 전 기록이 전날이 된다.
+        measured_at: todayKstIsoDate(),
       })
       if (error) throw new Error('저장하지 못했어요')
       // 마스터 체중도 최신값으로 (분석·대시보드·다음행동 엔진 반영).

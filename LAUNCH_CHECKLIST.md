@@ -269,6 +269,7 @@ WHERE table_schema='public'
 | `/api/cron/stamps-expire` | `0 15 * * *` | 00:00 (+1일) | 매일 |
 | `/api/cron/account-purge` | `0 16 1 * *` | 01:00 (+1일) | 매월 1일 |
 | `/api/cron/order-expire` | `0 17 * * *` | 02:00 (+1일) | 매일 |
+| `/api/cron/unverified-signup-purge` | `20 17 * * *` | 02:20 (+1일) | 매일 |
 | `/api/cron/subscription-cleanup` | `30 18 * * *` | 03:30 (+1일) | 매일 |
 | `/api/cron/refund-retry` | `30 19 * * *` | 04:30 (+1일) | 매일 |
 | `/api/cron/ops-digest` | `0 23 * * *` | 08:00 (+1일) | 매일 |
@@ -286,7 +287,6 @@ WHERE table_schema='public'
 | `/api/cron/push-lifecycle` | `0 1 * * *` | 10:00 | 매일 |
 | `/api/cron/personalization-progression` | `10 1 * * *` | 10:10 | 매일 |
 | `/api/cron/protein-rotation` | `0 2 * * 2` | 11:00 | 매주 화 |
-| `/api/cron/dcm-screening-reminder` | `0 2 * * 3` | 11:00 | 매주 수 |
 | `/api/cron/first-box-checkin` | `0 2 * * *` | 11:00 | 매일 |
 | `/api/cron/payment-ledger-reconcile` | `0 3 * * 0` | 12:00 | 매주 일 |
 | `/api/cron/sensitivity-snapshots` | `0 4 * * 1` | 13:00 | 매주 월 |
@@ -296,7 +296,8 @@ WHERE table_schema='public'
 | `/api/cron/intervention-alerts` | `0 9 * * 2` | 18:00 | 매주 화 |
 | `/api/cron/tracking-poll` | `30 9 * * *` | 18:30 | 매일 |
 
-총 **29 cron**. 전부 하루 1회 이하 — Vercel 크론 요금 한도로 **빌드가
+총 **29 cron**(2026-10-13 — 심장 검진 안내 `dcm-screening-reminder` 는 사장님 결정으로 일정에서 뺐고
+라우트 파일만 남았다 · 인증 안 한 가입 정리 `unverified-signup-purge` 를 더했다). 전부 하루 1회 이하 — Vercel 크론 요금 한도로 **빌드가
 거부되면 배포 기록조차 안 생긴다**(AGENTS.md 규칙7). `lib/audit-rules.test.ts`
 규칙7 이 이걸 지킨다.
 

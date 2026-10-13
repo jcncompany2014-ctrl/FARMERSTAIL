@@ -6,7 +6,54 @@
  *   주의 상자: "⚠️" 이모지 → 빨간 세모 아이콘, "진단·처방·응급" → "진단·응급"('처방'은 고객 문구 금지어).
  */
 
+import Link from 'next/link'
 import { V3 } from '@/lib/design/tokens'
+import { primaryButton } from '@/components/v3/me/MeParts'
+import { CHATBOT_SUBSCRIBERS_ONLY_MESSAGE } from '@/lib/chatbot/eligibility'
+
+/**
+ * 정기배송 중이 아닌 보호자에게 보이는 안내(2026-10-13 사장님 결정, 규칙191) — 대화 칸 대신 그린다.
+ * 'unknown' = 구독 조회 실패(정기배송 중인데 막힌 것처럼 말하지 않게 새로고침 안내만).
+ */
+export function ChatSubscribersOnly({ state }: { state: 'not_subscriber' | 'unknown' }) {
+  return (
+    <section
+      aria-label="AI 상담 이용 안내"
+      style={{
+        margin: '26px 20px 0',
+        padding: '22px 18px 20px',
+        borderRadius: 4,
+        background: V3.soft,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      {state === 'unknown' ? (
+        <>
+          <p role="alert" style={{ margin: 0, fontSize: 18, fontWeight: 800, lineHeight: 1.4 }}>
+            지금은 이용 정보를 확인하지 못했어요
+          </p>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+            잠시 뒤 새로고침해 주세요.
+          </p>
+        </>
+      ) : (
+        <>
+          <p style={{ margin: 0, fontSize: 18, fontWeight: 800, lineHeight: 1.4, wordBreak: 'keep-all' }}>
+            {CHATBOT_SUBSCRIBERS_ONLY_MESSAGE}
+          </p>
+          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: V3.inkSoft, wordBreak: 'keep-all' }}>
+            정기배송을 시작하면 우리 아이 식이·알레르기·영양 질문을 여기서 물어볼 수 있어요.
+          </p>
+          <Link href="/mypage/subscriptions" style={{ ...primaryButton(54, 16), marginTop: 10, textDecoration: 'none' }}>
+            정기배송 시작하기
+          </Link>
+        </>
+      )}
+    </section>
+  )
+}
 
 export function ChatHero() {
   return (

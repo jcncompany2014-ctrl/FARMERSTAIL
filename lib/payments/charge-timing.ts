@@ -9,6 +9,7 @@
  * 단정하지 않는다(발송일만 말한다).
  */
 import { createAdminClient } from '@/lib/supabase/admin'
+import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { chargeTimingFor, type ChargeTiming } from '@/lib/shipping-schedule'
 
@@ -29,10 +30,14 @@ export async function getChargeTimings(userIds: string[]): Promise<Map<string, C
   } catch {
     return null
   }
-  const { data, error } = await supabase
-    .from('subscription_trials')
-    .select('user_id, cheap_remaining, half_remaining')
-    .in('user_id', ids)
+  // ★200명씩 나눠 묻는다(2026-10-13 규칙190) — 결제 사전 알림 크론이 전 구독자 id 를 한 번에 넣으면
+  //   약 390명부터 요청 머리가 16KB 를 넘어 거절되고, 그날 결제 요일을 모두 '모름'으로 돌려준다.
+  const { data, error } = await selectInChunks(ids, (chunk) =>
+    supabase
+      .from('subscription_trials')
+      .select('user_id, cheap_remaining, half_remaining')
+      .in('user_id', chunk),
+  )
   if (error) {
     captureBusinessEvent('warning', 'billing.charge_timing.lookup_failed', {
       dbError: error.message,

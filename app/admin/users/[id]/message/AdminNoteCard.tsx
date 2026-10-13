@@ -13,9 +13,9 @@ import { useToast } from '@/components/ui/Toast'
  * 다음에 이 고객과 대화할 때 그 맥락이 화면에 같이 떠야 한다.
  *
  * # 어디에 저장하나
- * profiles.admin_note (마이그레이션 profiles_admin_note). RLS 상 **고객 본인도
- * 자기 profiles row 를 읽을 수 있으므로**, 고객이 봐도 곤란하지 않은 표현만
- * 적어야 한다 — 그 경고를 UI 에 항상 띄운다(잊고 민감한 메모를 남기는 사고 방지).
+ * admin_user_notes (2026-10-13 규칙197 — 마이그 20261013100100). 예전엔 profiles.admin_note 라
+ * 고객 본인도 자기 profiles 행을 읽을 수 있어 메모가 보였다. 새 표는 관리자만 읽고(RLS is_admin),
+ * 쓰기는 서버 라우트(service_role)만 한다 — 고객은 읽지도 쓰지도 못한다.
  */
 export default function AdminNoteCard({
   userId,
@@ -76,8 +76,8 @@ export default function AdminNoteCard({
         className="w-full rounded-md border border-border px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-input focus:outline-none"
       />
       <div className="mt-2 flex items-center justify-between gap-3">
-        <p className="text-[11px] text-amber-700">
-          ⚠️ 고객 본인도 볼 수 있는 항목이에요 — 민감한 표현은 쓰지 마세요.
+        <p className="text-[11px] text-muted-foreground">
+          관리자만 볼 수 있어요 — 고객에게는 보이지 않아요. 그래도 꼭 필요한 내용만 적어 주세요.
         </p>
         <button
           type="button"

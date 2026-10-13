@@ -80,8 +80,8 @@ export function renderUnsubscribeAck(input: {
       `더 이상 ${escape(channelLabel)} 마케팅 메시지를 보내드리지 않아요. 거래·배송·결제 안내처럼 서비스 이용에 꼭 필요한 메시지는 계속 발송돼요.`,
     )}
     <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
-      마음이 바뀌셨거나 다시 받고 싶다면 언제든 마이페이지의 알림 설정에서
-      재구독하실 수 있어요.
+      다시 받고 싶으시면 알림 설정(웹은 계정 &gt; 알림 · 수신 설정, 앱은 내 정보 &gt; 알림)에서
+      켤 수 있어요.
     </p>
   `
 
@@ -148,7 +148,7 @@ export function renderConsentResult(input: {
     <p style="margin:14px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
       ${
         input.granted
-          ? '원하지 않으시면 앱 마이페이지 &gt; 알림 설정(웹은 계정 &gt; 알림 설정)에서 끌 수 있어요.'
+          ? '원하지 않으시면 알림 설정(웹은 계정 &gt; 알림 · 수신 설정, 앱은 내 정보 &gt; 알림)에서 끌 수 있어요.'
           : '주문·배송·결제처럼 서비스 이용에 꼭 필요한 안내는 계속 보내드려요. 다시 받고 싶으시면 알림 설정에서 켤 수 있어요.'
       }
     </p>

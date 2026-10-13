@@ -17,6 +17,7 @@ import { useModalA11y } from '@/lib/ui/useModalA11y'
 import { petName, formatKg, kgNumber } from '@/lib/korean'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
 import {
   type Dog,
   type WeightLog,
@@ -185,6 +186,8 @@ export default function DogDetailClient({
         dog_id: dogId,
         user_id: user.id,
         weight: value,
+        // ★잰 날짜 = 한국 날짜(2026-10-13 규칙194). DB 기본값(CURRENT_DATE)은 UTC 라 아침 9시 전 기록이 전날로 찍혔다.
+        measured_at: todayKstIsoDate(),
         note: newWeightNote.trim() || null,
       })
       .select('id, weight, measured_at, note')
