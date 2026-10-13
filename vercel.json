@@ -10,12 +10,12 @@
     "app/api/cron/weight-reminder/route.ts": { "maxDuration": 120 },
     "app/api/cron/weight-change-detect/route.ts": { "maxDuration": 120 },
     "app/api/cron/protein-rotation/route.ts": { "maxDuration": 120 },
-    "app/api/cron/dcm-screening-reminder/route.ts": { "maxDuration": 120 },
     "app/api/cron/quality-check-reminder/route.ts": { "maxDuration": 60 },
     "app/api/cron/subscription-cleanup/route.ts": { "maxDuration": 120 },
     "app/api/cron/daily-briefing/route.ts": { "maxDuration": 60 },
     "app/api/cron/order-expire/route.ts": { "maxDuration": 60 },
     "app/api/cron/account-purge/route.ts": { "maxDuration": 300 },
+    "app/api/cron/unverified-signup-purge/route.ts": { "maxDuration": 120 },
     "app/api/cron/tracking-poll/route.ts": { "maxDuration": 300 },
     "app/api/cron/onboarding-funnel/route.ts": { "maxDuration": 120 },
     "app/api/cron/sensitivity-snapshots/route.ts": { "maxDuration": 120 },
@@ -66,10 +66,6 @@
       "schedule": "0 2 * * 2"
     },
     {
-      "path": "/api/cron/dcm-screening-reminder",
-      "schedule": "0 2 * * 3"
-    },
-    {
       "path": "/api/cron/quality-check-reminder",
       "schedule": "0 0 1 * *"
     },
@@ -84,6 +80,10 @@
     {
       "path": "/api/cron/account-purge",
       "schedule": "0 16 1 * *"
+    },
+    {
+      "path": "/api/cron/unverified-signup-purge",
+      "schedule": "20 17 * * *"
     },
     {
       "path": "/api/cron/tracking-poll",

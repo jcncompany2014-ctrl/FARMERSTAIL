@@ -18,6 +18,13 @@ import {
   notifyOrderShipped,
 } from '@/lib/email'
 import { recordAdminAction } from '@/lib/admin-audit'
+import {
+  DUPLICATE_CHECK_FAILED_MESSAGE,
+  DUPLICATE_TRACKING,
+  DUPLICATE_TRACKING_CHECK_FAILED,
+  duplicateTrackingMessage,
+  findTrackingDuplicates,
+} from '@/lib/admin/tracking-duplicates'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,6 +36,8 @@ type TransitionBody = {
   carrier?: string | null
   trackingNumber?: string | null
   reason?: string | null
+  /** 송장 중복 경고를 보고도 저장 — 사장님이 확인 창에서 '확인'을 누른 경우만 true(규칙198). */
+  confirmDuplicate?: boolean
 }
 
 // 택배사 라벨/코드 검증은 lib/tracking 으로 일원화.
@@ -162,6 +171,28 @@ export async function POST(
     }
     if (trackingNumber !== undefined)
       update.tracking_number = normalizeTrackingNumber(trackingNumber) || null
+
+    // ★같은 택배사·송장번호가 다른 주문에 있으면 확인을 받는다(2026-10-13 사장님 결정 — 화면 경고만, 규칙198).
+    //   발송 처리는 고객에게 "배송이 시작됐어요"가 바로 나가므로 저장 전에 묻는다. 조회 실패도 확인을 받는다.
+    if (body.confirmDuplicate !== true) {
+      const dup = await findTrackingDuplicates(supabase, {
+        orderId: order.id,
+        carrier: nextCarrier,
+        trackingNumber: nextTracking,
+      })
+      if (dup.error) {
+        return NextResponse.json(
+          { code: DUPLICATE_TRACKING_CHECK_FAILED, message: DUPLICATE_CHECK_FAILED_MESSAGE },
+          { status: 409 },
+        )
+      }
+      if (dup.orderNumbers.length > 0) {
+        return NextResponse.json(
+          { code: DUPLICATE_TRACKING, message: duplicateTrackingMessage(dup.orderNumbers), duplicates: dup.orderNumbers },
+          { status: 409 },
+        )
+      }
+    }
 
     shipCarrier = nextCarrier
     shipTracking = nextTracking

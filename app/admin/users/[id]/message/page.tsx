@@ -33,11 +33,12 @@ export default async function AdminUserMessagePage({
     { data: profile, error: profileErr },
     { data: pushLog, error: pushLogErr },
     { data: csThread, error: csThreadErr },
+    { data: noteRow, error: noteErr },
   ] =
     await Promise.all([
       supabase
         .from('profiles')
-        .select('id, email, name, phone, admin_note')
+        .select('id, email, name, phone')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -52,9 +53,18 @@ export default async function AdminUserMessagePage({
         .eq('user_id', id)
         .order('created_at', { ascending: true })
         .limit(100),
+      // 운영 메모 — 관리자만 읽는 표(2026-10-13 규칙197, RLS is_admin()). 고객 profiles 행에 두지 않는다.
+      supabase
+        .from('admin_user_notes')
+        .select('note')
+        .eq('user_id', id)
+        .maybeSingle(),
     ])
 
   if (profileErr) throw new Error(`프로필 조회 실패: ${profileErr.message}`)
+  // 메모 조회 실패를 '메모 없음'으로 그리면, 그 빈 칸을 저장하는 순간 기존 메모가 지워진다(규칙1) —
+  // 메모 칸만 숨기고 실패를 알린다. 1:1 메시지(나머지 화면)는 그대로 쓸 수 있게 둔다.
+  if (noteErr) console.error('[admin/message] 운영 메모 조회 실패', noteErr.message)
   if (!profile) notFound()
 
   // ★열람만으로는 처리하지 않는다 (2026-09-26) — 답장을 보낼 때 처리 표시한다
@@ -99,12 +109,19 @@ export default async function AdminUserMessagePage({
       </header>
 
       {/* 계획 A-F5 — 이 고객과 대화하기 전에 맥락부터 보이게 최상단. */}
-      <AdminNoteCard
-        userId={id}
-        initial={
-          (profile as { admin_note?: string | null }).admin_note ?? null
-        }
-      />
+      {noteErr ? (
+        <div className="mb-5">
+          <LoadError
+            what="운영 메모"
+            hint="메모를 불러오지 못해 메모 칸을 숨겼어요 — 빈 칸으로 저장하면 기존 메모가 지워질 수 있어서예요. 새로고침해 주세요."
+          />
+        </div>
+      ) : (
+        <AdminNoteCard
+          userId={id}
+          initial={(noteRow as { note?: string | null } | null)?.note ?? null}
+        />
+      )}
 
       {(pushLogErr || csThreadErr) && (
         <div className="mb-6">

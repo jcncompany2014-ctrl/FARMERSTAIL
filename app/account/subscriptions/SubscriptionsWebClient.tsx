@@ -42,6 +42,7 @@ import {
 import { pouchLineFromName } from '@/lib/design/pouch'
 import { RECIPE_BAND } from '@/lib/store/catalog'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import {
   trackSubscriptionPaused,
   trackSubscriptionResumed,
@@ -582,6 +583,8 @@ export default function SubscriptionsWebClient({
         const isCancelled = state === 'cancelled'
         const needsCard = state === 'needs_card'
         const needsRenewal = sub.requires_billing_key_renewal === true
+        // 결제 실패로 멈춘 구독(3회) — 크론이 다시 긁지 않으니 '재시도 예정'을 말하지 않는다(규칙192).
+        const pausedByBilling = isPausedByBillingFailure(sub)
         const hasFailureSignal =
           !isCancelled &&
           (needsRenewal || (sub.failed_charge_count ?? 0) > 0 || !!sub.next_retry_at)
@@ -618,12 +621,16 @@ export default function SubscriptionsWebClient({
                 <strong style={{ fontSize: 17, fontWeight: 800, color: '#8A1F11' }}>
                   {needsRenewal
                     ? '결제수단을 다시 등록해 주세요'
-                    : sub.next_retry_at
-                      ? '결제가 일시 실패했어요'
-                      : `결제 ${sub.failed_charge_count}회 실패`}
+                    : pausedByBilling
+                      ? '결제가 안 돼 정기배송을 멈췄어요'
+                      : sub.next_retry_at
+                        ? '결제가 일시 실패했어요'
+                        : `결제 ${sub.failed_charge_count}회 실패`}
                 </strong>
                 {sub.last_failed_charge_reason && <span style={{ fontSize: 15, color: '#3D3D3D' }}>{sub.last_failed_charge_reason}</span>}
-                {sub.next_retry_at && !needsRenewal && <span style={{ fontSize: 15, color: '#3D3D3D' }}>{formatRetryAt(sub.next_retry_at)} 재시도 예정</span>}
+                {/* ★멈춘 구독은 다시 긁지 않는다 — '재시도 예정'을 숨기고 카드 재등록을 안내한다(2026-10-13 규칙192). */}
+                {pausedByBilling && !needsRenewal && <span style={{ fontSize: 15, color: '#3D3D3D' }}>카드를 다시 등록하면 바로 다시 시작돼요</span>}
+                {sub.next_retry_at && !needsRenewal && sub.status !== 'paused' && <span style={{ fontSize: 15, color: '#3D3D3D' }}>{formatRetryAt(sub.next_retry_at)} 재시도 예정</span>}
                 <button
                   type="button"
                   onClick={() => handleReRegisterCard(sub)}

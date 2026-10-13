@@ -169,6 +169,27 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_user_notes: {
+        Row: {
+          note: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          note: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          note?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       algorithm_breed_predispose: {
         Row: {
           breed_key: string
@@ -2237,7 +2258,6 @@ export type Database = {
         Row: {
           address: string | null
           address_detail: string | null
-          admin_note: string | null
           agree_email: boolean | null
           agree_email_at: string | null
           agree_sms: boolean | null
@@ -2268,7 +2288,6 @@ export type Database = {
         Insert: {
           address?: string | null
           address_detail?: string | null
-          admin_note?: string | null
           agree_email?: boolean | null
           agree_email_at?: string | null
           agree_sms?: boolean | null
@@ -2299,7 +2318,6 @@ export type Database = {
         Update: {
           address?: string | null
           address_detail?: string | null
-          admin_note?: string | null
           agree_email?: boolean | null
           agree_email_at?: string | null
           agree_sms?: boolean | null

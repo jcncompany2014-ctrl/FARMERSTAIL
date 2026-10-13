@@ -205,6 +205,9 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     // ★배송조회 키 자가 점검 결과(tracking-poll, 2026-10-09) — 'ok'·'upstream_error'·'no_sample' 등 글자 하나.
     //   빠져 있으면 키가 통했는지·아예 안 읽혔는지가 cron_health 에서 구분되지 않는다(실제로 그랬다).
     'keyCheck',
+    // ★인증 안 한 가입 정리(unverified-signup-purge, 2026-10-13 규칙196) — 지운 수는 'purged', 강아지·주문·
+    //   정기배송이 있어 남긴 수는 이 키. 숫자만이라 PII 없음.
+    'keptWithData',
   ]
   const out: Record<string, unknown> = {}
   for (const k of allow) {

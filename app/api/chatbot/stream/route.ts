@@ -14,6 +14,8 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { checkAnthropicDailyCap, checkAiUserDailyLimit, recordAnthropicUsage } from '@/lib/anthropic-usage'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { checkChatbotAccess, loadChatDogInfo } from '@/lib/chatbot/server'
+import { CHATBOT_SUBSCRIBERS_ONLY, CHATBOT_SUBSCRIBERS_ONLY_MESSAGE } from '@/lib/chatbot/eligibility'
 import {
   buildChatbotSystemPrompt,
   CHATBOT_HISTORY_LIMIT,
@@ -83,6 +85,21 @@ export async function POST(req: Request): Promise<Response> {
     )
   }
 
+  // ★정기배송 중인 보호자만 쓴다(2026-10-13 사장님 결정, 규칙191) — POST 와 같은 판정.
+  const access = await checkChatbotAccess(user.id)
+  if (access === 'lookup_failed') {
+    return NextResponse.json(
+      { code: 'LOOKUP_FAILED', message: '지금은 확인하지 못했어요. 잠시 후 다시 시도해 주세요' },
+      { status: 503 },
+    )
+  }
+  if (access === 'not_subscriber') {
+    return NextResponse.json(
+      { code: CHATBOT_SUBSCRIBERS_ONLY, message: CHATBOT_SUBSCRIBERS_ONLY_MESSAGE },
+      { status: 403 },
+    )
+  }
+
   // 사용자별 하루 AI 한도 — IP·인스턴스와 무관하게 DB 로 센다(2026-09-24 보안 점검).
   const userRl = await checkAiUserDailyLimit(supabase, user.id, 'chatbot')
   if (!userRl.ok) {
@@ -92,33 +109,8 @@ export async function POST(req: Request): Promise<Response> {
     )
   }
 
-  // dog context (POST 와 동일 패턴)
-  let dogContext = ''
-  if (dogId) {
-    const { data: dog } = await supabase
-      .from('dogs')
-      .select('name, breed, age_value, age_unit, weight, gender, neutered, allergies')
-      .eq('id', dogId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (dog) {
-      const allergies = Array.isArray(dog.allergies)
-        ? (dog.allergies as string[])
-            .map((a) => String(a).replace(/[<>{}]/g, '').slice(0, 80))
-            .join(', ')
-        : ''
-      dogContext = `
-<dog_info>
-- 이름: ${String(dog.name ?? '').replace(/[<>{}]/g, '').slice(0, 50)}
-- 견종: ${String(dog.breed ?? '미상').replace(/[<>{}]/g, '').slice(0, 50)}
-- 나이: ${dog.age_value ?? '?'} ${String(dog.age_unit ?? '').slice(0, 10)}
-- 체중: ${dog.weight ?? '?'} kg
-- 성별: ${String(dog.gender ?? '미상').slice(0, 10)} ${dog.neutered ? '(중성화 완료)' : ''}
-- 알러지: ${allergies || '없음'}
-</dog_info>
-`
-    }
-  }
+  // dog context (POST 와 같은 도우미) — 알레르기·기저질환은 최신 설문에서(규칙191).
+  const dogContext = dogId ? await loadChatDogInfo(user.id, dogId) : ''
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {

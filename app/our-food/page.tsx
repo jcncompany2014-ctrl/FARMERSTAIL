@@ -4,7 +4,7 @@ import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { cred, VET_ADVISOR_ACTIVE } from '@/lib/copy/credibility'
-import { PACK_G, RECIPE_REAL_IMG, SIZE_PACKS, STORE_RECIPES, TRIAL_ITEM } from '@/lib/store/catalog'
+import { PACK_G, RECIPE_REAL_IMG, SIZE_PACKS, STORE_RECIPES, TRIAL_ITEM, TRIAL_PACK_G } from '@/lib/store/catalog'
 import { AppLine, Mark, QaList, RecipeCards, SecHead, SummaryBox } from '@/components/store/Editorial'
 import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 
@@ -158,7 +158,7 @@ const FOOD_FAQ = [
   },
   {
     q: '입이 짧은 아이도 잘 먹을까요?',
-    a: `신선한 화식은 잘 먹는 편이지만 아이마다 차이가 있어요. 처음이라면 ${STORE_RECIPES.length}종을 ${PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)으로 먼저 반응을 확인해 보세요.`,
+    a: `신선한 화식은 잘 먹는 편이지만 아이마다 차이가 있어요. 처음이라면 ${STORE_RECIPES.length}종을 ${TRIAL_PACK_G}g씩 맛보는 체험팩(${won(TRIAL_ITEM.price)}원)으로 먼저 반응을 확인해 보세요.`,
   },
   {
     q: '배송과 보관은 어떻게 하나요?',

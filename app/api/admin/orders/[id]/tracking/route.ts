@@ -6,6 +6,13 @@ import { dbError } from '@/lib/api/errors'
 import { isCarrierCode, carrierLabel, normalizeTrackingNumber } from '@/lib/tracking'
 import { pushToUser } from '@/lib/push'
 import { recordAdminAction } from '@/lib/admin-audit'
+import {
+  DUPLICATE_CHECK_FAILED_MESSAGE,
+  DUPLICATE_TRACKING,
+  DUPLICATE_TRACKING_CHECK_FAILED,
+  duplicateTrackingMessage,
+  findTrackingDuplicates,
+} from '@/lib/admin/tracking-duplicates'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,7 +41,7 @@ type Params = Promise<{ id: string }>
 export async function PATCH(req: Request, { params }: { params: Params }) {
   const { id } = await params
 
-  let body: { carrier?: unknown; trackingNumber?: unknown }
+  let body: { carrier?: unknown; trackingNumber?: unknown; confirmDuplicate?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -109,6 +116,24 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (!changed) {
     return NextResponse.json({ ok: true, unchanged: true })
+  }
+
+  // ★같은 택배사·송장번호가 다른 주문에 있으면 확인을 받는다(2026-10-13 사장님 결정 — 화면 경고만, 규칙198).
+  //   합포장(다견)이면 정상이라 막지는 않는다. 확인 조회가 실패해도 '중복 없음'으로 넘기지 않고 확인을 받는다.
+  if (body.confirmDuplicate !== true) {
+    const dup = await findTrackingDuplicates(supabase, { orderId: order.id, carrier, trackingNumber })
+    if (dup.error) {
+      return NextResponse.json(
+        { code: DUPLICATE_TRACKING_CHECK_FAILED, message: DUPLICATE_CHECK_FAILED_MESSAGE },
+        { status: 409 },
+      )
+    }
+    if (dup.orderNumbers.length > 0) {
+      return NextResponse.json(
+        { code: DUPLICATE_TRACKING, message: duplicateTrackingMessage(dup.orderNumbers), duplicates: dup.orderNumbers },
+        { status: 409 },
+      )
+    }
   }
 
   // 쓰기는 service_role — orders 는 컬럼 UPDATE 권한을 회수한 결제 원장이다

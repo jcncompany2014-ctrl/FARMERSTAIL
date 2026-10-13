@@ -14,7 +14,11 @@
 import { MARKETING_HOUR_MAX, MARKETING_HOUR_MIN } from './automation-settings.ts'
 
 export const AD_LABEL = '(광고)'
-export const AD_OPT_OUT_LINE = '수신거부: 앱 마이페이지 > 알림 설정'
+/**
+ * 수신거부 방법 — 앱의 실제 길대로 적는다(2026-10-13 규칙195). 앱엔 '마이페이지'가 없다:
+ * 하단 탭 '내 정보' → '알림' → '알림 설정' 탭. 없는 메뉴 이름을 적으면 법정 표기(수신거부 방법)가 틀린다.
+ */
+export const AD_OPT_OUT_LINE = '수신거부: 앱 내 정보 > 알림 > 알림 설정'
 
 /** KST 시(0~23)가 광고 푸시를 보내도 되는 시간인가 — 08:00~20:59. */
 export function isMarketingSendHour(kstHour: number): boolean {

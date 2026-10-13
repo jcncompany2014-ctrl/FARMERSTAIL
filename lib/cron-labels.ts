@@ -52,6 +52,7 @@ const CRON_LABEL: Record<string, string> = {
 
   // 회원·리워드
   'account-purge': '탈퇴 계정 정리',
+  'unverified-signup-purge': '인증 안 한 가입 정리(30일)',
   'stamps-expire': '도장 만료 처리',
   'push-lifecycle': '알림 발송 주기 관리',
 }

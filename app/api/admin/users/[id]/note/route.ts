@@ -21,15 +21,23 @@ export const dynamic = 'force-dynamic'
  * `profiles` 컬럼 권한을 화이트리스트로 잠그면서(20260731000100) admin_note 는
  * 고객 권한에서 빠졌다. 그래서 이 쓰기는 서버에서 관리자 검증 후
  * service_role 로 한다 — 잠금과 호출부를 같이 옮기는 것(규칙13).
+ *
+ * # 2026-10-13 — 저장 위치를 admin_user_notes 로 옮겼다(규칙197)
+ * 쓰기는 막혔지만 **읽기**가 남아 있었다 — 고객은 자기 profiles 행을 읽을 수 있어 메모가 보였다.
+ * 새 표는 고객이 읽지도 쓰지도 못한다(마이그 20261013100100). 옛 칸은 20261013100200 이 지운다.
  */
 
 const zNote = z.object({ note: z.string().max(2000).nullable() })
+const zUserId = z.string().uuid()
 
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params
+  if (!zUserId.safeParse(id).success) {
+    return NextResponse.json({ code: 'INVALID_USER' }, { status: 400 })
+  }
   const supabase = await createClient()
   const {
     data: { user },
@@ -44,10 +52,15 @@ export async function PATCH(
   const parsed = await parseRequest(req, zNote)
   if (!parsed.ok) return parsed.response
 
-  const { error } = await createAdminClient()
-    .from('profiles')
-    .update({ admin_note: parsed.data.note?.trim() || null })
-    .eq('id', id)
+  // ★메모는 관리자만 읽는 표(admin_user_notes)에 둔다(2026-10-13 규칙197). profiles 는 고객이 자기 행을
+  //   읽을 수 있어서 profiles.admin_note 에 적은 상담 메모가 고객에게 보였다. 비우면 행을 지운다.
+  const note = parsed.data.note?.trim() || null
+  const admin = createAdminClient()
+  const { error } = note
+    ? await admin
+        .from('admin_user_notes')
+        .upsert({ user_id: id, note, updated_at: new Date().toISOString(), updated_by: user.id }, { onConflict: 'user_id' })
+    : await admin.from('admin_user_notes').delete().eq('user_id', id)
 
   if (error) {
     return NextResponse.json(

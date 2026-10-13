@@ -159,10 +159,9 @@ export async function POST(req: Request) {
       // no residual demographic/marketing data remains after 탈퇴.
       birth_year: null,
       // ★최종감사 #18 (2026-07-29): 생일(월·일)과 사장님 운영 메모도 개인정보다.
-      //   admin_note 엔 전화·상담 내용이 들어갈 수 있어 PIPA 즉시파기 대상.
+      //   운영 메모는 2026-10-13 admin_user_notes 표로 옮겼다(규칙197) — 아래에서 따로 지운다.
       birth_month: null,
       birth_day: null,
-      admin_note: null,
       agree_email_at: null,
       agree_sms_at: null,
       marketing_policy_version: null,
@@ -180,6 +179,17 @@ export async function POST(req: Request) {
       { code: 'DELETE_FAILED', message: '탈퇴를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.' },
       { status: 500 },
     )
+  }
+
+  // ★사장님 운영 메모 파기(2026-10-13 규칙197 — profiles.admin_note 에서 admin_user_notes 로 옮김).
+  //   메모엔 전화·상담 내용이 들어갈 수 있어 PIPA 즉시 파기 대상이다. auth 는 soft delete 라 FK cascade 로는
+  //   안 지워진다 — 직접 지운다. 실패해도 탈퇴를 멈추지 않고 사장님께 알린다(익명화는 이미 끝났다).
+  const { error: noteDelErr } = await admin.from('admin_user_notes').delete().eq('user_id', user.id)
+  if (noteDelErr) {
+    captureBusinessEvent('error', 'account.delete.admin_user_note_delete_failed', {
+      userId: user.id,
+      dbError: noteDelErr.message,
+    })
   }
 
   /**
@@ -414,15 +424,23 @@ export async function POST(req: Request) {
   // migration 20260424000006.
   let emailHash: string | null = null
   if (originalEmail) {
-    const { data: hashData } = await admin.rpc('sha256_hex', {
+    const { data: hashData, error: hashErr } = await admin.rpc('sha256_hex', {
       input: originalEmail,
     })
-    if (typeof hashData === 'string' && hashData.length > 0) {
+    // ★오류를 본다(2026-10-13 규칙197). 예전엔 data 만 받아서, 함수가 digest() 를 못 찾아(search_path 에
+    //   extensions 없음) 매번 실패해도 아무도 몰랐다 — 운영 email_hash 가 전부 비어 있었다.
+    //   해시가 없어도 탈퇴는 이어 간다(재가입 확인 한 가지만 빠진다) — 대신 사장님께 알린다.
+    if (hashErr) {
+      captureBusinessEvent('error', 'account.delete.email_hash_failed', {
+        userId: user.id,
+        dbError: hashErr.message.slice(0, 200),
+      })
+    } else if (typeof hashData === 'string' && hashData.length > 0) {
       emailHash = hashData
     }
   }
 
-  await admin.from('account_deletions').insert({
+  const { error: auditErr } = await admin.from('account_deletions').insert({
     user_id: user.id,
     reason: body.reason ? body.reason.trim().slice(0, 200) : null,
     email_hash: emailHash,
@@ -431,6 +449,13 @@ export async function POST(req: Request) {
     // with CS tooling that may loosen the block later.
     open_order_count: 0,
   })
+  // 감사 행이 빠지면 재가입 확인·5년 파기 크론(account-purge 의 purged_at 마킹)이 이 탈퇴를 모른다 — 알린다(규칙1).
+  if (auditErr) {
+    captureBusinessEvent('error', 'account.delete.audit_insert_failed', {
+      userId: user.id,
+      dbError: auditErr.message.slice(0, 200),
+    })
+  }
 
   // 4) 탈퇴 사유 로그 제거 (2026-07-16 포인트 전면 폐기).
   //    delta=0 '메모성' 엔트리를 **포인트 원장**에 적어 churn 분석에 쓰던 자리인데,

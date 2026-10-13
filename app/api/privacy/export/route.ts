@@ -139,7 +139,9 @@ export async function GET(req: Request) {
       last_sign_in_at: user.last_sign_in_at,
       provider: user.app_metadata?.provider ?? null,
     },
-    profile: profileRes.data ?? null,
+    // 운영 메모(admin_note)는 관리자 전용 표로 옮겼다(2026-10-13 규칙197). 옛 칸이 지워지기 전에도
+    // 내려받기에 섞이지 않게 뺀다(옛 칸 삭제 마이그 20261013100200 이후엔 원래 없다).
+    profile: profileRes.data ? withoutAdminNote(profileRes.data as Record<string, unknown>) : null,
     dogs: dogsRes.data ?? [],
     surveys: surveysRes.data ?? [],
     analyses: analysesRes.data ?? [],
@@ -174,4 +176,11 @@ export async function GET(req: Request) {
       'cache-control': 'no-store',
     },
   })
+}
+
+/** profiles 행에서 옛 운영 메모 칸을 뺀다(규칙197) — 칸이 지워진 뒤엔 아무것도 안 한다. */
+function withoutAdminNote(row: Record<string, unknown>): Record<string, unknown> {
+  const copy = { ...row }
+  delete copy.admin_note
+  return copy
 }
