@@ -15,7 +15,7 @@ import {
 } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE, STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO, returnFeeSummary } from '@/lib/store/refund-copy'
-import { storeSalesPaused } from '@/lib/store/toss-widget'
+import { storeSellable } from '@/lib/store/toss-widget'
 import { SMARTSTORE_URL } from '@/lib/links'
 import { business } from '@/lib/business'
 import { SITE_URL } from '@/lib/seo/jsonld'
@@ -70,8 +70,10 @@ export async function GET() {
   const shipDays = STORE_SHIP_WEEKDAYS.map((d) => WEEKDAY_KO[d]).join('·')
   const freeMan = FREE_SHIPPING_MIN / 10_000
   const posts = await magazineLines()
-  // ★자사몰 결제 막음(규칙177) 동안엔 "웹 가게에서 판다"가 거짓이다 — 화면과 같은 판정 함수로(2026-10-12 점검).
-  const paused = storeSalesPaused()
+  // ★자사몰 결제 막음(규칙177) 동안엔 "웹 가게에서 판다"가 거짓이다(2026-10-12 점검). 결제 시험 기간(운영 + 토스 테스트 결제창 키)도
+  //   화면은 결제창까지 열려 있지만 실제로는 팔지 않는다 — 판정은 storeSellable 하나, 못 팔 때는 막음 때와 같은 갈래('준비 중')를
+  //   그대로 쓴다(사장님 2026-10-14 "검색·AI 만 준비 중, 화면은 그대로", 규칙220).
+  const paused = !storeSellable()
 
   const lines = [
     "# 파머스테일 (Farmer's Tail)",

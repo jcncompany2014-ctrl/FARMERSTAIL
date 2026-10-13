@@ -268,7 +268,9 @@ test('규칙212: 매거진 — 공개 글이 0편인 카테고리는 단추를 �
   assert.match(page, /\{shownCats\.map\(\(c\) => \(\s*<CategoryButton/, '카테고리 단추가 걸러진 목록(shownCats)을 그리지 않는다')
   assert.match(page, /const shownCats = visibleMagazineCategories\(cats, postsErr \? null : allRows\)/, '매거진 목록이 글 수 판정을 쓰지 않거나 실패를 0편으로 읽는다')
   assert.ok(!/\.eq\('category_id'/.test(page), '글 수를 세는 조회가 카테고리로 걸러져 있다 — 다른 카테고리 글 수를 모른다')
-  assert.match(page, /if \(catSlug && !postsErr && !activeCategory && cats\.some\(\(c\) => c\.slug === catSlug\)\) redirect\('\/blog'\)/, '빈 카테고리 주소로 오면 빈 화면이 보인다')
+  // 숨긴 카테고리 주소로 직접 오면 — 2026-10-14 부터 redirect 하지 않고 '전체' 목록을 그대로 보여 준다(규칙223 이 지킨다:
+  // 로딩 화면이 먼저 나간 뒤 redirect 는 200 + 빈 화면 + meta refresh 가 됐다).
+  assert.match(page, /const rows = activeCategory \? allRows\.filter\(\(p\) => p\.category_id === activeCategory\.id\) : allRows/, '숨긴 카테고리 주소가 전체 목록으로 나오지 않는다')
 
   const m = await load<typeof import('./magazine/categories.ts')>('lib', 'magazine', 'categories.ts')
   const cats = [

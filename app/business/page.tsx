@@ -10,6 +10,7 @@ import { isAppContextServer } from '@/lib/app-context'
 import { V3, V3Radius } from '@/lib/design/tokens'
 import { PlainTitle, SCREEN_ROOT } from '@/components/v3/me/MeParts'
 import { BuildingIcon } from '@/components/v3/me/MeIcons'
+import { REFUND_RULE_HAEYO, returnFeeSummary } from '@/lib/store/refund-copy'
 
 // 1시간 ISR — 사업자 정보 변경 빈도 낮음. 통신판매 신고번호 등록 시
 // revalidatePath('/business') 로 강제 갱신.
@@ -192,9 +193,11 @@ function BusinessAppView({ ftcLink }: { ftcLink: string }) {
       >
         <PlainTitle id="biz-pay">결제와 환불</PlainTitle>
         {/* 2026-10-13 토스 일반결제 심사 준비 — 웹 스토어 단품 환불(해요체 정본)을 맨 앞에, 정기배송은 '앱 정기배송은'으로 가른다.
-            결제 처리 안내는 아래 문단으로 옮겼다. 웹에서 '맞춤' 금지라 '반려견에 맞춰'로. */}
+            결제 처리 안내는 아래 문단으로 옮겼다. 웹에서 '맞춤' 금지라 '반려견에 맞춰'로.
+            2026-10-14 — 단품 환불 문장은 손으로 쓰지 않고 정본(REFUND_RULE_HAEYO)에 반품 배송비 한 줄(returnFeeSummary)을 붙인다.
+            예전 손글씨는 '상자를 연 건 괜찮다'·반품 배송비가 빠져 가게 화면·FAQ·약관과 달랐다(규칙222). */}
         <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: V3.inkSoft }}>
-          웹 스토어 단품은 받은 날부터 7일 안에 팩을 뜯지 않았다면 환불돼요. 앱 정기배송은 결제 전까지 미루거나 해지할 수
+          웹 스토어 단품은 {REFUND_RULE_HAEYO} 단순 변심 반품 배송비는 {returnFeeSummary()}이에요. 앱 정기배송은 결제 전까지 미루거나 해지할 수
           있어요. 결제된 박스는 반려견에 맞춰 조리되기 때문에, 결제 전에 안내하고 동의를 받은 회차는 단순 변심으로
           취소·환불할 수 없어요. 상품에 문제가 있거나 잘못 배송되면 환불해 드려요. 자세한 내용은{' '}
           <Link href="/legal/terms" style={APP_LINK}>

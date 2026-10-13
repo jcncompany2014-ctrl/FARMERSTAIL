@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import StoreShell from '@/components/store/StoreShell'
 import ProductDetail from '@/components/store/ProductDetail'
-import { storeSalesPaused } from '@/lib/store/toss-widget'
+import { storeSalesPaused, storeSellable } from '@/lib/store/toss-widget'
 import {
   RECIPE_PRODUCT_NAME,
   RECIPE_STUDIO_IMG,
@@ -13,7 +13,7 @@ import {
   storeItem,
 } from '@/lib/store/catalog'
 import { fetchRecipeLabel } from '@/lib/store/label'
-import { RETURN_SHIPPING_FEE, shippingFeeFor } from '@/lib/store/shipping'
+import { returnShippingFeeFor, shippingFeeFor } from '@/lib/store/shipping'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
@@ -58,8 +58,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const item1k = storeItem(`${recipe}-1kg`)
   // ★자사몰 결제 막음(규칙177) 동안엔 '이 페이지에서 지금 살 수 있다'(offers — 재고·배송·반품)를 내보내지 않는다. 화면은 "자사몰
   //   결제는 아직 준비 중"인데 구조화 데이터만 InStock 이면 구글 판매자 정보·AI 답이 여기서 바로 주문하라고 안내한다(2026-10-12 점검).
-  //   상품 정보(이름·설명·열량·보관)는 그대로 두고, 결제가 열리면(storeSalesPaused=false) offers 가 저절로 돌아온다.
-  const paused = storeSalesPaused()
+  //   상품 정보(이름·설명·열량·보관)는 그대로 두고, 결제가 열리면 offers 가 저절로 돌아온다.
+  //   ★판정은 storeSellable(막음도 아니고 결제 시험 기간도 아닐 때만 참) — 시험 기간(운영 + 토스 테스트 결제창 키)엔 화면은 결제창까지
+  //   열려 있어도 실제로는 팔지 않으니, 검색·AI 엔 막음 때와 같은 갈래(offers 없음)를 내보낸다(사장님 2026-10-14, 규칙220).
+  //   화면 부품(ProductDetail paused)은 storeSalesPaused 그대로 — 토스 심사관이 결제창까지 가야 한다.
+  const paused = !storeSellable()
   // 상품 구조화 데이터(검색 결과의 가격 표시) — 후기가 생기기 전이라 평점은 넣지 않는다.
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -95,7 +98,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         },
       },
       // 배송·교환·환불 정책(/legal/refund)과 같은 말 — 받은 날부터 7일 안·팩을 뜯지 않았다면(lib/store/refund-copy),
-      // 단순 변심 반품 배송비는 편도 정본(RETURN_SHIPPING_FEE — 무료배송으로 받았다면 왕복은 정책에).
+      // 단순 변심 반품 배송비는 상품마다 정본으로 — 이 상품만 살 때의 배송비(shippingFeeFor)를 냈으면 편도, 5만 원 이상이라
+      // 무료배송으로 받으면 왕복(returnShippingFeeFor). 예전엔 편도 고정이라 무료배송 1kg 도 편도로 나갔다(2026-10-14, 규칙221).
       hasMerchantReturnPolicy: {
         '@type': 'MerchantReturnPolicy',
         applicableCountry: 'KR',
@@ -103,7 +107,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         merchantReturnDays: 7,
         returnMethod: 'https://schema.org/ReturnByMail',
         returnFees: 'https://schema.org/ReturnShippingFees',
-        returnShippingFeesAmount: { '@type': 'MonetaryAmount', value: RETURN_SHIPPING_FEE, currency: 'KRW' },
+        returnShippingFeesAmount: { '@type': 'MonetaryAmount', value: returnShippingFeeFor(shippingFeeFor(it.price)), currency: 'KRW' },
       },
     })) }),
   }

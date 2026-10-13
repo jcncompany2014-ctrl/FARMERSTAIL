@@ -36,6 +36,16 @@ export function widgetTestMode(): boolean {
   return !!k && k.trim().startsWith('test_')
 }
 
+/**
+ * 지금 웹 가게에서 **실제로** 팔 수 있나 — 검색·AI 에 내보내는 '판매 중' 신호(상품 구조화 데이터의 offers · /llms.txt)는 이것 하나로 정한다.
+ * 결제 막음(storeSalesPaused)이거나 결제 시험 기간(widgetTestMode — 결제창은 열리지만 승인하지 않는다)이면 못 판다.
+ * ★화면(담기·구매·장바구니·주문서)은 이걸 쓰지 않고 storeSalesPaused 를 그대로 쓴다 — 시험 기간에도 토스 심사관이 결제창까지
+ *   가야 한다(사장님 2026-10-14 "검색·AI 만 '준비 중', 화면은 그대로", 규칙220).
+ */
+export function storeSellable(): boolean {
+  return !storeSalesPaused() && !widgetTestMode()
+}
+
 /** 결제 시험 기간에 승인 라우트가 돌려주는 코드·문구 — 완료 화면이 이 문구를 그대로 보인다(규칙209). */
 export const STORE_TEST_MODE_CODE = 'STORE_TEST_MODE'
 export const STORE_TEST_MODE_MESSAGE = '지금은 결제 시험 기간이라 실제 결제는 되지 않았어요. 돈은 나가지 않았어요.'
