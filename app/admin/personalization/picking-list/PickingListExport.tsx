@@ -1,7 +1,7 @@
 'use client'
 
 import { Download } from 'lucide-react'
-import { shipBlockReason, SHIP_BLOCK_LABEL } from '@/lib/admin/ship-block'
+import { hasAllergyHold, shipBlockReason, SHIP_BLOCK_LABEL } from '@/lib/admin/ship-block'
 import { toCsvWithBom } from '@/lib/csv'
 
 /**
@@ -144,10 +144,17 @@ export default function PickingListExport({
       //   무료 발송이 됐다. CSV 는 발송물이 아니라 데이터라 제외 대신 표기.
       // 발송 금지 사유는 정본(lib/admin/ship-block)이 판정한다 — 화면 배지·
       // 라벨 필터·조리 합계와 **같은 함수**라 넷이 갈라질 수 없다.
+      // ★알레르기 때문에 담지 못한 몫이 있으면 '알레르기확인필요(발송금지)'(2026-10-14 O1). 돈 사유와 겹쳐도
+      //   가려지지 않게 덧붙인다 — 결제가 풀린 뒤에도 그 박스는 고객과 확인 전엔 못 나간다.
       상태: shipBlockReason(r)
         ? SHIP_BLOCK_LABEL[shipBlockReason(r)!] +
           (shipBlockReason(r) === 'charge_failed_today' && r.failedCode
             ? `:${r.failedCode}`
+            : '') +
+          (hasAllergyHold(r) &&
+          shipBlockReason(r) !== 'allergy_check_needed' &&
+          shipBlockReason(r) !== 'already_shipped'
+            ? ` + ${SHIP_BLOCK_LABEL.allergy_check_needed}`
             : '')
         : r.pausedAfterCharge
           ? '결제후정지(확인필요)'

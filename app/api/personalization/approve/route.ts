@@ -164,9 +164,37 @@ export async function POST(req: Request) {
 
   if (decision === 'approve') {
     // 금액을 **먼저** 계산한다 — 처방만 승인되고 금액 갱신이 실패하면
-    // '새 박스 + 옛 금액' 으로 갈라진다. 계산이 불가능하면(구독 없음·화식비율
-    // 미상·제품 없음) 금액은 건드리지 않는다(돈은 추측하지 않는다).
-    const box = await boxForApproved(supabase, dogId, pending)
+    // '새 박스 + 옛 금액' 으로 갈라진다. 계산이 불가능하면 금액은 건드리지 않는다(돈은 추측하지 않는다).
+    const quote = await boxForApproved(supabase, dogId, pending)
+
+    /**
+     * ★진행 중인 정기배송이 있는데 새 금액을 못 냈으면 **승인하지 않는다** (2026-10-14 점검 O2).
+     *
+     * 예전엔 금액 계산이 null 이면(설문 조회 실패 · 알레르기 때문에 담지 못하는 몫 · 제품 조회 실패 · 화식 비율 미상)
+     * '금액 미변경'으로 읽고 식단만 approved 로 바꿨다. 그러면 다음 박스는 새 구성으로 포장되는데 청구는 **옛 금액**,
+     * 적용일은 다음 발송일이 아니라 **오늘**(nextDeliveryDate 를 몰라서)이 됐다 — 동의 금액과 다름 분기가 막으려던
+     * 바로 그 '새 박스 + 옛 금액'이다. 같은 식으로 보류한다(pending_approval 유지 → 다시 시도하거나 타임아웃 크론이
+     * 거절로 마감해 지금 구성을 이어간다). 진행 중인 정기배송이 없으면(금액 칸이 없다) 예전처럼 식단만 승인한다.
+     */
+    if (quote.kind === 'unavailable') {
+      captureBusinessEvent('warning', 'approve_amount_unavailable', {
+        dogId,
+        cycleNumber,
+        reason: quote.reason,
+        subscriptionId: quote.subscriptionId ?? null,
+      })
+      return NextResponse.json({
+        ok: true,
+        decision,
+        priceUpdated: false,
+        itemsUpdated: false,
+        amountUnavailable: true,
+        // ★처방도 전이하지 않았음(pending 유지) — 다시 시도하거나 타임아웃 크론이 마감.
+        notApproved: true,
+        message: AMOUNT_UNAVAILABLE_MESSAGE,
+      })
+    }
+    const box = quote.kind === 'box' ? quote.box : null
 
     /**
      * ★동의 금액 검산을 **처방 전이 전에** 한다 (2026-08-20 6라운드 감사).
@@ -430,6 +458,22 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, decision: 'declined' })
 }
 
+/** 금액을 못 내 승인을 보류할 때 고객에게 보이는 말 — 다시 시도·상담 안내(2026-10-14 O2). */
+const AMOUNT_UNAVAILABLE_MESSAGE =
+  '지금은 바뀐 구성의 금액을 확인하지 못해 이번 변경은 보류했어요. 잠시 후 다시 시도해 주시고, 계속 안 되면 카카오톡으로 문의해 주세요.'
+
+/**
+ * boxForApproved 결과 — 세 갈래를 가른다(2026-10-14 O2). 예전엔 '진행 중 정기배송 없음'과 '있는데 계산 실패'가
+ * 둘 다 null 이라 호출부가 구분하지 못하고 식단만 승인했다.
+ *  · box         — 새 금액·품목을 냈다.
+ *  · no_subscription — 진행 중인 정기배송이 없다(금액 칸이 없다) → 식단만 승인해도 된다.
+ *  · unavailable — 진행 중인 정기배송이 있는데(또는 그걸 확인 못 했는데) 금액을 못 냈다 → 승인 보류.
+ */
+type ApprovedQuote =
+  | { kind: 'box'; box: ApprovedBox }
+  | { kind: 'no_subscription' }
+  | { kind: 'unavailable'; reason: string; subscriptionId?: string }
+
 /**
  * 승인된 처방의 2주 청구액을 **서버에서** 재계산.
  *
@@ -437,7 +481,7 @@ export async function POST(req: Request) {
  * 있다). 계산은 `boxPricing` 정본 — 주문 화면·승인 화면과 같은 함수라 값이
  * 갈라지지 않는다.
  *
- * @returns 새 금액. 판단 근거가 하나라도 없으면 **null** = 금액 미변경.
+ * @returns 새 금액(box) · 진행 중 정기배송 없음(no_subscription) · 계산 불가(unavailable = 승인 보류).
  */
 async function boxForApproved(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -446,7 +490,7 @@ async function boxForApproved(
     formula: { lineRatios: Formula['lineRatios']; toppers: Formula['toppers'] }
     daily_kcal: number
   },
-): Promise<ApprovedBox | null> {
+): Promise<ApprovedQuote> {
   // ★ maybeSingle() 을 쓰지 않는다 (2026-07-30 수정).
   // `.eq('dog_id', ...)` 는 **해지 이력까지** 걸린다 — 한 번 해지하고 다시
   // 신청한 강아지는 행이 2~3개다(프로덕션 실측: 그런 강아지가 이미 2마리).
@@ -462,26 +506,30 @@ async function boxForApproved(
     .in('status', ['active', 'paused'])
     .order('created_at', { ascending: false })
     .limit(1)
+  // 조회 실패는 '정기배송 없음'이 아니다(규칙1) — 있는지 모르니 승인을 보류한다.
   if (subErr) {
     console.error('[personalization/approve] 구독 조회 실패:', subErr.message)
-    return null
+    return { kind: 'unavailable', reason: 'subscription_lookup_failed' }
   }
   const subRow = (subRows ?? [])[0]
-  if (!subRow) return null
+  if (!subRow) return { kind: 'no_subscription' }
   const sub = subRow as unknown as SubLike & {
     id: string
     fresh_ratio: number | null
     total_amount: number
   }
   // 진행 중인 구독이 아니면 청구 기준이 없다.
-  if (subscriptionState(sub) !== 'active') return null
-  if (sub.fresh_ratio == null || sub.fresh_ratio <= 0) return null
+  if (subscriptionState(sub) !== 'active') return { kind: 'no_subscription' }
+  // 여기부터는 진행 중인 정기배송이 있다 — 금액을 못 내면 전부 보류(unavailable).
+  if (sub.fresh_ratio == null || sub.fresh_ratio <= 0) {
+    return { kind: 'unavailable', reason: 'fresh_ratio_missing', subscriptionId: sub.id }
+  }
 
-  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 모르면 금액을 건드리지 않는다(null — 아래 호출부 규칙).
+  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1). 모르면 금액을 내지 않고 승인을 보류한다(2026-10-14 O2).
   const blocks = await loadDogBlockedLines(supabase, dogId)
   if (!blocks.ok) {
-    console.error('[personalization/approve] 설문 조회 실패 — 금액 계산 보류:', blocks.error)
-    return null
+    console.error('[personalization/approve] 설문 조회 실패 — 승인 보류:', blocks.error)
+    return { kind: 'unavailable', reason: 'survey_lookup_failed', subscriptionId: sub.id }
   }
 
   // ★ 계산은 공용 헬퍼로 (2026-07-31). 화식 비율 변경 라우트가 **같은 계산**을
@@ -493,11 +541,15 @@ async function boxForApproved(
     freshRatio: sub.fresh_ratio,
     blockedLines: blocks.blockedLines,
   })
-  if (!quote) return null
+  // null = 알레르기 때문에 담지 못한 몫 · 제품 조회 실패 · 총액 0 이하(boxQuote) — 보류.
+  if (!quote) return { kind: 'unavailable', reason: 'quote_unavailable', subscriptionId: sub.id }
   return {
-    subscriptionId: sub.id,
-    total: quote.total,
-    itemRows: quote.itemRows,
-    nextDeliveryDate: (subRow as unknown as { next_delivery_date: string | null }).next_delivery_date ?? null,
+    kind: 'box',
+    box: {
+      subscriptionId: sub.id,
+      total: quote.total,
+      itemRows: quote.itemRows,
+      nextDeliveryDate: (subRow as unknown as { next_delivery_date: string | null }).next_delivery_date ?? null,
+    },
   }
 }

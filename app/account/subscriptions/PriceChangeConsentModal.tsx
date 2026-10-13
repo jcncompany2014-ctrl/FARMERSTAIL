@@ -103,6 +103,8 @@ export default function PriceChangeConsentModal({
       const b = (await res.json().catch(() => ({}))) as {
         message?: string
         amountMismatch?: boolean
+        /** 서버가 승인을 보류했다(동의 금액과 다름 · 금액을 확인하지 못함 — 2026-10-14 O2). */
+        notApproved?: boolean
       }
       // ★이미 처리된 제안(409 — 타임아웃 크론이 먼저 마감 등)이면 안내하고 닫는다. 예전엔 토스트만
       //   띄우고 모달이 그대로 남아 같은 버튼을 계속 누르게 됐다(2026-09-26 점검 7차).
@@ -119,7 +121,8 @@ export default function PriceChangeConsentModal({
       //  (2026-08-08 diff 재검증 — 전엔 이 응답을 안 읽어서, 금액이 그대로인데
       //  "다음 정기결제부터 반영돼요"라고 말하는 화면이 됐다).
       //  처방은 확정됐으니 성공이 맞지만, 금액 안내는 서버 문구로 바꾼다.
-      if (decision === 'approve' && b.amountMismatch) {
+      // ★금액을 확인하지 못해 보류한 경우(amountUnavailable)도 notApproved 로 온다(2026-10-14 O2) — '바꿨어요'라고 말하지 않는다.
+      if (decision === 'approve' && (b.amountMismatch || b.notApproved)) {
         toast.info(
           b.message ??
             '이번 변경은 보류했어요. 확인 후 다시 안내드릴게요.',

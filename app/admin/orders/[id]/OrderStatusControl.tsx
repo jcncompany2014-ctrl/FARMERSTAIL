@@ -10,6 +10,7 @@ import {
   nextOrderStatuses,
   type OrderStatus,
 } from '@/lib/commerce/order-fsm'
+import { DUPLICATE_TRACKING, DUPLICATE_TRACKING_CHECK_FAILED } from '@/lib/admin/tracking-duplicates'
 
 // 활성(현재) 상태 버튼 색 — orders 목록 배지와 같은 토큰 팔레트.
 const STATUS_COLOR: Record<OrderStatus, string> = {
@@ -84,11 +85,33 @@ export default function OrderStatusControl({
 
     setLoading(true)
     // POST via admin route — FSM 재검증 + 푸시 알림 포함. 직접 table update 하지 않음.
-    const res = await fetch(`/api/admin/orders/${orderId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderStatus: next }),
-    })
+    const send = (confirmDuplicate: boolean) =>
+      fetch(`/api/admin/orders/${orderId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: next, confirmDuplicate }),
+      })
+    let res = await send(false)
+    // ★송장 중복 확인(2026-10-14 점검 O7 — 발송 처리 패널 ShippingControl 과 같은 방식, 규칙198). 저장된 송장으로
+    //   '배송 중'을 다시 누르면 서버가 같은 택배사·번호가 다른 주문에 있는지 묻는다(409). 예전엔 이 409 를 그냥
+    //   '변경 실패'로 띄워 확인할 길이 없었다 — 확인 창을 띄우고, 사장님이 확인하면 confirmDuplicate 로 다시 보낸다.
+    if (res.status === 409) {
+      const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string }
+      if (data.code === DUPLICATE_TRACKING || data.code === DUPLICATE_TRACKING_CHECK_FAILED) {
+        const ok = window.confirm(`${data.message ?? '같은 송장번호가 다른 주문에 있어요.'}\n\n그래도 저장할까요?`)
+        if (!ok) {
+          setLoading(false)
+          toast.error('바꾸지 않았어요 — 송장번호를 확인해 주세요')
+          return
+        }
+        res = await send(true)
+      } else {
+        // 다른 409 — 본문을 이미 읽었으니 여기서 안내하고 끝낸다.
+        setLoading(false)
+        toast.error('변경 실패: ' + (data.message ?? '알 수 없는 오류'))
+        return
+      }
+    }
     setLoading(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

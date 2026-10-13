@@ -16,7 +16,7 @@ import {
   priceBox,
   subscribableItems,
 } from '@/lib/personalization/boxPricing'
-import { allergiesFromAnswers } from '@/lib/personalization/dogAllergyBlocks'
+import { allergiesFromAnswers, loadDogLatestSurvey } from '@/lib/personalization/dogAllergyBlocks'
 import {
   hasPancreatitisGate,
   isSeverePancreatitis,
@@ -200,21 +200,19 @@ export async function POST(req: Request) {
   // ── 최신 설문 — 알레르기(박스 계산의 blockedLines)·급성 췌장염 게이트 ────────
   // ★2026-10-13 E1: 박스 계산이 알레르기를 몰라 판매 중지 대체가 알레르기 레시피로 갈 수 있었다. 이제 항상 읽는다
   //   (예전엔 고른 레시피가 있을 때만 읽었다). 규칙1 — 확인 못 하면 통과시키지 않는다.
-  const { data: latestSurvey, error: surveyErr } = await supabase
-    .from('surveys')
-    .select('answers, chronic_conditions')
-    .eq('dog_id', body.dogId)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (surveyErr) {
-    captureBusinessEvent('error', 'subscription.create.survey_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: surveyErr.message })
+  // ★'그 강아지의 최신 설문'(2026-10-14 점검 O5) — 예전엔 .eq('user_id', user.id) 로 **본인이 쓴 설문만** 읽었다. 가족이
+  //   나중에 다시 한 설문(알레르기 추가)이 있으면 주문 화면·포장 목록·청구 대조(loadDogBlockedLines — 강아지의 최신 설문)와
+  //   여기의 판정이 갈라져, 화면이 막은 알레르기 레시피를 이 API 가 통과시킬 수 있었다. 같은 도우미·같은 행으로 맞추고,
+  //   췌장염 판정도 그 행으로 한다. 소유권은 위 dogs 조회(user_id 일치)가 이미 확인했다.
+  const latest = await loadDogLatestSurvey(supabase, body.dogId)
+  if (!latest.ok) {
+    captureBusinessEvent('error', 'subscription.create.survey_lookup_failed', { userId: user.id, dogId: body.dogId, dbError: latest.error })
     return NextResponse.json(
       { code: 'LOOKUP_FAILED', message: '설문 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.' },
       { status: 503 },
     )
   }
+  const latestSurvey = latest.survey
   const surveyAnswers = (latestSurvey?.answers ?? null) as {
     diagnosedSeverity?: Record<string, string>
   } | null

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { fetchPayment, merchantForOrderNumber, type TossPaymentStatus } from '@/lib/payments/toss'
+import { storeConfirmTestOnly } from '@/lib/store/toss-widget'
 import { notifyOrderCancelled, notifyOrderPlaced } from '@/lib/email'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 // R91-D #1 (D7): amount mismatch / 위변조는 fatal alert helper 로 통일.
@@ -79,6 +80,24 @@ export async function POST(req: Request) {
   // 1) Re-fetch payment from Toss — this is our truth source.
   //    lib/payments/toss 가 auth 헤더와 base URL을 책임.
   //    ★웹 가게 주문(FTS-)은 결제위젯 계약 키로 조회한다(규칙172) — 위젯 가맹점의 웹훅도 이 주소로 온다.
+  /**
+   * ★결제 시험 기간(토스 일반결제 심사 — 규칙209)의 가게 주문은 조회하지 않는다 (2026-10-14 점검 O3).
+   * 이 기간엔 승인 라우트가 가게 결제를 승인하지 않는다(paid 금지 — 실제 돈이 나가지 않는다). 그런데 웹훅은 위젯 시크릿
+   * 없이 토스를 조회하다 tossSecretKey 가 throw → TOSS_NETWORK → 500 을 돌려줘, 토스가 같은 웹훅을 계속 재전송하고
+   * 그때마다 '조회 실패' 오류 알림이 사장님께 갔다. 반영할 결제가 없으니 200 + 기록(info)만 남긴다.
+   * 정기결제(billing) 주문은 이 갈래에 들어오지 않는다.
+   */
+  if (merchantForOrderNumber(orderId) === 'widget' && storeConfirmTestOnly()) {
+    captureBusinessEvent('info', 'payment.webhook.store_test_mode_skipped', {
+      orderId,
+      eventType: body?.eventType ?? null,
+      status: body?.data?.status ?? null,
+    })
+    return NextResponse.json(
+      { ok: true, skipped: 'store_test_mode' },
+      { status: 200 },
+    )
+  }
   const lookup = await fetchPayment(paymentKey, merchantForOrderNumber(orderId))
   if (!lookup.ok) {
     // Toss API itself returned an error — don't trust the webhook.

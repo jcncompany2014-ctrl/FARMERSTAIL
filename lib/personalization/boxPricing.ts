@@ -251,17 +251,27 @@ export function computeBoxPlan<P extends BoxProduct>(
   const blocked = new Set<FoodLine>(input.blockedLines ?? [])
   const held: HeldShare[] = []
 
+  /**
+   * ★판매하지 않는 레시피의 몫은 여기서 '확인 필요'로 잡지 않는다 (2026-10-14 점검 O6).
+   * 예전엔 막힌 라인이면 판매 여부와 상관없이 먼저 뺐다 — 그래서 처방에 **연어(판매 안 함)** 몫이 있고 생선 알레르기면,
+   * 원래 대체 규칙(알레르기 아닌 판매 레시피 — 오리 등)으로 옮겨질 몫이 '확인 필요'로 막혀 박스가 멈췄다. 그 몫은 어차피
+   * 박스에 그 레시피로 들어갈 수 없으니 알레르기와 무관하게 대체 규칙(gateAvailability — 막힌 라인은 건너뛰고, 안전한 대체가
+   * 없으면 held 'no_safe_substitute')으로 보낸다. 판매 중인 알레르기 레시피가 처방에 있으면 예전처럼 '확인 필요'.
+   * (판매 레시피가 하나도 없으면 대체 규칙이 돌지 않으므로 — 몫이 조용히 사라지지 않게 — 예전처럼 여기서 잡는다.)
+   */
+  const availableLines = deriveAvailableLines(Object.keys(products))
+  const sold = new Set<FoodLine>(availableLines)
   const base: Record<FoodLine, number> = { ...formula.lineRatios }
   for (const line of ALL_LINES) {
     const v = formula.lineRatios?.[line]
-    if (blocked.has(line) && typeof v === 'number' && Number.isFinite(v) && v > 0) {
-      held.push({ line, ratio: v, reason: 'allergen_in_formula' })
-      base[line] = 0
-    }
+    if (!blocked.has(line) || typeof v !== 'number' || !Number.isFinite(v) || v <= 0) continue
+    if (availableLines.length > 0 && !sold.has(line)) continue // 판매하지 않는 몫 → 대체 규칙으로
+    held.push({ line, ratio: v, reason: 'allergen_in_formula' })
+    base[line] = 0
   }
 
   const gated = gateAvailability(base, formula.toppers, {
-    availableLines: deriveAvailableLines(Object.keys(products)),
+    availableLines,
     availableToppers: deriveAvailableToppers(Object.keys(products)),
     blockedLines: blocked,
     holdWhenNoSafeTarget: true,
