@@ -14,6 +14,7 @@ import {
   storeItem,
 } from '@/lib/store/catalog'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE, STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
+import { REFUND_RULE_HAEYO, returnFeeSummary } from '@/lib/store/refund-copy'
 import { storeSalesPaused } from '@/lib/store/toss-widget'
 import { SMARTSTORE_URL } from '@/lib/links'
 import { business } from '@/lib/business'
@@ -102,7 +103,7 @@ export async function GET() {
     '## 웹 가게 배송·환불',
     `- 배송비 ${won(SHIPPING_FEE)}원, 상품 금액 ${freeMan}만 원 이상이면 무료.`,
     `- 출고: ${shipDays}요일, 냉동으로. 출고 전날 밤 12시까지 주문하면 그 출고일에 나가요. 출고 후 지역에 따라 하루나 이틀이면 받아요.`,
-    '- 환불: 받은 날부터 7일 안, 뜯지 않은 상품. 상품에 문제가 있으면 사진을 보내 주면 다시 보내거나 환불해요.',
+    `- 환불: ${REFUND_RULE_HAEYO} 단순 변심 반품 배송비는 ${returnFeeSummary()}. 상품에 문제가 있으면 사진을 보내 주면 다시 보내거나 환불해요(이때 배송비는 파머스테일 부담).`,
     '- 주문은 회원만(카카오로 간편 가입). 웹 가게와 앱은 같은 계정이에요.',
     '',
     '## 앱 정기배송',

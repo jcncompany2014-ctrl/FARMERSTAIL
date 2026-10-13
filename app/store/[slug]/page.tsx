@@ -13,7 +13,7 @@ import {
   storeItem,
 } from '@/lib/store/catalog'
 import { fetchRecipeLabel } from '@/lib/store/label'
-import { shippingFeeFor } from '@/lib/store/shipping'
+import { RETURN_SHIPPING_FEE, shippingFeeFor } from '@/lib/store/shipping'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/jsonld'
 
@@ -94,7 +94,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 2, unitCode: 'DAY' },
         },
       },
-      // 환불 정책과 같은 말 — 받은 날부터 7일 안·뜯지 않은 상품, 반품 배송비는 회원 부담(/legal/refund).
+      // 배송·교환·환불 정책(/legal/refund)과 같은 말 — 받은 날부터 7일 안·팩을 뜯지 않았다면(lib/store/refund-copy),
+      // 단순 변심 반품 배송비는 편도 정본(RETURN_SHIPPING_FEE — 무료배송으로 받았다면 왕복은 정책에).
       hasMerchantReturnPolicy: {
         '@type': 'MerchantReturnPolicy',
         applicableCountry: 'KR',
@@ -102,6 +103,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         merchantReturnDays: 7,
         returnMethod: 'https://schema.org/ReturnByMail',
         returnFees: 'https://schema.org/ReturnShippingFees',
+        returnShippingFeesAmount: { '@type': 'MonetaryAmount', value: RETURN_SHIPPING_FEE, currency: 'KRW' },
       },
     })) }),
   }

@@ -5,6 +5,7 @@
  * 금지어: 처방·전문용어·정확한 %·"언제든"·도착 요일 약속(고객 문구 규칙).
  */
 import { FREE_SHIPPING_MIN, SHIPPING_FEE, returnShippingFeeFor } from './shipping.ts'
+import { REFUND_RULE_HAEYO } from './refund-copy.ts'
 import { ONE_KG_DISCOUNT_PCT, PACK_G, SIZE_PACKS, TRIAL_ITEM, TRIAL_PACK_G } from './catalog.ts'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '../pricing.ts'
 
@@ -35,7 +36,7 @@ export const STORE_FAQ: { q: string; a: string }[] = [
   {
     q: '환불은 어떻게 돼요?',
     // 환불 조건 해요체 정본(사장님 2026-10-13) — 환불정책·약관의 합니다체 문장과 같은 뜻. 반품 배송비는 정본 returnShippingFeeFor.
-    a: `받은 날부터 7일 안, 팩(진공 포장)을 뜯지 않았다면 환불돼요. 상자를 열어 확인한 건 괜찮아요. 단순 변심 반품 배송비는 편도 ${won(returnShippingFeeFor(SHIPPING_FEE))}원이에요(${FREE_SHIPPING_MIN / 10_000}만 원 이상 무료배송으로 받았다면 왕복 ${won(returnShippingFeeFor(0))}원). 상품에 문제가 있으면 사진 한 장을 보내 주세요. 확인하고 다시 보내드리거나 환불해 드리고, 이때 배송비는 저희가 내요.`,
+    a: `${REFUND_RULE_HAEYO} 단순 변심 반품 배송비는 편도 ${won(returnShippingFeeFor(SHIPPING_FEE))}원이에요(${FREE_SHIPPING_MIN / 10_000}만 원 이상 무료배송으로 받았다면 왕복 ${won(returnShippingFeeFor(0))}원). 상품에 문제가 있으면 사진 한 장을 보내 주세요. 확인하고 다시 보내드리거나 환불해 드리고, 이때 배송비는 저희가 내요.`,
   },
   {
     q: '하루에 얼마나 줘야 하나요?',
