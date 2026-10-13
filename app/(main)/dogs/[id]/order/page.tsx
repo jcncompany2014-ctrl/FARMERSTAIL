@@ -44,6 +44,7 @@ export default async function OrderPage({
       initialFresh={data.initialFresh}
       pickedRecipes={data.pickedRecipes}
       chargeTiming={data.chargeTiming}
+      blockedLines={data.blockedLines}
     />
   )
 }

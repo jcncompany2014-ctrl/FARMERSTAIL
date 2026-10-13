@@ -15,7 +15,7 @@ import { petName } from '@/lib/korean'
 import { V3 } from '@/lib/design/tokens'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Reasoning, FoodLine } from '@/lib/personalization/types'
-import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
+import { plainTrigger, isPlainCustomerText, isCustomerVisibleReason } from '@/lib/personalization/plain-reason'
 import { bowlImageForLine, studioPouchImageForLine } from '@/lib/personalization/packageImage'
 import { recipeColorOfLine, recipeTitleOfLine } from '../display'
 
@@ -58,6 +58,8 @@ export function BoxMixCard({
     .filter((r) => !/v3/i.test(r.chipLabel) && !/v3/i.test(r.trigger))
     .map((r) => ({ ...r, trigger: plainTrigger(r.trigger) }))
     .filter((r) => isPlainCustomerText(r.trigger) && isPlainCustomerText(r.chipLabel))
+    // 성장기 칩·옛 질환 효능 칩은 그리지 않는다(2026-10-13 E10·E11).
+    .filter(isCustomerVisibleReason)
     .slice(0, 4)
 
   return (

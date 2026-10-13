@@ -79,9 +79,30 @@ const LINE_FALLBACK: Record<FoodLine, FoodLine> = {
   joint: 'basic',
 }
 
+/**
+ * 알레르기 답(설문 한글 라벨) → 막힌 라인 — **정본 하나**(2026-10-13 점검 E1).
+ *
+ * compute 라우트가 따로 들고 있던 식(SKU_MODEL.blockingAllergies 와 글자 단위 비교)을 여기로 모았다.
+ * 박스 계산(computeBoxItems)·주문·피킹·재제안이 같은 표로 막아야 판매 중지 대체가 알레르기 레시피로 가지 않는다.
+ */
+export function blockedLinesForAllergies(
+  allergies: readonly string[] | null | undefined,
+): FoodLine[] {
+  const set = new Set(Array.isArray(allergies) ? allergies : [])
+  if (set.size === 0) return []
+  return ALL_LINES.filter((l) =>
+    SKU_MODEL[LEGACY_LINE_TO_PROTEIN[l]].blockingAllergies.some((b) => set.has(b)),
+  )
+}
+
 export type GateResult = {
   lineRatios: Record<FoodLine, Ratio>
   toppers: { protein: Ratio; vegetable: Ratio }
+  /**
+   * 안전한 대체가 없어 **옮기지 않은** 몫 — `holdWhenNoSafeTarget` 일 때만 채워진다(2026-10-13 E1).
+   * 박스 계산은 이걸 조용히 다른 레시피로 넣지 않고 '확인 필요'로 사람에게 보인다.
+   */
+  held: Array<{ line: FoodLine; ratio: Ratio }>
 }
 
 /**
@@ -108,8 +129,15 @@ export function gateAvailability(
      * 알러지인데 왜 오리가"). 마지막 안전장치가 그걸 잡으면 먹을 수 있는 레시피가 있는데도 '상담 필요'로 빠졌다.
      */
     blockedLines?: Iterable<FoodLine>
+    /**
+     * 안전한 대체(알레르기 아닌 판매 레시피)가 없을 때 — 예전처럼 첫 판매 레시피(알레르기일 수 있음)로 옮기지
+     * 않고 그 몫을 `held` 로 돌려준다. 박스 계산(computeBoxItems)이 켠다(2026-10-13 E1). 처방 저장 경로(compute·
+     * firstBox·nextBox)는 끈 채로 둔다 — 거기선 옮긴 뒤 출고 알레르기 검사가 '상담 필요'로 돌린다.
+     */
+    holdWhenNoSafeTarget?: boolean
   } = {},
 ): GateResult {
+  const held: GateResult['held'] = []
   /**
    * ★ 없는 라인 키를 0 으로 채운다 (2026-07-30).
    *
@@ -146,6 +174,11 @@ export function gateAvailability(
       const safe: FoodLine | undefined = ([LINE_FALLBACK[line], 'basic', ...opts.availableLines] as FoodLine[]).find(
         (cand) => avail.has(cand) && !blocked.has(cand),
       )
+      if (!safe && opts.holdWhenNoSafeTarget) {
+        // 조용히 옮기지 않는다 — 박스에서 빼고 '확인 필요'로 남긴다.
+        held.push({ line, ratio: moved })
+        continue
+      }
       const target: FoodLine = safe ?? opts.availableLines[0]!
       lines[target] += moved
       // ★연어(skin)는 판매하지 않는 레시피다 — 고객 문구에 연어를 절대 내지 않는다(사장님 2026-10-01
@@ -184,5 +217,5 @@ export function gateAvailability(
     }
   }
 
-  return { lineRatios: lines, toppers: outToppers }
+  return { lineRatios: lines, toppers: outToppers, held }
 }

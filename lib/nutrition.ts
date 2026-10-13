@@ -545,7 +545,11 @@ export function calculateNutrition(dog: DogInfo, answers: SurveyAnswers): Nutrit
       housing: answers.housing,
       coldExposure: answers.coldExposure,
       // 4단계 — 견종 플래그 (엔진이 OB↔easy-keeper OR 감산 1회·BRA 억제 처리).
-      breedFlags,
+      // ★마른 아이(체형 4 이하)엔 견종 비만 경향 감산을 걸지 않는다(2026-10-13 E12). BCS 1 은 위에서 사다리에 5 로
+      //   넘기므로(재급여 특례) 엔진의 체형 판정만으론 빠진다 — 실제 체형으로 여기서 끈다.
+      breedFlags: ladderBcs <= 4 ? { ...breedFlags, obeseProne: false } : breedFlags,
+      // 살이 빠지는 중이면 견종 비만 경향 감산을 하지 않는다(E12).
+      weightTrend6mo: answers.weightTrend6mo,
     })
     factor = ladder.factor
     factorBreakdown = ladder.lines

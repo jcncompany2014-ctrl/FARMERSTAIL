@@ -153,7 +153,10 @@ export function calculateAdultFactor(
   }
 
   // easy-keeper: 설문 OR 견종 OB → 감산 1회만 (이중차감 금지).
-  if (s.isEasyKeeper || flags.obeseProne) {
+  // ★견종 OB 는 마른 아이(체형 점수 4 이하)·살이 빠지는 중인 아이에겐 걸지 않는다(2026-10-13 E12 사장님 결정).
+  //   견종만 보고 깎으면 이미 마른 아이의 양을 더 줄인다. 설문의 '쉽게 찌는 체질'(보호자가 직접 답함)은 그대로.
+  const breedObeseApplies = flags.obeseProne && !(bcs <= 4) && !s.isLosingWeight
+  if (s.isEasyKeeper || breedObeseApplies) {
     fac += CAL.D_EASY_KEEPER
     lines.push({ label: '쉽게 찌는 체질/비만경향 견종', delta: CAL.D_EASY_KEEPER })
   }

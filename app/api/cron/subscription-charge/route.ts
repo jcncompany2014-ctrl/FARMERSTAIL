@@ -38,6 +38,7 @@ import {
   priceForFormula,
   type BoxProduct,
 } from '@/lib/personalization/boxPricing'
+import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
 import {
   LINE_TO_SLUG as PRICE_LINE_TO_SLUG,
   TOPPER_TO_SLUG as PRICE_TOPPER_TO_SLUG,
@@ -304,6 +305,17 @@ async function recomputeChargeBase(
   const products = guardProducts
   if (Object.keys(products).length === 0) return null
 
+  // 최신 설문 알레르기 → 박스 계산 입력(2026-10-13 E1) — 피킹 리스트가 담는 박스와 같은 계산이어야 대조가 맞다.
+  //   조회 실패면 위 처방 조회 실패와 같게: 검문을 건너뛰되 신호를 남긴다(돈은 저장값으로 — 규칙5).
+  const blocks = await loadDogBlockedLines(supabase, sub.dog_id)
+  if (!blocks.ok) {
+    captureBusinessEvent('warning', 'subscription.charge_guard_skipped', {
+      subscriptionId: sub.id,
+      reason: 'surveys_lookup_failed',
+    })
+    return null
+  }
+
   const { total } = priceForFormula({
     formula: {
       lineRatios: formulaRow.formula.lineRatios as never,
@@ -312,6 +324,7 @@ async function recomputeChargeBase(
     },
     freshRatio: sub.fresh_ratio,
     products,
+    blockedLines: blocks.blockedLines,
   })
   // ★유한성까지 본다 — 토퍼 kcal 0 이면 Infinity 가 나오고 `> 0` 을 통과한다.
   //  그러면 charge-amount-guard 가 매일 오탐 알림을 낸다(2026-08-08 금액 감사).

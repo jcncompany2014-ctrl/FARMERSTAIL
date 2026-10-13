@@ -1,6 +1,7 @@
 // 상대 경로 + .ts — npm test(node --experimental-strip-types)는 별칭을 못 푼다
 // (AGENTS.md 의 그 함정). 값 import 라 확장자도 필요하다.
 import { SKU_MODEL } from './personalization/skuModel.ts'
+import { translateDraftAllergies } from './start-allergy-labels.ts'
 
 // 웹 결과 'Your Plan' 레시피 카드용 — **마케팅 공개 수준만**(이름·컨셉·주재료·칼로리).
 //
@@ -95,10 +96,21 @@ export const WEB_RECIPE_ORDER: WebRecipe['protein'][] = [
  * salmon·lamb 등 SKU 없는 단백질 알레르기는 후보 4종에 영향 없음(애초에 후보 아님).
  */
 export function selectSafeRecipes(allergies: string[], max = 3): WebRecipe[] {
-  const blocked = new Set(allergies)
-  return WEB_RECIPE_ORDER.filter((p) => !blocked.has(p))
+  return WEB_RECIPE_ORDER.filter((p) => !isWebRecipeBlocked(p, allergies))
     .map((p) => WEB_RECIPES[p])
     .slice(0, max)
+}
+
+/**
+ * 이 웹 레시피가 알레르기 답으로 막히나 — **앱 차단표(SKU_MODEL.blockingAllergies)와 같게**(2026-10-13 점검 E13).
+ *
+ * 예전엔 웹 설문 영문 키와 레시피 키를 그대로 비교해서(`chicken`→치킨만), 양고기 알레르기에 한우를 그대로 추천했다
+ * (앱 차단표는 한우 = 소고기·양고기). 웹 답(영문 키)은 정본 번역표(lib/start-allergy-labels)로 한글 라벨로 바꿔 비교하고,
+ * 이미 한글 라벨이면 그대로 쓴다.
+ */
+export function isWebRecipeBlocked(protein: WebRecipe['protein'], allergies: readonly string[]): boolean {
+  const labels = new Set(translateDraftAllergies([...allergies]))
+  return SKU_MODEL[protein].blockingAllergies.some((b) => labels.has(b))
 }
 
 /**

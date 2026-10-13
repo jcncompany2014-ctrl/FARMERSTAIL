@@ -98,7 +98,11 @@ export default function CurrentFormulaCard({
   const week2DueIn = dueInFor('week_2')
   const week4DueIn = dueInFor('week_4')
 
-  const isPending = formula.approval_status === 'pending_approval'
+  // 카드 = '지금 먹는 식단'(page.tsx 가 승인 대기·거절·시작 전을 뺀 것). 승인 대기 제안이 따로 있으면 그 회차로
+  // 확인 버튼만 띄운다(2026-10-13 E4). approval_status 검사는 옛 호출(점검 화면 예시 값) 호환.
+  const pendingCycle =
+    formula.pending_cycle ?? (formula.approval_status === 'pending_approval' ? formula.cycle_number : null)
+  const isPending = pendingCycle != null
 
   // 레시피 — 비율 큰 것부터 두 가지(lib/personalization/format recipeName 과 같은 순서·같은 '맞춤' 폴백).
   // 이름은 박스·주문·분석 화면과 같은 말(닭고기·오리·흑돼지·한우 — components/analysis/display 정본).
@@ -191,9 +195,11 @@ export default function CurrentFormulaCard({
       {/* 다음 액션 — pending 우선, 그 다음 checkin D-Day */}
       {isPending ? (
         <>
-          <span style={{ fontSize: 15, color: V3.inkSoft }}>새로 추천된 맞춤 식단이에요</span>
+          <span style={{ fontSize: 15, color: V3.inkSoft }}>
+            {formula.pending_cycle != null ? '지금 식단은 위 레시피예요. 새로 추천된 식단을 확인해 주세요' : '새로 추천된 맞춤 식단이에요'}
+          </span>
           <Link
-            href={`/dogs/${dogId}/approve?cycle=${formula.cycle_number}`}
+            href={`/dogs/${dogId}/approve?cycle=${pendingCycle}`}
             style={{
               height: 52,
               borderRadius: V3Radius.sm,

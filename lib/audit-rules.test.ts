@@ -5933,7 +5933,8 @@ test('규칙161: 10차 점검 나머지 — 되돌리는 건 올린 것만·재�
     assert.ok(tracking.includes(`'${k}'`), `cron_health 요약이 청구 신호 ${k} 를 자른다`)
   }
   const progression = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'personalization-progression', 'route.ts')))
-  assert.match(progression, /const since = boxCountSince\(cur\.applied_from, cur\.created_at\)/, '재제안 박스 수를 첫 박스 결제일부터 세지 않는다')
+  // 2026-10-13 E4: 시작점은 '지금 먹는 식단'(serving) — 거절된 제안(cur)이 아니다(규칙 lib/audit-rules-1013-engine 이 잠근다).
+  assert.match(progression, /const since = boxCountSince\(serving\.applied_from, serving\.created_at\)/, '재제안 박스 수를 첫 박스 결제일부터 세지 않는다')
   const rotation = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'protein-rotation', 'route.ts')))
   assert.match(rotation, /paidBoxShipIso\(s\.next_delivery_date, s\.last_charged_at\) === todayIso/, '단백질 로테이션 푸시가 오늘 나가지 않는 박스에도 간다')
   const reminders = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-reminders', 'route.ts')))

@@ -40,6 +40,11 @@ export interface SurveyInputV2 {
   coldExposure: boolean
   /** 쉽게 찌는 체질 (설문 응답 — 견종 OB 플래그와 OR, 감산 1회). */
   isEasyKeeper: boolean
+  /**
+   * 최근 6개월 체중이 줄고 있다(설문 weightTrend6mo === 'lost'). 이때는 '비만 경향 견종' 감산을 하지 않는다
+   * (2026-10-13 점검 E12 사장님 결정 — 체형 점수 4 이하도 같다). 없으면 false.
+   */
+  isLosingWeight?: boolean
 }
 
 export type BreedKey =

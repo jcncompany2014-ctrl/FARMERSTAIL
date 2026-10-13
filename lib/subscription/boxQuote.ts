@@ -1,11 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Formula } from '@/lib/personalization/types'
+import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { LINE_TO_SLUG, TOPPER_TO_SLUG } from '@/lib/personalization/skuMap'
 import {
-  computeBoxItems,
+  computeBoxPlan,
   subscribableItems,
   priceForFormula,
 } from '@/lib/personalization/boxPricing'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 import {
   subscriptionItemRows,
   type ItemProduct,
@@ -50,6 +51,11 @@ export async function quoteBox(
     dailyKcal: number
     /** 30 | 50 | 100. 0 이하면 계산하지 않는다. */
     freshRatio: number
+    /**
+     * 그 강아지의 최신 설문 알레르기로 막힌 라인(lib/personalization/dogAllergyBlocks) — **필수**(2026-10-13 E1).
+     * 박스 계산이 판매 중지 대체를 알레르기 레시피로 옮기지 않게 한다.
+     */
+    blockedLines: readonly FoodLine[]
   },
 ): Promise<BoxQuote | null> {
   if (!(input.freshRatio > 0)) return null
@@ -84,6 +90,17 @@ export async function quoteBox(
     },
     freshRatio: input.freshRatio,
     products,
+    blockedLines: input.blockedLines,
+  }
+  // ★알레르기 때문에 담지 못한 몫이 있으면 견적을 내지 않는다(2026-10-13 E1) — 덜 담은 박스 금액으로 바꾸거나
+  //   다른 레시피로 채우는 대신, 호출부가 금액을 건드리지 않게 하고 사람에게 알린다.
+  const plan = computeBoxPlan(calcInput)
+  if (plan.held.length > 0) {
+    captureBusinessEvent('warning', 'subscription.quote.held_allergen_share', {
+      subscriptionId: input.subscriptionId,
+      held: plan.held.map((h) => `${h.line}:${h.reason}`).join(','),
+    })
+    return null
   }
   const { total } = priceForFormula(calcInput)
   // 0원/음수가 나오면 계산이 깨진 것 — 청구액을 망가뜨리느니 그대로 둔다.
@@ -92,7 +109,7 @@ export async function quoteBox(
   if (!Number.isFinite(total) || total <= 0) return null
 
   // 같은 입력으로 품목도 만든다 — 금액과 내용물이 같은 계산에서 나와야 한다.
-  const items = subscribableItems(computeBoxItems(calcInput))
+  const items = subscribableItems(plan.items)
   return {
     total,
     itemRows: subscriptionItemRows(input.subscriptionId, items),

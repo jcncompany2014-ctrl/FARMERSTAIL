@@ -127,7 +127,9 @@ describe('decideFirstBox — 중증 췌장염 하드 게이트', () => {
     )
     assert.ok(gate, '중증 췌장염 하드 게이트 발화')
     assert.equal(gate!.priority, 0)
-    assert.match(gate!.action, /처방식/)
+    // 2026-10-13 E8: '처방' 말 없이, 결제 전 상담으로 간다고 말한다(실제로 결제가 막힌다).
+    assert.match(gate!.action, /상담/)
+    assert.doesNotMatch(gate!.action, /처방|\d+%/)
   })
 
   it('만성(moderate) pancreatitis → 하드 게이트 미발화 (저지방 닭 보조)', () => {
@@ -703,7 +705,8 @@ describe('decideFirstBox v1.2 — 만성질환 조합', () => {
     )
     // Skin 0.7 + Joint 0.3 인 상태에서 chip 발화 — 항상 발화하는 게 아니라
     // 알고리즘 정규화 후 둘 다 ≥ 0.2 일 때만. 약한 검증.
-    if (reason) assert.match(reason.action, /오메가-3/)
+    // 2026-10-13 E10: 비율을 바꾸지 않는 줄이라 '보강했어요' 대신 수의사 상의 안내.
+    if (reason) assert.match(reason.action, /수의사/)
   })
 
   it('췌장염 + BCS 7 → Weight 50%+ (저지방 강화)', () => {
@@ -839,7 +842,10 @@ describe('decideFirstBox v1.3 — 췌장염 fat ceiling (Xenoulis 2015)', () => 
     assert.ok(fat < 24, `지방 최소화 (got ${fat.toFixed(1)}%DM)`)
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-pancreatitis')
     assert.ok(r)
-    assert.match(r!.action, /DM 지방 \d/)
+    // 2026-10-13 E8: 문구는 최종 박스(지방이 가장 적은 한 레시피) 기준 — 정확한 % 는 쓰지 않는다.
+    assert.match(r!.action, /지방이 가장 적은/)
+    assert.doesNotMatch(r!.action, /DM|\d+(\.\d+)?%/)
+    assert.equal(f.firstBoxLine, 'weight', '첫 박스는 지방이 가장 적은 치킨')
   })
 
   it('췌장염 + 관절염 동시 → 췌장염이 우선 (fat 우선)', () => {
@@ -984,7 +990,9 @@ describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로
     })
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-cardiac')
     assert.ok(r)
-    assert.match(r!.action, /taurine|저나트륨|grain-free/)
+    // 2026-10-13 E10: 레시피를 바꾸지 않는 규칙 — '나트륨 낮춤' 같은 하지 않은 조정 대신 사실과 권유.
+    assert.match(r!.action, /레시피는 그대로/)
+    assert.equal(r!.chipLabel, '수의사와 함께 관리해요')
   })
 
   it('dcm 키도 동일 분기', () => {
@@ -1015,7 +1023,8 @@ describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로
     assert.equal(f.lineRatios.premium, 0)
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-hepatic')
     assert.ok(r)
-    assert.match(r!.action, /구리|Cu/)
+    // 2026-10-13 E10: 효능('구리 제한') 대신 한 일 — 한우 레시피를 뺐다.
+    assert.match(r!.action, /한우 레시피는 뺐어요/)
   })
 
   it('hepatic alias 도 동작', () => {
@@ -1034,7 +1043,8 @@ describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로
     assert.ok(f.lineRatios.skin >= 0.3 - 1e-9)
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-cognitive-decline')
     assert.ok(r)
-    assert.match(r!.action, /DHA|MCT/)
+    // 2026-10-13 E10: 연어(판매 안 함) 쪽으로 옮긴 규칙 — 연어가 박스에 없으면 이 문구는 빠진다(promisedLines).
+    assert.deepEqual(r!.promisedLines, ['skin'])
   })
 
   it('long_term_steroid → Joint 라인 ≥0.3', () => {
@@ -1045,7 +1055,8 @@ describe('decideFirstBox v1.3 — 새 만성질환 (DCM/당뇨/간/CDS/스테로
     assert.ok(f.lineRatios.joint >= 0.3 - 1e-9)
     const r = f.reasoning.find((x) => x.ruleId === 'chronic-long-term-steroid')
     assert.ok(r)
-    assert.match(r!.action, /Ca\/P|콜라겐/)
+    // 2026-10-13 E10: 효능('관절 보강·콜라겐') 대신 고른 레시피.
+    assert.equal(r!.chipLabel, '흑돼지 레시피를 골랐어요')
   })
 
   it('만성질환 없으면 새 룰들 다 안 발화', () => {
@@ -1231,14 +1242,14 @@ describe('decideFirstBox v1.3 — IgE cross-reactivity chip', () => {
     )
   })
 
-  it('닭 알레르기 → 오리(Basic) 라인 cross-react chip (오리/닭 cross)', () => {
+  it('닭 알레르기 → 오리(Basic)는 권함 — "비슷한 단백질 주의" 칩 없음 (2026-10-13 E9 사장님 결정)', () => {
     const f = decideFirstBox({
       ...baseInput(),
       allergies: ['닭·칠면조'],
     })
-    // v2.0 ③-A: 오리 = basic 키. 오리 라인이 닭 cross-react 경고 대상.
+    // 예전엔 오리 = 닭 교차 반응 경고 대상이었다. 웹·매거진("닭·소가 안 맞는 아이도 편하게")과 앱을 '권함'으로 통일.
     const cross = f.reasoning.find((r) => r.ruleId === 'cross-react-basic')
-    assert.ok(cross, '오리(Basic) cross-react chip 발화')
+    assert.equal(cross, undefined, '오리에 비슷한 단백질 주의 칩이 아직 뜬다')
   })
 
   it('알레르기 없으면 cross-react chip 없음', () => {

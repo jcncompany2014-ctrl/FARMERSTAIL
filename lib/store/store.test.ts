@@ -69,11 +69,10 @@ test('상세 한 줄·다른 레시피 권유 — 정본 원재료·알레르기
   assert.equal(recipeIntro('chicken'), '무항생제 닭가슴살에 염통과 간까지, 브로콜리와 블루베리를 더했어요')
   assert.equal(recipeIntro('duck'), '무항생제 오리 안심에 염통과 간까지, 애호박과 사과를 더했어요')
   assert.equal(recipeIntro('pork'), '흑돼지 뒷다리살에 염통과 간까지, 무와 양배추를 더했어요')
-  // 오리는 닭과 교차 반응 — 닭고기 대안에서 빠진다(시안의 "오리고기나 한우"를 정본이 고친다).
-  assert.ok(!alternativeRecipes('chicken').includes('duck'))
-  assert.ok(!alternativeRecipes('duck').includes('chicken'))
+  // 2026-10-13 E9 사장님 결정 — 닭이 안 맞아도 오리는 '권함'(예전엔 교차 반응이라 닭고기 대안에서 뺐다).
+  assert.ok(alternativeRecipes('chicken').includes('duck'))
   for (const r of STORE_RECIPES) assert.ok(!alternativeRecipes(r).includes(r))
-  assert.equal(alternativeAdvice('chicken'), '닭고기를 먹고 탈이 난 적 있는 아이라면 흑돼지나 한우 레시피를 골라 주세요.')
+  assert.equal(alternativeAdvice('chicken'), '닭고기를 먹고 탈이 난 적 있는 아이라면 오리고기나 흑돼지 레시피를 골라 주세요.')
 })
 
 test('상품 id 판정 — 상품표에 없는 것은 거른다', () => {

@@ -398,6 +398,9 @@ export default function AnalysisView({
         { line: 'basic' as const, ratio: 0.5 },
         { line: 'premium' as const, ratio: 0.5 },
       ]
+  // ★박스 열량 = **처방의 하루 열량**(formula.dailyKcal) — 간식만큼 뺀 값이다(2026-10-13 E5). 예전엔 analysis.mer
+  //   (간식 빼기 전)을 써서, 간식을 주는 아이는 이 카드의 하루 g 가 실제 팩·주문 화면보다 컸다. 처방을 불러오기 전엔 mer.
+  const boxKcal = formula?.dailyKcal && formula.dailyKcal > 0 ? formula.dailyKcal : analysis.mer
   const magBoxItems: MagBoxMixItem[] = boxLines.map(({ line, ratio }) => {
     const meta = FOOD_LINE_META[line]
     const pct = Math.round(ratio * 100)
@@ -406,11 +409,11 @@ export default function AnalysisView({
       name: meta.name,
       ko: `${recipeNameOfLine(line)} 레시피`,
       pct,
-      kcal: Math.round(analysis.mer * ratio),
+      kcal: Math.round(boxKcal * ratio),
       // ★하루 양 = 레시피 고르기 창과 같은 함수(lineDailyGrams — 레시피마다 100g당 열량으로 나눔, 2026-10-09).
       //   예전엔 analysis.feed_g(평균 열량 밀도로 낸 값) × 비율이라, 같은 아이가 이 카드에선 256g, 창에선 231g·240g 이었다
-      //   (앱시안 결정 3번 '동작' "하루 양이 화면마다 다름"). formula.dailyKcal = analysis.mer 라 창과 같은 숫자가 된다.
-      g: Math.round(lineDailyGrams(line, ratio, analysis.mer)),
+      //   (앱시안 결정 3번 '동작' "하루 양이 화면마다 다름").
+      g: Math.round(lineDailyGrams(line, ratio, boxKcal)),
       sub: MAG_LINE_SUB[line] ?? meta.benefit,
     }
   })

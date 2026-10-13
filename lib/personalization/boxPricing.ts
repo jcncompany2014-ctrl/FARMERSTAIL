@@ -188,30 +188,85 @@ export function displayPricePerPack(cycleTotal: number, packs: number): number {
   return Math.ceil(cycleTotal / packs / 10) * 10
 }
 
-/**
- * 처방 + 화식 비율 + 제품 → 배송 항목 목록.
- *
- * 가용성 게이트(활성 제품 없는 라인 재분배) + 박스 2종 스냅까지 여기서 처리하므로,
- * 저장된 formula 가 게이트 이전 버전이어도 박스는 항상 100% 충족한다.
- */
-export function computeBoxItems<P extends BoxProduct>(input: {
+/** 박스 계산 입력 — 주문·승인·피킹·청구 대조가 전부 이 모양으로 부른다. */
+export type BoxInput<P extends BoxProduct> = {
   formula: Pick<Formula, 'lineRatios' | 'toppers' | 'dailyKcal'>
   /** 화식 비율 티어 — 30(곁들임) / 50(반반) / 100(완전). */
   freshRatio: number
   /** slug → product. */
   products: Record<string, P>
+  /**
+   * ★그 강아지의 **최신 설문 알레르기**로 막힌 라인(skuMap.blockedLinesForAllergies) — **필수**(2026-10-13 E1).
+   * 예전엔 이 값을 안 받아서, 판매 중지 레시피를 대체(치킨↔오리, 그 외→오리)할 때 알레르기를 보지 않고 옮겼다.
+   * 필수로 둔 이유: 선택이면 새 호출처가 또 빠뜨린다 — 타입이 모든 호출처에 넘기게 한다. 알레르기가 없으면 [].
+   */
+  blockedLines: readonly FoodLine[]
   cycleDays?: number
-}): Array<BoxItem<P>> {
+}
+
+/**
+ * 박스에 **담지 않고 남긴 몫** — 사람이 확인해야 한다(피킹 리스트 '확인 필요', 신청·견적은 거절).
+ *  · no_safe_substitute — 판매 중지 레시피를 옮길 안전한(알레르기 아닌) 판매 레시피가 없다.
+ *  · allergen_in_formula — 저장된 처방에 알레르기 레시피가 들어 있다(설문에 알레르기를 새로 넣은 뒤의 옛 처방 등).
+ */
+export type HeldShare = {
+  line: FoodLine
+  ratio: number
+  reason: 'no_safe_substitute' | 'allergen_in_formula'
+}
+
+export type BoxPlan<P extends BoxProduct> = {
+  items: Array<BoxItem<P>>
+  held: HeldShare[]
+}
+
+/**
+ * 처방 + 화식 비율 + 제품 → 배송 항목 목록.
+ *
+ * 가용성 게이트(활성 제품 없는 라인 재분배) + 박스 2종 스냅까지 여기서 처리하므로,
+ * 저장된 formula 가 게이트 이전 버전이어도 박스는 항상 100% 충족한다.
+ * 담지 못한 몫(held)까지 보려면 computeBoxPlan 을 쓴다.
+ */
+export function computeBoxItems<P extends BoxProduct>(
+  input: BoxInput<P>,
+): Array<BoxItem<P>> {
+  return computeBoxPlan(input).items
+}
+
+/**
+ * computeBoxItems 의 본체 — 항목 + **담지 않은 몫(held)**.
+ *
+ * ★알레르기 레시피는 박스에 0번 들어간다(2026-10-13 E1):
+ *  ① 처방에 알레르기 레시피가 직접 있으면 빼고 held(allergen_in_formula).
+ *  ② 판매 중지 레시피의 대체는 알레르기 레시피를 건너뛰고, 안전한 대체가 없으면 옮기지 않고 held(no_safe_substitute).
+ */
+export function computeBoxPlan<P extends BoxProduct>(
+  input: BoxInput<P>,
+): BoxPlan<P> {
   const { formula, freshRatio, products } = input
   const cycleDays = input.cycleDays ?? CYCLE_DAYS
   const freshFactor = freshRatio / 100
   const items: Array<BoxItem<P>> = []
   const dailyKcal = formula.dailyKcal
+  const blocked = new Set<FoodLine>(input.blockedLines ?? [])
+  const held: HeldShare[] = []
 
-  const gated = gateAvailability(formula.lineRatios, formula.toppers, {
+  const base: Record<FoodLine, number> = { ...formula.lineRatios }
+  for (const line of ALL_LINES) {
+    const v = formula.lineRatios?.[line]
+    if (blocked.has(line) && typeof v === 'number' && Number.isFinite(v) && v > 0) {
+      held.push({ line, ratio: v, reason: 'allergen_in_formula' })
+      base[line] = 0
+    }
+  }
+
+  const gated = gateAvailability(base, formula.toppers, {
     availableLines: deriveAvailableLines(Object.keys(products)),
     availableToppers: deriveAvailableToppers(Object.keys(products)),
+    blockedLines: blocked,
+    holdWhenNoSafeTarget: true,
   })
+  for (const h of gated.held) held.push({ ...h, reason: 'no_safe_substitute' })
   // 박스는 SKU 최대 2종 (1종 100% / 2종 50:50) — 사장님 2026-07-13.
   // 토퍼는 별개 add-on 이라 스냅 대상 아님.
   const boxRatios = snapBoxRatios(gated.lineRatios)
@@ -299,7 +354,7 @@ export function computeBoxItems<P extends BoxProduct>(input: {
     })
   }
 
-  return items
+  return { items, held }
 }
 
 /**
@@ -342,11 +397,6 @@ export function priceBox<P extends BoxProduct>(
 /**
  * 처방 → 금액 한 번에. 승인 흐름(서버)이 쓰는 진입점.
  */
-export function priceForFormula<P extends BoxProduct>(input: {
-  formula: Pick<Formula, 'lineRatios' | 'toppers' | 'dailyKcal'>
-  freshRatio: number
-  products: Record<string, P>
-  cycleDays?: number
-}): BoxPrice {
+export function priceForFormula<P extends BoxProduct>(input: BoxInput<P>): BoxPrice {
   return priceBox(computeBoxItems(input))
 }

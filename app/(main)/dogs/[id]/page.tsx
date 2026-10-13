@@ -9,7 +9,8 @@ import { getTrialState } from '@/lib/payments/trial-state'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
-import { kstDateOf } from '@/lib/datetime-kst'
+import { kstDateOf, todayKstIsoDate } from '@/lib/datetime-kst'
+import { currentServingFormula } from '@/lib/personalization/servingFormula'
 import { paidBoxShipIso } from '@/lib/shipping-schedule'
 import type { UpcomingBoxHints } from './_components/SubscriptionCard'
 import { createClient } from '@/lib/supabase/server'
@@ -85,9 +86,9 @@ export default async function DogDetailPage({
         .eq('dog_id', dogId)
         .eq('user_id', user.id)
         // ★created_at 정렬 — 회차 번호가 큰 것이 최신이 아니다(2026-07-30 감사).
+        // 여러 행을 받아 '지금 먹는 식단'(승인 대기·거절·시작 전 제외)을 고른다(2026-10-13 E4 — servingFormula).
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .limit(20),
       supabase
         .from('subscriptions')
         .select(
@@ -140,9 +141,21 @@ export default async function DogDetailPage({
     ])
 
   const initialWeightLogs = (logsRes.data ?? []) as WeightLog[]
-  const currentFormula = formulaRes.data
-    ? (formulaRes.data as unknown as CurrentFormula)
-    : null
+  /**
+   * ★'지금 먹는 식단' = 승인 대기·거절·시작 전(applied_from 이 오늘보다 뒤)을 뺀 최신(2026-10-13 E4).
+   * 예전엔 created_at 최신 1건이라, 동의 안 한 제안·거절한 제안·다음 박스부터 담길 식단을 지금 식단으로 보였다.
+   * 정본은 lib/personalization/servingFormula — 홈·피킹 리스트·재제안 크론과 같은 규칙.
+   * 승인 대기 제안은 따로 골라 카드의 '새 식단 확인하기' 버튼에만 쓴다.
+   */
+  if (formulaRes.error) {
+    console.error('[dogs/[id]] 처방 조회 실패:', formulaRes.error.message)
+  }
+  const formulaRows = (formulaRes.error ? [] : (formulaRes.data ?? [])) as unknown as CurrentFormula[]
+  const currentFormula = currentServingFormula(formulaRows, todayKstIsoDate())
+  const pendingFormula =
+    formulaRows
+      .filter((r) => r.approval_status === 'pending_approval')
+      .find((r) => !currentFormula?.created_at || !r.created_at || r.created_at > currentFormula.created_at) ?? null
   // '결제 완료·진행중인 것만' — 카드도 안 걸고 해지된 유령 구독은 카드에서 숨김
   // (사장님 2026-07-22, subscription-state 정본). 필터 후 비면 SubscriptionCard 가
   // 자동으로 '정기배송 시작' CTA(처방 있을 때) 로 폴백.
@@ -320,7 +333,11 @@ export default async function DogDetailPage({
       chargePreview={chargePreview}
       dog={dog}
       initialWeightLogs={initialWeightLogs}
-      currentFormula={currentFormula ? { ...currentFormula, cycle_start: cycleStart } : null}
+      currentFormula={
+        currentFormula
+          ? { ...currentFormula, cycle_start: cycleStart, pending_cycle: pendingFormula?.cycle_number ?? null }
+          : null
+      }
       checkinStatus={checkinStatus}
       subscriptions={subscriptionsWithBox}
       subsQueryFailed={subsQueryFailed}

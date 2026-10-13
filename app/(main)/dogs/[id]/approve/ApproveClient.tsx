@@ -18,7 +18,7 @@ import { haptic } from '@/lib/haptic'
 import { trackBoxDecision } from '@/lib/analytics'
 import './approve.css'
 import { snapBoxRatios } from '@/lib/personalization/boxComposition'
-import { plainTrigger, isPlainCustomerText } from '@/lib/personalization/plain-reason'
+import { plainTrigger, isPlainCustomerText, isCustomerVisibleReason } from '@/lib/personalization/plain-reason'
 import { CheckIcon, XIcon } from '@/components/v3/dog/DogIcons'
 import { boxLineColor, boxLineName, orderedBoxLines } from '../formulas/boxLines'
 
@@ -113,6 +113,8 @@ export default function ApproveClient({
   const reasons = pending.reasoning
     .map((r) => ({ ...r, trigger: plainTrigger(r.trigger) }))
     .filter((r) => isPlainCustomerText(r.trigger) && isPlainCustomerText(r.chipLabel))
+    // 성장기 칩·옛 질환 효능 칩은 그리지 않는다(2026-10-13 E10·E11).
+    .filter(isCustomerVisibleReason)
     .slice(0, 5)
 
   return (

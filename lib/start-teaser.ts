@@ -9,6 +9,7 @@
 
 import { calculateNutrition, type DogInfo, type SurveyAnswers } from './nutrition.ts'
 import { loadAutosignupDraft, type AutosignupDraft } from './autosignup-draft.ts'
+import { isWebRecipeBlocked, type WebRecipe } from './web-recipes.ts'
 
 /** 웹 라이트 설문 관심사 키 → lib/nutrition 이 읽는 한글 라벨(legacy healthConcerns). */
 export const HEALTH_KR: Record<string, string> = {
@@ -114,7 +115,8 @@ export function computeStartTeaser(draftArg?: AutosignupDraft | null): StartTeas
   if (!m) return null
 
   const nu = calculateNutrition(m.dogInfo, m.answers)
-  const proteins = PROTEIN_ORDER.filter((p) => !m.allergies.includes(p))
+  // 같은 화면의 레시피 카드(web-recipes selectSafeRecipes)와 같은 차단표 — 양고기 알레르기면 한우도 뺀다(2026-10-13 E13).
+  const proteins = PROTEIN_ORDER.filter((p) => !isWebRecipeBlocked(p as WebRecipe['protein'], m.allergies))
     .slice(0, 2)
     .map((p) => PROTEIN_KR[p]!)
 

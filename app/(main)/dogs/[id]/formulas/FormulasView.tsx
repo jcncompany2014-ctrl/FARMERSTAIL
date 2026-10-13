@@ -9,7 +9,7 @@
 import Link from 'next/link'
 import { petName } from '@/lib/korean'
 import { boxCardColors, boxCardFrame, FOOD_LINE_POUCH } from '@/lib/design/pouch'
-import { isPlainCustomerText } from '@/lib/personalization/plain-reason'
+import { isPlainCustomerText, isCustomerVisibleReason } from '@/lib/personalization/plain-reason'
 import {
   boxLineColor,
   boxLineName,
@@ -130,7 +130,8 @@ function FormulaCard({
       : boxLineColor(l.line)
 
   // 근거 칩 — 승인 화면과 같은 기준으로 영문 약어·문헌 표기가 든 칩은 그리지 않는다(plain-reason).
-  const chips = row.reasoning.filter((r) => isPlainCustomerText(r.chipLabel))
+  // 성장기 칩·옛 질환 효능 칩도 뺀다(2026-10-13 E10·E11).
+  const chips = row.reasoning.filter((r) => isPlainCustomerText(r.chipLabel) && isCustomerVisibleReason(r))
   const hasTopper = row.formula.toppers.vegetable > 0 || row.formula.toppers.protein > 0
 
   const status =
