@@ -21,7 +21,7 @@
  *   4. 다음 호 예고 — 단백질 알레르기 진단법
  *   5. CTA — 무료 분석 시작
  */
-import { renderLayout, escape, SITE_URL, block } from '../layout.ts'
+import { renderLayout, escape, SITE_URL, block, EMAIL_COLORS } from '../layout.ts'
 
 export function renderNewsletterVol01(input: {
   email: string
@@ -31,13 +31,8 @@ export function renderNewsletterVol01(input: {
 
   const unsubscribeUrl = `${SITE_URL}/api/newsletter/unsubscribe?token=${encodeURIComponent(input.unsubscribeToken)}`
 
-  // 섹션 헤더 헬퍼 — 인라인 스타일. 메일 클라이언트가 class/css 변수를 안 먹음.
-  const section = (kicker: string, title: string): string => `
-    <div style="margin:24px 0 10px 0;">
-      <div style="font-size:10px;color:#B63619;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;">${escape(kicker)}</div>
-      <div style="margin-top:4px;font-size:16px;font-weight:800;color:#173B33;letter-spacing:-0.02em;line-height:1.35;">${escape(title)}</div>
-    </div>
-  `
+  // 섹션 헤더 — 공용 틀(block.section)의 머스터드 네모 머리말 + 굵은 제목.
+  const section = (kicker: string, title: string): string => block.section(kicker, title)
 
   const body = `
     <p style="margin:0 0 14px 0;">
@@ -45,7 +40,7 @@ export function renderNewsletterVol01(input: {
       이번 호엔 보호자분들이 자주 놓치는 BCS 이야기를 담았어요.
     </p>
 
-    ${section('Insight 01', '이번 달의 영양 인사이트')}
+    ${section('인사이트', '이번 달의 영양 인사이트')}
     <p style="margin:0 0 10px 0;">
       BCS (Body Condition Score) 는 우리 아이의 체형을 1~9 단계로 평가하는
       수의영양학 표준이에요. 5가 가장 이상적인 상태예요.
@@ -60,65 +55,63 @@ export function renderNewsletterVol01(input: {
        <strong>3) 옆에서 보기</strong> — 배가 살짝 위로 들어가 있으면 정상.<br />
        세 가지 중 두 가지 이상 어긋나면 1단계씩 위/아래로 평가해 보세요.`,
     )}
-    <p style="margin:10px 0 0 0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
+    <p style="margin:12px 0 0 0;font-size:14px;color:${EMAIL_COLORS.mute};line-height:1.65;">
       파머스테일 분석은 BCS 를 포함해 12개 지표로 우리 아이의 한 끼를 계산해요.
     </p>
 
     ${block.hr()}
 
-    ${section('This Week', '이번 주의 추천 메뉴')}
+    ${section('이번 주', '이번 주의 추천 메뉴')}
     <!-- 라인업은 닭·오리·돼지·소 4종. 없는 메뉴를 쓰면 그대로 허위 광고다. -->
     <p style="margin:0 0 10px 0;">
-      <strong style="color:#173B33;">오리</strong> — 사람이 먹는 등급의 오리를
-      저온에서 익혀 만든 화식이에요. 닭이나 소를 먹고 가려워하던 아이에게
-      처음 권해보기 좋은, 비교적 낯선 단백질이에요.
+      <strong style="color:${EMAIL_COLORS.ink};">오리</strong> — 사람이 먹는 등급의 오리를
+      저온에서 익혀 만든 화식이에요. 지금까지 닭이나 소를 주로 먹어 온 아이라면
+      단백질을 바꿔 보는 선택지가 될 수 있어요. 몸에 맞지 않는 재료가 의심되면 수의사와 먼저 상의해 주세요.
     </p>
     ${block.callout(
       'gold',
-      `<strong style="color:#173B33;">보호자 후기는 준비 중이에요.</strong><br />
-       <span style="font-size:11.5px;color:#5A6C61;">첫 박스를 받아보신 분들의 솔직한 이야기를, 후기가 쌓이는 대로 이 자리에 담을게요. 지어낸 후기는 싣지 않아요.</span>`,
+      `<strong style="color:${EMAIL_COLORS.ink};">보호자 후기는 준비 중이에요.</strong><br />
+       <span style="font-size:14px;color:${EMAIL_COLORS.mute};">첫 박스를 받아보신 분들의 솔직한 이야기를, 후기가 쌓이는 대로 이 자리에 담을게요. 지어낸 후기는 싣지 않아요.</span>`,
     )}
 
     ${block.hr()}
 
-    ${section('Q&A', '보호자 Q&A')}
-    <p style="margin:0 0 8px 0;font-weight:700;color:#173B33;">
+    ${section('문답', '보호자 Q&A')}
+    <p style="margin:0 0 8px 0;font-weight:800;color:${EMAIL_COLORS.ink};">
       Q. 사료에서 화식으로 갑자기 바꿔도 괜찮을까요?
     </p>
     <p style="margin:0 0 10px 0;">
       급하게 바꾸면 위장이 적응 못 해서 무른 변이나 토가 나올 수 있어요.
       7~10일에 걸쳐 천천히 섞어가며 비율을 늘려주시는 걸 권장해요.
     </p>
-    <p style="margin:0 0 10px 0;font-size:12px;color:#173B33;line-height:1.7;">
+    <p style="margin:0 0 10px 0;font-size:15px;color:${EMAIL_COLORS.ink};line-height:1.75;">
       1~3일: 기존 사료 75% + 화식 25%<br />
       4~6일: 기존 사료 50% + 화식 50%<br />
       7~9일: 기존 사료 25% + 화식 75%<br />
       10일~: 화식 100%
     </p>
-    <p style="margin:0;font-size:11.5px;color:#5A6C61;line-height:1.6;">
+    <p style="margin:0;font-size:14px;color:${EMAIL_COLORS.mute};line-height:1.65;">
       전환 중에 변 상태가 평소와 많이 다르면 그 비율에서 2~3일 더 머무르세요.
     </p>
 
     ${block.hr()}
 
-    ${section('Next Issue', '다음 호 예고')}
+    ${section('다음 호', '다음 호 예고')}
     <p style="margin:0;">
-      Vol. 02 에서는 <strong style="color:#173B33;">단백질 알레르기 진단법</strong>
+      Vol. 02 에서는 <strong style="color:${EMAIL_COLORS.ink};">단백질 알레르기 진단법</strong>
       을 다룰 거예요. 닭고기를 의심하는 보호자분이 많은데, 실제로는 다른
       원인일 때가 많아요. 다음 달 첫째 주에 보내드릴게요.
     </p>
 
-    <div style="margin-top:22px;padding-top:14px;border-top:1px solid #DCD6C4;font-size:10px;color:#9A9A9A;line-height:1.6;">
-      본 메일은 ${escape(input.email)} 으로 신청해 주신 파머스테일 뉴스레터예요.
+    ${block.fine(`본 메일은 ${escape(input.email)} 으로 신청해 주신 파머스테일 뉴스레터예요.
       더 이상 받지 않으시려면
-      <a href="${escape(unsubscribeUrl)}" style="color:#5A6C61;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.
-    </div>
+      <a href="${escape(unsubscribeUrl)}" style="color:${EMAIL_COLORS.ink};font-weight:700;text-decoration:underline;">여기에서 수신거부</a> 하실 수 있어요.`)}
   `
 
   const html = renderLayout({
     // 10/6 10차 E: '오션 오메가 믹스'는 판매하지 않는 제품(products.is_active=false) — 본문은 이미 4종으로 고쳤다.
     preview: 'BCS 점수로 우리 아이 체형 자가 체크 · 레시피 4종 · 화식 전환법',
-    kicker: 'Tail Letter · Vol. 01',
+    kicker: '테일 레터 · 1호',
     heading: '우리 아이 BCS 점수, 알고 계세요?',
     body,
     // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.

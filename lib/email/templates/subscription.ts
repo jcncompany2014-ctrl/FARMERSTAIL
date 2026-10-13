@@ -27,7 +27,7 @@
  *   - CTA: "구독 관리" — 잠시 멈춤 / 변경 / 해지를 원할 수 있는 사용자가
  *     한 번에 닿게.
  */
-import { block, escape, renderLayout, SITE_URL } from '../layout.ts'
+import { block, EMAIL_COLORS, escape, renderLayout, SITE_URL } from '../layout.ts'
 import { withHonorific } from '../../korean.ts'
 
 export type SubscriptionReminderItem = {
@@ -98,10 +98,11 @@ export function renderSubscriptionReminder(input: {
       //  우리가 단정할 근거가 없다(lib/shipping-schedule 주석 참조).
       `<strong>${escape(dateLabel)} 발송 예정</strong><br/>${itemCountLabel}`,
     )}
-    <div style="height:14px;"></div>
+    <div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
       ${itemRows}
     </table>
+    <div style="height:20px;line-height:20px;font-size:0;">&nbsp;</div>
     ${
       // 정기결제 사전고지 — 금액·시점·해지 마감을 한 문단에. 결제일은 크론과 같은 정본(chargeDateFor)에서 온다.
       // 일반 = 조리 직전 토요일, 서포터즈 체험 구간 = 발송일. 금액을 모르면 금액 문장만 빼고 나머지는 남긴다.
@@ -112,27 +113,24 @@ export function renderSubscriptionReminder(input: {
         return typeof input.chargeAmount === 'number' && input.chargeAmount > 0
           ? block.callout(
               'terracotta',
-              `<strong>${escape(chargeLabel)} 아침에 ${input.chargeAmount.toLocaleString()}원이 결제돼요</strong>` +
+              `<strong style="font-size:18px;line-height:1.45;">${escape(chargeLabel)} 아침에 ${input.chargeAmount.toLocaleString()}원이 결제돼요</strong>` +
                 `<br/>${when}등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
             )
           : block.callout(
               'terracotta',
-              `<strong>${escape(chargeLabel)} 아침에 자동 결제돼요</strong>` +
+              `<strong style="font-size:18px;line-height:1.45;">${escape(chargeLabel)} 아침에 자동 결제돼요</strong>` +
                 `<br/>${when}금액은 정기배송 관리에서 확인할 수 있어요. 그 전까지 미루거나 해지하면 청구되지 않아요.`,
             )
       })()
     }
-    <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
-      잠시 멈춤·화식 비율 변경·해지는
-      <a href="${SITE_URL}/account/subscriptions" style="color:#7A7A7A;">정기배송 관리</a>
-      에서 가능해요. 도움이 필요하면 답장 주세요.
-    </p>
+    ${block.note(`잠시 멈춤·화식 비율 변경·해지는
+      ${block.link(`${SITE_URL}/account/subscriptions`, '정기배송 관리')}
+      에서 가능해요. 도움이 필요하면 답장 주세요.`, 20)}
   `
 
   const html = renderLayout({
-    kicker: 'Subscription · 정기배송',
+    kicker: '정기배송',
     heading,
-    icon: '🚚',
     preview: `${chargeLabel} 결제 · ${dateLabel} 발송 예정 · ${itemCountLabel}`,
     body,
     cta: {
@@ -220,9 +218,9 @@ export function renderSubscriptionChargeFailed(input: {
 
   // ★결과 확인 중이면 '사유'를 쓰지 않는다(2026-10-13 규칙192) — 실패가 아니라서 실패 사유가 없다.
   const reasonLine = isUnknownOutcome
-    ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">카드사 응답이 늦어 결과를 확인하고 있어요</p>`
+    ? block.note('카드사 응답이 늦어 결과를 확인하고 있어요', 8)
     : input.reason
-      ? `<p style="margin:8px 0 0 0;font-size:11.5px;color:#9A9A9A">사유: ${escape(input.reason)}</p>`
+      ? block.note(`사유: ${escape(input.reason)}`, 8)
       : ''
 
   // variant 별 본문
@@ -270,7 +268,7 @@ export function renderSubscriptionChargeFailed(input: {
         <strong>${escape(input.productLabel)}</strong> 의 정기배송 결제가 잠시
         실패했어요. 잔액 부족이나 카드사 일시 거절이 가장 흔한 원인이에요.
       </p>
-      <p style="margin:0 0 14px 0;font-size:12px;color:#7A7A7A;">
+      <p style="margin:0 0 14px 0;font-size:15px;color:${EMAIL_COLORS.mute};">
         ${retryLine}
       </p>
     `
@@ -301,11 +299,9 @@ export function renderSubscriptionChargeFailed(input: {
     ${mainBody}
     ${block.callout(
       isPermanent || input.paused ? 'sale' : isTransient || isUnknownOutcome ? 'gold' : 'sale',
-      `${isUnknownOutcome ? '결제 요청 금액' : '결제 시도 금액'}: <strong>${input.amount.toLocaleString()}원</strong>${reasonLine}`,
+      `${isUnknownOutcome ? '결제 요청 금액' : '결제 시도 금액'}: <strong style="font-size:18px;">${input.amount.toLocaleString()}원</strong>${reasonLine}`,
     )}
-    <p style="margin:14px 0 0 0;font-size:12px;color:#7A7A7A;line-height:1.6;">
-      ${footLine}
-    </p>
+    ${block.note(footLine, 20)}
   `
 
   const html = renderLayout({
@@ -373,21 +369,18 @@ export function renderTrialPriceChange(input: {
     <p style="margin:0 0 14px 0;">${escape(lead)}</p>
     ${block.callout(
       'terracotta',
-      `<strong>${escape(dateLabel)} 아침에 ${won}이 결제돼요</strong>` +
+      `<strong style="font-size:18px;line-height:1.45;">${escape(dateLabel)} 아침에 ${won}이 결제돼요</strong>` +
         movedLine +
         `<br/>등록하신 카드로 자동 결제돼요. 그 전까지 정기배송 관리에서 미루거나 해지하면 청구되지 않아요.`,
     )}
-    <p style="margin:14px 0 0 0;font-size:11px;color:#7A7A7A;line-height:1.6;">
-      금액·구성 확인과 잠시 멈춤·해지는
-      <a href="${SITE_URL}/account/subscriptions" style="color:#7A7A7A;">정기배송 관리</a>
-      에서 가능해요. 궁금한 점은 이 메일에 답장 주세요.
-    </p>
+    ${block.note(`금액·구성 확인과 잠시 멈춤·해지는
+      ${block.link(`${SITE_URL}/account/subscriptions`, '정기배송 관리')}
+      에서 가능해요. 궁금한 점은 이 메일에 답장 주세요.`, 20)}
   `
 
   const html = renderLayout({
-    kicker: 'Subscription · 정기배송',
+    kicker: '정기배송',
     heading,
-    icon: '🐾',
     preview: `${dateLabel}부터 ${won}`,
     body,
     cta: {
