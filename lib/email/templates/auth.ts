@@ -32,7 +32,7 @@ const BRAND_LINE = '파머스테일 · 정성스러운 화식 펫푸드'
 
 const SPECS: Record<AuthTemplateFile, AuthTemplateSpec> = {
   'confirm-signup': {
-    kicker: 'Welcome · 환영합니다',
+    kicker: '환영합니다',
     heading: '파머스테일에 오신 걸 환영해요 🐾',
     lead: '가입을 완료하려면 아래 버튼을 눌러 이메일 인증을 진행해주세요. 링크는 <strong>1시간 후 만료</strong>됩니다.',
     ctaLabel: '이메일 인증하기',
@@ -40,7 +40,7 @@ const SPECS: Record<AuthTemplateFile, AuthTemplateSpec> = {
     footer: '본 메일은 회원가입 완료 안내 거래성 이메일이에요. 본인이 가입한 적이 없다면 이 메일을 무시해주세요.',
   },
   'reset-password': {
-    kicker: 'Password · 비밀번호 재설정',
+    kicker: '비밀번호 재설정',
     heading: '비밀번호를 다시 설정해주세요',
     lead: '요청하신 계정 ({{ .Email }}) 의 비밀번호 재설정 링크예요. 링크는 <strong>1시간 후 만료</strong>됩니다.',
     ctaLabel: '비밀번호 재설정',
@@ -62,15 +62,15 @@ const SPECS: Record<AuthTemplateFile, AuthTemplateSpec> = {
 `,
   },
   'change-email': {
-    kicker: 'Email Change · 이메일 변경',
+    kicker: '이메일 변경',
     heading: '새 이메일 인증',
-    lead: '{{ .Email }} 로 이메일을 변경하려면 아래 버튼을 눌러 인증을 완료해주세요. 링크는 <strong>24시간 후 만료</strong>됩니다.',
+    lead: '{{ .Email }} 로 이메일을 변경하려면 아래 버튼을 눌러 인증을 완료해주세요. 링크는 <strong>1시간 후 만료</strong>됩니다.',
     ctaLabel: '이메일 변경 인증',
     href: '{{ .ConfirmationURL }}',
     footer: '본 메일은 이메일 변경 요청에 의한 거래성 이메일이에요. 본인이 요청하지 않았다면 이 메일을 무시해주세요.',
   },
   'magic-link': {
-    kicker: 'Sign In · 로그인',
+    kicker: '로그인',
     heading: '한 번 클릭으로 로그인',
     lead: '{{ .Email }} 계정으로 로그인하려면 아래 버튼을 누르세요. 링크는 <strong>1시간 후 만료</strong>됩니다.',
     ctaLabel: '로그인하기',

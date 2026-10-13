@@ -249,7 +249,7 @@ export function renderOpsDigest(input: OpsDigestInput): { subject: string; html:
 
   const html = renderLayout({
     preview: `운영 점검 ${cronErrors.length + refundRows.length + staleOrders.length}건 — 확인이 필요해요`,
-    kicker: 'Ops Digest · 운영 점검',
+    kicker: '운영 점검',
     heading: '운영 점검이 필요해요',
     body: sections.join('\n'),
     cta: { label: '관리자 대시보드 열기', href: `${SITE_URL}/admin` },

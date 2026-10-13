@@ -40,7 +40,7 @@ export function renderNewsletterVol01(input: {
       이번 호엔 보호자분들이 자주 놓치는 BCS 이야기를 담았어요.
     </p>
 
-    ${section('Insight 01', '이번 달의 영양 인사이트')}
+    ${section('인사이트', '이번 달의 영양 인사이트')}
     <p style="margin:0 0 10px 0;">
       BCS (Body Condition Score) 는 우리 아이의 체형을 1~9 단계로 평가하는
       수의영양학 표준이에요. 5가 가장 이상적인 상태예요.
@@ -61,12 +61,12 @@ export function renderNewsletterVol01(input: {
 
     ${block.hr()}
 
-    ${section('This Week', '이번 주의 추천 메뉴')}
+    ${section('이번 주', '이번 주의 추천 메뉴')}
     <!-- 라인업은 닭·오리·돼지·소 4종. 없는 메뉴를 쓰면 그대로 허위 광고다. -->
     <p style="margin:0 0 10px 0;">
       <strong style="color:${EMAIL_COLORS.ink};">오리</strong> — 사람이 먹는 등급의 오리를
-      저온에서 익혀 만든 화식이에요. 닭이나 소를 먹고 가려워하던 아이에게
-      처음 권해보기 좋은, 비교적 낯선 단백질이에요.
+      저온에서 익혀 만든 화식이에요. 지금까지 닭이나 소를 주로 먹어 온 아이라면
+      단백질을 바꿔 보는 선택지가 될 수 있어요. 몸에 맞지 않는 재료가 의심되면 수의사와 먼저 상의해 주세요.
     </p>
     ${block.callout(
       'gold',
@@ -76,7 +76,7 @@ export function renderNewsletterVol01(input: {
 
     ${block.hr()}
 
-    ${section('Q&A', '보호자 Q&A')}
+    ${section('문답', '보호자 Q&A')}
     <p style="margin:0 0 8px 0;font-weight:800;color:${EMAIL_COLORS.ink};">
       Q. 사료에서 화식으로 갑자기 바꿔도 괜찮을까요?
     </p>
@@ -96,7 +96,7 @@ export function renderNewsletterVol01(input: {
 
     ${block.hr()}
 
-    ${section('Next Issue', '다음 호 예고')}
+    ${section('다음 호', '다음 호 예고')}
     <p style="margin:0;">
       Vol. 02 에서는 <strong style="color:${EMAIL_COLORS.ink};">단백질 알레르기 진단법</strong>
       을 다룰 거예요. 닭고기를 의심하는 보호자분이 많은데, 실제로는 다른
@@ -111,7 +111,7 @@ export function renderNewsletterVol01(input: {
   const html = renderLayout({
     // 10/6 10차 E: '오션 오메가 믹스'는 판매하지 않는 제품(products.is_active=false) — 본문은 이미 4종으로 고쳤다.
     preview: 'BCS 점수로 우리 아이 체형 자가 체크 · 레시피 4종 · 화식 전환법',
-    kicker: 'Tail Letter · Vol. 01',
+    kicker: '테일 레터 · 1호',
     heading: '우리 아이 BCS 점수, 알고 계세요?',
     body,
     // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.

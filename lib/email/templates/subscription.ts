@@ -129,7 +129,7 @@ export function renderSubscriptionReminder(input: {
   `
 
   const html = renderLayout({
-    kicker: 'Subscription · 정기배송',
+    kicker: '정기배송',
     heading,
     preview: `${chargeLabel} 결제 · ${dateLabel} 발송 예정 · ${itemCountLabel}`,
     body,
@@ -379,7 +379,7 @@ export function renderTrialPriceChange(input: {
   `
 
   const html = renderLayout({
-    kicker: 'Subscription · 정기배송',
+    kicker: '정기배송',
     heading,
     preview: `${dateLabel}부터 ${won}`,
     body,

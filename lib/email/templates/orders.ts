@@ -67,7 +67,7 @@ export function renderOrderConfirmation(
   ]
 
   const html = renderLayout({
-    kicker: 'Order Placed · 주문 접수',
+    kicker: '주문 접수',
     heading: `${withHonorific(input.recipientName)}, 주문이 접수됐어요`,
     preview: `총 ${input.totalAmount.toLocaleString()}원 주문을 잘 받았어요`,
     body: `
@@ -124,7 +124,7 @@ export function renderVirtualAccountWaiting(
     ${block.note('기한까지 입금되지 않으면 주문이 자동 취소돼요.')}
   `
   const html = renderLayout({
-    kicker: 'Awaiting Deposit · 입금 대기',
+    kicker: '입금 대기',
     heading: '입금을 기다리고 있어요',
     preview: `${input.totalAmount.toLocaleString()}원 가상계좌 입금을 기다리고 있어요`,
     body,
@@ -169,7 +169,7 @@ export function renderOrderShipped(
       : ''}
   `
   const html = renderLayout({
-    kicker: 'In Transit · 배송 시작',
+    kicker: '배송 시작',
     heading: '배송이 시작됐어요',
     preview: carrierName
       ? `${carrierName} · ${input.trackingNumber ?? ''}`
@@ -194,7 +194,7 @@ export function renderOrderDelivered(
     </p>
   `
   const html = renderLayout({
-    kicker: 'Delivered · 배송 완료',
+    kicker: '배송 완료',
     heading: '주문이 잘 도착했어요',
     preview: `${input.orderNumber} 배송이 완료됐어요`,
     body,
@@ -236,7 +236,7 @@ export function renderOrderCancelled(
     ${block.dl(rows)}
   `
   const html = renderLayout({
-    kicker: 'Cancelled · 주문 취소',
+    kicker: '주문 취소',
     heading: '주문이 취소됐어요',
     preview: `${input.orderNumber} 주문이 취소됐어요`,
     body,
@@ -268,7 +268,7 @@ export function renderWelcome(input: {
   //   정보다(정보통신망법 §50① 사전 동의·④ (광고) 표시). 뉴스레터 환영 메일은 같은
   //   이유로 이미 (광고) 처리를 했다.
   const html = renderLayout({
-    kicker: 'Welcome · 반가워요',
+    kicker: '반가워요',
     heading: '가족이 되어주셔서 감사해요',
     preview: '파머스테일에 가입해주셔서 감사해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
     body,

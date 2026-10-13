@@ -361,3 +361,31 @@ test('규칙229: 메일 그림은 절대 주소(https://…farmerstail.kr)·크�
   }
   assert.ok(imgCount >= mails.length, `그림이 ${imgCount}개뿐이다 — 모든 메일 머리에 로고가 있어야 한다(카나리아)`)
 })
+
+test('규칙230: 메일 문구 — 머리말은 한글만 · 분기 리포트에 영양소 % 숫자 없음 · 테일 레터에 증상 효능 문장 없음 · 인증 링크 만료 4종 모두 1시간 (사장님 10/14)', () => {
+  const englishOnly = /^[A-Za-z][A-Za-z0-9 .&'-]*$/
+  const files = readdirSync(join(ROOT, 'lib', 'email', 'templates')).filter((f) => f.endsWith('.ts'))
+  assert.ok(files.length >= 8, 'templates 폴더를 못 읽었다(카나리아)')
+  let kickers = 0
+  for (const f of files) {
+    const src = read('lib', 'email', 'templates', f)
+    for (const m of src.matchAll(/kicker: '([^']+)'/g)) {
+      kickers++
+      for (const part of (m[1] ?? '').split(' · ')) {
+        assert.ok(!englishOnly.test(part.trim()), `${f}: 머리말에 영어 조각이 있다 — '${m[1]}'`)
+      }
+    }
+    for (const m of src.matchAll(/section\('([^']+)'/g)) {
+      assert.ok(!englishOnly.test((m[1] ?? '').trim()), `${f}: 뉴스레터 섹션 머리말이 영어다 — '${m[1]}'`)
+    }
+  }
+  assert.ok(kickers >= 15, `머리말을 ${kickers}개밖에 못 찾았다(카나리아)`)
+  assert.ok(!read('lib', 'email', 'layout.ts').includes('text-transform:uppercase'), '머리말을 대문자로 바꾸는 스타일이 남았다')
+  const q = read('lib', 'email', 'templates', 'quarterly-report.ts')
+  assert.ok(!/'[^'\n]*\d+% [^'\n]*'/.test(q), '분기 리포트가 영양소를 % 숫자로 보낸다')
+  assert.ok(!read('lib', 'email', 'templates', 'newsletter-vol-01.ts').includes('가려워'), '테일 레터에 증상(가려움)을 내세운 효능 문장이 남았다')
+  for (const f of ['confirm-signup', 'reset-password', 'change-email', 'magic-link']) {
+    const html = read('supabase', 'email-templates', `${f}.html`)
+    assert.ok(html.includes('1시간 후 만료') && !html.includes('24시간 후 만료'), `${f}: 링크 만료 안내가 1시간이 아니다`)
+  }
+})

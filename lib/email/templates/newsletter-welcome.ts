@@ -68,7 +68,7 @@ export function renderNewsletterWelcome(input: {
 
   const html = renderLayout({
     preview: '파머스테일 뉴스레터에 오신 걸 환영해요. 앱의 2분 설문으로 우리 아이 맞춤 화식을 만나보세요.',
-    kicker: 'Welcome · 첫 메일',
+    kicker: '첫 메일',
     heading: '환영해요. 첫 메일이에요.',
     body,
     // 웹 설문은 앱으로 옮겼다(2026-10-10 웹 리뉴얼 D1) — 버튼은 앱 소개로.

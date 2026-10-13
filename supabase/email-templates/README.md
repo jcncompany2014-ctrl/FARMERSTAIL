@@ -43,7 +43,7 @@ Supabase 가 자동 치환하는 변수:
   만료를 단일 설정 MAILER_OTP_EXP 로 confirmation·recovery·magic-link 에
   공유하므로 템플릿 문구가 서로 달라선 안 된다 — 2026-08-19 감사: confirm-signup
   이 24시간이라 적어 reset/magic 의 1시간과 모순이었다.)
-  ⚠️ change-email 은 아직 "24시간 후 만료" 라고 적혀 있다(2026-10-14 디자인 작업은 문구를 바꾸지 않아 그대로 두었다 — 사장님 확인 대기).
+  2026-10-14 사장님 "링크 만료 시간 통일" — change-email 의 "24시간 후 만료"도 1시간으로 맞췄다(4종 모두 1시간).
 
 ## 운영 메모
 

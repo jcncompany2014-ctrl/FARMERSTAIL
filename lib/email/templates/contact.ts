@@ -33,7 +33,7 @@ export function renderContactAdmin(input: {
   `
   const html = renderLayout({
     preview: `${input.categoryLabel} · ${input.name} 님의 문의`,
-    kicker: '새 문의 · Contact',
+    kicker: '새 문의',
     heading: `${input.name} 님의 문의`,
     body,
     footerNote: null,

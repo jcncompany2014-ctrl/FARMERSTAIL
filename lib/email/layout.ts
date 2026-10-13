@@ -167,7 +167,7 @@ export function renderLayout({ preview, kicker, heading, body, cta, afterCta, fo
                   ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px 0;">
                   <tr>
                     <td width="10" style="width:10px;height:10px;line-height:10px;font-size:0;background:${C.mustard};">&nbsp;</td>
-                    <td style="padding-left:8px;font-size:13px;line-height:1.2;font-weight:800;color:${C.ink};letter-spacing:0.04em;text-transform:uppercase;">${escape(kicker)}</td>
+                    <td style="padding-left:8px;font-size:13px;line-height:1.2;font-weight:800;color:${C.ink};letter-spacing:-0.01em;">${escape(kicker)}</td>
                   </tr>
                 </table>`
                   : ''}
@@ -304,7 +304,7 @@ export const block = {
     return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px 0;">
       <tr>
         <td width="8" style="width:8px;height:8px;line-height:8px;font-size:0;background:${C.mustard};">&nbsp;</td>
-        <td style="padding-left:7px;font-size:13px;line-height:1.2;font-weight:800;color:${C.ink};letter-spacing:0.02em;">${escape(text)}</td>
+        <td style="padding-left:7px;font-size:13px;line-height:1.2;font-weight:800;color:${C.ink};letter-spacing:-0.01em;">${escape(text)}</td>
       </tr>
     </table>`
   },

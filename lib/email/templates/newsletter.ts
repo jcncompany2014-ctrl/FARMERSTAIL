@@ -44,7 +44,7 @@ export function renderNewsletterConfirm(input: {
 
   const html = renderLayout({
     preview: heading,
-    kicker: 'Confirm · 구독 확인',
+    kicker: '구독 확인',
     heading,
     body,
     cta: { label: '구독 확인하기', href: confirmUrl },
@@ -87,7 +87,7 @@ export function renderUnsubscribeAck(input: {
 
   const html = renderLayout({
     preview: heading,
-    kicker: 'Unsubscribe · 수신거부 완료',
+    kicker: '수신거부 완료',
     heading,
     body,
     cta: {

@@ -48,13 +48,13 @@ export function renderQuarterlyReport(
   if (input.merKcal !== null)
     rows.push(block.row('하루 에너지', escape(fmt(input.merKcal, ' kcal'))))
   if (input.proteinPct !== null)
-    // 정확한 영양소 % 는 고객에게 내보내지 않는다(2026-08-05) — 화면은 전부
-    // 방향 보증("30% 이상")으로 통일돼 있는데 이 메일만 소수점까지 찍고 있었다.
+    // 영양소 % 는 숫자로 내보내지 않는다 — 2026-08-05 소수점을 빼고 "30% 이상"으로 줄였다가,
+    // 2026-10-14 사장님 "분기 리포트 영양소 % 빼기"로 말로만(넉넉해요·권장 범위).
     if (input.proteinPct != null) {
       rows.push(
         block.row(
           '단백질',
-          input.proteinPct >= 30 ? '30% 이상 (권장 범위)' : '권장 범위',
+          input.proteinPct >= 30 ? '넉넉해요 (권장 범위)' : '권장 범위',
         ),
       )
     }
@@ -64,7 +64,7 @@ export function renderQuarterlyReport(
     rows.push(
       block.row(
         '지방',
-        input.fatPct >= 12 ? '12% 이상 (권장 범위)' : '권장 범위',
+        input.fatPct >= 12 ? '충분해요 (권장 범위)' : '권장 범위',
       ),
     )
 
