@@ -41,7 +41,11 @@ export const metadata: Metadata = {
  *   알림톡(솔라피·카카오) · Sentry 세션 리플레이(마스킹). 다음 개정부터는 다시 7일 전 공지.
  */
 // ★2026-10-10 — 웹 스토어 단품 결제 항목을 더했다(약관과 같은 날, 사장님 "이용자 없어" 즉시 시행). 시행일 = 배포일.
-const EFFECTIVE_DATE = '2026-10-10'
+// ★2026-10-14 — '이메일 인증을 30일 안에 마치지 않은 가입 정보 파기'(3절)를 더한다. 이번엔 회원이 있으므로 12절 약속대로
+//   7일 전 고지 → 시행일 2026-10-21. 정리 크론도 이 날 이후 가입한 계정만 대상(lib/auth/unverified-signup
+//   UNVERIFIED_PURGE_APPLIES_FROM — 사장님 "이때까지 인증 안 한 사람은 냅두고 앞으로는 제대로"). 두 날짜는 같아야 한다.
+const EFFECTIVE_DATE = '2026-10-21'
+const PREVIOUS_EFFECTIVE_DATE = '2026-10-10'
 
 /**
  * 개인정보처리방침.
@@ -183,10 +187,6 @@ export default async function PrivacyPage() {
             회원 탈퇴 시 회원의 개인정보는 즉시 파기되거나 익명화됩니다.
             단, 관련 법령에 따라 다음 정보는 일정 기간 보관됩니다.
           </p>
-          {/* 2026-10-13 사장님 결정 — 인증 안 한 가입 정리 크론(app/api/cron/unverified-signup-purge). 반려견·주문·정기배송 기록이 있으면 지우지 않는다. */}
-          <p>
-            이메일 인증을 30일 안에 마치지 않은 가입 정보는 지워요(반려견·주문·정기배송 기록이 없는 경우).
-          </p>
           <UL>
             <li>
               <b>주문 및 결제 기록:</b> 5년 (전자상거래법 제6조)
@@ -208,6 +208,12 @@ export default async function PrivacyPage() {
           <p>
             보관 기간 중인 정보는 해당 법령이 정한 목적 외의 용도로는
             이용되지 않으며, 보관 기간 만료 후 즉시 파기됩니다.
+          </p>
+          {/* 2026-10-14 추가(시행 2026-10-21) — 정리 크론 app/api/cron/unverified-signup-purge · 적용 시작 = lib/auth/unverified-signup UNVERIFIED_PURGE_APPLIES_FROM. */}
+          <p>
+            이메일로 가입한 뒤 30일 안에 이메일 인증을 마치지 않은 가입 정보는
+            파기합니다. 반려견·주문·정기배송 기록이 없는 경우에 한하며,
+            2026년 10월 21일 이후 가입한 계정부터 적용합니다.
           </p>
         </Section>
 
@@ -954,6 +960,11 @@ export default async function PrivacyPage() {
             본 방침은 {EFFECTIVE_DATE}부터 시행됩니다. 내용 추가, 삭제,
             수정이 있을 경우 변경사항 시행 7일 전부터 서비스 초기화면을
             통해 고지합니다.
+          </p>
+          <p>
+            이전 방침({PREVIOUS_EFFECTIVE_DATE} 시행)과 달라진 점: 3절에
+            &lsquo;이메일 인증을 마치지 않은 가입 정보의 파기&rsquo;를
+            더했습니다. {EFFECTIVE_DATE} 전까지는 이전 방침이 적용됩니다.
           </p>
         </Section>
       </LegalFrame>

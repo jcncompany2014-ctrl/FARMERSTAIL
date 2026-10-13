@@ -15,6 +15,13 @@
 
 export const UNVERIFIED_SIGNUP_RETENTION_DAYS = 30
 
+/**
+ * 이 시각 **이후에 가입한** 계정만 정리한다 — 사장님 2026-10-14 "이때까지 인증 안 한 사람은 냅두고 앞으로는 제대로".
+ * 개인정보처리방침에 이 항목이 들어간 시행일(7일 전 공지, app/legal/privacy EFFECTIVE_DATE)과 같다. 그 전 가입은 영영 대상이 아니다.
+ * 그래서 실제로 처음 지울 수 있는 날은 이 시각 + 30일(2026-11-20 무렵)이다.
+ */
+export const UNVERIFIED_PURGE_APPLIES_FROM = '2026-10-21T00:00:00+09:00'
+
 export type AuthUserLike = {
   id: string
   created_at?: string | null
@@ -34,5 +41,6 @@ export function isUnverifiedPurgeCandidate(u: AuthUserLike, nowMs: number): bool
   if (u.last_sign_in_at) return false
   const created = u.created_at ? Date.parse(u.created_at) : NaN
   if (!Number.isFinite(created)) return false // 가입 시각을 모르면 지우지 않는다
+  if (created < Date.parse(UNVERIFIED_PURGE_APPLIES_FROM)) return false // 방침 시행 전 가입은 그대로 둔다
   return nowMs - created > UNVERIFIED_SIGNUP_RETENTION_DAYS * 24 * 60 * 60 * 1000
 }

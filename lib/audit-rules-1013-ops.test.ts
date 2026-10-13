@@ -169,12 +169,18 @@ test('규칙196: 심장 검진 안내 크론은 꺼져 있고, 인증 안 한 �
   assert.match(route, /auth\.admin\.deleteUser\(id\)/, 'auth 사용자를 지우지 않는다')
   const tracking = read('lib', 'cron-tracking.ts')
   for (const k of ["'purged'", "'keptWithData'", "'checked'"]) assert.ok(tracking.includes(k), `cron_health 요약이 ${k} 를 자른다`)
-  assert.ok(read('app', 'legal', 'privacy', 'page.tsx').includes('이메일 인증을 30일 안에 마치지 않은 가입 정보는 지워요'), '개인정보처리방침에 30일 정리 고지가 없다')
+  // 2026-10-14 사장님 "이때까지 인증 안 한 사람은 냅두고 앞으로는 제대로" — 방침 시행일(7일 전 고지) 이후 가입만 정리.
+  const privacy = read('app', 'legal', 'privacy', 'page.tsx')
+  assert.ok(privacy.includes('30일 안에 이메일 인증을 마치지 않은 가입 정보는') && privacy.includes('2026년 10월 21일 이후 가입한 계정부터 적용합니다'), '개인정보처리방침에 30일 정리 고지(적용 시작일 포함)가 없다')
   const u = await load<typeof import('./auth/unverified-signup.ts')>('lib', 'auth', 'unverified-signup.ts')
-  const now = Date.parse('2026-10-13T00:00:00Z')
-  const old = { id: 'a', created_at: '2026-09-01T00:00:00Z', email_confirmed_at: null, last_sign_in_at: null, app_metadata: { provider: 'email', providers: ['email'] } }
-  assert.equal(u.isUnverifiedPurgeCandidate(old, now), true)
-  assert.equal(u.isUnverifiedPurgeCandidate({ ...old, app_metadata: { provider: 'kakao', providers: ['kakao'] } }, now), false, '카카오 가입을 지운다')
+  const eff = privacy.match(/const EFFECTIVE_DATE = '(\d{4}-\d{2}-\d{2})'/)?.[1]
+  assert.equal(eff, u.UNVERIFIED_PURGE_APPLIES_FROM.slice(0, 10), '방침 시행일과 정리 적용 시작일이 다르다(고지 전에 지우게 된다)')
+  const start = Date.parse(u.UNVERIFIED_PURGE_APPLIES_FROM)
+  const fresh = { id: 'a', created_at: new Date(start + 86_400_000).toISOString(), email_confirmed_at: null, last_sign_in_at: null, app_metadata: { provider: 'email', providers: ['email'] } }
+  const later = start + 40 * 86_400_000
+  assert.equal(u.isUnverifiedPurgeCandidate(fresh, later), true)
+  assert.equal(u.isUnverifiedPurgeCandidate({ ...fresh, app_metadata: { provider: 'kakao', providers: ['kakao'] } }, later), false, '카카오 가입을 지운다')
+  assert.equal(u.isUnverifiedPurgeCandidate({ ...fresh, created_at: '2026-09-02T05:00:00Z' }, later), false, '방침 시행 전 가입(사장님: 냅두기)을 지운다')
 })
 
 test('규칙197: 운영 메모·동의 기록·해시·수의사 공유·기록 주인 칸 — DB 잠금과 코드가 같이 옮겨졌다', () => {
