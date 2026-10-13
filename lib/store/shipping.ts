@@ -14,6 +14,17 @@ import { addDaysKst } from '../datetime-kst.ts'
 
 export const SHIPPING_FEE = 5_000
 export const FREE_SHIPPING_MIN = 50_000
+/**
+ * 단순 변심 반품 배송비(편도) — 2026-10-13 사장님(토스 일반결제 심사 준비, "편도 5,000원 · 무료배송이면 왕복 10,000원").
+ * 처음에 배송비를 냈다면 돌려보내는 편도만, 5만 원 이상 무료로 받았다면 왕복(받을 때 몫 + 돌려보낼 때 몫).
+ * 상품 하자·오배송은 회사가 낸다. 화면·약관·환불정책은 이 상수와 returnShippingFeeFor 만 쓴다.
+ */
+export const RETURN_SHIPPING_FEE = 5_000
+
+/** 단순 변심 반품 때 손님이 내는 배송비 — 받을 때 배송비를 냈으면 편도, 무료로 받았으면 왕복. */
+export function returnShippingFeeFor(paidShippingFee: number): number {
+  return paidShippingFee > 0 ? RETURN_SHIPPING_FEE : RETURN_SHIPPING_FEE * 2
+}
 /** 출고 요일(0=일 … 6=토) — 화·목. */
 export const STORE_SHIP_WEEKDAYS: readonly number[] = [2, 4]
 
