@@ -50,6 +50,11 @@ export const viewport: Viewport = {
   // 라이트로 고정하는데 상태바만 다크였다.
   // 2026-10-09 앱 새 디자인 — 윗줄이 흰색(--paper #FFFFFF). 옛 값 #f4ede0 은 종이색 시절보다도 옛 색이었다.
   themeColor: '#FFFFFF',
+  // 확대 잠금은 앱에서만(2026-10-13 사장님 결정 "웹만 풀기", 규칙203) — 루트 generateViewport 가 요청의 앱 문맥(쿠키·UA)을
+  // 보고 앱일 때만 잠근다(lib/app-viewport). 이 묶음은 정의상 앱 전용이라 판정과 무관하게 한 번 더 못 박는다(핀치 확대 +
+  // iOS 입력칸 자동 확대).
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function MainLayout({

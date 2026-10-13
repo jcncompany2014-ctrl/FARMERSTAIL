@@ -369,18 +369,23 @@ export async function proxy(request: NextRequest) {
 
   // 1-b) App 사용자가 marketing 랜딩 ("/") 으로 진입하면:
   //   • 로그인됨 → /dashboard (케어 다이어리)
-  //   • 미로그인 → /welcome (앱 온보딩·설문 입구)
+  //   • 미로그인 → /start (새 첫 화면 FirstScreenFlow — 이름부터 묻는 카드, 첫 단계에 '로그인' 도 있다)
+  //
+  // ★2026-10-13 (규칙201): 미로그인 목적지를 /welcome → /start 로. /welcome 은 옛 디자인 캐러셀(예시 이름
+  // '푸린이'·영어 머리말)이라 새 디자인 앱에서 로그아웃한 사람이 옛 화면을 봤다. 첫 실행 관문(OnboardingGate)도
+  // 2026-10-09 부터 /start 로 보낸다 — 둘이 같은 첫 화면이어야 한다. /welcome 은 스토어 사진용으로 남긴다.
   //
   // ★2026-08-22 — 미로그인 분기가 "marketing 랜딩 그대로 노출"이었다.
   // 랜딩(app/page.tsx)은 WebChrome 하드코딩이라, **앱을 두 번째로 켜면
   // 웹 화면이 떴다**(첫 실행은 OnboardingGate 가 /welcome 으로 보내지만,
   // 온보딩을 한 번 본 뒤엔 게이트가 침묵한다 — 사장님이 재현). "웹화면이
-  // 앱에 보이면 안 된다"는 분리 원칙 위반. 이제 미로그인 앱 사용자의 홈은
-  // /welcome 이다 — 캐러셀에서 설문(/start)·로그인 둘 다 갈 수 있다.
+  // 앱에 보이면 안 된다"는 분리 원칙 위반. 그때 미로그인 앱 사용자의 홈을
+  // /welcome 으로 정했고, 2026-10-13 부터는 /start(새 첫 화면)다(위 ★).
   //
-  // Apple Guideline 5.1.1(i) "Login Services" 는 계속 지켜진다: /welcome →
-  // 설문은 **익명**으로 끝까지 가므로 로그인 강요가 아니다. (이전 주석의
-  // 걱정은 "무조건 /dashboard → /login 강제"였고, 그 경로가 아니다.)
+  // (옛 메모) Apple Guideline 5.1.1(i) "Login Services" — 2026-08-22 엔 /welcome →
+  // 익명 설문이라 로그인 강요가 아니라고 적었다. 새 첫 화면은 강아지 정보를 받은 뒤
+  // 가입하고 설문으로 간다(규칙170 'surveyDeferred') — 첫 실행 관문은 10/09 부터 이미
+  // 이 화면으로 보내고 있었고, 여기서 바뀌는 건 로그아웃한 사람의 홈뿐이다.
   //
   // Supabase 세션 쿠키 존재 여부로 빠르게 판정 — DB 라운드트립 없이 cookie
   // 이름만 검사. 위조된 쿠키여도 dashboard 가 자체 가드.
@@ -396,7 +401,7 @@ export async function proxy(request: NextRequest) {
         request.cookies.getAll().map((c) => c.name),
       )
       const url = request.nextUrl.clone()
-      url.pathname = hasSession ? '/dashboard' : '/welcome'
+      url.pathname = hasSession ? '/dashboard' : '/start'
       return NextResponse.redirect(url)
     }
   }

@@ -19,14 +19,42 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- App Links — 웹 링크(알림·공유·메일)가 브라우저 대신 앱으로 열리게.
-                 autoVerify 는 https://farmerstail.kr/.well-known/assetlinks.json 에
-                 릴리즈 keystore 의 SHA-256 지문이 올라가야 검증된다(docs/native-deploy.md). -->
+                 autoVerify 는 https://www.farmerstail.kr/.well-known/assetlinks.json 에
+                 릴리즈 keystore 의 SHA-256 지문이 올라가야 검증된다(docs/native-deploy.md).
+
+                 ★2026-10-13 (사장님 결정, 규칙204) — 다음 앱 빌드부터:
+                 · www 없는 주소(farmerstail.kr)는 앱이 가져가지 않는다. 정본 주소는 www 하나다.
+                 · 웹 전용 화면은 앱이 가져가지 않는다 — 가게(/store, /store/…) · 행사(/p/…) · 인스타 링크 모음(/link) ·
+                   로그인 콜백(/auth/callback). 앱이 깔린 폰에서 가게 링크를 누르면 앱이 열리고 앱은 가게를 그리지 않아
+                   손님이 가게로 갈 수 없었다. 아이폰 AASA(app/.well-known/apple-app-site-association — 규칙175)와 같은 목록.
+                 · uri-relative-filter-group 은 안드로이드 15(API 35)부터 읽는다(compileSdk 36). 그 아래 버전은 이 묶음을
+                   모르고 지나가 전부 앱으로 열린다 — 그 경우는 웹이 app/store/layout 의 안내 화면에서 브라우저로 넘겨 준다.
+                 · 묶음은 위에서부터 **처음 맞는 것**으로 판정된다. 그래서 제외(allow=false)를 먼저 두고, 맨 끝에 나머지
+                   전부를 허용하는 묶음(pathPrefix "/")을 둔다 — 끝 묶음이 없으면 어떤 묶음에도 안 맞는 주소를 거절하는
+                   구현이 있어, 앱 링크가 통째로 꺼질 수 있다. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="farmerstail.kr" />
                 <data android:scheme="https" android:host="www.farmerstail.kr" />
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/store" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPrefix="/store/" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPrefix="/p/" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/link" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="false">
+                    <data android:path="/auth/callback" />
+                </uri-relative-filter-group>
+                <uri-relative-filter-group android:allow="true">
+                    <data android:pathPrefix="/" />
+                </uri-relative-filter-group>
             </intent-filter>
         </activity>
 

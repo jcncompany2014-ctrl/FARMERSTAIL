@@ -27,6 +27,10 @@ import { safeNextPath, hasCapacitorInternalMarker } from './auth/safe-next.ts'
  * WebView 안에서 우리 앱으로 인정하는 호스트.
  * android/app/src/main/AndroidManifest.xml 의 App Links intent-filter 및
  * app/.well-known/* 라우트와 **같은 목록이어야 한다.**
+ *
+ * ★2026-10-13 예외(규칙204): 다음 앱 빌드부터 매니페스트·iOS entitlements 는 www 만 가져간다. 그래도 여기선
+ * www 없는 주소를 계속 받아들인다 — 이미 깔린 옛 빌드(1.0.10·1.0.12 등)는 그 주소로도 앱을 열고, 받은 주소를
+ * 이 함수로 거른다. 빼면 옛 빌드에서 그 링크를 눌렀을 때 앱만 열리고 아무 화면으로도 안 간다.
  */
 const ALLOWED_HOSTS = new Set(['farmerstail.kr', 'www.farmerstail.kr'])
 

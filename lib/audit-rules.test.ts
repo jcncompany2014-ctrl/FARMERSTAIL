@@ -6554,7 +6554,8 @@ test('규칙172: 웹 가게(단품) — 가게 주문은 결제위젯 가맹점 
   // ④ 앱에서는 가게가 없다.
   assert.match(api, /if \(await isAppContextServer\(\)\) \{\s*return NextResponse\.json\(\{ code: 'APP_NOT_STORE'/, '앱에서 가게 주문이 만들어진다')
   const storeLayout = stripComments(read(join(ROOT, 'app', 'store', 'layout.tsx')))
-  assert.match(storeLayout, /if \(await isAppContextServer\(\)\) redirect\('\/dashboard'\)/, '앱에서 상점 화면이 열린다(앱은 단품을 안 판다)')
+  // 2026-10-13 규칙205: 앱이면 앱 홈으로 튕기는 대신 "가게는 웹에서 열려요" 안내(브라우저로 넘기기) — 가게 화면(children)은 여전히 안 그린다.
+  assert.match(storeLayout, /if \(await isAppContextServer\(\)\) return <StoreInAppNotice \/>/, '앱에서 상점 화면이 열린다(앱은 단품을 안 판다)')
 
   // ⑤ 운영은 테스트 키를 쓰지 않는다(브라우저 쪽).
   const widget = read(join(ROOT, 'lib', 'store', 'toss-widget.ts'))
@@ -6753,7 +6754,8 @@ test('규칙178: 검색·공유·홈 화면에 옛 흔적이 없다 — 사이�
    *  · 사이트맵 lastmod 가 늘 '지금' — 구글은 이런 날짜를 믿지 않아 바뀐 화면을 먼저 다시 가져가지 않는다.
    */
   const layout = stripComments(read(join(ROOT, 'app', 'layout.tsx')))
-  const metaBlock = layout.slice(layout.indexOf('export const metadata'), layout.indexOf('export const viewport'))
+  // 2026-10-13 규칙203: 루트 viewport 가 generateViewport(앱만 확대 잠금)로 바뀌어 기본값 상수(BASE_VIEWPORT) 앞까지가 metadata.
+  const metaBlock = layout.slice(layout.indexOf('export const metadata'), layout.indexOf('const BASE_VIEWPORT'))
   assert.ok(metaBlock.length > 500, '루트 metadata 를 못 찾았다 — 검사가 망가졌다')
   assert.ok(!/canonical\s*:/.test(metaBlock), '루트 metadata 에 canonical 이 있다 — 자기 canonical 이 없는 화면이 전부 홈의 사본으로 신고된다')
   const OLD = ['프리미엄 반려견 식품', '수의영양학 기반 맞춤', '수의영양학 기반 레시피']

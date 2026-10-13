@@ -15,6 +15,12 @@ import { isNativeApp, getPlatform } from '@/lib/capacitor'
 export const NATIVE_FEATURE_MIN_BUILD = {
   /** iOS — Info.plist NSPhotoLibraryAddUsageDescription(7f9ddb6d)이 들어간 첫 빌드. */
   iosPhotoAdd: 3,
+  /**
+   * 안드로이드 — MainActivity 가 `intent:` 링크를 직접 여는 첫 빌드(9fc22e25, versionCode 12 = 1.0.11).
+   * 그 전 빌드(플레이 1.0.10 = 11)는 `intent:` 를 WebView 가 그대로 불러 '알 수 없는 주소' 오류 화면이 뜬다 —
+   * 가게 안내(app/store/StoreInAppNotice)의 '브라우저로 열기'가 이 번호를 본다(규칙205).
+   */
+  androidIntentLinks: 12,
 } as const
 
 export type NativeBuildInfo = {
