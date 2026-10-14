@@ -79,12 +79,16 @@ export function captureBusinessEvent(
   level: 'info' | 'warning' | 'error',
   message: string,
   context: TraceAttributes,
+  /**
+   * 선택 — Sentry 묶음·태그(2026-10-15 F-a). 같은 이름이라도 대상마다 다른 이슈로 나눠야 할 때(크론 실패 = 크론마다,
+   * lib/sentry/cron-event). 태그는 알림 규칙으로 가를 수 있게(검색 색인). 개인정보를 넣지 않는다(id·경로만).
+   */
+  opts?: { fingerprint?: string[]; tags?: Record<string, string> },
 ): void {
   Sentry.captureMessage(message, {
     level,
-    tags: {
-      'business.event': '1',
-    },
+    tags: { 'business.event': '1', ...opts?.tags },
+    ...(opts?.fingerprint ? { fingerprint: opts.fingerprint } : {}),
     extra: context as Record<string, unknown>,
   })
   forwardToOwnerInbox(level, message, context)

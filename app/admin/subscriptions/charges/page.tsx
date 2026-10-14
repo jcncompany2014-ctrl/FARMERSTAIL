@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { chargeProblemReason, isProblemCharge } from '@/lib/admin/charge-rows'
+import { excludeInternalFilter, loadInternalUserIds } from '@/lib/admin/internal-accounts'
+import { staleHoldReason } from '@/lib/payments/price-rise'
 import { AdminTabs, StatCard, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
 import {
@@ -82,17 +84,24 @@ export default async function SubscriptionChargesPage({
     return base
   }
 
+  /**
+   * ★요약 숫자(오늘 시도·30일 성공률·30일 누적 매출·30일 실패)는 사장님 시험 계정을 뺀다(2026-10-15 F-a, 규칙265) — 홈과 같은
+   *   정본(lib/admin/internal-accounts loadInternalUserIds·excludeInternalFilter). 시험 계정의 32,700원 결제 2건이 섞여
+   *   '30일 누적 매출'이 홈(600원)과 110배 달랐다. 아래 목록(처리할 일)은 그대로 다 보인다 — 시험 결제 실패도 손이 필요하다.
+   *   admin_user_ids 는 service_role 전용이라 admin 클라이언트로 부른다. 못 읽으면 화면에 '시험 계정을 못 뺐어요'.
+   */
+  const internal = await loadInternalUserIds(createAdminClient())
+  const userFilter = excludeInternalFilter(internal.ids)
+  const statsQuery = () => {
+    const base = supabase.from('subscription_charges').select('status, amount')
+    return userFilter ? base.or(userFilter) : base
+  }
+
   const [todayRes, last30dRes, listRes] = await Promise.all([
     // 오늘 시도들
-    supabase
-      .from('subscription_charges')
-      .select('status, amount')
-      .eq('scheduled_for', today),
+    statsQuery().eq('scheduled_for', today),
     // 30일 시도들 (성공률 + 누적 매출용)
-    supabase
-      .from('subscription_charges')
-      .select('status, amount')
-      .gte('attempted_at', thirtyDaysAgo),
+    statsQuery().gte('attempted_at', thirtyDaysAgo),
     // 리스트 — 필터 적용
     listQuery()
       .order('attempted_at', { ascending: false })
@@ -170,7 +179,7 @@ export default async function SubscriptionChargesPage({
     const hs = holdsRes.data ?? []
     const [hSubs, hProf] = await Promise.all([
       selectInChunks([...new Set(hs.map((h) => h.subscription_id))], (chunk) =>
-        admin.from('subscriptions').select('id, dog_id').in('id', chunk),
+        admin.from('subscriptions').select('id, dog_id, status, next_delivery_date').in('id', chunk),
       ),
       selectInChunks([...new Set(hs.map((h) => h.user_id))], (chunk) =>
         admin.from('profiles').select('id, name').in('id', chunk),
@@ -180,11 +189,22 @@ export default async function SubscriptionChargesPage({
     const hDogs = await selectInChunks(dogIds, (chunk) => admin.from('dogs').select('id, name').in('id', chunk))
     if (hSubs.error || hProf.error || hDogs.error) holdsFailed = true
     const dogBySub = new Map((hSubs.data ?? []).map((s) => [s.id, s.dog_id as string | null]))
+    const subById = new Map((hSubs.data ?? []).map((s) => [s.id, s]))
     const dogName = new Map((hDogs.data ?? []).map((d) => [d.id, d.name as string | null]))
     const userName = new Map((hProf.data ?? []).map((p) => [p.id, p.name as string | null]))
     holds = hs.map((h) => {
       const dogId = dogBySub.get(h.subscription_id) ?? null
+      // 더는 맞지 않는 보류(해지·정지·발송일 변경) — 청구 크론의 정리와 같은 판정(staleHoldReason). 다음 아침 정리 전까지
+      // '보내지 마세요' 무리에서 빼 흐리게 보인다(규칙262). 동의 기록 여부는 여기서 판정하지 않는다(체험단 화면이 본다).
+      const sub = subById.get(h.subscription_id)
+      const stale = sub
+        ? staleHoldReason({
+            hold: { ship_date: h.ship_date },
+            sub: { status: sub.status as string, next_delivery_date: (sub.next_delivery_date as string | null) ?? null },
+          })
+        : null
       return {
+        stale,
         id: h.id,
         subscriptionId: h.subscription_id,
         userId: h.user_id,
@@ -278,7 +298,7 @@ export default async function SubscriptionChargesPage({
           label="30일 누적 매출"
           value={last30dRevenue.toLocaleString()}
           unit="원"
-          sub="성공 건만 합산"
+          sub="성공 건만 · 시험 계정 제외"
         />
         <StatCard
           label="30일 실패"
@@ -288,6 +308,17 @@ export default async function SubscriptionChargesPage({
           tone={last30dFailed.length > 0 ? 'red' : 'green'}
         />
       </div>
+
+      {/* 요약 숫자의 기준 — 홈과 같은 정본(규칙265). 못 뺐으면 그 사실을 말한다(규칙1). */}
+      {internal.ok ? (
+        <p className="-mt-3 mb-5 text-[12px] text-muted-foreground">
+          위 요약 숫자는 사장님 시험 계정을 뺀 값이에요(홈과 같은 기준). 아래 목록에는 시험 계정 결제도 그대로 보여요.
+        </p>
+      ) : (
+        <p className="-mt-3 mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          사장님 시험 계정을 확인하지 못해 위 요약 숫자에 시험 결제가 섞였을 수 있어요. 새로고침해 주세요.
+        </p>
+      )}
 
       {/* 필터 칩 */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto">

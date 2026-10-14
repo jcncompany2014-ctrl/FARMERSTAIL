@@ -281,6 +281,15 @@ export default async function AdminOrderDetailPage({
             totalAmount={order.total_amount}
             refundedAmount={order.refunded_amount ?? 0}
             paymentStatus={order.payment_status}
+            // 서포터즈 회차를 실제로 쓴 주문만 — 발송 여부에 따라 환불 뒤 회차가 돌아오는지가 다르다(규칙261).
+            supporterBox={
+              (order.discount_reason === 'trial_cheap' || order.discount_reason === 'trial_half') &&
+              order.trial_round_consumed_at
+                ? order.shipped_at
+                  ? 'shipped'
+                  : 'unshipped'
+                : null
+            }
           />
 
           {/* 현재 송장 (shipping 이후에만) */}

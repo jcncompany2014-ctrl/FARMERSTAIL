@@ -126,6 +126,44 @@ export function priceRiseGate(input: {
 }
 
 /**
+ * 열린 청구 보류를 닫는 이유 — DB check 와 같은 목록(20261015100200, 'charged'·'manual' 은 다른 곳에서).
+ *  · cancelled = 구독 해지 · paused = 일시정지 · rescheduled = 발송일이 바뀜(새 날짜가 인상 회차면 그날 새 보류가 생긴다)
+ *  · no_longer_held = 동의 기록·도장 정리로 더는 보류 대상이 아님(결제는 다음 청구에서)
+ */
+export type HoldCloseReason = 'cancelled' | 'paused' | 'rescheduled' | 'no_longer_held'
+
+export const HOLD_CLOSE_REASON_LABEL: Record<HoldCloseReason, string> = {
+  cancelled: '구독 해지',
+  paused: '일시정지',
+  rescheduled: '발송일이 바뀜',
+  no_longer_held: '동의 기록됨(다음 청구에서 결제)',
+}
+
+/**
+ * 이 열린 보류가 아직 맞는가 — 청구 크론의 정리(sweepStaleHolds)·자동결제 이력 화면이 같은 판정을 쓴다(2026-10-15 F-a).
+ *
+ * # 왜
+ * 보류를 닫는 곳이 '청구 성공' 하나뿐이라, 인상이 싫어 해지·정지하거나 발송일을 바꾼(미루기 포함) 구독의 보류가 영원히
+ * 열린 채 '박스 보내지 마세요'로 남았고, 날짜가 바뀌면 같은 사람이 2건으로 보였다.
+ *
+ * 판정 순서: 해지 → 일시정지 → 발송일이 다름 → (판정을 넘겼으면) 지금은 보류 대상이 아님.
+ * gate 를 모르면(조회 실패·화면) 마지막 이유로는 닫지 않는다 — 모르면 열어 둔다.
+ */
+export function staleHoldReason(input: {
+  hold: { ship_date: string }
+  sub: { status: string; next_delivery_date: string | null }
+  gate?: PriceRiseGate | null
+}): HoldCloseReason | null {
+  const { hold, sub, gate } = input
+  if (sub.status === 'cancelled') return 'cancelled'
+  if (sub.status === 'paused') return 'paused'
+  if (sub.status !== 'active') return null
+  if ((sub.next_delivery_date ?? '').slice(0, 10) !== hold.ship_date.slice(0, 10)) return 'rescheduled'
+  if (gate && gate.hold === false) return 'no_longer_held'
+  return null
+}
+
+/**
  * 인상 회차의 동의 상태 — 어드민 화면용.
  *  · recorded: 유효한 동의 기록이 있다.
  *  · urgent: 기록이 없고 인상 결제일이 30일 안(또는 지남) — 빨간색.

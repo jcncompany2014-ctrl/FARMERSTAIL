@@ -47,6 +47,24 @@ export async function customerHistories(
   return { ok: true, byUser }
 }
 
+/**
+ * 한 사람 — 서포터즈 가격(100원·반값)으로 결제된 정기배송 박스가 있는가(2026-10-15 F-a, 도장 취소 판정).
+ * 인상 판정의 '앞 회차'(lib/payments/price-rise-context)와 같은 기준 — 정기배송 주문 · 돈이 남아 있는 결제(PAID_STATUSES).
+ * 조회 실패는 null(호출부가 막는 쪽으로 — 모르고 지우면 동의 장치를 건너뛴 정가 결제가 나간다).
+ */
+export async function hasSupporterPricedBox(admin: SupabaseClient, userId: string): Promise<boolean | null> {
+  const { data, error } = await admin
+    .from('orders')
+    .select('id')
+    .eq('user_id', userId)
+    .not('subscription_id', 'is', null)
+    .in('discount_reason', ['trial_cheap', 'trial_half'])
+    .in('payment_status', [...PAID_STATUSES])
+    .limit(1)
+  if (error) return null
+  return (data?.length ?? 0) > 0
+}
+
 /** 한 사람 — 결제한 박스가 있는가. 조회 실패는 null(호출부가 막는 쪽으로). */
 export async function hasPaidBox(admin: SupabaseClient, userId: string): Promise<boolean | null> {
   const { data, error } = await admin

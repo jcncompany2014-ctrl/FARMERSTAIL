@@ -143,6 +143,38 @@ export const OWNER_ALERT_KINDS = {
     title: '서포터즈 가격이 오르는데 고객 동의가 없어 결제를 보류했어요',
     action: '고객에게 바뀌는 가격을 안내하고 동의를 받아 주세요',
   },
+  // ── 2026-10-15 F-a — 청구 보류 기록·닫기·정리·동의 조회 실패(규칙263), 알레르기·건강 제안 무응답(규칙266), 크론 실패(규칙267) ──
+  'subscription.charge.hold_record_failed': {
+    group: 'trial',
+    title: '인상 동의가 없어 결제를 보류했는데 보류 기록을 남기지 못했어요 — 자동결제 이력에 안 보여요',
+    action: '체험단 화면에서 이 고객의 동의를 기록해 주세요. 그 전엔 박스를 보내지 마세요',
+  },
+  'subscription.charge.hold_resolve_failed': {
+    group: 'trial',
+    title: '결제는 됐는데 청구 보류 표시를 닫지 못했어요 — 자동결제 이력에 보류로 남아 보여요',
+    action: '결제된 박스라 보내도 돼요. 표시는 다음 아침 정리 때 다시 닫혀요',
+  },
+  'subscription.charge.hold_sweep_failed': {
+    group: 'trial',
+    title: '해지·정지·발송일이 바뀐 구독의 청구 보류를 정리하지 못했어요',
+    action: '자동결제 이력의 보류 목록이 실제보다 많을 수 있어요 — 구독 상태를 보고 판단해 주세요(결제는 영향 없음)',
+    scope: 'global',
+  },
+  'subscription.charge.price_rise_lookup_failed': {
+    group: 'trial',
+    title: '서포터즈 인상 동의 상태를 못 읽어 오늘 결제를 건너뛰었어요',
+    action: '다음 아침에 다시 시도해요. 이틀 넘게 이어지면 개발 확인이 필요해요',
+  },
+  'personalization.approval_timeout.forced_no_reply': {
+    group: 'recipe',
+    title: '알레르기·건강 정보 때문에 바뀌는 새 레시피에 3일 동안 답이 없어 이전 식단으로 닫혔어요',
+    action: '고객에게 연락해 새 레시피에 동의를 받아 주세요. 그 전엔 포장 목록이 이 강아지 박스를 멈출 수 있어요(결제는 그대로 나가요)',
+  },
+  'cron.error': {
+    group: 'ops',
+    title: '자동작업이 실패했어요',
+    action: '자동작업 화면에서 무엇이 왜 실패했는지 보고, 결제·발송 작업이면 오늘 안에 다시 돌려 주세요',
+  },
   'subscription.charge.backlog': {
     group: 'money',
     title: '오늘 청구를 다 끝내지 못했어요 — 남은 구독은 내일로 밀려요',

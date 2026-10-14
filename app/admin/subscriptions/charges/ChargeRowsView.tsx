@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock, PauseCircle, X } from 'lucide-react
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
 import { Badge } from '@/components/admin/ui'
 import { isProblemCharge } from '@/lib/admin/charge-rows'
-import { PRICE_RISE_LABEL, type PriceRise } from '@/lib/payments/price-rise'
+import { HOLD_CLOSE_REASON_LABEL, PRICE_RISE_LABEL, type HoldCloseReason, type PriceRise } from '@/lib/payments/price-rise'
 
 /**
  * 자동결제 이력 목록 — 폰(카드)·넓은 화면(표) 두 모양을 같은 데이터로 그린다(2026-10-14 A2).
@@ -53,6 +53,11 @@ export type OpenHold = {
   firstHeldAt: string
   customerName: string | null
   dogName: string | null
+  /**
+   * 더는 맞지 않는 보류(해지·정지·발송일 변경) — 청구 크론의 정리와 같은 판정(lib/payments/price-rise staleHoldReason).
+   * 있으면 '보내지 마세요' 무리에서 빼 흐리게(다음 아침 정리 때 닫힌다). 없거나 null = 아직 보류 중.
+   */
+  stale?: HoldCloseReason | null
 }
 
 const STATUS_CONFIG: Record<ChargeRow['status'], { label: string; color: string; icon: typeof CheckCircle2 }> = {
@@ -213,38 +218,64 @@ export function OpenHoldsView({ holds, loadFailed }: { holds: OpenHold[]; loadFa
     )
   }
   if (holds.length === 0) return null
+  // 해지·정지·발송일이 바뀐 보류는 '보내지 마세요' 무리가 아니다 — 따로 흐리게(다음 아침 청구 크론 정리가 닫는다, 규칙262).
+  const live = holds.filter((h) => !h.stale)
+  const stale = holds.filter((h) => !!h.stale)
   return (
-    <section className="rounded-xl border border-red-300 bg-red-50 p-4">
-      <p className="flex items-center gap-1.5 text-[14px] font-bold text-red-800">
-        <PauseCircle className="h-4 w-4" strokeWidth={2.5} />
-        청구 보류 {holds.length}건 — 가격 인상 동의 기록이 없어요
-      </p>
-      <p className="mt-1 text-[12px] text-red-700">
-        동의를 받아 체험단 화면에 기록하면 다음 아침 청구에서 결제돼요. 그 전엔 박스를 보내지 마세요.
-      </p>
-      <ul className="mt-3 grid gap-2">
-        {holds.map((h) => (
-          <li key={h.id} className="rounded-lg border border-red-200 bg-card px-3 py-2 text-[12.5px]">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <b className="text-foreground">{[h.customerName ?? '(이름 없음)', h.dogName].filter(Boolean).join(' · ')}</b>
-              {h.rise && <Badge tone="red">{PRICE_RISE_LABEL[h.rise as PriceRise] ?? h.rise}</Badge>}
-            </div>
-            <p className="mt-1 text-muted-foreground">
-              발송 {h.shipDate} 박스 · 원래 결제일 {h.chargeDate}
-              {h.chargeAmount != null && ` · ${h.chargeAmount.toLocaleString('ko-KR')}원`}
-              {' · '}보류 시작 {formatDateTime(h.firstHeldAt)}
-            </p>
-            <div className="mt-1 flex gap-3">
-              <Link href="/admin/trials" className="font-bold text-primary underline underline-offset-2">
-                동의 기록하러 가기 →
-              </Link>
-              <Link href={`/admin/users/${h.userId}`} className="font-bold text-primary underline underline-offset-2">
-                고객 보기 →
-              </Link>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <div className="grid gap-3">
+      {live.length > 0 && (
+        <section className="rounded-xl border border-red-300 bg-red-50 p-4">
+          <p className="flex items-center gap-1.5 text-[14px] font-bold text-red-800">
+            <PauseCircle className="h-4 w-4" strokeWidth={2.5} />
+            청구 보류 {live.length}건 — 가격 인상 동의 기록이 없어요
+          </p>
+          <p className="mt-1 text-[12px] text-red-700">
+            동의를 받아 체험단 화면에 기록하면 다음 아침 청구에서 결제돼요. 그 전엔 박스를 보내지 마세요.
+          </p>
+          <ul className="mt-3 grid gap-2">
+            {live.map((h) => (
+              <li key={h.id} className="rounded-lg border border-red-200 bg-card px-3 py-2 text-[12.5px]">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <b className="text-foreground">{[h.customerName ?? '(이름 없음)', h.dogName].filter(Boolean).join(' · ')}</b>
+                  {h.rise && <Badge tone="red">{PRICE_RISE_LABEL[h.rise as PriceRise] ?? h.rise}</Badge>}
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  발송 {h.shipDate} 박스 · 원래 결제일 {h.chargeDate}
+                  {h.chargeAmount != null && ` · ${h.chargeAmount.toLocaleString('ko-KR')}원`}
+                  {' · '}보류 시작 {formatDateTime(h.firstHeldAt)}
+                </p>
+                <div className="mt-1 flex gap-3">
+                  <Link href="/admin/trials" className="font-bold text-primary underline underline-offset-2">
+                    동의 기록하러 가기 →
+                  </Link>
+                  <Link href={`/admin/users/${h.userId}`} className="font-bold text-primary underline underline-offset-2">
+                    고객 보기 →
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {stale.length > 0 && (
+        <section className="rounded-xl border border-border bg-secondary p-4">
+          <p className="text-[13px] font-bold text-foreground">정리 예정 보류 {stale.length}건 — 이 날짜 회차는 더는 보류 대상이 아니에요</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            해지·일시정지·발송일 변경으로 이 날짜 회차는 청구되지 않아요(발송일을 바꿨으면 새 날짜에서 다시 판정해요). 다음 아침
+            자동결제 때 자동으로 닫혀요.
+          </p>
+          <ul className="mt-2 grid gap-1.5">
+            {stale.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted-foreground">
+                <span>
+                  {[h.customerName ?? '(이름 없음)', h.dogName].filter(Boolean).join(' · ')} · 발송 {h.shipDate} 박스
+                </span>
+                <Badge tone="neutral">{h.stale ? HOLD_CLOSE_REASON_LABEL[h.stale] : ''}</Badge>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   )
 }

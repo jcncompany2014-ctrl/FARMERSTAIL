@@ -50,6 +50,7 @@ import {
   loadPriceRiseContext,
   recordPriceRiseHold,
   resolvePriceRiseHolds,
+  sweepStaleHolds,
 } from '@/lib/payments/price-rise-context'
 
 export const runtime = 'nodejs'
@@ -733,7 +734,11 @@ async function runSubscriptionCharge(): Promise<Response> {
      *   여기서 그 기록을 본다. 판정 정본 = lib/payments/price-rise priceRiseGate(화면·포장 목록도 같은 함수).
      *   · 보류는 '내일 다시'가 아니다 — 발송일(next_delivery_date)을 밀지 않고 회차도 깎지 않고 그 회차에 멈춰 있다가,
      *     동의가 기록되면 다음 실행에서 정상 청구된다(늦으면 nextDeliveryDate 가 다음 발송 화요일로 맞춘다).
-     *   · 처음 보류될 때 Sentry error 한 번 + subscription_charge_holds 에 열린 보류(운영 브리핑·할 일·포장 목록이 읽는다).
+     *   · 처음 보류될 때 Sentry error 한 번(+ 경보함) + subscription_charge_holds 에 열린 보류(이 표를 읽는 화면은 자동결제 이력
+     *     하나다 — 포장 목록·이번 주 할 일·체험단 화면은 같은 판정 함수 priceRiseGate·loadChargeProjection 으로 따로 본다).
+     *   · 더는 맞지 않는 열린 보류(해지·정지·발송일 변경·동의 기록)는 이 크론 끝의 정리(sweepStaleHolds)가 닫는다(2026-10-15 F-a).
+     *   · 도장이 취소된 서포터즈(남은 회차 0 + 취소 시각, 20261015100000)도 도장 행이 있으므로 여기서 판정된다 — 앞 결제 100원·반값
+     *     → 이번 정가 = 정가 인상(to_full)이라 정가 동의가 있어야 청구된다(행을 지우던 때는 이 판정을 건너뛰고 정가가 바로 나갔다).
      *   · 체험 도장이 없는 고객(정상가)은 판정하지 않는다 — 조회도 하지 않는다. 100원 구간 회차는 인상이 될 수 없다.
      *   · 상태를 못 읽으면 긁지 않는다(인상 회차일 수 있다) — 위 서포터즈 할인 대조와 같은 판단, 내일 다시.
      */
@@ -1797,16 +1802,16 @@ async function runSubscriptionCharge(): Promise<Response> {
           amount: chargeAmount,
           attemptCount: sub.failed_charge_count + 1,
         })
-        // 인상 동의 보류가 있던 구독이면 닫는다(2026-10-14 A1) — 서포터즈만(정상가 고객은 보류가 생길 수 없다).
-        if (timingByUser.has(sub.user_id)) {
-          const closed = await resolvePriceRiseHolds(supabase, sub.id)
-          if (!closed.ok) {
-            captureBusinessEvent('warning', 'subscription.charge.hold_resolve_failed', {
-              subscriptionId: sub.id,
-              dbError: closed.error.slice(0, 200),
-              note: '청구는 성공 — 보류 기록만 열린 채 남음(브리핑에 보류로 보일 수 있음). subscription_charge_holds 수동 정리',
-            })
-          }
+        // 인상 동의 보류가 있던 구독이면 닫는다(2026-10-14 A1). ★도장 여부와 상관없이(2026-10-15 F-a) — 그 사이 도장이
+        //   지워진 사람(잘못 찍은 도장 정리)의 보류도 결제가 되면 닫혀야 '박스 보내지 마세요'가 남지 않는다.
+        const closed = await resolvePriceRiseHolds(supabase, sub.id)
+        if (!closed.ok) {
+          captureBusinessEvent('warning', 'subscription.charge.hold_resolve_failed', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            dbError: closed.error.slice(0, 200),
+            note: '청구는 성공 — 보류 기록만 열린 채 남음(자동결제 이력에 보류로 보임). 내일 아침 정리가 다시 시도한다',
+          })
         }
 
         /**
@@ -2165,6 +2170,37 @@ async function runSubscriptionCharge(): Promise<Response> {
     await new Promise((r) => setTimeout(r, 100))
   }
 
+  /**
+   * ★더는 맞지 않는 열린 보류 정리(2026-10-15 F-a, 규칙262) — 보류를 닫는 곳이 '청구 성공' 하나뿐이라, 인상이 싫어 해지·정지하거나
+   *   발송일을 바꾼(미루기 포함) 구독의 보류가 영원히 열린 채 자동결제 이력에 '박스 보내지 마세요'로 남았고, 날짜가 바뀌면 같은
+   *   사람이 2건으로 보였다. 판정 정본 = lib/payments/price-rise staleHoldReason. 정리 실패는 결제와 무관 — 경보함에만 올린다.
+   */
+  let holdsClosed = 0
+  {
+    // 정리가 예외로 던져도 청구 결과(위)를 실패로 바꾸지 않는다 — 실패로 읽어 경보함에만 올린다.
+    const sweep = await sweepStaleHolds(supabase).catch((e: unknown) => ({
+      ok: false as const,
+      error: e instanceof Error ? e.message : String(e),
+    }))
+    if (!sweep.ok) {
+      captureBusinessEvent('error', 'subscription.charge.hold_sweep_failed', {
+        dbError: sweep.error.slice(0, 200),
+        note: '열린 청구 보류 정리를 못 함 — 해지·정지·발송일이 바뀐 구독의 보류가 자동결제 이력에 남을 수 있음(결제는 영향 없음)',
+      })
+    } else {
+      const r = sweep.result
+      holdsClosed = r.closed.cancelled + r.closed.paused + r.closed.rescheduled + r.closed.no_longer_held
+      if (r.closeErrors.length > 0 || r.gateError) {
+        captureBusinessEvent('error', 'subscription.charge.hold_sweep_failed', {
+          checked: r.checked,
+          closed: holdsClosed,
+          dbError: [...r.closeErrors, r.gateError ? `동의 상태: ${r.gateError}` : ''].filter(Boolean).join(' / ').slice(0, 300),
+          note: '열린 청구 보류 일부를 정리하지 못함(동의 기록된 보류는 다음 청구 성공 때 닫힘) — 결제는 영향 없음',
+        })
+      }
+    }
+  }
+
   // ★처리 못 하고 남긴 구독 — 청구 실패가 아니라 '처리량 부족'. 박스가 한 주 밀리니
   //   사람이 오늘 안에 알아야 한다(수동 재실행 또는 처리량 개선).
   if (overCap || deferredByTime > 0) {
@@ -2211,6 +2247,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     skipped,
     // 인상 동의가 없어 보류한 회차(2026-10-14 A1) — 실패 카운터 아님. 열린 보류는 subscription_charge_holds.
     priceConsentHeld,
+    // 더는 맞지 않아 닫은 열린 보류 수(2026-10-15 F-a) — 실패 카운터 아님.
+    holdsClosed,
     // 결제일이 아직인 구독(서포터즈 화요일 결제분 등) — 오늘 건너뛴 게 정상이다.
     notDue,
     timingKnown,

@@ -7,8 +7,14 @@
  * ★2026-10-14 A1 — 사람마다 회차 일정표(결제일·금액)·다음 가격 전환일·인상별 동의 상태와 '동의 받음 기록'·'기록 취소'.
  *   일정·금액은 서버가 정본 함수로 펼친 값(lib/payments/charge-projection → lib/admin/trial-plan)을 그대로 그린다.
  *   청구 크론은 인상 회차에 동의 기록이 없으면 청구하지 않고 보류한다 — 기록은 돈이 나가게 하는 스위치라 확인창을 띄운다.
+ *
+ * ★2026-10-15 F-a
+ *  · 도장 취소(규칙260) — 서포터즈 가격으로 결제된 적이 있으면 목록에 '도장 취소됨'으로 남는다(지우지 않는다). 다음 결제는 정가
+ *    인상이라 정가 동의를 기록해야 결제된다 — 이 화면에서 바로 기록할 수 있다. '도장 다시 찍기'는 취소 때 남은 회차로 되살린다.
+ *  · 폰 운영(규칙269) — 결과·실패 문구는 누른 그 고객 카드 안에 보이고, 인터넷이 끊기면 위에 띠가 뜨고 누른 곳에 안내가 나온다.
+ *    (예전엔 맨 위 '도장 찍기' 칸에만 떠서 폰에선 화면 밖이었고, 인터넷이 끊기면 아무 안내도 없었다.)
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminCard, AdminButton, Badge, SectionTitle } from '@/components/admin/ui'
 import { weekdayKo } from '@/lib/shipping-schedule'
@@ -20,6 +26,7 @@ import {
   type ConsentChannel,
   type PriceRise,
 } from '@/lib/payments/price-rise'
+import { isTrialCancelled } from '@/lib/payments/trial-cancel'
 import type { RiseView, TrialPlanView } from '@/lib/admin/trial-plan'
 
 export type TrialRow = {
@@ -30,6 +37,11 @@ export type TrialRow = {
   half_rate: number
   note: string
   created_at: string
+  /** 도장 취소 시각(2026-10-15) — 있으면 남은 회차 0, 다음 결제부터 정가(정가 동의 필요). */
+  cancelled_at?: string | null
+  /** 취소 때 남아 있던 회차 — '도장 다시 찍기'가 이 값으로 되살린다. */
+  cancelled_cheap_remaining?: number | null
+  cancelled_half_remaining?: number | null
   profile: { name: string | null; email: string | null }
   /** 이 사람의 정기배송(진행 중·일시정지) — 강아지 이름 표시용. */
   subs?: Array<{ id: string; status: string; dogName: string | null }>
@@ -46,7 +58,18 @@ type Candidate = {
   subscriptionStatus?: string | null
 }
 
+/** 카드 안 결과 문구 — 누른 고객 카드에 보인다. */
+type CardMsg = { userId: string; text: string; tone: 'ok' | 'error' }
+
 const SUB_LABEL: Record<string, string> = { active: '구독 중', paused: '일시정지', cancelled: '해지' }
+
+/** 연결이 끊겼을 때·서버에 닿지 못했을 때 — 폰에서 '눌렀는데 아무 일도 없음'이 되지 않게. */
+function networkMessage(): string {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return '인터넷이 끊겨 있어요 — 연결된 뒤 다시 눌러 주세요. 저장되지 않았어요.'
+  }
+  return '서버에 닿지 못했어요 — 인터넷 연결을 확인하고 다시 눌러 주세요. 저장되지 않았어요.'
+}
 
 /** 후보 줄 설명 — 이름만 보고 엉뚱한 사람에게 누르지 않게(2026-09-28 9차 점검). */
 function candidateMeta(c: Candidate): string {
@@ -57,6 +80,7 @@ function candidateMeta(c: Candidate): string {
 }
 
 function phaseBadge(t: TrialRow) {
+  if (isTrialCancelled(t)) return <Badge tone="amber">도장 취소됨 · 다음 결제부터 정가</Badge>
   if (t.cheap_remaining > 0) return <Badge tone="green">100원 구간 · {t.cheap_remaining}회 남음</Badge>
   if (t.half_remaining > 0) return <Badge tone="blue">반값 구간 · {t.half_remaining}회 남음</Badge>
   return <Badge tone="neutral">완료(정상가)</Badge>
@@ -72,6 +96,28 @@ function day(iso: string, today: string): string {
 
 function won(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
+}
+
+/** 시각(ISO, UTC) → KST 'yyyy-mm-dd' — 새벽에 취소하면 UTC 날짜로는 전날이 된다. */
+function kstDate(ts: string): string {
+  const t = Date.parse(ts)
+  return Number.isFinite(t) ? new Date(t + 9 * 60 * 60 * 1000).toISOString().slice(0, 10) : ts.slice(0, 10)
+}
+
+/** 취소 때 남겨 둔 회차 — 다시 찍으면 이 회차로 되살린다. */
+function keptRounds(t: TrialRow): { cheap: number; half: number } {
+  return {
+    cheap: Math.max(0, Number(t.cancelled_cheap_remaining ?? 0)),
+    half: Math.max(0, Number(t.cancelled_half_remaining ?? 0)),
+  }
+}
+
+/**
+ * 도장이 취소된 사람의 정가 인상 칸 이름 — 100원·반값에서 바로 정가로 오르므로 '반값 → 정가'가 아니다.
+ * 동의 기록 자체는 같은 'to_full'(정가 인상)이다(청구 크론의 판정과 같다).
+ */
+function riseFor(t: TrialRow, r: RiseView): RiseView {
+  return isTrialCancelled(t) && r.rise === 'to_full' ? { ...r, label: '정가로 전환(도장 취소)' } : r
 }
 
 function riseStatusBadge(r: RiseView, today: string) {
@@ -101,7 +147,12 @@ export default function TrialsClient({
   const [q, setQ] = useState('')
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [busy, setBusy] = useState(false)
+  /** 맨 위 '도장 찍기' 칸의 결과(검색·찍기). */
   const [msg, setMsg] = useState<string | null>(null)
+  /** 고객 카드 안 결과(취소·다시 찍기·동의 기록·기록 취소) — 누른 곳에 보인다. */
+  const [cardMsg, setCardMsg] = useState<CardMsg | null>(null)
+  /** 인터넷 연결 — 끊기면 위에 띠를 띄운다(폰 운영). */
+  const [offline, setOffline] = useState(false)
   /** 열려 있는 동의 기록 입력 칸 — `${userId}:${rise}`. */
   const [formKey, setFormKey] = useState<string | null>(null)
   const [form, setForm] = useState<{ consentedOn: string; channel: ConsentChannel; memo: string }>({
@@ -110,15 +161,34 @@ export default function TrialsClient({
     memo: '',
   })
 
+  useEffect(() => {
+    const sync = () => setOffline(typeof navigator !== 'undefined' && navigator.onLine === false)
+    sync()
+    window.addEventListener('online', sync)
+    window.addEventListener('offline', sync)
+    return () => {
+      window.removeEventListener('online', sync)
+      window.removeEventListener('offline', sync)
+    }
+  }, [])
+
   async function search() {
     if (!q.trim()) return
     setBusy(true)
     setMsg(null)
     try {
       const r = await fetch(`/api/admin/trials?q=${encodeURIComponent(q.trim())}`)
-      const j = await r.json()
-      setCandidates(j.ok ? j.candidates : [])
-      if (j.ok && j.candidates.length === 0) setMsg('검색 결과가 없어요 — 가입을 먼저 했는지 확인해 주세요.')
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || !(j as { ok?: boolean }).ok) {
+        setCandidates([])
+        setMsg((j as { message?: string }).message ?? '검색하지 못했어요 — 다시 눌러 주세요.')
+        return
+      }
+      const list = ((j as { candidates?: Candidate[] }).candidates ?? []) as Candidate[]
+      setCandidates(list)
+      if (list.length === 0) setMsg('검색 결과가 없어요 — 가입을 먼저 했는지 확인해 주세요.')
+    } catch {
+      setMsg(networkMessage())
     } finally {
       setBusy(false)
     }
@@ -138,15 +208,15 @@ export default function TrialsClient({
           body: JSON.stringify({ userId: c.id, note: c.name ?? '', force }),
         })
       let r = await send(false)
-      let j = await r.json()
+      let j = await r.json().catch(() => ({}))
       // 결제 이력이 있는 기존 고객 — 서버가 막았다. 정말 맞는지 한 번 더 묻고 force 로만.
-      if (r.status === 409 && j.code === 'HAS_PAID_HISTORY') {
+      if (r.status === 409 && (j as { code?: string }).code === 'HAS_PAID_HISTORY') {
         if (!window.confirm(`⚠️ ${who} 님은 이미 결제한 박스가 있는 고객이에요(${candidateMeta(c)}).\n찍으면 다음 결제부터 100원이 돼요. 정말 찍을까요?`)) return
         r = await send(true)
-        j = await r.json()
+        j = await r.json().catch(() => ({}))
       }
       if (!r.ok) {
-        setMsg(j.message ?? '실패했어요')
+        setMsg((j as { message?: string }).message ?? '도장을 찍지 못했어요 — 다시 눌러 주세요.')
         return
       }
       setCandidates([])
@@ -155,28 +225,81 @@ export default function TrialsClient({
       const pushLabel = (j as { push?: { label?: string } }).push?.label ?? ''
       setMsg(`${c.name ?? c.email ?? '고객'} 님에게 도장을 찍었어요. 다음 결제부터 100원이에요. ${pushLabel}`.trim())
       router.refresh()
+    } catch {
+      setMsg(networkMessage())
     } finally {
       setBusy(false)
     }
   }
 
   async function unstamp(t: TrialRow) {
-    if (!window.confirm(`${t.profile.name ?? t.profile.email ?? t.user_id} 님의 체험단을 취소할까요?\n다음 결제부터 정상 규칙으로 돌아가요.\n(가격이 바로 오르니, 고객에게 먼저 알리고 동의를 받아 두세요.)`)) return
+    const who = t.profile.name ?? t.profile.email ?? t.user_id
+    if (
+      !window.confirm(
+        `${who} 님의 체험단을 취소할까요?\n\n` +
+          '· 서포터즈 가격으로 결제된 적이 있으면 목록에 \'도장 취소됨\'으로 남고, 다음 결제는 정가예요.\n' +
+          '  가격이 오르는 결제라 정가 동의를 이 화면에 기록해야 결제돼요(없으면 청구 보류 — 박스를 보내지 마세요).\n' +
+          '· 서포터즈 가격 결제가 한 번도 없으면 도장을 지워요.\n\n' +
+          '고객에게 먼저 알리고 동의를 받아 두세요.',
+      )
+    )
+      return
     setBusy(true)
+    setCardMsg(null)
     try {
       const r = await fetch('/api/admin/trials', {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ userId: t.user_id }),
       })
+      const j = await r.json().catch(() => ({}))
       if (!r.ok) {
         // 실패가 무반응이면 취소된 줄 안다(9차 점검).
-        const j = await r.json().catch(() => ({}))
-        setMsg((j as { message?: string }).message ?? '취소하지 못했어요')
+        setCardMsg({ userId: t.user_id, tone: 'error', text: (j as { message?: string }).message ?? '취소하지 못했어요' })
         return
       }
-      setMsg('도장을 취소했어요. 다음 결제부터 정상 규칙으로 돌아가요.')
+      const soft = (j as { mode?: string }).mode === 'soft'
+      setCardMsg({
+        userId: t.user_id,
+        tone: 'ok',
+        text: soft
+          ? "도장을 취소했어요. 다음 결제는 정가예요 — 아래 '정가로 전환' 칸에 고객 동의를 기록해야 결제돼요."
+          : '서포터즈 가격 결제가 없어 도장을 지웠어요. 다음 결제부터 정상 규칙이에요.',
+      })
       router.refresh()
+    } catch {
+      setCardMsg({ userId: t.user_id, tone: 'error', text: `취소하지 못했어요 — ${networkMessage()}` })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function restamp(t: TrialRow) {
+    const who = t.profile.name ?? t.profile.email ?? t.user_id
+    const k = keptRounds(t)
+    if (
+      !window.confirm(
+        `${who} 님의 도장을 다시 찍을까요?\n\n취소 때 남은 회차로 되살려요 — 100원 ${k.cheap}회 · 반값 ${k.half}회.\n다음 결제부터 서포터즈 가격이에요(새로 4+4 가 아니에요). 고객 알림은 가지 않아요.`,
+      )
+    )
+      return
+    setBusy(true)
+    setCardMsg(null)
+    try {
+      const r = await fetch('/api/admin/trials', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userId: t.user_id, restore: true }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setCardMsg({ userId: t.user_id, tone: 'error', text: (j as { message?: string }).message ?? '도장을 다시 찍지 못했어요' })
+        return
+      }
+      setCardMsg({ userId: t.user_id, tone: 'ok', text: `도장을 다시 찍었어요 — 100원 ${k.cheap}회 · 반값 ${k.half}회 남음.` })
+      router.refresh()
+    } catch {
+      setCardMsg({ userId: t.user_id, tone: 'error', text: `도장을 다시 찍지 못했어요 — ${networkMessage()}` })
     } finally {
       setBusy(false)
     }
@@ -185,7 +308,7 @@ export default function TrialsClient({
   function openForm(userId: string, rise: PriceRise) {
     setFormKey(`${userId}:${rise}`)
     setForm({ consentedOn: today, channel: 'instagram_dm', memo: '' })
-    setMsg(null)
+    setCardMsg(null)
   }
 
   async function recordConsent(t: TrialRow, r: RiseView) {
@@ -196,7 +319,7 @@ export default function TrialsClient({
       : ''
     if (!window.confirm(`${who} 님의 '${r.label}' 가격 인상 동의를 기록할까요?\n동의한 날 ${form.consentedOn} · ${ch}${form.memo ? `\n메모: ${form.memo}` : ''}${after}`)) return
     setBusy(true)
-    setMsg(null)
+    setCardMsg(null)
     try {
       const res = await fetch('/api/admin/trials/consents', {
         method: 'POST',
@@ -205,12 +328,15 @@ export default function TrialsClient({
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMsg((j as { message?: string }).message ?? '기록하지 못했어요')
+        // 입력 칸은 열어 둔다 — 고쳐서 다시 누를 수 있게. 문구는 이 카드 안(기록하기 단추 바로 아래).
+        setCardMsg({ userId: t.user_id, tone: 'error', text: `기록하지 못했어요 — ${(j as { message?: string }).message ?? '다시 눌러 주세요'}` })
         return
       }
       setFormKey(null)
-      setMsg(`${who} 님의 '${r.label}' 동의를 기록했어요.`)
+      setCardMsg({ userId: t.user_id, tone: 'ok', text: `'${r.label}' 동의를 기록했어요.` })
       router.refresh()
+    } catch {
+      setCardMsg({ userId: t.user_id, tone: 'error', text: `기록하지 못했어요 — ${networkMessage()}` })
     } finally {
       setBusy(false)
     }
@@ -224,7 +350,7 @@ export default function TrialsClient({
     const reason = window.prompt(`${who} 님의 '${r.label}' 동의 기록을 취소할까요?${hold}\n\n취소 이유(선택):`, '')
     if (reason === null) return
     setBusy(true)
-    setMsg(null)
+    setCardMsg(null)
     try {
       const res = await fetch('/api/admin/trials/consents', {
         method: 'DELETE',
@@ -233,18 +359,39 @@ export default function TrialsClient({
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setMsg((j as { message?: string }).message ?? '취소하지 못했어요')
+        setCardMsg({ userId: t.user_id, tone: 'error', text: (j as { message?: string }).message ?? '취소하지 못했어요' })
         return
       }
-      setMsg(`${who} 님의 '${r.label}' 동의 기록을 취소했어요.`)
+      setCardMsg({ userId: t.user_id, tone: 'ok', text: `'${r.label}' 동의 기록을 취소했어요.` })
       router.refresh()
+    } catch {
+      setCardMsg({ userId: t.user_id, tone: 'error', text: `기록을 취소하지 못했어요 — ${networkMessage()}` })
     } finally {
       setBusy(false)
     }
   }
 
+  /** 그 고객 카드 안 결과 문구 — 실패는 빨강(role=alert), 성공은 초록. */
+  function cardNote(userId: string) {
+    if (!cardMsg || cardMsg.userId !== userId) return null
+    return cardMsg.tone === 'error' ? (
+      <p role="alert" className="mt-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">
+        {cardMsg.text}
+      </p>
+    ) : (
+      <p role="status" className="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-[13px] font-bold text-emerald-800">
+        {cardMsg.text}
+      </p>
+    )
+  }
+
   return (
     <div className="grid gap-4">
+      {offline && (
+        <p role="alert" className="sticky top-2 z-10 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[13px] font-bold text-red-700">
+          인터넷이 끊겨 있어요 — 지금 누르는 기록·취소는 저장되지 않아요. 연결된 뒤 다시 눌러 주세요.
+        </p>
+      )}
       <AdminCard>
         <SectionTitle title="도장 찍기" />
         <p className="text-[13px] text-muted-foreground">
@@ -297,8 +444,13 @@ export default function TrialsClient({
               const plan = t.plan ?? null
               const dogs = (t.subs ?? []).map((s) => s.dogName).filter(Boolean).join(', ')
               const paused = (t.subs ?? []).some((s) => s.status === 'paused') && !(t.subs ?? []).some((s) => s.status === 'active')
+              const cancelled = isTrialCancelled(t)
+              const kept = keptRounds(t)
               return (
-                <li key={t.user_id} className="rounded-lg border border-border px-3 py-3">
+                <li
+                  key={t.user_id}
+                  className={`rounded-lg border px-3 py-3 ${cancelled ? 'border-amber-300 bg-amber-50/60' : 'border-border'}`}
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 text-[14px]">
                       <b className="text-foreground">{t.profile.name ?? '(이름 없음)'}</b>
@@ -307,6 +459,16 @@ export default function TrialsClient({
                     </span>
                     {phaseBadge(t)}
                   </div>
+
+                  {cancelled && t.cancelled_at && (
+                    <p className="mt-2 text-[13px] text-amber-900">
+                      {day(kstDate(t.cancelled_at), today)}에 도장을 취소했어요. 서포터즈 가격으로 결제된 고객이라 다음 결제는{' '}
+                      <b>정가 인상</b>이에요 — 아래 칸에 고객 동의를 기록해야 결제되고, 그 전엔 청구 보류(박스 보내지 마세요).
+                      <span className="block text-[12px] text-amber-800">
+                        다시 찍으면 되살릴 회차: 100원 {kept.cheap}회 · 반값 {kept.half}회
+                      </span>
+                    </p>
+                  )}
 
                   {plan && plan.next ? (
                     <p className="mt-2 text-[13px] text-foreground">
@@ -331,7 +493,8 @@ export default function TrialsClient({
                     <div className="mt-3 grid gap-2">
                       {plan.rises
                         .filter((r) => r.round || r.consent)
-                        .map((r) => {
+                        .map((raw) => {
+                          const r = riseFor(t, raw)
                           const key = `${t.user_id}:${r.rise}`
                           const red = r.status === 'urgent'
                           return (
@@ -411,12 +574,14 @@ export default function TrialsClient({
                                   </label>
                                   <div className="flex gap-2">
                                     <AdminButton onClick={() => recordConsent(t, r)} disabled={busy}>
-                                      기록하기
+                                      {busy ? '기록하는 중…' : '기록하기'}
                                     </AdminButton>
                                     <AdminButton variant="ghost" onClick={() => setFormKey(null)} disabled={busy}>
                                       닫기
                                     </AdminButton>
                                   </div>
+                                  {/* 기록하기 단추 바로 아래 — 실패해도 폰 화면 밖으로 사라지지 않게(규칙269). */}
+                                  {cardNote(t.user_id)}
                                 </div>
                               )}
                             </div>
@@ -424,6 +589,9 @@ export default function TrialsClient({
                         })}
                     </div>
                   )}
+
+                  {/* 입력 칸 밖에서 누른 것(취소·다시 찍기·기록 취소)의 결과 — 이 카드 안. */}
+                  {!(formKey?.startsWith(`${t.user_id}:`)) && cardNote(t.user_id)}
 
                   {plan && plan.schedule.length > 0 && (
                     <details className="mt-3">
@@ -458,9 +626,15 @@ export default function TrialsClient({
                   )}
 
                   <div className="mt-3 flex justify-end">
-                    <AdminButton variant="ghost" onClick={() => unstamp(t)} disabled={busy}>
-                      도장 취소
-                    </AdminButton>
+                    {cancelled ? (
+                      <AdminButton variant="ghost" onClick={() => restamp(t)} disabled={busy}>
+                        도장 다시 찍기
+                      </AdminButton>
+                    ) : (
+                      <AdminButton variant="ghost" onClick={() => unstamp(t)} disabled={busy}>
+                        도장 취소
+                      </AdminButton>
+                    )}
                   </div>
                 </li>
               )

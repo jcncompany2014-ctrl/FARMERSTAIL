@@ -3091,6 +3091,10 @@ export type Database = {
       }
       subscription_trials: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_cheap_remaining: number | null
+          cancelled_half_remaining: number | null
           cheap_price: number
           cheap_remaining: number
           created_at: string
@@ -3101,6 +3105,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_cheap_remaining?: number | null
+          cancelled_half_remaining?: number | null
           cheap_price?: number
           cheap_remaining?: number
           created_at?: string
@@ -3111,6 +3119,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_cheap_remaining?: number | null
+          cancelled_half_remaining?: number | null
           cheap_price?: number
           cheap_remaining?: number
           created_at?: string

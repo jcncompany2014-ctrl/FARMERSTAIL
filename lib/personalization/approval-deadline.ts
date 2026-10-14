@@ -26,6 +26,20 @@ function flagsOf(formula: unknown): FormulaFlags {
   return formula && typeof formula === 'object' ? (formula as FormulaFlags) : null
 }
 
+/**
+ * 알레르기·건강 정보 때문에 바뀌는(강제) 금액 변경 제안인가 — formula.priceChange.forced (재제안 크론이 적는다).
+ *
+ * ★2026-10-15 F-a(규칙266) — 이 제안이 3일 무응답으로 '이전 식단 그대로'로 닫히면, 그 이전 식단에는 새로 알려준 알레르기 재료가
+ * 있을 수 있어 포장 목록이 박스를 멈춘다. 그런데 손님에겐 '그대로 다음 박스에 적용해요'가 가고 사장님은 아무 알림도 못 받았다.
+ * 마감 규칙(3일)은 그대로 둔다 — 손님 화면이 '3일 안에 안 고르시면 이전 그대로'라고 약속했고, 승인 금액이 어긋난 제안은
+ * 크론이 닫아야 다시 만들어진다. 대신 마감 크론이 손님 문구를 바꾸고(거짓 '그대로 적용' 금지) 경보함에 '연락 필요'를 올리며,
+ * 마감 임박 목록의 문구에 '알레르기·건강 제안'을 붙인다(레시피 승인·이번 주 할 일이 같은 approvalTimeLeft 를 쓴다).
+ */
+export function isForcedProposal(formula: unknown): boolean {
+  const pc = flagsOf(formula)?.priceChange
+  return !!pc && typeof pc === 'object' && (pc as { forced?: unknown }).forced === true
+}
+
 /** 이 제안의 응답 기한(일) — 상담 필요면 null(크론이 닫지 않는다). */
 export function approvalWindowDays(formula: unknown): number | null {
   const f = flagsOf(formula)
@@ -60,6 +74,8 @@ export function approvalTimeLeft(
   if (!d) return null
   const ms = Date.parse(d) - now.getTime()
   const hoursLeft = Math.max(0, Math.ceil(ms / (60 * 60 * 1000)))
-  const label = hoursLeft <= 0 ? '오늘 마감(곧 이전 식단 유지)' : hoursLeft < 24 ? `${hoursLeft}시간 남음` : `${Math.floor(hoursLeft / 24)}일 ${hoursLeft % 24}시간 남음`
+  const base = hoursLeft <= 0 ? '오늘 마감(곧 이전 식단 유지)' : hoursLeft < 24 ? `${hoursLeft}시간 남음` : `${Math.floor(hoursLeft / 24)}일 ${hoursLeft % 24}시간 남음`
+  // 알레르기·건강 제안은 무응답이면 이전 식단에 그 재료가 남을 수 있다 — 목록에서 구분되게(규칙266).
+  const label = isForcedProposal(row.formula) ? `${base} · 알레르기·건강 제안 — 답이 없으면 연락 필요` : base
   return { deadlineIso: d, hoursLeft, imminent: hoursLeft <= 48, label }
 }

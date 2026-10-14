@@ -78,7 +78,8 @@ test('규칙247: 경보 기록 — 사장님이 직접 처리할 경보만 고�
   ]
   for (const n of MUST) assert.ok(k.isOwnerAlertKind(n), `경보함 목록에 ${n} 이 없다`)
   assert.equal(k.shouldRecordOwnerAlert('info', 'refund_queue.permanent_failure'), false, 'info 를 경보함에 적는다')
-  assert.equal(k.shouldRecordOwnerAlert('error', 'cron.error'), false, '목록에 없는 이름(cron.error)을 적는다 — 경보함이 시끄러워진다')
+  // 2026-10-15 F-a(규칙267): cron.error 는 사장님 일 목록에 들어갔다(크론 + 날짜로 묶음) — 목록 밖 이름 예시를 바꿨다.
+  assert.equal(k.shouldRecordOwnerAlert('error', 'subscription.charge.succeeded'), false, '목록에 없는 이름을 적는다 — 경보함이 시끄러워진다')
   assert.equal(k.shouldRecordOwnerAlert('error', 'refund_queue.permanent_failure'), true)
   // 광고 메일 수신 차단(warning)은 정상 동작 — 거래 메일 차단(error)만.
   assert.equal(k.shouldRecordOwnerAlert('warning', 'email.suppressed_skip'), false, '광고 메일 수신 차단(정상)까지 경보함에 적는다')

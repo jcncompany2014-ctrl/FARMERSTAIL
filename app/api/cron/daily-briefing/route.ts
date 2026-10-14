@@ -136,11 +136,14 @@ async function runDailyBriefing(): Promise<Response> {
   // ── 크론 워치독 (2026-07-29 최종감사 #10) ──────────────────────────
   // Vercel 이 크론을 조용히 거른다(청구 크론 30일 중 25일 실행 실측). 실행률
   // 자체는 코드로 못 고치므로, "어제 돌았어야 했는데 기록이 없는 자동작업"을
-  // 매일 아침 여기서 알린다. 창 = 지금-25h ~ 지금-1h (직전 1시간은 지터 유예,
+  // 매일 아침 여기서 알린다. 창 = 지금-24h20m ~ 지금-20m (직전 20분은 지터 유예,
   // 브리핑 자신도 이 유예 덕에 자기 자신을 오탐하지 않는다).
+  // ★2026-10-15 F-a(규칙268): 유예가 1시간이라 09:10 정기결제 자동작업이 아예 안 돌아도 같은 날 09:40 브리핑의 창(~08:40)
+  //   밖이라 다음 날에야 '안 돈 자동작업'으로 떴다(서포터즈 결제일 화요일 → 수요일에야 앎). 실측 지연은 1분 안팎
+  //   (cron_health 실행 시각 :00:01~:00:51)이고 청구 크론 최대 실행 5분 — 20분이면 당일에 잡고 오탐도 없다.
   let missedCrons: string[] = []
   try {
-    const windowEnd = new Date(Date.now() - 60 * 60 * 1000)
+    const windowEnd = new Date(Date.now() - 20 * 60 * 1000)
     const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000)
     const { data: healthRows, error: healthRowsErr } = await supabase
       .from('cron_health')
@@ -168,7 +171,7 @@ async function runDailyBriefing(): Promise<Response> {
   // 안 돈 자동작업이 제일 먼저 — 결제·발송이 멈춘 것일 수 있다.
   if (missedCrons.length > 0) {
     items.push(
-      `🚨 어제 안 돈 자동작업 ${missedCrons.length}개: ${missedCrons
+      `🚨 안 돈 자동작업(지난 24시간) ${missedCrons.length}개: ${missedCrons
         .slice(0, 4)
         .map((c) => cronLabel(c))
         .join(', ')}${missedCrons.length > 4 ? ' 외' : ''}`,

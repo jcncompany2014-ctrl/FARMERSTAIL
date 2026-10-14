@@ -67,8 +67,17 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-/** 칸에 놓인 박스의 종류 — paid = 결제 완료(조리·포장 중) · pending = 결제 전 · paused = 일시정지. */
-type BoxMark = { box: 'paid' | 'pending' | 'paused'; chargeIso: string | null; shipIso: string }
+/**
+ * 칸에 놓인 박스의 종류 — paid = 결제 완료(조리·포장 중) · pending = 결제 전 · held = 인상 동의 없음 → 청구 보류 예정
+ * (2026-10-15 F-a) · paused = 일시정지.
+ * amount = 그 박스의 실제 금액(결제된 박스 = 주문 결제액, 결제 전 = 정본 펼치기의 결제 예정액). 모르면 null(정가로 보인다).
+ */
+type BoxMark = {
+  box: 'paid' | 'pending' | 'held' | 'paused'
+  chargeIso: string | null
+  shipIso: string
+  amount: number | null
+}
 
 /** 'yyyy-mm-dd' → '10/3(토)'. 문자열 그대로 — 서버(UTC)·기기 시간대를 타지 않는다. */
 function mdW(iso: string): string {
@@ -79,6 +88,8 @@ function mdW(iso: string): string {
 function boxLabel(it: BoxMark, today: string): string {
   if (it.box === 'paid') return it.shipIso < today ? '결제됨 · 발송일 지남' : '결제 완료 · 조리·포장'
   if (it.box === 'paused') return '일시정지'
+  // 인상 동의가 없어 청구 크론이 보류할 회차 — 동의 기록 전엔 결제도 발송도 없다(규칙264).
+  if (it.box === 'held') return `인상 동의 없음 · 보류 예정${it.chargeIso ? `(${mdW(it.chargeIso)})` : ''}`
   // 결제 전인데 결제일이 없다 = 카드 없음·재등록 필요 — 청구 크론이 건너뛴다.
   return it.chargeIso ? `결제 ${mdW(it.chargeIso)}` : '결제 안 됨(카드 확인)'
 }
@@ -87,8 +98,18 @@ function chipCls(it: BoxMark, today: string): string {
   if (it.box === 'paid') {
     return it.shipIso < today ? 'bg-red-600/15 text-red-700' : 'bg-sky-600/15 text-sky-800'
   }
+  if (it.box === 'held') return 'bg-red-600/15 text-red-700 ring-1 ring-red-400'
   if (it.box === 'paused') return 'bg-amber-500/15 text-amber-600'
   return 'bg-emerald-600/15 text-emerald-700'
+}
+
+/** '그날 전체' 목록 금액 — 실제 금액(결제액·결제 예정액). 모를 때만 구독가에 '정가'를 붙인다(규칙264). */
+function amountText(it: BoxMark & { total_amount: number | null }): string {
+  if (it.amount == null) return `${(it.total_amount ?? 0).toLocaleString('ko-KR')}원(정가)`
+  const won = `${it.amount.toLocaleString('ko-KR')}원`
+  if (it.box === 'paid') return `결제 ${won}`
+  if (it.box === 'held') return `보류 예정 ${won}`
+  return it.total_amount != null && it.total_amount !== it.amount ? `${won} (정가 ${it.total_amount.toLocaleString('ko-KR')}원)` : won
 }
 
 export default async function SubscriptionsCalendarPage({
@@ -128,7 +149,7 @@ export default async function SubscriptionsCalendarPage({
       .order('next_delivery_date', { ascending: true }),
     supabase
       .from('orders')
-      .select('subscription_id, paid_at, created_at')
+      .select('subscription_id, paid_at, created_at, total_amount')
       .in('payment_status', [...PAID_STATUSES])
       .eq('order_status', 'preparing')
       .not('subscription_id', 'is', null)
@@ -154,7 +175,7 @@ export default async function SubscriptionsCalendarPage({
   const subById = new Map(subList.map((s) => [s.id, s]))
 
   // 결제된 박스의 구독이 위 목록 밖(다음 주기 날짜가 달 밖·해지)이면 따로 읽는다.
-  type PaidRow = { subscription_id: string | null; paid_at: string | null; created_at: string }
+  type PaidRow = { subscription_id: string | null; paid_at: string | null; created_at: string; total_amount: number | null }
   const paidRows = (paidOrders ?? []) as PaidRow[]
   const missingIds = [
     ...new Set(
@@ -212,7 +233,9 @@ export default async function SubscriptionsCalendarPage({
     const set = paidShipsBySub.get(s.id) ?? new Set<string>()
     set.add(shipIso)
     paidShipsBySub.set(s.id, set)
-    if (shipIso >= startKey && shipIso <= endKey) push(shipIso, { ...s, box: 'paid', chargeIso: null, shipIso })
+    if (shipIso >= startKey && shipIso <= endKey) {
+      push(shipIso, { ...s, box: 'paid', chargeIso: null, shipIso, amount: o.total_amount ?? null })
+    }
   }
 
   // 2) 결제 전 회차 — next_delivery_date 부터 14일씩. 결제일은 구독마다(위 결제 시점).
@@ -241,35 +264,14 @@ export default async function SubscriptionsCalendarPage({
     return chargeTimingFor(advanceTrialState(base, before))
   }
 
-  // 합계는 **결제일이 이번 달인, 결제될 회차만** — 활성 + 카드 있음 + 재등록 불필요.
-  //   예전엔 발송일의 달로 묶었다 — 결제가 발송 3일 전 토요일로 옮겨 가면서 달 경계(1~3일 화요일)가 어긋났다.
-  let monthTotalCount = 0
-  let monthTotalRevenue = 0
-  const chargesByDay = new Map<string, number>()
-  for (const s of subList) {
-    if (!s.next_delivery_date) continue
-    const first = s.next_delivery_date.slice(0, 10)
-    if (s.status !== 'active') {
-      // 일시정지는 달력에 흐리게만 — 청구·발송 안 된다.
-      if (first >= startKey && first <= endKey) push(first, { ...s, box: 'paused', chargeIso: null, shipIso: first })
-      continue
-    }
-    const chargeable = isChargeable(s)
-    for (const d of cyclesOf(s)) {
-      const chargeIso = chargeable ? chargeDateFor(d, timingFor(s.user_id, d)) : null
-      if (d >= startKey && d <= endKey) push(d, { ...s, box: 'pending', chargeIso, shipIso: d })
-      if (chargeIso && chargeIso >= startKey && chargeIso <= endKey) {
-        monthTotalCount += 1
-        monthTotalRevenue += s.total_amount ?? 0
-        chargesByDay.set(chargeIso, (chargesByDay.get(chargeIso) ?? 0) + 1)
-      }
-    }
-  }
   /**
    * ★다가오는 결제 — **실제 나갈 금액**(2026-10-14 A2). 위 합계는 할인 전 구독가라 서포터즈 100원이 51,500원으로 잡혔다.
    *   결제일별 실제 금액은 청구와 같은 함수(lib/admin/upcoming-charges → trialPricing·resolveAutoDiscount)로 낸다.
    *   이 달의 합계·💳 건수도 같은 값으로 바꾼다 — 한 화면에 '정가 합계'와 '실제 합계'가 따로 있으면 어느 쪽이 맞는지 모른다.
    *   인상 동의가 없어 보류될 회차는 합계·💳 에서 뺀다(나가지 않는 돈 — 아래 목록엔 빨간 '보류 예정'으로 보인다).
+   * ★달력 칸도 이 회차로 그린다(2026-10-15 F-a, 규칙264) — 칸이 next_delivery_date 부터 14일씩 그냥 늘려 '인상 동의 없음 →
+   *   청구 보류'를 몰랐다(12월 머리 합계는 0건인데 칸엔 서포터즈 박스 18개가 '결제 예정'). 보류될 회차는 빨간 '보류 예정',
+   *   그 뒤 회차는 동의 전엔 없으므로 그리지 않는다. 불러오지 못하면 예전 방식(14일씩)으로 그리고 위에 알린다.
    */
   const UPCOMING_DAYS = 56
   const upcomingUntil = [addDaysKst(todayKey, UPCOMING_DAYS), endKey].sort().at(-1)!
@@ -281,6 +283,49 @@ export default async function SubscriptionsCalendarPage({
     else upcomingError = up.error
   } catch (e) {
     upcomingError = e instanceof Error ? e.message : 'unknown'
+  }
+  const roundsBySub = new Map<string, UpcomingRound[]>()
+  for (const r of upcomingRounds) {
+    const arr = roundsBySub.get(r.subId) ?? []
+    arr.push(r)
+    roundsBySub.set(r.subId, arr)
+  }
+
+  // 합계는 **결제일이 이번 달인, 결제될 회차만** — 활성 + 카드 있음 + 재등록 불필요.
+  //   예전엔 발송일의 달로 묶었다 — 결제가 발송 3일 전 토요일로 옮겨 가면서 달 경계(1~3일 화요일)가 어긋났다.
+  //   (실제 금액을 불러왔으면 아래에서 그 값으로 바꾼다 — 이 손 계산은 불러오지 못했을 때만 남는다.)
+  let monthTotalCount = 0
+  let monthTotalRevenue = 0
+  const chargesByDay = new Map<string, number>()
+  for (const s of subList) {
+    if (!s.next_delivery_date) continue
+    const first = s.next_delivery_date.slice(0, 10)
+    if (s.status !== 'active') {
+      // 일시정지는 달력에 흐리게만 — 청구·발송 안 된다.
+      if (first >= startKey && first <= endKey) push(first, { ...s, box: 'paused', chargeIso: null, shipIso: first, amount: null })
+      continue
+    }
+    const chargeable = isChargeable(s)
+    if (chargeable && !upcomingError) {
+      // 청구될 구독 = 정본 펼치기의 회차 그대로(결제일·실제 금액·보류). 보류에서 멈춘다 — 그 뒤 회차는 동의 전엔 없다.
+      for (const r of roundsBySub.get(s.id) ?? []) {
+        // 청구 크론의 날짜 밀기가 실패해 결제된 박스와 같은 날짜에 남은 회차는 두 번 세지 않는다.
+        if (paidShipsBySub.get(s.id)?.has(r.shipIso)) continue
+        if (r.shipIso >= startKey && r.shipIso <= endKey) {
+          push(r.shipIso, { ...s, box: r.held ? 'held' : 'pending', chargeIso: r.chargeIso, shipIso: r.shipIso, amount: r.chargeAmount })
+        }
+      }
+      continue
+    }
+    for (const d of cyclesOf(s)) {
+      const chargeIso = chargeable ? chargeDateFor(d, timingFor(s.user_id, d)) : null
+      if (d >= startKey && d <= endKey) push(d, { ...s, box: 'pending', chargeIso, shipIso: d, amount: null })
+      if (chargeIso && chargeIso >= startKey && chargeIso <= endKey) {
+        monthTotalCount += 1
+        monthTotalRevenue += s.total_amount ?? 0
+        chargesByDay.set(chargeIso, (chargesByDay.get(chargeIso) ?? 0) + 1)
+      }
+    }
   }
   let monthListRevenue = monthTotalRevenue
   if (!upcomingError) {
@@ -294,7 +339,7 @@ export default async function SubscriptionsCalendarPage({
   const upcomingInWindow = upcomingRounds.filter((r) => r.chargeIso <= addDaysKst(todayKey, UPCOMING_DAYS))
 
   // 칸 안 순서 — 결제 완료(지금 조리·포장 중) → 결제 전 → 일시정지.
-  const BOX_ORDER = { paid: 0, pending: 1, paused: 2 } as const
+  const BOX_ORDER = { paid: 0, held: 1, pending: 2, paused: 3 } as const
   for (const arr of subsByDay.values()) arr.sort((a, b) => BOX_ORDER[a.box] - BOX_ORDER[b.box])
 
   // 그리드 셀 — 첫 주의 빈 칸 + 마지막 주의 빈 칸 채워서 7×N 격자.
@@ -418,6 +463,11 @@ export default async function SubscriptionsCalendarPage({
 
       {/* 다가오는 결제 — 실제 나갈 금액(2026-10-14 A2). 폰에서 달력보다 먼저 보이게 위에 둔다. */}
       <UpcomingChargesView rounds={upcomingInWindow} days={UPCOMING_DAYS} error={upcomingError} />
+      {upcomingError && (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          그래서 아래 달력 칸은 정가·14일 간격으로만 그렸어요 — 인상 동의가 없어 보류될 박스도 &lsquo;결제 예정&rsquo;으로 보일 수 있어요. 새로고침해 주세요.
+        </p>
+      )}
 
       {/* 캘린더 그리드 */}
       <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
@@ -489,7 +539,7 @@ export default async function SubscriptionsCalendarPage({
                           key={`${it.id}-${it.box}`}
                           href={`/admin/subscriptions?focus=${it.id}`}
                           className={`block text-[10px] px-1.5 py-1 rounded transition hover:opacity-80 ${chipCls(it, todayKey)}`}
-                          title={`${it.recipient_name ?? '수령인 미지정'} · ${boxLabel(it, todayKey)} · ${(it.subscription_items ?? []).map((x) => `${x.product_name}×${x.quantity}`).join(', ')}`}
+                          title={`${it.recipient_name ?? '수령인 미지정'} · ${boxLabel(it, todayKey)} · ${amountText(it)} · ${(it.subscription_items ?? []).map((x) => `${x.product_name}×${x.quantity}`).join(', ')}`}
                         >
                           <div className="font-bold truncate">
                             {it.recipient_name ??
@@ -570,8 +620,11 @@ export default async function SubscriptionsCalendarPage({
                         .map((x) => `${x.product_name}×${x.quantity}`)
                         .join(', ') || '구성 미등록'}
                     </span>
-                    <span className="ml-auto text-[12px] font-bold text-foreground tabular-nums">
-                      {(it.total_amount ?? 0).toLocaleString()}원
+                    {/* 실제 금액(결제액·결제 예정액) — 서포터즈 100원 박스가 51,500원으로 보이던 것(규칙264). */}
+                    <span
+                      className={`ml-auto text-[12px] font-bold tabular-nums ${it.box === 'held' ? 'text-red-700' : 'text-foreground'}`}
+                    >
+                      {amountText(it)}
                     </span>
                   </Link>
                 </li>
@@ -590,6 +643,10 @@ export default async function SubscriptionsCalendarPage({
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded bg-emerald-600" />
           결제 전(구독 중)
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded bg-red-600" />
+          인상 동의 없음 — 보류 예정(박스 보내지 마세요)
         </span>
         <span className="inline-flex items-center gap-1.5">💳 결제일</span>
         <span className="inline-flex items-center gap-1.5">

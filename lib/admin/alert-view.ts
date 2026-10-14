@@ -63,6 +63,12 @@ export function toAlertView(
   }
   // 종류에 따라 처리 화면으로 바로.
   if (def?.group === 'refund') links.push({ label: '환불 화면', href: '/admin/refunds' })
+  // 2026-10-15 F-a — 청구 보류(자동결제 이력·체험단)·알레르기 제안 무응답(레시피 승인)·크론 실패(자동작업 화면).
+  if (row.kind.startsWith('subscription.charge.hold_') || row.kind === 'subscription.charge.price_rise_lookup_failed') {
+    links.push({ label: '체험단 화면', href: '/admin/trials' }, { label: '자동결제 이력', href: '/admin/subscriptions/charges' })
+  }
+  if (row.kind === 'personalization.approval_timeout.forced_no_reply') links.push({ label: '레시피 승인 화면', href: '/admin/personalization' })
+  if (row.kind === 'cron.error') links.push({ label: '자동작업 화면', href: '/admin/cron-health' })
   if (row.kind === 'ops.key_expiring' || row.kind === 'tracking.tracker_key_rejected') links.push({ label: '키 설정일 적기', href: '/admin/alerts#keys' })
   if (row.kind === 'subscription.items.rebuild_failed' || row.kind === 'subscription.create.held_allergen_share') {
     links.push({ label: '포장 목록', href: '/admin/personalization/picking-list' })

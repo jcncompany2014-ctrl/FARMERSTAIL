@@ -25,6 +25,11 @@ type Props = {
   totalAmount: number
   refundedAmount: number
   paymentStatus: string
+  /**
+   * 서포터즈 가격(100원·반값) 박스인가 — 회차를 실제로 쓴 주문만(2026-10-15 F-a, 규칙261).
+   * shipped = 이미 나간 박스(전액 환불해도 회차는 돌아오지 않는다) · unshipped = 발송 전(전액 환불하면 회차 1회가 돌아온다).
+   */
+  supporterBox?: 'shipped' | 'unshipped' | null
 }
 
 const BANK_OPTIONS: { code: string; name: string }[] = [
@@ -55,6 +60,7 @@ export default function PartialCancelPanel({
   totalAmount,
   refundedAmount,
   paymentStatus,
+  supporterBox = null,
 }: Props) {
   const router = useRouter()
   const remaining = totalAmount - refundedAmount
@@ -168,6 +174,19 @@ export default function PartialCancelPanel({
         </p>
       ) : (
         <div className="space-y-3">
+          {/* 서포터즈 박스 환불 — 회차·도장에 무슨 일이 생기는지(2026-10-15 F-a, 규칙261). */}
+          {supporterBox === 'shipped' && (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">
+              배송까지 끝난 서포터즈 박스예요. 전액 환불해도 서포터즈 회차는 돌아오지 않아요(받은 박스라 한 번 쓴 것으로 봐요).
+              전액 환불하면 이 주문의 도장판 도장 1개는 빠져요.
+            </p>
+          )}
+          {supporterBox === 'unshipped' && (
+            <p className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-sky-900">
+              아직 나가지 않은 서포터즈 박스예요. 전액 환불하면 서포터즈 회차 1회가 돌아와요(도장이 취소된 고객이면 도장을 다시
+              찍을 때 돌려줘요).
+            </p>
+          )}
           <div>
             <label className="mb-1 block text-[11px] font-semibold">
               환불 금액
