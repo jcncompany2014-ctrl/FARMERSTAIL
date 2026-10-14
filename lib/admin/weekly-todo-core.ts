@@ -7,7 +7,8 @@
  * # 한 주(발송 화요일 T 기준) — 2026-10-01 일정
  *  토(T−3) 일반 고객 결제·조리 시작 → 월(T−1) 포장 → 화(T) 발송(서포터즈 체험 구간은 화요일 09:10 결제).
  */
-import { addDaysKst } from '../datetime-kst.ts'
+import { addDaysKst, kstDateOf } from '../datetime-kst.ts'
+import { storeShipDate } from '../store/shipping.ts'
 import {
   paidBoxShipIso,
   chargeDateFor,
@@ -59,6 +60,29 @@ export function classifyPaidBoxes(
     }
   }
   return { paidForShip, overdueUnshipped, dueToShip, paidForShipSubIds }
+}
+
+export type StorePrepRow = { id: string; paid_at: string | null; created_at: string; order_number: string | null }
+
+/**
+ * 결제됨 + 발송 대기(preparing) **웹 가게(단품) 주문**을 출고일로 가른다 (2026-10-15 F-b, 규칙273).
+ * 출고일 = 결제한 날(KST) 다음의 첫 화·목 — 손님 화면이 약속한 날과 같은 정본(lib/store/shipping storeShipDate).
+ *  · overdue: 출고일이 **지났는데** 아직 안 나간 주문(정기배송의 '발송일 지난 미발송'과 같은 뜻 — 빨강).
+ *  · dueToday: 오늘이 출고일인 주문.
+ * 10/14 배포에서 정기배송만 미발송 판정을 받고 가게 주문은 개수만 셌다 — 출고일이 지나도 아무 경보가 없었다.
+ */
+export function classifyStoreOrders(
+  rows: readonly StorePrepRow[],
+  todayIso: string,
+): { outgoing: number; overdue: StorePrepRow[]; dueToday: number } {
+  const overdue: StorePrepRow[] = []
+  let dueToday = 0
+  for (const o of rows) {
+    const ship = storeShipDate(kstDateOf(o.paid_at ?? o.created_at))
+    if (ship < todayIso) overdue.push(o)
+    else if (ship === todayIso) dueToday++
+  }
+  return { outgoing: rows.length, overdue, dueToday }
 }
 
 /**

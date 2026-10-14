@@ -7,6 +7,7 @@ import AddressSearch from '@/components/AddressSearch'
 import { useToast } from '@/components/ui/Toast'
 import { isKoreanMobile, formatKoreanMobile, PHONE_ERROR } from '@/lib/phone'
 import type { ShippingTarget } from '@/lib/commerce/shipping-target'
+import { sendAdminJson } from './_send'
 
 /**
  * 배송지 고치기 (2026-10-14 C5, 규칙257) — 고객이 카톡으로 "이사했어요"라고 할 때.
@@ -61,25 +62,31 @@ export default function AddressEditor({
       return
     }
     setSaving(true)
-    const res = await fetch(`/api/admin/users/${userId}/address`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        recipientName: name.trim(),
-        phone,
-        zip: zip.trim(),
-        address: address.trim(),
-        addressDetail: detail.trim(),
-        alsoPendingOrders: pendingPaidBoxes > 0 && alsoPending,
-      }),
-    })
-    setSaving(false)
-    const j = (await res.json().catch(() => null)) as { message?: string; pendingOrdersUpdated?: number; target?: string } | null
-    if (!res.ok) {
-      toast.error(j?.message ?? '배송지를 저장하지 못했어요')
-      if (res.status === 500 && j?.target) router.refresh()
+    // 끊김·서버 오류·JSON 아닌 응답을 결과로 받는다 — '저장 중'에서 멈추지 않는다(규칙277). 실패면 입력은 그대로 둔다.
+    let r: Awaited<ReturnType<typeof sendAdminJson<{ pendingOrdersUpdated?: number; target?: string }>>>
+    try {
+      r = await sendAdminJson<{ pendingOrdersUpdated?: number; target?: string }>(
+        `/api/admin/users/${userId}/address`,
+        'PATCH',
+        {
+          recipientName: name.trim(),
+          phone,
+          zip: zip.trim(),
+          address: address.trim(),
+          addressDetail: detail.trim(),
+          alsoPendingOrders: pendingPaidBoxes > 0 && alsoPending,
+        },
+        '배송지를 저장하지 못했어요',
+      )
+    } finally {
+      setSaving(false)
+    }
+    if (!r.ok) {
+      toast.error(r.message)
+      if (r.status === 500 && typeof r.data?.target === 'string') router.refresh()
       return
     }
+    const j = r.data
     toast.success(
       j?.target === 'unchanged'
         ? '바뀐 내용이 없어요'

@@ -77,7 +77,7 @@ export function toAlertView(
   if (row.kind.startsWith('subscription.charge.trial') || row.kind === 'subscription.charge.price_rise_consent_missing') {
     links.push({ label: '체험단 화면', href: '/admin/trials' })
   }
-
+  if ((row.kind === 'feeding.first_checkin_poor' || row.kind === 'feeding.first_checkin_note') && userId) links.push({ label: '첫 박스 반응 보기', href: `/admin/users/${userId}#dogs` })
   const ctx = row.context && typeof row.context === 'object' ? (row.context as Record<string, unknown>) : {}
   const facts = Object.entries(ctx)
     .filter(([k, v]) => !FACT_SKIP.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))

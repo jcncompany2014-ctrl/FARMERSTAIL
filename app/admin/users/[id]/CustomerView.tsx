@@ -187,6 +187,60 @@ function SubCard({ sub }: { sub: SubView }) {
   )
 }
 
+const RISE_STATUS: Record<string, { text: string; cls: string }> = {
+  recorded: { text: '동의 받음', cls: 'bg-emerald-100 text-emerald-800' },
+  urgent: { text: '동의 없음 — 이대로면 청구 보류', cls: 'bg-red-100 text-red-700' },
+  waiting: { text: '동의 아직(30일 넘게 남음)', cls: 'bg-amber-100 text-amber-800' },
+  none: { text: '해당 회차 없음', cls: 'bg-secondary text-muted-foreground' },
+}
+
+/**
+ * 서포터즈 인상 동의·보류 — 읽기 전용(2026-10-15 F-b, 규칙278). 판정은 체험단 화면과 같은 정본(loadChargeProjection →
+ * trialPlanView)이고, 동의 기록은 체험단 화면에서 한다(여기서 쓰지 않는다).
+ */
+function SupporterPlanBlock({ plan }: { plan: NonNullable<CustomerData['supporterPlan']> }) {
+  const rises = plan.rises.filter((r) => r.status !== 'none' || r.consentedOn)
+  return (
+    <div className="mb-2 rounded-md border border-violet-200 bg-card p-2.5">
+      <p className="text-[13px] font-bold text-foreground">서포터즈 가격 인상·동의</p>
+      {plan.openHolds.length > 0 && (
+        <p className="mt-1 rounded bg-red-50 px-2 py-1 text-[13px] font-bold text-red-700">
+          청구 보류 중 — {plan.openHolds.map((h) => `${dayLabel(h.shipDate)} 발송분`).join(', ')}: 동의가 없어 결제하지 않았어요(박스 보내지 마세요)
+        </p>
+      )}
+      {plan.next && (
+        <p className="mt-1 text-[13px] text-foreground">
+          다음 결제 {dayLabel(plan.next.chargeIso)} · {won(plan.next.amount)}
+          {plan.next.held ? <span className="font-bold text-red-700"> — 동의 없으면 보류돼요</span> : null}
+        </p>
+      )}
+      {rises.length === 0 ? (
+        <p className="mt-1 text-[13px] text-muted-foreground">앞으로 오르는 회차가 없어요.</p>
+      ) : (
+        <ul className="mt-1 space-y-1">
+          {rises.map((r) => {
+            const st = RISE_STATUS[r.status] ?? RISE_STATUS.none!
+            return (
+              <li key={r.label} className="flex flex-wrap items-center justify-between gap-1.5 text-[13px]">
+                <span className="text-foreground">
+                  {r.label}
+                  {r.chargeIso ? ` · ${dayLabel(r.chargeIso)} 결제` : ''}
+                  {r.amount != null ? ` · ${r.prevAmount != null ? `${won(r.prevAmount)} → ` : ''}${won(r.amount)}` : ''}
+                  {r.consentedOn ? ` · ${dayLabel(r.consentedOn)} 받음` : ''}
+                </span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold ${st.cls}`}>{st.text}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <Link href="/admin/trials" className="mt-1.5 inline-block text-[13px] font-bold text-primary underline-offset-2 hover:underline">
+        체험단 화면에서 동의 기록하기 →
+      </Link>
+    </div>
+  )
+}
+
 function AllergyChips({ list }: { list: string[] | null }) {
   if (list === null) return <span className="text-[13px] text-muted-foreground">설문에 답 없음(모름)</span>
   if (list.length === 0) return <span className="text-[13px] font-semibold text-emerald-700">없음</span>
@@ -227,6 +281,18 @@ function DogCard({ dog, data, demo }: { dog: DogView; data: CustomerData; demo: 
             s.chronic.join(', ')
           )}
         </Row>
+        {dog.firstCheckin !== undefined && (
+          <Row label="첫 박스 반응">
+            {dog.firstCheckin === null ? (
+              <span className="text-[13px] text-muted-foreground">아직 답 없음</span>
+            ) : (
+              <span className={`text-[13px] ${dog.firstCheckin.poor ? 'text-red-700' : dog.firstCheckin.needsOwner ? 'text-amber-800' : ''}`}>
+                <b>{dog.firstCheckin.label}</b> · {formatKstDate(dog.firstCheckin.answeredAt)}
+                {dog.firstCheckin.comment ? <span className="block font-normal break-keep">&ldquo;{dog.firstCheckin.comment}&rdquo;</span> : null}
+              </span>
+            )}
+          </Row>
+        )}
         {s && (
           <Row label="최신 설문">
             <span className="text-[13px]">
@@ -298,6 +364,7 @@ function DogCard({ dog, data, demo }: { dog: DogView; data: CustomerData; demo: 
         </p>
       )}
 
+      {data.profile.deletedAt ? null : (
       <div className="mt-3">
         <AllergyEditor
           userId={data.userId}
@@ -308,6 +375,7 @@ function DogCard({ dog, data, demo }: { dog: DogView; data: CustomerData; demo: 
           demo={demo}
         />
       </div>
+      )}
     </div>
   )
 }
@@ -317,6 +385,8 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
   const liveSubs = data.subs.filter((s) => s.state !== 'cancelled')
   const pastSubs = data.subs.filter((s) => s.state === 'cancelled')
   const flags = data.flags ?? []
+  // 탈퇴한 회원(규칙275) — 표시만 남기고 고치기·메모·메시지를 숨긴다(서버도 409).
+  const deleted = !!profile.deletedAt
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -330,6 +400,11 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
           <div className="min-w-0">
             <h1 className="text-[22px] font-bold leading-tight tracking-tight text-foreground">
               {profile.name ?? '(이름 없음)'}
+              {deleted && (
+                <span className="ml-2 align-middle rounded-full bg-secondary px-2 py-0.5 text-[12px] font-bold text-muted-foreground">
+                  탈퇴한 회원 · {formatKstDate(profile.deletedAt)}
+                </span>
+              )}
               {profile.role === 'admin' && (
                 <span className="ml-2 align-middle rounded-full bg-foreground px-2 py-0.5 text-[11px] font-bold text-background">관리자</span>
               )}
@@ -339,6 +414,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
+            {!deleted && (
             <Link
               href={`/admin/users/${data.userId}/message`}
               className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-bold text-primary-foreground"
@@ -346,6 +422,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
               <MessageCircle className="size-3.5" strokeWidth={2.2} />
               1:1 메시지
             </Link>
+            )}
           </div>
         </div>
       </div>
@@ -386,6 +463,8 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
                 {data.supporter.note ? ` · ${data.supporter.note}` : ''}
               </p>
             )}
+            <SectionError errors={errors} keys={['trial_plan']} what="서포터즈 인상 동의·보류" />
+            {data.supporterPlan && <SupporterPlanBlock plan={data.supporterPlan} />}
             {liveSubs.length === 0 && !errors.subs ? (
               <p className="text-[13px] text-muted-foreground">진행 중인 정기배송이 없어요.</p>
             ) : (
@@ -416,8 +495,9 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             )}
           </Section>
 
-          <Section icon={<PawPrint className="size-4" strokeWidth={2.2} />} title="강아지" desc="알레르기·기저질환은 최신 설문이 정본이에요.">
+          <Section id="dogs" icon={<PawPrint className="size-4" strokeWidth={2.2} />} title="강아지" desc="알레르기·기저질환은 최신 설문이 정본이에요.">
             <SectionError errors={errors} keys={['dogs']} what="강아지" />
+            <SectionError errors={errors} keys={['checkin']} what="첫 박스 체크인 답" />
             <SectionError errors={errors} keys={['surveys']} what="설문(알레르기·기저질환)" />
             <SectionError errors={errors} keys={['box', 'proposals']} what="식단·박스 구성" />
             {data.dogs.length === 0 && !errors.dogs ? (
@@ -432,12 +512,13 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
           </Section>
 
           <Section
+            id="notes"
             icon={<ClipboardList className="size-4" strokeWidth={2.2} />}
             title="문의 기록"
             desc="카톡·전화로 온 문의를 날짜순으로. '다시 볼 날'이 오늘이면 어드민 홈 할 일에 떠요."
           >
             <SectionError errors={errors} keys={['memo']} what="운영 메모" />
-            {!errors.memo && (
+            {!errors.memo && !deleted && (
               <div className="-mx-1 mb-1">
                 <AdminNoteCard userId={data.userId} initial={data.memo} />
               </div>
@@ -445,7 +526,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             {errors.notes ? (
               <LoadError what="문의 기록" hint="기록을 불러오지 못했어요 — 새로고침해 주세요(표가 아직 없으면 마이그레이션 적용 전이에요)." />
             ) : (
-              <NotesPanel userId={data.userId} notes={data.notes} today={data.today} demo={demo} />
+              <NotesPanel userId={data.userId} notes={data.notes} today={data.today} demo={demo} readOnly={deleted} />
             )}
           </Section>
         </div>
@@ -592,9 +673,20 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
                 </p>
               </div>
             ) : (
-              !errors.address && <p className="mb-3 text-[13px] text-red-700">배송지가 없어요 — 결제가 건너뛰어질 수 있어요.</p>
+              !errors.address &&
+              (deleted ? (
+                <p className="mb-3 text-[13px] text-muted-foreground">탈퇴하며 주소를 지웠어요.</p>
+              ) : (
+                <p className="mb-3 text-[13px] text-red-700">배송지가 없어요 — 결제가 건너뛰어질 수 있어요.</p>
+              ))
             )}
-            {!errors.address && (
+            {/* 결제된 발송 대기 박스를 못 읽었으면 '같이 바꾸기'가 조용히 사라진다 — 고치기를 막고 이유를 말한다(규칙277). */}
+            {!errors.address && !deleted && errors.paid_box && (
+              <p className="text-[13px] font-semibold text-amber-800">
+                결제된 발송 대기 박스를 확인하지 못했어요 — 새로고침한 뒤 배송지를 고쳐 주세요(안 그러면 그 박스가 옛 주소로 나갈 수 있어요).
+              </p>
+            )}
+            {!errors.address && !deleted && !errors.paid_box && (
               <AddressEditor
                 userId={data.userId}
                 current={data.address.current}
@@ -608,9 +700,11 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             icon={<MessageCircle className="size-4" strokeWidth={2.2} />}
             title="앱 알림·1:1 문의"
             action={
-              <Link href={`/admin/users/${data.userId}/message`} className="text-[13px] font-bold text-primary">
-                열기 →
-              </Link>
+              deleted ? undefined : (
+                <Link href={`/admin/users/${data.userId}/message`} className="text-[13px] font-bold text-primary">
+                  열기 →
+                </Link>
+              )
             }
           >
             <SectionError errors={errors} keys={['messages']} what="알림·문의" />

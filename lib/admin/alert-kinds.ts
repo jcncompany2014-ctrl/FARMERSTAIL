@@ -356,6 +356,18 @@ export const OWNER_ALERT_KINDS = {
     title: '외부 키 만료가 다가와요',
     action: '만료 전에 키를 새로 받아 바꾸고 설정일을 적어 주세요',
   },
+  // 2026-10-15 F-b(규칙270) — 첫 박스 체크인 답(앱 서버 동작 app/(main)/dogs/[id]/first-checkin/actions.ts, 판정 lib/first-checkin).
+  // 대상 = 강아지(같은 강아지는 24시간 안이면 한 줄). detail 에 '강아지 이름 · 답 · 메모(가린 뒤 짧게)'.
+  'feeding.first_checkin_poor': {
+    group: 'recipe',
+    title: "첫 박스 체크인 — '잘 안 먹어요'라고 답했어요",
+    action: '다음 조리 전에 카카오톡·전화로 먼저 연락해 주세요(고객 화면 → 강아지 칸의 첫 박스 반응)',
+  },
+  'feeding.first_checkin_note': {
+    group: 'recipe',
+    title: "첫 박스 체크인 — '조금 가렸어요'와 메모를 남겼어요",
+    action: '메모를 읽고 필요하면 연락해 주세요',
+  },
 } as const satisfies Record<string, OwnerAlertDef>
 
 export type OwnerAlertKind = keyof typeof OWNER_ALERT_KINDS

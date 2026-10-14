@@ -134,51 +134,58 @@ export default function MessageComposer({
           url: url.trim() || undefined,
         }),
       })
+      // 서버가 JSON 이 아닌 응답(504 등)을 줘도 '저장 중'에 멈추지 않게.
       const data: {
         ok: boolean
+        inboxSaved?: boolean
+        pushOk?: boolean
         sent?: number
         dead?: number
         reason?: string
         error?: string
-      } = await res.json()
-      // 4xx/5xx — 입력 검증 실패 등 명시적 에러
-      if (!res.ok) {
+      } = await res.json().catch(() => ({ ok: false, error: `http_${res.status}` }))
+      // 4xx/5xx — 입력 검증 실패·문의함 저장 실패 등. 문의함에 안 들어갔으니 입력은 남겨 두고 다시 누르게 한다.
+      if (!res.ok || !data.ok) {
         const errLabel: Record<string, string> = {
           unauthorized: '로그인이 필요해요',
           forbidden: '관리자 권한이 없어요',
           cannot_message_self: '본인에게는 발송할 수 없어요',
           url_must_be_relative_path: '이동 URL 은 / 로 시작하는 경로만 가능해요',
           user_not_found: '대상 사용자를 찾을 수 없어요',
+          user_lookup_failed: '고객을 확인하지 못했어요 — 다시 눌러 주세요',
+          deleted_customer: '탈퇴한 회원이에요 — 보낼 수 없어요',
+          inbox_save_failed: '앱 문의함에 저장하지 못했어요 — 알림도 보내지 않았어요. 다시 눌러 주세요',
           title_and_body_required: '제목과 본문을 입력해 주세요',
         }
-        toast.error('발송하지 못했어요', {
+        toast.error('보내지 못했어요', {
           description: errLabel[data.error ?? ''] ?? data.error,
         })
         return
       }
-      // 200 인데 ok=false — VAPID 미설정 등 서버 설정 이슈
-      if (!data.ok) {
-        toast.error('발송하지 못했어요', { description: data.reason })
-        return
-      }
+      // 여기부터는 앱 문의함에 저장됨 — 입력을 비운다(다시 보내면 같은 글이 두 번 쌓인다). 알림 결과는 따로 말한다.
       setLastResult({
         sent: data.sent ?? 0,
         dead: data.dead ?? 0,
         reason: data.reason,
       })
       if ((data.sent ?? 0) > 0) {
-        toast.success(`${data.sent}대 디바이스에 발송했어요`)
+        toast.success(`앱 문의함에 남기고 ${data.sent}대에 알림을 보냈어요`)
+      } else if (data.pushOk === false) {
+        toast.info('앱 문의함엔 남겼어요 · 알림은 보내지 못했어요', {
+          description: '다시 보내지 마세요(같은 글이 두 번 쌓여요) — 급하면 카톡으로도 알려 주세요',
+        })
       } else {
-        toast.info('알림 구독이 없어 발송되지 않았어요', {
-          description: '사용자가 알림 동의 후 다시 시도하세요',
+        toast.info('앱 문의함에 남겼어요 · 알림 기기가 없어 알림은 안 갔어요', {
+          description: '급하면 카톡으로도 알려 주세요',
         })
       }
       setTitle('')
       setBody('')
       setUrl('')
-    } catch (e) {
-      toast.error('발송하지 못했어요', {
-        description: e instanceof Error ? e.message : undefined,
+    } catch {
+      // 인터넷이 끊기면 서버에 닿았는지 모른다 — 다시 누르기 전에 확인하게 한다(중복 방지).
+      toast.error('보냈는지 확인하지 못했어요', {
+        description: '인터넷 연결을 확인한 뒤, 고객 화면의 1:1 문의에 이미 들어갔는지 보고 다시 보내 주세요',
       })
     } finally {
       setSending(false)

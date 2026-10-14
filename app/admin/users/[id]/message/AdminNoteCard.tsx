@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StickyNote, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { sendAdminJson } from '../_send'
 
 /**
  * 고객 운영 메모 (계획 A-F5) — CS 기억 보조.
@@ -44,14 +45,15 @@ export default function AdminNoteCard({
      * 20260731000100 이 admin_note 를 고객 권한에서 뺐고, 쓰기는 관리자 검증을
      * 거친 서버 라우트가 한다.
      */
-    const res = await fetch(`/api/admin/users/${userId}/note`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note: value.trim() || null }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      toast.error('메모 저장에 실패했어요')
+    // 끊김·서버 오류를 결과로 받는다 — '저장 중'에서 멈추지 않는다(2026-10-15 규칙277). 실패면 적은 메모는 그대로.
+    let r: Awaited<ReturnType<typeof sendAdminJson>>
+    try {
+      r = await sendAdminJson(`/api/admin/users/${userId}/note`, 'PATCH', { note: value.trim() || null }, '메모 저장에 실패했어요')
+    } finally {
+      setSaving(false)
+    }
+    if (!r.ok) {
+      toast.error(r.message)
       return
     }
     setSavedValue(value)

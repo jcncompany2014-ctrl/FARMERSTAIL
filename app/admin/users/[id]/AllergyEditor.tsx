@@ -8,6 +8,7 @@ import { ALLERGY_GROUPS, normalizeAllergyAnswers } from '@/lib/survey/allergy-op
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
 import type { FoodLine } from '@/lib/personalization/types'
 import type { AllergyImpact } from '@/lib/admin/allergy-edit'
+import { sendAdminJson } from './_send'
 
 /**
  * 강아지 알레르기 고치기 (2026-10-14 C5, 규칙258).
@@ -53,6 +54,8 @@ export default function AllergyEditor({
   const [preview, setPreview] = useState<Preview | null>(null)
   const [propose, setPropose] = useState(false)
   const [busy, setBusy] = useState<'preview' | 'save' | null>(null)
+  /** 알레르기는 저장됐는데 새 식단 제안 요청이 실패한 이유 — 있으면 '제안만 다시 보내기'를 보인다. */
+  const [proposalFailed, setProposalFailed] = useState<string | null>(null)
 
   const options: string[] = ALLERGY_GROUPS.flatMap((g) => [...g.options])
   // 지금 보기에 없는 옛 값(뺀 보기·옛 라벨)도 그대로 보여 준다 — 버리면 기록이 조용히 사라진다.
@@ -63,24 +66,27 @@ export default function AllergyEditor({
     setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]))
   }
 
-  async function post(action: 'preview' | 'save'): Promise<Record<string, unknown> | null> {
-    const res = await fetch(`/api/admin/users/${userId}/allergies`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        dogId,
-        allergies: picked,
-        note: note.trim() || undefined,
-        requestProposal: action === 'save' ? propose : undefined,
-      }),
-    })
-    const j = (await res.json().catch(() => null)) as Record<string, unknown> | null
-    if (!res.ok) {
-      toast.error((j?.message as string) ?? '처리하지 못했어요')
+  async function post(action: 'preview' | 'save' | 'propose'): Promise<Record<string, unknown> | null> {
+    // 끊김·서버 오류·JSON 아닌 응답을 결과로 받는다 — '저장 중'에서 멈추지 않는다(규칙277).
+    const r = await sendAdminJson(
+      `/api/admin/users/${userId}/allergies`,
+      'POST',
+      action === 'propose'
+        ? { action, dogId }
+        : {
+            action,
+            dogId,
+            allergies: picked,
+            note: note.trim() || undefined,
+            requestProposal: action === 'save' ? propose : undefined,
+          },
+      '처리하지 못했어요',
+    )
+    if (!r.ok) {
+      toast.error(r.message)
       return null
     }
-    return j
+    return r.data
   }
 
   async function runPreview() {
@@ -89,12 +95,32 @@ export default function AllergyEditor({
       return
     }
     setBusy('preview')
-    const j = await post('preview')
-    setBusy(null)
+    let j: Record<string, unknown> | null = null
+    try {
+      j = await post('preview')
+    } finally {
+      setBusy(null)
+    }
     if (!j) return
     const p = j as unknown as Preview
     setPreview(p)
     setPropose(p.liveActive && (p.impact.heldAfter.length > 0 || p.impact.addedBlockedLines.length > 0))
+  }
+
+  /** 알레르기는 저장됐는데 새 식단 제안 요청만 실패했을 때 — 제안만 다시(서버 'propose' 동작, 저장 없이). */
+  async function retryProposal() {
+    setBusy('save')
+    let j: Record<string, unknown> | null = null
+    try {
+      j = await post('propose')
+    } finally {
+      setBusy(null)
+    }
+    if (!j) return
+    toast.success(j.alreadyQueued ? '새 식단 제안이 이미 예약돼 있어요' : '새 식단 제안을 예약했어요')
+    setProposalFailed(null)
+    setOpen(false)
+    router.refresh()
   }
 
   async function save() {
@@ -111,10 +137,23 @@ export default function AllergyEditor({
       .join('\n')
     if (!window.confirm(msg)) return
     setBusy('save')
-    const j = await post('save')
-    setBusy(null)
+    let j: Record<string, unknown> | null = null
+    try {
+      j = await post('save')
+    } finally {
+      setBusy(null)
+    }
     if (!j) return
-    const proposal = j.proposal as { ok?: boolean; message?: string; alreadyQueued?: boolean } | undefined
+    const proposal = j.proposal as { ok?: boolean; code?: string; message?: string; alreadyQueued?: boolean } | undefined
+    if (proposal && !proposal.ok && proposal.code !== 'NO_ACTIVE_SUBSCRIPTION') {
+      // 알레르기는 바뀌었는데 제안 요청 저장이 실패 — 이대로면 포장 목록에서 이 박스가 멈추고 고객에겐 아무것도 안 간다.
+      //   회색 3초 안내로 끝내지 않는다: 빨간 오류 + 창을 열어 두고 '제안만 다시 보내기'(규칙277).
+      toast.error('알레르기는 바꿨지만 새 식단 제안은 예약하지 못했어요', { description: proposal.message, duration: null })
+      setProposalFailed(proposal.message ?? '제안 요청을 저장하지 못했어요')
+      setPreview(null)
+      router.refresh()
+      return
+    }
     if (proposal && !proposal.ok) toast.info(proposal.message ?? '제안 요청은 보내지 못했어요')
     else toast.success(proposal?.ok ? '알레르기를 바꾸고 새 식단 제안을 예약했어요' : '알레르기를 바꿨어요')
     setOpen(false)
@@ -241,12 +280,29 @@ export default function AllergyEditor({
         </div>
       )}
 
+      {proposalFailed && (
+        <div role="alert" className="mt-3 rounded-md border border-red-300 bg-red-50 p-2.5 text-[13px] text-red-700">
+          <p className="font-bold">알레르기는 바꿨지만 새 식단 제안은 예약하지 못했어요</p>
+          <p className="mt-0.5">{proposalFailed} — 이대로면 포장 목록에서 이 박스가 멈추고 고객에게 아무것도 안 가요.</p>
+          <button
+            type="button"
+            onClick={retryProposal}
+            disabled={busy !== null}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-700 px-3.5 py-1.5 text-[13px] font-bold text-white disabled:opacity-50"
+          >
+            {busy === 'save' && <Loader2 className="size-3.5 animate-spin" strokeWidth={2.5} />}
+            새 식단 제안만 다시 보내기
+          </button>
+        </div>
+      )}
+
       <div className="mt-3 flex items-center justify-end gap-2">
         <button
           type="button"
           onClick={() => {
             setOpen(false)
             setPreview(null)
+            setProposalFailed(null)
           }}
           className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-muted-foreground"
         >

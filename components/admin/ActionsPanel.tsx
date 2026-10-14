@@ -50,6 +50,12 @@ export type ActionsPanelProps = {
    * 배포 거부), 그때는 cron_health 에 행이 안 생겨서 "실패 0건"으로 보인다.
    */
   missedCronCount?: number
+  /** 카톡 문의 메모의 '다시 볼 날'이 오늘 이하 + 처리 안 됨(규칙271 — 이번 주 할 일과 같은 숫자). */
+  followUpDueCount?: number
+  /** 웹 가게 주문 — 결제일 기준 첫 출고일(화·목)이 지났는데 안 나감(규칙273). */
+  storeOverdueCount?: number
+  /** 첫 박스 체크인 '잘 안 먹어요'(최근 14일, 규칙270). */
+  firstCheckinPoorCount?: number
 }
 
 type Item = {
@@ -77,6 +83,12 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       //   발송 화요일이 지났는데 안 나간 결제 박스(lib/shipping-schedule paidBoxShipIso).
       label: '발송일 지난 미발송',
       count: props.unshippedCount,
+    },
+    {
+      href: '/admin/orders?status=preparing&kind=store',
+      icon: Package,
+      label: '웹 가게 출고일 지난 주문',
+      count: props.storeOverdueCount ?? 0,
     },
     {
       href: '/admin/orders?status=shipping',
@@ -113,6 +125,19 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       icon: MessageCircle,
       label: '답 안 한 문의',
       count: props.csUnansweredCount ?? 0,
+    },
+    {
+      // 고객별 화면에서 처리한다 — 목록 전용 화면이 없어 '이번 주 할 일'(같은 숫자, 이름·링크)이 있는 홈 맨 위로.
+      href: '/admin#weekly-todo-title',
+      icon: MessageCircle,
+      label: '다시 볼 문의(메모)',
+      count: props.followUpDueCount ?? 0,
+    },
+    {
+      href: '/admin#weekly-todo-title',
+      icon: AlertTriangle,
+      label: "첫 박스 '잘 안 먹어요'",
+      count: props.firstCheckinPoorCount ?? 0,
     },
     {
       href: '/admin/cron-health',

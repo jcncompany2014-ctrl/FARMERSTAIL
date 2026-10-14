@@ -191,6 +191,42 @@ export async function POST(req: Request) {
       dbError: noteDelErr.message,
     })
   }
+  /**
+   * ★카톡·전화 문의 기록(admin_customer_notes — 10/14 고객 화면 C2) 즉시 파기(2026-10-15 F-b, 규칙275).
+   *   운영 메모와 같은 이유(전화·사정이 적힌다)인데 표가 새로 생기면서 이 자리에 빠졌다 — auth 가 soft delete 라 표의 FK cascade 는
+   *   5년 뒤 영구 삭제 때에만 돈다. 실패하면 경보함(account.delete.partial_failure)에 올린다 — 사장님이 손으로 지워야 한다.
+   * ★경보함(admin_alerts) — 손님이 쓴 글(첫 박스 체크인 메모·강아지 이름)이 담긴 경보만 지운다. 돈 경보(토스 환불 등)는 id·숫자뿐이고
+   *   탈퇴 뒤에도 처리해야 하므로 남긴다(user_id 는 '탈퇴한 회원' 화면으로 이어진다).
+   */
+  // 어드민 배송지 고치기의 바꾸기 전 주소(admin_address_changes, 규칙276) — 주소·전화 원문이라 같이 파기.
+  //   새 표라 생성 타입에 아직 없다 — 지우기 한 동작만 좁게 연다.
+  const untypedDelete = admin as unknown as {
+    from: (t: 'admin_address_changes') => {
+      delete: () => { eq: (c: 'user_id', v: string) => Promise<{ error: { message: string } | null }> }
+    }
+  }
+  const [custNotesDel, alertsDel, addrChangesDel] = await Promise.all([
+    admin.from('admin_customer_notes').delete().eq('user_id', user.id),
+    admin
+      .from('admin_alerts')
+      .delete()
+      .eq('user_id', user.id)
+      .in('kind', ['feeding.first_checkin_poor', 'feeding.first_checkin_note']),
+    untypedDelete.from('admin_address_changes').delete().eq('user_id', user.id),
+  ])
+  for (const [step, res] of [
+    ['admin_customer_notes', custNotesDel],
+    ['admin_alerts', alertsDel],
+    ['admin_address_changes', addrChangesDel],
+  ] as const) {
+    if (res.error) {
+      captureBusinessEvent('error', 'account.delete.partial_failure', {
+        userId: user.id,
+        step,
+        dbError: res.error.message.slice(0, 200),
+      })
+    }
+  }
 
   /**
    * ★ 구독 해지·카드 토큰 삭제를 **가장 먼저** 한다 (2026-07-30 순서 변경).

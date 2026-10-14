@@ -13,6 +13,9 @@
  *    않는다 — 같은 판정을 두 곳에 두면 두 화면이 다른 말을 한다.
  *
  * 순수 함수 — 조회는 lib/admin/customer-flags-load(서버 전용). `@/` 값 import 없음(node 테스트가 그대로 읽는다).
+ *
+ * # 2026-10-15 F-b(규칙279) — 거래 중인 손님만, 탈퇴 제외
+ * 옛 앱·알림 못 받음·메일 반송은 해지 안 된 정기배송이 있거나 최근 30일 결제가 있는 손님에게만 붙인다. 탈퇴 회원은 신호 없음.
  */
 import { subscriptionState, type SubLike } from '../subscription-state.ts'
 
@@ -76,7 +79,17 @@ export type CustomerFlagInput = {
   webPushCount: number
   /** 이 고객의 정기배송들(해지 포함 — 해지는 판정에서 뺀다). */
   subscriptions: readonly SubLike[]
+  /** 최근 RECENT_PURCHASE_DAYS 일 안에 결제한 주문 수(웹 가게 단품 포함). 정기배송이 없어도 이게 있으면 '거래 중인 손님'. */
+  recentPaidOrders?: number
+  /** 탈퇴한 회원(profiles.deleted_at) — 챙길 대상이 아니다(연락처도 지웠다). */
+  deleted?: boolean
 }
+
+/**
+ * '거래 중인 손님'의 최근 구매 기준(일) — 웹 가게 단품을 산 손님도 배송 알림·안내 메일이 가야 한다(2026-10-15 F-b, 규칙279).
+ * 냉동 단품은 결제 → 출고(화·목) → 도착이 일주일 안이라 한 달이면 넉넉하다.
+ */
+export const RECENT_PURCHASE_DAYS = 30
 
 export type CustomerFlags = {
   keys: CustomerFlagKey[]
@@ -96,25 +109,34 @@ function latestToken(tokens: readonly NativeTokenLite[], platform?: string): Nat
 
 export function customerFlags(input: CustomerFlagInput): CustomerFlags {
   const keys: CustomerFlagKey[] = []
+  const latest = latestToken(input.nativeTokens)
+  const latestApp = latest
+    ? { platform: latest.platform ?? '?', version: latest.app_version, updatedAt: latest.updated_at }
+    : null
+
+  // 탈퇴한 회원은 챙길 손님이 아니다 — 탈퇴하면 알림 기기가 지워져 '앱 알림 못 받음'이 반드시 걸렸다(규칙279).
+  if (input.deleted) return { keys, latestApp }
 
   const live = input.subscriptions.filter((s) => s.status !== 'cancelled')
   if (live.some((s) => subscriptionState(s) === 'card_failed')) keys.push('card_renewal')
 
-  const android = latestToken(input.nativeTokens, 'android')
-  if (android && isBrokenAndroidVersion(android.app_version)) keys.push('old_app')
+  /**
+   * ★연락 수단 신호(옛 앱·알림 못 받음·메일 반송)는 **거래 중인 손님**에게만 — 해지 안 된 정기배송이 있거나 최근 결제가 있다
+   * (2026-10-15 F-b, 규칙279). 예전엔 구독 없는 가입자에게도 붙여 '챙길 손님 16명' 중 정기배송 손님은 1명뿐이었다 —
+   * 결제·배송 알림을 정말 못 받는 손님이 그 속에 묻혔다(배지 설명도 '결제·배송 알림이 안 가요').
+   */
+  const transacting = live.length > 0 || (input.recentPaidOrders ?? 0) > 0
+  if (transacting) {
+    const android = latestToken(input.nativeTokens, 'android')
+    if (android && isBrokenAndroidVersion(android.app_version)) keys.push('old_app')
 
-  if (input.nativeTokens.length === 0 && input.webPushCount <= 0) keys.push('no_push')
+    if (input.nativeTokens.length === 0 && input.webPushCount <= 0) keys.push('no_push')
 
-  const email = (input.email ?? '').trim().toLowerCase()
-  if (email && input.suppressedEmails.has(email)) keys.push('bounced')
-
-  const latest = latestToken(input.nativeTokens)
-  return {
-    keys,
-    latestApp: latest
-      ? { platform: latest.platform ?? '?', version: latest.app_version, updatedAt: latest.updated_at }
-      : null,
+    const email = (input.email ?? '').trim().toLowerCase()
+    if (email && input.suppressedEmails.has(email)) keys.push('bounced')
   }
+
+  return { keys, latestApp }
 }
 
 /** 회원 목록 필터 값 → 판정 키. 모르는 값이면 null(필터 없음). 'any' = 하나라도. */

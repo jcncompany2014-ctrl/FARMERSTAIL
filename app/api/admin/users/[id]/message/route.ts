@@ -18,6 +18,12 @@ import { sanitizeLogText } from '@/lib/log-sanitize'
  *   (사용자 직접 신청한 환불 안내 등 critical CS 케이스)
  *
  * 보안: admin role 만 호출 가능. body 길이 제한.
+ *
+ * # 2026-10-15 F-b(규칙277) — 문의함 먼저, 응답은 둘을 따로
+ * 예전엔 앱 알림을 먼저 보내고 문의함(cs_messages) 저장 실패는 서버 로그로만 삼켰다. 그래서 ① 문의함엔 들어갔는데 알림 기기가
+ * 없으면 '발송되지 않았어요 — 다시 시도'(다시 보내면 같은 글이 두 번 쌓임), ② 문의함 저장이 실패해도 '발송했어요'(손님은 앱에서 글을
+ * 못 찾음)였다. 이제 문의함에 먼저 적고, 실패하면 알림도 보내지 않고 오류로 돌려준다. 응답에 inboxSaved·pushOk·sent 를 따로 싣는다.
+ * 탈퇴한 회원에게는 보내지 않는다(409 deleted_customer).
  */
 export async function POST(
   req: Request,
@@ -94,24 +100,24 @@ export async function POST(
     )
   }
 
-  // 대상 사용자 존재 검증
+  // 대상 사용자 존재·탈퇴 확인 — 조회 실패를 '없음'과 가른다(규칙1).
   const { data: targetProfile, error: profErr } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, deleted_at')
     .eq('id', targetUserId)
     .maybeSingle()
-  if (profErr || !targetProfile) {
+  if (profErr) {
+    return NextResponse.json({ ok: false, error: 'user_lookup_failed' }, { status: 500 })
+  }
+  if (!targetProfile) {
     return NextResponse.json({ ok: false, error: 'user_not_found' }, { status: 404 })
   }
+  if (targetProfile.deleted_at) {
+    return NextResponse.json({ ok: false, error: 'deleted_customer' }, { status: 409 })
+  }
 
-  // category 를 안 넘기면 카테고리 게이팅 없이 발송 (admin CS 메시지는 사용자 선호 무시)
-  const result = await pushToUser(targetUserId, { title, body, url })
-
-  // CS 양방향 thread 에도 같은 메시지 기록 — 사용자가 /mypage/cs 에서 답장
-  // 가능. push 발송 실패해도 thread 에는 남도록 별도 처리. RLS 가 admin
-  // role 만 insert 허용하므로 sender_id=user.id (현재 admin).
-  // 점검 F: cs_messages insert error 무검사 → 스레드 누락을 조용히 삼키지 않도록
-  // 경고 로그(요청 자체는 push 결과로 응답하므로 실패시켜 admin 을 혼란시키지 않음).
+  // ① 문의함(cs_messages) 먼저 — 손님이 앱 1:1 문의에서 보는 곳. RLS 가 admin role 만 insert 허용하므로 sender_id=user.id.
+  //   실패하면 알림도 보내지 않는다(알림만 가고 글은 없는 상태를 만들지 않는다) — 사장님은 '다시 눌러 주세요'를 본다.
   const { error: csErr } = await supabase.from('cs_messages').insert({
     user_id: targetUserId,
     sender: 'admin',
@@ -122,7 +128,9 @@ export async function POST(
     console.warn(
       `[admin-message] cs_messages insert failed user=${targetUserId}: ${sanitizeLogText(csErr.message)}`,
     )
-  } else {
+    return NextResponse.json({ ok: false, error: 'inbox_save_failed', inboxSaved: false }, { status: 500 })
+  }
+  {
     // ★'답 안 한 문의'는 **답장한 순간** 처리로 친다 (2026-09-26 출시 전 점검 5차).
     //   예전엔 스레드를 열기만 해도 read_at 이 찍혀 대시보드·문의함에서 빠졌고, 확인만 하고
     //   나중에 답하려던 문의가 다시 떠오르지 않아 고객이 답을 못 받았다.
@@ -139,19 +147,33 @@ export async function POST(
     }
   }
 
+  // ② 앱 알림 — category 를 안 넘기면 카테고리 게이팅 없이 발송 (admin CS 메시지는 사용자 선호 무시).
+  //   던져도 문의함 글은 이미 저장됐다 — 결과를 따로 알린다(다시 보내면 같은 글이 두 번 쌓인다).
+  let result: { ok: boolean; sent: number; dead: number; reason?: string }
+  try {
+    result = await pushToUser(targetUserId, { title, body, url })
+  } catch (e) {
+    result = { ok: false, sent: 0, dead: 0, reason: sanitizeLogText(e instanceof Error ? e.message : 'push_exception') }
+  }
+
   // Audit log — admin 이 사용자에게 보낸 메시지 추적 (분쟁 시 증거).
   await recordAdminAction(supabase, {
     action: 'user_message_send',
     entityType: 'user',
     entityId: targetUserId,
     diff: {
-      after: { title, body_length: body.length, url: url ?? null },
+      after: { title, body_length: body.length, url: url ?? null, inboxSaved: true, pushSent: result.sent },
     },
     req,
   })
 
-  // pushToUser 자체도 { ok, sent, dead, reason } 를 반환 — sent>0 이면 ok 가 true.
-  // 우리는 admin API 입장에서 호출 자체가 성공했음을 알리고 싶으므로 ok 는 그대로
-  // pushToUser 의 결과를 따라간다 (구독 없으면 ok=false 지만 sent=0 으로 동작).
-  return NextResponse.json(result)
+  // ok = 요청 성공(문의함에 저장됨). 알림 결과는 pushOk·sent 로 따로 — 화면이 '문의함엔 남겼고 알림은 안 갔어요'를 가른다.
+  return NextResponse.json({
+    ok: true,
+    inboxSaved: true,
+    pushOk: result.ok,
+    sent: result.sent,
+    dead: result.dead,
+    reason: result.reason,
+  })
 }

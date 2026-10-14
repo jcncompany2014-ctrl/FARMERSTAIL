@@ -96,7 +96,7 @@ function DayCard({ day }: { day: TodoDay }) {
           {day.dateIso && <span className="ml-1.5 font-semibold text-muted-foreground">{mdOf(day.dateIso)}</span>}
         </p>
         {day.isToday && (
-          <span className="rounded-full bg-primary px-2 py-0.5 text-[10.5px] font-bold text-primary-foreground">오늘</span>
+          <span className="rounded-full bg-primary px-2 py-0.5 text-[12px] font-bold text-primary-foreground">오늘</span>
         )}
       </div>
       <ul className="divide-y divide-border">

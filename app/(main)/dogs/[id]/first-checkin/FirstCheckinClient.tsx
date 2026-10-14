@@ -6,10 +6,14 @@
  * 30초 작업, 강제 X.
  * - 잘 먹어요 (palatability great)
  * - 조금 가렸어요 (palatability ok)
- * - 안 먹어요 (palatability poor) → 자동 CS 문의 옵션
+ * - 안 먹어요 (palatability poor) → 보낸 뒤 카카오톡 문의 길(사장님께 바로 이야기)
  *
  * 응답 시 feeding_outcomes 에 첫 박스 체크인 row 1건 기록.
  * 동일 dog 의 first_box_checkin row 가 이미 있으면 UNIQUE 충돌 → 자동 dedup.
+ *
+ * 2026-10-15(규칙270): '잘 안 먹어요'·메모 있는 '조금 가렸어요'는 저장 뒤 사장님 경보함에 올린다(서버 동작 actions.ts — 내용은
+ * DB 에서 다시 읽는다). 어드민 '이번 주 할 일'·고객 화면은 그 답을 DB 에서 직접 읽으므로 경보함 기록이 실패해도 놓치지 않는다.
+ * 손님 문구는 지킬 수 있는 약속만 — 예전 '다음 박스에 반영할게요'는 그걸 하는 장치가 없었다.
  *
  * 2026-10-09 앱 새 디자인('A 포스터', 시안 S27-first-checkin · S28-first-checkin-done) — 모양만 바꿨다(저장·중복
  * 처리 그대로). 보기의 이모지(👍😐👎)는 시안의 선 그림(엄지·무표정)으로, 안내·알림 끝의 🐾 는 뺐다(앱시안 결정
@@ -24,6 +28,10 @@ import { useToast } from '@/components/ui/Toast'
 import { petName } from '@/lib/korean'
 import { V3, V3Radius } from '@/lib/design/tokens'
 import { ArrowRightIcon, CheckIcon } from '@/components/v3/dog/DogIcons'
+import { business } from '@/lib/business'
+import { getCurrentCohort } from '@/lib/feeding-outcomes'
+import { firstCheckinNeedsOwner, firstCheckinThanks } from '@/lib/first-checkin'
+import { notifyOwnerOfFirstCheckin } from './actions'
 
 type Props = {
   dogId: string
@@ -58,6 +66,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
     try {
       // feeding_outcomes insert (RLS: auth.uid = user_id 통과)
       // generated types 에 없어 cast.
+      const trimmed = comment.trim()
       const { error } = await (
         supabase.from('feeding_outcomes' as never) as unknown as {
           insert: (v: Record<string, unknown>) => Promise<{ error: { message: string } | null }>
@@ -65,10 +74,12 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
       ).insert({
         dog_id: dogId,
         user_id: userId,
+        // 기수(cohort) — 비우면 DB 기본값 'rolling' 이 들어가 10월 출시 묶음 집계에서 빠졌다.
+        cohort_id: getCurrentCohort(),
         source: 'first_box_checkin',
         week_no: 1,
         palatability: choice,
-        comment: comment.trim() || null,
+        comment: trimmed || null,
       })
 
       if (error) {
@@ -85,8 +96,20 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
 
       // 포인트 적립 제거 (2026-07-16 포인트 전면 폐기).
 
-      toast.success('좋은 의견 고마워요. 다음 박스에 반영할게요.')
+      // 사장님께 알리기(경보함) — 실패해도 손님 화면은 그대로(답은 이미 저장됐고, 어드민 할 일·고객 화면은 DB 에서 직접 읽는다).
+      if (firstCheckinNeedsOwner(choice, trimmed)) {
+        try {
+          await notifyOwnerOfFirstCheckin(dogId)
+        } catch {
+          console.warn('[first-checkin] 사장님 알림 실패(답은 저장됨 — 어드민 할 일이 DB 에서 직접 읽는다)')
+        }
+      }
+
+      toast.success(firstCheckinThanks(choice))
       setDone(true)
+    } catch {
+      // 인터넷이 끊기면 insert 가 던진다 — '저장 중'에서 멈추지 않게 알리고 다시 누를 수 있게 둔다.
+      toast.error('인터넷 연결을 확인하고 다시 눌러 주세요')
     } finally {
       setSubmitting(false)
     }
@@ -135,8 +158,58 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
           </span>
           <h1 style={{ margin: '24px 0 0', fontSize: 34, lineHeight: 1.15 }}>의견 감사드려요</h1>
           <p style={{ margin: '12px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft }}>
-            {petName(dogName)}의 영양 관리에 큰 도움이 돼요.
+            {choice === 'great' || choice === null
+              ? `${petName(dogName)}의 영양 관리에 큰 도움이 돼요.`
+              : '사장님이 직접 읽고, 필요하면 연락드릴게요.'}
           </p>
+          {/* '잘 안 먹어요' — 기다리지 않고 바로 이야기할 길(카카오톡 채널, 앱에선 NativeShellBridge 가 카카오톡 앱으로 연다). */}
+          {choice === 'poor' && business.kakaoChannelUrl && (
+            <div
+              data-testid="first-checkin-kakao"
+              style={{
+                marginTop: 24,
+                alignSelf: 'stretch',
+                padding: 16,
+                borderRadius: V3Radius.sm,
+                border: '1.5px solid #D5D3D4',
+                textAlign: 'left',
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.5 }}>
+                거의 안 먹는다면 바로 이야기해 주세요
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 14, lineHeight: 1.6, color: V3.inkSoft }}>
+                {petName(dogName)}가 어떤지 알려 주시면 사장님이 직접 답해 드려요.
+              </p>
+              <a
+                href={business.kakaoChannelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  marginTop: 12,
+                  height: 52,
+                  borderRadius: V3Radius.sm,
+                  background: '#FEE500',
+                  color: '#191919',
+                  fontSize: 16,
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  textDecoration: 'none',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    fill="#191919"
+                    d="M12 4C6.9 4 3 7.2 3 11.1c0 2.5 1.6 4.7 4.1 5.9l-.9 3.3c-.1.3.3.6.6.4l3.9-2.6c.4 0 .9.1 1.3.1 5.1 0 9-3.2 9-7.1S17.1 4 12 4z"
+                  />
+                </svg>
+                카카오톡으로 이야기하기
+              </a>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => router.push(`/dogs/${dogId}`)}
@@ -188,7 +261,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
           잘 먹고 있나요?
         </h1>
         <p style={{ margin: '12px 0 0', fontSize: 17, lineHeight: 1.6, color: V3.inkSoft }}>
-          30초만 시간 내주시면 {petName(dogName)}에게 더 잘 맞는 추천을 드릴 수 있어요.
+          30초면 돼요. 남겨 주신 답은 사장님이 하나하나 직접 읽어요.
         </p>
       </section>
 

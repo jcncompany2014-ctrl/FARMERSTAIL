@@ -37,9 +37,10 @@ type UserRow = {
   address_detail: string | null
   role: string | null
   created_at: string | null
+  deleted_at: string | null
 }
 
-const USER_COLS = 'id, email, name, phone, zip, address, address_detail, role, created_at'
+const USER_COLS = 'id, email, name, phone, zip, address, address_detail, role, created_at, deleted_at'
 
 // 서버(Vercel UTC) raw getter 대신 KST 로 가입일 포맷 (자정 경계 off-by-one 방지).
 const KST_DATE = new Intl.DateTimeFormat('ko-KR', {
@@ -133,6 +134,9 @@ export default async function AdminUsersPage({
     let query = supabase
       .from('profiles')
       .select(USER_COLS, { count: 'exact' })
+      // 탈퇴 회원은 명단·총 인원에서 뺀다(2026-10-15 규칙279) — 이름만 '탈퇴회원'인 채 '총 N명'에 들어가 있었다.
+      //   필요하면 고객 화면 주소(/admin/users/[id])로는 열린다('탈퇴한 회원' 표시·고치기 막힘).
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
 

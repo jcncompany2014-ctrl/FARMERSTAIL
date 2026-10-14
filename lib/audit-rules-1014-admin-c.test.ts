@@ -257,7 +257,8 @@ test('규칙256: 챙길 손님 — 메일 반송·알림 못 받음·옛 안드 
     requires_billing_key_renewal: false,
     ...o,
   })
-  const base = { email: 'A@Kakao.com', suppressedEmails: new Set<string>(), nativeTokens: [], webPushCount: 0, subscriptions: [] }
+  // 2026-10-15 F-b(규칙279): 연락 수단 신호는 '거래 중인 손님'(진행 중 정기배송 또는 최근 결제)에게만 — 판정 예시는 최근 결제 1건으로.
+  const base = { email: 'A@Kakao.com', suppressedEmails: new Set<string>(), nativeTokens: [], webPushCount: 0, subscriptions: [], recentPaidOrders: 1 }
   assert.deepEqual(cf.customerFlags({ ...base, suppressedEmails: new Set(['a@kakao.com']) }).keys.includes('bounced'), true, '대소문자가 달라도 반송을 잡아야 한다')
   assert.deepEqual(cf.customerFlags(base).keys, ['no_push'], '토큰·웹 푸시가 없으면 알림 못 받음')
   assert.ok(!cf.customerFlags({ ...base, webPushCount: 1 }).keys.includes('no_push'), '웹 푸시가 있으면 알림은 받는다')

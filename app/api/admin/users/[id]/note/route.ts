@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { parseRequest } from '@/lib/api/parseRequest'
+import { recordAdminAction } from '@/lib/admin-audit'
+import { scrubSentryString } from '@/lib/sentry-scrub'
+import { rejectDeletedCustomer } from '../../_guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,6 +28,10 @@ export const dynamic = 'force-dynamic'
  * # 2026-10-13 — 저장 위치를 admin_user_notes 로 옮겼다(규칙197)
  * 쓰기는 막혔지만 **읽기**가 남아 있었다 — 고객은 자기 profiles 행을 읽을 수 있어 메모가 보였다.
  * 새 표는 고객이 읽지도 쓰지도 못한다(마이그 20261013100100). 옛 칸은 20261013100200 이 지운다.
+ *
+ * # 2026-10-15 F-b(규칙275·276)
+ * 탈퇴한 회원에겐 메모를 새로 적지 못한다(비우기는 된다 — 파기 방향). 덮어쓰기·지우기는 작업 기록에 바꾸기 전 값과 함께 남긴다
+ * (전화·메일 모양은 가린 앞 200자) — 예전엔 기록이 없어 잘못 지운 메모를 되살릴 단서가 없었다.
  */
 
 const zNote = z.object({ note: z.string().max(2000).nullable() })
@@ -56,6 +63,16 @@ export async function PATCH(
   //   읽을 수 있어서 profiles.admin_note 에 적은 상담 메모가 고객에게 보였다. 비우면 행을 지운다.
   const note = parsed.data.note?.trim() || null
   const admin = createAdminClient()
+  if (note) {
+    const deleted = await rejectDeletedCustomer(admin, id)
+    if (deleted) return deleted
+  }
+  // 바꾸기 전 값 — 작업 기록용. 조회 실패면 덮어쓰지 않는다(규칙1).
+  const { data: prevRow, error: prevErr } = await admin.from('admin_user_notes').select('note').eq('user_id', id).maybeSingle()
+  if (prevErr) {
+    return NextResponse.json({ code: 'DB_ERROR', message: '메모를 확인하지 못했어요' }, { status: 500 })
+  }
+  const prevNote = prevRow?.note ?? null
   const { error } = note
     ? await admin
         .from('admin_user_notes')
@@ -67,6 +84,18 @@ export async function PATCH(
       { code: 'DB_ERROR', message: '메모 저장에 실패했어요' },
       { status: 500 },
     )
+  }
+  if (prevNote !== note) {
+    await recordAdminAction(supabase, {
+      action: note ? 'customer_memo_update' : 'customer_memo_delete',
+      entityType: 'user',
+      entityId: id,
+      diff: {
+        before: { note: prevNote ? scrubSentryString(prevNote).slice(0, 200) : null },
+        after: { note: note ? scrubSentryString(note).slice(0, 200) : null },
+      },
+      req,
+    })
   }
   return NextResponse.json({ ok: true })
 }

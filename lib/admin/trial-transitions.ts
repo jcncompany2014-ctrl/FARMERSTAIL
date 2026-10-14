@@ -10,6 +10,8 @@
 import { advanceTrialState, trialPricing, type TrialState } from '../payments/trial.ts'
 import { addDaysKst, diffDaysKst } from '../datetime-kst.ts'
 import { chargeDateFor, chargeTimingFor } from '../shipping-schedule.ts'
+import type { ProjectedRound } from '../payments/charge-projection.ts'
+import type { PricePhase } from '../payments/price-rise.ts'
 
 export type TrialPhaseNow = 'cheap' | 'half' | 'full'
 
@@ -61,6 +63,10 @@ function upcomingCharges(subs: readonly SubLike[], horizon: number): Array<{ sub
 /**
  * 서포터즈마다 다음 가격 전환 하나(지금 구간이 끝나고 처음 바뀌는 결제). 활성 구독·남은 회차가 있는 사람만.
  * 결과는 결제일 순.
+ *
+ * @deprecated 2026-10-15(규칙272) — '지금 구간'을 남은 회차로만 정해 마지막으로 결제한 구간(lastPaidPhase)을 모른다. 인상 직전
+ *   2주 동안 인상을 놓친다. 이번 주 할 일·브리핑은 trialTransitionsFromRounds(청구·체험단 화면과 같은 회차 펼치기)를 쓴다.
+ *   새 코드에서 부르지 말 것(규칙249 테스트의 회차 계산 예시로만 남겨 둔다).
  */
 export function nextTrialTransitions(
   subs: readonly SubLike[],
@@ -107,6 +113,61 @@ export function nextTrialTransitions(
       }
     })
     if (found) out.push({ ...(found as TrialTransition), fullChargeIso })
+  }
+  return out.sort((a, b) => (a.chargeIso < b.chargeIso ? -1 : a.chargeIso > b.chargeIso ? 1 : 0))
+}
+
+/**
+ * 서포터즈마다 다음 가격 전환 — **청구와 체험단 화면이 쓰는 회차 펼치기(projectUserRounds · loadChargeProjection)의 결과**에서
+ * 처음으로 값이 오르는 회차를 고른다 (2026-10-15 F-b, 규칙272). 이번 주 할 일·아침 브리핑은 이 함수를 쓴다.
+ *
+ * # 왜(nextTrialTransitions 의 구멍)
+ * nextTrialTransitions 는 '지금 구간'을 **남은 회차로만** 정했다. 그런데 청구 크론은 '바로 앞에 결제된 회차의 구간'(lastPaidPhase)과
+ * 이번 회차를 비교해 인상을 정한다(priceRiseGate). 마지막 100원 결제(11/17) 뒤엔 남은 100원이 0 이라 '지금 = 반값'으로 읽혀
+ * 12/1 반값 인상과 그 동의 없음을 놓쳤고(11/18), 마지막 반값 결제(1/12) 뒤엔 '지금 = 정가'로 읽혀 1/23 정가 인상 자체를 놓쳤다(1/13).
+ * 정작 급한 인상 직전 2주 동안 할 일·브리핑이 조용했다.
+ *
+ * rounds 는 그 사람의 회차 일정(동의를 받는다고 보고 끝까지 — stopAtHold:false, 체험단 화면과 같은 펼치기).
+ * 인상 회차의 앞 구간 = 일정의 앞 회차, 없으면(다음 결제가 곧 인상) 마지막으로 결제한 구간(lastPaidPhase).
+ */
+export function trialTransitionsFromRounds(
+  users: ReadonlyArray<{
+    userId: string
+    rounds: readonly ProjectedRound[]
+    trial: TrialState | null
+    lastPaidPhase: PricePhase | null
+  }>,
+  dogBySub: ReadonlyMap<string, string | null>,
+): TrialTransition[] {
+  const out: TrialTransition[] = []
+  for (const u of users) {
+    // 체험 도장이 없는 사람(정상가 고객)은 인상 판정 대상이 아니다 — 청구 크론과 같다.
+    if (!u.trial) continue
+    const idx = u.rounds.findIndex((r) => r.rise !== null)
+    if (idx < 0) continue
+    const r = u.rounds[idx]!
+    const prevPhase: PricePhase | null = idx > 0 ? u.rounds[idx - 1]!.phase : u.lastPaidPhase
+    // 인상 = 앞 구간보다 높은 구간 — 앞 구간은 100원·반값뿐이다.
+    if (prevPhase !== 'cheap' && prevPhase !== 'half') continue
+    // 앞 금액 — 일정에 앞 회차가 있으면 그 금액, 없으면 마지막으로 결제한 구간의 금액(같은 정본 trialPricing).
+    const prevState: TrialState =
+      prevPhase === 'cheap'
+        ? { ...u.trial, cheap_remaining: 1, half_remaining: 0 }
+        : { ...u.trial, cheap_remaining: 0, half_remaining: 1 }
+    const fromAmount = idx > 0 ? u.rounds[idx - 1]!.chargeAmount : (trialPricing(prevState, r.listAmount)?.chargeAmount ?? r.listAmount)
+    const full = u.rounds.find((x) => x.phase === 'full') ?? null
+    out.push({
+      userId: u.userId,
+      subscriptionId: r.subId,
+      dogId: dogBySub.get(r.subId) ?? null,
+      phase: prevPhase,
+      nextPhase: r.rise === 'to_half' ? 'half' : 'full',
+      shipIso: r.shipIso,
+      chargeIso: r.chargeIso,
+      fromAmount,
+      toAmount: r.chargeAmount,
+      fullChargeIso: full ? full.chargeIso : null,
+    })
   }
   return out.sort((a, b) => (a.chargeIso < b.chargeIso ? -1 : a.chargeIso > b.chargeIso ? 1 : 0))
 }

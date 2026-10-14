@@ -193,9 +193,11 @@ export function Badge({
   tone?: BadgeTone
   children: ReactNode
 }) {
+  // 글자 크기(2026-10-15 F-b, 규칙280): 10px 이던 것을 12px 로 — 폰(특히 앱은 확대가 잠겨 있다)에서 '보내지 마세요'·'청구 보류'
+  // 같은 돈이 걸린 경고가 화면에서 제일 작은 글씨였다. 빨간 경고는 13px.
   return (
     <span
-      className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE_TONES[tone]}`}
+      className={`inline-flex items-center ${tone === 'red' ? 'text-[13px]' : 'text-[12px]'} font-bold px-2 py-0.5 rounded-full ${BADGE_TONES[tone]}`}
     >
       {children}
     </span>
@@ -203,23 +205,28 @@ export function Badge({
 }
 
 /**
- * 도움말 툴팁 — 지표/용어 옆 작은 "?" 에 마우스를 올리면 쉬운 설명이 뜬다.
- * 코드/용어를 모르는 사람도 각 숫자가 뭔지 바로 이해하도록. (CSS hover 전용,
- * 클라이언트 JS 불필요 → 서버 컴포넌트에서도 동작.)
+ * 도움말 툴팁 — 지표/용어 옆 작은 "?" 에 마우스를 올리거나(데스크톱) 누르면(폰 — 초점) 쉬운 설명이 뜬다.
+ * 코드/용어를 모르는 사람도 각 숫자가 뭔지 바로 이해하도록. (CSS 전용, 클라이언트 JS 불필요 → 서버 컴포넌트에서도 동작.)
+ *
+ * 2026-10-15 F-b(규칙280): 예전엔 말풍선이 안 보일 때도(opacity-0) 224px 폭으로 자리를 차지해 폰 홈 오른쪽 칸에서 화면 밖으로
+ * 나가 페이지가 옆으로 밀렸고(390 폭에서 486), hover 전용이라 폰에서는 눌러도 안 열렸다. 이제 안 보일 땐 아예 그리지 않고(hidden),
+ * '?' 는 누를 수 있는 초점 대상이며, 폰에서는 화면 아래에 화면 폭 안으로 뜬다.
  */
 export function HelpTip({ text }: { text: string }) {
   return (
     <span className="group/help relative inline-flex align-middle">
       <span
-        className="ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-secondary text-muted-foreground text-[9px] font-bold cursor-help select-none leading-none"
-        aria-hidden="true"
+        tabIndex={0}
+        role="button"
+        aria-label="도움말 보기"
+        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-muted-foreground text-[12px] font-bold cursor-help select-none leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         ?
       </span>
       <span className="sr-only">{text}</span>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 w-56 rounded-lg bg-foreground px-3 py-2 text-[11px] font-normal normal-case tracking-normal leading-relaxed text-background opacity-0 shadow-xl transition-opacity duration-150 group-hover/help:opacity-100"
+        className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 hidden w-56 rounded-lg bg-foreground px-3 py-2 text-[12px] font-normal normal-case tracking-normal leading-relaxed text-background shadow-xl group-hover/help:block group-focus-within/help:block max-md:fixed max-md:inset-x-4 max-md:top-auto max-md:bottom-6 max-md:mt-0 max-md:w-auto"
       >
         {text}
       </span>
