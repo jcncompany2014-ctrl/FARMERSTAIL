@@ -85,7 +85,10 @@
   .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
   .chips span { font-size: 26px; font-weight: 800; border: 3px solid currentColor; border-radius: 999px; padding: 3px 20px 5px; line-height: 1.35; background: #fff; }
 
-  .pouch { filter: drop-shadow(0 18px 18px rgba(30,20,16,.28)) drop-shadow(0 3px 4px rgba(30,20,16,.2)); }
+  /* 그림자는 원래 사진의 것을 살렸다(tools/cutout.py) — 여기선 공기 그림자만 옅게 */
+  .pouch { filter: drop-shadow(0 14px 20px rgba(30,20,16,.16)); }
+  /* 스튜디오 조명 — 파우치 뒤를 살짝 밝혀 같은 색 바탕에 묻히지 않게(한우 = 빨강 위 빨강) */
+  .spot { background-image: radial-gradient(ellipse 58% 52% at 50% 52%, rgba(255,255,255,.34), rgba(255,255,255,0) 70%); }
   .best { position: absolute; z-index: 3; }
   .paw { position: absolute; width: 90px; opacity: .9; }
   .drip, .scallop { display: block; width: 860px; position: relative; z-index: 1; }
@@ -316,7 +319,7 @@
   .info { padding: 120px 0 60px; }
   .info .wis { width: 620px; margin: 60px auto 0; }
   .tb { margin: 70px 50px 0; display: flex; align-items: stretch; overflow: hidden; }
-  .tb-l { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 10px; background: var(--c); border-right: 4px solid var(--ink); }
+  .tb-l { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 10px; background-color: var(--c); background-image: radial-gradient(ellipse 60% 50% at 50% 45%, rgba(255,255,255,.34), rgba(255,255,255,0) 70%); border-right: 4px solid var(--ink); }
   .tb-l .pouch { width: 300px; transform: rotate(-4deg); }
   .tb-l .nm { font-size: 36px; font-weight: 900; margin-top: 18px; background: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 2px 24px 6px; }
   table { width: 360px; flex: none; border-collapse: collapse; font-size: 28px; }
@@ -388,7 +391,7 @@
 
   <div class="recipe" style="padding-top:60px">
     <img class="wm" src="assets/wm_chicken.png">
-    <div class="stage">
+    <div class="stage spot">
       <img class="pouch" src="assets/pouch_chicken.png"><img class="best" src="assets/best.png">
       <span class="ko">치킨 화식</span>
     </div>
@@ -402,7 +405,7 @@
 </section>
 <section id="s04b-hanwoo" class="c recipe" style="background:var(--red)">
     <img class="wm" src="assets/wm_hanwoo.png">
-    <div class="stage">
+    <div class="stage spot">
       <img class="pouch" src="assets/pouch_beef.png">
       <span class="ko">한우 화식</span>
     </div>
@@ -414,7 +417,7 @@
 </section>
 <section id="s04c-pork" class="c recipe" style="background:var(--pork)">
     <img class="wm" src="assets/wm_pork.png">
-    <div class="stage">
+    <div class="stage spot">
       <img class="pouch" src="assets/pouch_pork.png"><img class="best" src="assets/best.png">
       <span class="ko">흑돼지 화식</span>
     </div>
@@ -426,7 +429,7 @@
 </section>
 <section id="s04d-duck" class="c recipe" style="background:var(--duck)">
     <img class="wm" src="assets/wm_duck.png">
-    <div class="stage">
+    <div class="stage spot">
       <img class="pouch" src="assets/pouch_duck.png">
       <span class="ko">오리 화식</span>
     </div>
@@ -529,7 +532,7 @@
   <p class="l2">4가지 특별한 레시피</p>
   <div class="grid4">
     <div class="rcard">
-      <div class="top" style="background:var(--mustard)"><img class="best" src="assets/best.png"><img class="pouch" src="assets/pouch_chicken.png"></div>
+      <div class="top spot" style="background-color:var(--mustard)"><img class="best" src="assets/best.png"><img class="pouch" src="assets/pouch_chicken.png"></div>
       <img class="bn" src="assets/bn_chicken.png">
       <div class="body">
         <h4 style="color:var(--mustard-d)">담백하고 부담 없는<br>닭고기 한 끼</h4>
@@ -538,7 +541,7 @@
       </div>
     </div>
     <div class="rcard">
-      <div class="top" style="background:var(--duck)"><img class="pouch" src="assets/pouch_duck.png"></div>
+      <div class="top spot" style="background-color:var(--duck)"><img class="pouch" src="assets/pouch_duck.png"></div>
       <img class="bn" src="assets/bn_duck.png">
       <div class="body">
         <h4 style="color:var(--duck-d)">고소하고 부드러운<br>오리 한 끼</h4>
@@ -547,7 +550,7 @@
       </div>
     </div>
     <div class="rcard">
-      <div class="top" style="background:var(--red)"><img class="pouch" src="assets/pouch_beef.png"></div>
+      <div class="top spot" style="background-color:var(--red)"><img class="pouch" src="assets/pouch_beef.png"></div>
       <img class="bn" src="assets/bn_hanwoo.png">
       <div class="body">
         <h4 style="color:var(--red-d)">기력이 필요한 날엔<br>든든한 한우 한 끼</h4>
@@ -556,7 +559,7 @@
       </div>
     </div>
     <div class="rcard">
-      <div class="top" style="background:var(--pork)"><img class="best" src="assets/best.png"><img class="pouch" src="assets/pouch_pork.png"></div>
+      <div class="top spot" style="background-color:var(--pork)"><img class="best" src="assets/best.png"><img class="pouch" src="assets/pouch_pork.png"></div>
       <img class="bn" src="assets/bn_pork.png">
       <div class="body">
         <h4 style="color:var(--pork-d)">든든하게 채우는<br>흑돼지 한 끼</h4>
@@ -671,10 +674,10 @@
   <h3>화식 칼로리 정보</h3>
   <p class="unit">(100g 기준)</p>
   <div class="kc-grid">
-    <div class="kc"><div class="top" style="background:var(--mustard)"><img class="pouch" src="assets/pouch_chicken.png"></div><div class="bot"><p class="nm">치킨 화식</p><p class="num" style="color:var(--mustard-d)">125<small>kcal</small></p></div></div>
-    <div class="kc"><div class="top" style="background:var(--duck)"><img class="pouch" src="assets/pouch_duck.png"></div><div class="bot"><p class="nm">오리 화식</p><p class="num" style="color:var(--duck-d)">130<small>kcal</small></p></div></div>
-    <div class="kc"><div class="top" style="background:var(--red)"><img class="pouch" src="assets/pouch_beef.png"></div><div class="bot"><p class="nm">한우 화식</p><p class="num" style="color:var(--red)">145<small>kcal</small></p></div></div>
-    <div class="kc"><div class="top" style="background:var(--pork)"><img class="pouch" src="assets/pouch_pork.png"></div><div class="bot"><p class="nm">흑돼지 화식</p><p class="num" style="color:var(--pork-d)">125<small>kcal</small></p></div></div>
+    <div class="kc"><div class="top spot" style="background-color:var(--mustard)"><img class="pouch" src="assets/pouch_chicken.png"></div><div class="bot"><p class="nm">치킨 화식</p><p class="num" style="color:var(--mustard-d)">125<small>kcal</small></p></div></div>
+    <div class="kc"><div class="top spot" style="background-color:var(--duck)"><img class="pouch" src="assets/pouch_duck.png"></div><div class="bot"><p class="nm">오리 화식</p><p class="num" style="color:var(--duck-d)">130<small>kcal</small></p></div></div>
+    <div class="kc"><div class="top spot" style="background-color:var(--red)"><img class="pouch" src="assets/pouch_beef.png"></div><div class="bot"><p class="nm">한우 화식</p><p class="num" style="color:var(--red)">145<small>kcal</small></p></div></div>
+    <div class="kc"><div class="top spot" style="background-color:var(--pork)"><img class="pouch" src="assets/pouch_pork.png"></div><div class="bot"><p class="nm">흑돼지 화식</p><p class="num" style="color:var(--pork-d)">125<small>kcal</small></p></div></div>
   </div>
   <div class="msg card"><b>국내산 재료를 가득 품은 파머스 레시피</b><br>수분과 영양은 듬뿍 채우고, 칼로리는<br><span class="hl"><b>100g당 평균 약 131 kcal</b></span>로 쏙 뺐습니다.<br>칼로리 안심하고 급여하세요!</div>
 </section>
