@@ -29,6 +29,7 @@ export type SectionKey =
   | 'messages'
   | 'address'
   | 'proposals'
+  | 'checkin'
 
 export type BoxView = {
   /** 레시피 구성(라인 이름·비율 %). */
@@ -69,6 +70,11 @@ export type DogView = {
   liveSubId: string | null
   liveActive: boolean
   liveFreshRatio: number | null
+  /**
+   * 첫 박스 체크인 답(feeding_outcomes · 규칙270). undefined = 이 화면이 안 읽음(예시 값) · null = 아직 답 없음.
+   * needsOwner = 사장님이 볼 답('잘 안 먹어요' 또는 메모 있는 '조금 가렸어요' — lib/first-checkin 판정).
+   */
+  firstCheckin?: { label: string; comment: string | null; answeredAt: string; needsOwner: boolean; poor: boolean } | null
 }
 
 export type SubView = {

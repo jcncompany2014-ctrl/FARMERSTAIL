@@ -39,6 +39,7 @@ import { ageLabelFromBirth } from '@/lib/dog-age'
 import { loadCustomerFlags } from '@/lib/admin/customer-flags-load'
 import { adminEditMarkOf } from '@/lib/admin/allergy-edit'
 import { describeSubscriptionEvent, eventActorLabel, eventKindLabel } from '@/lib/subscription-events'
+import { FIRST_CHECKIN_LABEL, firstCheckinNeedsOwner, isCheckinPalatability } from '@/lib/first-checkin'
 import type { BoxView, CustomerData, DogView, SectionKey, SubView } from './_types'
 
 const PROVIDER_LABEL: Record<string, string> = { kakao: '카카오', apple: '애플', email: '이메일', google: '구글' }
@@ -346,7 +347,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
     ...Object.values(TOPPER_TO_SLUG),
   ]
-  const [surveysRes, formulasRes, prodRes, flagsRes] = await Promise.all([
+  const [surveysRes, formulasRes, prodRes, flagsRes, checkinRes] = await Promise.all([
     selectInChunks(dogIds, (chunk) =>
       admin
         .from('surveys')
@@ -367,7 +368,20 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       .in('slug', allSlugs)
       .eq('is_active', true),
     loadCustomerFlags(admin, [{ id: userId, email: prof.email }]),
+    // 첫 박스 체크인 답(규칙270) — 강아지당 한 줄(uq_first_box_checkin).
+    selectInChunks(dogIds, (chunk) =>
+      admin
+        .from('feeding_outcomes')
+        .select('dog_id, palatability, comment, created_at')
+        .eq('source', 'first_box_checkin')
+        .in('dog_id', chunk),
+    ),
   ])
+  fail('checkin', checkinRes.error)
+  const checkinByDog = new Map<string, { palatability: string | null; comment: string | null; created_at: string }>()
+  for (const c of (checkinRes.data ?? []) as Array<{ dog_id: string; palatability: string | null; comment: string | null; created_at: string }>) {
+    checkinByDog.set(c.dog_id, c)
+  }
   fail('surveys', surveysRes.error)
   fail('box', formulasRes.error)
   fail('box', prodRes.error)
@@ -473,6 +487,19 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       liveSubId: live?.id ?? null,
       liveActive: !!live && subscriptionState(live) === 'active',
       liveFreshRatio: live?.fresh_ratio ?? null,
+      firstCheckin: checkinRes.error
+        ? undefined
+        : (() => {
+            const c = checkinByDog.get(d.id)
+            if (!c) return null
+            return {
+              label: isCheckinPalatability(c.palatability) ? FIRST_CHECKIN_LABEL[c.palatability] : '답 없음',
+              comment: c.comment,
+              answeredAt: c.created_at,
+              needsOwner: firstCheckinNeedsOwner(c.palatability, c.comment) !== null,
+              poor: c.palatability === 'poor',
+            }
+          })(),
     }
   })
 

@@ -227,6 +227,18 @@ function DogCard({ dog, data, demo }: { dog: DogView; data: CustomerData; demo: 
             s.chronic.join(', ')
           )}
         </Row>
+        {dog.firstCheckin !== undefined && (
+          <Row label="첫 박스 반응">
+            {dog.firstCheckin === null ? (
+              <span className="text-[13px] text-muted-foreground">아직 답 없음</span>
+            ) : (
+              <span className={`text-[13px] ${dog.firstCheckin.poor ? 'text-red-700' : dog.firstCheckin.needsOwner ? 'text-amber-800' : ''}`}>
+                <b>{dog.firstCheckin.label}</b> · {formatKstDate(dog.firstCheckin.answeredAt)}
+                {dog.firstCheckin.comment ? <span className="block font-normal break-keep">&ldquo;{dog.firstCheckin.comment}&rdquo;</span> : null}
+              </span>
+            )}
+          </Row>
+        )}
         {s && (
           <Row label="최신 설문">
             <span className="text-[13px]">
@@ -416,8 +428,9 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             )}
           </Section>
 
-          <Section icon={<PawPrint className="size-4" strokeWidth={2.2} />} title="강아지" desc="알레르기·기저질환은 최신 설문이 정본이에요.">
+          <Section id="dogs" icon={<PawPrint className="size-4" strokeWidth={2.2} />} title="강아지" desc="알레르기·기저질환은 최신 설문이 정본이에요.">
             <SectionError errors={errors} keys={['dogs']} what="강아지" />
+            <SectionError errors={errors} keys={['checkin']} what="첫 박스 체크인 답" />
             <SectionError errors={errors} keys={['surveys']} what="설문(알레르기·기저질환)" />
             <SectionError errors={errors} keys={['box', 'proposals']} what="식단·박스 구성" />
             {data.dogs.length === 0 && !errors.dogs ? (

@@ -6,12 +6,13 @@ import { isStoreOrderNumber } from '@/lib/store/order-number'
 import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 import { weekdayOf } from '@/lib/shipping-schedule'
 import { withHonorific } from '@/lib/korean'
-import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
+import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 import { tossKeyStatus } from '@/lib/payments/key-mode'
 import type { TrialState } from '@/lib/payments/trial'
 import { approvalTimeLeft } from '@/lib/personalization/approval-deadline'
 import { loadPackingWeek, packingProblemLines, PACKING_PROBLEM_LABEL, type PackingWeek } from '@/lib/admin/packing-week'
 import { keyExpiryStates, describeKeyExpiry, type KeyExpiryState } from '@/lib/admin/key-expiry'
+import { FIRST_CHECKIN_TODO_DAYS, firstCheckinNeedsOwner, firstCheckinLine, isCheckinPalatability } from '@/lib/first-checkin'
 import {
   nextTrialTransitions,
   trialConsentState,
@@ -91,6 +92,9 @@ export type WeeklyTodoNumbers = {
   chargeFailed: number
   cardRenewal: number
   csUnansweredUsers: number
+  /** 첫 박스 체크인 — 사장님이 볼 답(최근 FIRST_CHECKIN_TODO_DAYS일) 수와 그중 '잘 안 먹어요'. 못 읽었으면 null. */
+  firstCheckinFlagged: number | null
+  firstCheckinPoor: number
   openAlerts: number
   consentImminent: number
   storeOutgoing: number
@@ -133,6 +137,7 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     trialsRes,
     keyRowsRes,
     priceConsentsRes,
+    checkinRes,
   ] = await Promise.all([
     db
       .from('orders')
@@ -177,6 +182,15 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       .select('user_id, rise, consented_on, channel, revoked_at')
       .is('revoked_at', null)
       .limit(LIMIT),
+    // 첫 박스 체크인 답(규칙270) — '잘 안 먹어요'·메모 있는 '조금 가렸어요'를 사장님이 조리 전에 보게. 경보함과 별개로 DB 에서 직접.
+    db
+      .from('feeding_outcomes')
+      .select('id, dog_id, user_id, palatability, comment, created_at')
+      .eq('source', 'first_box_checkin')
+      .in('palatability', ['poor', 'ok'])
+      .gte('created_at', new Date(now.getTime() - FIRST_CHECKIN_TODO_DAYS * 86_400_000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
   // ── 화: 결제된 박스 · 발송일 지난 미발송 · 웹 가게 출고 ──
@@ -266,6 +280,14 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
   const consentOf = (t: TrialTransition): TrialConsentState | null => (consentRows ? trialConsentState(t, consentRows, today) : null)
   const consentUrgent = consentRows ? transitions.filter((t) => consentOf(t)?.status === 'urgent') : []
 
+  // 첫 박스 체크인 — 사장님이 볼 답만(lib/first-checkin 판정: 'poor' 늘, 'ok' 는 메모 있을 때).
+  type CheckinRow = { id: string; dog_id: string; user_id: string; palatability: string | null; comment: string | null; created_at: string }
+  if (checkinRes.error) failures.push(`첫 박스 체크인 답: ${checkinRes.error.message}`)
+  const checkins = (checkinRes.error ? [] : ((checkinRes.data ?? []) as CheckinRow[])).filter(
+    (c) => isCheckinPalatability(c.palatability) && firstCheckinNeedsOwner(c.palatability, c.comment) !== null,
+  )
+  const checkinPoor = checkins.filter((c) => c.palatability === 'poor').length
+
   let keys: KeyExpiryState[] = []
   if (keyRowsRes.error) failures.push(`외부 키 만료일: ${keyRowsRes.error.message}`)
   keys = keyExpiryStates(keyRowsRes.error ? [] : ((keyRowsRes.data ?? []) as Array<{ key_name: string; set_on: string | null; expires_on: string | null }>), today)
@@ -306,6 +328,10 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     userIds.add(t.userId)
   }
   for (const u of csUsers) userIds.add(u)
+  for (const c of checkins) {
+    dogIds.add(c.dog_id)
+    userIds.add(c.user_id)
+  }
   const [dogsRes, profsRes] = await Promise.all([
     selectInChunks([...dogIds], (chunk) => db.from('dogs').select('id, name').in('id', chunk)),
     selectInChunks([...userIds], (chunk) => db.from('profiles').select('id, name').in('id', chunk)),
@@ -477,6 +503,27 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     error: csRes.error?.message,
   })
   alwaysItems.push({
+    key: 'first-checkin',
+    title: `첫 박스 반응 — 잘 안 먹음·메모(최근 ${FIRST_CHECKIN_TODO_DAYS}일)`,
+    count: checkinRes.error ? null : checkins.length,
+    unit: '건',
+    summary: checkinRes.error
+      ? '첫 박스 체크인 답을 못 읽었어요'
+      : checkins.length === 0
+        ? '없어요'
+        : checkinPoor > 0
+          ? `'잘 안 먹어요' ${checkinPoor}건 — 다음 조리 전에 먼저 연락해 주세요`
+          : '메모를 남긴 답이 있어요 — 읽고 필요하면 연락해 주세요',
+    tone: checkinRes.error || checkinPoor > 0 ? 'bad' : checkins.length > 0 ? 'warn' : 'ok',
+    href: checkins[0] ? `/admin/users/${checkins[0].user_id}#dogs` : '/admin/alerts',
+    hrefLabel: checkins[0] ? '고객 화면에서 보기' : '경보함으로 가기',
+    lines: checkins.map((c) => ({
+      text: `${firstCheckinLine(dogName.get(c.dog_id) ?? '강아지', c.palatability as 'ok' | 'poor', c.comment)} — ${userName.get(c.user_id) ?? '보호자님'} · ${mdLabel(kstDateOf(c.created_at))}`,
+      href: `/admin/users/${c.user_id}#dogs`,
+    })),
+    error: checkinRes.error?.message,
+  })
+  alwaysItems.push({
     key: 'consent',
     title: '레시피 동의 마감 임박(48시간 안)',
     count: pendingFormulasRes.error ? null : imminent.length,
@@ -565,6 +612,8 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       chargeFailed: charge.failed.length,
       cardRenewal: renewalRows.length,
       csUnansweredUsers: csUsers.length,
+      firstCheckinFlagged: checkinRes.error ? null : checkins.length,
+      firstCheckinPoor: checkinPoor,
       openAlerts: openAlerts ?? 0,
       consentImminent: imminent.length,
       storeOutgoing,
@@ -594,6 +643,10 @@ export function briefingExtraLines(todo: WeeklyTodo): string[] {
       `🏷 ${mdLabel(n.shipIso)} 포장 ${n.packing.shippable}박스${n.packing.problemBoxes > 0 ? ` · 확인 필요 ${n.packing.problemBoxes}(${reasons.slice(0, 2).map((r) => `${r.label} ${r.count}`).join(', ')})` : ''}`,
     )
   }
+  // 첫 박스 체크인(규칙270) — 이름·메모는 넣지 않는다(잠금 화면). 못 읽었으면 그것도.
+  if (n.firstCheckinFlagged === null) out.push('🍽 첫 박스 체크인 답을 못 읽었어요')
+  else if (n.firstCheckinPoor > 0) out.push(`🍽 첫 박스 '잘 안 먹어요' ${n.firstCheckinPoor}건 — 조리 전에 먼저 연락`)
+  else if (n.firstCheckinFlagged > 0) out.push(`🍽 첫 박스 체크인 메모 ${n.firstCheckinFlagged}건`)
   if (n.consentImminent > 0) out.push(`🗳 레시피 동의 마감 임박 ${n.consentImminent}건`)
   const week = n.trialTransitions.filter((t) => t.chargeIso >= todo.today && t.chargeIso <= addDaysKst(todo.today, 7))
   if (week.length > 0) out.push(`💰 서포터즈 가격 전환 ${week.length}명(${mdLabel(week[0]!.chargeIso)} 결제부터)`)
