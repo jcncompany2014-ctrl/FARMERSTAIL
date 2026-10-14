@@ -10,8 +10,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import type { SubLike } from '@/lib/subscription-state'
+import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import {
   customerFlags,
+  RECENT_PURCHASE_DAYS,
   type CustomerFlags,
   type NativeTokenLite,
 } from '@/lib/admin/customer-flags'
@@ -28,7 +30,8 @@ type SubFlagRow = SubLike & { user_id: string }
 
 export async function loadCustomerFlags(
   admin: AnyClient,
-  users: ReadonlyArray<{ id: string; email: string | null }>,
+  users: ReadonlyArray<{ id: string; email: string | null; deleted_at?: string | null }>,
+  now: Date = new Date(),
 ): Promise<CustomerFlagLookup> {
   const ids = [...new Set(users.map((u) => u.id).filter(Boolean))]
   const byUser = new Map<string, CustomerFlags>()
@@ -41,7 +44,8 @@ export async function loadCustomerFlags(
     ),
   ]
 
-  const [supRes, tokRes, webRes, subRes] = await Promise.all([
+  const recentSince = new Date(now.getTime() - RECENT_PURCHASE_DAYS * 86_400_000).toISOString()
+  const [supRes, tokRes, webRes, subRes, recentRes] = await Promise.all([
     selectInChunks(emails, (chunk) =>
       admin.from('email_suppressions').select('email').in('email', chunk),
     ),
@@ -63,12 +67,22 @@ export async function loadCustomerFlags(
         .in('user_id', chunk)
         .neq('status', 'cancelled'),
     ),
+    // 최근 결제(웹 가게 단품 포함) — '거래 중인 손님' 판정(규칙279).
+    selectInChunks(ids, (chunk) =>
+      admin
+        .from('orders')
+        .select('user_id')
+        .in('user_id', chunk)
+        .in('payment_status', [...PAID_STATUSES])
+        .gte('created_at', recentSince),
+    ),
   ])
   for (const [label, res] of [
     ['메일 반송 목록', supRes],
     ['앱 알림 기기', tokRes],
     ['웹 알림 구독', webRes],
     ['정기배송', subRes],
+    ['최근 결제', recentRes],
   ] as const) {
     if (res.error) return { ok: false, error: `${label} 조회 실패: ${res.error.message}` }
   }
@@ -99,6 +113,11 @@ export async function loadCustomerFlags(
     subsByUser.set(s.user_id, list)
   }
 
+  const recentByUser = new Map<string, number>()
+  for (const o of (recentRes.data ?? []) as Array<{ user_id: string }>) {
+    recentByUser.set(o.user_id, (recentByUser.get(o.user_id) ?? 0) + 1)
+  }
+
   for (const u of users) {
     byUser.set(
       u.id,
@@ -108,6 +127,8 @@ export async function loadCustomerFlags(
         nativeTokens: tokensByUser.get(u.id) ?? [],
         webPushCount: webByUser.get(u.id) ?? 0,
         subscriptions: subsByUser.get(u.id) ?? [],
+        recentPaidOrders: recentByUser.get(u.id) ?? 0,
+        deleted: !!u.deleted_at,
       }),
     )
   }
@@ -118,7 +139,7 @@ export async function loadCustomerFlags(
  * 전체 회원의 신호 — 회원 목록 '챙길 손님' 필터용. 회원을 1000명씩 끝까지 읽고(정렬: 가입 최신순) 위 함수로 판정한다.
  * 회원 수천 명까지는 한 번에 돈다. 실패면 ok:false.
  */
-export type FlagUser = { id: string; email: string | null; name: string | null; phone: string | null }
+export type FlagUser = { id: string; email: string | null; name: string | null; phone: string | null; deleted_at: string | null }
 
 export async function loadAllCustomerFlags(
   admin: AnyClient,
@@ -131,7 +152,9 @@ export async function loadAllCustomerFlags(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
       .from('profiles')
-      .select('id, email, name, phone')
+      .select('id, email, name, phone, deleted_at')
+      // 탈퇴 회원은 챙길 손님이 아니다(연락처를 지웠다) — 목록·집계에서 뺀다(규칙279).
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1)

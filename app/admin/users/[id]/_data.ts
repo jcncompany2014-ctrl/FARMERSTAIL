@@ -18,9 +18,9 @@
  */
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
-import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import { subscriptionState, SUB_STATE_LABEL, SUB_STATE_TONE, type SubLike } from '@/lib/subscription-state'
-import { chargeTimingFor, describeUpcomingBox } from '@/lib/shipping-schedule'
+import { chargeTimingFor, describeUpcomingBox, nextChargeRunDate } from '@/lib/shipping-schedule'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { supporterViews } from '@/lib/payments/trial-display'
 import type { TrialState } from '@/lib/payments/trial'
@@ -40,6 +40,8 @@ import { loadCustomerFlags } from '@/lib/admin/customer-flags-load'
 import { adminEditMarkOf } from '@/lib/admin/allergy-edit'
 import { describeSubscriptionEvent, eventActorLabel, eventKindLabel } from '@/lib/subscription-events'
 import { FIRST_CHECKIN_LABEL, firstCheckinNeedsOwner, isCheckinPalatability } from '@/lib/first-checkin'
+import { loadChargeProjection } from '@/lib/payments/charge-projection-load'
+import { trialPlanView } from '@/lib/admin/trial-plan'
 import type { BoxView, CustomerData, DogView, SectionKey, SubView } from './_types'
 
 const PROVIDER_LABEL: Record<string, string> = { kakao: '카카오', apple: '애플', email: '이메일', google: '구글' }
@@ -125,7 +127,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
   ] = await Promise.all([
     admin
       .from('profiles')
-      .select('id, name, email, phone, zip, address, address_detail, role, created_at')
+      .select('id, name, email, phone, zip, address, address_detail, role, created_at, deleted_at')
       .eq('id', userId)
       .maybeSingle(),
     admin.auth.admin.getUserById(userId),
@@ -231,6 +233,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
     address_detail: string | null
     role: string | null
     created_at: string | null
+    deleted_at: string | null
   } | null
   if (!prof) return null
 
@@ -304,6 +307,59 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
     }),
   )
 
+  // ── 서포터즈 가격 인상·동의·보류 — 체험단 화면과 같은 정본(loadChargeProjection → trialPlanView, 규칙278). 읽기만.
+  //   예전엔 이 화면이 resolveAutoDiscount 만 봐서 동의가 없어 보류될 회차도 '12/1 결제 예정'처럼 보였다.
+  let supporterPlan: CustomerData['supporterPlan'] = trialRes.error ? undefined : null
+  if (!trialRes.error && trial) {
+    const liveForPlan = subs
+      .filter((s) => s.status === 'active' && !s.requires_billing_key_renewal)
+      .map((s) => ({ id: s.id, user_id: userId, next_delivery_date: s.next_delivery_date, total_amount: s.total_amount }))
+    const [proj, holdsRes] = await Promise.all([
+      loadChargeProjection(admin, liveForPlan, {
+        fromIso: nextChargeRunDate(),
+        untilChargeIso: addDaysKst(today, 400),
+        // 체험단 일정표와 같은 펼치기 — 동의를 받는다고 보고 끝까지(보류될 회차는 held 로 표시).
+        stopAtHold: false,
+        maxRounds: (c) => (c.trial ? c.trial.cheap_remaining + c.trial.half_remaining + 2 : 2),
+      }),
+      admin
+        .from('subscription_charge_holds')
+        .select('ship_date, charge_date, rise')
+        .eq('user_id', userId)
+        .is('resolved_at', null)
+        .order('ship_date', { ascending: true }),
+    ])
+    if (!proj.ok) {
+      errors.trial_plan = proj.error
+      supporterPlan = undefined
+    } else if (holdsRes.error) {
+      errors.trial_plan = holdsRes.error.message
+      supporterPlan = undefined
+    } else {
+      const ctx = proj.contextByUser.get(userId)
+      const plan = trialPlanView(proj.roundsByUser.get(userId) ?? [], ctx?.consents ?? [], today)
+      supporterPlan = {
+        next: plan.next
+          ? { chargeIso: plan.next.chargeIso, amount: plan.next.chargeAmount, label: plan.next.label, held: plan.next.held }
+          : null,
+        rises: plan.rises.map((r) => ({
+          label: r.label,
+          status: r.status,
+          chargeIso: r.round?.chargeIso ?? null,
+          amount: r.round?.amount ?? null,
+          prevAmount: r.round?.prevAmount ?? null,
+          consentedOn: r.consent?.consentedOn ?? null,
+          channel: r.consent?.channel ?? null,
+        })),
+        openHolds: ((holdsRes.data ?? []) as Array<{ ship_date: string; charge_date: string; rise: string | null }>).map((h) => ({
+          shipDate: h.ship_date,
+          chargeDate: h.charge_date,
+          rise: h.rise,
+        })),
+      }
+    }
+  }
+
   const subViews: SubView[] = subs.map((s) => {
     const st = subscriptionState(s)
     const sv = supporter.get(s.id)
@@ -367,7 +423,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       .select('slug, name, price, sale_price, stock, is_subscribable')
       .in('slug', allSlugs)
       .eq('is_active', true),
-    loadCustomerFlags(admin, [{ id: userId, email: prof.email }]),
+    loadCustomerFlags(admin, [{ id: userId, email: prof.email, deleted_at: prof.deleted_at }]),
     // 첫 박스 체크인 답(규칙270) — 강아지당 한 줄(uq_first_box_checkin).
     selectInChunks(dogIds, (chunk) =>
       admin
@@ -558,7 +614,9 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       phone: prof.phone,
       createdAt: prof.created_at,
       role: prof.role,
+      deletedAt: prof.deleted_at,
     },
+    supporterPlan,
     account,
     flags: flagsRes.ok ? (flagsRes.byUser.get(userId)?.keys ?? []) : null,
     apps:

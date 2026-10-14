@@ -6,12 +6,16 @@ import { Loader2, MessageSquareText, Check, Trash2, CalendarClock } from 'lucide
 import { useToast } from '@/components/ui/Toast'
 import { addDaysKst } from '@/lib/datetime-kst'
 import type { NoteView } from './_types'
+import { sendAdminJson } from './_send'
 
 /**
  * 문의 기록(카톡·전화) — 고객별 시간순 메모 (2026-10-14 C2, 규칙254).
  *
  * 카톡 채널로 온 문의가 어드민에 흔적 0이었다. 날짜·내용·'다시 볼 날'·처리 여부를 한 줄씩 쌓는다.
- * '다시 볼 날'이 오늘 이하이고 처리 안 됐으면 어드민 홈 '오늘 할 일'에 뜬다(표 admin_customer_notes).
+ * '다시 볼 날'이 오늘 이하이고 처리 안 됐으면 어드민 홈 '이번 주 할 일'(늘)·처리 대기·아침 브리핑에 뜬다(표 admin_customer_notes —
+ * lib/admin/weekly-todo, 2026-10-15 규칙271).
+ * 인터넷이 끊겨도 '저장 중'에서 멈추지 않는다 — 요청은 _send 가 결과로 바꾸고 단추는 finally 로 푼다(규칙277).
+ * 탈퇴한 회원(readOnly)은 새 기록·고치기를 숨긴다(서버도 409) — 지우기만 된다.
  * 쓰기는 /api/admin/users/[id]/notes(관리자 확인 → service_role). 고객은 이 기록을 볼 수 없다.
  */
 
@@ -36,12 +40,15 @@ export default function NotesPanel({
   notes,
   today,
   demo = false,
+  readOnly = false,
 }: {
   userId: string
   notes: NoteView[]
   today: string
   /** 디자인 점검 화면 — 버튼은 보이되 저장하지 않는다. */
   demo?: boolean
+  /** 탈퇴한 회원 — 새 기록·고치기를 숨긴다(지우기만). */
+  readOnly?: boolean
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -57,14 +64,9 @@ export default function NotesPanel({
       toast.info('점검 화면이라 저장하지 않아요')
       return false
     }
-    const res = await fetch(`/api/admin/users/${userId}/notes`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) {
-      const j = (await res.json().catch(() => null)) as { message?: string } | null
-      toast.error(j?.message ?? '저장하지 못했어요')
+    const r = await sendAdminJson(`/api/admin/users/${userId}/notes`, method, payload)
+    if (!r.ok) {
+      toast.error(r.message)
       return false
     }
     router.refresh()
@@ -77,13 +79,17 @@ export default function NotesPanel({
       return
     }
     setSaving(true)
-    const ok = await call('POST', {
-      body: body.trim(),
-      notedOn,
-      followUpOn: followUp || null,
-      channel,
-    })
-    setSaving(false)
+    let ok = false
+    try {
+      ok = await call('POST', {
+        body: body.trim(),
+        notedOn,
+        followUpOn: followUp || null,
+        channel,
+      })
+    } finally {
+      setSaving(false)
+    }
     if (ok) {
       setBody('')
       setFollowUp('')
@@ -94,28 +100,42 @@ export default function NotesPanel({
 
   async function toggleDone(n: NoteView) {
     setBusyId(n.id)
-    await call('PATCH', { noteId: n.id, done: !n.done })
-    setBusyId(null)
+    try {
+      await call('PATCH', { noteId: n.id, done: !n.done })
+    } finally {
+      setBusyId(null)
+    }
   }
 
   async function moveFollowUp(n: NoteView, days: number | null) {
     setBusyId(n.id)
-    await call('PATCH', { noteId: n.id, followUpOn: days == null ? null : addDaysKst(today, days) })
-    setBusyId(null)
+    try {
+      await call('PATCH', { noteId: n.id, followUpOn: days == null ? null : addDaysKst(today, days) })
+    } finally {
+      setBusyId(null)
+    }
   }
 
   async function remove(n: NoteView) {
     if (!window.confirm('이 기록을 지울까요? 되돌릴 수 없어요.')) return
     setBusyId(n.id)
-    await call('DELETE', { noteId: n.id })
-    setBusyId(null)
+    try {
+      await call('DELETE', { noteId: n.id })
+    } finally {
+      setBusyId(null)
+    }
   }
 
   const open = notes.filter((n) => !n.done && n.followUpOn && n.followUpOn <= today).length
 
   return (
     <div>
-      {/* 새 기록 */}
+      {/* 새 기록 — 탈퇴한 회원은 숨긴다 */}
+      {readOnly ? (
+        <p className="rounded-lg border border-border bg-secondary/40 p-3 text-[13px] text-muted-foreground">
+          탈퇴한 회원이라 새 기록을 남길 수 없어요. 남은 기록은 지울 수만 있어요.
+        </p>
+      ) : (
       <div className="rounded-lg border border-border bg-secondary/40 p-3">
         <div className="flex flex-wrap gap-1.5">
           {CHANNELS.map((c) => (
@@ -195,6 +215,7 @@ export default function NotesPanel({
           </button>
         </div>
       </div>
+      )}
 
       {/* 시간순 기록 */}
       {open > 0 && (
@@ -232,6 +253,7 @@ export default function NotesPanel({
                 </div>
                 <p className="mt-1.5 whitespace-pre-wrap break-keep text-[14px] leading-relaxed text-foreground">{n.body}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {!readOnly && (
                   <button
                     type="button"
                     disabled={busyId === n.id}
@@ -241,7 +263,8 @@ export default function NotesPanel({
                     <Check className="size-3.5" strokeWidth={2.4} />
                     {n.done ? '다시 열기' : '처리함'}
                   </button>
-                  {!n.done && (
+                  )}
+                  {!n.done && !readOnly && (
                     <>
                       <button
                         type="button"

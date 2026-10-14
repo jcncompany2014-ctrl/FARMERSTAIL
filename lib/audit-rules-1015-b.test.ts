@@ -264,3 +264,185 @@ test('규칙274: 카드 재등록 대기 — 정본 isPausedByBillingFailure(멈
   assert.ok(!/\.eq\('requires_billing_key_renewal', true\)\.limit\(LIMIT\)/.test(wt), "옛 판정(표시만 셈)이 남아 있다")
   assert.match(code('app', 'admin', 'page.tsx'), /const cardRenewalCount = todo\.numbers\.cardRenewal/, '홈 카드 재등록 숫자가 할 일과 다르다')
 })
+
+/** user_id 칸을 가진 admin_* 표 — 생성 타입(lib/supabase/types.ts)과 마이그레이션(create table) 둘 다에서 모은다. */
+function adminTablesWithUserId(): string[] {
+  const out = new Set<string>()
+  const types = read('lib', 'supabase', 'types.ts')
+  for (const m of types.matchAll(/\n\s+(admin_\w+): \{\n\s+Row: \{([\s\S]*?)\n\s+\}/g)) {
+    if (/\n\s+user_id: /.test(m[2]!)) out.add(m[1]!)
+  }
+  const dir = join(ROOT, 'supabase', 'migrations')
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.sql'))) {
+    const sql = readFileSync(join(dir, f), 'utf8').replace(/\r\n/g, '\n').replace(/--[^\n]*/g, '')
+    for (const m of sql.matchAll(/create table (?:if not exists )?public\.(admin_\w+)\s*\(([\s\S]*?)\n\);/gi)) {
+      if (/\n\s*user_id\s+uuid/i.test(m[2]!)) out.add(m[1]!)
+    }
+  }
+  return [...out].sort()
+}
+
+test("규칙275: 탈퇴 — user_id 를 가진 admin_* 표는 전부 탈퇴 라우트가 지우고, 탈퇴 회원은 '탈퇴한 회원'으로 보이며 고치기·메모·메시지를 서버가 거절한다", () => {
+  /**
+   * # 왜 (조사 '탈퇴해도 카톡 문의 기록이 지워지지 않는다' · '탈퇴 회원이 일반 회원처럼 보이고 주소 고치기·메모·메시지가 열려 있다')
+   * 10/14 새 표 admin_customer_notes 가 탈퇴 라우트에서 빠졌다(auth 는 soft delete 라 FK cascade 는 5년 뒤에만 돈다). 표가 새로 생길
+   * 때마다 같은 구멍이 다시 생긴다 — 그래서 '표 목록'을 저장소에서 자동으로 모아 대조한다. 또 익명화한 계정에 관리자가 이름·전화·주소를
+   * 다시 써 넣을 수 있었다.
+   */
+  const tables = adminTablesWithUserId()
+  for (const t of ['admin_alerts', 'admin_customer_notes', 'admin_user_notes', 'admin_address_changes']) {
+    assert.ok(tables.includes(t), `user_id 를 가진 admin_* 표 목록에 ${t} 가 없다 — 표 찾기가 깨졌다(무단언 방지)`)
+  }
+  const del = code('app', 'api', 'account', 'delete', 'route.ts')
+  for (const t of tables) {
+    assert.match(del, new RegExp(`from\\('${t}'\\)\\s*\\.delete\\(\\)`), `탈퇴 라우트가 ${t}(고객 user_id 를 가진 어드민 표)를 지우지 않는다`)
+  }
+  assert.match(del, /captureBusinessEvent\('error', 'account\.delete\.partial_failure', \{\s*userId: user\.id,\s*step,/, '문의 기록·경보·주소 기록 파기 실패를 경보함(account.delete.partial_failure)에 올리지 않는다')
+
+  // 서버 거절 — 관문 하나(rejectDeletedCustomer)를 쓰기 라우트가 부른다.
+  const guard = code('app', 'api', 'admin', 'users', '_guard.ts')
+  assert.match(guard, /\.select\('id, deleted_at'\)[\s\S]{0,200}if \(error\) return[\s\S]{0,200}if \(data\.deleted_at\)[\s\S]{0,120}status: 409/, '탈퇴 회원 관문이 deleted_at 을 보고 409 로 막지 않는다(조회 실패도 막아야)')
+  const addr = code('app', 'api', 'admin', 'users', '[id]', 'address', 'route.ts')
+  assert.match(addr, /const deleted = await rejectDeletedCustomer\(admin, id\)\s*if \(deleted\) return deleted/, '배송지 고치기가 탈퇴 회원을 막지 않는다')
+  const notes = code('app', 'api', 'admin', 'users', '[id]', 'notes', 'route.ts')
+  assert.equal((notes.match(/await rejectDeletedCustomer\(admin, id\)/g) ?? []).length, 2, '문의 기록 쓰기·고치기(2곳)가 탈퇴 회원을 막지 않는다')
+  assert.match(code('app', 'api', 'admin', 'users', '[id]', 'note', 'route.ts'), /if \(note\) \{\s*const deleted = await rejectDeletedCustomer\(admin, id\)/, '운영 메모가 탈퇴 회원에게 새로 적힌다')
+  assert.match(code('app', 'api', 'admin', 'users', '[id]', 'allergies', 'route.ts'), /if \(action !== 'preview'\) \{\s*const deleted = await rejectDeletedCustomer\(admin, id\)/, '알레르기 고치기가 탈퇴 회원을 막지 않는다')
+  assert.match(code('app', 'api', 'admin', 'users', '[id]', 'message', 'route.ts'), /if \(targetProfile\.deleted_at\) \{\s*return NextResponse\.json\(\{ ok: false, error: 'deleted_customer' \}, \{ status: 409 \}\)/, '1:1 메시지가 탈퇴 회원에게 간다')
+
+  // 화면 — 탈퇴 표시, 고치기·메모·메시지 숨김. 목록·챙길 손님에서 뺀다.
+  assert.match(code('app', 'admin', 'users', '[id]', '_data.ts'), /created_at, deleted_at'\)/, '고객 화면이 탈퇴 여부(deleted_at)를 읽지 않는다')
+  const view = code('app', 'admin', 'users', '[id]', 'CustomerView.tsx')
+  assert.match(view, /탈퇴한 회원 · \{formatKstDate\(profile\.deletedAt\)\}/, "고객 화면에 '탈퇴한 회원' 표시가 없다")
+  assert.match(view, /!errors\.address && !deleted && !errors\.paid_box && \(\s*<AddressEditor/, '탈퇴 회원에게 배송지 고치기가 열려 있다')
+  assert.match(view, /readOnly=\{deleted\}/, '탈퇴 회원에게 문의 기록 쓰기가 열려 있다')
+  assert.match(view, /\{!deleted && \(\s*<Link\s+href=\{`\/admin\/users\/\$\{data\.userId\}\/message`\}/, '탈퇴 회원에게 1:1 메시지 단추가 보인다')
+  assert.match(code('app', 'admin', 'users', 'page.tsx'), /\.select\(USER_COLS, \{ count: 'exact' \}\)[\s\S]{0,300}\.is\('deleted_at', null\)/, '회원 목록·총 인원에 탈퇴 회원이 들어간다')
+})
+
+test("규칙276: 고객 화면 쓰기의 작업 기록 — 문의 메모 쓰기·고치기·지우기(바꾸기 전 값), 운영 메모, 배송지의 바꾸기 전 값(탈퇴 때 지워지는 표), 앞당긴 제안", () => {
+  /**
+   * # 왜 (조사 '새 카톡 문의 기록과 운영 메모는 쓰기·고치기·지우기가 하나도 기록되지 않는다' · '배송지를 고치면 옛 주소가 어디에도 남지 않는다')
+   * 잘못 누른 지우기·처리함·본문 수정을 되돌릴 단서가 없었고, 결제된 박스의 주문 주소까지 흔적 없이 바뀌었다.
+   * 주소 원문은 지울 수 없는 작업 기록에 넣지 않는다(규칙257) — 탈퇴하면 같이 지우는 별도 표(admin_address_changes)에 둔다.
+   */
+  const notes = code('app', 'api', 'admin', 'users', '[id]', 'notes', 'route.ts')
+  for (const a of ['customer_note_create', 'customer_note_update', 'customer_note_delete']) {
+    assert.match(notes, new RegExp(`recordAdminAction\\(gate\\.supabase, \\{\\s*action: '${a}'`), `문의 기록 ${a} 가 작업 기록에 안 남는다`)
+  }
+  assert.match(notes, /action: 'customer_note_update',[\s\S]{0,200}before: noteForAudit\(/, '문의 기록 고치기가 바꾸기 전 값을 안 남긴다')
+  assert.match(notes, /action: 'customer_note_delete',[\s\S]{0,120}before: noteForAudit\(before\)/, '문의 기록 지우기가 지운 내용을 안 남긴다')
+  assert.match(notes, /body: scrubSentryString\(n\.body\)\.slice\(0, 200\)/, '작업 기록의 메모 본문을 가리지 않는다(전화·메일 모양)')
+  const memo = code('app', 'api', 'admin', 'users', '[id]', 'note', 'route.ts')
+  assert.match(memo, /recordAdminAction\(supabase, \{\s*action: note \? 'customer_memo_update' : 'customer_memo_delete'/, '운영 메모 덮어쓰기·지우기가 작업 기록에 안 남는다')
+  assert.match(memo, /before: \{ note: prevNote \? scrubSentryString\(prevNote\)\.slice\(0, 200\) : null \}/, '운영 메모의 바꾸기 전 값이 없다')
+
+  const addr = code('app', 'api', 'admin', 'users', '[id]', 'address', 'route.ts')
+  const logAt = addr.indexOf(".from('admin_address_changes')\n      .insert(")
+  const updAt = addr.indexOf(".from('addresses')\n      .update(next)")
+  const ordAt = addr.indexOf(".from('orders')\n      .update(")
+  assert.ok(logAt > 0 && updAt > logAt && ordAt > logAt, '배송지·주문 주소를 바꾸기 전에 옛 값을 기록하지 않는다')
+  assert.match(addr, /before_address: cur\s*\?/, '옛 기본 배송지를 기록하지 않는다')
+  assert.match(addr, /orders_before: ordersBefore,/, '같이 바꾸는 주문의 옛 주소를 기록하지 않는다')
+  assert.match(addr, /if \(logErr \|\| !logRow\) \{[\s\S]{0,200}CHANGE_LOG_FAILED/, '옛 값을 못 남겨도 바꾼다(되살릴 단서 없이 덮는다)')
+  assert.match(addr, /changeId,\s*orderIds: updatedOrderIds,/, '작업 기록에 바꾼 주소 기록 id·바뀐 주문 id 가 없다')
+  const mig = readFileSync(join(ROOT, 'supabase', 'migrations', '20261015110000_admin_address_changes.sql'), 'utf8').replace(/--[^\n]*/g, '')
+  assert.match(mig, /user_id uuid not null references auth\.users\(id\) on delete cascade/)
+  assert.match(mig, /revoke all on table public\.admin_address_changes from anon, authenticated;/, '주소 기록 표가 고객에게 열려 있다')
+  assert.match(mig, /do \$\$[\s\S]*raise exception/, '주소 기록 마이그레이션에 자기 검증이 없다')
+
+  assert.match(code('app', 'api', 'admin', 'users', '[id]', 'allergies', 'route.ts'), /action: 'dog_proposal_request'/, "'제안만 다시 보내기'(propose)가 작업 기록에 안 남는다")
+})
+
+test("규칙277: 고객 화면 폼은 인터넷이 끊겨도 '저장 중'에서 멈추지 않고, 1:1 메시지는 문의함 저장과 알림 결과를 따로 말한다", async () => {
+  /**
+   * # 왜 (조사 '문의 메모·배송지·알레르기 저장: 인터넷이 끊기면 저장 중으로 멈춤' · '1:1 메시지 — 문의함엔 들어갔는데 발송되지 않았어요,
+   *   반대로 저장 실패에도 발송했어요' · '알레르기 고치기 — 제안 저장 실패가 3초 회색 안내' · '결제된 박스 조회 실패 때 같이 바꾸기가 사라짐')
+   */
+  const send = await load<typeof import('../app/admin/users/[id]/_send.ts')>('app', 'admin', 'users', '[id]', '_send.ts')
+  const realFetch = globalThis.fetch
+  try {
+    globalThis.fetch = (async () => {
+      throw new TypeError('Failed to fetch')
+    }) as typeof fetch
+    const r = await send.sendAdminJson('/x', 'POST', {})
+    assert.equal(r.ok, false)
+    assert.equal(r.ok === false && r.offline, true, '요청이 던지면(인터넷 끊김) 결과로 바꾸지 않는다')
+    globalThis.fetch = (async () => new Response('<html>504</html>', { status: 504 })) as typeof fetch
+    const r2 = await send.sendAdminJson('/x', 'PATCH', {}, '저장하지 못했어요')
+    assert.equal(r2.ok === false && r2.message, '저장하지 못했어요(504)', 'JSON 이 아닌 오류 응답(504)을 처리하지 못한다')
+  } finally {
+    globalThis.fetch = realFetch
+  }
+  for (const f of [
+    ['app', 'admin', 'users', '[id]', 'NotesPanel.tsx'],
+    ['app', 'admin', 'users', '[id]', 'AddressEditor.tsx'],
+    ['app', 'admin', 'users', '[id]', 'AllergyEditor.tsx'],
+    ['app', 'admin', 'users', '[id]', 'message', 'AdminNoteCard.tsx'],
+  ]) {
+    const src = code(...f)
+    assert.ok(!/await fetch\(/.test(src), `${f.join('/')}: 끊김을 못 받는 맨 fetch 가 남아 있다(_send 를 쓸 것)`)
+    assert.match(src, /sendAdminJson/, `${f.join('/')}: 요청 도우미(_send)를 안 쓴다`)
+    assert.match(src, /\} finally \{\s*set(Saving|Busy|BusyId)\((false|null)\)/, `${f.join('/')}: 단추를 finally 로 풀지 않는다('저장 중'에서 멈춘다)`)
+  }
+
+  // 1:1 메시지 — 문의함 먼저, 실패면 알림도 안 보냄, 응답은 둘을 따로.
+  const msg = code('app', 'api', 'admin', 'users', '[id]', 'message', 'route.ts')
+  const csAt = msg.indexOf(".from('cs_messages').insert(")
+  const pushAt = msg.indexOf('await pushToUser(')
+  assert.ok(csAt > 0 && pushAt > csAt, '1:1 메시지가 문의함 저장보다 알림을 먼저 보낸다')
+  assert.match(msg, /if \(csErr\) \{[\s\S]{0,200}error: 'inbox_save_failed'[\s\S]{0,60}status: 500/, '문의함 저장 실패를 오류로 돌려주지 않는다(발송했어요로 보인다)')
+  assert.match(msg, /ok: true,\s*inboxSaved: true,\s*pushOk: result\.ok,/, '응답이 문의함 저장과 알림 결과를 가르지 않는다')
+  const comp = code('app', 'admin', 'users', '[id]', 'message', 'MessageComposer.tsx')
+  assert.ok(!comp.includes('알림 동의 후 다시 시도'), "문의함엔 들어갔는데 '다시 시도'를 권한다(같은 글이 두 번 쌓인다)")
+  assert.match(comp, /inbox_save_failed: '앱 문의함에 저장하지 못했어요/, '문의함 저장 실패 안내가 없다')
+  assert.match(comp, /앱 문의함에 남겼어요 · 알림 기기가 없어 알림은 안 갔어요/, '알림 기기가 없을 때 문의함엔 남았다고 말하지 않는다')
+  assert.match(comp, /catch \{[\s\S]{0,200}보냈는지 확인하지 못했어요/, '끊김 때 결과를 모른다고 말하지 않는다')
+
+  // 알레르기 — 제안 저장 실패는 빨간 오류 + 창 유지 + '제안만 다시 보내기'.
+  const al = code('app', 'admin', 'users', '[id]', 'AllergyEditor.tsx')
+  assert.match(al, /proposal\.code !== 'NO_ACTIVE_SUBSCRIPTION'\) \{[\s\S]{0,300}toast\.error\([\s\S]{0,200}setProposalFailed\(/, '제안 저장 실패를 회색 안내로 끝낸다')
+  assert.match(al, /post\('propose'\)/, "'새 식단 제안만 다시 보내기'(서버 propose)가 없다")
+  // 배송지 — 결제된 박스를 못 읽으면 고치기를 막고 이유를 말한다.
+  assert.match(code('app', 'admin', 'users', '[id]', 'CustomerView.tsx'), /!errors\.address && !deleted && errors\.paid_box && \(\s*<p[\s\S]{0,200}결제된 발송 대기 박스를 확인하지 못했어요/, "결제된 박스 조회 실패 때 '같이 바꾸기'가 조용히 사라진다")
+})
+
+test('규칙278: 고객 한 명 화면에 서포터즈 인상 동의·보류 — 체험단 화면과 같은 정본(loadChargeProjection → trialPlanView), 읽기만', () => {
+  /**
+   * # 왜 (조사 '고객 한 명 화면에 인상 동의·보류 상태가 없다 — 보류될 회차도 정상 결제처럼 보인다')
+   * 서포터즈가 '12/1 박스 왜 안 와요?'라고 물을 때 그 손님 화면은 '12/1 결제 예정'만 보였다(체험단 화면·포장 목록은 '보류').
+   */
+  const data = code('app', 'admin', 'users', '[id]', '_data.ts')
+  assert.match(data, /loadChargeProjection\(admin, liveForPlan, \{[\s\S]{0,200}stopAtHold: false,/, '고객 화면 서포터즈 칸이 체험단 화면과 같은 회차 펼치기를 안 쓴다')
+  assert.match(data, /trialPlanView\(proj\.roundsByUser\.get\(userId\) \?\? \[\], ctx\?\.consents \?\? \[\], today\)/, '인상 동의 상태가 정본(trialPlanView)이 아니다')
+  assert.match(data, /from\('subscription_charge_holds'\)[\s\S]{0,120}\.is\('resolved_at', null\)/, '열린 청구 보류를 읽지 않는다')
+  assert.match(data, /if \(!proj\.ok\) \{\s*errors\.trial_plan = proj\.error/, "회차 조회 실패를 '서포터즈 아님'으로 접는다(규칙1)")
+  const view = code('app', 'admin', 'users', '[id]', 'CustomerView.tsx')
+  assert.match(view, /\{data\.supporterPlan && <SupporterPlanBlock plan=\{data\.supporterPlan\} \/>\}/, '고객 화면에 서포터즈 인상·동의 칸이 없다')
+  const block = view.slice(view.indexOf('function SupporterPlanBlock('), view.indexOf('function AllergyChips('))
+  assert.match(block, /href="\/admin\/trials"/, '동의 기록하러 가는 링크(체험단 화면)가 없다')
+  assert.match(block, /청구 보류 중/, '열린 보류를 보여 주지 않는다')
+  assert.ok(!/sendAdminJson|fetch\(|method:/.test(block), '서포터즈 칸이 읽기 전용이 아니다(동의 기록은 체험단 화면 한 곳에서)')
+})
+
+test("규칙279: 챙길 손님 — 연락 수단 신호(옛 앱·알림 못 받음·메일 반송)는 정기배송·최근 30일 결제 손님에게만, 탈퇴 회원은 빼고", async () => {
+  /**
+   * # 왜 (조사 "'챙길 손님' 약 16명 중 정기배송 손님은 1명뿐")
+   * 구독 없는 가입자·탈퇴 회원(탈퇴하면 알림 기기가 지워져 반드시 걸림)까지 '챙길 손님'이라 진짜 결제·배송 알림을 못 받는 손님이 묻혔다.
+   * 운영 DB 실측(10/15): 고치기 전 18명 → 고친 뒤 2명(알림 못 받음 1·옛 앱 1, 거래 중 손님 7명 중).
+   */
+  const cf = await load<typeof import('./admin/customer-flags.ts')>('lib', 'admin', 'customer-flags.ts')
+  const base = { email: 'a@kakao.com', suppressedEmails: new Set(['a@kakao.com']), nativeTokens: [], webPushCount: 0, subscriptions: [] }
+  assert.deepEqual(cf.customerFlags(base).keys, [], '구독도 최근 결제도 없는 가입자를 챙길 손님으로 센다')
+  assert.deepEqual(cf.customerFlags({ ...base, recentPaidOrders: 1 }).keys, ['no_push', 'bounced'], '최근 결제한 손님(웹 가게 포함)의 연락 수단 신호를 못 본다')
+  const live = { status: 'active' as const, has_billing_key: true, next_delivery_date: '2026-10-20', failed_charge_count: 0, requires_billing_key_renewal: false }
+  assert.deepEqual(cf.customerFlags({ ...base, subscriptions: [live] }).keys, ['no_push', 'bounced'], '정기배송 손님의 연락 수단 신호를 못 본다')
+  assert.deepEqual(cf.customerFlags({ ...base, subscriptions: [{ ...live, status: 'cancelled' as const }] }).keys, [], '해지한 손님을 거래 중으로 센다')
+  assert.deepEqual(cf.customerFlags({ ...base, subscriptions: [live], recentPaidOrders: 3, deleted: true }).keys, [], '탈퇴 회원을 챙길 손님으로 센다')
+  assert.equal(cf.RECENT_PURCHASE_DAYS, 30)
+  const ld = code('lib', 'admin', 'customer-flags-load.ts')
+  assert.match(ld, /selectInChunks\(ids, \(chunk\) =>\s*admin\s*\.from\('orders'\)[\s\S]{0,160}\.gte\('created_at', recentSince\)/, '최근 결제를 읽지 않는다')
+  assert.match(ld, /recentPaidOrders: recentByUser\.get\(u\.id\) \?\? 0,\s*deleted: !!u\.deleted_at,/, '판정에 최근 결제·탈퇴를 넘기지 않는다')
+  assert.match(ld, /\.select\('id, email, name, phone, deleted_at'\)\s*[\s\S]{0,120}\.is\('deleted_at', null\)/, '회원 목록 챙길 손님 집계에 탈퇴 회원이 들어간다')
+  assert.match(code('app', 'admin', 'users', '[id]', '_data.ts'), /loadCustomerFlags\(admin, \[\{ id: userId, email: prof\.email, deleted_at: prof\.deleted_at \}\]\)/, '고객 화면 챙길 신호가 탈퇴 여부를 모른다')
+})

@@ -30,6 +30,7 @@ export type SectionKey =
   | 'address'
   | 'proposals'
   | 'checkin'
+  | 'trial_plan'
 
 export type BoxView = {
   /** 레시피 구성(라인 이름·비율 %). */
@@ -165,7 +166,28 @@ export type CustomerData = {
     phone: string | null
     createdAt: string | null
     role: string | null
+    /** 탈퇴 시각(profiles.deleted_at) — 있으면 '탈퇴한 회원': 고치기·메모·메시지를 숨기고 서버도 409(규칙275). */
+    deletedAt?: string | null
   }
+  /**
+   * 서포터즈 가격 인상 — 체험단 화면과 같은 정본(loadChargeProjection → trialPlanView)으로 읽기만(규칙278).
+   * undefined = 이 화면이 안 읽음(예시 값) · null = 서포터즈 아님.
+   */
+  supporterPlan?: {
+    /** 다음 결제(일정표 첫 회차). */
+    next: { chargeIso: string; amount: number; label: string | null; held: boolean } | null
+    rises: Array<{
+      label: string
+      status: 'recorded' | 'urgent' | 'waiting' | 'none'
+      chargeIso: string | null
+      amount: number | null
+      prevAmount: number | null
+      consentedOn: string | null
+      channel: string | null
+    }>
+    /** 열린 청구 보류(subscription_charge_holds) — 동의가 없어 결제를 멈춘 회차. */
+    openHolds: Array<{ shipDate: string; chargeDate: string; rise: string | null }>
+  } | null
   account: {
     providerLabel: string
     lastSignInAt: string | null

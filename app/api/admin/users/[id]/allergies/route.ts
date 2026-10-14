@@ -15,7 +15,7 @@ import {
   sameAllergies,
   validateNextAllergies,
 } from '@/lib/admin/allergy-edit'
-import { requireAdminUser, isUuid } from '../../_guard'
+import { requireAdminUser, isUuid, rejectDeletedCustomer } from '../../_guard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +65,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { action, dogId } = parsed.data
 
   const admin = createAdminClient()
+  // 탈퇴한 회원의 강아지는 고치지 않는다(규칙275) — 미리보기만은 된다(읽기).
+  if (action !== 'preview') {
+    const deleted = await rejectDeletedCustomer(admin, id)
+    if (deleted) return deleted
+  }
   const { data: dog, error: dogErr } = await admin
     .from('dogs')
     .select('id, user_id, name')
@@ -97,7 +102,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }) === 'active'
 
   if (action === 'propose') {
-    return requestProposal({ admin, dogId, userId: id, surveyId: null, requestedBy: gate.user.id, liveActive })
+    const res = await requestProposal({ admin, dogId, userId: id, surveyId: null, requestedBy: gate.user.id, liveActive })
+    // 앞당긴 제안 요청도 작업 기록에(규칙276) — 예전엔 저장 때만 남았다.
+    if (res.ok) {
+      await recordAdminAction(gate.supabase, {
+        action: 'dog_proposal_request',
+        entityType: 'dog',
+        entityId: dogId,
+        diff: { meta: { reason: 'admin_allergy_edit', userId: id } },
+        req,
+      })
+    }
+    return res
   }
 
   // 최신 설문 — 정본 판정(latestSurveyByDog: created_at 최신, 누가 썼는지 묻지 않음). 행 전체를 복사하므로 * 로 읽는다.
