@@ -732,8 +732,8 @@ test('★ 규칙17: 서버가 orders 를 셀 때 결제 상태로 거른다', ()
    */
   const ORDER_COUNT_SHIPPING_OK: Array<{ at: string; why: string }> = [
     {
-      at: 'app/api/cron/daily-briefing/route.ts:97',
-      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동 · 2026-09-25 구조분해 두 줄(환불 최종실패·크론 실패) 추가로 96 이동 · 2026-09-26 규모 경보 import 한 줄로 97 이동, 다섯 다 같은 집계임을 재확인함)",
+      at: 'app/api/cron/daily-briefing/route.ts:79',
+      why: "'발송했는데 7일째 배송중' 집계 — order_status='shipping' 자체가 결제 완료 이후 상태다 (2026-08-08 미발송 큐에 주석 3줄 추가로 92 이동 · 2026-09-15 Sentry import 한 줄로 93 이동 · 2026-09-24 스케줄 주석 한 줄로 94 이동 · 2026-09-25 구조분해 두 줄(환불 최종실패·크론 실패) 추가로 96 이동 · 2026-09-26 규모 경보 import 한 줄로 97 이동 · 2026-10-14 박스·결제 조회를 이번 주 할 일(lib/admin/weekly-todo)로 옮겨 79 로 이동, 여섯 다 같은 집계임을 재확인함)",
     },
   ]
 
@@ -2281,6 +2281,7 @@ test('규칙49 — .or() 에 정화 안 한 사용자 입력을 넣지 않는다
     '/app/admin/automation/page.tsx', // applied_from 날짜(서버 계산)
     '/app/api/cron/personalization-progression/route.ts',
     '/app/admin/personalization/picking-list/page.tsx', // 정규식 검증된 날짜
+    '/lib/admin/packing-week.ts', // 포장 목록과 같은 식 — 발송일은 서버 계산(upcomingShipIso, 2026-10-14 B2·규칙249)
     '/app/api/cron/order-expire/route.ts',
     '/app/api/cron/subscription-charge/route.ts',
   ]

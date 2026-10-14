@@ -5,22 +5,14 @@ import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
 import { countPushTargets, pushToUser } from '@/lib/push'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
-import { weekdayOf, SHIP_WEEKDAY, CHARGE_BEFORE_SHIP_DAYS, chargeDateFor, paidBoxShipIso } from '@/lib/shipping-schedule'
+import { weekdayOf, SHIP_WEEKDAY, CHARGE_BEFORE_SHIP_DAYS } from '@/lib/shipping-schedule'
 import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import { cronLabel } from '@/lib/cron-labels'
 import vercelConfig from '@/vercel.json'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { scaleWarnings } from '@/lib/ops/scale-watch'
-import { getChargeTimings } from '@/lib/payments/charge-timing'
-
-/**
- * 다가오는 발송일(화요일) — **마감 리드타임 없이**. nextShipDate 는 '지금 주문하면
- * 언제 받나'(리드타임 4일 포함)라 월요일에 다음주를 가리킨다. 브리핑이 원하는 건
- * '눈앞의 화요일에 몇 박스 나가나'이므로 순수 다음 화요일을 쓴다(최종감사 #11).
- */
-function upcomingShipDate(fromIso: string): string {
-  return addDaysKst(fromIso, (SHIP_WEEKDAY - weekdayOf(fromIso) + 7) % 7 || 7)
-}
+import { loadWeeklyTodo, briefingExtraLines } from '@/lib/admin/weekly-todo'
+import { raiseKeyExpiryAlerts } from '@/lib/admin/key-expiry-alerts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,6 +35,9 @@ export const dynamic = 'force-dynamic'
  * 대시보드 '처리 대기' 와 같은 쿼리(미발송·배송지연·카드재등록·결제실패·환불대기·품절). 앞에는 눈앞의
  * 발송 화요일 박스 수를 붙인다 — 화요일 = 오늘 나갈 박스, 토요일 = 오늘 결제·조리 시작분, 그 밖 = 다음 발송분.
  * 전부 0 이면 "오늘 처리할 일 없어요 ☀️" 로 보낸다 — 조용한 것도 정보다.
+ * ★박스·결제·카드 재등록·답 안 한 문의·경보함·키 만료·동의 마감·서포터즈 전환·포장(월·화)은 어드민 홈 '이번 주 할 일'과
+ *   **같은 함수**(lib/admin/weekly-todo loadWeeklyTodo)로 센다 (2026-10-14 B2). 예전엔 여기서 따로 셌다.
+ *   외부 키 만료 7·3·1일 전 경보도 여기서 경보함에 올린다(B4, lib/admin/key-expiry-alerts — 단계마다 한 번).
  *
  * # 딥링크
  * url='/admin' — 앱(Capacitor)에서 알림을 누르면 어드민이 그대로 열린다.
@@ -70,38 +65,21 @@ async function runDailyBriefing(): Promise<Response> {
   const today = todayKstIsoDate()
   const isShipDay = weekdayOf(today) === SHIP_WEEKDAY // 화요일 = 발송일
   const isCookDay = weekdayOf(addDaysKst(today, CHARGE_BEFORE_SHIP_DAYS)) === SHIP_WEEKDAY // 토요일 = 일반 고객 결제·조리 시작
-  const shipIso = isShipDay ? today : upcomingShipDate(today) // 눈앞의 발송 화요일
 
   const [
-    paidPreparing,
     shippingStuck,
-    cardRenewal,
     failedCharge,
     refundsPending,
     refundsStuck,
     stockOut,
-    unreadCs,
-    shipSubs,
-    chargedToday, chargeFailedToday,
     cronErrors,
+    todo,
   ] = await Promise.all([
-    supabase
-      .from('orders')
-      // ★부분환불 주문도 발송 대상이다(규칙42). 건수가 아니라 행을 받아 박스마다 발송일(화)을 따진다(아래 paidBoxShipIso).
-      //  예전엔 '결제 후 24시간+'를 미발송으로 셌는데, 토요일 결제분은 화요일 발송이라 일~화 매주 거짓 경보였다.
-      .select('id, subscription_id, paid_at, created_at')
-      .in('payment_status', PAID_STATUSES)
-      .eq('order_status', 'preparing')
-      .limit(PAID_PREPARING_LIMIT),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('order_status', 'shipping')
       .lt('shipped_at', sevenDaysAgo),
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('requires_billing_key_renewal', true),
     supabase
       .from('subscription_charges')
       .select('id', { count: 'exact', head: true })
@@ -124,39 +102,6 @@ async function runDailyBriefing(): Promise<Response> {
       .select('id', { count: 'exact', head: true })
       .eq('is_active', true)
       .eq('stock', 0),
-    supabase
-      .from('cs_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('sender', 'user')
-      .is('read_at', null),
-    // ★눈앞의 발송 화요일(shipIso)에 next_delivery_date 가 남아 있는 = **아직 결제 안 된** 구독.
-    //   (최종감사 #11, 2026-07-29) 청구 크론은 성공분의 next_delivery_date 를 곧바로 +14 로 민다 —
-    //   그래서 이 목록엔 결제된 박스가 없다. 결제된 박스는 위 paidPreparing(결제됨 + 발송 대기
-    //   주문)에서 센다. 2026-10-01 부터 일반 고객은 토요일에 결제되므로 토~화엔 그 박스들이
-    //   여기서 빠진다 — 예전처럼 이 숫자를 '다음 발송'으로 쓰면 일·월요일에 대부분이 사라졌다.
-    //   남은 건 결제일이 아직인 것(서포터즈 화요일 결제분, 수~금의 토요일 결제분)이거나
-    //   결제일이 지났는데 결제가 안 된 것이다 — 아래에서 구독별 결제일(chargeDateFor)로 가른다.
-    //   청구 크론과 같은 대상 조건(활성 · 카드 있음 · 재등록 불필요).
-    supabase
-      .from('subscriptions')
-      .select('id, user_id')
-      .eq('status', 'active')
-      .eq('requires_billing_key_renewal', false)
-      .not('billing_key', 'is', null)
-      .eq('next_delivery_date', shipIso)
-      .limit(PAID_PREPARING_LIMIT),
-    // 토요일 줄(오늘 결제·조리 시작)용 — 오늘 청구 크론이 성공·실패로 끝낸 회차.
-    //   scheduled_for = 청구 크론 실행일(일반 = 토요일, 서포터즈 = 화요일).
-    supabase
-      .from('subscription_charges')
-      .select('id', { count: 'exact', head: true })
-      .eq('scheduled_for', today)
-      .eq('status', 'succeeded'),
-    supabase
-      .from('subscription_charges')
-      .select('id', { count: 'exact', head: true })
-      .eq('scheduled_for', today)
-      .eq('status', 'failed'),
     // ★24시간 안에 **실패로 끝난** 자동작업 (2026-09-25 3차 점검). 워치독(아래)은
     //   '기록이 있나'만 봐서 실패 기록도 '돌았음'으로 쳤다 — 화요일 청구 크론이 500
     //   이어도 이 브리핑은 조용했다. 실패 메일(ops-digest)은 08:00 이라 그다음 날이다.
@@ -166,7 +111,14 @@ async function runDailyBriefing(): Promise<Response> {
       .eq('status', 'error')
       .gte('executed_at', oneDayAgo)
       .limit(500),
+    // ★박스(결제된 박스·결제 예정·결제 안 됨·발송일 지난 미발송)·이번 회차 결제·카드 재등록·답 안 한 문의(사람 수)·
+    //   경보함·키 만료·동의 마감·서포터즈 전환·포장 = 어드민 홈 '이번 주 할 일'과 같은 함수(2026-10-14 B2).
+    //   결제된 박스 = 결제됨 + 발송 대기 주문을 박스마다 발송일(paidBoxShipIso)로 가른 것(부분환불 포함, 규칙42) ·
+    //   결제 안 된 구독 = 눈앞의 발송 화요일에 날짜가 남은 활성·카드 구독을 구독별 결제일(chargeDateFor)로 가른 것
+    //   (청구 크론은 성공분의 날짜를 곧바로 +14 로 민다 — 최종감사 #11). 못 센 것은 todo.failures 로 온다.
+    loadWeeklyTodo(supabase),
   ])
+  const shipIso = todo.shipIso // 눈앞의 발송 화요일(오늘이 화요일이면 오늘)
 
   // ★조회 실패를 0건으로 접지 않는다(2026-08-05 병렬 감사).
   //   전에는 `r.count ?? 0` 하나로 끝나서, DB 가 흔들린 아침엔 미발송·결제
@@ -245,66 +197,12 @@ async function runDailyBriefing(): Promise<Response> {
   // 09:10. 그래서 한 화요일의 박스 = ① 이미 결제된 박스(결제됨 + 발송 대기 주문, 발송일이 그 화요일)
   // + ② 결제일이 아직 안 온 구독. 결제일이 지났는데 결제가 안 된 구독은 박스로 세지 않고 따로 경고한다.
   // 모든 조회 실패는 countFailures 로 — 0박스로 접지 않는다(규칙1).
-  type PaidRow = { id: string; subscription_id: string | null; paid_at: string | null; created_at: string }
-  let paidRows: PaidRow[] = []
-  if (paidPreparing.error) {
-    countFailures.push(`발송 대기 주문: ${paidPreparing.error.message}`)
-  } else {
-    paidRows = (paidPreparing.data ?? []) as PaidRow[]
-    // 상한에 닿으면 일부만 센 것이다 — 조용히 잘린 숫자를 '전부'라고 말하지 않는다.
-    if (paidRows.length >= PAID_PREPARING_LIMIT) countFailures.push(`발송 대기 주문: ${PAID_PREPARING_LIMIT}건 넘어 일부만 셈`)
-  }
-  // 박스의 발송일을 따지려면 그 구독의 지금 next_delivery_date 가 필요하다(해지·정지된 구독 포함).
-  const nextBySub = new Map<string, string | null>()
-  const paidSubIds = [...new Set(paidRows.map((o) => o.subscription_id).filter((x): x is string => !!x))]
-  if (paidSubIds.length > 0) {
-    const { data: paidSubs, error: paidSubsErr } = await supabase
-      .from('subscriptions')
-      .select('id, next_delivery_date')
-      .in('id', paidSubIds)
-    // 실패하면 결제일 기준 첫 화요일로만 판정한다(paidBoxShipIso 의 폴백) — 늦게 성공한 박스가
-    // 미발송으로 잘못 잡힐 수 있으므로 '못 셌음'으로도 알린다.
-    if (paidSubsErr) countFailures.push(`발송 대기 주문의 구독: ${paidSubsErr.message}`)
-    for (const s of (paidSubs ?? []) as Array<{ id: string; next_delivery_date: string | null }>) {
-      nextBySub.set(s.id, s.next_delivery_date)
-    }
-  }
-  let paidForShip = 0
-  let overdueUnshipped = 0
-  const paidForShipSubIds = new Set<string>()
-  for (const o of paidRows) {
-    const boxShip = paidBoxShipIso(
-      o.subscription_id ? (nextBySub.get(o.subscription_id) ?? null) : null,
-      o.paid_at ?? o.created_at,
-    )
-    if (boxShip < today) {
-      overdueUnshipped++
-    } else if (boxShip === shipIso) {
-      paidForShip++
-      if (o.subscription_id) paidForShipSubIds.add(o.subscription_id)
-    }
-  }
-  // ② 아직 결제 안 된 구독 — 결제일이 남았나, 지났나.
-  let toCharge = 0
-  let notCharged = 0
-  if (shipSubs.error) {
-    countFailures.push(`발송 예정 구독: ${shipSubs.error.message}`)
-  } else {
-    // 결제됐는데 청구 크론의 날짜 밀기가 실패한 구독은 ①에서 이미 셌다 — 두 번 세지 않는다.
-    const pending = ((shipSubs.data ?? []) as Array<{ id: string; user_id: string }>).filter(
-      (s) => !paidForShipSubIds.has(s.id),
-    )
-    const timings = pending.length > 0 ? await getChargeTimings(pending.map((s) => s.user_id)) : null
-    if (pending.length > 0 && !timings) countFailures.push('결제 시점(서포터즈 여부): 조회 실패')
-    for (const s of pending) {
-      // 결제 시점을 모르면 가장 늦은 결제일(발송일)로 본다 — 서포터즈를 '결제 실패'로 단정하지 않는다.
-      //   그 대신 일반 고객의 토요일 실패가 '결제 예정'으로 보일 수 있어, 위에서 '못 셌음'을 띄운다.
-      const timing = timings?.get(s.user_id) ?? 'ship_day'
-      // 09:40 브리핑은 09:10 청구 뒤다 — 결제일이 오늘이거나 지났는데 남아 있으면 결제가 안 된 것이다.
-      if (chargeDateFor(shipIso, timing) > today) toCharge++
-      else notCharged++
-    }
-  }
+  // ★판정은 이번 주 할 일과 같은 함수(lib/admin/weekly-todo-core classifyPaidBoxes · classifyUnchargedSubs, 2026-10-14 B2) —
+  //   ① 결제된 박스 = 결제됨 + 발송 대기 주문을 박스마다 paidBoxShipIso 로(발송일 지남 → 미발송, 이번 화요일 → 결제 완료),
+  //   ② 아직 결제 안 된 구독 = 결제일(chargeDateFor)이 남았나(결제 예정)·지났나(결제 안 됨). 결제 시점을 모르면 가장 늦은
+  //   결제일(발송일)로 본다 — 서포터즈를 '결제 실패'로 단정하지 않고 '못 셌음'을 띄운다. 09:40 브리핑은 09:10 청구 뒤다.
+  countFailures.push(...todo.failures)
+  const { paidForShip, overdueUnshipped, toCharge, notCharged } = todo.numbers
 
   // 발송 관련이 제일 위 — 화요일 아침엔 이게 오늘의 일이다.
   // ★발송일엔 **결제된 박스만** 박스로 센다 (2026-09-25 3차 점검의 원칙 그대로). 결제일이 지났는데 화요일
@@ -318,9 +216,10 @@ async function runDailyBriefing(): Promise<Response> {
     }
   } else {
     // 토요일 = 일반 고객 결제·조리 시작일. 오늘 09:10 청구 크론이 낸 결과를 그대로 말한다.
+    //   이번 회차(토~화) 결제 결과 = 이번 주 할 일의 '토 · 결제' 칸과 같은 숫자(구독마다 마지막 시도). 토요일 아침엔 오늘 것뿐이다.
     if (isCookDay) {
-      const okToday = nOf('오늘 결제 성공', chargedToday)
-      const ngToday = nOf('오늘 결제 실패', chargeFailedToday)
+      const okToday = todo.numbers.chargeOk
+      const ngToday = todo.numbers.chargeFailed
       if (okToday + ngToday > 0) {
         items.push(`🍳 오늘 결제·조리 시작: ${okToday}박스 결제${ngToday > 0 ? ` · 실패 ${ngToday}건` : ''}`)
       }
@@ -346,16 +245,24 @@ async function runDailyBriefing(): Promise<Response> {
   if (cStuck > 0) items.push(`⏳ 배송 지연 ${cStuck}건`)
   const cFailed = nOf('결제 실패', failedCharge)
   if (cFailed > 0) items.push(`💳 결제 실패 ${cFailed}건`)
-  const cRenewal = nOf('카드 재등록 대기', cardRenewal)
+  const cRenewal = todo.numbers.cardRenewal
   if (cRenewal > 0) items.push(`🔁 카드 재등록 대기 ${cRenewal}건`)
   const cRefund = nOf('환불 대기', refundsPending)
   if (cRefund > 0) items.push(`↩️ 환불 대기 ${cRefund}건`)
   const cRefundStuck = nOf('환불 최종 실패', refundsStuck)
   if (cRefundStuck > 0) items.push(`🚨 환불 최종 실패 ${cRefundStuck}건 — 수동 환불 필요`)
-  const cCs = nOf('답장 대기', unreadCs)
-  if (cCs > 0) items.push(`✉️ 답장 대기 ${cCs}건`)
+  // 답장 대기 = **사람 수**(문의함·어드민 홈과 같은 단위 — 예전엔 메시지 줄 수라 한 분이 세 번 보내면 3건이었다).
+  const cCs = todo.numbers.csUnansweredUsers
+  if (cCs > 0) items.push(`✉️ 답장 대기 ${cCs}명`)
   const cStock = nOf('품절', stockOut)
   if (cStock > 0) items.push(`📉 품절 ${cStock}개`)
+  // 경보함·외부 키 만료·포장(월·화)·레시피 동의 마감·서포터즈 전환·웹 가게 출고 — 이번 주 할 일과 같은 숫자.
+  items.push(...briefingExtraLines(todo))
+  // 외부 키 만료 7·3·1일 전·만료 — 단계마다 한 번 경보함에 올린다(B4). 실패해도 브리핑은 나간다(못 센 것으로 알림).
+  {
+    const keyAlerts = await raiseKeyExpiryAlerts(supabase, todo.numbers.keys)
+    countFailures.push(...keyAlerts.failures)
+  }
 
   // 규모 경보 — 조용히 깨지는 처리 한도에 다가가면 미리(lib/ops/scale-watch, 2026-09-26 점검 6차).
   //   맨 뒤에 둔다: 오늘 할 일은 아니고, 몇 주 안에 손봐야 할 일이다.
@@ -480,7 +387,4 @@ async function runDailyBriefing(): Promise<Response> {
     items,
   })
 }
-
-/** 결제됨 + 발송 대기 주문을 한 번에 읽는 상한. 닿으면 '못 셌음'으로 알린다(조용히 잘린 숫자 금지). */
-const PAID_PREPARING_LIMIT = 2000
 

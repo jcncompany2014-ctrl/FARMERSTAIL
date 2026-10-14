@@ -13,6 +13,15 @@ import { pushToUser } from '@/lib/push'
 import { notifyOrderDelivered } from '@/lib/email'
 import { trackCron } from '@/lib/cron-tracking'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
+
+/**
+ * 배송조회 키가 거절·누락·깨짐 — 사장님이 직접 키를 바꿔야 하는 일이라 경보함에도 남긴다(2026-10-14 B4, 종류
+ * tracking.tracker_key_rejected — lib/admin/alert-kinds). 키 값은 넣지 않는다(사유만).
+ */
+function reportTrackerKeyProblem(reason: string) {
+  captureBusinessEvent('error', 'tracking.tracker_key_rejected', { reason })
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -133,6 +142,7 @@ async function runTrackingPoll(): Promise<Response> {
     env.DELIVERY_TRACKER_CLIENT_SECRET,
   )
   if (targets.length > 0 && !authHeader) {
+    reportTrackerKeyProblem('TRACKER_NOT_CONFIGURED')
     return NextResponse.json(
       {
         ok: false,
@@ -145,6 +155,7 @@ async function runTrackingPoll(): Promise<Response> {
   }
   // 붙여넣기 사고(가운데 줄바꿈·공백·보이지 않는 문자)는 조회해 볼 것도 없이 틀린 키다 — 값은 남기지 않는다.
   if (authHeader && trackerKeyMalformed(env.DELIVERY_TRACKER_CLIENT_ID, env.DELIVERY_TRACKER_CLIENT_SECRET)) {
+    reportTrackerKeyProblem('TRACKER_KEY_MALFORMED')
     return NextResponse.json(
       {
         ok: false,
@@ -168,6 +179,7 @@ async function runTrackingPoll(): Promise<Response> {
   if (targets.length === 0 && authHeader) {
     keyCheck = await checkTrackerKey(supabase, authHeader)
     if (keyCheck === 'rejected') {
+      reportTrackerKeyProblem('TRACKER_AUTH_REJECTED')
       return NextResponse.json(
         {
           ok: false,
@@ -308,6 +320,7 @@ async function runTrackingPoll(): Promise<Response> {
   }
 
   if (authRejected) {
+    reportTrackerKeyProblem('TRACKER_AUTH_REJECTED')
     return NextResponse.json(
       {
         ok: false,

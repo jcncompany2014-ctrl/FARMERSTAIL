@@ -5,6 +5,8 @@ import { isAdmin } from '@/lib/auth/admin'
 import SimulatorClient from './SimulatorClient'
 import V3SimulatorClient from './V3SimulatorClient'
 import { Hl, Em } from '@/components/admin/ui'
+import { approvalTimeLeft } from '@/lib/personalization/approval-deadline'
+import { withHonorific } from '@/lib/korean'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +43,7 @@ export default async function AdminPersonalizationPage({
     { count: adjustedFormulas },
     { count: totalCheckins },
     { count: pendingCount },
-    { data: pendingNearTimeout },
+    { data: pendingRows, error: pendingErr },
     { data: satisfactionRows },
     { data: cycleResponse },
   ] = await Promise.all([
@@ -59,17 +61,14 @@ export default async function AdminPersonalizationPage({
       .from('dog_formulas')
       .select('*', { count: 'exact', head: true })
       .eq('approval_status', 'pending_approval'),
-    // 5일 타임아웃 임박 (3일+ 지난 pending) — 직접 푸시 reminder 대상.
+    // 동의 대기 전부 — 마감 임박은 아래에서 정본(lib/personalization/approval-deadline)으로 가른다(2026-10-14 B2).
+    //   예전엔 '3일+ 지난 것 · 5일 − 지난 날'로 셌다 — 금액이 바뀌는 제안은 마감이 **3일**이라 이틀 늦게 '임박'으로 떴다.
     supabase
       .from('dog_formulas')
-      .select('id, dog_id, cycle_number, proposed_at')
+      .select('id, dog_id, user_id, cycle_number, proposed_at, formula')
       .eq('approval_status', 'pending_approval')
-      .lt(
-        'proposed_at',
-        new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      )
       .order('proposed_at', { ascending: true })
-      .limit(20),
+      .limit(200),
     supabase
       .from('dog_checkins')
       .select('overall_satisfaction')
@@ -78,6 +77,28 @@ export default async function AdminPersonalizationPage({
       .from('dog_checkins')
       .select('cycle_number, checkpoint'),
   ])
+
+  /**
+   * ★동의 마감 임박 — 강아지 이름 · 보호자님으로 (2026-10-14 B2). 예전엔 dog_id 앞 8자리만 보여서 누구에게 연락할지
+   * 사장님이 고객 목록을 따로 뒤져야 했다. 마감은 정본(approvalTimeLeft — 금액 변경 3일·일반 5일·상담 필요는 마감 없음).
+   */
+  type PendingRow = { id: string; dog_id: string; user_id: string; cycle_number: number; proposed_at: string | null; formula: unknown }
+  const nowForDeadline = new Date()
+  const pendingNearTimeout = ((pendingRows ?? []) as unknown as PendingRow[])
+    .map((r) => ({ r, left: approvalTimeLeft(r, nowForDeadline) }))
+    .filter((x): x is { r: PendingRow; left: NonNullable<ReturnType<typeof approvalTimeLeft>> } => !!x.left && x.left.imminent)
+    .sort((a, b) => (a.left.deadlineIso < b.left.deadlineIso ? -1 : 1))
+  const nearDogIds = [...new Set(pendingNearTimeout.map((x) => x.r.dog_id))]
+  const nearUserIds = [...new Set(pendingNearTimeout.map((x) => x.r.user_id))]
+  const [nearDogsRes, nearUsersRes] = await Promise.all([
+    nearDogIds.length > 0 ? supabase.from('dogs').select('id, name').in('id', nearDogIds) : Promise.resolve({ data: [], error: null }),
+    nearUserIds.length > 0 ? supabase.from('profiles').select('id, name').in('id', nearUserIds) : Promise.resolve({ data: [], error: null }),
+  ])
+  const namesFailed = Boolean(nearDogsRes.error || nearUsersRes.error)
+  if (pendingErr) console.error('[admin-personalization] 동의 대기 조회 실패:', pendingErr.message)
+  if (namesFailed) console.error('[admin-personalization] 이름 조회 실패:', (nearDogsRes.error ?? nearUsersRes.error)?.message)
+  const nearDogName = new Map(((nearDogsRes.data ?? []) as Array<{ id: string; name: string | null }>).map((d) => [d.id, d.name?.trim() || '(이름 없음)']))
+  const nearUserName = new Map(((nearUsersRes.data ?? []) as Array<{ id: string; name: string | null }>).map((p) => [p.id, withHonorific(p.name) || '보호자님']))
 
   // 만족도 분포 (1-5 점)
   const satisfaction: Record<1 | 2 | 3 | 4 | 5, number> = {
@@ -155,11 +176,13 @@ export default async function AdminPersonalizationPage({
           value={pendingCount ?? 0}
           unit="건"
           hint={
-            (pendingNearTimeout ?? []).length > 0
-              ? `${(pendingNearTimeout ?? []).length}건 마감 임박`
-              : '5일간 응답 없으면 이전 레시피 유지'
+            pendingErr
+              ? '동의 대기 목록을 못 읽었어요 — 새로고침해 주세요'
+              : pendingNearTimeout.length > 0
+                ? `${pendingNearTimeout.length}건 마감 임박(48시간 안)`
+                : '응답 없으면 이전 레시피 유지(금액 변경 3일·일반 5일)'
           }
-          warn={(pendingNearTimeout ?? []).length > 0}
+          warn={pendingNearTimeout.length > 0 || Boolean(pendingErr)}
         />
         <KpiCard label="지금까지 만든 박스" value={totalFormulas ?? 0} unit="건" />
         <KpiCard
@@ -176,51 +199,36 @@ export default async function AdminPersonalizationPage({
         />
       </section>
 
-      {/* pending_approval 임박 큐 */}
-      {(pendingNearTimeout ?? []).length > 0 && (
+      {/* pending_approval 임박 큐 — 강아지 이름 · 보호자님, 마감은 정본(approval-deadline). 이름을 누르면 그 고객 화면. */}
+      {pendingNearTimeout.length > 0 && (
         <section className="mb-6 bg-primary/5 border-2 border-primary/30 rounded-lg p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.2em] uppercase text-primary mb-3">
-            ⚠️ 동의 마감 임박 ({(pendingNearTimeout ?? []).length})
+          <h3 className="text-[12px] font-bold text-primary mb-3">
+            ⚠️ 동의 마감 임박 ({pendingNearTimeout.length})
           </h3>
+          {namesFailed && (
+            <p className="mb-2 text-[11.5px] font-semibold text-destructive">
+              이름을 불러오지 못했어요 — 아래는 &lsquo;강아지·보호자님&rsquo;으로 보여요. 새로고침해 주세요.
+            </p>
+          )}
           <ul className="space-y-1.5">
-            {(pendingNearTimeout ?? []).map((row) => {
-              const r = row as unknown as {
-                id: string
-                dog_id: string
-                cycle_number: number
-                proposed_at: string
-              }
-              const daysLeft = Math.max(
-                0,
-                5 -
-                  Math.ceil(
-                    (Date.now() - new Date(r.proposed_at).getTime()) /
-                      (1000 * 60 * 60 * 24),
-                  ),
-              )
-              return (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between text-[12px] py-1.5 px-3 bg-card rounded-lg"
+            {pendingNearTimeout.map(({ r, left }) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[12.5px] py-2 px-3 bg-card rounded-lg"
+              >
+                <Link href={`/admin/users/${r.user_id}`} className="min-w-0 font-semibold text-foreground underline decoration-border underline-offset-2 hover:decoration-primary">
+                  {nearDogName.get(r.dog_id) ?? '강아지'} · {nearUserName.get(r.user_id) ?? '보호자님'}
+                  <span className="ml-1.5 font-normal text-muted-foreground">{r.cycle_number}번째 박스</span>
+                </Link>
+                <span
+                  className={`shrink-0 font-bold text-[11px] ${
+                    left.hoursLeft <= 0 ? 'text-primary' : left.hoursLeft <= 24 ? 'text-amber-600' : 'text-muted-foreground'
+                  }`}
                 >
-                  <span className="text-foreground">
-                    강아지 <span className="font-mono">{r.dog_id.slice(0, 8)}</span> ·{' '}
-                    {r.cycle_number}번째 박스
-                  </span>
-                  <span
-                    className={`font-bold text-[10.5px] ${
-                      daysLeft === 0
-                        ? 'text-primary'
-                        : daysLeft === 1
-                          ? 'text-amber-600'
-                          : 'text-muted-foreground'
-                    }`}
-                  >
-                    {daysLeft === 0 ? '오늘 마감' : `${daysLeft}일 남음`}
-                  </span>
-                </li>
-              )
-            })}
+                  {left.label}
+                </span>
+              </li>
+            ))}
           </ul>
         </section>
       )}

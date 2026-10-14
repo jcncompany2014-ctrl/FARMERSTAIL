@@ -24,6 +24,8 @@
  * user.id 는 OK (UUID, Sentry 가 default 로 표시 안 함).
  */
 import * as Sentry from '@sentry/nextjs'
+// 상대 경로 + .ts — node 테스트(npm test)가 이 파일을 값으로 불러온다('@/' 를 못 푼다).
+import { shouldRecordOwnerAlert } from '../admin/alert-kinds.ts'
 
 export type TraceAttributes = Record<
   string,
@@ -85,6 +87,31 @@ export function captureBusinessEvent(
     },
     extra: context as Record<string, unknown>,
   })
+  forwardToOwnerInbox(level, message, context)
+}
+
+/**
+ * ★사장님이 직접 처리해야 하는 경보는 어드민 경보함(admin_alerts)에도 적는다 (2026-10-14 B1, 규칙247).
+ * Sentry 메일은 사장님 Gmail 로 오지 않는다 — 여기만 보내면 '토스에서 직접 환불하세요' 같은 일이 아무 데도 안 남았다.
+ * 고르는 목록은 lib/admin/alert-kinds(정본). 기록은 응답 뒤(after)·실패해도 던지지 않는다(lib/admin/alert-record).
+ * 서버에서만 — 브라우저에서 불리면 아무것도 하지 않는다.
+ */
+function forwardToOwnerInbox(
+  level: 'info' | 'warning' | 'error',
+  message: string,
+  context: TraceAttributes,
+): void {
+  try {
+    if (typeof window !== 'undefined') return
+    if (!shouldRecordOwnerAlert(level, message)) return
+    void import('@/lib/admin/alert-record')
+      .then((m) => m.forwardOwnerAlert(level, message, context))
+      .catch((e: unknown) => {
+        console.error('[admin-alerts] 경보함 기록 모듈을 못 불렀다 — 원래 동작은 계속:', message, e)
+      })
+  } catch {
+    /* 경보함 기록이 원래 흐름을 막지 않는다 */
+  }
 }
 
 /**

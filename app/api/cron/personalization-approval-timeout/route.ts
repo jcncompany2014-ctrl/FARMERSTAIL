@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 import { trackCron } from '@/lib/cron-tracking'
+import {
+  approvalExpired,
+  approvalWindowDays,
+  APPROVAL_DAYS_PRICE_CHANGE,
+} from '@/lib/personalization/approval-deadline'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,16 +45,14 @@ export async function GET(req: Request) {
   // R83-E3 (D3): trackCron wrap.
   return trackCron('personalization-approval-timeout', async () => {
     const supabase = createAdminClient()
-    const fiveDaysAgo = new Date(
-    Date.now() - 5 * 24 * 60 * 60 * 1000,
-  ).toISOString()
   // 금액이 바뀌는 제안(몸무게·알레르기·건강, 구독페이지 모달)은 3일 안에 응답
   // 없으면 미동의(=이전 유지)로. 금액 변동 없는 일반 승인은 종전대로 5일.
-  // (사장님 2026-07-23)
+  // (사장님 2026-07-23) — 마감 판정은 정본 lib/personalization/approval-deadline(어드민 화면·이번 주 할 일과 같은 함수, 2026-10-14).
+  const nowDate = new Date()
   const threeDaysAgo = new Date(
-    Date.now() - 3 * 24 * 60 * 60 * 1000,
+    nowDate.getTime() - APPROVAL_DAYS_PRICE_CHANGE * 24 * 60 * 60 * 1000,
   ).toISOString()
-  const now = new Date().toISOString()
+  const now = nowDate.toISOString()
 
   type PendingRow = {
     id: string
@@ -90,20 +93,15 @@ export async function GET(req: Request) {
     try {
       // row 별 마감: 금액변경 제안(priceChange 표식·모달)=3일, 일반=5일. 3일
       // 경과분을 다 가져왔으니 모달건은 전부 대상, 일반은 5일 지난 것만 처리.
-      const isModal = !!row.formula?.priceChange
-      if (!isModal && row.proposed_at >= fiveDaysAgo) continue
-      // ★최종감사 #5 (2026-07-29): 상담 필요 건은 타임아웃 처리하지 않는다.
+      // ★최종감사 #5 (2026-07-29): 상담 필요 건은 타임아웃 처리하지 않는다(정본이 마감 없음 = 만료 아님으로 돌려준다).
       //   이 크론의 마감 처리 = "이전 식단 그대로 유지" 인데, 알레르기 누출
       //   케이스에선 이전 식단도 새로 선언된 알레르겐을 포함할 수 있다.
       //   게다가 고객에겐 이미 "결제 멈춰둘게요 · 상담" 푸시가 나갔는데 5일 뒤
       //   "이전 식단 유지할게요" 푸시가 겹치면 정면 모순이다. 구독은 누출 감지
       //   시점에 일시정지됐으므로 pending 으로 놔둬도 결제·배송은 안 나간다 —
       //   상담에서 사람이 풀어야 하는 건이다.
-      if (
-        (row.formula as { needsConsultation?: boolean } | null)
-          ?.needsConsultation === true
-      )
-        continue
+      if (!approvalExpired(row, nowDate)) continue
+      const isModal = approvalWindowDays(row.formula) === APPROVAL_DAYS_PRICE_CHANGE
       // ★직전 회차를 **전환 전에** 읽는다(2026-08-07 재감사).
       //   전에는 declined 로 바꾼 뒤에 읽고, 실패하면 continue 했다. 그런데
       //   그 시점엔 이미 approval_status 가 'declined' 라 다음 실행의
