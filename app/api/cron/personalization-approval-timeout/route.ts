@@ -5,8 +5,10 @@ import { trackCron } from '@/lib/cron-tracking'
 import {
   approvalExpired,
   approvalWindowDays,
+  isForcedProposal,
   APPROVAL_DAYS_PRICE_CHANGE,
 } from '@/lib/personalization/approval-deadline'
+import { captureBusinessEvent } from '@/lib/sentry/trace'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,6 +90,8 @@ export async function GET(req: Request) {
   // 이번 회차에 손대지 않고 다음 실행으로 넘긴 건 — 안 세면 조용히 사라진다.
   let deferred = 0
   let failed = 0
+  // 알레르기·건강 제안 무응답으로 닫은 수 — 경보함에 '연락 필요'로 오른다(규칙266).
+  let forcedNoReply = 0
 
   for (const row of rows) {
     try {
@@ -102,6 +106,15 @@ export async function GET(req: Request) {
       //   상담에서 사람이 풀어야 하는 건이다.
       if (!approvalExpired(row, nowDate)) continue
       const isModal = approvalWindowDays(row.formula) === APPROVAL_DAYS_PRICE_CHANGE
+      /**
+       * ★알레르기·건강 정보 때문에 바뀌는(강제) 제안 — 2026-10-15 F-a(규칙266).
+       *   '이전 식단 그대로'로 닫히면 그 식단에 새로 알려준 알레르기 재료가 남을 수 있어 포장 목록이 박스를 멈춘다
+       *   (lib/personalization/boxPricing → ship-block '알레르기 확인 필요'). 그런데 손님에겐 '그대로 다음 박스에 적용해요'가,
+       *   사장님에겐 아무것도 가지 않았다. 마감(닫기)은 그대로 하되 — 손님 화면이 '3일 안에 안 고르시면 이전 그대로'라고
+       *   약속했고, 닫혀야 다음 제안이 다시 만들어진다 — 손님 문구를 사실대로 바꾸고 경보함에 '연락 필요'를 올린다.
+       *   결제는 바꾸지 않는다(멈출지는 사장님 결정).
+       */
+      const forced = isForcedProposal(row.formula)
       // ★직전 회차를 **전환 전에** 읽는다(2026-08-07 재감사).
       //   전에는 declined 로 바꾼 뒤에 읽고, 실패하면 continue 했다. 그런데
       //   그 시점엔 이미 approval_status 가 'declined' 라 다음 실행의
@@ -174,19 +187,40 @@ export async function GET(req: Request) {
         }
       }
 
+      // 2-1) 알레르기·건강 제안 무응답 — 사장님 경보함(대상 = 강아지). 한 제안은 한 번만 닫히므로(위 CAS) 한 번만 오른다.
+      if (forced) {
+        forcedNoReply += 1
+        captureBusinessEvent('error', 'personalization.approval_timeout.forced_no_reply', {
+          dogId: row.dog_id,
+          userId: row.user_id,
+          formulaId: row.id,
+          cycleNumber: row.cycle_number,
+          priceFrom: row.formula?.priceChange?.from ?? null,
+          priceTo: row.formula?.priceChange?.to ?? null,
+          note: '알레르기·건강 정보로 바뀌는 새 레시피에 3일 무응답 — 이전 식단으로 닫힘. 이전 식단에 그 재료가 있으면 포장 목록이 박스를 멈춘다(결제는 그대로). 고객 연락 필요',
+        })
+      }
+
       // 3) push 알림 — "5일 무응답으로 이전 비율 유지" — 보호자 알림.
       try {
         const { pushToUser } = await import('@/lib/push')
         await pushToUser(
           row.user_id,
-          {
-            title: '이전 식단 그대로 유지할게요',
-            body:
-              // 금액변경 모달 건은 3일 마감이라고 안내했으므로 푸시도 3일로
-              // 말해야 한다(최종감사 #33 — "3일이라더니 5일?" 신뢰 흠집 방지).
-              `${isModal ? '3일' : '5일'} 동안 응답이 없어 지난번과 같은 맞춤 식단을 그대로 다음 박스에 적용해요. 알림 센터에서 확인할 수 있어요.`,
-            url: `/dogs/${row.dog_id}/formulas`,
-          },
+          forced
+            ? {
+                // ★'그대로 적용'이라고 말하지 않는다(규칙266) — 이전 식단의 박스는 포장에서 멈출 수 있다. 사장님이 연락한다.
+                title: '새 레시피 확인이 필요해요',
+                body: '3일 동안 응답이 없어 바뀐 레시피는 아직 적용하지 않았어요. 알려주신 알레르기·건강 정보와 관련된 변경이라 다음 박스 전에 저희가 따로 연락드릴게요.',
+                url: `/dogs/${row.dog_id}/formulas`,
+              }
+            : {
+                title: '이전 식단 그대로 유지할게요',
+                body:
+                  // 금액변경 모달 건은 3일 마감이라고 안내했으므로 푸시도 3일로
+                  // 말해야 한다(최종감사 #33 — "3일이라더니 5일?" 신뢰 흠집 방지).
+                  `${isModal ? '3일' : '5일'} 동안 응답이 없어 지난번과 같은 맞춤 식단을 그대로 다음 박스에 적용해요. 알림 센터에서 확인할 수 있어요.`,
+                url: `/dogs/${row.dog_id}/formulas`,
+              },
           { category: 'order' },
         )
       } catch {
@@ -195,6 +229,9 @@ export async function GET(req: Request) {
 
       // 4) ★메일로도 결과를 알린다 (2026-09-25 출시 전 점검 4차) — 푸시만 가서 웹 구독자는
       //    제안이 있었다는 것도, 그대로 유지된다는 것도 몰랐다. 실패는 흐름을 막지 않는다.
+      //    ★알레르기·건강 제안은 보내지 않는다(규칙266) — 그 메일은 '그대로 유지돼요'라고 말한다(사실과 다름). 사장님이 직접
+      //      연락한다(위 경보함). 사실대로 말하는 메일 양식은 이 갈래 밖(lib/email) — 사장님 결정 목록에 적었다.
+      if (forced) continue
       try {
         const [{ data: prof, error: profErr }, { data: dogRow }] = await Promise.all([
           supabase.from('profiles').select('email, name').eq('id', row.user_id).maybeSingle(),
@@ -248,6 +285,7 @@ export async function GET(req: Request) {
       deferred,
       extended,
       failed,
+      forcedNoReply,
     })
   })
 }

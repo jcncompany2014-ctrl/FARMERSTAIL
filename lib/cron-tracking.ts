@@ -27,6 +27,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isFailureStatus } from './cron-status.ts'
 import { failureCountOf } from './cron-failure-count.ts'
 import { sanitizeLogText } from '@/lib/log-sanitize'
+import { cronAlertTargetKey, cronSentryFingerprint } from './sentry/cron-event.ts'
 
 export async function trackCron<T extends Response>(
   path: string,
@@ -113,18 +114,40 @@ export async function trackCron<T extends Response>(
   }
 }
 
+/**
+ * 크론 실패 알림 — Sentry + 운영 경보함(2026-10-15 F-a, 규칙267).
+ *
+ * # 왜
+ * 메시지가 늘 'cron.error' 하나라 어떤 크론이 실패해도 Sentry 이슈 하나(FARMERSTAIL-APP-1H)로 묶여 숫자만 올랐고('새 이슈' 알림
+ * 없음), 크론 이름은 extra 에만 있어 알림 규칙으로 가를 수도 없었다. Sentry 메일은 사장님 Gmail 로 오지 않고, 경보함 목록에도
+ * 없어 버려졌다 — 결제·발송이 멈춘 걸 아는 길이 아침 알림 한 줄뿐이었다.
+ *  · Sentry: 크론마다 따로 묶는다(cronSentryFingerprint) + 태그(cron.path)로 알림 규칙을 크론별로 걸 수 있게.
+ *  · 경보함: 'cron.error' 를 사람 일 목록에 넣었다(lib/admin/alert-kinds). 대상 열쇠 = 크론 + KST 날짜(cronAlertTargetKey) —
+ *    같은 날 같은 크론의 재실패는 한 줄(횟수만 오름), 다음 날 실패는 새 줄. '처리함'을 누를 때까지 남는다.
+ */
 async function notifyCronError(
   path: string,
   message: string,
   durationMs: number,
 ): Promise<void> {
   try {
-    const { captureBusinessEvent } = await import('@/lib/sentry/trace')
-    captureBusinessEvent('error', 'cron.error', {
-      cron_path: path,
-      duration_ms: durationMs,
-      error_message: message.slice(0, 500),
-    })
+    const [{ captureBusinessEvent }, { cronLabel }] = await Promise.all([
+      import('@/lib/sentry/trace'),
+      import('@/lib/cron-labels'),
+    ])
+    captureBusinessEvent(
+      'error',
+      'cron.error',
+      {
+        cron_path: path,
+        duration_ms: durationMs,
+        error_message: message.slice(0, 500),
+        // 경보함 묶음 열쇠·한 줄 설명(alert-kinds alertTargetKey·alertMessageOf 가 읽는다).
+        targetKey: cronAlertTargetKey(path, new Date()),
+        detail: cronLabel(path),
+      },
+      { fingerprint: cronSentryFingerprint(path), tags: { 'cron.path': path } },
+    )
   } catch {
     /* Sentry 없으면 무시 — cron_health 테이블에 이미 기록됨 */
   }
@@ -204,6 +227,8 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     'ambiguousUnknown',
     // ★가격 인상 동의가 없어 보류한 회차 수(청구 크론, 2026-10-14 A1) — 숫자만. 실패 카운터(FAILURE_KEYS)가 아니다.
     'priceConsentHeld',
+    // ★더는 맞지 않아 닫은 열린 보류 수(청구 크론, 2026-10-15 F-a) — 숫자만. 실패 카운터가 아니다(정리 실패는 경보함).
+    'holdsClosed',
     // ★배송조회 키 자가 점검 결과(tracking-poll, 2026-10-09) — 'ok'·'upstream_error'·'no_sample' 등 글자 하나.
     //   빠져 있으면 키가 통했는지·아예 안 읽혔는지가 cron_health 에서 구분되지 않는다(실제로 그랬다).
     'keyCheck',

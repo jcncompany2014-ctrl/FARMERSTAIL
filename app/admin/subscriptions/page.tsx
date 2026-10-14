@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Repeat } from 'lucide-react'
 import { customerHref } from '@/lib/admin/customer-link'
@@ -119,6 +119,20 @@ function stateOf(sub: SubscriptionRow): SubState {
 }
 
 
+/**
+ * 서포터즈 구독의 다음 결제 회차 — 서버(/api/admin/trials?rounds=1)가 정본 펼치기(loadChargeProjection, 보류에서 멈춤)로 낸 값.
+ * held = 가격이 오르는 회차인데 고객 동의 기록이 없다 → 청구 크론이 결제하지 않고 보류(규칙264, 2026-10-15 F-a).
+ */
+type NextRound = {
+  shipIso: string
+  chargeIso: string
+  chargeAmount: number
+  listAmount: number
+  held: boolean
+  rise: string | null
+  phase: string
+}
+
 const PER_PAGE = 200
 
 export default function AdminSubscriptionsPage() {
@@ -142,6 +156,10 @@ export default function AdminSubscriptionsPage() {
   // 못 받으면 서포터즈도 정가로 보이므로 그 사실을 화면에 알린다(규칙1 — 실패를 '없음'으로 위장 금지).
   const [trials, setTrials] = useState<Map<string, TrialState>>(new Map())
   const [trialsError, setTrialsError] = useState(false)
+  // 서포터즈(도장 있는 사람)의 구독별 다음 결제 회차 — 실제 금액·인상 동의 보류 예정(2026-10-15 F-a, 규칙264).
+  //   체험단 화면·달력과 같은 정본 펼치기(loadChargeProjection)를 서버가 돌려 준다. 못 받으면 roundsError(화면에 알림).
+  const [nextRounds, setNextRounds] = useState<Map<string, NextRound>>(new Map())
+  const [roundsError, setRoundsError] = useState(false)
   // 결제됐고 아직 안 나간 박스가 있는 구독(결제됨 + 발송 대기 주문) — 2026-10-01 일정 변경.
   //   일반 고객은 토요일에 결제되고 청구 크론이 그 즉시 next_delivery_date 를 다음 주기(+14)로 민다.
   //   이걸 모르면 토~화엔 사흘 뒤 나갈 박스가 '배송 예정'에서 빠지고 다음 주기 날짜만 보인다.
@@ -162,9 +180,16 @@ export default function AdminSubscriptionsPage() {
     //  빠진다(별표는 그것들까지 전부 내보냈다).
     const [{ data, error, count }, trialRes, paidRes] = await Promise.all([
       subsQuery().range(0, PER_PAGE - 1),
-      fetch('/api/admin/trials')
+      fetch('/api/admin/trials?rounds=1')
         .then(async (r) =>
-          r.ok ? ((await r.json()) as { ok?: boolean; trials?: Array<TrialState & { user_id: string }> }) : null,
+          r.ok
+            ? ((await r.json()) as {
+                ok?: boolean
+                trials?: Array<TrialState & { user_id: string }>
+                nextRounds?: Record<string, NextRound>
+                roundsError?: string | null
+              })
+            : null,
         )
         .catch(() => null),
       // 결제 증거 = 결제됨(부분환불 포함) + 발송 대기 주문 — 피킹 리스트·ship-block 과 같은 기준.
@@ -182,6 +207,13 @@ export default function AdminSubscriptionsPage() {
       setTrialsError(false)
     } else {
       setTrialsError(true)
+    }
+    if (trialRes?.ok && trialRes.nextRounds && !trialRes.roundsError) {
+      setNextRounds(new Map(Object.entries(trialRes.nextRounds)))
+      setRoundsError(false)
+    } else {
+      setNextRounds(new Map())
+      setRoundsError(true)
     }
     // 못 받으면 결제된 박스가 '결제 예정'처럼 보인다 — 화면에 알린다(규칙1).
     if (paidRes.error) {
@@ -517,6 +549,11 @@ export default function AdminSubscriptionsPage() {
           서포터즈 정보를 불러오지 못했어요 — 지금은 서포터즈 고객도 정가로 보여요. 새로고침해 주세요.
         </p>
       )}
+      {roundsError && !trialsError && !loading && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          서포터즈의 다음 결제(실제 금액·인상 동의 보류)를 불러오지 못했어요 — 동의가 없어 보류될 박스도 &lsquo;결제 예정&rsquo;으로 보일 수 있어요. 새로고침해 주세요.
+        </p>
+      )}
       {paidBoxError && !loading && (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
           결제된 박스(발송 대기) 정보를 불러오지 못했어요 — 토요일에 결제된 박스가 &lsquo;배송 예정&rsquo;에서 빠지고 다음 주기 날짜로 보일 수 있어요. 새로고침해 주세요.
@@ -581,6 +618,7 @@ export default function AdminSubscriptionsPage() {
                       paidBox={paidBoxSubIds.has(sub.id)}
                       today={today}
                       supporter={supporter.get(sub.id) ?? null}
+                      round={nextRounds.get(sub.id) ?? null}
                       isSupporter={isLiveTrial(trials.get(sub.user_id))}
                       isLoading={actionLoading === sub.id}
                       onAction={handleStatusChange}
@@ -602,6 +640,7 @@ export default function AdminSubscriptionsPage() {
                 paidBox={paidBoxSubIds.has(sub.id)}
                 today={today}
                 supporter={supporter.get(sub.id) ?? null}
+                round={nextRounds.get(sub.id) ?? null}
                 isSupporter={isLiveTrial(trials.get(sub.user_id))}
                 isLoading={actionLoading === sub.id}
                 onAction={handleStatusChange}
@@ -684,12 +723,15 @@ function NextDelivery({
   paidBox,
   today,
   layout,
+  round = null,
 }: {
   sub: SubscriptionRow
   box: UpcomingBox | null
   paidBox: boolean
   today: string
   layout: 'stack' | 'inline'
+  /** 서포터즈의 다음 결제 회차(정본 펼치기) — held 면 '인상 동의 없음 → 보류 예정'(규칙264). */
+  round?: NextRound | null
 }) {
   if (!box) {
     // 해지로 날짜가 지워졌어도 결제된 박스는 나간다(결제 후 자동 환불 없음 — 사장님 2026-10-01).
@@ -700,7 +742,13 @@ function NextDelivery({
     return <>-</>
   }
   let charge: { text: string; cls: string } | null
-  if (box.kind === 'in_progress') {
+  // 이 박스가 인상 동의 없이 보류될 회차인가 — 정본 펼치기가 같은 발송일의 회차를 held 로 냈다(규칙264).
+  const heldHere = !!round?.held && box.kind !== 'in_progress' && round.shipIso === box.shipIso
+  if (heldHere && box.kind === 'charge_check') {
+    charge = { text: '인상 동의 없음 — 청구 보류 중(박스 보내지 마세요)', cls: 'text-destructive' }
+  } else if (heldHere) {
+    charge = { text: `인상 동의 없음 — ${mdKo(round!.chargeIso)} 결제 보류 예정`, cls: 'text-destructive' }
+  } else if (box.kind === 'in_progress') {
     charge =
       box.shipIso < today
         ? { text: '결제됨 · 발송일 지남 — 송장 확인', cls: 'text-destructive' }
@@ -746,6 +794,42 @@ function SupporterBadge() {
  * 금액 칸 — 서포터즈면 **실제 다음 결제 금액**을 크게, 정가는 취소선으로 작게, 남은 기간 한 줄.
  * 정가만 크게 보이면 100원 결제 고객이 51,500원 고객처럼 읽힌다(사장님 2026-10-01 캡처).
  */
+/**
+ * 금액 칸 겉 — 서포터즈(도장 있는 사람)의 다음 결제 회차(정본 펼치기)가 '인상 동의 없음 → 보류 예정'이거나 실제 금액이 구독가와
+ * 다르면 그것을 보인다(규칙264, 2026-10-15 F-a). 도장이 취소된 사람의 정가 인상도 여기로 보인다. 그 밖엔 안의 금액 칸 그대로.
+ */
+function RoundAmount({
+  sub,
+  supporter,
+  round,
+  children,
+}: {
+  sub: SubscriptionRow
+  supporter: SupporterView | null
+  round: NextRound | null
+  children: ReactNode
+}) {
+  if (round?.held) {
+    return (
+      <span className="inline-flex flex-col items-end">
+        <strong className="text-[15px] tabular-nums text-red-700">{round.chargeAmount.toLocaleString()}원</strong>
+        <span className="text-[12px] font-semibold text-red-700">인상 동의 없음 · 보류 예정</span>
+      </span>
+    )
+  }
+  if (!supporter && round && round.chargeAmount !== sub.total_amount) {
+    return (
+      <span className="inline-flex flex-col items-end">
+        <strong className="tabular-nums">{round.chargeAmount.toLocaleString()}원</strong>
+        <span className="text-[12px] tabular-nums text-muted-foreground line-through">
+          정가 {round.listAmount.toLocaleString()}원
+        </span>
+      </span>
+    )
+  }
+  return <>{children}</>
+}
+
 function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: SupporterView | null }) {
   if (!supporter) {
     return <strong className="tabular-nums">{sub.total_amount.toLocaleString()}원</strong>
@@ -930,6 +1014,7 @@ function SubRow({
   paidBox,
   today,
   supporter,
+  round = null,
   isSupporter,
   isLoading,
   onAction,
@@ -940,6 +1025,7 @@ function SubRow({
   paidBox: boolean
   today: string
   supporter: SupporterView | null
+  round?: NextRound | null
   isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
@@ -974,10 +1060,10 @@ function SubRow({
         <StatusBadge sub={sub} />
       </td>
       <td className="px-4 py-3 text-center text-xs">
-        <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="stack" />
+        <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="stack" round={round} />
       </td>
       <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
-        <AmountCell sub={sub} supporter={supporter} />
+        <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
       </td>
       <td className="px-4 py-3 text-center text-xs">
         {sub.total_deliveries}회
@@ -996,6 +1082,7 @@ function SubCard({
   paidBox,
   today,
   supporter,
+  round = null,
   isSupporter,
   isLoading,
   onAction,
@@ -1006,6 +1093,7 @@ function SubCard({
   paidBox: boolean
   today: string
   supporter: SupporterView | null
+  round?: NextRound | null
   isSupporter: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
@@ -1044,11 +1132,11 @@ function SubCard({
       <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[12px]">
         <span className="min-w-0 text-muted-foreground">
           <strong className="text-foreground">
-            <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" />
+            <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" round={round} />
           </strong>
           <span className="block text-[11px]">누적 {sub.total_deliveries}회</span>
         </span>
-        <AmountCell sub={sub} supporter={supporter} />
+        <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
       </div>
       <div className="mt-3">
         <RowActions sub={sub} isLoading={isLoading} onAction={onAction} onShipDate={onShipDate} align="start" />

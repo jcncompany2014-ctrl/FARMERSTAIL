@@ -12,7 +12,15 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import type { TrialState } from './trial'
-import { phaseFromDiscountReason, type PriceConsentRow, type PricePhase, type PriceRise } from './price-rise'
+import {
+  phaseFromDiscountReason,
+  priceRiseGate,
+  staleHoldReason,
+  type HoldCloseReason,
+  type PriceConsentRow,
+  type PricePhase,
+  type PriceRise,
+} from './price-rise'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyClient = SupabaseClient<any, any, any>
@@ -145,6 +153,80 @@ export async function recordPriceRiseHold(
   // 0행 = 충돌했는데 열린 보류가 없다(그 사이 풀림) — 기록은 못 했지만 청구하지 않은 사실은 그대로다.
   if ((data?.length ?? 0) === 0) return { ok: false, error: 'hold_conflict_without_open_row' }
   return { ok: true, created: false }
+}
+
+export type HoldSweepResult = {
+  /** 살펴본 열린 보류 수. */
+  checked: number
+  /** 이유별로 닫은 수. */
+  closed: Record<HoldCloseReason, number>
+  /** 동의 상태를 못 읽어 '더는 보류 대상 아님'은 판정하지 못했다(해지·정지·발송일 변경은 닫았다). */
+  gateError: string | null
+  /** 닫기(update) 실패 — 이유별. */
+  closeErrors: string[]
+}
+
+/**
+ * 더는 맞지 않는 열린 보류를 닫는다 — 청구 크론이 매일 끝에 부른다(2026-10-15 F-a, 규칙262).
+ * 판정 정본 = lib/payments/price-rise staleHoldReason(자동결제 이력 화면도 같은 함수로 '정리 예정'을 보인다).
+ * 해지·일시정지·발송일 변경 = 구독 행만 보고 닫는다. '지금은 보류 대상 아님'(동의 기록 등) = 인상 판정(priceRiseGate)이 통과일 때만.
+ * 조회 실패는 ok:false(아무것도 닫지 않았다 — 열린 보류는 '보내지 마세요' 쪽이라 안전하다).
+ */
+export async function sweepStaleHolds(
+  admin: AnyClient,
+): Promise<{ ok: true; result: HoldSweepResult } | { ok: false; error: string }> {
+  const { data: holdsRaw, error: holdsErr } = await admin
+    .from('subscription_charge_holds')
+    .select('id, subscription_id, user_id, ship_date')
+    .is('resolved_at', null)
+    .limit(500)
+  if (holdsErr) return { ok: false, error: `subscription_charge_holds: ${holdsErr.message}` }
+  const holds = (holdsRaw ?? []) as Array<{ id: string; subscription_id: string; user_id: string; ship_date: string }>
+  const closed: Record<HoldCloseReason, number> = { cancelled: 0, paused: 0, rescheduled: 0, no_longer_held: 0 }
+  if (holds.length === 0) return { ok: true, result: { checked: 0, closed, gateError: null, closeErrors: [] } }
+
+  const subsRes = await selectInChunks([...new Set(holds.map((h) => h.subscription_id))], (chunk) =>
+    admin.from('subscriptions').select('id, status, next_delivery_date').in('id', chunk),
+  )
+  if (subsRes.error) return { ok: false, error: `subscriptions: ${subsRes.error.message}` }
+  const subById = new Map(
+    (subsRes.data as Array<{ id: string; status: string; next_delivery_date: string | null }>).map((s) => [s.id, s]),
+  )
+
+  const ctx = await loadPriceRiseContext(admin, [...new Set(holds.map((h) => h.user_id))])
+  const gateError = ctx.ok ? null : ctx.error
+
+  const idsByReason = new Map<HoldCloseReason, string[]>()
+  for (const h of holds) {
+    const sub = subById.get(h.subscription_id)
+    // 구독 행이 안 보이면(지워졌으면 보류도 같이 지워진다 — FK cascade) 판정하지 않는다.
+    if (!sub) continue
+    const c = ctx.ok ? ctx.byUser.get(h.user_id) : undefined
+    const gate = c ? priceRiseGate({ trial: c.trial, lastPaidPhase: c.lastPaidPhase, consents: c.consents }) : null
+    const reason = staleHoldReason({ hold: h, sub, gate })
+    if (!reason) continue
+    const list = idsByReason.get(reason) ?? []
+    list.push(h.id)
+    idsByReason.set(reason, list)
+  }
+
+  const closeErrors: string[] = []
+  const nowIso = new Date().toISOString()
+  for (const [reason, ids] of idsByReason) {
+    const { data, error } = await admin
+      .from('subscription_charge_holds')
+      .update({ resolved_at: nowIso, resolved_reason: reason })
+      .in('id', ids)
+      .is('resolved_at', null)
+      .select('id')
+    if (error) {
+      closeErrors.push(`${reason}: ${error.message}`)
+      continue
+    }
+    // 0행 = 그 사이 다른 곳(청구 성공)이 먼저 닫았다 — 오류가 아니다.
+    closed[reason] += data?.length ?? 0
+  }
+  return { ok: true, result: { checked: holds.length, closed, gateError, closeErrors } }
 }
 
 /** 청구 성공 뒤 그 구독의 열린 보류를 닫는다 — 청구 크론 전용. */
