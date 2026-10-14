@@ -214,6 +214,17 @@ const config: CapacitorConfig = {
        */
       style: 'LIGHT',
     },
+    /**
+     * ★2026-10-14 다음 앱 빌드(셸 정리, 규칙240) — Capacitor 8 의 SystemBars(코어 플러그인, 상태바·아래 손짓 막대 둘 다).
+     *
+     * 이 플러그인은 앱이 켜질 때와 기기 설정이 바뀔 때 막대 글자·버튼 색을 style 로 **다시 정한다**. 기본값 'DEFAULT' 는 기기
+     * 테마를 따라가서, 다크 모드 폰이면 흰 막대(android values-v27 navigationBarColor)에 흰 버튼이 돼 손짓 막대가 안 보였다.
+     * 흰 셸(FtShell/3)은 늘 밝으므로 위 StatusBar 와 같은 'LIGHT'(밝은 바탕용 어두운 글자·버튼)로 못 박는다.
+     * insetsHandling 은 기본('css')그대로 — 안드로이드 15+ 에서 viewport-fit=cover 웹이면 막대 뒤까지 웹이 그린다.
+     */
+    SystemBars: {
+      style: 'LIGHT',
+    },
     PushNotifications: {
       // iOS APNs 권한은 사용자가 처음 알림 토글 (예: /mypage/notifications)
       // 누를 때 요청. 앱 시작 즉시 묻지 않음 — opt-in UX.

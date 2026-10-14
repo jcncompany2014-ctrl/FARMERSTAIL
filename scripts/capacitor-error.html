@@ -10,23 +10,51 @@
   남고 문구·새로고침이 없어 앱을 강제 종료해야 했다(iOS WKWebView 엔 서비스워커 /offline 도 없다).
   네트워크 없이 떠야 하므로 외부 폰트·이미지·스크립트 없이 이 파일 하나로 끝낸다.
   안드로이드에선 이 페이지가 Capacitor 플러그인을 못 쓴다 — 일반 링크만 쓴다.
+
+  2026-10-14 다음 앱 빌드(셸 정리, 규칙240): 흰 셸(FtShell/3)과 앱 새 디자인('A 포스터')에 맞춘다 — 바탕 크림 #F5F0E6 → 흰색,
+  버튼은 먹색 바탕·흰 글자·모서리 4px(앱 주 버튼과 같은 모양), 문구는 앱의 /offline 화면('오프라인 상태예요')과 같게.
+  원본은 이 파일 하나다 — capacitor-web/error.html 은 npm run cap:webdir 이 복사하고, android·ios 의 public 복사본은
+  npx cap sync 가 만든다(둘 다 .gitignore).
 -->
 <style>
-  html, body { margin: 0; height: 100%; background: #F5F0E6; color: #16140F;
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
-  main { min-height: 100%; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 32px 24px; box-sizing: border-box; text-align: center; }
-  h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
-  p { margin: 12px 0 28px; font-size: 16px; line-height: 1.55; color: #3A342A; word-break: keep-all; }
-  a { display: inline-block; padding: 14px 28px; border-radius: 999px; background: #16140F;
-    color: #F5F0E6; font-size: 16px; font-weight: 700; text-decoration: none; }
+  html, body { margin: 0; height: 100%; background: #FFFFFF; color: #141414;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    letter-spacing: -0.02em; word-break: keep-all; }
+  main { min-height: 100%; display: flex; flex-direction: column; justify-content: center;
+    padding: calc(32px + env(safe-area-inset-top, 0px)) 20px calc(40px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box; }
+  .icon { width: 72px; height: 72px; box-sizing: border-box; border: 2px solid #141414; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center; }
+  h1 { margin: 24px 0 0; font-size: 34px; line-height: 1.15; font-weight: 900; letter-spacing: -0.03em; }
+  p { margin: 14px 0 0; font-size: 18px; line-height: 1.6; color: #3D3D3D; }
+  a { margin-top: 30px; height: 58px; box-sizing: border-box; border-radius: 4px; background: #141414;
+    color: #FFFFFF; font-size: 17px; font-weight: 800; text-decoration: none;
+    display: flex; align-items: center; justify-content: center; gap: 8px; }
+  a:active { opacity: 0.8; }
+  .note { margin-top: 16px; font-size: 15px; line-height: 1.55; color: #595959; text-align: center; }
 </style>
 </head>
 <body>
 <main>
-  <h1>인터넷 연결을 확인해 주세요</h1>
-  <p>지금은 파머스테일에 연결할 수 없어요.<br>연결되면 자동으로 다시 불러올게요.</p>
-  <a href="https://www.farmerstail.kr/">다시 시도</a>
+  <span class="icon" aria-hidden="true">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.5 9a14 14 0 0 1 19 0" />
+      <path d="M5.5 12.5a9.5 9.5 0 0 1 13 0" />
+      <path d="M8.7 16a5 5 0 0 1 6.6 0" />
+      <circle cx="12" cy="19.5" r="1" fill="#141414" />
+      <path d="M3 3l18 18" stroke="#C63D2A" stroke-width="2.4" />
+    </svg>
+  </span>
+  <h1>오프라인 상태예요</h1>
+  <p>인터넷 연결이 끊어진 것 같아요.<br>Wi-Fi나 모바일 데이터를 확인해 주세요.</p>
+  <a href="https://www.farmerstail.kr/">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+      <path d="M20 4v4.5h-4.5" />
+    </svg>
+    다시 시도하기
+  </a>
+  <div class="note">연결되면 자동으로 다시 불러올게요.</div>
 </main>
 <script>
   // 연결이 돌아오면 스스로 다시 불러온다.

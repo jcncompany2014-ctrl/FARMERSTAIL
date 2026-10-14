@@ -2,6 +2,7 @@ package com.farmerstail.app;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
@@ -81,6 +82,28 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         );
+        applyTextZoom(getResources().getConfiguration());
+    }
+
+    /**
+     * ★2026-10-14 — 폰 글자 크기를 바꿔도 앱이 첫 화면으로 돌아가지 않게(셸 정리, 규칙240).
+     *
+     * 매니페스트 configChanges 에 fontScale · fontWeightAdjustment 를 넣어 안드로이드가 화면을 새로 만들지 않는다
+     * (예전엔 글자 크기를 바꾸면 화면이 새로 만들어지며 웹뷰가 처음부터 다시 떠, 보던 화면을 잃고 첫 화면으로 갔다).
+     * 대신 웹뷰 글자 배율은 웹뷰가 **만들어질 때의** 글자 크기로 정해지므로, 바뀐 크기를 여기서 직접 맞춘다 —
+     * 큰 글씨를 쓰는 부모님 세대 손님에게 글자 크기 설정이 그대로 먹어야 한다(시니어 사용성 2026-09).
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        applyTextZoom(newConfig);
+    }
+
+    /** 웹뷰 글자 배율 = 폰 글자 크기(fontScale) × 100. 웹뷰가 없으면(미탑재 기기) 아무것도 안 한다. */
+    private void applyTextZoom(Configuration config) {
+        if (this.bridge == null || this.bridge.getWebView() == null || config == null) return;
+        float scale = config.fontScale > 0f ? config.fontScale : 1f;
+        this.bridge.getWebView().getSettings().setTextZoom(Math.round(scale * 100f));
     }
 
     /**

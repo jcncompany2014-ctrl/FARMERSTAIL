@@ -199,3 +199,32 @@ export function formatKstLongDate(iso: string | null | undefined): string {
   const p = kstParts(KST_DATE_FMT, d)
   return `${p.year}년 ${Number(p.month)}월 ${Number(p.day)}일`
 }
+
+const WEEKDAY_KO_FULL = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'] as const
+
+/**
+ * 고객에게 보내는 **월·일** — "12월 1일" · 요일을 붙이면 "12월 1일 화요일". 메일·푸시가 같이 쓰는 정본이다.
+ *
+ * # 왜 (2026-10-14 메일 점검 M2, 규칙237)
+ * 서포터즈 가격 안내가 메일은 "12월 01일 화요일"(메일 템플릿이 0을 채운 자체 포맷), 같은 일을 알리는 푸시는 "12월 1일"
+ * (크론 안 한 줄짜리 포맷)이라 한 사람이 받은 두 안내의 날짜 모양이 달랐다. 앱 화면도 전부 0을 안 붙인다.
+ *
+ * 입력은 'YYYY-MM-DD'(이미 KST 달력 날짜 — next_delivery_date 같은 칸) 또는 시각(ISO, KST 날짜로 바꿔 읽는다).
+ * 읽을 수 없으면 빈 문자열.
+ */
+export function formatKoMonthDay(iso: string | null | undefined, opts?: { weekday?: boolean }): string {
+  if (!iso) return ''
+  let ymd = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : ''
+  if (!ymd) {
+    const t = new Date(iso).getTime()
+    if (Number.isNaN(t)) return ''
+    ymd = kstDateOf(iso)
+  }
+  const month = Number(ymd.slice(5, 7))
+  const day = Number(ymd.slice(8, 10))
+  if (!month || !day) return ''
+  const md = `${month}월 ${day}일`
+  if (!opts?.weekday) return md
+  const dow = new Date(`${ymd}T00:00:00Z`).getUTCDay()
+  return `${md} ${WEEKDAY_KO_FULL[dow]}`
+}

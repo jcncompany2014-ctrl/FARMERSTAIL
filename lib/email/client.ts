@@ -24,6 +24,8 @@
 // `admin.ts` 와 같은 전략으로, 런타임에 undefined 를 허용하고 조용히 no-op.
 
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { htmlToPlainText } from './plain-text.ts'
+import { isTransactionalEmailTag } from './tags.ts'
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
 
@@ -103,12 +105,10 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     //   차단되는데, 예전엔 광고 메일과 똑같이 warning 이라 묻혔다. 고객은
     //   "결제됐는데 아무 메일도 안 온다"가 되고 우리는 모른다. 광고(newsletter·
     //   marketing)는 차단이 정상 동작이므로 warning 그대로 둔다.
-    const tag = input.tag ?? ''
-    const isTransactional =
-      tag.startsWith('order') ||
-      tag.startsWith('subscription') ||
-      tag.startsWith('va-') ||
-      tag.startsWith('personalization')
+    // ★거래 메일 판정은 lib/email/tags 표 한 곳(2026-10-14 메일 점검 M4, 규칙238). 예전 앞머리 판정
+    //   (order·subscription·va-·personalization)은 실제 태그 'virtual-account-waiting'(입금 대기)·'trial-price-change'
+    //   (서포터즈 가격 변경 고지)를 놓쳐, 돈이 걸린 안내가 막혀도 warning 으로 묻혔다.
+    const isTransactional = isTransactionalEmailTag(input.tag)
     try {
       captureBusinessEvent(
         isTransactional ? 'error' : 'warning',
@@ -159,7 +159,8 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         to: Array.isArray(input.to) ? input.to : [input.to],
         subject: input.subject,
         html: input.html,
-        text: input.text ?? stripHtml(input.html),
+        // 글자판 — 버튼 주소를 '글 (주소)'로 남기고 엔티티를 전부 되돌린다(lib/email/plain-text, 규칙236).
+        text: input.text ?? htmlToPlainText(input.html),
         reply_to: input.replyTo ?? replyTo,
         tags,
         ...(extraHeaders ? { headers: extraHeaders } : {}),
@@ -243,24 +244,4 @@ async function isAnyEmailSuppressed(to: string | string[]): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-/** HTML → plain-text 폴백. 태그 제거 + 엔티티 최소 디코드. */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|tr|h\d|li)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    // 미리보기 줄 뒤를 채우는 보이지 않는 글자(lib/email/layout PREHEADER_FILL)는 글자 판에서 뺀다.
-    .replace(/[͏‌]/g, '')
-    .replace(/ {2,}/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
 }

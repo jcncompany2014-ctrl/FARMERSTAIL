@@ -14,6 +14,7 @@ import {
   isPaymentStatus,
 } from '@/lib/commerce/order-fsm'
 import { DUPLICATE_TRACKING, DUPLICATE_TRACKING_CHECK_FAILED } from '@/lib/admin/tracking-duplicates'
+import { askNightPushChoice, NIGHT_PUSH_CONFIRM, type NightPushChoice } from '@/lib/admin/night-push'
 
 /**
  * 발송 처리 패널 — 택배사/송장번호를 입력하고 order_status를 'shipping' 으로 전환.
@@ -107,12 +108,15 @@ export default function ShippingControl({
 
     // 발송 후에는 상태 전이가 아니라 운송장 정정이다. 배송 시작 알림은 다시
     // 나가지 않는다.
+    // 밤 알림 확인(규칙239)에서 사장님이 고른 값 — 고르기 전엔 undefined 라 본문에서 빠진다(JSON 은 undefined 칸을 지운다).
+    let nightPush: NightPushChoice | undefined
+    let duplicateConfirmed = false
     const send = (confirmDuplicate: boolean) =>
       isShipped
         ? fetch(`/api/admin/orders/${orderId}/tracking`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ carrier, trackingNumber: trimmed, confirmDuplicate }),
+            body: JSON.stringify({ carrier, trackingNumber: trimmed, confirmDuplicate, nightPush }),
           })
         : fetch(`/api/admin/orders/${orderId}/status`, {
             method: 'POST',
@@ -122,26 +126,41 @@ export default function ShippingControl({
               carrier,
               trackingNumber: trimmed,
               confirmDuplicate,
+              nightPush,
             }),
           })
     let res = await send(false)
-    // ★송장 중복 경고(2026-10-13 사장님 결정 — 화면 경고만, 규칙198). 같은 택배사·번호가 다른 주문에 있거나
-    //   확인 조회가 실패하면 서버가 409 로 묻는다 — 사장님이 확인해야 저장된다(합포장이면 정상).
-    if (res.status === 409) {
-      const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string }
-      if (data.code === DUPLICATE_TRACKING || data.code === DUPLICATE_TRACKING_CHECK_FAILED) {
-        const ok = window.confirm(`${data.message ?? '같은 송장번호가 다른 주문에 있어요.'}\n\n그래도 저장할까요?`)
-        if (!ok) {
+    // 서버가 409 로 묻는 확인은 둘이다 — 하나씩 답하고 다시 보낸다(둘 다 물을 수 있어 두 번까지).
+    //  · ★송장 중복 경고(2026-10-13 사장님 결정 — 화면 경고만, 규칙198). 같은 택배사·번호가 다른 주문에 있거나
+    //    확인 조회가 실패하면 묻는다 — 사장님이 확인해야 저장된다(합포장이면 정상).
+    //  · ★밤 알림(2026-10-14 메일 점검 M5, 규칙239) — 22~8시엔 손님 휴대폰 알림이 가기 전에 묻는다.
+    for (let round = 0; round < 2; round++) {
+      if (res.status === 409) {
+        const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string }
+        if ((data.code === DUPLICATE_TRACKING || data.code === DUPLICATE_TRACKING_CHECK_FAILED) && !duplicateConfirmed) {
+          const ok = window.confirm(`${data.message ?? '같은 송장번호가 다른 주문에 있어요.'}\n\n그래도 저장할까요?`)
+          if (!ok) {
+            setLoading(false)
+            setError('저장하지 않았어요 — 송장번호를 확인해 주세요')
+            return
+          }
+          res = await send(true)
+          duplicateConfirmed = true
+        } else if (data.code === NIGHT_PUSH_CONFIRM && !nightPush) {
+          const choice = askNightPushChoice(data.message ?? '지금은 밤이에요. 손님에게 알림이 바로 가요.')
+          if (!choice) {
+            setLoading(false)
+            setError('저장하지 않았어요 — 아침 8시 이후에 다시 눌러 주세요')
+            return
+          }
+          nightPush = choice
+          res = await send(duplicateConfirmed)
+        } else {
+          // 다른 409 — 본문을 이미 읽었으니 여기서 안내하고 끝낸다.
           setLoading(false)
-          setError('저장하지 않았어요 — 송장번호를 확인해 주세요')
+          setError(data.message ?? (isShipped ? '운송장 수정에 실패했어요' : '발송 처리에 실패했어요'))
           return
         }
-        res = await send(true)
-      } else {
-        // 다른 409 — 본문을 이미 읽었으니 여기서 안내하고 끝낸다.
-        setLoading(false)
-        setError(data.message ?? (isShipped ? '운송장 수정에 실패했어요' : '발송 처리에 실패했어요'))
-        return
       }
     }
     setLoading(false)

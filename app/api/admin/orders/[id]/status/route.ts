@@ -25,6 +25,13 @@ import {
   duplicateTrackingMessage,
   findTrackingDuplicates,
 } from '@/lib/admin/tracking-duplicates'
+import {
+  isNightPushHourKst,
+  NIGHT_PUSH_CONFIRM,
+  nightPushMessage,
+  parseNightPushChoice,
+} from '@/lib/admin/night-push'
+import { currentKstHour } from '@/lib/datetime-kst'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,9 +45,18 @@ type TransitionBody = {
   reason?: string | null
   /** 송장 중복 경고를 보고도 저장 — 사장님이 확인 창에서 '확인'을 누른 경우만 true(규칙198). */
   confirmDuplicate?: boolean
+  /** 밤(KST 22~8시) 알림 — 사장님이 고른 값만: 'send' 지금 보내기 · 'skip' 알림 없이(규칙239). 없으면 밤엔 409 로 묻는다. */
+  nightPush?: 'send' | 'skip'
 }
 
 // 택배사 라벨/코드 검증은 lib/tracking 으로 일원화.
+
+/** 손님에게 앱 알림이 가는 전환과 그 알림 제목 — 밤 확인(규칙239)과 실제 발송이 같은 표를 본다. */
+const CUSTOMER_PUSH_TITLE: Partial<Record<OrderStatus, string>> = {
+  shipping: '배송이 시작됐어요 📦',
+  delivered: '배송이 완료됐어요 🐾',
+  cancelled: '주문이 취소됐어요',
+}
 
 export async function POST(
   req: Request,
@@ -245,6 +261,18 @@ export async function POST(
     // 되돌리기(shipping → preparing)는 드물지만 허용. 발송 타임스탬프는 남겨 둡니다.
   }
 
+  // ★밤(KST 22~8시)에 손님 휴대폰 알림이 가는 처리는 먼저 묻는다(2026-10-14 메일 점검 M5, 규칙239).
+  //   10/08 22:43 '배송 완료' 수동 처리로 서포터즈 6명에게 밤 알림이 그대로 나갔다. 조용시간은 손님이 설정 화면에서
+  //   켠 경우에만 lib/push 가 막는다. 아무것도 바꾸기 전에(아래 쓰기 전에) 409 로 묻고, 사장님이 고른 값으로 다시 온다.
+  const pushTitle = CUSTOMER_PUSH_TITLE[orderStatus] ?? null
+  const nightPush = parseNightPushChoice(body.nightPush)
+  if (pushTitle && nightPush === null && isNightPushHourKst(currentKstHour())) {
+    return NextResponse.json(
+      { code: NIGHT_PUSH_CONFIRM, message: nightPushMessage(pushTitle) },
+      { status: 409 },
+    )
+  }
+
   /**
    * ★ 쓰기는 service_role 로 (2026-07-31).
    *
@@ -314,12 +342,7 @@ export async function POST(
     const carrierName = carrierLabel(shipCarrier)
     const trimmedTracking = shipTracking ?? ''
 
-    const title =
-      orderStatus === 'shipping'
-        ? '배송이 시작됐어요 📦'
-        : orderStatus === 'delivered'
-          ? '배송이 완료됐어요 🐾'
-          : '주문이 취소됐어요'
+    const title = pushTitle ?? '주문 상태가 바뀌었어요'
 
     const bodyText =
       orderStatus === 'shipping'
@@ -336,18 +359,21 @@ export async function POST(
     //   응답을 돌려준 뒤 서버리스 인스턴스가 멈추면 '배송이 시작됐어요 · 송장번호'
     //   푸시·메일이 흔적 없이 사라졌다 — 고객이 송장번호를 받는 유일한 경로다.
     //   실패해도 상태 변경은 이미 끝났으므로 응답은 성공 그대로(베스트 에포트).
-    await pushToUser(
-      order.user_id,
-      {
-        title,
-        body: bodyText,
-        url: `/mypage/orders/${order.id}`,
-        tag: `order-${order.id}-${orderStatus}`,
-      },
-      { category: 'order' },
-    ).catch(() => {
-      /* 푸시는 베스트 에포트 */
-    })
+    // 밤에 사장님이 '알림 없이'를 골랐으면 앱 알림만 건너뛴다 — 메일은 아래에서 그대로 간다(규칙239).
+    if (nightPush !== 'skip') {
+      await pushToUser(
+        order.user_id,
+        {
+          title,
+          body: bodyText,
+          url: `/mypage/orders/${order.id}`,
+          tag: `order-${order.id}-${orderStatus}`,
+        },
+        { category: 'order' },
+      ).catch(() => {
+        /* 푸시는 베스트 에포트 */
+      })
+    }
 
     // 같은 이벤트에 대한 이메일 알림 — 위와 같은 이유로 await.
     if (orderStatus === 'shipping') {
@@ -394,6 +420,8 @@ export async function POST(
         carrier: carrier ?? null,
         tracking_number: trackingNumber ?? null,
         reason: reason ?? null,
+        // 밤 처리 때 사장님이 고른 알림 — 'send' 밤에 보냄 · 'skip' 알림 없이(규칙239). 낮이면 null.
+        night_push: nightPush,
       },
     },
     req,
@@ -403,5 +431,6 @@ export async function POST(
     ok: true,
     orderStatus,
     label: ORDER_STATUS_LABEL[orderStatus] ?? orderStatus,
+    pushSkipped: nightPush === 'skip',
   })
 }

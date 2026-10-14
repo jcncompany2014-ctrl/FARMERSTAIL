@@ -161,7 +161,7 @@ export function inboxRows(): InboxRow[] {
     {
       id: 'n5',
       title: '결제가 완료됐어요',
-      body: '77,800원 · 곧 박스를 준비할게요',
+      body: '77,800원 · 주말에 만들어 9월 29일 화요일에 보내드려요',
       url: '/mypage/orders',
       category: 'order',
       sent_count: 1,
@@ -171,7 +171,7 @@ export function inboxRows(): InboxRow[] {
     {
       id: 'n6',
       title: '결제가 완료됐어요',
-      body: '36,400원 · 곧 박스를 준비할게요',
+      body: '36,400원 · 주말에 만들어 9월 29일 화요일에 보내드려요',
       url: '/mypage/orders',
       category: 'order',
       sent_count: 1,
