@@ -16,7 +16,9 @@ import {
   type ShipBlockReason,
 } from '@/lib/admin/ship-block'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
-import { chargeTimingFor, chargeDateFor, type ChargeTiming } from '@/lib/shipping-schedule'
+import { chargeTimingFor, chargeDateFor, nextChargeRunDate, type ChargeTiming } from '@/lib/shipping-schedule'
+import { loadChargeProjection } from '@/lib/payments/charge-projection-load'
+import type { ProjectedRound } from '@/lib/payments/charge-projection'
 
 /**
  * 이번 발송일(화) 포장 요약 — '이번 주 할 일'의 월요일 칸 (2026-10-14 어드민 B2, 규칙249).
@@ -46,6 +48,7 @@ type SubRow = {
   has_billing_key: boolean
   requires_billing_key_renewal: boolean | null
   last_failed_charge_at: string | null
+  total_amount: number
 }
 
 type FormulaRow = {
@@ -92,6 +95,7 @@ export const PACKING_PROBLEM_LABEL: Record<PackingProblem, string> = {
   paused_after_charge: '결제 후 정지됨',
   date_moved_after_charge: '결제 뒤 일정 이동',
   overdue_paid: '예정일 지남(결제는 됨)',
+  price_consent_missing: '가격 인상 동의 없음 — 청구 보류',
 }
 
 export type PackingBox = {
@@ -128,7 +132,7 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
   const { data: subsRaw, error: subsErr } = await db
     .from('subscriptions')
     .select(
-      'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, has_billing_key, requires_billing_key_renewal, last_failed_charge_at',
+      'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, has_billing_key, requires_billing_key_renewal, last_failed_charge_at, total_amount',
     )
     .in('status', ['active', 'paused'])
     .or(`next_delivery_date.lte.${shipDate},next_delivery_date.eq.${chargedBumpDate}`)
@@ -158,7 +162,7 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
       db
         .from('subscriptions')
         .select(
-          'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, has_billing_key, requires_billing_key_renewal, last_failed_charge_at',
+          'id, dog_id, user_id, status, fresh_ratio, next_delivery_date, has_billing_key, requires_billing_key_renewal, last_failed_charge_at, total_amount',
         )
         .in('id', chunk),
     )
@@ -220,6 +224,37 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
     }
   }
   const timingOf = (userId: string): ChargeTiming => timingByUser.get(userId) ?? chargeTimingFor(null)
+
+  // 가격 인상 회차인데 동의 기록이 없는 박스 — 청구 크론이 보류한다(포장 목록과 같은 펼치기, 2026-10-14 A1 병합 때 맞춤).
+  //   못 읽으면 숫자를 내지 않는다(포장 목록이 목록을 멈추는 것과 같은 판단).
+  const nextRoundBySub = new Map<string, ProjectedRound>()
+  {
+    const chargeable = subs.filter(
+      (s) =>
+        s.status === 'active' &&
+        s.has_billing_key &&
+        s.requires_billing_key_renewal !== true &&
+        s.next_delivery_date != null,
+    )
+    if (chargeable.length > 0) {
+      const fromIso = nextChargeRunDate(now)
+      const until = [addDaysKst(shipDate, 28), addDaysKst(fromIso, 28)].sort().at(-1)!
+      const proj = await loadChargeProjection(
+        db,
+        chargeable.map((s) => ({
+          id: s.id,
+          user_id: s.user_id,
+          next_delivery_date: s.next_delivery_date,
+          total_amount: s.total_amount,
+        })),
+        { fromIso, untilChargeIso: until, stopAtHold: true },
+      )
+      if (!proj.ok) return fail(`결제 예정액·가격 인상 동의 조회 실패: ${proj.error}`)
+      for (const rs of proj.roundsByUser.values()) {
+        for (const r of rs) if (!nextRoundBySub.has(r.subId)) nextRoundBySub.set(r.subId, r)
+      }
+    }
+  }
 
   const allSlugs = [
     ...Object.values(LINE_TO_SLUG).filter((s): s is string => s !== null),
@@ -286,6 +321,8 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
     const shipped = shippedSubIds.has(sub.id) ? true : null
     // ↓ 판정 입력 — 포장 목록(page.tsx)과 글자 그대로 같은 식(규칙249 대조).
     const hasPaidOrder = orderBySubId.has(sub.id) || shipped !== null
+    const upcomingRound = nextRoundBySub.get(sub.id) ?? null
+    const nextRound = hasPaidOrder || !upcomingRound || upcomingRound.shipIso > shipDate ? null : upcomingRound
     const flags = {
       alreadyShipped: shipped,
       pausedAfterCharge: sub.status === 'paused' && orderBySubId.has(sub.id),
@@ -310,6 +347,7 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
       chargeFailedToday:
         sub.last_failed_charge_at != null &&
         kstDateOf(sub.last_failed_charge_at) === todayKstIsoDate(),
+      priceConsentMissing: !hasPaidOrder && (nextRound?.held ?? false),
       held,
     }
     const block = shipBlockReason(flags)
@@ -323,6 +361,7 @@ export async function loadPackingWeek(db: Db, shipDate: string, now: Date = new 
     if (flags.chargeFailedToday) problems.push('charge_failed_today')
     if (flags.pausedBeforeCharge) problems.push('paused_before_charge')
     if (flags.skippedNotCharged) problems.push('skipped_not_charged')
+    if (flags.priceConsentMissing) problems.push('price_consent_missing')
     if (flags.overdueNotCharged) problems.push('overdue_not_charged')
     if (flags.notChargedAfterRun) problems.push('not_charged_after_run')
     if (flags.pausedAfterCharge) problems.push('paused_after_charge')

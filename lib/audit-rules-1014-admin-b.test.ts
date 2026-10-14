@@ -281,6 +281,10 @@ test('규칙249: 이번 주 할 일 — 요일별 칸(토 결제·월 포장·�
     'chargeFailedToday: sub.last_failed_charge_at != null && kstDateOf(sub.last_failed_charge_at) === todayKstIsoDate(),',
     '`next_delivery_date.lte.${shipDate},next_delivery_date.eq.${chargedBumpDate}`',
     "const shippedSince = `${addDaysKst(shipDate, -6)}T00:00:00+09:00`",
+    // A 갈래(인상 동의 보류) 병합 뒤 — 포장 목록과 같은 펼치기·같은 판정.
+    'const nextRound = hasPaidOrder || !upcomingRound || upcomingRound.shipIso > shipDate ? null : upcomingRound',
+    'priceConsentMissing: !hasPaidOrder && (nextRound?.held ?? false),',
+    '{ fromIso, untilChargeIso: until, stopAtHold: true },',
   ]
   for (const e of SAME) {
     assert.ok(pick.includes(e), `포장 목록에서 이 식이 바뀌었다 — lib/admin/packing-week 도 같이 바꿀 것: ${e}`)
@@ -289,8 +293,8 @@ test('규칙249: 이번 주 할 일 — 요일별 칸(토 결제·월 포장·�
   // '확인 필요' 항목 = 포장 목록 problemCount 와 같은 집합.
   const pc = /const problemCount = rows\.filter\(([\s\S]*?)\)\.length/.exec(code('app', 'admin', 'personalization', 'picking-list', 'page.tsx'))?.[1] ?? ''
   const flags = [...new Set([...pc.matchAll(/r\.(\w+)/g)].map((m) => m[1]))].sort()
-  assert.deepEqual(flags, ['cannotCharge', 'chargeFailedToday', 'dateMovedAfterCharge', 'freshUnknown', 'held', 'missing', 'noFormula', 'notChargedAfterRun', 'overdue', 'overdueNotCharged', 'pausedAfterCharge', 'pausedBeforeCharge', 'skippedNotCharged'], "포장 목록의 '확인 필요' 항목이 바뀌었다 — lib/admin/packing-week 의 problems 도 맞출 것")
-  for (const p of ['no_formula', 'fresh_unknown', 'overdue_paid', 'cannot_charge', 'charge_failed_today', 'paused_before_charge', 'skipped_not_charged', 'overdue_not_charged', 'not_charged_after_run', 'paused_after_charge', 'date_moved_after_charge', 'missing_items', 'allergy_check_needed']) {
+  assert.deepEqual(flags, ['cannotCharge', 'chargeFailedToday', 'dateMovedAfterCharge', 'freshUnknown', 'held', 'missing', 'noFormula', 'notChargedAfterRun', 'overdue', 'overdueNotCharged', 'pausedAfterCharge', 'pausedBeforeCharge', 'priceConsentMissing', 'skippedNotCharged'], "포장 목록의 '확인 필요' 항목이 바뀌었다 — lib/admin/packing-week 의 problems 도 맞출 것")
+  for (const p of ['no_formula', 'fresh_unknown', 'overdue_paid', 'cannot_charge', 'charge_failed_today', 'paused_before_charge', 'skipped_not_charged', 'overdue_not_charged', 'not_charged_after_run', 'paused_after_charge', 'date_moved_after_charge', 'missing_items', 'allergy_check_needed', 'price_consent_missing']) {
     assert.ok(pw.includes(`problems.push('${p}')`), `이번 주 포장 요약이 '확인 필요' ${p} 를 안 센다`)
   }
   assert.match(pw, /if \(subsErr\) return fail\(/, '구독 조회 실패를 0박스로 접는다')
