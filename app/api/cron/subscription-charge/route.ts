@@ -45,6 +45,12 @@ import {
   TOPPER_TO_SLUG as PRICE_TOPPER_TO_SLUG,
 } from '@/lib/personalization/skuMap'
 import { checkChargeAmount } from '@/lib/payments/charge-amount-guard'
+import { priceRiseGate, PRICE_RISE_LABEL } from '@/lib/payments/price-rise'
+import {
+  loadPriceRiseContext,
+  recordPriceRiseHold,
+  resolvePriceRiseHolds,
+} from '@/lib/payments/price-rise-context'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -580,6 +586,8 @@ async function runSubscriptionCharge(): Promise<Response> {
    */
   let declined = 0
   let skipped = 0
+  // 가격 인상 회차인데 동의 기록이 없어 보류한 회차(2026-10-14 A1) — 실패가 아니라 사장님이 동의를 기록할 일.
+  let priceConsentHeld = 0
   // 토스가 우리 키를 거부 — 남은 고객 청구를 멈췄다(2026-09-28).
   let merchantAbort = false
   // 결제완료 메일 — 0 이면 '돈은 받았는데 아무 연락 안 감'이라 지표로 낸다.
@@ -714,6 +722,69 @@ async function runSubscriptionCharge(): Promise<Response> {
           note: '서포터즈 체험 구간인데 할인 판정이 체험가가 아님 — 정가 청구를 막고 건너뜀(내일 다시). 체험 조회 상태 확인 필요',
         })
         skipped += 1
+        continue
+      }
+    }
+
+    /**
+     * ★가격이 오르는 회차인데 그 인상의 고객 동의 기록이 없으면 **청구하지 않고 보류**한다 (2026-10-14 A1, 사장님 '필수').
+     *   서포터즈는 100원 → 반값(첫 회 12/1) → 정가(첫 회 2027-01-23)로 값이 오른다. 정기결제 대금 증액은 고객 동의가
+     *   있어야 한다(전자상거래법 2025-02). 사장님이 동의를 받으면 /admin/trials 에 기록하고(subscription_price_consents),
+     *   여기서 그 기록을 본다. 판정 정본 = lib/payments/price-rise priceRiseGate(화면·포장 목록도 같은 함수).
+     *   · 보류는 '내일 다시'가 아니다 — 발송일(next_delivery_date)을 밀지 않고 회차도 깎지 않고 그 회차에 멈춰 있다가,
+     *     동의가 기록되면 다음 실행에서 정상 청구된다(늦으면 nextDeliveryDate 가 다음 발송 화요일로 맞춘다).
+     *   · 처음 보류될 때 Sentry error 한 번 + subscription_charge_holds 에 열린 보류(운영 브리핑·할 일·포장 목록이 읽는다).
+     *   · 체험 도장이 없는 고객(정상가)은 판정하지 않는다 — 조회도 하지 않는다. 100원 구간 회차는 인상이 될 수 없다.
+     *   · 상태를 못 읽으면 긁지 않는다(인상 회차일 수 있다) — 위 서포터즈 할인 대조와 같은 판단, 내일 다시.
+     */
+    if (timingByUser.has(sub.user_id)) {
+      const riseCtx = await loadPriceRiseContext(supabase, [sub.user_id])
+      if (!riseCtx.ok) {
+        captureBusinessEvent('error', 'subscription.charge.price_rise_lookup_failed', {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          dbError: riseCtx.error.slice(0, 200),
+          note: '서포터즈 인상 동의 상태를 못 읽음 — 인상 회차일 수 있어 청구하지 않고 건너뜀(내일 다시)',
+        })
+        skipped += 1
+        continue
+      }
+      const rc = riseCtx.byUser.get(sub.user_id)
+      const gate = priceRiseGate({
+        trial: rc?.trial ?? null,
+        lastPaidPhase: rc?.lastPaidPhase ?? null,
+        consents: rc?.consents ?? [],
+      })
+      if (gate.hold) {
+        const held = await recordPriceRiseHold(supabase, {
+          subscriptionId: sub.id,
+          userId: sub.user_id,
+          shipDate: sub.next_delivery_date,
+          chargeDate: chargeDateFor(sub.next_delivery_date, timingOf(sub)),
+          rise: gate.rise,
+          chargeAmount,
+          listAmount: trustedSubtotal,
+        })
+        if (!held.ok) {
+          // 기록은 못 했지만 청구하지 않은 사실은 그대로다 — 사람이 알아야 한다.
+          captureBusinessEvent('error', 'subscription.charge.hold_record_failed', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            rise: gate.rise,
+            dbError: held.error.slice(0, 200),
+            note: '인상 동의가 없어 청구를 보류했는데 보류 기록을 못 남김 — /admin/trials 에서 동의 기록 확인',
+          })
+        } else if (held.created) {
+          captureBusinessEvent('error', 'subscription.charge.price_rise_consent_missing', {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            rise: gate.rise,
+            shipDate: sub.next_delivery_date,
+            chargeAmount,
+            note: `가격 인상(${PRICE_RISE_LABEL[gate.rise]}) 동의 기록이 없어 이번 회차를 청구하지 않고 보류함. 고객 동의를 받아 /admin/trials 에 기록하면 다음 실행에서 청구된다. 그 전엔 박스를 보내지 말 것`,
+          })
+        }
+        priceConsentHeld += 1
         continue
       }
     }
@@ -1726,6 +1797,17 @@ async function runSubscriptionCharge(): Promise<Response> {
           amount: chargeAmount,
           attemptCount: sub.failed_charge_count + 1,
         })
+        // 인상 동의 보류가 있던 구독이면 닫는다(2026-10-14 A1) — 서포터즈만(정상가 고객은 보류가 생길 수 없다).
+        if (timingByUser.has(sub.user_id)) {
+          const closed = await resolvePriceRiseHolds(supabase, sub.id)
+          if (!closed.ok) {
+            captureBusinessEvent('warning', 'subscription.charge.hold_resolve_failed', {
+              subscriptionId: sub.id,
+              dbError: closed.error.slice(0, 200),
+              note: '청구는 성공 — 보류 기록만 열린 채 남음(브리핑에 보류로 보일 수 있음). subscription_charge_holds 수동 정리',
+            })
+          }
+        }
 
         /**
          * ★결제 완료를 고객에게 알린다 (2026-08-12 3라운드 감사).
@@ -2127,6 +2209,8 @@ async function runSubscriptionCharge(): Promise<Response> {
     mailSkipped: mailSkippedCount,
     failed,
     skipped,
+    // 인상 동의가 없어 보류한 회차(2026-10-14 A1) — 실패 카운터 아님. 열린 보류는 subscription_charge_holds.
+    priceConsentHeld,
     // 결제일이 아직인 구독(서포터즈 화요일 결제분 등) — 오늘 건너뛴 게 정상이다.
     notDue,
     timingKnown,

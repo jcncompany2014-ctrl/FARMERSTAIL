@@ -12,10 +12,13 @@ import {
   weekdayOf,
   type ChargeTiming,
   paidBoxShipIso,
+  nextChargeRunDate,
 } from '@/lib/shipping-schedule'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { advanceTrialState, type TrialState } from '@/lib/payments/trial'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadUpcomingCharges, type UpcomingRound } from '@/lib/admin/upcoming-charges'
+import UpcomingChargesView from './UpcomingChargesView'
 
 /**
  * /admin/subscriptions/calendar — 정기배송 일정 캘린더 뷰.
@@ -262,6 +265,34 @@ export default async function SubscriptionsCalendarPage({
       }
     }
   }
+  /**
+   * ★다가오는 결제 — **실제 나갈 금액**(2026-10-14 A2). 위 합계는 할인 전 구독가라 서포터즈 100원이 51,500원으로 잡혔다.
+   *   결제일별 실제 금액은 청구와 같은 함수(lib/admin/upcoming-charges → trialPricing·resolveAutoDiscount)로 낸다.
+   *   이 달의 합계·💳 건수도 같은 값으로 바꾼다 — 한 화면에 '정가 합계'와 '실제 합계'가 따로 있으면 어느 쪽이 맞는지 모른다.
+   *   인상 동의가 없어 보류될 회차는 합계·💳 에서 뺀다(나가지 않는 돈 — 아래 목록엔 빨간 '보류 예정'으로 보인다).
+   */
+  const UPCOMING_DAYS = 56
+  const upcomingUntil = [addDaysKst(todayKey, UPCOMING_DAYS), endKey].sort().at(-1)!
+  let upcomingRounds: UpcomingRound[] = []
+  let upcomingError: string | null = null
+  try {
+    const up = await loadUpcomingCharges(createAdminClient(), { fromIso: nextChargeRunDate(), untilChargeIso: upcomingUntil })
+    if (up.ok) upcomingRounds = up.rounds
+    else upcomingError = up.error
+  } catch (e) {
+    upcomingError = e instanceof Error ? e.message : 'unknown'
+  }
+  let monthListRevenue = monthTotalRevenue
+  if (!upcomingError) {
+    const inMonth = upcomingRounds.filter((r) => !r.held && r.chargeIso >= startKey && r.chargeIso <= endKey)
+    monthTotalCount = inMonth.length
+    monthTotalRevenue = inMonth.reduce((s, r) => s + r.chargeAmount, 0)
+    monthListRevenue = inMonth.reduce((s, r) => s + r.listAmount, 0)
+    chargesByDay.clear()
+    for (const r of inMonth) chargesByDay.set(r.chargeIso, (chargesByDay.get(r.chargeIso) ?? 0) + 1)
+  }
+  const upcomingInWindow = upcomingRounds.filter((r) => r.chargeIso <= addDaysKst(todayKey, UPCOMING_DAYS))
+
   // 칸 안 순서 — 결제 완료(지금 조리·포장 중) → 결제 전 → 일시정지.
   const BOX_ORDER = { paid: 0, pending: 1, paused: 2 } as const
   for (const arr of subsByDay.values()) arr.sort((a, b) => BOX_ORDER[a.box] - BOX_ORDER[b.box])
@@ -325,7 +356,10 @@ export default async function SubscriptionsCalendarPage({
             <Hl>앞으로 나갈 배송을 달력으로</Hl> 봐요 (토·일 조리 → 월 포장 →{' '}
             <Em>화요일 발송</Em>). 박스는 발송일(화) 칸에, 결제는 결제일 칸에 💳로 보여요 — 일반 고객은
             발송 3일 전 토요일 아침, 서포터즈 체험 구간은 발송일 아침에 결제돼요. — 이번 달 결제될 회차{' '}
-            {monthTotalCount}건 · 합계(할인 전 구독가) {monthTotalRevenue.toLocaleString('ko-KR')}원
+            {monthTotalCount}건 ·{' '}
+            {upcomingError
+              ? `합계(할인 전 구독가 — 실제 금액을 못 불러왔어요) ${monthTotalRevenue.toLocaleString('ko-KR')}원`
+              : `실제 결제 합계 ${monthTotalRevenue.toLocaleString('ko-KR')}원${monthListRevenue !== monthTotalRevenue ? ` (정가 ${monthListRevenue.toLocaleString('ko-KR')}원)` : ''}`}
             {paidBoxCount > 0 ? ` · 결제 완료·발송 대기 ${paidBoxCount}박스` : ''}
           </p>
         </div>
@@ -381,6 +415,9 @@ export default async function SubscriptionsCalendarPage({
           서포터즈 정보를 불러오지 못해 결제일을 모두 일반 고객 기준(발송 3일 전 토요일)으로 셌어요 — 서포터즈 체험 구간은 실제로 발송일(화)에 결제돼요. 새로고침해 주세요.
         </p>
       )}
+
+      {/* 다가오는 결제 — 실제 나갈 금액(2026-10-14 A2). 폰에서 달력보다 먼저 보이게 위에 둔다. */}
+      <UpcomingChargesView rounds={upcomingInWindow} days={UPCOMING_DAYS} error={upcomingError} />
 
       {/* 캘린더 그리드 */}
       <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
