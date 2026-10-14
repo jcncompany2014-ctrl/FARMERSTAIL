@@ -321,7 +321,8 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
         // 체험단 일정표와 같은 펼치기 — 동의를 받는다고 보고 끝까지(보류될 회차는 held 로 표시).
         stopAtHold: false,
         maxRounds: (c) => (c.trial ? c.trial.cheap_remaining + c.trial.half_remaining + 2 : 2),
-      }),
+        // 금액 계산이 던져도 화면 전체가 아니라 이 칸만 '못 불러옴'으로.
+      }).catch((e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) })),
       admin
         .from('subscription_charge_holds')
         .select('ship_date, charge_date, rise')

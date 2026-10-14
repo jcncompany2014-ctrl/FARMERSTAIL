@@ -307,6 +307,7 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
         type TSub = { id: string; user_id: string; dog_id: string | null; status: string; next_delivery_date: string | null; total_amount: number; requires_billing_key_renewal: boolean | null }
         // 체험단 화면과 같은 대상 — 카드 재등록이 필요한 구독은 청구 크론이 건너뛴다.
         const live = ((tSubs ?? []) as TSub[]).filter((s) => s.requires_billing_key_renewal !== true)
+        // 금액 계산(resolveAutoDiscount)이 던질 수 있다 — 홈·브리핑 전체가 죽지 않게 '못 셈'으로 접는다(포장 요약과 같은 처리).
         const proj = await loadChargeProjection(
           db,
           live.map((s) => ({ id: s.id, user_id: s.user_id, next_delivery_date: s.next_delivery_date, total_amount: s.total_amount })),
@@ -317,7 +318,7 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
             stopAtHold: false,
             maxRounds: (c) => (c.trial ? c.trial.cheap_remaining + c.trial.half_remaining + 2 : 2),
           },
-        )
+        ).catch((e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }))
         if (!proj.ok) failures.push(`서포터즈 회차 일정: ${proj.error}`)
         else
           transitions = trialTransitionsFromRounds(
