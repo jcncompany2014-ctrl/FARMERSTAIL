@@ -132,21 +132,25 @@ export default function PackingChecklist({
           const id = subIds[i]!
           const isDone = loaded && done.has(id)
           return (
-            <div key={id} className="relative">
-              <button
-                type="button"
-                onClick={() => toggle(id)}
-                aria-pressed={isDone}
-                aria-label={isDone ? '포장 완료 취소' : '포장 완료로 표시'}
-                className={`absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
-                  isDone
-                    ? 'bg-emerald-500 text-white'
-                    : 'border border-input bg-card text-muted-foreground hover:border-emerald-400 hover:text-emerald-600'
-                }`}
-              >
-                <Check className="h-3.5 w-3.5" strokeWidth={2.6} />
-                {isDone ? '완료' : '포장 완료'}
-              </button>
+            // '포장 완료' 단추는 카드 위 줄에 따로(2026-10-15 F-b, 규칙280). 예전엔 카드 오른쪽 위에 겹쳐 띄워(absolute) 폰에서
+            // 빨간 '…보내지 마세요' 배지의 끝(가장 중요한 말)을 덮었다 — 카드 첫 줄이 그 자리를 비워 두지 않는다.
+            <div key={id}>
+              <div className="mb-1 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => toggle(id)}
+                  aria-pressed={isDone}
+                  aria-label={isDone ? '포장 완료 취소' : '포장 완료로 표시'}
+                  className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold transition ${
+                    isDone
+                      ? 'bg-emerald-500 text-white'
+                      : 'border border-input bg-card text-muted-foreground hover:border-emerald-400 hover:text-emerald-600'
+                  }`}
+                >
+                  <Check className="h-3.5 w-3.5" strokeWidth={2.6} />
+                  {isDone ? '완료' : '포장 완료'}
+                </button>
+              </div>
               <div className={isDone ? 'opacity-45 transition-opacity' : ''}>
                 {card}
               </div>

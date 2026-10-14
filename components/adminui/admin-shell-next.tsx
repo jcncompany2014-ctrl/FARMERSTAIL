@@ -281,7 +281,10 @@ export default function AdminShellNext({
           </Breadcrumb>
           <div className="ml-auto flex items-center gap-1.5">{bell}</div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
+        {/* 가로 넘침 막기(2026-10-15 F-b, 규칙280) — 7/25 옛 셸(.admin-body)에 넣었던 overflow-x: clip 이 9/4 이 셸로 바꿀 때
+            빠져, 폰 홈이 옆으로 밀렸다. hidden 이 아니라 clip — 스크롤 컨테이너를 만들지 않아 안쪽 sticky 가 산다.
+            min-w-0 = flex 자식이 내용 폭만큼 늘어나지 않게. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
     </TooltipProvider>

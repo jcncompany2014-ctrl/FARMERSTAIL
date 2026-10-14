@@ -11,6 +11,13 @@
  *   272 서포터즈 인상 — 할 일·브리핑이 체험단 화면·청구와 같은 회차 펼치기(lastPaidPhase 포함)로 다음 인상을 고른다(11/18·1/13)
  *   273 웹 가게 주문 — 출고일(결제 다음 첫 화·목, lib/store 정본)이 지났는데 안 나가면 할 일·홈·브리핑에 빨강, 링크는 가게 주문만
  *   274 카드 재등록 대기 — 정본 isPausedByBillingFailure(멈춤 + 카드 거절 또는 3번 실패)로, 해지는 빼고
+ *   275 탈퇴 — user_id 를 가진 admin_* 표 전부 파기(자동 대조) · 탈퇴 회원 표시 · 고치기·메모·메시지 서버 거절
+ *   276 고객 화면 쓰기의 작업 기록 — 문의 메모·운영 메모·앞당긴 제안, 배송지는 바꾸기 전 값(탈퇴 때 지우는 표)
+ *   277 끊김 안내(폼이 '저장 중'에서 멈추지 않음) · 1:1 메시지는 문의함 저장과 알림 결과를 따로 · 알레르기 제안 실패 다시 보내기
+ *   278 고객 한 명 화면 서포터즈 인상 동의·보류 — 체험단 화면과 같은 정본, 읽기만
+ *   279 챙길 손님 — 정기배송·최근 30일 결제 손님만, 탈퇴 제외
+ *   280 어드민 폰 — 가로 넘침 막기·도움말 말풍선·'포장 완료' 겹침·경고 글씨 크기
+ *   281 홈 숫자 — 매출 2주 대 2주·가입 회원 탈퇴 제외·머리말·카드 미등록 기준
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -445,4 +452,54 @@ test("규칙279: 챙길 손님 — 연락 수단 신호(옛 앱·알림 못 받�
   assert.match(ld, /recentPaidOrders: recentByUser\.get\(u\.id\) \?\? 0,\s*deleted: !!u\.deleted_at,/, '판정에 최근 결제·탈퇴를 넘기지 않는다')
   assert.match(ld, /\.select\('id, email, name, phone, deleted_at'\)\s*[\s\S]{0,120}\.is\('deleted_at', null\)/, '회원 목록 챙길 손님 집계에 탈퇴 회원이 들어간다')
   assert.match(code('app', 'admin', 'users', '[id]', '_data.ts'), /loadCustomerFlags\(admin, \[\{ id: userId, email: prof\.email, deleted_at: prof\.deleted_at \}\]\)/, '고객 화면 챙길 신호가 탈퇴 여부를 모른다')
+})
+
+test("규칙280: 어드민 폰(390) — 본문 가로 넘침 막기·'?' 도움말은 안 보일 땐 자리를 안 차지·'포장 완료'가 '보내지 마세요'를 덮지 않음·경고 글씨 10px 금지", () => {
+  /**
+   * # 왜 (조사 '포장 완료 단추가 빨간 보내지 마세요를 덮음' · '어드민 홈이 폰에서 옆으로 120px 밀림' · '가장 중요한 경고가 가장 작은 글씨(10px)')
+   * 390 폭 헤드리스 엣지 실측(점검 화면 /design-check-admin/phone, 10/15): 고치기 전 페이지 폭 486 · 겹침 2 · 빨간 배지 10px
+   * → 고친 뒤 390 · 0 · 13px(사진: scratchpad admin1014/fix-b-shots before-/after-phone.png).
+   */
+  const shell = code('components', 'adminui', 'admin-shell-next.tsx')
+  assert.match(shell, /<div className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 md:p-6">\{children\}<\/div>/, '어드민 본문에 가로 넘침 막기(overflow-x-clip·min-w-0)가 없다 — 폰 홈이 옆으로 밀린다')
+  const ui = code('components', 'admin', 'ui.tsx')
+  const badge = ui.slice(ui.indexOf('export function Badge('), ui.indexOf('export function HelpTip('))
+  assert.ok(!/text-\[(9|10|10\.5|11)px\]/.test(badge), '공용 배지 글씨가 12px 보다 작다')
+  assert.match(badge, /tone === 'red' \? 'text-\[13px\]' : 'text-\[12px\]'/, '빨간 경고 배지가 13px 가 아니다')
+  const tip = ui.slice(ui.indexOf('export function HelpTip('), ui.indexOf('export type StatTone'))
+  assert.ok(!/opacity-0/.test(tip), "'?' 말풍선이 안 보일 때도 자리를 차지한다(opacity-0 — 폰 홈이 옆으로 밀린 원인)")
+  assert.match(tip, /role="tooltip"\s+className="[^"]*\bhidden\b[^"]*group-hover\/help:block group-focus-within\/help:block/, '말풍선이 안 보일 땐 그리지 않고, 누르면(초점) 뜨게 하지 않았다')
+  assert.match(tip, /tabIndex=\{0\}/, "폰에서 '?'를 누를 수 없다(hover 전용)")
+  assert.match(tip, /max-md:fixed max-md:inset-x-4/, '폰에서 말풍선이 화면 밖으로 나간다')
+  const pc = code('app', 'admin', 'personalization', 'picking-list', 'PackingChecklist.tsx')
+  assert.ok(!/absolute right-3 top-3/.test(pc), "'포장 완료' 단추가 카드 위에 겹쳐 떠 '보내지 마세요'를 덮는다")
+  assert.match(pc, /<div className="mb-1 flex justify-end">\s*<button/, "'포장 완료' 단추가 카드 위 줄에 따로 있지 않다")
+  // 이번에 고친 어드민 화면엔 10px 이하 글씨가 없다.
+  for (const f of [
+    ['components', 'admin', 'WeeklyTodoPanel.tsx'],
+    ['components', 'admin', 'ActionsPanel.tsx'],
+    ['app', 'admin', 'users', '[id]', 'CustomerView.tsx'],
+    ['app', 'admin', 'personalization', 'picking-list', 'PackingChecklist.tsx'],
+  ]) {
+    assert.ok(!/text-\[(8|9|9\.5|10|10\.5)px\]/.test(code(...f)), `${f.join('/')}: 10px 이하 글씨가 있다`)
+  }
+  const page = read('app', 'design-check-admin', 'phone', 'page.tsx')
+  assert.match(page, /if \(process\.env\.VERCEL_ENV === 'production'\) notFound\(\)/, '폰 점검 화면이 실제 사이트에서 열린다')
+})
+
+test("규칙281: 어드민 홈 숫자 — 매출은 2주 대 2주, 가입 회원은 탈퇴 제외, 머리말은 사실대로, '카드 미등록'은 같은 카드 기준", () => {
+  /**
+   * # 왜 (조사 "'이번 주 매출'이 2주 결제 주기 때문에 매주 −100%/+100%" · "'가입 회원 25명'에 탈퇴 회원" · '홈 머리말 안내가 사실과 다름')
+   * 정기배송이 2주마다 결제돼 7일 비교는 아무 일 없어도 격주로 '매출 폭락' 빨간불이었다(10/14: 0원 · −100%).
+   */
+  const home = code('app', 'admin', 'page.tsx')
+  assert.match(home, /\.select\('total_amount, refunded_amount'\)\s*\.in\('payment_status', PAID_STATUSES\)\s*\.gte\('created_at', fourteenDaysAgo\),\s*\),/, '최근 매출 창이 14일이 아니다')
+  assert.match(home, /\.gte\('created_at', twentyEightDaysAgo\)\s*\.lt\('created_at', fourteenDaysAgo\)/, '비교 창이 그 전 14일이 아니다')
+  assert.match(home, /label="최근 2주 매출"/)
+  assert.ok(!/지난주보다/.test(home), "'지난주보다' 비교가 남아 있다(2주 결제 주기와 안 맞음)")
+  assert.match(home, /from\('profiles'\)\.select\('id', \{ count: 'exact', head: true \}\)\.is\('deleted_at', null\)\.or\(profileFilter\)/, '가입 회원 수에 탈퇴 회원이 들어간다')
+  assert.match(home, /from\('profiles'\)\.select\('id', \{ count: 'exact', head: true \}\)\.is\('deleted_at', null\),/, '가입 회원 수(내부 계정 목록 없을 때)에 탈퇴 회원이 들어간다')
+  const head = read('app', 'admin', 'page.tsx')
+  assert.ok(!head.includes("아래 '처리 대기'와 매출·구독 숫자는 사장님 시험 계정을 뺀 값이에요"), '머리말이 처리 대기도 시험 계정을 뺐다고 잘못 안내한다')
+  assert.match(home, /ex\(\s*supabase\s*\.from\('subscriptions'\)\s*\.select\('id', \{ count: 'exact', head: true \}\)\s*\.eq\('status', 'active'\)\s*\.is\('billing_key', null\),\s*\)/, "'카드 미등록'이 같은 카드(진행 중인 구독)와 다른 기준(시험 계정 포함)이다")
 })

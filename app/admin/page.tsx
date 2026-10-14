@@ -133,6 +133,10 @@ export default async function AdminHome() {
   const fourteenDaysAgo = new Date(
     now.getTime() - 14 * 24 * 60 * 60 * 1000,
   ).toISOString()
+  // 매출 비교는 2주 단위(2026-10-15 F-b, 규칙281) — 정기배송이 2주마다 결제돼 7일씩 비교하면 매주 −100%/+100% 가 번갈아 떴다.
+  const twentyEightDaysAgo = new Date(
+    now.getTime() - 28 * 24 * 60 * 60 * 1000,
+  ).toISOString()
 
   /**
    * ★이번 주 할 일(맨 위)과 내부 계정 — 둘 다 service_role(관리자 확인을 위에서 마쳤다).
@@ -196,10 +200,10 @@ export default async function AdminHome() {
       .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing'),
 
-    // 전체 회원 수 — 내부 계정 제외.
+    // 전체 회원 수 — 내부 계정·탈퇴 회원 제외(탈퇴는 2026-10-15 규칙281 — 익명화된 '탈퇴회원'이 1명 부풀렸다).
     profileFilter
-      ? supabase.from('profiles').select('id', { count: 'exact', head: true }).or(profileFilter)
-      : supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      ? supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null).or(profileFilter)
+      : supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
 
     // 최근 주문 10건
     supabase
@@ -240,23 +244,23 @@ export default async function AdminHome() {
       .order('stock', { ascending: true })
       .limit(5),
 
-    // 최근 7일 주문 매출
+    // 최근 14일 주문 매출 — 결제 주기(2주) 한 번(규칙281).
     ex(
       supabase
         .from('orders')
         .select('total_amount, refunded_amount')
         .in('payment_status', PAID_STATUSES)
-        .gte('created_at', sevenDaysAgo),
+        .gte('created_at', fourteenDaysAgo),
     ),
 
-    // 전전주 (14~7일 전) 주문 매출 — WoW 비교
+    // 그 전 14일(28~14일 전) 주문 매출 — 2주 대 2주 비교.
     ex(
       supabase
         .from('orders')
         .select('total_amount, refunded_amount')
         .in('payment_status', PAID_STATUSES)
-        .gte('created_at', fourteenDaysAgo)
-        .lt('created_at', sevenDaysAgo),
+        .gte('created_at', twentyEightDaysAgo)
+        .lt('created_at', fourteenDaysAgo),
     ),
 
     // 결제 실패 카운트 (최근 30일)
@@ -353,11 +357,14 @@ export default async function AdminHome() {
       .gte('executed_at', oneDayAgo),
     // 카드 미등록 활성 구독 — 신청만 하고 결제 수단을 안 붙인 상태.
     // 첫 청구가 영영 안 일어나므로 며칠 지나면 리마인드 대상.
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .is('billing_key', null),
+    // ★'진행 중인 구독' 카드 안에 나오는 숫자라 같은 기준(내부 계정 제외)으로 센다(2026-10-15 규칙281 — 같은 카드 안에서 기준이 섞였다).
+    ex(
+      supabase
+        .from('subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .is('billing_key', null),
+    ),
   ])
 
   /**
@@ -660,7 +667,7 @@ export default async function AdminHome() {
           </h1>
         </div>
         <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          {`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 맨 위 '이번 주 할 일'부터 보세요. 아래 '처리 대기'와 매출·구독 숫자는 사장님 시험 계정을 뺀 값이에요.`}
+          {`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 맨 위 '이번 주 할 일'부터 보세요. 매출·구독·회원 숫자는 사장님 시험 계정을 뺀 값이에요('처리 대기'는 시험 계정도 포함 — 시험 박스도 실제로 나가요).`}
         </p>
       </div>
 
@@ -794,7 +801,7 @@ export default async function AdminHome() {
           <StatCard
             label="가입 회원"
             value={`${userCount}명`}
-            sub="가입한 전체 고객 수"
+            sub="탈퇴 회원·시험 계정 제외"
           />
         </div>
       </section>
@@ -832,15 +839,15 @@ export default async function AdminHome() {
             help={`최근 30일간 한 번이라도 결제된 뒤 끊은 고객만 세요 — 카드 등록 전에 그만둔 신청이나 같은 강아지로 다시 구독 중인 경우는 빼요. 구독이 ${CHURN_MIN_SAMPLE}건이 안 되면 한두 명이 큰 %가 돼서 비율 대신 사람 수로 보여 드려요(${CHURN_MIN_SAMPLE}건부터 ${CHURN_RED_PCT}%를 넘으면 빨간색).`}
           />
           <StatCard
-            label="이번 주 매출"
+            label="최근 2주 매출"
             value={`${lastWeekRevenue.toLocaleString()}원`}
             sub={
               wowDelta === 0
-                ? '지난주와 같음'
-                : `지난주보다 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+                ? '그 전 2주와 같음'
+                : `그 전 2주보다 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
             }
             tone={wowDelta >= 0 ? 'green' : 'red'}
-            help="최근 7일간 결제 합계를 그 전 7일과 비교한 거예요."
+            help="최근 14일 결제 합계를 그 전 14일과 비교한 거예요. 정기배송은 2주마다 결제돼서 7일씩 비교하면 아무 일 없어도 매주 −100%·+100%가 번갈아 떠요."
           />
         </div>
       </section>
