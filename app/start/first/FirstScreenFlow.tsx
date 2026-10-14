@@ -339,7 +339,9 @@ export default function FirstScreenFlow() {
     <SurveyAlert>{alert}</SurveyAlert>
   ) : step === 0 ? (
     <div style={{ position: 'absolute', left: 0, right: 0, top: 22, display: 'flex', justifyContent: 'center' }}>
-      <Link href="/login" className="s-tlink" style={{ alignSelf: 'center' }}>
+      {/* replace — 로그인 화면의 '무료 맞춤 분석 시작하기'(/start)와 짝. 둘이 서로를 새 화면으로 쌓으면 하드웨어 '뒤로'가
+          첫 화면 ↔ 로그인을 번갈아 보여 줬다(2026-10-14 점검, 규칙234). 둘 다 '←' 없는 뿌리 화면이라 바꿔 끼운다. */}
+      <Link href="/login" replace className="s-tlink" style={{ alignSelf: 'center' }}>
         이미 계정이 있어요 · 로그인
       </Link>
     </div>

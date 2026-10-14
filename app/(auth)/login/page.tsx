@@ -388,7 +388,11 @@ function LoginInner() {
           }}
         >
           <span style={{ fontSize: 16, fontWeight: 800, textAlign: 'center' }}>파머스테일이 처음이세요?</span>
-          <AuthOutlineLink href="/start">무료 맞춤 분석 시작하기</AuthOutlineLink>
+          {/* replace — 앱 첫 화면(/start)과 로그인은 둘 다 윗줄 '←' 없는 뿌리 화면이라 서로 오갈 때 기록을 쌓지 않는다.
+              쌓으면 하드웨어 '뒤로'가 두 화면을 번갈아 보여 줬다(2026-10-14 점검, 규칙234). 웹 판(아래)은 그대로. */}
+          <AuthOutlineLink href="/start" replace>
+            무료 맞춤 분석 시작하기
+          </AuthOutlineLink>
         </div>
       </AuthAppMain>
     )

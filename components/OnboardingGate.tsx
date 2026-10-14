@@ -53,6 +53,8 @@ export default function OnboardingGate() {
     // 가게 링크로 앱이 처음 열린 경우(안드로이드 14 이하 앱 링크) — 첫 화면으로 덮지 않고 "가게는 웹에서 열려요"
     // 안내(app/store/layout, 규칙205)를 그대로 보여 준다. 손님은 가게를 찾아 링크를 눌렀다.
     if (pathname === '/store' || pathname.startsWith('/store/')) return
+    // 링크 모음(인스타 프로필 링크)도 같다 — "링크 모음은 웹에서 열려요" 안내(app/link/layout, 규칙235)를 덮지 않는다.
+    if (pathname === '/link') return
     if (hasSeenOnboarding()) return
 
     // ★표식을 **옮기기 전에** 남긴다(2026-10-13, 규칙201 — 에뮬레이터 재현 무한 왕복).

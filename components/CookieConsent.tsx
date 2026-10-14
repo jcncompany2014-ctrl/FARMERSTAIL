@@ -129,8 +129,13 @@ export default function CookieConsent() {
     // 다음 렌더에서 자연 언마운트.
   }
 
-  // ★2026-10-10 웹 리뉴얼('A 포스터' 웹): 흰 바탕 · 먹색 2px 테두리 · 모서리 4 · 영어 머리말(Cookies) 없음 · 단추 48.
+  // ★2026-10-10 웹 리뉴얼('A 포스터' 웹): 흰 바탕 · 먹색 2px 테두리 · 모서리 4 · 영어 머리말(Cookies) 없음.
   //   동의 저장 동작(writeConsent)·세부 설정 항목은 그대로다. 앱에서는 위에서 이미 null.
+  // ★2026-10-14 점검(규칙233) — 작은 폰에서 화면 40%를 덮고(360×640 에서 높이 279), 본문 글꼴이 늦게 도착해 바뀔 때
+  //   줄이 바뀌며 높이가 279→257 로 줄어 그 자체가 화면 밀림(CLS)의 첫 원인이었다(/login·/signup·/faq 0.10~0.18).
+  //   그래서 높이가 글꼴과 무관하게 정해지게 짰다: 안내 문구는 그대로 세 줄(각 줄이 따로 한 줄 — 줄 높이 20px 고정),
+  //   단추는 한 줄(높이 44 — 세부 설정은 너비 고정, 필수만·모두 허용은 남은 폭을 같은 너비로). 문구·선택지(필수만 = 분석·광고 거부, 세부 설정의
+  //   선택 항목은 꺼진 채 시작)·저장 동작은 그대로다. 세부 설정을 열면(손님이 누른 것 — 밀림에 안 센다) 항목이 사이에 펼쳐진다.
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-[60] px-3 pt-2"
@@ -144,46 +149,55 @@ export default function CookieConsent() {
       <div
         style={{ maxWidth: 456, margin: '0 auto', background: '#FFFFFF', border: '2px solid #141414', borderRadius: 4, boxShadow: '0 8px 28px rgba(20,20,20,0.18)', color: '#141414', letterSpacing: '-0.02em', wordBreak: 'keep-all' }}
       >
-        <div style={{ padding: '16px 16px 12px' }}>
-          <h2 id="cookie-consent-title" style={{ margin: 0, fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>
-            쿠키를 써요
-          </h2>
-          <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6, color: '#3D3D3D' }}>
-            꼭 필요한 쿠키는 늘 쓰고, 분석·광고 쿠키는 동의하셔야만 써요. 자세한 내용은{' '}
+        {/* 세 줄 — 줄마다 따로 블록(한 줄)이라 글꼴이 바뀌어도 줄 수·높이가 그대로다. 가장 긴 줄(셋째)도 폭 320 폰에서
+            한 줄에 들어가게 좁은 화면은 13px. */}
+        <div className="text-[14px] max-[339px]:text-[13px]" style={{ padding: '12px 14px 0', lineHeight: '20px', color: '#3D3D3D' }}>
+          <div>
+            <h2 id="cookie-consent-title" style={{ display: 'inline', margin: 0, fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 800, color: '#141414' }}>
+              쿠키를 써요.
+            </h2>{' '}
+            꼭 필요한 쿠키는 늘 쓰고,
+          </div>
+          <div>분석·광고 쿠키는 동의하셔야만 써요.</div>
+          <div>
+            자세한 내용은{' '}
             <Link href="/legal/privacy" target="_blank" style={{ fontWeight: 700, color: '#141414', textDecoration: 'underline' }}>
               개인정보처리방침
             </Link>
             에 있어요.
-          </p>
+          </div>
+        </div>
+        {expanded && (
+          <ul style={{ margin: '10px 14px 0', padding: '12px 0 0', listStyle: 'none', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <CategoryRow title="필수 쿠키" hint="로그인·주문 같은 기본 기능에 써요. 끌 수 없어요." locked on />
+            <CategoryRow title="분석 쿠키" hint="방문 흐름을 이름 없이 모아 사이트를 고치는 데 써요. (GA4)" on={analytics} onChange={setAnalytics} />
+            <CategoryRow title="광고·마케팅 쿠키" hint="관심사에 맞는 광고에 써요. (Meta Pixel 등)" on={marketing} onChange={setMarketing} />
+          </ul>
+        )}
+        <div style={{ padding: '10px 14px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            style={{ marginTop: 6, height: 36, padding: 0, border: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, color: '#141414', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ width: 84, height: 44, flexShrink: 0, padding: 0, border: 0, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: 4, fontSize: 14, fontWeight: 700, color: '#141414', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
           >
             세부 설정
             {expanded ? <ChevronUp className="w-3.5 h-3.5" strokeWidth={2.5} /> : <ChevronDown className="w-3.5 h-3.5" strokeWidth={2.5} />}
           </button>
-          {expanded && (
-            <ul style={{ margin: '6px 0 0', padding: '12px 0 0', listStyle: 'none', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <CategoryRow title="필수 쿠키" hint="로그인·주문 같은 기본 기능에 써요. 끌 수 없어요." locked on />
-              <CategoryRow title="분석 쿠키" hint="방문 흐름을 이름 없이 모아 사이트를 고치는 데 써요. (GA4)" on={analytics} onChange={setAnalytics} />
-              <CategoryRow title="광고·마케팅 쿠키" hint="관심사에 맞는 광고에 써요. (Meta Pixel 등)" on={marketing} onChange={setMarketing} />
-            </ul>
-          )}
-        </div>
-        <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {/* 거부(필수만)와 허용은 같은 너비 — 한쪽을 작게 만들지 않는다. 너비는 카드 폭으로만 정해져 글꼴과 무관하다. */}
           <button
             type="button"
             onClick={() => save(false, false)}
-            style={{ height: 48, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+            className="text-[15px] max-[339px]:text-[14px]"
+            style={{ flex: '1 1 0', minWidth: 0, height: 44, padding: 0, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
           >
             필수만
           </button>
           <button
             type="button"
             onClick={() => (expanded ? save(analytics, marketing) : save(true, true))}
-            style={{ height: 48, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}
+            className="text-[15px] max-[339px]:text-[14px]"
+            style={{ flex: '1 1 0', minWidth: 0, height: 44, padding: 0, borderRadius: 4, border: 0, background: '#141414', color: '#FFFFFF', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
           >
             {expanded ? '고른 것 저장' : '모두 허용'}
           </button>

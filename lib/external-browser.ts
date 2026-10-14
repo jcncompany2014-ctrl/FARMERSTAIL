@@ -1,5 +1,5 @@
 /**
- * 앱 안에서 열린 웹 전용 화면(가게)을 **폰의 브라우저로** 넘기는 주소 — 순수 함수(2026-10-13, 규칙205).
+ * 앱 안에서 열린 웹 전용 화면(가게 · 2026-10-14 부터 링크 모음도 — 규칙235)을 **폰의 브라우저로** 넘기는 주소 — 순수 함수(2026-10-13, 규칙205).
  *
  * # 왜
  * 안드로이드 14 이하에선 앱 링크 제외(매니페스트 uri-relative-filter-group — 안드로이드 15 부터)가 안 먹어, 앱이 깔린
@@ -22,9 +22,19 @@
 /** 가게 정본 주소(www). */
 export const STORE_WEB_ORIGIN = 'https://www.farmerstail.kr'
 export const STORE_WEB_HOME = `${STORE_WEB_ORIGIN}/store`
+/**
+ * 링크 모음(인스타 프로필 링크) 정본 주소 — 2026-10-14 규칙235. 안드로이드 14 이하 앱에선 /link 도 가게처럼 앱이 열어
+ * (매니페스트 제외는 15 부터 — 규칙204) 웹 화면이 앱에 그대로 떴다. app/link/layout 이 안내를 띄우고 이 주소로 넘긴다.
+ */
+export const LINK_WEB_URL = `${STORE_WEB_ORIGIN}/link`
 
 /** 크롬 패키지 — intent 링크가 우리 앱으로 되돌아오지 않게 박는다. */
 export const ANDROID_CHROME_PACKAGE = 'com.android.chrome'
+
+/** 검색어(?…)는 공백·# 이 없을 때만 그대로 붙인다. */
+function safeSearch(search: string): string {
+  return typeof search === 'string' && search.startsWith('?') && !/[\s#]/.test(search) ? search : ''
+}
 
 /**
  * 앱 안 가게 주소 → 브라우저로 열 주소. 가게 경로(/store, /store/…)면 그 화면 그대로(검색어 포함), 아니면 가게 첫 화면.
@@ -33,12 +43,17 @@ export const ANDROID_CHROME_PACKAGE = 'com.android.chrome'
 export function storeWebUrl(pathname: string, search = ''): string {
   if (typeof pathname !== 'string' || /[\\\s]|\/\//.test(pathname)) return STORE_WEB_HOME
   if (pathname !== '/store' && !pathname.startsWith('/store/')) return STORE_WEB_HOME
-  const q = typeof search === 'string' && search.startsWith('?') && !/[\s#]/.test(search) ? search : ''
-  return `${STORE_WEB_ORIGIN}${pathname}${q}`
+  return `${STORE_WEB_ORIGIN}${pathname}${safeSearch(search)}`
+}
+
+/** 앱 안 링크 모음 → 브라우저로 열 주소(검색어 = 인스타 utm 등은 그대로). 경로는 언제나 /link 하나. */
+export function linkWebUrl(search = ''): string {
+  return `${LINK_WEB_URL}${safeSearch(search)}`
 }
 
 /**
- * https 가게 주소 → 안드로이드에서 크롬으로 여는 intent 링크. 우리 가게 주소가 아니면 null(아무 데도 안 보낸다).
+ * https 웹 전용 주소(가게 /store… · 링크 모음 /link) → 안드로이드에서 크롬으로 여는 intent 링크.
+ * 우리 웹 전용 주소가 아니면 null(아무 데도 안 보낸다).
  * 형식: intent://호스트/경로?검색#Intent;scheme=https;action=…VIEW;category=…BROWSABLE;package=com.android.chrome;end
  */
 export function androidChromeIntentUrl(httpsUrl: string): string | null {
@@ -49,7 +64,7 @@ export function androidChromeIntentUrl(httpsUrl: string): string | null {
     return null
   }
   if (u.protocol !== 'https:' || u.origin !== STORE_WEB_ORIGIN || u.username || u.password) return null
-  if (u.pathname !== '/store' && !u.pathname.startsWith('/store/')) return null
+  if (u.pathname !== '/store' && !u.pathname.startsWith('/store/') && u.pathname !== '/link') return null
   return (
     `intent://${u.host}${u.pathname}${u.search}` +
     `#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=${ANDROID_CHROME_PACKAGE};end`

@@ -200,11 +200,15 @@ export function AuthPrimaryAnchor({ style, children, ...rest }: AnchorHTMLAttrib
   )
 }
 
-/** 보조 링크(흰 바탕 1.5px 먹선 · 높이 52). */
-export function AuthOutlineLink({ href, children, style }: { href: string; children: ReactNode; style?: CSSProperties }) {
+/**
+ * 보조 링크(흰 바탕 1.5px 먹선 · 높이 52). replace = 지금 화면을 바꿔 끼운다(기록을 쌓지 않는다) — 서로 오가는 두 뿌리
+ * 화면(앱 첫 화면 ↔ 로그인)에서 하드웨어 '뒤로'가 두 화면을 번갈아 보여 주지 않게(규칙234).
+ */
+export function AuthOutlineLink({ href, children, style, replace }: { href: string; children: ReactNode; style?: CSSProperties; replace?: boolean }) {
   return (
     <Link
       href={href}
+      replace={replace}
       className="active:opacity-80"
       style={{
         height: 52,
