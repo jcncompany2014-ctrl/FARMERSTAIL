@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Repeat } from 'lucide-react'
+import { customerHref } from '@/lib/admin/customer-link'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
@@ -950,7 +952,9 @@ function SubRow({
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5 text-xs font-bold">
-          {sub.profiles?.name || sub.recipient_name || '-'}
+          <Link href={customerHref(sub.user_id)} className="underline-offset-2 hover:underline">
+            {sub.profiles?.name || sub.recipient_name || '-'}
+          </Link>
           {isSupporter && <SupporterBadge />}
         </div>
         <div className="text-[10px] text-muted-foreground">{sub.profiles?.email || ''}</div>
@@ -1014,7 +1018,9 @@ function SubCard({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 truncate text-[13px] font-bold">
-            {sub.profiles?.name || sub.recipient_name || '-'}
+            <Link href={customerHref(sub.user_id)} className="underline-offset-2 hover:underline">
+              {sub.profiles?.name || sub.recipient_name || '-'}
+            </Link>
             {isSupporter && <SupporterBadge />}
           </p>
           <p className="truncate text-[10px] text-muted-foreground">

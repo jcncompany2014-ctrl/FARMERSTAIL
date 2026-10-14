@@ -12,6 +12,7 @@ import { nextShipDate, keepShipDateOnCardRegister } from '@/lib/shipping-schedul
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import { isCurrentNoCancelConsent, NO_CANCEL_CONSENT_VERSION } from '@/lib/payments/no-cancel-consent'
+import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -380,6 +381,26 @@ export async function POST(req: Request) {
       { status: 500 },
     )
   }
+
+  // 변경 기록(2026-10-14 C3) — 카드 등록·변경은 service_role 쓰기라 DB 트리거가 못 본다. 빌링키 값은 남기지 않는다.
+  // 실패해도 등록 완료 응답은 막지 않는다(lib/subscription-events-record).
+  await recordSubscriptionEvent(admin, {
+    subscriptionId,
+    userId: user.id,
+    actor: 'customer',
+    actorUserId: user.id,
+    kind: 'card',
+    before: {
+      status: cur?.status ?? null,
+      ...(firstDeliveryIso ? { next_delivery_date: cur?.next_delivery_date ?? null } : {}),
+    },
+    after: {
+      status: shouldResume ? 'active' : (cur?.status ?? null),
+      card_last4: last4,
+      ...(firstDeliveryIso ? { next_delivery_date: firstDeliveryIso } : {}),
+    },
+    source: 'api/payments/billing-issue',
+  })
 
   return NextResponse.json({
     ok: true,

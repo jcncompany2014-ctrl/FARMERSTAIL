@@ -33,6 +33,12 @@ import {
   boxCountSince,
 } from '@/lib/personalization/cycle'
 import { getAutomationSettings } from '@/lib/automation-settings'
+import {
+  closeEarlyProposalRequests,
+  earlyFirst,
+  loadEarlyProposalRequests,
+} from '@/lib/personalization/early-proposal'
+import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -201,6 +207,37 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── 앞당긴 제안(2026-10-14 C5) — 어드민이 알레르기를 고친 뒤 '고객에게 새 식단 제안 보내기'를 누른 강아지 ──
+  // 박스 3개를 기다리지 않고 이번 실행에서 같은 경로(decideNextBox → 금액 동의 게이트)로 제안을 만든다.
+  // 요청을 못 읽으면 앞당김만 건너뛴다 — 정기 재제안은 그대로 돈다(요청은 다음 실행에서 다시 읽힌다).
+  const early = await loadEarlyProposalRequests(supabase)
+  const earlyByDog = early.ok ? early.byDog : new Map<string, string[]>()
+  if (!early.ok) {
+    captureBusinessEvent('warning', 'personalization.progression.early_lookup_failed', { dbError: early.error })
+  }
+  const earlyMissing = [...earlyByDog.keys()].filter((d) => !latestByDog.has(d))
+  if (earlyMissing.length > 0) {
+    // 최근에 처방이 바뀐 강아지는 위 날짜 후보에 없다 — 그 강아지의 최신 회차를 따로 읽는다(같은 회차 번호 규칙).
+    const { data: earlyRows, error: earlyRowsErr } = await supabase
+      .from('dog_formulas')
+      .select(FORMULA_COLS)
+      .in('dog_id', earlyMissing)
+      .order('cycle_number', { ascending: false })
+    if (earlyRowsErr) {
+      captureBusinessEvent('warning', 'personalization.progression.early_formula_lookup_failed', {
+        dbError: earlyRowsErr.message,
+      })
+    } else {
+      for (const row of (earlyRows ?? []) as unknown as FormulaRow[]) {
+        const existing = latestByDog.get(row.dog_id)
+        if (!existing || row.cycle_number > existing.cycle_number) latestByDog.set(row.dog_id, row)
+      }
+    }
+  }
+  const earlyDogIds = new Set(earlyByDog.keys())
+  /** 이번 실행에서 새 처방 행을 만든 강아지 — 앞당김 요청을 'proposed' 로 닫는다. */
+  const proposedDogIds = new Set<string>()
+
   // ── 구독 게이트 (사장님 2026-07-17: "구독을 진행 중인 사람한테만 제안해") ──
   //
   // 이전엔 구독 확인이 **아예 없어서**, 구독도 안 하고 카드도 없는 사람에게까지
@@ -211,7 +248,8 @@ export async function GET(req: Request) {
   //
   // 상태 판정은 정본 헬퍼 `subscriptionState` 만 사용 — status 컬럼 직접 비교
   // 금지(카드 미등록 '유령 활성' 을 못 걸러낸다. lib/subscription-state 참조).
-  const allDogIds = Array.from(latestByDog.keys())
+  // 앞당김 요청이 있는 강아지를 앞으로 — 아래 MAX_PER_RUN 슬라이스에 밀려 빠지지 않게.
+  const allDogIds = earlyFirst(Array.from(latestByDog.keys()), earlyDogIds)
   const activeDogIds = new Set<string>()
   /** dog_id → 구독 정보 (배송 회차 카운트 + 금액 재산정용). active 구독만. */
   const billingByDog = new Map<
@@ -366,7 +404,8 @@ export async function GET(req: Request) {
       continue
     }
 
-    if (!isCycleDue(boxesShipped ?? 0)) {
+    // 앞당김 요청(어드민 알레르기 수정)은 박스 수를 기다리지 않는다 — 나머지 가드(승인 대기 중·다음 회차 있음)는 그대로.
+    if (!isCycleDue(boxesShipped ?? 0) && !earlyDogIds.has(dogId)) {
       notEnoughBoxes += 1
       continue
     }
@@ -760,6 +799,17 @@ export async function GET(req: Request) {
                 dbError: pauseErr.message,
               },
             )
+          } else {
+            // 변경 기록(2026-10-14 C3) — 크론이 멈춘 것이 고객 화면에 보이게. 실패해도 크론은 계속.
+            await recordSubscriptionEvent(supabase, {
+              subscriptionId: billingForPause.subId,
+              userId: cur.user_id,
+              actor: 'cron',
+              kind: 'pause',
+              before: { status: 'active' },
+              after: { status: 'paused', note: '알레르기로 준비할 수 있는 레시피가 없어 결제를 멈춤' },
+              source: 'cron/personalization-progression',
+            })
           }
         }
         // 조용히 넘어가면 안 되는 종류의 사건 — 알림부터 띄운다.
@@ -911,6 +961,7 @@ export async function GET(req: Request) {
       }
 
       succeeded += 1
+      proposedDogIds.add(cur.dog_id)
       captureBusinessEvent('info', 'personalization.progression.succeeded', {
         dogId: cur.dog_id,
         cycleNumber: next.cycleNumber,
@@ -1069,10 +1120,20 @@ export async function GET(req: Request) {
     }
   }
 
+    // 앞당김 요청 닫기 — 살펴본 결과만 남긴다(자세한 결과는 dog_formulas 가 정본). 실패해도 다음 실행이 다시 읽는다.
+    if (earlyByDog.size > 0) {
+      const closed = await closeEarlyProposalRequests(supabase, earlyByDog, proposedDogIds)
+      if (closed.error) {
+        captureBusinessEvent('warning', 'personalization.progression.early_close_failed', { dbError: closed.error })
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       today,
       candidates: targets.length,
+      /** 어드민이 앞당긴 제안 요청 수(알레르기 수정 뒤). */
+      earlyRequests: earlyByDog.size,
       succeeded,
       failed,
       skipped,

@@ -8,11 +8,14 @@ import type { Formula } from '@/lib/personalization/types'
 import type { SubscriptionItemRow } from '@/lib/personalization/subscriptionItems'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
 
 /** 승인된 처방으로 계산한 청구액 + 박스 스냅샷. 둘이 같은 계산에서 나온다. */
 type ApprovedBox = {
   subscriptionId: string
   total: number
+  /** 승인 전 저장 금액 — 변경 기록(subscription_events)의 '전' 값. */
+  prevTotal: number
   itemRows: SubscriptionItemRow[]
   /** 구독의 다음 발송일 — 승인된 처방은 이 박스부터(newFormulaAppliedFrom). */
   nextDeliveryDate: string | null
@@ -346,6 +349,20 @@ export async function POST(req: Request) {
         }
       } else {
         priceUpdated = true
+        // 변경 기록(2026-10-14 C3) — 고객이 새 식단·금액에 동의한 것. service_role 쓰기라 DB 트리거가 못 본다.
+        // (위 재시도는 로그인 쓰기라 트리거가 남긴다 — 여기서 또 남기지 않는다.) 실패해도 승인은 막지 않는다.
+        if (box.prevTotal !== box.total) {
+          await recordSubscriptionEvent(admin, {
+            subscriptionId: box.subscriptionId,
+            userId: user.id,
+            actor: 'customer',
+            actorUserId: user.id,
+            kind: 'amount',
+            before: { total_amount: box.prevTotal },
+            after: { total_amount: box.total, note: '새 식단 제안에 동의' },
+            source: 'api/personalization/approve',
+          })
+        }
       }
 
       /**
@@ -548,6 +565,7 @@ async function boxForApproved(
     box: {
       subscriptionId: sub.id,
       total: quote.total,
+      prevTotal: sub.total_amount,
       itemRows: quote.itemRows,
       nextDeliveryDate: (subRow as unknown as { next_delivery_date: string | null }).next_delivery_date ?? null,
     },

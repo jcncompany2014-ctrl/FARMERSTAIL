@@ -6,6 +6,7 @@ import { STATUS_MAP as SUB_STATUS_MAP } from '@/lib/v3-helpers/subscriptions'
 import { AdminTabs, Hl, Em } from '@/components/admin/ui'
 import { CUSTOMER_TABS } from '@/components/admin/tabGroups'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
+import { customerHref } from '@/lib/admin/customer-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -200,7 +201,7 @@ export default async function AdminUnifiedSearch({
                     className="border-b border-border last:border-b-0"
                   >
                     <Link
-                      href={`/admin/users/${p.id}/message`}
+                      href={customerHref(p.id)}
                       className="block px-4 py-3 hover:bg-secondary/40 transition"
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -213,7 +214,7 @@ export default async function AdminUnifiedSearch({
                           </p>
                         </div>
                         <span className="text-[10px] text-primary font-bold shrink-0">
-                          메시지 →
+                          고객 화면 →
                         </span>
                       </div>
                     </Link>
@@ -279,7 +280,7 @@ export default async function AdminUnifiedSearch({
                     className="border-b border-border last:border-b-0"
                   >
                     <Link
-                      href="/admin/subscriptions"
+                      href={customerHref(s.user_id)}
                       className="block px-4 py-3 hover:bg-secondary/40 transition"
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -304,7 +305,7 @@ export default async function AdminUnifiedSearch({
                           </p>
                         </div>
                         <span className="text-[10px] text-primary font-bold shrink-0">
-                          관리 →
+                          고객 화면 →
                         </span>
                       </div>
                     </Link>

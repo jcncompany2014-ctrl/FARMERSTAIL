@@ -30,6 +30,7 @@ import type { Formula, FoodLine } from '@/lib/personalization/types'
 import { ALL_LINES, FOOD_LINE_META } from '@/lib/personalization/lines'
 import { MAX_PICKS, ratiosFromPicks } from '@/lib/personalization/boxPicks'
 import { isKoreanMobile, PHONE_ERROR } from '@/lib/phone'
+import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -467,6 +468,17 @@ export async function POST(req: Request) {
       { status: 500 },
     )
   }
+
+  // 변경 기록(2026-10-14 C3) — 신청은 service_role INSERT 라 DB 트리거가 못 본다. 실패해도 신청은 막지 않는다.
+  await recordSubscriptionEvent(admin, {
+    subscriptionId: sub.id,
+    userId: user.id,
+    actor: 'customer',
+    actorUserId: user.id,
+    kind: 'create',
+    after: { status: 'active', fresh_ratio: body.freshRatio, total_amount: total },
+    source: 'api/subscriptions/create',
+  })
 
   // ★고른 레시피를 처방(dog_formulas cycle1)에 반영 — **구독 생성이 확정된
   //   뒤에만** (2026-08-20 6라운드 감사). 예전엔 이 sync 가 subscriptions INSERT

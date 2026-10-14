@@ -13,6 +13,7 @@ import { loadDogBlockedLines } from '@/lib/personalization/dogAllergyBlocks'
 import { SHIP_WEEKDAY, weekdayOf, CHARGE_BEFORE_SHIP_DAYS } from '@/lib/shipping-schedule'
 import { addDaysKst, todayKstIsoDate } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -353,6 +354,18 @@ export async function PATCH(
       { status: 500 },
     )
   }
+
+  // 변경 기록(2026-10-14 C3) — service_role 쓰기라 DB 트리거가 못 본다. 실패해도 이 응답은 막지 않는다.
+  await recordSubscriptionEvent(admin, {
+    subscriptionId: loaded.sub.id,
+    userId: user.id,
+    actor: 'customer',
+    actorUserId: user.id,
+    kind: 'fresh_ratio',
+    before: { fresh_ratio: loaded.sub.fresh_ratio, total_amount: loaded.sub.total_amount },
+    after: { fresh_ratio: ratio, total_amount: quote.total },
+    source: 'api/subscriptions/fresh-ratio',
+  })
 
   /**
    * 박스 스냅샷도 새 비율로 다시 만든다 — 안 하면 청구액은 새 값인데 화면·주문

@@ -993,9 +993,9 @@ export default async function PickingListPage({
                 <span className="text-[15px] font-bold text-foreground">
                   {r.dogName}
                 </span>
-                <span className="text-[12px] text-muted-foreground">
+                <Link href={`/admin/users/by-subscription/${r.subId}`} className="text-[12px] text-muted-foreground underline-offset-2 hover:underline">
                   {r.recipientName}
-                </span>
+                </Link>
                 <Badge tone={r.freshUnknown ? 'red' : 'blue'}>
                   {r.freshUnknown
                     ? '화식 비율 미상'

@@ -8,6 +8,7 @@ import PartialCancelPanel from './PartialCancelPanel'
 import PaymentEventTimeline from './PaymentEventTimeline'
 import { Card, CardContent } from '@/components/adminui/card'
 import { carrierLabel } from '@/lib/tracking'
+import { customerHref } from '@/lib/admin/customer-link'
 import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
 import {
   paymentStatusDisplay,
@@ -216,7 +217,14 @@ export default async function AdminOrderDetailPage({
               </p>
             ) : (
               <dl className="space-y-2 text-sm">
-                <InfoRow label="이름" value={profile?.name ?? '-'} />
+                <InfoRow
+                  label="이름"
+                  value={
+                    <Link href={customerHref(order.user_id)} className="font-bold text-primary underline-offset-2 hover:underline">
+                      {profile?.name ?? '(이름 없음)'} →
+                    </Link>
+                  }
+                />
                 <InfoRow
                   label="이메일"
                   value={

@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import MessageComposer from './MessageComposer'
 import AdminNoteCard from './AdminNoteCard'
 import { Hl, LoadError } from '@/components/admin/ui'
+import { customerHref } from '@/lib/admin/customer-link'
+import { messagePreset } from './presets'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,10 +23,15 @@ export const dynamic = 'force-dynamic'
  */
 export default async function AdminUserMessagePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ preset?: string }>
 }) {
   const { id } = await params
+  const { preset } = await searchParams
+  // 고객 화면의 '비율 변경 안내 보내기' — 미리 채운 안내(presets.ts). 보내기 전 사장님이 고칠 수 있다.
+  const initial = messagePreset(preset)
   const supabase = await createClient()
 
   // 규칙1 — error 를 버리면 프로필 조회 실패가 404 로, 이력 조회 실패가
@@ -101,10 +108,10 @@ export default async function AdminUserMessagePage({
           </p>
         </div>
         <Link
-          href="/admin/users"
+          href={customerHref(id)}
           className="text-[11px] text-muted-foreground hover:text-primary font-semibold"
         >
-          ← 회원 목록
+          ← 고객 화면
         </Link>
       </header>
 
@@ -178,7 +185,7 @@ export default async function AdminUserMessagePage({
         {/* Composer */}
         <section>
           <h2 className="text-[13px] font-black text-foreground mb-3">메시지 작성</h2>
-          <MessageComposer userId={id} />
+          <MessageComposer userId={id} initial={initial} />
           <div className="mt-3 p-3 rounded-xl bg-secondary border border-border">
             <p className="text-[11px] text-foreground leading-relaxed">
               ⚠️ 1:1 CS 메시지는 사용자의 알림 선호도/방해금지 시간대를 우회해
