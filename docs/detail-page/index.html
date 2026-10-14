@@ -1,22 +1,19 @@
 <!doctype html>
 <!--
-  파머스테일 화식 4종 — 오픈마켓 상세페이지 v2 (2026-10-14)
+  파머스테일 화식 — 오픈마켓 상세페이지 (가독성 보정판, 2026-10-14)
 
-  # 왜 다시 짰나 (사장님 "가독성 딸린다")
-  상세페이지는 860px 로 만들어 폰(약 390px)에서 0.45배로 줄어 보인다. 옛 판의 본문은 18~20px →
-  폰에선 8~9px 이라 읽히지 않았다. 그래서 이 판은 **860 캔버스 기준 본문 30px 이상**(폰 약 14px),
-  제목 60px 이상으로 잡았다.
-
-  # 옛 판에서 고친 것
-  · 등록성분량 표 4개 → 한 표(레시피끼리 바로 비교). 옛 표는 머리글 '성분량 | 성분명'이 거꾸로였다.
-  · "5가지 특징"인데 아이콘이 4개 → 5개로 맞춤.
-  · 급여 꿀팁 2번과 Q&A 1번이 같은 말 → 급여 가이드 하나로 합침.
-  · 띄어쓰기 없는 문장("사람이먹을수없는건…") · '기호과' · 'Key Piont' 오타.
-  · 효능 단정 표현(빈혈 예방 · 면역력 · 피부 개선) → 저장소 정본 문구(lib/recipe-detail.ts, '케어/설계' 톤).
-    사료 표시광고에서 질병 예방·치료 표현은 위험하다.
+  # 원칙 (사장님 "디자인 구조나 중요 포인트는 바꾸지 말고 가독성이랑 완성도만")
+  원본 상세페이지(860px)의 섹션 순서 · 배경(모눈·종이·크림) · 말풍선 · 구름 배지 · 색 · 문구를 그대로 둔다.
+  바꾼 것은 다음뿐이다.
+   · 글씨 크기 — 860 캔버스는 폰(약 390px)에서 0.45배로 보인다. 본문 28px 이상(폰 약 13px), 제목 40px 이상.
+   · 대비 — 흐린 회색 글씨(저온 수비드 아이콘 라벨 · 흑돼지 kcal · '(100g 기준)')를 읽히는 진하기로.
+   · 맞춤법 · 띄어쓰기 — 무항제→무항생제 · 기호과→기호와 · Key Piont→Key Point · 붙여 쓴 문장들.
+   · 등록성분량 표 머리글 '성분량 | 성분명'이 내용과 거꾸로였던 것.
+  워드마크(FARMER'S RECIPE 등) · 아이콘 · 증명서 · QR 은 원본에서 그대로 잘라 assets/ 에 두었다
+  (같은 서체를 구할 수 없어서). 사진은 사장님이 고른 저장소 사진(public/)만 쓴다.
 
   # 출력
-  node docs/detail-page/render.mjs → out/ 에 섹션별 JPG + 전체 JPG (2배 해상도).
+  node docs/detail-page/render.mjs → out/ (정지 섹션 = 2배 JPG, 움직이는 섹션 = 원본 GIF 프레임을 합친 GIF)
 -->
 <html lang="ko">
 <head>
@@ -25,465 +22,731 @@
 <title>파머스테일 상세페이지</title>
 <style>
   @font-face { font-family: 'Pretendard'; src: url('../../app/fonts/PretendardVariable.woff2') format('woff2'); font-weight: 100 900; }
-  @font-face { font-family: 'BHS'; src: url('fonts/BlackHanSans.ttf') format('truetype'); }
-  @font-face { font-family: 'Anton'; src: url('fonts/Anton.ttf') format('truetype'); }
+  @font-face { font-family: 'MaruBuri'; src: url('../../app/fonts/MaruBuri-Regular.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'MaruBuri'; src: url('../../app/fonts/MaruBuri-Bold.woff2') format('woff2'); font-weight: 700; }
+  @font-face { font-family: 'Cormorant'; src: url('../../app/fonts/CormorantGaramond-latin-italic.woff2') format('woff2'); font-style: italic; font-weight: 300 700; }
 
   :root {
-    --cream: #EFE8DA;
-    --paper: #FAF7F0;
-    --ink: #1E1612;
-    --ink-soft: #4A4038;
-    --line: #D9CFBC;
-    --chicken: #D4A24C;
-    --duck: #8FA9AC;
-    --pork: #9E9D96;
-    --beef: #B5573A;
-    --accent: #B5573A;
+    --ink: #1E1210;
+    --mustard: #DDA14C;
+    --mustard-ink: #A86E1C;
+    --red: #BD5940;
+    --pork: #B5B6B6;
+    --pork-ink: #6E6F6F;
+    --duck: #93ABB6;
+    --duck-ink: #4F6C79;
+    --cream: #EBE4D3;
+    --greybox: #F1EFED;
+    --grid: #F7F5EE;
+    --paper: #E9E7E1;
+    --story: #913F2C;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    width: 860px; margin: 0 auto; background: var(--cream); color: var(--ink);
-    font-family: 'Pretendard', sans-serif; font-size: 30px; line-height: 1.6;
-    letter-spacing: -0.02em; word-break: keep-all; -webkit-font-smoothing: antialiased;
+    width: 860px; margin: 0 auto; background: #fff; color: var(--ink);
+    font-family: 'Pretendard', sans-serif; font-size: 30px; line-height: 1.55; font-weight: 500;
+    letter-spacing: -0.025em; word-break: keep-all; -webkit-font-smoothing: antialiased;
   }
-  img { display: block; max-width: 100%; }
-  section { padding: 110px 60px; position: relative; }
-  .poster { font-family: 'BHS', 'Pretendard', sans-serif; font-weight: 400; letter-spacing: -0.01em; }
-  .en { font-family: 'Anton', sans-serif; letter-spacing: 0.02em; }
+  img { display: block; }
+  b, strong { font-weight: 800; }
+  section { position: relative; overflow: hidden; }
+  .c { text-align: center; }
 
-  /* 섹션 머리 — 번호 · 제목 · 한 줄 */
-  .kicker {
-    display: inline-block; font-size: 26px; font-weight: 800; color: var(--paper);
-    background: var(--ink); padding: 8px 22px; border-radius: 999px; margin-bottom: 30px;
+  /* 배경 */
+  .bg-grid {
+    background-color: var(--grid);
+    background-image:
+      linear-gradient(#C9C7C0 1px, transparent 1px),
+      linear-gradient(90deg, #C9C7C0 1px, transparent 1px);
+    background-size: 47px 47px; background-position: -1px 22px;
   }
-  .kicker .en { font-weight: 400; margin-right: 10px; }
-  h2 { font-family: 'BHS', sans-serif; font-weight: 400; font-size: 66px; line-height: 1.22; letter-spacing: -0.02em; }
-  h2 em { font-style: normal; color: var(--accent); }
-  .lede { font-size: 32px; color: var(--ink-soft); margin-top: 26px; line-height: 1.6; }
-  .lede b { color: var(--ink); font-weight: 800; }
-  .center { text-align: center; }
-
-  /* ───────── HERO ───────── */
-  .hero { padding: 0; background: var(--ink); color: var(--paper); }
-  .hero-photo { width: 860px; height: 760px; object-fit: cover; object-position: 50% 40%; }
-  .hero-body { padding: 80px 60px 96px; text-align: center; }
-  .hero-eyebrow { font-size: 30px; font-weight: 700; color: #E8C98A; }
-  .hero h1 { font-family: 'BHS', sans-serif; font-weight: 400; font-size: 92px; line-height: 1.15; margin-top: 22px; letter-spacing: -0.02em; }
-  .hero p { font-size: 32px; color: #D8CFC0; margin-top: 30px; }
-  .hero-pouches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 60px; }
-  .hero-pouches div { border-radius: 16px; padding: 14px 6px 18px; font-size: 26px; font-weight: 800; color: var(--ink); }
-  .hero-pouches img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
-
-  /* ───────── 5가지 약속 ───────── */
-  .promise { background: var(--paper); }
-  .promise-list { list-style: none; margin-top: 64px; display: grid; gap: 20px; }
-  .promise-list li {
-    display: grid; grid-template-columns: 96px 1fr; gap: 28px; align-items: center;
-    background: #fff; border: 3px solid var(--ink); border-radius: 20px; padding: 32px 36px;
+  .bg-paper { background-color: var(--paper); }
+  .bg-paper::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .5  0 0 0 0 .48  0 0 0 0 .45  0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  .promise-list .num {
-    width: 96px; height: 96px; border-radius: 50%; background: var(--ink); color: var(--paper);
-    display: flex; align-items: center; justify-content: center; font-family: 'Anton'; font-size: 48px;
+  .bg-paper > * { position: relative; }
+
+  /* 흰 상자 + 두꺼운 먹 테두리 (모눈 위 카드) */
+  .box { background: #fff; border: 8px solid #000; margin: 0 62px; position: relative; }
+  .badge-wrap { position: absolute; top: -48px; left: 0; right: 0; text-align: center; }
+
+  /* 구름 배지 — script 가 SVG 를 깐다 */
+  .cloud { position: relative; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; letter-spacing: -0.01em; line-height: 1.1; text-align: center; vertical-align: middle; }
+  .cloud > svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  .cloud > span { position: relative; z-index: 1; }
+
+  .tape { display: inline-block; background: var(--ink); color: #fff; font-weight: 800; padding: 6px 22px 8px; line-height: 1.3; }
+  .wm { display: block; margin: 0 auto; }
+  .paw { position: absolute; width: 96px; }
+  .drip, .scallop { display: block; width: 860px; }
+
+  /* 1 BRAND STORY */
+  .story { padding: 80px 70px 90px; }
+  .story h2 { font-size: 46px; font-weight: 800; color: var(--story); margin-top: 56px; letter-spacing: -0.035em; }
+  .story p { font-family: 'MaruBuri', serif; font-size: 30px; line-height: 1.7; margin-top: 34px; }
+  .story .sign { font-family: 'Cormorant', serif; font-style: italic; font-size: 34px; color: var(--story); margin-top: 56px; }
+
+  /* 2 맞춤 한 끼 + QR */
+  .fit { background: var(--greybox); border: 8px solid #000; border-bottom: none; padding: 90px 0 100px; }
+  .fit h3 { font-size: 42px; font-weight: 800; margin-top: 50px; }
+  .fit .sub { font-size: 30px; margin-top: 24px; line-height: 1.6; }
+  .fit .photo { margin: 72px auto 0; width: 680px; height: 520px; border: 7px solid #000; object-fit: cover; }
+  .pouch-deco { position: absolute; filter: drop-shadow(3px 6px 6px rgba(0,0,0,.25)); }
+  .qr-row { display: flex; align-items: center; justify-content: space-between; margin: 90px 44px 0 40px; }
+  .arrow-r { filter: drop-shadow(-5px 6px 0 #A8A6A2); }
+  .arrow-r > div {
+    width: 470px; padding: 56px 120px 56px 24px; background: #fff; font-size: 29px; line-height: 1.5; text-align: center;
+    clip-path: polygon(0 20%, calc(100% - 110px) 20%, calc(100% - 110px) 0, 100% 50%, calc(100% - 110px) 100%, calc(100% - 110px) 80%, 0 80%);
   }
-  .promise-list h3 { font-size: 38px; font-weight: 900; line-height: 1.3; }
-  .promise-list p { font-size: 28px; color: var(--ink-soft); margin-top: 6px; line-height: 1.5; }
+  .qr-col img.qr { width: 270px; }
+  .qr-col img.url { width: 260px; margin: 22px auto 0; }
 
-  /* ───────── 레시피 4종 ───────── */
-  .recipes { background: var(--cream); }
-  .recipe {
-    margin-top: 56px; border-radius: 28px; overflow: hidden; background: #fff;
-    border: 3px solid var(--ink); box-shadow: 8px 8px 0 var(--ink);
+  /* 3 네 가지 화식 */
+  .four { padding: 80px 0 30px; border: 8px solid #000; border-bottom: none; }
+  .four .lede { font-size: 34px; margin-top: 50px; line-height: 1.6; }
+  .rc { padding: 70px 0 80px; }
+  .rc .wm { width: 640px; }
+  .rc-row { display: flex; align-items: center; margin: 56px 36px 0 22px; }
+  .rc-pouch { flex: none; width: 250px; text-align: center; position: relative; }
+  .rc-pouch .pk { width: 240px; margin: 0 auto; filter: drop-shadow(2px 4px 4px rgba(0,0,0,.2)); }
+  .rc-pouch .nm { font-size: 34px; font-weight: 900; margin-top: 8px; }
+  .rc-pouch .best { position: absolute; width: 100px; left: -6px; top: -26px; z-index: 2; }
+  .callout { flex: 1; filter: drop-shadow(7px 7px 0 rgba(0,0,0,.25)); }
+  .callout > div {
+    background: #fff; padding: 40px 26px 42px 116px; text-align: center;
+    clip-path: polygon(0 50%, 96px 4%, 96px 10%, 100% 6%, 100% 96%, 96px 92%, 96px 96%);
   }
-  .recipe-top { display: grid; grid-template-columns: 300px 1fr; gap: 32px; padding: 36px; align-items: center; }
-  .recipe-top img { width: 300px; height: 300px; object-fit: cover; border-radius: 16px; }
-  .recipe-name-en { font-family: 'Anton'; font-size: 30px; letter-spacing: 0.04em; }
-  .recipe-name { font-family: 'BHS'; font-size: 60px; line-height: 1.15; margin-top: 4px; }
-  .recipe-line { font-size: 30px; font-weight: 700; margin-top: 14px; line-height: 1.45; }
-  .badge {
-    display: inline-block; font-size: 22px; font-weight: 900; color: var(--ink); background: #F6C744;
-    padding: 4px 16px; border-radius: 999px; vertical-align: middle; margin-left: 10px; letter-spacing: 0;
+  .callout h4 { font-size: 36px; font-weight: 900; line-height: 1.3; letter-spacing: -0.04em; }
+  .callout .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin-top: 18px; }
+  .callout .tags span { font-size: 25px; font-weight: 700; border: 2.5px solid currentColor; border-radius: 999px; padding: 2px 16px; line-height: 1.4; }
+  .callout q { display: block; font-size: 26px; font-weight: 800; margin-top: 20px; line-height: 1.45; color: var(--ink); quotes: '“' '”'; }
+
+  /* 4 100% 국내산 리얼 화식 */
+  .real { background: var(--cream); padding: 100px 0 110px; }
+  .real .k1 { font-size: 40px; font-weight: 600; margin-top: 70px; }
+  .real .k2 { font-size: 66px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.2; margin-top: 8px; }
+  .real .photo { width: 782px; margin: 80px auto 0; box-shadow: 10px 10px 0 var(--ink); }
+
+  /* 5 CHECK POINT */
+  .check { padding: 0 0 100px; }
+  .check .box { padding: 90px 50px 64px; margin-top: 70px; }
+  .check .l1 { font-size: 34px; font-weight: 600; }
+  .check .l2 { font-size: 46px; font-weight: 900; margin-top: 18px; line-height: 1.4; letter-spacing: -0.04em; }
+  .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 54px 20px; margin-top: 70px; }
+  .feat img { height: 160px; margin: 0 auto; }
+  .feat p { font-size: 32px; font-weight: 600; line-height: 1.35; margin-top: 18px; }
+  .feat p b { display: block; font-weight: 900; }
+  .feat5 { display: flex; align-items: center; gap: 34px; margin-top: 64px; padding-top: 54px; border-top: 3px dashed #D8D2C6; }
+  .ftlogo { flex: none; width: 200px; text-align: center; color: var(--ink); font-weight: 800; }
+  .ftlogo .t { font-size: 26px; }
+  .ftlogo .o { width: 128px; height: 128px; border: 9px solid var(--ink); border-radius: 50%; margin: 6px auto; display: flex; align-items: center; justify-content: center; font-size: 60px; font-weight: 900; letter-spacing: -0.02em; }
+  .feat5 p { font-size: 31px; line-height: 1.5; font-weight: 600; text-align: left; }
+  .feat5 p b { font-size: 36px; font-weight: 900; display: block; margin-top: 8px; color: var(--story); }
+
+  /* 6 이런 아이들에게 */
+  .rec { background: var(--cream); padding: 0 0 100px; }
+  .rec .tape { font-size: 44px; margin-top: 40px; }
+  .rec-stage { position: relative; height: 760px; margin-top: 50px; }
+  .rec-dog { position: absolute; left: 262px; top: 200px; width: 336px; height: 336px; border-radius: 50%; border: 8px solid #fff; background: #ccc; }
+  .say { position: absolute; color: #fff; font-size: 31px; font-weight: 800; line-height: 1.35; text-align: center; }
+  .say > div { padding: 20px 22px 22px; border-radius: 6px; position: relative; }
+  .say > div::after { content: ''; position: absolute; width: 28px; height: 28px; background: inherit; transform: rotate(45deg); }
+  .say.t > div::after { left: calc(50% - 14px); bottom: -12px; }
+  .say.l > div::after { right: 30px; bottom: -12px; }
+  .say.r > div::after { left: 30px; bottom: -12px; }
+  .say.bl > div::after { right: 40px; top: -12px; }
+  .say.br > div::after { left: 40px; top: -12px; }
+
+  /* 7 POINT 1 */
+  .p-sec { padding: 0 0 100px; }
+  .p-sec .box { padding: 76px 50px 70px; }
+  .pt-l1 { font-size: 36px; font-weight: 600; }
+  .pt-l2 { display: inline-block; font-size: 54px; font-weight: 900; padding: 4px 26px 8px; margin-top: 14px; letter-spacing: -0.04em; line-height: 1.25; }
+  .video { width: 680px; height: 493px; margin: 34px 0 0 -10px; background: #ccc; }
+  .checks { list-style: none; margin: 60px auto 0; width: fit-content; text-align: left; }
+  .checks li { font-size: 34px; font-weight: 800; padding: 10px 0; display: flex; gap: 16px; align-items: center; }
+  .checks li::before { content: '✔'; font-size: 34px; color: #333; }
+
+  /* 8 간편한 급여 */
+  .easy { padding: 0 0 100px; }
+  .easy .label { display: inline-block; background: #DEA54A; color: #fff; font-size: 58px; font-weight: 900; padding: 4px 26px 8px; margin-top: 60px; }
+  .easy-step { margin: 56px 110px 0; }
+  .easy-step .sn { font-size: 34px; font-weight: 800; letter-spacing: 0; }
+  .easy-card { display: flex; align-items: center; background: #fff; margin-top: 16px; box-shadow: 5px 5px 0 #A9742F; padding: 22px; gap: 22px; }
+  .easy-card .ph { width: 240px; height: 240px; flex: none; border-radius: 6px; background: #ccc; }
+  .easy-card p { flex: 1; font-size: 32px; line-height: 1.45; }
+  .easy-card p b { display: block; font-size: 42px; font-weight: 900; }
+
+  /* 9 POINT 2 */
+  .p2 .l1 { font-size: 34px; font-weight: 600; }
+  .p2 .l2 { font-size: 44px; font-weight: 900; margin-top: 10px; letter-spacing: -0.04em; }
+  .p2 .photo { width: 640px; margin: 56px auto 0; border-radius: 26px; }
+  .p2 .hg { font-size: 40px; font-weight: 800; color: var(--red); margin-top: 50px; letter-spacing: -0.02em; }
+  .p2 .no { font-size: 38px; font-weight: 900; margin-top: 16px; }
+
+  /* 10 4가지 특별한 레시피 */
+  .four2 { background: var(--cream); padding: 0 0 80px; }
+  .four2 .l1 { font-size: 46px; font-weight: 600; margin-top: 60px; }
+  .four2 .l2 { font-size: 60px; font-weight: 900; margin-top: 6px; letter-spacing: -0.04em; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 34px 20px; margin: 70px 26px 0; }
+  .card { padding: 20px; position: relative; }
+  .card-in { background: #fff; padding: 22px 18px 30px; height: 100%; }
+  .card .bn { width: 100%; position: relative; z-index: 1; }
+  .card .ph { width: 100%; height: 220px; object-fit: cover; border: 6px solid; margin-top: -4px; }
+  .card h4 { font-size: 30px; font-weight: 900; line-height: 1.3; margin-top: 22px; letter-spacing: -0.045em; }
+  .card .tg { display: flex; justify-content: center; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
+  .card .tg span { color: #fff; font-size: 23px; font-weight: 800; padding: 3px 10px; box-shadow: 2px 2px 0 rgba(0,0,0,.25); }
+  .card p { font-size: 25px; line-height: 1.5; margin-top: 18px; font-weight: 600; }
+  .card .best { position: absolute; width: 104px; left: -26px; top: -40px; z-index: 2; }
+
+  /* 11 POINT 3 */
+  .p3 { background: radial-gradient(ellipse 460px 420px at 50% 30%, #FFFFFF 0%, #F4F4F2 45%, #E6E5E2 100%); }
+  .p3 .l1 { font-size: 38px; font-weight: 600; margin-top: 40px; }
+  .p3 .l2 { font-size: 54px; font-weight: 900; margin-top: 12px; letter-spacing: -0.03em; }
+  .p3 .ftlogo { width: 260px; margin: 70px auto 0; }
+  .p3 .ftlogo .t { font-size: 32px; }
+  .p3 .ftlogo .o { width: 160px; height: 160px; font-size: 76px; border-width: 11px; }
+  .p3 .body { font-size: 32px; line-height: 1.65; margin: 60px 40px 0; }
+  .keyp { background: #fff; border-top: 8px solid #000; margin-top: 150px; padding: 0 40px 100px; }
+  .keyp .cloud-wrap { margin-top: -82px; }
+  .keyp .t { font-size: 44px; font-weight: 900; color: var(--red); margin-top: 50px; letter-spacing: 0; }
+  .keyp .logos { width: 720px; margin: 54px auto 0; }
+  .keyp .l3 { font-size: 40px; font-weight: 600; margin-top: 90px; line-height: 1.4; }
+  .keyp .l4 { font-size: 54px; font-weight: 900; margin-top: 36px; letter-spacing: -0.04em; }
+  .keyp .h5 { font-size: 40px; font-weight: 900; margin-top: 100px; }
+  .keyp .rn { font-size: 32px; margin-top: 8px; }
+  .keyp .mfds { width: 760px; margin: 30px auto 0; }
+  .keyp .note { font-size: 28px; color: #6B5A3E; font-weight: 700; margin-top: 30px; }
+  .keyp .sheet { width: 760px; margin: 40px auto 0; border: 4px solid #000; }
+  .keyp .end1 { font-size: 34px; font-weight: 600; margin-top: 70px; line-height: 1.55; }
+  .keyp .end2 { font-size: 46px; font-weight: 900; margin-top: 30px; }
+
+  /* 12 POINT 4 */
+  .p4 { background: #fff; padding: 70px 0 110px; }
+  .p4 .tape { font-size: 46px; margin-top: 70px; }
+  .p4 .l3 { font-size: 40px; font-weight: 700; margin-top: 70px; line-height: 1.55; letter-spacing: -0.04em; }
+  .certs { display: flex; justify-content: center; align-items: center; gap: 40px; margin-top: 80px; }
+  .certs img { box-shadow: 10px 10px 0 #CFCFCF; }
+  .certs .c1 { width: 340px; }
+  .certs .c2 { width: 360px; }
+  .pills { display: flex; justify-content: center; gap: 14px; margin-top: 80px; }
+  .pills span { font-size: 27px; font-weight: 700; background: #F4F1EA; padding: 10px 22px; border-right: 4px solid #BDB6A8; border-bottom: 4px solid #BDB6A8; }
+
+  /* 13 POINT 5 · 14 공정 */
+  .p5 .wm { width: 330px; }
+  .p5 .l1 { font-size: 38px; font-weight: 600; margin-top: 50px; }
+  .p5 .l2 { font-size: 46px; font-weight: 900; margin-top: 14px; }
+  .p5 .photo { width: 600px; margin: 56px auto 0; }
+  .p5 .msg { font-size: 30px; line-height: 1.55; margin-top: 50px; font-weight: 600; }
+  .frees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px 10px; margin-top: 60px; }
+  .frees img { width: 160px; margin: 0 auto; }
+  .frees b { display: block; font-size: 30px; font-weight: 700; margin-top: 12px; line-height: 1.3; }
+  .frees i { font-style: normal; display: block; font-size: 30px; font-weight: 900; color: #C98A2E; }
+  .proc { padding-top: 90px; }
+  .proc .box { padding-top: 0; }
+  .proc .bn { width: 610px; margin: -48px auto 0; position: relative; }
+  .proc h3 { font-size: 58px; font-weight: 900; margin-top: 70px; display: inline-block; border-bottom: 4px solid #C27A66; padding-bottom: 6px; letter-spacing: -0.04em; }
+  .proc .photo { width: 660px; margin: 60px auto 0; border: 8px solid #000; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px 10px; margin-top: 80px; }
+  .steps > div { display: flex; flex-direction: column; align-items: center; }
+  .steps .sn { font-size: 28px; font-weight: 800; letter-spacing: 0; }
+  .steps .ic { height: 120px; display: flex; align-items: center; margin: 12px 0; }
+  .steps .ic img { max-height: 120px; max-width: 150px; }
+  .steps b { font-size: 32px; font-weight: 900; line-height: 1.3; }
+
+  /* 15 TIP */
+  .tip { padding: 0 0 120px; }
+  .tip .l1 { font-size: 64px; font-weight: 900; margin-top: 60px; }
+  .tip .tape { font-size: 56px; margin-top: 18px; padding: 4px 26px 10px; }
+  .tipc { position: relative; margin: 90px 100px 0; background: #fff; box-shadow: 6px 6px 0 #93ABB6; padding: 40px 34px; }
+  .tipc .no { position: absolute; left: -36px; top: -50px; }
+  .tipc h4 { font-size: 40px; font-weight: 900; padding-bottom: 22px; border-bottom: 3px solid #B5C6CE; }
+  .tipc p { font-size: 31px; line-height: 1.55; margin-top: 22px; }
+
+  /* 16 칼로리 */
+  .cal { background: var(--cream); padding: 0 0 100px; }
+  .cal .wm { width: 470px; margin-top: 70px; }
+  .cal h3 { font-size: 54px; font-weight: 900; margin-top: 50px; }
+  .cal .unit { font-size: 34px; font-weight: 800; color: #8A8273; margin-top: 10px; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 50px 30px; margin: 70px 80px 0; }
+  .tiles img { width: 300px; margin: 0 auto; }
+  .tiles .kc { font-size: 46px; font-weight: 800; margin-top: 10px; letter-spacing: -0.01em; }
+  .cal .msg { font-size: 34px; line-height: 1.75; margin-top: 70px; }
+  .cal .msg b { font-weight: 900; }
+
+  /* 17 Q&A */
+  .qa { background: var(--cream); padding: 0 0 80px; }
+  .rule { width: 690px; height: 3px; background: #C7C2B8; margin: 0 auto; }
+  .qq { margin: 70px 400px 0 34px; }
+  .aa { margin: 6px 30px 0 330px; }
+  .bub { filter: drop-shadow(-6px 6px 0 var(--c)); }
+  .aa .bub { filter: drop-shadow(6px 6px 0 var(--c)); }
+  .bub > div { background: #fff; }
+  .qq .bub > div {
+    font-size: 38px; font-weight: 900; line-height: 1.4; padding: 40px 26px 110px;
+    clip-path: polygon(0 3%, 50% 0, 100% 2%, 99% 40%, 100% calc(100% - 80px), 30% calc(100% - 76px), 5% 100%, 13% calc(100% - 78px), 1% calc(100% - 82px), 1% 50%);
   }
-  .recipe-bottom { padding: 30px 36px 36px; border-top: 2px dashed var(--line); }
-  .row { display: grid; grid-template-columns: 170px 1fr; gap: 16px; padding: 10px 0; font-size: 28px; line-height: 1.5; }
-  .row dt { font-weight: 800; color: var(--ink-soft); }
-  .row dd { font-weight: 600; }
-  .nw { white-space: nowrap; }
-  .tags { display: flex; flex-wrap: wrap; gap: 10px; }
-  .tags span { font-size: 26px; font-weight: 700; padding: 4px 18px; border-radius: 999px; border: 2px solid currentColor; }
-  .kcal { font-family: 'Anton'; font-size: 44px; line-height: 1; }
-  .kcal small { font-family: 'Pretendard'; font-size: 24px; font-weight: 700; margin-left: 6px; }
-
-  /* ───────── 원재료 ───────── */
-  .ingredients { background: var(--paper); }
-  .ingredients .photo { margin-top: 56px; border-radius: 24px; overflow: hidden; border: 3px solid var(--ink); }
-  .quote { margin-top: 48px; font-family: 'BHS'; font-size: 52px; line-height: 1.3; text-align: center; }
-  .free-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 64px; }
-  .free-grid > div {
-    background: #fff; border: 3px solid var(--ink); border-radius: 18px; padding: 28px 10px 24px; text-align: center;
+  .aa .bub > div {
+    font-size: 29px; line-height: 1.55; padding: 40px 30px 110px;
+    clip-path: polygon(0 2%, 50% 0, 99% 1%, 100% 50%, 99% calc(100% - 80px), 90% calc(100% - 78px), 95% 100%, 64% calc(100% - 78px), 1% calc(100% - 82px), 0 40%);
   }
-  .free-grid svg { width: 76px; height: 76px; margin: 0 auto 12px; display: block; }
-  .free-grid b { display: block; font-size: 30px; font-weight: 900; line-height: 1.3; }
-  .free-grid i { font-style: normal; font-family: 'Anton'; font-size: 26px; color: var(--accent); letter-spacing: 0.06em; }
+  .aa .bub b { font-weight: 900; }
+  .aa .qrbox { display: flex; gap: 24px; align-items: center; }
+  .aa .qrbox img { width: 190px; flex: none; }
 
-  /* ───────── 공정 ───────── */
-  .process { background: var(--cream); }
-  .process .photo { margin-top: 56px; border-radius: 24px; overflow: hidden; border: 3px solid var(--ink); height: 460px; }
-  .process .photo img { width: 100%; height: 100%; object-fit: cover; }
-  .steps { list-style: none; margin-top: 56px; position: relative; }
-  .steps::before { content: ''; position: absolute; left: 39px; top: 40px; bottom: 40px; width: 4px; background: var(--ink); }
-  .steps li { display: grid; grid-template-columns: 82px 1fr; gap: 28px; align-items: start; padding: 18px 0; position: relative; }
-  .steps .n {
-    width: 82px; height: 82px; border-radius: 50%; background: var(--paper); border: 4px solid var(--ink);
-    display: flex; align-items: center; justify-content: center; font-family: 'Anton'; font-size: 36px;
-  }
-  .steps h3 { font-size: 36px; font-weight: 900; line-height: 1.3; margin-top: 4px; }
-  .steps p { font-size: 28px; color: var(--ink-soft); line-height: 1.5; margin-top: 4px; }
+  /* 18 제품정보 */
+  .info { background: var(--cream); padding: 60px 0 40px; }
+  .info .wis { width: 600px; margin: 60px auto 0; }
+  .tb { display: flex; align-items: center; gap: 20px; padding: 70px 40px; }
+  .tb-l { flex: 1; text-align: center; }
+  .tb-l .wm { width: 380px; }
+  .tb-l .pk { width: 280px; margin: 30px auto 0; }
+  .tb-l .nm { font-size: 38px; font-weight: 900; margin-top: 16px; }
+  table { width: 340px; flex: none; border-collapse: collapse; font-size: 28px; }
+  table th { background: var(--c); color: #fff; font-weight: 800; padding: 16px 6px; border: 2px solid rgba(255,255,255,.45); }
+  table thead tr:first-child th { font-size: 36px; font-weight: 900; padding: 18px 6px; }
+  table td { background: #fff; color: var(--d); font-weight: 800; text-align: center; padding: 15px 6px; border: 2px solid var(--c); }
+  table td small { font-size: 22px; font-weight: 700; margin-left: 3px; }
 
-  /* ───────── 뉴트리-코어 ───────── */
-  .nutri { background: var(--ink); color: var(--paper); }
-  .nutri .kicker { background: var(--paper); color: var(--ink); }
-  .nutri h2 em { color: #E8C98A; }
-  .nutri .lede { color: #D8CFC0; }
-  .nutri .lede b { color: var(--paper); }
-  .score { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 60px; }
-  .score > div { background: #2B221C; border-radius: 20px; padding: 30px; text-align: center; border: 2px solid #3E332B; }
-  .score .big { font-family: 'Anton'; font-size: 86px; line-height: 1; color: #E8C98A; }
-  .score .big small { font-size: 44px; color: #8E8375; }
-  .score .lb { font-size: 28px; font-weight: 700; margin-top: 12px; }
-  .stds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
-  .stds > div { background: var(--paper); color: var(--ink); border-radius: 18px; padding: 24px 12px; text-align: center; }
-  .stds b { font-family: 'Anton'; font-size: 44px; letter-spacing: 0.04em; display: block; line-height: 1.1; }
-  .stds span { font-size: 24px; font-weight: 700; color: var(--ink-soft); }
-  .reg { margin-top: 44px; border-top: 2px solid #3E332B; padding-top: 36px; font-size: 28px; color: #D8CFC0; line-height: 1.6; }
-  .reg b { color: var(--paper); }
-
-  /* ───────── 인증 ───────── */
-  .cert { background: var(--paper); }
-  .cert-list { display: grid; gap: 18px; margin-top: 56px; }
-  .cert-list > div { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; background: #fff; border: 3px solid var(--ink); border-radius: 20px; padding: 30px 36px; }
-  .cert-list h3 { font-size: 34px; font-weight: 900; line-height: 1.3; }
-  .cert-list p { font-size: 26px; color: var(--ink-soft); margin-top: 4px; }
-  .cert-list .stamp { font-family: 'BHS'; font-size: 30px; color: var(--accent); border: 3px solid var(--accent); border-radius: 12px; padding: 8px 16px; transform: rotate(-4deg); }
-
-  /* ───────── 성분표 ───────── */
-  .facts { background: var(--cream); }
-  table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 56px; background: #fff; border: 3px solid var(--ink); border-radius: 20px; overflow: hidden; font-size: 30px; }
-  th, td { padding: 20px 8px; text-align: center; border-bottom: 2px solid #EEE7DA; }
-  thead th { color: #fff; font-size: 28px; font-weight: 800; line-height: 1.25; padding: 22px 6px; border-bottom: none; }
-  thead th:first-child { background: var(--ink); }
-  tbody th { text-align: left; padding-left: 28px; font-weight: 800; background: #F7F2E8; width: 190px; }
-  tbody th small { display: block; font-size: 22px; font-weight: 600; color: var(--ink-soft); }
-  tbody td { font-weight: 700; font-variant-numeric: tabular-nums; }
-  tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }
-  tr.kcal-row td { font-family: 'Anton'; font-size: 40px; font-weight: 400; }
-  tr.kcal-row th, tr.kcal-row td { background: #FFF8E6; border-top: 3px solid var(--ink); }
-  .note { font-size: 24px; color: var(--ink-soft); margin-top: 20px; line-height: 1.55; }
-
-  /* ───────── 급여 가이드 ───────── */
-  .guide { background: var(--paper); }
-  .card { background: #fff; border: 3px solid var(--ink); border-radius: 24px; padding: 44px 40px; margin-top: 40px; }
-  .card h3 { font-size: 40px; font-weight: 900; display: flex; align-items: center; gap: 16px; line-height: 1.3; }
-  .card h3 .ic { width: 64px; height: 64px; border-radius: 16px; background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: center; font-size: 34px; flex: none; }
-  .card p, .card li { font-size: 30px; line-height: 1.6; }
-  .card p { margin-top: 18px; color: var(--ink-soft); }
-  .card b { color: var(--ink); font-weight: 800; }
-  .mix { margin-top: 30px; display: grid; gap: 12px; }
-  .mix-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 18px; font-size: 27px; font-weight: 800; }
-  .bar { height: 46px; border-radius: 10px; overflow: hidden; display: flex; border: 2px solid var(--ink); font-size: 22px; font-weight: 800; }
-  .bar span { display: flex; align-items: center; justify-content: center; }
-  .bar .old { background: #E6DFD1; color: var(--ink-soft); }
-  .bar .new { background: var(--chicken); color: var(--ink); }
-  .store-list { list-style: none; margin-top: 22px; display: grid; gap: 14px; }
-  .store-list li { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: start; }
-  .store-list .ok { width: 46px; height: 46px; border-radius: 50%; background: var(--duck); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 26px; margin-top: 2px; }
-  .store-list .no { background: var(--beef); }
-  .tips { display: grid; gap: 16px; margin-top: 26px; }
-  .tips > div { background: var(--cream); border-radius: 16px; padding: 24px 28px; }
-  .tips b { display: block; font-size: 30px; }
-  .tips span { font-size: 28px; color: var(--ink-soft); line-height: 1.5; }
-
-  /* ───────── Q&A ───────── */
-  .qa { background: var(--cream); }
-  .qa-item { margin-top: 36px; background: #fff; border: 3px solid var(--ink); border-radius: 24px; overflow: hidden; }
-  .qa-q { background: var(--ink); color: var(--paper); padding: 28px 36px; font-size: 34px; font-weight: 800; display: flex; gap: 18px; line-height: 1.35; }
-  .qa-q::before { content: 'Q'; font-family: 'Anton'; color: #E8C98A; font-size: 38px; line-height: 1.15; }
-  .qa-a { padding: 30px 36px 34px; font-size: 30px; line-height: 1.6; display: flex; gap: 18px; color: var(--ink-soft); }
-  .qa-a::before { content: 'A'; font-family: 'Anton'; color: var(--accent); font-size: 38px; line-height: 1.25; }
-  .qa-a b { color: var(--ink); }
-  .qr-slot { flex: none; width: 170px; height: 170px; border: 3px dashed var(--line); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #A89E8C; text-align: center; line-height: 1.3; }
-
-  .footer { background: var(--ink); color: var(--paper); text-align: center; padding: 90px 60px; }
-  .footer .en { font-size: 72px; letter-spacing: 0.06em; }
-  .footer p { font-size: 28px; color: #B9AE9C; margin-top: 10px; }
+  .foot { background: var(--cream); padding: 60px 0 110px; }
+  .foot .wm { width: 380px; }
 </style>
 </head>
 <body>
 
-<!-- 01 HERO -->
-<section class="hero" id="s01">
-  <img class="hero-photo" src="../../public/store/hero-sheltie-table.webp" alt="">
-  <div class="hero-body">
-    <div class="hero-eyebrow">국내산 원물 · 저온 수비드 · 자체 제조</div>
-    <h1>매일 먹어도 안심되는<br>진짜 밥 한 그릇</h1>
-    <p>사람이 먹는 국내산 재료를 저온 수비드로 익혀<br>육즙과 영양을 그대로 담았어요.</p>
-    <div class="hero-pouches">
-      <div style="background:var(--chicken)"><img src="../../public/store/studio-chicken.webp" alt="">닭고기</div>
-      <div style="background:#A7B9B6"><img src="../../public/store/studio-duck.webp" alt="">오리</div>
-      <div style="background:#BEBDB6"><img src="../../public/store/studio-pork.webp" alt="">흑돼지</div>
-      <div style="background:var(--beef);color:#fff"><img src="../../public/store/studio-beef.webp" alt="">한우</div>
+<!-- 1 BRAND STORY -->
+<section id="s01-story" class="story c">
+  <img class="wm" src="assets/wm_brandstory.png" style="width:600px">
+  <h2>까다롭게 고르고, 정직하게 담다</h2>
+  <p>"내 아이에게 진짜 좋은 것만 먹이고 싶다."<br>그 평범하지만 간절한 물음이<br>파머스테일의 시작이었습니다.</p>
+  <p>우리는 공장을 돌리기 위해<br>원물을 대량으로 떼오지 않습니다.<br>전국을 돌며 우리가 납득할 수 있는<br>국내산 원물만을 — 한 점, 한 점 — 직접 선별합니다.</p>
+  <p>대량 생산하여 창고에 쌓아두지 않습니다.<br>필요한 만큼만, 가장 신선한 상태로 보냅니다.</p>
+  <div class="sign">Farmer's Tail</div>
+</section>
+
+<!-- 2 우리 아이에게 맞춘 한 끼 + QR -->
+<section id="s02-fit" class="fit c">
+  <img class="pouch-deco" src="../../public/pkg/pork.webp" style="width:210px;left:30px;top:30px;transform:rotate(-12deg)">
+  <img class="wm" src="assets/wm_recipe2.png" style="width:270px">
+  <h3>우리 아이에게 맞춘, 매일의 한 끼</h3>
+  <p class="sub"><b>체중</b>부터 <b>활동량</b>, 기호까지 고려한 <b>맞춤 화식</b><br><b>QR 스캔</b>하고 우리 아이 맞춤 식단을 확인해 보세요</p>
+  <div style="position:relative">
+    <img class="pouch-deco" src="../../public/pkg/chicken.webp" style="width:150px;left:4px;top:-30px;transform:rotate(-20deg);z-index:2">
+    <img class="pouch-deco" src="../../public/pkg/duck.webp" style="width:190px;right:0;top:-40px;transform:rotate(18deg);z-index:2">
+    <img class="photo" src="../../public/bowl-eating.jpg">
+    <img class="pouch-deco" src="../../public/pkg/beef.webp" style="width:190px;right:14px;bottom:-70px;transform:rotate(30deg);z-index:2">
+  </div>
+  <div class="qr-row">
+    <div class="arrow-r"><div><b>QR 스캔</b>하고 우리 아이<br><b>맞춤 식단</b>을 확인해 보세요</div></div>
+    <div class="qr-col"><img class="qr" src="assets/qr_frame.png"><img class="url" src="assets/wm_url.png"></div>
+  </div>
+</section>
+
+<!-- 3 네 가지 화식 -->
+<section id="s03-four" class="c" style="background:var(--mustard)">
+  <div class="four">
+    <img class="wm" src="assets/wm_recipe2.png" style="width:270px">
+    <img src="assets/cloud_four.png" style="width:545px;margin:34px auto 0">
+    <p class="lede">각기 다른 장점을 담은<br><b>4가지 영양</b> 화식을 만나보세요.</p>
+  </div>
+
+  <div class="rc" style="padding-top:60px">
+    <img class="wm" src="assets/wm_chicken.png">
+    <div class="rc-row">
+      <div class="rc-pouch"><img class="best" src="assets/best.png"><img class="pk" src="../../public/pkg/chicken.webp"><div class="nm">(치킨 화식)</div></div>
+      <div class="callout"><div style="color:var(--mustard-ink)">
+        <h4><span style="color:#C98A2E">국내산 무항생제 닭</span><span style="color:var(--ink)">이<br>들어 있어요!</span></h4>
+        <div class="tags"><span>높은 소화 흡수력</span><span>체중 관리</span><span>근육·관절 강화</span></div>
+        <q>완벽한 영양 밸런스를 담은<br>호불호 없는 닭고기 데일리 밀</q>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="rc" style="background:var(--red)">
+    <img class="wm" src="assets/wm_hanwoo.png">
+    <div class="rc-row">
+      <div class="rc-pouch"><img class="pk" src="../../public/pkg/beef.webp"><div class="nm">(한우 화식)</div></div>
+      <div class="callout"><div style="color:var(--red)">
+        <h4><span>국내산 한우</span><span style="color:var(--ink)">가<br>들어 있어요!</span></h4>
+        <div class="tags"><span>기력 회복</span><span>빈혈 예방</span><span>눈·피부 건강</span></div>
+        <q>기력 회복과 면역력을 동시에 채우는<br>프리미엄 한우 보양식</q>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="rc" style="background:var(--pork)">
+    <img class="wm" src="assets/wm_pork.png">
+    <div class="rc-row">
+      <div class="rc-pouch"><img class="best" src="assets/best.png"><img class="pk" src="../../public/pkg/pork.webp"><div class="nm">(흑돼지 화식)</div></div>
+      <div class="callout"><div style="color:var(--pork-ink)">
+        <h4><span>국내산 흑돼지</span><span style="color:var(--ink)">가<br>들어 있어요!</span></h4>
+        <div class="tags"><span>활력 증진</span><span>피로 회복</span><span>높은 기호성</span></div>
+        <q>활기찬 하루와 튼튼한 근육을 책임지는<br>고단백 흑돼지 화식</q>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="rc" style="background:var(--duck)">
+    <img class="wm" src="assets/wm_duck.png">
+    <div class="rc-row">
+      <div class="rc-pouch"><img class="pk" src="../../public/pkg/duck.webp"><div class="nm">(오리 화식)</div></div>
+      <div class="callout"><div style="color:var(--duck-ink)">
+        <h4><span>국내산 무항생제 오리</span><span style="color:var(--ink)">가<br>들어 있어요!</span></h4>
+        <div class="tags"><span>피부·모질 개선</span><span>혈관 건강</span><span>저알러지</span></div>
+        <q>알러지 걱정 없이 피부가 편안해지는<br>저알러지 오리 식단</q>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- 02 5가지 약속 -->
-<section class="promise" id="s02">
-  <div class="center">
-    <span class="kicker"><span class="en">CHECK POINT</span>타협하지 않는 것</span>
-    <h2>파머스테일이 지키는<br><em>5가지 약속</em></h2>
-  </div>
-  <ol class="promise-list">
-    <li><span class="num">1</span><div><h3>100% 국내산 휴먼그레이드</h3><p>사람이 먹을 수 없는 재료는 넣지 않아요.</p></div></li>
-    <li><span class="num">2</span><div><h3>6가지 첨가물 무첨가</h3><p>글루텐·화학보존제·부산물·인공색소·유당·육분</p></div></li>
-    <li><span class="num">3</span><div><h3>저온 수비드 조리</h3><p>낮은 온도로 천천히 익혀 육즙과 영양을 지켜요.</p></div></li>
-    <li><span class="num">4</span><div><h3>직접 만들고 바로 보내요</h3><p>사료제조업 등록 공장에서 자체 생산, 유통 마진 없이.</p></div></li>
-    <li><span class="num">5</span><div><h3>글로벌 3대 영양 기준 충족</h3><p>전용 프리믹스로 AAFCO·FEDIAF·NRC 43개 항목 충족.</p></div></li>
-  </ol>
+<!-- 4 100% 국내산 리얼 화식 -->
+<section id="s04-real" class="real c">
+  <img class="paw" src="assets/paw.png" style="left:46px;top:300px;transform:rotate(-14deg)">
+  <img class="paw" src="assets/paw.png" style="right:30px;top:600px;width:80px;transform:rotate(18deg)">
+  <img class="wm" src="assets/wm_recipe2_big.png" style="width:420px">
+  <p class="k1">저온 수비드로 촉촉한 육즙을 꽉 채운</p>
+  <p class="k2">100% 국내산 리얼 화식</p>
+  <img class="photo" src="assets/photo_table.png">
 </section>
 
-<!-- 03 레시피 4종 -->
-<section class="recipes" id="s03">
-  <div class="center">
-    <span class="kicker"><span class="en">4 RECIPES</span>레시피 소개</span>
-    <h2>우리 아이에게 맞는<br><em>한 그릇</em>을 골라 보세요</h2>
-    <p class="lede">4종 모두 같은 공정·같은 영양 기준으로 만들어요.<br>단백질과 토핑만 달라요.</p>
-  </div>
-
-  <article class="recipe">
-    <div class="recipe-top">
-      <img src="../../public/store/real-chicken.webp" alt="">
-      <div>
-        <div class="recipe-name-en" style="color:#9A6E1E">FRESH CHICKEN RECIPE</div>
-        <div class="recipe-name">닭고기 화식<span class="badge">BEST</span></div>
-        <div class="recipe-line">담백하고 부담 없는<br>매일의 데일리 한 끼</div>
-      </div>
+<!-- 5 CHECK POINT -->
+<section id="s05-check" class="check bg-grid">
+  <svg class="drip" data-drip="#EBE4D3" height="200"></svg>
+  <div class="box c">
+    <div class="badge-wrap" style="top:-82px"><span class="cloud" data-w="190" data-h="150" style="font-size:36px;line-height:1">CHECK<br>POINT</span></div>
+    <p class="l1">잘 먹는 건 기본입니다</p>
+    <p class="l2">파머스 레시피 절대 타협하지<br>않는 <span class="tape" style="font-size:46px;padding:0 10px 4px">5가지 특징!</span></p>
+    <div class="feat">
+      <div><img src="assets/ic_korean.png"><p style="color:var(--red)">100% 국내산 원물<b>휴먼그레이드</b></p></div>
+      <div><img src="assets/ic_flask.png"><p style="color:var(--duck-ink)">자연 그대로<b>6無 첨가</b></p></div>
+      <div><img src="assets/ic_sous.png"><p style="color:var(--pork-ink)">저온 수비드<b>조리공법</b></p></div>
+      <div><img src="assets/ic_farm.png"><p style="color:var(--mustard-ink)">100% 자체 제조<b>유통 마진 삭제</b></p></div>
     </div>
-    <dl class="recipe-bottom" style="color:#9A6E1E">
-      <div class="row"><dt>이런 아이에게</dt><dd class="tags"><span>체중 관리</span><span>실내·소형견</span><span>첫 화식</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>주요 원재료</dt><dd><span class="nw">무항생제 닭가슴살</span>&nbsp;· <span class="nw">닭간</span>&nbsp;· <span class="nw">닭염통</span>&nbsp;· <span class="nw">브로콜리</span>&nbsp;· <span class="nw">블루베리</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>열량</dt><dd class="kcal">125<small>kcal / 100g</small></dd></div>
-    </dl>
-  </article>
-
-  <article class="recipe">
-    <div class="recipe-top">
-      <img src="../../public/store/real-duck.webp" alt="">
-      <div>
-        <div class="recipe-name-en" style="color:#4F6E72">FRESH DUCK RECIPE</div>
-        <div class="recipe-name">오리 화식</div>
-        <div class="recipe-line">닭·소를 넣지 않은<br>오리 단일 단백질</div>
-      </div>
-    </div>
-    <dl class="recipe-bottom" style="color:#4F6E72">
-      <div class="row"><dt>이런 아이에게</dt><dd class="tags"><span>피부·장이 예민한 아이</span><span>닭·소가 안 맞는 아이</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>주요 원재료</dt><dd><span class="nw">무항생제 오리 안심</span>&nbsp;· <span class="nw">오리간</span>&nbsp;· <span class="nw">오리염통</span>&nbsp;· <span class="nw">애호박</span>&nbsp;· <span class="nw">사과</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>열량</dt><dd class="kcal">130<small>kcal / 100g</small></dd></div>
-    </dl>
-  </article>
-
-  <article class="recipe">
-    <div class="recipe-top">
-      <img src="../../public/store/real-pork.webp" alt="">
-      <div>
-        <div class="recipe-name-en" style="color:#5F5E58">BLACK PORK RECIPE</div>
-        <div class="recipe-name">흑돼지 화식<span class="badge">BEST</span></div>
-        <div class="recipe-line">향이 진해 입 짧은 아이도<br>한 그릇 뚝딱</div>
-      </div>
-    </div>
-    <dl class="recipe-bottom" style="color:#5F5E58">
-      <div class="row"><dt>이런 아이에게</dt><dd class="tags"><span>입맛 까다로운 아이</span><span>7세 이상 노령견</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>주요 원재료</dt><dd><span class="nw">흑돼지 뒷다리살</span>&nbsp;· <span class="nw">흑돼지간</span>&nbsp;· <span class="nw">흑돼지염통</span>&nbsp;· <span class="nw">무</span>&nbsp;· <span class="nw">양배추</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>열량</dt><dd class="kcal">125<small>kcal / 100g</small></dd></div>
-    </dl>
-  </article>
-
-  <article class="recipe">
-    <div class="recipe-top">
-      <img src="../../public/store/real-beef.webp" alt="">
-      <div>
-        <div class="recipe-name-en" style="color:var(--beef)">HANWOO BEEF RECIPE</div>
-        <div class="recipe-name">한우 화식</div>
-        <div class="recipe-line">많이 뛰는 아이를 위한<br>든든한 프리미엄 한 끼</div>
-      </div>
-    </div>
-    <dl class="recipe-bottom" style="color:var(--beef)">
-      <div class="row"><dt>이런 아이에게</dt><dd class="tags"><span>활동량 많은 아이</span><span>중대형견</span><span>활력 보충</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>주요 원재료</dt><dd><span class="nw">한우 목심</span>&nbsp;· <span class="nw">한우간</span>&nbsp;· <span class="nw">한우염통</span>&nbsp;· <span class="nw">비트</span>&nbsp;· <span class="nw">블루베리</span></dd></div>
-      <div class="row" style="color:var(--ink)"><dt>열량</dt><dd class="kcal">145<small>kcal / 100g</small></dd></div>
-    </dl>
-  </article>
-  <p class="note center" style="margin-top:36px">4종 공통 — 당근 · 단호박 · 시금치 · 현미 · 고구마 · 올리브유 · 연어유 · 강황 · 뉴트리 코어 · 난각분말</p>
-</section>
-
-<!-- 04 원재료 · 6무첨가 -->
-<section class="ingredients" id="s04">
-  <div class="center">
-    <span class="kicker"><span class="en">POINT 1</span>원재료</span>
-    <h2>사람이 먹는 재료만<br><em>100% 국내산</em></h2>
-    <p class="lede">우리 가족 식탁에 올리는 재료 그대로.<br>기호성과 영양, 둘 다 원물에서 시작해요.</p>
-  </div>
-  <div class="photo"><img src="../../public/raw-ingredients.jpg" alt=""></div>
-  <p class="quote">사람이 먹을 수 없는 건<br>절대 넣지 않아요</p>
-  <div class="free-grid">
-    <!-- 금지 표시 — 원 + 사선 -->
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>글루텐</b><i>FREE</i></div>
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>화학 보존제</b><i>FREE</i></div>
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>부산물</b><i>FREE</i></div>
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>인공 색소</b><i>FREE</i></div>
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>유당</b><i>FREE</i></div>
-    <div><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="#B5573A" stroke-width="7"/><line x1="16" y1="64" x2="64" y2="16" stroke="#B5573A" stroke-width="7"/></svg><b>육분</b><i>FREE</i></div>
-  </div>
-</section>
-
-<!-- 05 공정 -->
-<section class="process" id="s05">
-  <div class="center">
-    <span class="kicker"><span class="en">POINT 2</span>만드는 과정</span>
-    <h2>이렇게<br><em>만들어져요</em></h2>
-  </div>
-  <div class="photo"><img src="../../public/kitchen-sousvide.jpg" alt=""></div>
-  <ol class="steps">
-    <li><span class="n">1</span><div><h3>원물 검수 &amp; 세척</h3><p>들어온 재료를 하나씩 확인하고 깨끗이 씻어요.</p></div></li>
-    <li><span class="n">2</span><div><h3>저온 수비드</h3><p>낮은 온도에서 천천히 익혀 육즙을 가둬요.</p></div></li>
-    <li><span class="n">3</span><div><h3>믹싱</h3><p>고기·채소·곡물을 정해진 비율로 섞어요.</p></div></li>
-    <li><span class="n">4</span><div><h3>영양 배합</h3><p>뉴트리 코어로 부족하기 쉬운 영양을 채워요.</p></div></li>
-    <li><span class="n">5</span><div><h3>급속 냉동</h3><p>바로 얼려 갓 만든 신선함을 그대로 잠가요.</p></div></li>
-    <li><span class="n">6</span><div><h3>영양 화식 완성</h3><p>한 끼씩 포장해 냉동 상태로 보내 드려요.</p></div></li>
-  </ol>
-</section>
-
-<!-- 06 뉴트리-코어 -->
-<section class="nutri" id="s06">
-  <div class="center">
-    <span class="kicker"><span class="en">POINT 3</span>영양 설계</span>
-    <h2>한 끼의 마지막 퍼즐<br><em>뉴트리 코어</em></h2>
-    <p class="lede">화식만으로는 부족하기 쉬운 <b>비타민과 미네랄</b>을<br><b>식약처 식품원료</b>로 등재된 성분의 프리믹스로<br>꼼꼼하게 채웠어요. 오메가 3·6 배합까지.</p>
-  </div>
-  <div class="score">
-    <div><div class="big">43<small>/43</small></div><div class="lb">영양 항목 충족</div></div>
-    <div><div class="big">4<small>/4</small></div><div class="lb">레시피 모두 충족</div></div>
-  </div>
-  <div class="stds">
-    <div><b>AAFCO</b><span>미국 사료관리협회</span></div>
-    <div><b>FEDIAF</b><span>유럽 펫푸드 산업연합</span></div>
-    <div><b>NRC</b><span>미국 국립연구회의</span></div>
-  </div>
-  <p class="reg"><b>파머스테일 뉴트리 코어</b> · 식약처 품목보고번호 2009036023152<br>식품안전나라에서 등록 사항을 직접 확인하실 수 있어요.</p>
-</section>
-
-<!-- 07 인증 -->
-<section class="cert" id="s07">
-  <div class="center">
-    <span class="kicker"><span class="en">POINT 4</span>국내 생산</span>
-    <h2>국내에서 꼼꼼하게<br><em>직접 만들어요</em></h2>
-    <p class="lede">원물 검수부터 조리·배합·급속냉동까지<br>정해진 공정을 거쳐 국내에서 생산해요.</p>
-  </div>
-  <div class="cert-list">
-    <div><div><h3>배합사료 제조업 등록</h3><p>인천광역시 · 제 2026-0004호</p></div><span class="stamp">등록</span></div>
-    <div><div><h3>사료 성분 등록 4건</h3><p>닭고기 · 오리 · 흑돼지 · 한우 레시피 모두</p></div><span class="stamp">등록</span></div>
-    <div><div><h3>유통 마진 ZERO</h3><p>만든 곳에서 바로 보내 신선하게</p></div><span class="stamp">직배송</span></div>
-  </div>
-</section>
-
-<!-- 08 등록성분량 -->
-<section class="facts" id="s08">
-  <div class="center">
-    <span class="kicker"><span class="en">WHAT'S INSIDE</span>제품 정보</span>
-    <h2>등록성분량<br><em>한눈에 비교</em></h2>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>성분</th>
-        <th style="background:#B8862F">닭고기</th>
-        <th style="background:#6E8C90">오리</th>
-        <th style="background:#7E7D76">흑돼지</th>
-        <th style="background:var(--beef)">한우</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><th>조단백질<small>이상</small></th><td>15.1%</td><td>13.1%</td><td>14.9%</td><td>13.9%</td></tr>
-      <tr><th>조지방<small>이하</small></th><td>4.7%</td><td>5.2%</td><td>5.4%</td><td>5.5%</td></tr>
-      <tr><th>조섬유<small>이하</small></th><td>0.3%</td><td>0.3%</td><td>0.2%</td><td>0.3%</td></tr>
-      <tr><th>조회분<small>이하</small></th><td>2.2%</td><td>2.1%</td><td>2.1%</td><td>2.1%</td></tr>
-      <tr><th>수분<small>이하</small></th><td>75.2%</td><td>76.3%</td><td>76.1%</td><td>75.1%</td></tr>
-      <tr><th>칼슘<small>이상</small></th><td>0.3%</td><td>0.3%</td><td>0.3%</td><td>0.3%</td></tr>
-      <tr><th>인<small>이상</small></th><td>0.3%</td><td>0.3%</td><td>0.3%</td><td>0.3%</td></tr>
-      <tr class="kcal-row"><th>열량<small>kcal/100g</small></th><td>125</td><td>130</td><td>125</td><td>145</td></tr>
-    </tbody>
-  </table>
-  <p class="note">100g당 평균 약 131kcal. 수분은 듬뿍, 칼로리는 가볍게.</p>
-</section>
-
-<!-- 09 급여 가이드 -->
-<section class="guide" id="s09">
-  <div class="center">
-    <span class="kicker"><span class="en">HOW TO</span>급여 가이드</span>
-    <h2>처음 화식이라면<br><em>이렇게 시작해요</em></h2>
-  </div>
-
-  <div class="card">
-    <h3><span class="ic">1</span>7일 동안 천천히 바꿔 주세요</h3>
-    <p>기존 사료에 조금씩 섞어 <b>화식 비율을 천천히</b> 늘려요.</p>
-    <div class="mix">
-      <div class="mix-row">1~2일<div class="bar"><span class="old" style="width:75%">사료 75%</span><span class="new" style="width:25%">25%</span></div></div>
-      <div class="mix-row">3~4일<div class="bar"><span class="old" style="width:50%">사료 50%</span><span class="new" style="width:50%">화식 50%</span></div></div>
-      <div class="mix-row">5~6일<div class="bar"><span class="old" style="width:25%">25%</span><span class="new" style="width:75%">화식 75%</span></div></div>
-      <div class="mix-row">7일~<div class="bar"><span class="new" style="width:100%">화식 100%</span></div></div>
+    <div class="feat5">
+      <div class="ftlogo"><div class="t">Farmer's Tail</div><div class="o">FT</div><div class="t">Nutri-Core</div></div>
+      <p>식약처 등록 프리믹스와<br>오메가 3&amp;6 배합은 물론<b>글로벌 3대 기준<br>100% 충족</b></p>
     </div>
   </div>
+</section>
 
-  <div class="card">
-    <h3><span class="ic">2</span>보관은 냉동, 해동은 충분히</h3>
-    <ul class="store-list">
-      <li><span class="ok">✓</span><span><b>냉동 보관</b>하고, 급여 전 냉장실에서 충분히 해동해요.</span></li>
-      <li><span class="ok">✓</span><span>해동한 제품은 <b>가능한 빨리</b> 급여해 주세요.</span></li>
-      <li><span class="ok no">✕</span><span>한 번 해동한 제품은 <b>다시 얼리지 않아요.</b></span></li>
+<!-- 6 이런 아이들에게 추천해요 (GIF) -->
+<section id="s06-rec" class="rec c" data-gif>
+  <svg class="drip" data-drip="#F7F5EE" height="170"></svg>
+  <img class="wm" src="assets/wm_recipe1.png" style="width:560px;margin-top:40px">
+  <div class="tape">이런 아이들에게 추천해요!</div>
+  <div class="rec-stage">
+    <div class="rec-dog" data-frames="GN" data-crop="287,982,293,293" data-shape="circle"></div>
+    <div class="say t" style="left:280px;top:10px;width:300px"><div style="background:#1E1210">영양 보충이<br>필요한 노령견</div></div>
+    <div class="say l" style="left:16px;top:250px;width:254px"><div style="background:var(--red)">음수량을<br>높여야 하는 아이</div></div>
+    <div class="say r" style="right:16px;top:250px;width:254px"><div style="background:#7F99A5">사료를 남기는<br>입 짧은 아이</div></div>
+    <div class="say bl" style="left:70px;top:590px;width:270px"><div style="background:#8F8F8D">화식을 처음<br>시작하는 아이</div></div>
+    <div class="say br" style="right:70px;top:590px;width:270px"><div style="background:#CF9036">소화가 잘<br>안 되는 아이</div></div>
+  </div>
+</section>
+
+<!-- 7 POINT 1 (GIF) -->
+<section id="s07-point1" class="p-sec bg-grid c" data-gif>
+  <svg class="drip" data-drip="#EBE4D3" height="230"></svg>
+  <div class="box" style="margin-top:60px">
+    <div class="badge-wrap"><span class="cloud" data-w="210" data-h="88" style="font-size:38px">POINT 1</span></div>
+    <p class="pt-l1">육즙은 꽉 채우고 영양 손실은</p>
+    <span class="pt-l2" style="background:#A9BCC5;color:#fff">최소화한 저온 수비드</span>
+    <div style="position:relative;width:640px;margin:0 auto">
+      <!-- 원본 GIF 에 '음수량 UP!' 배지가 함께 찍혀 있어 배지까지 잘라 쓴다(바깥은 흰 상자와 같은 흰색) -->
+      <div class="video" data-frames="GP1" data-crop="120,598,655,475"></div>
+    </div>
+    <ul class="checks">
+      <li>영양소 파괴 최소화</li>
+      <li>70% 이상의 수분과 육즙 보존</li>
+      <li>소화 부담 없는 부드러운 텍스처</li>
     </ul>
   </div>
+</section>
 
-  <div class="card">
-    <h3><span class="ic">3</span>아이에 맞춘 작은 꿀팁</h3>
-    <div class="tips">
-      <div><b>입맛이 까다로운 아이</b><span>살짝 미지근하게 데우면 원물 향이 살아나요.</span></div>
-      <div><b>치아가 약한 노령견</b><span>미지근한 물을 조금 더해 부드럽게 주세요.</span></div>
+<!-- 8 간편한 급여 (GIF) -->
+<section id="s08-easy" class="easy bg-paper c" data-gif>
+  <svg class="scallop" data-scallop="#F7F5EE" height="80"></svg>
+  <span class="label">간편한 급여</span>
+  <div class="easy-step"><div class="sn">STEP 01</div><div class="easy-card"><div class="ph" data-frames="GE" data-crop="160,395,214,214"></div><p>냉동 보관하다<b>간편하게 쑥!</b></p></div></div>
+  <div class="easy-step"><div class="sn">STEP 02</div><div class="easy-card"><div class="ph" data-frames="GE" data-crop="160,766,214,214"></div><p>하루 전 냉장 해동 후<b>밥그릇에 툭!</b></p></div></div>
+  <div class="easy-step"><div class="sn">STEP 03</div><div class="easy-card"><div class="ph" data-frames="GE" data-crop="160,1137,214,214"></div><p><b>간편 영양식<br>완성!</b></p></div></div>
+</section>
+
+<!-- 9 POINT 2 -->
+<section id="s09-point2" class="p-sec p2 bg-grid c" style="padding-top:90px">
+  <div class="box">
+    <div class="badge-wrap"><span class="cloud" data-w="210" data-h="88" style="font-size:38px">POINT 2</span></div>
+    <p class="l1">우리 아이들의 기호와 영양을 위한</p>
+    <p class="l2">100% 국내산 휴먼그레이드 원재료</p>
+    <img class="photo" src="assets/photo_ingr.png">
+    <p class="hg">100% human grade</p>
+    <p class="no">사람이 먹을 수 없는 건 절대 넣지 않아요</p>
+  </div>
+</section>
+
+<!-- 10 좋은 원물에서 시작한 4가지 특별한 레시피 -->
+<section id="s10-cards" class="four2 c">
+  <svg class="scallop" data-scallop="#F7F5EE" height="80"></svg>
+  <img class="paw" src="assets/paw.png" style="right:40px;top:110px">
+  <img class="wm" src="assets/wm_ftail.png" style="width:320px;margin-top:60px">
+  <p class="l1">좋은 원물에서 시작한</p>
+  <p class="l2">4가지 특별한 레시피</p>
+  <div class="cards">
+    <div class="card" style="background:var(--mustard)"><img class="best" src="assets/best.png"><div class="card-in">
+      <img class="bn" src="assets/bn_chicken.png"><img class="ph" src="../../public/store/real-chicken.webp" style="border-color:#8A5A12">
+      <h4 style="color:#8A5A12">담백하고 부담 없는<br>닭고기 한 끼</h4>
+      <div class="tg"><span style="background:var(--mustard)">소화 부담 ↓</span><span style="background:var(--mustard)">체중 관리</span><span style="background:var(--mustard)">근육·관절</span></div>
+      <p>국내산 무항생제 닭을 담아<br>매일 편안하게 즐길 수 있도록<br>만들었어요.</p>
+    </div></div>
+    <div class="card" style="background:var(--duck)"><div class="card-in">
+      <img class="bn" src="assets/bn_duck.png"><img class="ph" src="../../public/store/real-duck.webp" style="border-color:#1F5C78">
+      <h4 style="color:#1F5C78">고소하고 부드러운<br>오리 한 끼</h4>
+      <div class="tg"><span style="background:var(--duck)">피부·모질</span><span style="background:var(--duck)">혈관 건강</span><span style="background:var(--duck)">저알러지</span></div>
+      <p>국내산 무항생제 오리를 담아<br>입맛 까다로운 아이도<br>맛있게 즐길 수 있어요.</p>
+    </div></div>
+    <div class="card" style="background:#A84228"><div class="card-in">
+      <img class="bn" src="assets/bn_hanwoo.png"><img class="ph" src="../../public/store/real-beef.webp" style="border-color:#8E2E18">
+      <h4 style="color:#8E2E18">기력이 필요한 날엔<br>든든한 한우 한 끼</h4>
+      <div class="tg"><span style="background:var(--red)">기력 회복</span><span style="background:var(--red)">빈혈 관리</span><span style="background:var(--red)">눈·피부 건강</span></div>
+      <p>국내산 한우의 풍부한 맛과<br>영양을 담아 활력 있는<br>하루를 채워줘요.</p>
+    </div></div>
+    <div class="card" style="background:var(--pork)"><img class="best" src="assets/best.png"><div class="card-in">
+      <img class="bn" src="assets/bn_pork.png"><img class="ph" src="../../public/store/real-pork.webp" style="border-color:#6E6F6F">
+      <h4 style="color:#5E5F5F">든든하게 채우는<br>흑돼지 한 끼</h4>
+      <div class="tg"><span style="background:var(--pork)">활력 증진</span><span style="background:var(--pork)">피로 회복</span><span style="background:var(--pork)">근육 기능</span></div>
+      <p>국내산 흑돼지를 담아<br>튼튼한 몸을 위한<br>영양을 더했어요.</p>
+    </div></div>
+  </div>
+</section>
+
+<!-- 11 POINT 3 뉴트리-코어 -->
+<section id="s11-point3" class="p3 c">
+  <svg class="scallop" data-scallop="#EBE4D3" height="80"></svg>
+  <div style="margin-top:20px"><span class="cloud" data-w="210" data-h="88" style="font-size:38px">POINT 3</span></div>
+  <p class="l1">한 끼의 마지막 퍼즐</p>
+  <p class="l2">파머스테일 뉴트리 - 코어</p>
+  <div class="ftlogo"><div class="t">Farmer's Tail</div><div class="o">FT</div><div class="t">Nutri-Core</div></div>
+  <p class="body">좋은 원물에 더하는 마지막 영양까지 깐깐하게.<br><b>식약처 식품원료</b>로 등재된 성분을 사용한 <b>프리믹스</b>로<br>화식만으로 부족하기 쉬운 <b>비타민과 미네랄</b>을<br>꼼꼼하게 채웠습니다.</p>
+  <div class="keyp">
+    <div class="cloud-wrap"><span class="cloud" data-w="250" data-h="150" style="font-size:42px">Key Point!</span></div>
+    <p class="t">FARMER'S TAIL NUTRITION PREMIX</p>
+    <img class="logos" src="assets/logos.png">
+    <p class="l3"><b>식약처 등록</b> 프리믹스와<br><b>오메가 3&amp;6 배합</b>은 물론</p>
+    <p class="l4">글로벌 3대 기준 100% 충족</p>
+    <p class="h5">파머스테일 뉴트리-코어 식약처 등록</p>
+    <p class="rn">품목보고번호 - 2009036023152</p>
+    <img class="mfds" src="assets/mfds.png">
+    <p class="note">* 식품안전나라(식약처)에서 등록 사항을 확인하실 수 있습니다</p>
+  </div>
+</section>
+
+<!-- 11b 성분정보 (8000px 넘지 않게 POINT 3 에서 나눴다 — 이어 붙이면 한 판) -->
+<section id="s11b-premix" class="p3 c" style="background:#fff">
+  <div class="keyp" style="border-top:none;margin-top:0;padding-top:10px">
+    <p class="h5" style="margin-top:0">파머스테일 뉴트리 - 코어</p>
+    <p class="l4" style="margin-top:20px">성분정보</p>
+    <img class="sheet" src="../../public/nutrition-crossval-sheet.webp">
+    <p class="end1">프리믹스로 부족하기 쉬운 영양까지 채운,<br>더 균형 잡힌 한 끼.</p>
+    <p class="end2">안심하고 급여하세요!</p>
+  </div>
+</section>
+
+<!-- 12 POINT 4 -->
+<section id="s12-point4" class="p4 c">
+  <span class="cloud" data-w="210" data-h="88" style="font-size:38px">POINT 4</span><br>
+  <span class="tape">국내에서 <span style="font-weight:900">꼼꼼하게</span> 만드는 <span style="font-weight:900">한 끼</span></span>
+  <p class="l3">원물 검수부터 조리·배합·급속냉동까지<br>정해진 공정을 거쳐 국내에서 생산합니다.</p>
+  <div class="certs"><img class="c1" src="assets/cert1.png"><img class="c2" src="assets/cert2.png"></div>
+  <div class="pills"><span>● 타협 없는 위생 관리</span><span>● 투명한 조리 공정</span><span>● 유통 마진 ZERO</span></div>
+</section>
+
+<!-- 13 POINT 5 -->
+<section id="s13-point5" class="p-sec p5 bg-grid c" style="padding-top:110px">
+  <div class="box">
+    <div class="badge-wrap"><span class="cloud" data-w="210" data-h="88" style="font-size:38px">POINT 5</span></div>
+    <img class="wm" src="assets/wm_recipe2.png">
+    <p class="l1">불필요한 인공첨가물 없이</p>
+    <p class="l2">원물 그대로의 한 끼</p>
+    <img class="photo" src="assets/photo_scallop.png">
+    <p class="msg">반려견에게 유해할 수 있는<br>각종 첨가물과 부산물은 절대 넣지 않았습니다.</p>
+    <div class="frees">
+      <div><img src="assets/fr1.png"><b>글루텐</b><i>FREE</i></div>
+      <div><img src="assets/fr2.png"><b>화학 보존제</b><i>FREE</i></div>
+      <div><img src="assets/fr3.png"><b>부산물</b><i>FREE</i></div>
+      <div><img src="assets/fr4.png"><b>인공색소</b><i>FREE</i></div>
+      <div><img src="assets/fr5.png"><b>배앓이 유당 성분</b><i>FREE</i></div>
+      <div><img src="assets/fr6.png"><b>육분</b><i>FREE</i></div>
     </div>
   </div>
 </section>
 
-<!-- 10 Q&A -->
-<section class="qa" id="s10">
-  <div class="center">
-    <span class="kicker"><span class="en">Q&amp;A</span>자주 묻는 질문</span>
-    <h2>궁금한 점,<br><em>미리 답해 드려요</em></h2>
-  </div>
-  <div class="qa-item">
-    <div class="qa-q">우리 아이는 얼마나 먹여야 하나요?</div>
-    <div class="qa-a"><span>체중·활동량·급여 목적에 따라 필요한 양이 달라요. <b>QR을 스캔해</b> 우리 아이 <b>하루 급여량</b>을 확인해 보세요.</span><span class="qr-slot">QR<br>(기존 QR<br>그대로)</span></div>
-  </div>
-  <div class="qa-item">
-    <div class="qa-q">4가지 레시피를 번갈아 먹여도 되나요?</div>
-    <div class="qa-a"><span>네. 기호와 컨디션에 맞춰 <b>다양하게 즐길 수 있어요.</b> 다만 특정 원료에 민감한 아이라면 <b>원재료를 먼저 확인</b>해 주세요.</span></div>
-  </div>
-  <div class="qa-item">
-    <div class="qa-q">처음부터 화식만 먹여도 되나요?</div>
-    <div class="qa-a"><span>갑자기 바꾸면 배가 놀랄 수 있어요. 위 <b>7일 전환법</b>처럼 기존 식단에 섞어 천천히 늘려 주세요.</span></div>
+<!-- 14 이렇게 만들어져요 -->
+<section id="s14-process" class="p-sec proc bg-grid c">
+  <div class="box">
+    <img class="bn" src="assets/bn_recipe.png">
+    <h3>이렇게 만들어져요!</h3>
+    <img class="photo" src="../../public/store/real-beef.webp">
+    <div class="steps">
+      <div><span class="sn">STEP 1</span><span class="ic"><img src="assets/st1.png"></span><b>원물 검수 &amp; 세척</b></div>
+      <div><span class="sn">STEP 2</span><span class="ic"><img src="assets/st2.png"></span><b>저온 수비드</b></div>
+      <div><span class="sn">STEP 3</span><span class="ic"><img src="assets/st3.png"></span><b>믹싱</b></div>
+      <div><span class="sn">STEP 4</span><span class="ic"><img src="assets/st4.png"></span><b>영양 배합</b></div>
+      <div><span class="sn">STEP 5</span><span class="ic"><img src="assets/st5.png"></span><b>급속 냉동</b></div>
+      <div><span class="sn">STEP 6</span><span class="ic"><img src="assets/st6.png"></span><b>영양화식 완성</b></div>
+    </div>
   </div>
 </section>
 
-<section class="footer" id="s11">
-  <div class="en">FARMER'S TAIL</div>
-  <p>좋은 원물에서 시작한 한 그릇</p>
+<!-- 15 TIP -->
+<section id="s15-tip" class="tip bg-paper c">
+  <svg class="drip" data-drip="#F7F5EE" height="230"></svg>
+  <span class="cloud" data-w="170" data-h="80" style="font-size:40px;margin-top:20px">TIP!</span>
+  <p class="l1">파머스테일</p>
+  <span class="tape">화식 급여 꿀팁</span>
+  <div class="tipc"><span class="cloud no" data-w="96" data-h="96" data-round data-fill="#93ABB6" style="font-size:52px">1</span>
+    <h4>입맛이 까다로운 강아지</h4><p>충분히 해동한 뒤 살짝 미지근하게 급여하면<br>원물의 향을 더욱 맛있게 즐길 수 있어요!</p></div>
+  <div class="tipc"><span class="cloud no" data-w="96" data-h="96" data-round data-fill="#93ABB6" style="font-size:52px">2</span>
+    <h4>화식이 처음인 강아지</h4><p>기존에 먹던 사료에 화식을 조금씩 섞어<br>천천히 급여 비율을 늘려주세요!</p></div>
+  <div class="tipc"><span class="cloud no" data-w="96" data-h="96" data-round data-fill="#93ABB6" style="font-size:52px">3</span>
+    <h4>치아가 약한 노령견</h4><p>화식에 미지근한 물을 조금 더해<br>더 부드럽고 편하게 급여해주세요!</p></div>
 </section>
 
+<!-- 16 칼로리 -->
+<section id="s16-calorie" class="cal c">
+  <svg class="drip" data-drip="#E9E7E1" height="230"></svg>
+  <img class="paw" src="assets/paw.png" style="right:36px;bottom:250px;width:100px">
+  <span class="cloud" data-w="250" data-h="80" style="font-size:36px;margin-top:20px">Calorie Info</span>
+  <img class="wm" src="assets/wm_recipe1.png">
+  <h3>화식 칼로리 정보</h3>
+  <p class="unit">(100g 기준)</p>
+  <div class="tiles">
+    <div><img src="assets/tile_chicken.png"><p class="kc" style="color:#C98A2E">125 kcal</p></div>
+    <div><img src="assets/tile_duck.png"><p class="kc" style="color:#6E8E9C">130 kcal</p></div>
+    <div><img src="assets/tile_hanwoo.png"><p class="kc" style="color:var(--red)">145 kcal</p></div>
+    <div><img src="assets/tile_pork.png"><p class="kc" style="color:#8A8B8B">125 kcal</p></div>
+  </div>
+  <p class="msg"><b>국내산 재료를 가득 품은 파머스 레시피</b><br>수분과 영양은 듬뿍 채우고, 칼로리는<br><b>100g당 평균 약 131 kcal</b>로 쏙 뺐습니다.<br>칼로리 안심하고 급여하세요!</p>
+</section>
+
+<!-- 17 Q&A -->
+<section id="s17-qa" class="qa c">
+  <div class="rule" style="margin-bottom:110px"></div>
+  <span class="cloud" data-w="360" data-h="150" style="font-size:96px">Q&amp;A</span>
+  <div class="qq"><div class="bub" style="--c:var(--mustard)"><div>처음부터 화식만<br>급여해도 되나요?</div></div></div>
+  <div class="aa"><div class="bub" style="--c:var(--mustard)"><div>기존 식단에 <b>조금씩 섞어</b> 급여하면서<br>아이가 적응할 수 있도록<br><b>천천히 화식 비율</b>을 늘려주세요.</div></div></div>
+  <div class="qq"><div class="bub" style="--c:var(--duck)"><div>우리 아이는 얼마나<br>급여해야 하나요?</div></div></div>
+  <div class="aa" style="margin-left:240px"><div class="bub" style="--c:var(--duck)"><div class="qrbox"><img src="assets/qr.png"><span>체중과 활동량, 급여 목적에 따라 필요한 양이 달라요. <b>QR을 스캔해</b> 우리 아이에게 <b>맞는 급여량</b>을 확인해 보세요.</span></div></div></div>
+  <div class="qq"><div class="bub" style="--c:var(--red)"><div>어떻게 보관하고<br>급여하면 되나요?</div></div></div>
+  <div class="aa"><div class="bub" style="--c:var(--red)"><div>제품은 <b>냉동 보관</b>하고, 급여 전<br>충분히 <b>해동</b>해 주세요.<br>한번 해동한 제품은 <b>다시 얼리지 않고</b><br>가능한 <b>빠르게 급여</b>하는 것을 권장해요.</div></div></div>
+  <div class="qq"><div class="bub" style="--c:var(--pork)"><div>4가지 레시피를 번갈아<br>급여해도 되나요?</div></div></div>
+  <div class="aa"><div class="bub" style="--c:var(--pork)"><div>네, 아이의 기호와 <b>컨디션에 맞춰</b><br><b>4가지 레시피를 다양하게</b> 즐길 수 있어요.<br>다만 <b>특정 원료에 민감한</b> 아이라면<br><b>원재료를 먼저 확인</b>해 주세요.</div></div></div>
+</section>
+
+<!-- 18 제품정보 -->
+<section id="s18-info" class="info c">
+  <div class="rule"></div>
+  <div style="margin-top:70px"><span class="cloud" data-w="230" data-h="100" style="font-size:46px">제품정보</span></div>
+  <img class="wis" src="assets/wm_whatsinside.png">
+</section>
+
+<section id="s19-tables" class="info" style="padding-top:0">
+  <div class="tb" style="--c:var(--red);--d:var(--red)">
+    <div class="tb-l"><img class="wm" src="assets/wm_t_hanwoo.png"><img class="pk" src="../../public/pkg/beef.webp"><div class="nm">한우 화식</div></div>
+    <table><thead><tr><th colspan="2">등록성분량</th></tr><tr><th>성분명</th><th>성분량</th></tr></thead><tbody>
+      <tr><th>조단백질</th><td>13.9%<small>이상</small></td></tr><tr><th>조지방</th><td>5.5%<small>이하</small></td></tr>
+      <tr><th>조섬유</th><td>0.3%<small>이하</small></td></tr><tr><th>조회분</th><td>2.1%<small>이하</small></td></tr>
+      <tr><th>수분</th><td>75.1%<small>이하</small></td></tr><tr><th>칼슘</th><td>0.3%<small>이상</small></td></tr><tr><th>인</th><td>0.3%<small>이상</small></td></tr>
+    </tbody></table>
+  </div>
+  <div class="rule"></div>
+  <div class="tb" style="--c:var(--mustard);--d:#A86E1C">
+    <div class="tb-l"><img class="wm" src="assets/wm_t_chicken.png"><img class="pk" src="../../public/pkg/chicken.webp"><div class="nm">치킨 화식</div></div>
+    <table><thead><tr><th colspan="2">등록성분량</th></tr><tr><th>성분명</th><th>성분량</th></tr></thead><tbody>
+      <tr><th>조단백질</th><td>15.1%<small>이상</small></td></tr><tr><th>조지방</th><td>4.7%<small>이하</small></td></tr>
+      <tr><th>조섬유</th><td>0.3%<small>이하</small></td></tr><tr><th>조회분</th><td>2.2%<small>이하</small></td></tr>
+      <tr><th>수분</th><td>75.2%<small>이하</small></td></tr><tr><th>칼슘</th><td>0.3%<small>이상</small></td></tr><tr><th>인</th><td>0.3%<small>이상</small></td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section id="s20-tables" class="info" style="padding-top:0">
+  <div class="rule"></div>
+  <div class="tb" style="--c:#A3A4A4;--d:#5E5F5F">
+    <div class="tb-l"><img class="wm" src="assets/wm_t_pork.png"><img class="pk" src="../../public/pkg/pork.webp"><div class="nm">흑돼지 화식</div></div>
+    <table><thead><tr><th colspan="2">등록성분량</th></tr><tr><th>성분명</th><th>성분량</th></tr></thead><tbody>
+      <tr><th>조단백질</th><td>14.9%<small>이상</small></td></tr><tr><th>조지방</th><td>5.4%<small>이하</small></td></tr>
+      <tr><th>조섬유</th><td>0.2%<small>이하</small></td></tr><tr><th>조회분</th><td>2.1%<small>이하</small></td></tr>
+      <tr><th>수분</th><td>76.1%<small>이하</small></td></tr><tr><th>칼슘</th><td>0.3%<small>이상</small></td></tr><tr><th>인</th><td>0.3%<small>이상</small></td></tr>
+    </tbody></table>
+  </div>
+  <div class="rule"></div>
+  <div class="tb" style="--c:#86A0AC;--d:#3F5F6D">
+    <div class="tb-l"><img class="wm" src="assets/wm_t_duck.png"><img class="pk" src="../../public/pkg/duck.webp"><div class="nm">오리 화식</div></div>
+    <table><thead><tr><th colspan="2">등록성분량</th></tr><tr><th>성분명</th><th>성분량</th></tr></thead><tbody>
+      <tr><th>조단백질</th><td>13.1%<small>이상</small></td></tr><tr><th>조지방</th><td>5.2%<small>이하</small></td></tr>
+      <tr><th>조섬유</th><td>0.3%<small>이하</small></td></tr><tr><th>조회분</th><td>2.1%<small>이하</small></td></tr>
+      <tr><th>수분</th><td>76.3%<small>이하</small></td></tr><tr><th>칼슘</th><td>0.3%<small>이상</small></td></tr><tr><th>인</th><td>0.3%<small>이상</small></td></tr>
+    </tbody></table>
+  </div>
+</section>
+
+<section id="s21-foot" class="foot c">
+  <img class="wm" src="assets/wm_ftail.png">
+</section>
+
+<script>
+// 구름 배지 · 드립 · 물결 경계를 SVG 로 그린다 — 원본의 손그림 장식과 같은 모양으로.
+const NS = 'http://www.w3.org/2000/svg'
+function rnd(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280 }
+
+document.querySelectorAll('.cloud').forEach((el) => {
+  const w = +el.dataset.w, h = +el.dataset.h, fill = el.dataset.fill || '#1E1210'
+  const round = el.dataset.round !== undefined
+  el.style.width = w + 'px'; el.style.height = h + 'px'
+  const span = document.createElement('span'); span.innerHTML = el.innerHTML; el.innerHTML = ''
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+  const r = Math.min(w, h) * (round ? 0.13 : 0.2)
+  const cx = w / 2, cy = h / 2, ax = w / 2 - r * 0.9, ay = h / 2 - r * 0.9
+  const n = Math.max(10, Math.round((Math.PI * (ax + ay)) / (r * 1.25)))
+  const p = round ? 2 : 4 // 초타원 — 가로로 긴 배지는 모서리를 각지게
+  let d = ''
+  for (let i = 0; i < n; i++) {
+    const t = (i / n) * Math.PI * 2, ct = Math.cos(t), st = Math.sin(t)
+    const x = cx + ax * Math.sign(ct) * Math.pow(Math.abs(ct), 2 / p)
+    const y = cy + ay * Math.sign(st) * Math.pow(Math.abs(st), 2 / p)
+    d += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"/>`
+  }
+  d += `<rect x="${cx - ax}" y="${cy - ay}" width="${ax * 2}" height="${ay * 2}" rx="${round ? ax : r}"/>`
+  svg.innerHTML = `<g fill="${fill}">${d}</g>`
+  el.append(svg, span)
+})
+
+// 드립 — 위 섹션 색이 아래로 흘러내린다
+document.querySelectorAll('svg.drip').forEach((svg, k) => {
+  const h = +svg.getAttribute('height'), c = svg.dataset.drip, R = rnd(k * 7 + 3)
+  svg.setAttribute('viewBox', `0 0 860 ${h}`); svg.setAttribute('width', 860)
+  const pts = []
+  let x = 0
+  while (x < 860) { const w = 60 + R() * 70; pts.push([x, w, h * (0.4 + R() * 0.58)]); x += w }
+  const base = h * 0.22
+  let d = `M0 0 H860 V${base} `
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const [x0, w, dy] = pts[i], x1 = Math.min(860, x0 + w), mx = (x0 + x1) / 2, hw = Math.min(w * 0.3, 26)
+    d += `L${x1} ${base} Q${mx + hw} ${base} ${mx + hw} ${base + 20} L${mx + hw} ${dy - hw} A${hw} ${hw} 0 0 1 ${mx - hw} ${dy - hw} L${mx - hw} ${base + 20} Q${mx - hw} ${base} ${x0} ${base} `
+  }
+  d += 'Z'
+  svg.innerHTML = `<path d="${d}" fill="${c}"/>`
+})
+
+// 물결(구름) 경계 — 위 섹션 색의 반원 줄
+document.querySelectorAll('svg.scallop').forEach((svg) => {
+  const h = +svg.getAttribute('height'), c = svg.dataset.scallop
+  svg.setAttribute('viewBox', `0 0 860 ${h}`); svg.setAttribute('width', 860)
+  let d = `<rect width="860" height="${h * 0.35}" fill="${c}"/>`
+  for (let x = 0; x <= 920; x += 120) d += `<circle cx="${x}" cy="${h * 0.35}" r="64" fill="${c}"/>`
+  svg.innerHTML = d
+})
+</script>
 </body>
 </html>
