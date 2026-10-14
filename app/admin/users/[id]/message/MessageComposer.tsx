@@ -43,11 +43,18 @@ const TEMPLATES: Template[] = [
   },
 ]
 
-export default function MessageComposer({ userId }: { userId: string }) {
+export default function MessageComposer({
+  userId,
+  initial,
+}: {
+  userId: string
+  /** 고객 화면에서 넘어온 미리 채운 안내(예: 화식 비율 변경 안내 — page.tsx MESSAGE_PRESETS). */
+  initial?: { title: string; body: string; url: string } | null
+}) {
   const toast = useToast()
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [url, setUrl] = useState('')
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [body, setBody] = useState(initial?.body ?? '')
+  const [url, setUrl] = useState(initial?.url ?? '')
   const [sending, setSending] = useState(false)
   const [lastResult, setLastResult] =
     useState<{ sent: number; dead: number; reason?: string } | null>(null)

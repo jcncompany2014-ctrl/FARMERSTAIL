@@ -169,6 +169,48 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_customer_notes: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          done: boolean
+          done_at: string | null
+          follow_up_on: string | null
+          id: string
+          noted_on: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          done_at?: string | null
+          follow_up_on?: string | null
+          id?: string
+          noted_on?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          done_at?: string | null
+          follow_up_on?: string | null
+          id?: string
+          noted_on?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_user_notes: {
         Row: {
           note: string
@@ -1372,6 +1414,50 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formula_proposal_requests: {
+        Row: {
+          dog_id: string
+          id: string
+          outcome: string | null
+          processed_at: string | null
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          survey_id: string | null
+          user_id: string
+        }
+        Insert: {
+          dog_id: string
+          id?: string
+          outcome?: string | null
+          processed_at?: string | null
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          survey_id?: string | null
+          user_id: string
+        }
+        Update: {
+          dog_id?: string
+          id?: string
+          outcome?: string | null
+          processed_at?: string | null
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          survey_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formula_proposal_requests_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
             referencedColumns: ["id"]
           },
         ]
@@ -2815,6 +2901,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "subscription_charges_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_events: {
+        Row: {
+          actor: string
+          actor_user_id: string | null
+          after: Json
+          before: Json
+          created_at: string
+          id: string
+          kind: string
+          source: string | null
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          actor: string
+          actor_user_id?: string | null
+          after?: Json
+          before?: Json
+          created_at?: string
+          id?: string
+          kind: string
+          source?: string | null
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          actor?: string
+          actor_user_id?: string | null
+          after?: Json
+          before?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          source?: string | null
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
