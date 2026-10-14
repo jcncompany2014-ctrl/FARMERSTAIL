@@ -36,11 +36,15 @@ import {
   buildWebSiteJsonLd,
 } from "@/lib/seo/jsonld";
 import { ToastProvider } from "@/components/ui/Toast";
+import { fontActivationScript } from "@/lib/font-activation";
 
 // Pretendard Variable — 본문 / UI 전체 (웹+앱 공통).
 // 앱 컨텍스트 (v3) 에서는 헤드라인/디스플레이도 Pretendard 만 사용 — Serif
 // 폐기. 웹 (랜딩/blog/events) 에서는 아래 Noto Serif KR / Cormorant 사용 유지.
-const pretendard = localFont({
+// ★변수 이름 = 글꼴 이름(Turbopack 이 이 이름으로 @font-face 를 만든다). 'pretendard' 로 두면 여러 CSS 가 뒤에 받쳐 둔
+//   'Pretendard'(기기에 깔린 글꼴을 찾는 이름)와 대소문자 무시로 같아져, 대체 글꼴에 없는 글자(＋ 등) 하나만 있어도 늦게 켜기 전에
+//   513KB 를 받기 시작했다(2026-10-14 주문서 실측). 그래서 다른 이름(pretendardKsx)으로 둔다 — 규칙231.
+const pretendardKsx = localFont({
   // ★KS X 1001 한글 2,350자 + 라틴·문장부호·기호만 담은 부분 글꼴(2026-09-26 점검 8차, fontTools subset).
   //   전체 파일(2.06MB)을 모든 화면이 가장 먼저 받던 것 — 앱 첫 실행 전송량의 약 83% 였다 → 524KB.
   //   KS X 1001 밖의 드문 음절(고객이 적은 이름 등)은 휴대폰 기본 한글 글꼴로 보인다 — 전체 글꼴을 뒤에
@@ -50,8 +54,17 @@ const pretendard = localFont({
   display: "swap",
   weight: "45 920",
   variable: "--font-sans",
-  preload: true,
+  // ★미리 받기 끔 + 늦게 켜기(2026-10-14 점검, 규칙231) — 미리 받기가 모든 화면에서 513KB 를 HTML 머리부터 받아, 느린 폰에선
+  //   화면을 움직이는 JS 와 회선을 나눠 버튼이 6~8초 뒤에야 움직였다. 느린 연결이면 페이지 스크립트가 다 온 뒤 받는다
+  //   (lib/font-activation — 아래 head 스크립트). 그동안의 대체 글꼴은 지표를 맞춘 것(규칙232)이라 글꼴이 와도 줄이 안 바뀐다.
+  preload: false,
+  // Next 가 만드는 대체 글꼴(Arial 맞춤)은 라틴만 맞춘다 — 한글은 기기 글꼴(맑은 고딕·Noto CJK: 한 글자 1em)로 그려져
+  //   Pretendard(0.864em)보다 넓어 줄이 바뀌고 글꼴이 오는 순간 화면이 밀렸다. 라틴·한글 둘 다 globals.css 에서 맞춘다.
+  adjustFontFallback: false,
+  fallback: ["ft-sans-latin-fallback", "ft-sans-ko-fallback"],
 });
+// 늦게 켜기 스크립트가 document.fonts.load 로 부를 글꼴 이름(next/font 가 만든 첫 이름).
+const PRETENDARD_FAMILY = pretendardKsx.style.fontFamily.split(",")[0]!.trim();
 
 
 // 마루부리 (MaruBuri) — 웹 farm v4 의 국문 헤드라인 서체 (Phase Q, 2026-06-12).
@@ -341,7 +354,7 @@ export default function RootLayout({
       // 애니메이션을 유발한다. 이 속성을 달면 Next 가 route transition 동안만
       // 일시적으로 smooth 를 끄고, 같은 페이지 내 앵커 이동에서는 유지해 준다.
       data-scroll-behavior="smooth"
-      className={`h-full antialiased ${pretendard.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${bungee.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable} ${blackHanSans.variable} ${anton.variable}`}
+      className={`h-full antialiased ${pretendardKsx.variable} ${maruBuri.variable} ${gaegu.variable} ${archivoBlack.variable} ${bungee.variable} ${cormorantGaramond.variable} ${jetbrainsMono.variable} ${blackHanSans.variable} ${anton.variable}`}
     >
       <head>
         {/*
@@ -397,6 +410,9 @@ export default function RootLayout({
               'html{background:#FAF9F5}',
           }}
         />
+        {/* 본문 글꼴 늦게 켜기(규칙231) — 느린 연결이면 페이지 스크립트가 다 온 뒤 받아 html.ft-font 로 한 번에 바꾼다.
+            빠르거나 모르거나 받은 적 있으면 바로 켠다. 정본·근거 lib/font-activation. 아래 스플래시 스크립트와 따로 둔다. */}
+        <script dangerouslySetInnerHTML={{ __html: fontActivationScript(PRETENDARD_FAMILY) }} />
         {/*
           iOS 레거시 standalone 감지 — display-mode media query 를 아직 반영 못 하는
           iOS PWA 도 navigator.standalone 으로 잡아 html.ft-standalone 부여 →

@@ -355,6 +355,48 @@ html {
   text-size-adjust: 100%;
 }
 
+/* 본문 글꼴(Pretendard 부분 글꼴)이 오기 전에 쓰는 대체 글꼴 — 글자 폭을 Pretendard 에 맞춘다(2026-10-14 점검, 규칙232).
+   글꼴이 늦게 오면(느린 연결은 일부러 늦게 켠다 — 규칙231) 그동안 기기 글꼴로 그리는데, 한글이 Pretendard(한 글자 0.8643em)보다
+   넓은 기기 글꼴(맑은 고딕·Noto Sans CJK KR = 1em)로 그려져 줄이 바뀌고, 글꼴이 오는 순간 화면이 밀렸다(/login 28px 등).
+   · 라틴: Arial 을 Next 가 만들던 값 그대로(평균 글자 폭 비 101.55%, 위·아래 지표 1950/494 ÷ 2048 ÷ 1.0155).
+   · 한글: 1em 기기 글꼴을 86.43%(1770/2048 — Pretendard 한글 폭, 굵기와 무관하게 같다)로 줄이고 위·아래 지표를 Pretendard 로
+     (1950/2048 ÷ 0.8643 = 110.17%, 494/2048 ÷ 0.8643 = 27.91%). 한글 범위에만 쓴다. 폭이 1em 이 아닌 글꼴(애플 SD 산돌고딕
+     Neo · Noto Sans KR 0.92em 등)은 넣지 않는다 — 맞지 않는 값이면 오히려 줄이 바뀐다. 목록에 없으면 예전처럼 기기 글꼴로 간다.
+   · 굵게: 굵은 파일이 없으면 보통 파일을 굵은 칸에 써서 폭이 같게(가짜 굵게 없이). */
+@font-face {
+  font-family: ft-sans-latin-fallback;
+  src: local("Arial");
+  ascent-override: 93.76%;
+  descent-override: 23.75%;
+  line-gap-override: 0%;
+  size-adjust: 101.55%;
+}
+@font-face {
+  font-family: ft-sans-ko-fallback;
+  src: local("Malgun Gothic"), local("MalgunGothic"), local("Noto Sans CJK KR"), local("Noto Sans CJK KR Regular"), local("NotoSansCJKkr-Regular");
+  font-weight: 100 550;
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+  ascent-override: 110.17%;
+  descent-override: 27.91%;
+  line-gap-override: 0%;
+  size-adjust: 86.43%;
+}
+@font-face {
+  font-family: ft-sans-ko-fallback;
+  src: local("Malgun Gothic Bold"), local("MalgunGothicBold"), local("Noto Sans CJK KR Bold"), local("NotoSansCJKkr-Bold"), local("Malgun Gothic"), local("MalgunGothic"), local("Noto Sans CJK KR"), local("NotoSansCJKkr-Regular");
+  font-weight: 551 1000;
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+  ascent-override: 110.17%;
+  descent-override: 27.91%;
+  line-gap-override: 0%;
+  size-adjust: 86.43%;
+}
+/* 본문 글꼴이 켜지기 전(html 에 ft-font 가 붙기 전)엔 대체 글꼴만 — next/font 의 변수 칸(.…variable, 같은 html)보다 구체적이라
+   이긴다. 켜는 때는 head 스크립트가 정한다(lib/font-activation, 규칙231). */
+html:not(.ft-font) {
+  --font-sans: ft-sans-latin-fallback, ft-sans-ko-fallback;
+}
+
 h1, h2, h3, h4 {
   text-wrap: balance;
   word-break: keep-all;
