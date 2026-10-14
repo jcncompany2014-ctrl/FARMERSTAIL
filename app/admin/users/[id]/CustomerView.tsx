@@ -445,6 +445,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
           </Section>
 
           <Section
+            id="notes"
             icon={<ClipboardList className="size-4" strokeWidth={2.2} />}
             title="문의 기록"
             desc="카톡·전화로 온 문의를 날짜순으로. '다시 볼 날'이 오늘이면 어드민 홈 할 일에 떠요."

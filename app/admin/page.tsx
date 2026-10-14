@@ -395,6 +395,8 @@ export default async function AdminHome() {
   const overdueUnshippedCount = todo.numbers.overdueUnshipped
   const csUnansweredUserCount = todo.numbers.csUnansweredUsers
   const cardRenewalCount = todo.numbers.cardRenewal
+  // 웹 가게 주문 — 결제일 다음 첫 화·목(출고일)이 지났는데 안 나간 것(규칙273). 정기배송 미발송과 같이 빨강.
+  const storeOverdueCount = todo.numbers.storeOverdue
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
   // ★배합비(ingredients)는 service_role 로만 읽힌다 (2026-10-06, 규칙164) — anon·authenticated
@@ -740,6 +742,10 @@ export default async function AdminHome() {
           stockOutCount={stockOutRes.count ?? 0}
           cronFailureCount={cronFailRes.count ?? 0}
           csUnansweredCount={csUnansweredUserCount}
+          // 웹 가게 출고일 지남·다시 볼 문의·첫 박스 '잘 안 먹어요' — 이번 주 할 일과 같은 숫자(2026-10-15 F-b).
+          storeOverdueCount={storeOverdueCount}
+          followUpDueCount={todo.numbers.followUpDue ?? 0}
+          firstCheckinPoorCount={todo.numbers.firstCheckinPoor}
           missedCronCount={missedCronCount}
         />
       </div>
@@ -778,12 +784,12 @@ export default async function AdminHome() {
             label="발송할 주문"
             value={`${pendingShipCount}건`}
             sub={
-              overdueUnshippedCount > 0
-                ? `결제됐고 아직 안 보낸 박스 · 발송일 지남 ${overdueUnshippedCount}건`
-                : '결제됐고 아직 안 보낸 박스 · 화요일 발송'
+              overdueUnshippedCount + storeOverdueCount > 0
+                ? `결제됐고 아직 안 보낸 박스 · 발송일 지남 ${overdueUnshippedCount + storeOverdueCount}건${storeOverdueCount > 0 ? `(가게 ${storeOverdueCount})` : ''}`
+                : '결제됐고 아직 안 보낸 박스 · 정기 화요일 · 가게 화·목'
             }
-            tone={overdueUnshippedCount > 0 ? 'red' : pendingShipCount > 0 ? 'amber' : 'neutral'}
-            help="결제된 박스는 토·일 조리 → 월 포장 → 화요일 발송으로 나가요. 일반 고객은 토요일 아침에 결제돼서 토요일부터 화요일까지는 여기 숫자가 있는 게 정상이에요. 화요일이 지나도 남아 있으면 '발송일 지남'으로 빨갛게 바뀌고 처리 대기의 미발송에 떠요 — 그건 바로 확인하세요."
+            tone={overdueUnshippedCount + storeOverdueCount > 0 ? 'red' : pendingShipCount > 0 ? 'amber' : 'neutral'}
+            help="정기배송 박스는 토·일 조리 → 월 포장 → 화요일 발송, 웹 가게 주문은 결제 다음 첫 화·목 출고예요. 일반 고객은 토요일 아침에 결제돼서 토요일부터 화요일까지는 여기 숫자가 있는 게 정상이에요. 발송일·출고일이 지나도 남아 있으면 '발송일 지남'으로 빨갛게 바뀌고 처리 대기에 떠요 — 그건 바로 확인하세요."
           />
           <StatCard
             label="가입 회원"

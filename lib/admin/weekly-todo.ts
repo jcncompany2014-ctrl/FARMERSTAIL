@@ -2,19 +2,21 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { getChargeTimings } from '@/lib/payments/charge-timing'
+import { loadChargeProjection } from '@/lib/payments/charge-projection-load'
 import { isStoreOrderNumber } from '@/lib/store/order-number'
 import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
-import { weekdayOf } from '@/lib/shipping-schedule'
+import { nextChargeRunDate, weekdayOf } from '@/lib/shipping-schedule'
 import { withHonorific } from '@/lib/korean'
 import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 import { tossKeyStatus } from '@/lib/payments/key-mode'
+import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import type { TrialState } from '@/lib/payments/trial'
 import { approvalTimeLeft } from '@/lib/personalization/approval-deadline'
 import { loadPackingWeek, packingProblemLines, PACKING_PROBLEM_LABEL, type PackingWeek } from '@/lib/admin/packing-week'
 import { keyExpiryStates, describeKeyExpiry, type KeyExpiryState } from '@/lib/admin/key-expiry'
-import { FIRST_CHECKIN_TODO_DAYS, firstCheckinNeedsOwner, firstCheckinLine, isCheckinPalatability } from '@/lib/first-checkin'
+import { FIRST_CHECKIN_TODO_DAYS, firstCheckinNeedsOwner, firstCheckinLine, isCheckinPalatability, shortCheckinMemo } from '@/lib/first-checkin'
 import {
-  nextTrialTransitions,
+  trialTransitionsFromRounds,
   trialConsentState,
   TRIAL_PHASE_LABEL,
   TRIAL_CONSENT_CHANNEL_LABEL,
@@ -26,6 +28,7 @@ import {
   upcomingShipIso,
   weekAnchors,
   classifyPaidBoxes,
+  classifyStoreOrders,
   classifyUnchargedSubs,
   cycleChargeResults,
   todayColumn,
@@ -94,10 +97,14 @@ export type WeeklyTodoNumbers = {
   csUnansweredUsers: number
   /** 첫 박스 체크인 — 사장님이 볼 답(최근 FIRST_CHECKIN_TODO_DAYS일) 수와 그중 '잘 안 먹어요'. 못 읽었으면 null. */
   firstCheckinFlagged: number | null
+  /** 카톡 문의 메모 '다시 볼 날'이 오늘 이하 + 처리 안 됨(규칙271). 못 읽었으면 null. */
+  followUpDue: number | null
   firstCheckinPoor: number
   openAlerts: number
   consentImminent: number
   storeOutgoing: number
+  /** 웹 가게 주문 중 출고일(결제일 다음 첫 화·목)이 지났는데 안 나간 것(규칙273). */
+  storeOverdue: number
   trialTransitions: TrialTransition[]
   /** 가격 인상 동의 기록이 없는데 인상 결제일이 30일 안(또는 지남)인 서포터즈 수. 동의 표를 못 읽으면 0 + trialConsentKnown=false. */
   trialConsentUrgent: number
@@ -138,6 +145,7 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     keyRowsRes,
     priceConsentsRes,
     checkinRes,
+    followUpRes,
   ] = await Promise.all([
     db
       .from('orders')
@@ -160,7 +168,16 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       .gte('scheduled_for', saturday)
       .lte('scheduled_for', shipIso)
       .limit(LIMIT),
-    db.from('subscriptions').select('id, user_id, dog_id').eq('requires_billing_key_renewal', true).limit(LIMIT),
+    // 카드 재등록 대기 — 결제 실패로 멈춘 구독(정본 isPausedByBillingFailure: 멈춤 + 카드 거절 표시 또는 실패 MAX_FAILED_CHARGES(3)회 이상)
+    //   + 카드 거절 표시가 켜졌는데 아직 멈춤 전인 구독(청구 대상에서 빠진다). 해지된 것은 뺀다(규칙274).
+    //   예전엔 requires_billing_key_renewal 만 셌다 — 잔액 부족류 3번 실패로 멈춘 구독(표시 안 켜짐)은 어디에도 안 떴다.
+    db
+      .from('subscriptions')
+      .select('id, user_id, dog_id, status, requires_billing_key_renewal, failed_charge_count')
+      .neq('status', 'cancelled')
+      // 멈춘 구독 전부 + 거절 표시 — 고객이 스스로 멈춘 것은 아래 정본 판정이 거른다(실패 횟수 기준은 정본 상수 하나).
+      .or('requires_billing_key_renewal.eq.true,status.eq.paused')
+      .limit(LIMIT),
     // 답 안 한 문의 = **사람 수**(문의함과 같은 단위).
     db.from('cs_messages').select('user_id').eq('sender', 'user').is('read_at', null).limit(500),
     db
@@ -191,6 +208,15 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       .gte('created_at', new Date(now.getTime() - FIRST_CHECKIN_TODO_DAYS * 86_400_000).toISOString())
       .order('created_at', { ascending: false })
       .limit(500),
+    // 카톡 문의 메모의 '다시 볼 날'(admin_customer_notes · 고객 화면 C2) — 오늘(KST) 이하이고 처리 안 된 것(규칙271).
+    db
+      .from('admin_customer_notes')
+      .select('id, user_id, body, follow_up_on')
+      .eq('done', false)
+      .not('follow_up_on', 'is', null)
+      .lte('follow_up_on', today)
+      .order('follow_up_on', { ascending: true })
+      .limit(500),
   ])
 
   // ── 화: 결제된 박스 · 발송일 지난 미발송 · 웹 가게 출고 ──
@@ -202,7 +228,11 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     if (orderRows.length >= LIMIT) failures.push(`발송 대기 주문: ${LIMIT}건 넘어 일부만 셈`)
   }
   const subOrders = orderRows.filter((o) => !!o.subscription_id)
-  const storeOutgoing = orderRows.filter((o) => !o.subscription_id && isStoreOrderNumber(o.order_number)).length
+  // 웹 가게(단품) 주문 — 정기배송이 아닌 결제된 발송 대기 주문 전부(지금은 FTS- 가게 주문뿐). 출고일(화·목) 정본으로 지남 판정(규칙273).
+  const storeRows = orderRows.filter((o) => !o.subscription_id)
+  const store = classifyStoreOrders(storeRows, today)
+  const storeOutgoing = storeRows.length
+  const storeLegacy = storeRows.filter((o) => !isStoreOrderNumber(o.order_number)).length
   const nextBySub = new Map<string, string | null>()
   const paidSubIds = [...new Set(subOrders.map((o) => o.subscription_id!))]
   if (paidSubIds.length > 0) {
@@ -237,7 +267,12 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
   else charge = cycleChargeResults((chargesRes.data ?? []) as ChargeAttempt[])
 
   // ── 늘 ──
-  const renewalRows = renewalRes.error ? [] : ((renewalRes.data ?? []) as Array<{ id: string; user_id: string; dog_id: string | null }>)
+  type RenewalRow = { id: string; user_id: string; dog_id: string | null; status: string; requires_billing_key_renewal: boolean | null; failed_charge_count: number | null }
+  const renewalRows = renewalRes.error
+    ? []
+    : ((renewalRes.data ?? []) as RenewalRow[]).filter(
+        (r) => isPausedByBillingFailure(r) || (r.requires_billing_key_renewal === true && r.status !== 'cancelled'),
+      )
   if (renewalRes.error) failures.push(`카드 재등록 대기: ${renewalRes.error.message}`)
   const csUsers = csRes.error ? [] : [...new Set(((csRes.data ?? []) as Array<{ user_id: string }>).map((m) => m.user_id))]
   if (csRes.error) failures.push(`답 안 한 문의: ${csRes.error.message}`)
@@ -252,7 +287,8 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     .filter((x): x is { f: PendingFormula; left: NonNullable<ReturnType<typeof approvalTimeLeft>> } => !!x.left && x.left.imminent)
     .sort((a, b) => (a.left.deadlineIso < b.left.deadlineIso ? -1 : 1))
 
-  // 서포터즈 다음 가격 전환 — 활성 구독 + 남은 회차(청구와 같은 판정).
+  // 서포터즈 다음 가격 전환 — 체험단 화면·청구와 같은 회차 펼치기(loadChargeProjection → 마지막 결제 구간 lastPaidPhase 포함)에서
+  //   처음 값이 오르는 회차(규칙272). 예전엔 남은 회차로만 '지금 구간'을 정해 인상 직전 2주(11/18·1/13)에 인상과 동의 없음을 놓쳤다.
   let transitions: TrialTransition[] = []
   if (trialsRes.error) failures.push(`서포터즈 상태: ${trialsRes.error.message}`)
   else {
@@ -262,16 +298,36 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       const { data: tSubs, error: tSubsErr } = await selectInChunks(trialUserIds, (chunk) =>
         db
           .from('subscriptions')
-          .select('id, user_id, dog_id, status, next_delivery_date, total_amount')
+          .select('id, user_id, dog_id, status, next_delivery_date, total_amount, requires_billing_key_renewal')
           .in('user_id', chunk)
           .eq('status', 'active'),
       )
       if (tSubsErr) failures.push(`서포터즈 구독: ${tSubsErr.message}`)
-      else
-        transitions = nextTrialTransitions(
-          (tSubs ?? []) as Array<{ id: string; user_id: string; dog_id: string | null; status: string; next_delivery_date: string | null; total_amount: number }>,
-          new Map(trials.map((t) => [t.user_id, t])),
+      else {
+        type TSub = { id: string; user_id: string; dog_id: string | null; status: string; next_delivery_date: string | null; total_amount: number; requires_billing_key_renewal: boolean | null }
+        // 체험단 화면과 같은 대상 — 카드 재등록이 필요한 구독은 청구 크론이 건너뛴다.
+        const live = ((tSubs ?? []) as TSub[]).filter((s) => s.requires_billing_key_renewal !== true)
+        const proj = await loadChargeProjection(
+          db,
+          live.map((s) => ({ id: s.id, user_id: s.user_id, next_delivery_date: s.next_delivery_date, total_amount: s.total_amount })),
+          {
+            fromIso: nextChargeRunDate(now),
+            untilChargeIso: addDaysKst(today, 400),
+            // 체험단 일정표와 같은 펼치기 — 동의를 받는다고 보고 끝까지(보류될 회차도 '인상'으로 보인다).
+            stopAtHold: false,
+            maxRounds: (c) => (c.trial ? c.trial.cheap_remaining + c.trial.half_remaining + 2 : 2),
+          },
         )
+        if (!proj.ok) failures.push(`서포터즈 회차 일정: ${proj.error}`)
+        else
+          transitions = trialTransitionsFromRounds(
+            [...new Set(live.map((s) => s.user_id))].map((userId) => {
+              const c = proj.contextByUser.get(userId)
+              return { userId, rounds: proj.roundsByUser.get(userId) ?? [], trial: c?.trial ?? null, lastPaidPhase: c?.lastPaidPhase ?? null }
+            }),
+            new Map(live.map((s) => [s.id, s.dog_id])),
+          )
+      }
     }
   }
   // 전환마다 동의 상태 — 조회 실패면 '모름'(null)으로 두고 칸을 빨갛게(동의 없음으로도, 받음으로도 단정하지 않는다).
@@ -286,6 +342,11 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
   const checkins = (checkinRes.error ? [] : ((checkinRes.data ?? []) as CheckinRow[])).filter(
     (c) => isCheckinPalatability(c.palatability) && firstCheckinNeedsOwner(c.palatability, c.comment) !== null,
   )
+  // 다시 볼 문의 — 오늘이 그날이거나 지난 것. 지난 것(약속을 넘김)은 빨강.
+  type FollowUpRow = { id: string; user_id: string; body: string; follow_up_on: string }
+  if (followUpRes.error) failures.push(`다시 볼 문의: ${followUpRes.error.message}`)
+  const followUps = followUpRes.error ? [] : ((followUpRes.data ?? []) as FollowUpRow[])
+  const followUpsLate = followUps.filter((f) => f.follow_up_on < today).length
   const checkinPoor = checkins.filter((c) => c.palatability === 'poor').length
 
   let keys: KeyExpiryState[] = []
@@ -328,6 +389,7 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     userIds.add(t.userId)
   }
   for (const u of csUsers) userIds.add(u)
+  for (const f of followUps) userIds.add(f.user_id)
   for (const c of checkins) {
     dogIds.add(c.dog_id)
     userIds.add(c.user_id)
@@ -453,11 +515,21 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     title: '웹 가게 출고 대기',
     count: ordersCountable ? storeOutgoing : null,
     unit: '건',
-    summary: '화·목 출고 — 결제된 가게 주문',
-    tone: !ordersCountable ? 'bad' : storeOutgoing > 0 ? 'info' : 'ok',
-    href: '/admin/orders?status=preparing',
+    summary: !ordersCountable
+      ? '발송 대기 주문을 못 읽었어요'
+      : store.overdue.length > 0
+        ? `출고일 지난 미발송 ${store.overdue.length}건 — 돈을 낸 손님이 기다려요`
+        : `화·목 출고 — 결제된 가게 주문${store.dueToday > 0 ? ` · 오늘 출고 ${store.dueToday}건` : ''}`,
+    tone: !ordersCountable || store.overdue.length > 0 ? 'bad' : storeOutgoing > 0 ? 'info' : 'ok',
+    href: '/admin/orders?status=preparing&kind=store',
     hrefLabel: '가게 주문 보러 가기',
-    lines: [],
+    lines: [
+      ...store.overdue.map((o) => ({
+        text: `출고일 지남 — ${o.order_number ?? o.id.slice(0, 8)} (결제 ${mdLabel(kstDateOf(o.paid_at ?? o.created_at))})`,
+        href: `/admin/orders/${o.id}`,
+      })),
+      ...(storeLegacy > 0 ? [{ text: `가게 주문번호(FTS-)가 아닌 단품 주문 ${storeLegacy}건 — 주문 목록에서 확인해 주세요` }] : []),
+    ],
   })
 
   const alwaysItems: TodoItem[] = []
@@ -483,11 +555,14 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     title: '카드 재등록 대기',
     count: renewalRes.error ? null : renewalRows.length,
     unit: '건',
-    summary: renewalRows.length > 0 ? '카드가 거절돼 결제가 멈춘 구독 — 고객이 카드를 바꾸면 자동으로 다시 결제돼요' : '없어요',
+    summary: renewalRows.length > 0 ? '결제 실패로 멈춘 구독 — 고객이 카드를 새로 등록하면 자동으로 다시 결제돼요. 먼저 연락해 주세요' : '없어요',
     tone: renewalRes.error ? 'bad' : renewalRows.length > 0 ? 'warn' : 'ok',
     href: '/admin/subscriptions',
     hrefLabel: '구독 보러 가기',
-    lines: renewalRows.map((r) => ({ text: who(r.dog_id, r.user_id), href: `/admin/users/${r.user_id}` })),
+    lines: renewalRows.map((r) => ({
+      text: `${who(r.dog_id, r.user_id)} — ${r.requires_billing_key_renewal ? '카드 거절(재등록 필요)' : `결제 ${r.failed_charge_count ?? 0}번 실패로 멈춤`}`,
+      href: `/admin/users/${r.user_id}`,
+    })),
     error: renewalRes.error?.message,
   })
   alwaysItems.push({
@@ -501,6 +576,27 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     hrefLabel: '문의함으로 가기',
     lines: csUsers.map((u) => ({ text: userName.get(u) ?? '보호자님', href: `/admin/users/${u}` })),
     error: csRes.error?.message,
+  })
+  alwaysItems.push({
+    key: 'follow-up',
+    title: '다시 볼 문의(카톡·전화 메모)',
+    count: followUpRes.error ? null : followUps.length,
+    unit: '건',
+    summary: followUpRes.error
+      ? '문의 메모를 못 읽었어요'
+      : followUps.length === 0
+        ? '없어요'
+        : followUpsLate > 0
+          ? `다시 볼 날이 지난 문의 ${followUpsLate}건 — 손님이 기다려요`
+          : '오늘 다시 보기로 한 문의예요',
+    tone: followUpRes.error || followUpsLate > 0 ? 'bad' : followUps.length > 0 ? 'warn' : 'ok',
+    href: followUps[0] ? `/admin/users/${followUps[0].user_id}#notes` : '/admin/users',
+    hrefLabel: followUps[0] ? '고객 화면에서 처리하기' : '회원 목록',
+    lines: followUps.map((f) => ({
+      text: `${userName.get(f.user_id) ?? '보호자님'} — "${shortCheckinMemo(f.body, 30)}" · 다시 볼 날 ${mdLabel(f.follow_up_on)}${f.follow_up_on < today ? '(지남)' : ''}`,
+      href: `/admin/users/${f.user_id}#notes`,
+    })),
+    error: followUpRes.error?.message,
   })
   alwaysItems.push({
     key: 'first-checkin',
@@ -614,9 +710,11 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
       csUnansweredUsers: csUsers.length,
       firstCheckinFlagged: checkinRes.error ? null : checkins.length,
       firstCheckinPoor: checkinPoor,
+      followUpDue: followUpRes.error ? null : followUps.length,
       openAlerts: openAlerts ?? 0,
       consentImminent: imminent.length,
       storeOutgoing,
+      storeOverdue: ordersCountable ? store.overdue.length : 0,
       trialTransitions: transitions,
       trialConsentUrgent: consentUrgent.length,
       trialConsentKnown: consentRows !== null,
@@ -644,6 +742,9 @@ export function briefingExtraLines(todo: WeeklyTodo): string[] {
     )
   }
   // 첫 박스 체크인(규칙270) — 이름·메모는 넣지 않는다(잠금 화면). 못 읽었으면 그것도.
+  // 다시 볼 문의(규칙271) — 이름·내용 없이 수만.
+  if (n.followUpDue === null) out.push('📝 다시 볼 문의 메모를 못 읽었어요')
+  else if (n.followUpDue > 0) out.push(`📝 다시 볼 문의 ${n.followUpDue}건`)
   if (n.firstCheckinFlagged === null) out.push('🍽 첫 박스 체크인 답을 못 읽었어요')
   else if (n.firstCheckinPoor > 0) out.push(`🍽 첫 박스 '잘 안 먹어요' ${n.firstCheckinPoor}건 — 조리 전에 먼저 연락`)
   else if (n.firstCheckinFlagged > 0) out.push(`🍽 첫 박스 체크인 메모 ${n.firstCheckinFlagged}건`)
@@ -654,6 +755,8 @@ export function briefingExtraLines(todo: WeeklyTodo): string[] {
   if (!n.trialConsentKnown) out.push('✍️ 서포터즈 인상 동의 기록을 못 읽었어요')
   else if (n.trialConsentUrgent > 0) out.push(`✍️ 서포터즈 인상 동의 없음 ${n.trialConsentUrgent}명 — 없으면 그 회차 결제가 보류돼요`)
   // 웹 가게는 화·목 출고(lib/store/shipping STORE_SHIP_WEEKDAYS).
+  // 출고일 지난 가게 주문은 요일과 무관하게 매일(규칙273) — 돈을 낸 손님이 기다린다.
+  if (n.storeOverdue > 0) out.push(`🚚 웹 가게 출고일 지난 주문 ${n.storeOverdue}건`)
   if (STORE_SHIP_WEEKDAYS.includes(weekdayOf(todo.today)) && n.storeOutgoing > 0) out.push(`🛒 웹 가게 출고 ${n.storeOutgoing}건`)
   return out
 }
