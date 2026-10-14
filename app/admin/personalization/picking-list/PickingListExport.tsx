@@ -80,7 +80,18 @@ export type PickingRow = {
   cannotCharge: boolean
   charged: boolean
   overdue: boolean
-  totalAmount: number
+  /**
+   * ★가격 인상 회차(100원→반값·반값→정가 첫 회)인데 동의 기록이 없고 결제 전이다 — 청구 크론이 보류한다
+   * (2026-10-14 A1, lib/admin/ship-block price_consent_missing). 발송 금지.
+   */
+  priceConsentMissing: boolean
+  /**
+   * ★이 박스의 금액(2026-10-14 A2). 결제된 박스 = 그 주문의 실제 결제액(orders.total_amount), 결제 전 = 실제 나갈
+   * 예정 금액(청구와 같은 함수 — lib/payments/charge-projection). 청구되지 않을 박스(카드 없음·일시정지)는 null.
+   * 예전엔 할인 전 구독가(subscriptions.total_amount)를 '청구액'이라 보여 서포터즈 100원 박스가 51,500원으로 보였다.
+   */
+  amount: number | null
+  amountKind: 'paid' | 'expected' | 'none'
   /** 이번 출고분 미발송 주문 — 포장 중 송장 입력으로 바로 가는 링크용. */
   order: { id: string; orderNumber: string } | null
   packs: Array<{ name: string; packG: number; count: number; totalG: number }>
@@ -127,7 +138,9 @@ export default function PickingListExport({
       '상태',
       '팩 구성',
       '박스 총량(g)',
-      '청구액(원)',
+      // 결제된 박스는 결제액, 결제 전 박스는 결제 예정액(2026-10-14 A2) — 둘을 한 칸에 섞지 않는다.
+      '결제액(원)',
+      '결제 예정액(원)',
     ]
     const csvRows = rows.map((r) => ({
       강아지: r.dogName,
@@ -169,7 +182,8 @@ export default function PickingListExport({
         .map((p) => `${p.name} ${p.packG}g×${p.count}`)
         .join(' / '),
       '박스 총량(g)': String(r.boxTotalG),
-      '청구액(원)': String(r.totalAmount),
+      '결제액(원)': r.amountKind === 'paid' && r.amount != null ? String(r.amount) : '',
+      '결제 예정액(원)': r.amountKind === 'expected' && r.amount != null ? String(r.amount) : '',
     }))
     const csv = toCsvWithBom(csvRows, columns)
 

@@ -20,7 +20,9 @@ import { chargeRunPassed, isShippable } from '@/lib/admin/ship-block'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { pickShippingTarget, type ShippingTarget } from '@/lib/commerce/shipping-target'
-import { weekdayOf, weekdayKo, SHIP_WEEKDAY, chargeTimingFor, chargeDateFor, type ChargeTiming } from '@/lib/shipping-schedule'
+import { weekdayOf, weekdayKo, SHIP_WEEKDAY, chargeTimingFor, chargeDateFor, nextChargeRunDate, type ChargeTiming } from '@/lib/shipping-schedule'
+import { loadChargeProjection } from '@/lib/payments/charge-projection-load'
+import type { ProjectedRound } from '@/lib/payments/charge-projection'
 import {
   AdminHeader,
   AdminCard,
@@ -240,7 +242,7 @@ export default async function PickingListPage({
    */
   const shippedBySubId = new Map<
     string,
-    { id: string; orderNumber: string; trackingNumber: string | null }
+    { id: string; orderNumber: string; trackingNumber: string | null; paidAmount: number }
   >()
   if (subIds.length > 0) {
     const shippedSince = `${addDaysKst(shipDate, -6)}T00:00:00+09:00`
@@ -248,7 +250,7 @@ export default async function PickingListPage({
     const { data: shippedRows, error: shippedErr } = await selectInChunks(subIds, (chunk) =>
       supabase
         .from('orders')
-        .select('id, order_number, subscription_id, tracking_number, shipped_at')
+        .select('id, order_number, subscription_id, tracking_number, shipped_at, total_amount')
         .in('subscription_id', chunk)
         .in('payment_status', PAID_STATUSES)
         .in('order_status', ['shipping', 'delivered'])
@@ -265,26 +267,28 @@ export default async function PickingListPage({
       order_number: string
       subscription_id: string | null
       tracking_number: string | null
+      total_amount: number
     }>) {
       if (o.subscription_id && !shippedBySubId.has(o.subscription_id)) {
         shippedBySubId.set(o.subscription_id, {
           id: o.id,
           orderNumber: o.order_number,
           trackingNumber: o.tracking_number,
+          paidAmount: o.total_amount,
         })
       }
     }
   }
   const orderBySubId = new Map<
     string,
-    { id: string; orderNumber: string; shipTo: ShippingTarget | null }
+    { id: string; orderNumber: string; shipTo: ShippingTarget | null; paidAmount: number }
   >()
   if (subIds.length > 0) {
     const { data: orderRows, error: ordersErr } = await selectInChunks(subIds, (chunk) =>
       supabase
         .from('orders')
         .select(
-          'id, order_number, subscription_id, created_at, recipient_name, recipient_phone, zip, address, address_detail',
+          'id, order_number, subscription_id, created_at, recipient_name, recipient_phone, zip, address, address_detail, total_amount',
         )
         .in('subscription_id', chunk)
         .in('payment_status', PAID_STATUSES)
@@ -305,11 +309,14 @@ export default async function PickingListPage({
       zip: string | null
       address: string | null
       address_detail: string | null
+      total_amount: number
     }>) {
       if (o.subscription_id && !orderBySubId.has(o.subscription_id)) {
         orderBySubId.set(o.subscription_id, {
           id: o.id,
           orderNumber: o.order_number,
+          // 이 박스의 실제 결제액(2026-10-14 A2) — 금액 칸은 구독가가 아니라 이 값.
+          paidAmount: o.total_amount,
           // 결제된 주문의 주소 = 청구 크론이 그 시점에 정해 적은 **배송지 확정값**.
           shipTo: pickShippingTarget([
             {
@@ -446,6 +453,45 @@ export default async function PickingListPage({
     }
   }
   const timingOf = (userId: string): ChargeTiming => timingByUser.get(userId) ?? chargeTimingFor(null)
+
+  /**
+   * ★결제 전 박스의 '결제 예정액'과 가격 인상 동의 보류(2026-10-14 A1·A2).
+   *   금액 칸이 subscriptions.total_amount(할인 전 구독가)라 서포터즈 100원 박스가 51,500원으로 보였다. 결제 전 박스는
+   *   청구와 같은 함수(lib/payments/charge-projection → trialPricing·resolveAutoDiscount)로 실제 나갈 금액을 낸다.
+   *   같은 펼치기가 '인상 회차인데 동의 기록 없음'(held)도 낸다 — 청구 크론이 보류할 박스라 발송 금지(ship-block).
+   *   서포터즈는 발송일 아침에 결제되므로 주말 조리 때 미리 보여야 재료를 사지 않는다.
+   *   못 읽으면 목록을 멈춘다(위 서포터즈 상태 조회와 같은 판단) — 보류될 박스가 '청구 예정'으로 조리된다.
+   */
+  const nextRoundBySub = new Map<string, ProjectedRound>()
+  {
+    const chargeable = subs.filter(
+      (s) =>
+        s.status === 'active' &&
+        s.has_billing_key &&
+        s.requires_billing_key_renewal !== true &&
+        s.next_delivery_date != null,
+    )
+    if (chargeable.length > 0) {
+      const fromIso = nextChargeRunDate()
+      const until = [addDaysKst(shipDate, 28), addDaysKst(fromIso, 28)].sort().at(-1)!
+      const proj = await loadChargeProjection(
+        createAdminClient(),
+        chargeable.map((s) => ({
+          id: s.id,
+          user_id: s.user_id,
+          next_delivery_date: s.next_delivery_date,
+          total_amount: s.total_amount,
+        })),
+        { fromIso, untilChargeIso: until, stopAtHold: true },
+      )
+      if (!proj.ok) {
+        throw new Error(`결제 예정액·가격 인상 동의 조회 실패 — 목록을 신뢰할 수 없어요: ${proj.error}`)
+      }
+      for (const rs of proj.roundsByUser.values()) {
+        for (const r of rs) if (!nextRoundBySub.has(r.subId)) nextRoundBySub.set(r.subId, r)
+      }
+    }
+  }
 
   // 2) 강아지 이름 + 최신 승인 처방 + 제품(정본 계산용) 병렬 로드.
   const allSlugs = [
@@ -645,6 +691,12 @@ export default async function PickingListPage({
     const shipped = shippedBySubId.get(sub.id) ?? null
     // 결제 증거 = 발송 대기 주문 **또는** 이번 회차에 이미 보낸 주문.
     const hasPaidOrder = orderBySubId.has(sub.id) || shipped !== null
+    // 금액 칸 — 결제된 박스의 결제액 / 결제 전 박스의 다음 결제(위 nextRoundBySub).
+    const paidAmount = orderBySubId.get(sub.id)?.paidAmount ?? shipped?.paidAmount ?? null
+    //   이번 발송분(발송일 ≤ 이 목록의 발송일)의 회차만 — 고객이 미룬 박스(다음 날짜 = +14일)의 다음 회차 금액·보류를
+    //   이번 박스에 붙이지 않는다(그 박스는 위 '고객 미룸' 사유로 이미 막힌다).
+    const upcomingRound = nextRoundBySub.get(sub.id) ?? null
+    const nextRound = hasPaidOrder || !upcomingRound || upcomingRound.shipIso > shipDate ? null : upcomingRound
     return {
       subId: sub.id,
       dogName,
@@ -726,7 +778,12 @@ export default async function PickingListPage({
       // 이 발송분의 결제 시점 — 배지 문구('토요일 아침 청구 예정' / '발송일 아침 청구 예정').
       chargeTiming: timingOf(sub.user_id),
       failedCode: sub.last_failed_charge_code,
-      totalAmount: sub.total_amount,
+      // ★가격 인상 회차인데 동의 기록이 없다 — 청구 크론이 보류한다(2026-10-14 A1). 결제된 박스엔 해당 없음.
+      priceConsentMissing: !hasPaidOrder && (nextRound?.held ?? false),
+      // ★금액 칸(2026-10-14 A2) — 결제된 박스 = 그 주문의 실제 결제액, 결제 전 = 실제 나갈 예정 금액(청구와 같은 함수).
+      //   청구되지 않을 박스(카드 없음·일시정지)는 null. 예전엔 할인 전 구독가(total_amount)를 '청구액'이라 불렀다.
+      amount: paidAmount ?? nextRound?.chargeAmount ?? null,
+      amountKind: paidAmount != null ? 'paid' : nextRound ? 'expected' : 'none',
       order: orderBySubId.get(sub.id) ?? (shipped ? { id: shipped.id, orderNumber: shipped.orderNumber, shipTo: null } : null),
       packs,
       missing,
@@ -760,7 +817,12 @@ export default async function PickingListPage({
     0,
   )
   const totalGrams = shippable.reduce((s, r) => s + r.boxTotalG, 0)
-  const totalAmountSum = rows.reduce((s, r) => s + r.totalAmount, 0)
+  // 합계는 실제 금액 — 결제된 박스의 결제액 + 결제 전 박스의 결제 예정액(보류될 박스는 나가지 않는 돈이라 뺀다).
+  const paidAmountSum = rows.reduce((s, r) => s + (r.amountKind === 'paid' ? (r.amount ?? 0) : 0), 0)
+  const expectedAmountSum = rows.reduce(
+    (s, r) => s + (r.amountKind === 'expected' && !r.priceConsentMissing ? (r.amount ?? 0) : 0),
+    0,
+  )
   // ★ 청구 불가도 '확인 필요' 다 — 예전엔 noFormula/overdue 만 세어서,
   //   결제되지 않을 박스가 아무 표시 없이 포장 대상에 섞였다(2026-07-31).
   // ★freshUnknown 도 문제다 (2026-08-08 diff 재검증). 행 단위는 빨간 경고를
@@ -776,6 +838,7 @@ export default async function PickingListPage({
       r.chargeFailedToday ||
       r.pausedBeforeCharge ||
       r.skippedNotCharged ||
+      r.priceConsentMissing ||
       r.overdueNotCharged ||
       r.notChargedAfterRun ||
       r.pausedAfterCharge ||
@@ -963,6 +1026,9 @@ export default async function PickingListPage({
                   <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
                 ) : r.skippedNotCharged ? (
                   <Badge tone="red">고객이 미룸 — 미청구, 보내지 마세요</Badge>
+                ) : r.priceConsentMissing ? (
+                  // 가격 인상 회차인데 동의 기록이 없다 — 청구 크론이 보류한다(2026-10-14 A1, ship-block 과 같은 순서).
+                  <Badge tone="red">인상 동의 없음 — 청구 보류, 보내지 마세요</Badge>
                 ) : r.overdueNotCharged ? (
                   <Badge tone="red">청구 지연 — 결제 전, 보내지 마세요</Badge>
                 ) : r.notChargedAfterRun ? (
@@ -1001,6 +1067,17 @@ export default async function PickingListPage({
                   이번 회차는 <strong>청구되지 않았습니다</strong> — 조리·발송하지
                   마세요. (일시정지는 배송일을 지우지 않아서 목록에 남습니다.
                   고객이 다시 시작하면 그때 정상 청구돼요.)
+                </p>
+              )}
+
+              {r.priceConsentMissing && (
+                <p className="mt-3 text-[12.5px] font-semibold text-red-600">
+                  ⛔ 이번 박스는 <strong>가격이 오르는 회차</strong>인데 고객 동의 기록이 없어요. 청구 크론이
+                  결제하지 않고 보류해요 — 조리·발송하지 마세요. 동의를 받아{' '}
+                  <Link href="/admin/trials" className="underline underline-offset-2">
+                    체험단 화면
+                  </Link>
+                  에 기록하면 다음 아침 결제돼요.
                 </p>
               )}
 
@@ -1130,7 +1207,11 @@ export default async function PickingListPage({
                   </Link>
                 )}
                 <span className="ml-auto font-bold text-foreground">
-                  {r.totalAmount.toLocaleString()}원
+                  {r.amountKind === 'paid'
+                    ? `결제액 ${(r.amount ?? 0).toLocaleString()}원`
+                    : r.amountKind === 'expected'
+                      ? `결제 예정액 ${(r.amount ?? 0).toLocaleString()}원${r.priceConsentMissing ? ' (보류 — 인상 동의 없음)' : ''}`
+                      : '결제 예정 없음'}
                 </span>
               </div>
             </AdminCard>
@@ -1141,10 +1222,11 @@ export default async function PickingListPage({
       {/* 합계 푸터 */}
       {rows.length > 0 && (
         <p className="mt-4 text-right text-[12px] text-muted-foreground">
-          청구 합계{' '}
+          결제 합계{' '}
           <strong className="text-foreground">
-            {totalAmountSum.toLocaleString()}원
+            {(paidAmountSum + expectedAmountSum).toLocaleString()}원
           </strong>{' '}
+          (결제액 {paidAmountSum.toLocaleString()}원 + 결제 예정액 {expectedAmountSum.toLocaleString()}원){' '}
           · {rows.length}박스 · {totalPacks}팩 ·{' '}
           {(totalGrams / 1000).toFixed(1)}kg
         </p>

@@ -202,6 +202,8 @@ function pickSummary(json: Record<string, unknown>): Record<string, unknown> {
     'ambiguousHeld',
     'ambiguousReleased',
     'ambiguousUnknown',
+    // ★가격 인상 동의가 없어 보류한 회차 수(청구 크론, 2026-10-14 A1) — 숫자만. 실패 카운터(FAILURE_KEYS)가 아니다.
+    'priceConsentHeld',
     // ★배송조회 키 자가 점검 결과(tracking-poll, 2026-10-09) — 'ok'·'upstream_error'·'no_sample' 등 글자 하나.
     //   빠져 있으면 키가 통했는지·아예 안 읽혔는지가 cron_health 에서 구분되지 않는다(실제로 그랬다).
     'keyCheck',

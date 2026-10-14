@@ -87,8 +87,14 @@ export async function resolveAutoDiscount(input: {
    * 보수적으로(1회성 제외·서포터즈 회차 당김) 계산한다. subscriptionId 보다 우선.
    */
   aheadCount?: number
+  /**
+   * 미리보기 전용 — 서포터즈 회차를 **다 쓴 뒤의 첫 정상 결제** 금액(2026-10-14 A1 체험단 일정표·다가오는 결제).
+   * 체험 가격만 빼고 나머지(등급·이벤트·이웃 할인)는 청구와 같은 규칙으로 계산한다 — 프로모션은 체험 중 남겨 두었다가
+   * 첫 정상 결제에 쓰이므로(위 '체험단이면 그것만 쓴다') recurringOnly 로는 그 금액을 못 낸다. **청구엔 넘기지 않는다.**
+   */
+  afterTrial?: boolean
 }): Promise<AutoDiscount> {
-  const { userId, subtotal, recurringOnly = false, subscriptionId, aheadCount } = input
+  const { userId, subtotal, recurringOnly = false, subscriptionId, aheadCount, afterTrial = false } = input
   const fullCharge: AutoDiscount = {
     reason: 'none',
     discountAmount: 0,
@@ -111,7 +117,7 @@ export async function resolveAutoDiscount(input: {
 
   // 체험단이면 그것만 쓴다 — 등급·프로모션과 절대 겹치지 않고, 프로모션 claim 은
   // 남겨 둔다(체험 뒤 첫 정상 결제에 쓸 수 있게). docs/TRIAL_PROGRAM_2026_10.md v2.
-  const trial = recurringOnly
+  const trial = recurringOnly || afterTrial
     ? null
     : trialPricing(advanceTrialState(await getTrialState(userId), ahead), subtotal)
   if (trial) {

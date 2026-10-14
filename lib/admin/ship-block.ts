@@ -59,6 +59,13 @@ export type ShipBlockInput = {
    * 타입은 alreadyShipped 처럼 넓게 둔다(배열이 아니면 '없음').
    */
   held?: unknown
+  /**
+   * ★가격이 오르는 회차(100원→반값·반값→정가 첫 회)인데 그 인상의 고객 동의 기록이 없고 아직 결제 전이다
+   * (2026-10-14 A1). 청구 크론이 이 회차를 청구하지 않고 보류한다(lib/payments/price-rise priceRiseGate) — 서포터즈는
+   * 발송일(화) 아침에 결제되므로 주말 조리 때는 아직 '청구 예정'으로 보였다. 미리 막아 재료를 사지 않게 한다.
+   * 판정은 호출부가 같은 함수(projectUserRounds 의 held)로 낸다. truthy 면 발송 금지.
+   */
+  priceConsentMissing?: unknown
 }
 
 export type ShipBlockReason =
@@ -66,6 +73,7 @@ export type ShipBlockReason =
   | 'charge_failed_today'
   | 'paused_before_charge'
   | 'skipped_not_charged'
+  | 'price_consent_missing'
   | 'overdue_not_charged'
   | 'not_charged_after_run'
   | 'allergy_check_needed'
@@ -85,6 +93,8 @@ export function shipBlockReason(input: ShipBlockInput): ShipBlockReason {
   if (input.chargeFailedToday) return 'charge_failed_today'
   if (input.pausedBeforeCharge) return 'paused_before_charge'
   if (input.skippedNotCharged) return 'skipped_not_charged'
+  // 인상 동의 없음 = 청구 크론이 보류한다 — 아래 '청구 지연'·'청구 시각 지남'보다 정확한 이유라 먼저 말한다.
+  if (input.priceConsentMissing) return 'price_consent_missing'
   if (input.overdueNotCharged) return 'overdue_not_charged'
   if (input.notChargedAfterRun) return 'not_charged_after_run'
   if (hasAllergyHold(input)) return 'allergy_check_needed'
@@ -110,6 +120,7 @@ export const SHIP_BLOCK_LABEL: Record<
   charge_failed_today: '청구실패(발송금지)',
   paused_before_charge: '미결제-고객정지(발송금지)',
   skipped_not_charged: '고객미룸-미청구(발송금지)',
+  price_consent_missing: '인상동의없음-청구보류(발송금지)',
   overdue_not_charged: '청구지연-미결제(발송금지)',
   not_charged_after_run: '청구시각지남-미청구(발송금지)',
   allergy_check_needed: '알레르기확인필요(발송금지)',

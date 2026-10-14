@@ -2903,6 +2903,104 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_price_consents: {
+        Row: {
+          channel: string
+          consented_on: string
+          created_at: string
+          id: string
+          memo: string
+          recorded_by: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          rise: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          consented_on: string
+          created_at?: string
+          id?: string
+          memo?: string
+          recorded_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          rise: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          consented_on?: string
+          created_at?: string
+          id?: string
+          memo?: string
+          recorded_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          rise?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_charge_holds: {
+        Row: {
+          charge_amount: number | null
+          charge_date: string
+          first_held_at: string
+          id: string
+          last_held_at: string
+          list_amount: number | null
+          reason: string
+          resolved_at: string | null
+          resolved_reason: string | null
+          rise: string | null
+          ship_date: string
+          subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          charge_amount?: number | null
+          charge_date: string
+          first_held_at?: string
+          id?: string
+          last_held_at?: string
+          list_amount?: number | null
+          reason: string
+          resolved_at?: string | null
+          resolved_reason?: string | null
+          rise?: string | null
+          ship_date: string
+          subscription_id: string
+          user_id: string
+        }
+        Update: {
+          charge_amount?: number | null
+          charge_date?: string
+          first_held_at?: string
+          id?: string
+          last_held_at?: string
+          list_amount?: number | null
+          reason?: string
+          resolved_at?: string | null
+          resolved_reason?: string | null
+          rise?: string | null
+          ship_date?: string
+          subscription_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_charge_holds_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_banners: {
         Row: {
           accent: string

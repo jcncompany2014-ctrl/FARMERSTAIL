@@ -1,11 +1,20 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
-import { AlertTriangle, CheckCircle2, Clock, X } from 'lucide-react'
-import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
+import { selectInChunks } from '@/lib/supabase/in-chunks'
+import { chargeProblemReason, isProblemCharge } from '@/lib/admin/charge-rows'
 import { AdminTabs, StatCard, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
+import {
+  ChargeRowsView,
+  OpenHoldsView,
+  type ChargeDetail,
+  type ChargeListRow,
+  type ChargeRow,
+  type OpenHold,
+} from './ChargeRowsView'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,48 +22,25 @@ export const dynamic = 'force-dynamic'
  * /admin/subscriptions/charges
  *
  * 정기배송 자동결제 시도 이력 모니터링. cron (subscription-charge) 가
- * 매일 새벽에 시도하는 결과를 한눈에 본다.
+ * 매일 아침(KST 09:10) 시도하는 결과를 한눈에 본다.
  *
  * # 핵심 요약 카드 (상단)
  *   - 오늘 시도 / 성공 / 실패 / 일시중단
  *   - 최근 30일 성공률
  *   - 누적 매출 (success 만)
  *
- * # 실패 큐 (가장 중요)
- *   - status='failed' 행을 최신순으로. 운영자가 사용자에게 카드 갱신
- *     안내 / 직접 컨택 등 follow-up 가능.
- *   - 같은 subscription 이 3회 누적 실패하면 자동 paused — 그 행은
- *     warning 톤으로 강조.
+ * # 문제 행 (가장 중요) — 2026-10-14 A2
+ *   - 실패·보류(건너뜀)·결과 불명(pending) 행에 고객 이름·강아지 이름·카드 끝 4자리·쉬운 말 사유
+ *     (lib/admin/charge-rows — 토스 코드는 고객 화면과 같은 describeBillingError)·다음 재시도 시각·'고객 보기'를 붙인다.
+ *   - '실패만 보기'·'확인 필요'(실패+보류+결과 불명) 필터. 폰에선 카드 목록(표는 가로로 넘친다).
+ *   - 가격 인상 동의가 없어 청구 크론이 보류한 회차(subscription_charge_holds)를 맨 위에 빨간 상자로.
  *
  * # 전체 이력
  *   - status 필터 + 페이지네이션 (간단 form). 운영 초기엔 쿼리 스트링
  *     기반 페이징, 트래픽 늘면 cursor 로 전환.
  */
 
-type ChargeRow = {
-  id: string
-  subscription_id: string
-  user_id: string
-  scheduled_for: string
-  status: 'pending' | 'succeeded' | 'failed' | 'skipped'
-  payment_key: string | null
-  order_id: string | null
-  amount: number
-  error_code: string | null
-  error_message: string | null
-  attempted_at: string
-  completed_at: string | null
-}
-
-const STATUS_CONFIG: Record<
-  ChargeRow['status'],
-  { label: string; color: string; icon: typeof CheckCircle2 }
-> = {
-  pending: { label: '진행', color: '#d97706', icon: Clock },
-  succeeded: { label: '성공', color: '#059669', icon: CheckCircle2 },
-  failed: { label: '실패', color: 'var(--adm-destructive)', icon: AlertTriangle },
-  skipped: { label: '건너뜀', color: '#78716c', icon: X },
-}
+type StatusFilter = ChargeRow['status'] | 'problem'
 
 function todayKstIsoDate(): string {
   const now = new Date()
@@ -73,7 +59,9 @@ export default async function SubscriptionChargesPage({
   if (!(await isAdmin(supabase, user))) redirect('/')
 
   const sp = await searchParams
-  const status = sp.status as ChargeRow['status'] | undefined
+  const status: StatusFilter | undefined = (['pending', 'succeeded', 'failed', 'skipped', 'problem'] as const).find(
+    (s) => s === sp.status,
+  )
   const pageNum = Math.max(1, Number(sp.page ?? '1') || 1)
   const PAGE_SIZE = 50
 
@@ -87,6 +75,13 @@ export default async function SubscriptionChargesPage({
   const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString()
   const today = todayKstIsoDate()
 
+  const listQuery = () => {
+    const base = supabase.from('subscription_charges').select('*')
+    if (status === 'problem') return base.in('status', ['failed', 'pending', 'skipped'])
+    if (status) return base.eq('status', status)
+    return base
+  }
+
   const [todayRes, last30dRes, listRes] = await Promise.all([
     // 오늘 시도들
     supabase
@@ -99,13 +94,7 @@ export default async function SubscriptionChargesPage({
       .select('status, amount')
       .gte('attempted_at', thirtyDaysAgo),
     // 리스트 — 필터 적용
-    (status
-      ? supabase
-          .from('subscription_charges')
-          .select('*')
-          .eq('status', status)
-      : supabase.from('subscription_charges').select('*')
-    )
+    listQuery()
       .order('attempted_at', { ascending: false })
       .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1),
   ])
@@ -117,6 +106,99 @@ export default async function SubscriptionChargesPage({
   // 규칙1 — 집계·리스트 조회 실패를 "0건/결과 없음"으로 위장하지 않는다.
   const statsLoadFailed = Boolean(todayRes.error || last30dRes.error)
   const listLoadFailed = Boolean(listRes.error)
+
+  /**
+   * 문제 행 설명 붙이기 — 고객·강아지·카드 끝 4자리·다음 재시도. 다른 고객의 프로필·강아지를 읽으므로
+   * 관리자 확인(위) 뒤 service_role 로 읽고, 범위는 이 페이지의 행으로 코드가 묶는다.
+   * 실패하면 행은 그대로 보이고 '고객 정보를 불러오지 못했어요'로 표시한다(없는 것처럼 보이지 않게).
+   */
+  const admin = createAdminClient()
+  const problemRows = list.filter((r) => isProblemCharge(r.status))
+  const detailBySub = new Map<string, Omit<ChargeDetail, 'reason'>>()
+  let enrichError: string | null = null
+  const subIds = [...new Set(problemRows.map((r) => r.subscription_id))]
+  if (subIds.length > 0) {
+    const subsRes = await selectInChunks(subIds, (chunk) =>
+      admin
+        .from('subscriptions')
+        .select('id, user_id, dog_id, status, billing_card_last4, next_retry_at')
+        .in('id', chunk),
+    )
+    if (subsRes.error) {
+      enrichError = subsRes.error.message
+    } else {
+      const subs = subsRes.data
+      const userIds = [...new Set(subs.map((s) => s.user_id))]
+      const dogIds = [...new Set(subs.map((s) => s.dog_id).filter((x): x is string => !!x))]
+      const [profRes, dogRes] = await Promise.all([
+        selectInChunks(userIds, (chunk) => admin.from('profiles').select('id, name').in('id', chunk)),
+        selectInChunks(dogIds, (chunk) => admin.from('dogs').select('id, name').in('id', chunk)),
+      ])
+      if (profRes.error || dogRes.error) enrichError = (profRes.error ?? dogRes.error)!.message
+      const nameByUser = new Map((profRes.data ?? []).map((p) => [p.id, p.name as string | null]))
+      const nameByDog = new Map((dogRes.data ?? []).map((d) => [d.id, d.name as string | null]))
+      for (const s of subs) {
+        detailBySub.set(s.id, {
+          customerName: nameByUser.get(s.user_id) ?? null,
+          dogName: s.dog_id ? (nameByDog.get(s.dog_id) ?? null) : null,
+          cardLast4: s.billing_card_last4 ?? null,
+          nextRetryAt: s.next_retry_at ?? null,
+          subStatus: s.status ?? null,
+        })
+      }
+    }
+  }
+  const rows: ChargeListRow[] = list.map((r) => {
+    if (!isProblemCharge(r.status)) return { ...r, detail: null }
+    const d = detailBySub.get(r.subscription_id)
+    // 조회가 실패해 모르는 것과 구독이 지워져 없는 것을 가른다 — 실패면 '불러오지 못했어요'(detail null).
+    if (!d && enrichError) return { ...r, detail: null }
+    const empty = { customerName: null, dogName: null, cardLast4: null, nextRetryAt: null, subStatus: null }
+    return { ...r, detail: { ...empty, ...d, reason: chargeProblemReason(r) } }
+  })
+
+  // 가격 인상 동의가 없어 보류된 회차(열린 것) — 20261014200100.
+  const holdsRes = await admin
+    .from('subscription_charge_holds')
+    .select('id, subscription_id, user_id, ship_date, charge_date, rise, charge_amount, list_amount, first_held_at')
+    .is('resolved_at', null)
+    .order('first_held_at', { ascending: false })
+    .limit(100)
+  let holds: OpenHold[] = []
+  let holdsFailed = Boolean(holdsRes.error)
+  if (!holdsRes.error && (holdsRes.data ?? []).length > 0) {
+    const hs = holdsRes.data ?? []
+    const [hSubs, hProf] = await Promise.all([
+      selectInChunks([...new Set(hs.map((h) => h.subscription_id))], (chunk) =>
+        admin.from('subscriptions').select('id, dog_id').in('id', chunk),
+      ),
+      selectInChunks([...new Set(hs.map((h) => h.user_id))], (chunk) =>
+        admin.from('profiles').select('id, name').in('id', chunk),
+      ),
+    ])
+    const dogIds = [...new Set((hSubs.data ?? []).map((s) => s.dog_id).filter((x): x is string => !!x))]
+    const hDogs = await selectInChunks(dogIds, (chunk) => admin.from('dogs').select('id, name').in('id', chunk))
+    if (hSubs.error || hProf.error || hDogs.error) holdsFailed = true
+    const dogBySub = new Map((hSubs.data ?? []).map((s) => [s.id, s.dog_id as string | null]))
+    const dogName = new Map((hDogs.data ?? []).map((d) => [d.id, d.name as string | null]))
+    const userName = new Map((hProf.data ?? []).map((p) => [p.id, p.name as string | null]))
+    holds = hs.map((h) => {
+      const dogId = dogBySub.get(h.subscription_id) ?? null
+      return {
+        id: h.id,
+        subscriptionId: h.subscription_id,
+        userId: h.user_id,
+        shipDate: h.ship_date,
+        chargeDate: h.charge_date,
+        rise: h.rise,
+        chargeAmount: h.charge_amount,
+        listAmount: h.list_amount,
+        firstHeldAt: h.first_held_at,
+        customerName: userName.get(h.user_id) ?? null,
+        dogName: dogId ? (dogName.get(dogId) ?? null) : null,
+      }
+    })
+  }
 
   const todayCounts = {
     total: todayRows.length,
@@ -135,7 +217,7 @@ export default async function SubscriptionChargesPage({
         100
   const last30dRevenue = last30dSuccess.reduce((s, r) => s + r.amount, 0)
 
-  const filterLink = (s: ChargeRow['status'] | undefined): string => {
+  const filterLink = (s: StatusFilter | undefined): string => {
     const params = new URLSearchParams()
     if (s) params.set('status', s)
     const qs = params.toString()
@@ -155,7 +237,11 @@ export default async function SubscriptionChargesPage({
         <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>정기배송 카드 자동결제가 언제 성공·실패했는지</Hl> 보는 곳이에요.
           실패한 결제는 <Em>자동으로 재시도</Em>되고, 계속 실패하면 대시보드
-          처리 대기에 떠요.
+          처리 대기에 떠요. 앞으로 나갈 결제는{' '}
+          <Link href="/admin/subscriptions/calendar" className="font-bold text-primary underline underline-offset-2">
+            배송 캘린더의 &lsquo;다가오는 결제&rsquo;
+          </Link>
+          에서 봐요.
         </p>
       </div>
 
@@ -167,6 +253,10 @@ export default async function SubscriptionChargesPage({
           />
         </div>
       )}
+
+      <div className="mb-4">
+        <OpenHoldsView holds={holds} loadFailed={holdsFailed} />
+      </div>
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -202,111 +292,23 @@ export default async function SubscriptionChargesPage({
       {/* 필터 칩 */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto">
         <FilterChip href={filterLink(undefined)} active={!status} label="전체" />
-        <FilterChip
-          href={filterLink('failed')}
-          active={status === 'failed'}
-          label="실패"
-        />
-        <FilterChip
-          href={filterLink('pending')}
-          active={status === 'pending'}
-          label="진행"
-        />
-        <FilterChip
-          href={filterLink('succeeded')}
-          active={status === 'succeeded'}
-          label="성공"
-        />
-        <FilterChip
-          href={filterLink('skipped')}
-          active={status === 'skipped'}
-          label="건너뜀"
-        />
+        <FilterChip href={filterLink('failed')} active={status === 'failed'} label="실패만 보기" />
+        <FilterChip href={filterLink('problem')} active={status === 'problem'} label="확인 필요(실패·보류·확인 중)" />
+        <FilterChip href={filterLink('pending')} active={status === 'pending'} label="결과 확인 중" />
+        <FilterChip href={filterLink('succeeded')} active={status === 'succeeded'} label="성공" />
+        <FilterChip href={filterLink('skipped')} active={status === 'skipped'} label="건너뜀" />
       </div>
 
-      {/* 리스트 */}
-      {/* overflow-hidden 만 있으면 admin 공통 표 min-width(720px) 가 그냥 잘려서
-          오른쪽 컬럼이 아예 안 보인다 — 안쪽에 가로 스크롤 래퍼(2026-07-25). */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-[13px]">
-          <thead className="bg-secondary text-muted-foreground text-[11px]">
-            <tr>
-              <th className="text-left px-4 py-2.5 font-bold">시도일</th>
-              <th className="text-left px-4 py-2.5 font-bold">상태</th>
-              <th className="text-right px-4 py-2.5 font-bold">금액</th>
-              <th className="text-left px-4 py-2.5 font-bold">예정일</th>
-              <th className="text-left px-4 py-2.5 font-bold">에러</th>
-              <th className="text-left px-4 py-2.5 font-bold">주문</th>
-            </tr>
-          </thead>
-          <tbody>
-            {listLoadFailed ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-destructive font-bold">
-                  결제 이력을 불러오지 못했어요 — 새로고침해 주세요 (없는 게
-                  아니라 조회 실패예요)
-                </td>
-              </tr>
-            ) : list.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                  결과가 없어요
-                </td>
-              </tr>
-            ) : (
-              list.map((row) => {
-                const c = STATUS_CONFIG[row.status]
-                const Icon = c.icon
-                return (
-                  <tr
-                    key={row.id}
-                    className="border-t border-border hover:bg-secondary/40"
-                  >
-                    <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                      {formatDateTime(row.attempted_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold"
-                        style={{ background: c.color, color: 'white' }}
-                      >
-                        <Icon className="w-3 h-3" strokeWidth={2.5} />
-                        {c.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      {row.amount.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{row.scheduled_for}</td>
-                    <td className="px-4 py-3 text-[11.5px] text-muted-foreground">
-                      {row.error_code && (
-                        <span className="font-mono mr-1.5">
-                          {row.error_code}
-                        </span>
-                      )}
-                      <span className="line-clamp-1" title={row.error_message ?? undefined}>{row.error_message}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.order_id ? (
-                        <Link
-                          href={`/admin/orders/${row.order_id}`}
-                          className="text-primary hover:underline text-[12px]"
-                        >
-                          주문 보기 →
-                        </Link>
-                      ) : (
-                        <span className="text-muted-foreground/60">—</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
+      {enrichError && (
+        <div className="mb-4">
+          <LoadError
+            what="문제 결제의 고객 정보"
+            hint="결제 행은 그대로 보여요. 고객 이름·카드 끝 4자리·재시도 시각만 비어 있어요 — 새로고침해 주세요."
+          />
         </div>
-      </div>
+      )}
+
+      <ChargeRowsView rows={rows} loadFailed={listLoadFailed} />
 
       {/* 페이지네이션 — 단순 prev/next */}
       <div className="mt-4 flex items-center justify-between">
