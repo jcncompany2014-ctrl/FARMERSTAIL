@@ -133,6 +133,64 @@ export type Database = {
         }
         Relationships: []
       }
+      /** 운영 경보함 — 마이그 20261014210000(손으로 추가, 2026-10-14). 쓰기는 service_role(record_admin_alert·어드민 라우트). */
+      admin_alerts: {
+        Row: {
+          context: Json
+          dog_id: string | null
+          first_seen_at: string
+          id: string
+          kind: string
+          last_seen_at: string
+          message: string
+          occurrences: number
+          order_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_note: string | null
+          severity: string
+          subscription_id: string | null
+          target_key: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          dog_id?: string | null
+          first_seen_at?: string
+          id?: string
+          kind: string
+          last_seen_at?: string
+          message: string
+          occurrences?: number
+          order_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_note?: string | null
+          severity: string
+          subscription_id?: string | null
+          target_key?: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          dog_id?: string | null
+          first_seen_at?: string
+          id?: string
+          kind?: string
+          last_seen_at?: string
+          message?: string
+          occurrences?: number
+          order_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_note?: string | null
+          severity?: string
+          subscription_id?: string | null
+          target_key?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -166,6 +224,34 @@ export type Database = {
           id?: string
           ip?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      /** 외부 키 만료일(키 값 없음) — 마이그 20261014210100(손으로 추가, 2026-10-14). */
+      admin_key_expiry: {
+        Row: {
+          expires_on: string | null
+          key_name: string
+          note: string | null
+          set_on: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          expires_on?: string | null
+          key_name: string
+          note?: string | null
+          set_on?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          expires_on?: string | null
+          key_name?: string
+          note?: string | null
+          set_on?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -2903,6 +2989,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_price_consents: {
+        Row: {
+          channel: string
+          consented_on: string
+          created_at: string
+          id: string
+          memo: string
+          recorded_by: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          rise: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          consented_on: string
+          created_at?: string
+          id?: string
+          memo?: string
+          recorded_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          rise: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          consented_on?: string
+          created_at?: string
+          id?: string
+          memo?: string
+          recorded_by?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          rise?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       link_banners: {
         Row: {
           accent: string
@@ -3503,6 +3631,21 @@ export type Database = {
       admin_user_ids: {
         Args: Record<string, never>
         Returns: { id: string }[]
+      }
+      /** 운영 경보함 기록(손으로 추가, 2026-10-14) — 정의: supabase/migrations/20261014210000_admin_alerts.sql. service_role 전용. */
+      record_admin_alert: {
+        Args: {
+          p_kind: string
+          p_severity: string
+          p_message: string
+          p_target_key?: string
+          p_order_id?: string | null
+          p_subscription_id?: string | null
+          p_user_id?: string | null
+          p_dog_id?: string | null
+          p_context?: Json
+        }
+        Returns: string
       }
       purge_user: {
         Args: { p_user: string }

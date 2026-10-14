@@ -33,8 +33,11 @@ import {
   formatKstShortDateTime as formatDate,
   todayKstIsoDate,
 } from '@/lib/datetime-kst'
-import { paidBoxShipIso } from '@/lib/shipping-schedule'
 import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
+import { loadWeeklyTodo } from '@/lib/admin/weekly-todo'
+import WeeklyTodoPanel from '@/components/admin/WeeklyTodoPanel'
+import { loadInternalUserIds, excludeInternalFilter } from '@/lib/admin/internal-accounts'
+import { classifyCancellation, churnSummary, CHURN_MIN_SAMPLE, CHURN_RED_PCT } from '@/lib/admin/churn'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { trialPricing, type TrialState } from '@/lib/payments/trial'
 import { computeAutoDiscount, applyDiscount } from '@/lib/discount'
@@ -131,6 +134,20 @@ export default async function AdminHome() {
     now.getTime() - 14 * 24 * 60 * 60 * 1000,
   ).toISOString()
 
+  /**
+   * ★이번 주 할 일(맨 위)과 내부 계정 — 둘 다 service_role(관리자 확인을 위에서 마쳤다).
+   *  · 할 일 숫자는 아침 브리핑 푸시와 같은 함수(lib/admin/weekly-todo, 2026-10-14 B2). 아래 '처리 대기'의 미발송·카드 재등록·
+   *    답 안 한 문의도 이 숫자를 쓴다 — 예전엔 홈·브리핑이 각자 셌다.
+   *  · 매출·구독 지표에서 내부 계정(사장님 시험 계정 등)을 뺀다(lib/admin/internal-accounts 정본, 2026-10-14 B3).
+   *    처리 대기(발송·환불·결제 실패)는 빼지 않는다 — 시험 박스도 실제로 나간다.
+   */
+  const opsDb = createAdminClient()
+  const [todo, internal] = await Promise.all([loadWeeklyTodo(opsDb, now), loadInternalUserIds(opsDb)])
+  const userFilter = excludeInternalFilter(internal.ids)
+  const profileFilter = excludeInternalFilter(internal.ids, 'id')
+  const ex = <Q extends { or: (filters: string) => Q }>(q: Q): Q => (userFilter ? q.or(userFilter) : q)
+  if (!internal.ok) console.error('[admin-home] 내부 계정 조회 실패 — 지표에 섞였을 수 있음:', internal.error)
+
   // 병렬로 쿼리 (is_admin 정책 덕분에 전체 조회 가능)
   const [
     paidOrdersRes,
@@ -147,23 +164,28 @@ export default async function AdminHome() {
     newSubsRes,
     churnedSubsRes,
     todayRevenueRes,
+    liveDogsRes,
   ] = await Promise.all([
     // 누적 매출 — 부분 환불분을 뺀 실수령액(lib/commerce/paid-status).
     // 예전엔 'paid' 만 세서 1,000원만 부분 환불해도 그 주문 전액이 매출에서
-    // 사라졌다.
-    supabase
-      .from('orders')
-      .select('total_amount, refunded_amount', { count: 'exact' })
-      .in('payment_status', PAID_STATUSES),
+    // 사라졌다. 내부 계정 주문은 뺀다(ex — 2026-10-14 B3).
+    ex(
+      supabase
+        .from('orders')
+        .select('total_amount, refunded_amount', { count: 'exact' })
+        .in('payment_status', PAID_STATUSES),
+    ),
 
     // 오늘 주문 수 — ★결제된 것만 (2026-09-05 전수감사). 카드 문구가
     // "오늘 결제된 주문 N건"인데 예전엔 pending·failed·취소까지 세서
     // 매출(=PAID_STATUSES 기준)과 분모가 달랐다.
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .in('payment_status', PAID_STATUSES)
-      .gte('created_at', todayStart),
+    ex(
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .in('payment_status', PAID_STATUSES)
+        .gte('created_at', todayStart),
+    ),
 
     // 배송 대기 (preparing 상태) — 부분 환불된 주문도 박스는 나가야 한다.
     //   2026-10-01 부터 일반 고객은 토요일 아침에 결제되고 화요일에 나간다(토·일 조리 → 월 포장 →
@@ -174,10 +196,10 @@ export default async function AdminHome() {
       .in('payment_status', PAID_STATUSES)
       .eq('order_status', 'preparing'),
 
-    // 전체 회원 수
-    supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true }),
+    // 전체 회원 수 — 내부 계정 제외.
+    profileFilter
+      ? supabase.from('profiles').select('id', { count: 'exact', head: true }).or(profileFilter)
+      : supabase.from('profiles').select('id', { count: 'exact', head: true }),
 
     // 최근 주문 10건
     supabase
@@ -187,20 +209,24 @@ export default async function AdminHome() {
       .limit(10),
 
     // 최근 30일 매출 (일별 차트 + Top 상품 원자료)
-    supabase
-      .from('orders')
-      .select('id, total_amount, refunded_amount, created_at, order_items(product_id, product_name, product_image_url, quantity, line_total)')
-      .in('payment_status', PAID_STATUSES)
-      .gte('created_at', thirtyDaysAgo),
+    ex(
+      supabase
+        .from('orders')
+        .select('id, total_amount, refunded_amount, created_at, order_items(product_id, product_name, product_image_url, quantity, line_total)')
+        .in('payment_status', PAID_STATUSES)
+        .gte('created_at', thirtyDaysAgo),
+    ),
 
     // 활성 구독 — MRR 추정. ★카드 등록(billing_key) 된 구독만: 카드 미등록
     // 구독은 청구가 한 번도 안 일어나는 '신청만' 상태라 매출 추정에 넣으면
-    // MRR 이 과대계상된다(2026-07-19 검수).
-    supabase
-      .from('subscriptions')
-      .select('id, user_id, total_amount', { count: 'exact' })
-      .eq('status', 'active')
-      .not('billing_key', 'is', null),
+    // MRR 이 과대계상된다(2026-07-19 검수). 내부 계정 구독은 뺀다(B3).
+    ex(
+      supabase
+        .from('subscriptions')
+        .select('id, user_id, total_amount', { count: 'exact' })
+        .eq('status', 'active')
+        .not('billing_key', 'is', null),
+    ),
 
     // 재고 경고 — 개별 상품 stock <= LOW_THRESHOLD 인 수.
     // ★활성 상품만 (2026-09-05 전수감사). 쌍둥이 지표인 품절 카운트가
@@ -215,87 +241,91 @@ export default async function AdminHome() {
       .limit(5),
 
     // 최근 7일 주문 매출
-    supabase
-      .from('orders')
-      .select('total_amount, refunded_amount')
-      .in('payment_status', PAID_STATUSES)
-      .gte('created_at', sevenDaysAgo),
+    ex(
+      supabase
+        .from('orders')
+        .select('total_amount, refunded_amount')
+        .in('payment_status', PAID_STATUSES)
+        .gte('created_at', sevenDaysAgo),
+    ),
 
     // 전전주 (14~7일 전) 주문 매출 — WoW 비교
-    supabase
-      .from('orders')
-      .select('total_amount, refunded_amount')
-      .in('payment_status', PAID_STATUSES)
-      .gte('created_at', fourteenDaysAgo)
-      .lt('created_at', sevenDaysAgo),
+    ex(
+      supabase
+        .from('orders')
+        .select('total_amount, refunded_amount')
+        .in('payment_status', PAID_STATUSES)
+        .gte('created_at', fourteenDaysAgo)
+        .lt('created_at', sevenDaysAgo),
+    ),
 
     // 결제 실패 카운트 (최근 30일)
-    supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('payment_status', 'failed')
-      .gte('created_at', thirtyDaysAgo),
+    ex(
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('payment_status', 'failed')
+        .gte('created_at', thirtyDaysAgo),
+    ),
 
-    // 30일 신규 구독 — created_at 기준
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', thirtyDaysAgo),
+    // 30일 신규 구독 — created_at 기준. ★행을 받아 '카드 등록 전 포기(결제 0회로 해지)'를 뺀다(2026-10-14 B3) —
+    //   정리 크론이 닫은 신청이 새 구독으로 세지면 같은 고객이 두 번 늘어난 것처럼 보였다.
+    ex(
+      supabase
+        .from('subscriptions')
+        .select('id, dog_id, status, last_charged_at, total_deliveries')
+        .gte('created_at', thirtyDaysAgo)
+        .limit(2000),
+    ),
 
     // 30일 해지 구독 — cancelled_at 30일 내 (2026-08-19 5라운드 감사).
     //   ★예전엔 updated_at 근사였다. updated_at 은 배치 UPDATE 마다 갱신돼
     //   마이그레이션이 돌 때마다 과거 해지가 '최근 30일'로 재집계됐다(존재하지
     //   않는 해지 급증). cancelled_at 은 트리거가 해지 시점에만 찍으므로 정확.
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'cancelled')
-      .gte('cancelled_at', thirtyDaysAgo),
+    //   ★행을 받아 '진짜 해지'만 센다(lib/admin/churn, 2026-10-14 B3) — 운영의 '해지 2명'은 둘 다 카드 등록 전 포기 +
+    //   같은 강아지로 다시 신청한 서포터즈였다.
+    ex(
+      supabase
+        .from('subscriptions')
+        .select('id, dog_id, last_charged_at, total_deliveries')
+        .eq('status', 'cancelled')
+        .gte('cancelled_at', thirtyDaysAgo)
+        .limit(2000),
+    ),
 
     // 오늘 매출 — 실수령액 기준(부분 환불분 차감), created_at >= 오늘 0시
-    supabase
-      .from('orders')
-      .select('total_amount, refunded_amount')
-      .in('payment_status', PAID_STATUSES)
-      .gte('created_at', todayStart),
+    ex(
+      supabase
+        .from('orders')
+        .select('total_amount, refunded_amount')
+        .in('payment_status', PAID_STATUSES)
+        .gte('created_at', todayStart),
+    ),
+
+    // 지금 이어지는 구독의 강아지 — 해지 뒤 같은 강아지로 다시 구독한 건은 해지로 세지 않는다.
+    supabase.from('subscriptions').select('dog_id').in('status', ['active', 'paused']).limit(5000),
   ])
 
   // ── 처리 대기 큐 (admin hot path) — 솔로 창업자가 매일 한 번 보고
   // 처리해야 하는 작업 카운트. 모두 head:true 로 count 만 가져옴.
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
   const sevenDaysAgoIso = sevenDaysAgo
+  // ★미발송(발송 화요일이 지난 결제 박스)·카드 재등록·답 안 한 문의(사람 수)는 이번 주 할 일(todo.numbers)에서 온다 —
+  //   아침 브리핑과 같은 함수(lib/admin/weekly-todo, 2026-10-14 B2). 예전엔 여기서 따로 셌다.
   const [
-    unshippedRes,
     shippingStuckRes,
-    cardRenewalRes,
     recentFailedChargeRes,
     refundsPendingRes,
     stockOutRes,
     cronFailRes,
     noCardSubsRes,
-    csUnansweredRes,
   ] = await Promise.all([
-    // preparing + 결제됨 → 박스마다 발송일(화)을 따져 **발송일이 지났는데 안 나간 것**만 stale (부분 환불 포함).
-    //   ★2026-10-01: 예전엔 '결제 후 24시간+'가 stale 이었다. 결제일 = 발송일이던 시절엔 맞았지만, 이제 일반
-    //   고객은 토요일에 결제되고 화요일에 나가므로 토요일 결제분 전부가 일~화 내내 '발송 stale' 로 떴다.
-    //   행을 받아 아래 paidBoxShipIso 로 판정한다(daily-briefing 의 '발송일 지난 미발송'과 같은 판정).
-    supabase
-      .from('orders')
-      .select('id, subscription_id, paid_at, created_at')
-      .in('payment_status', PAID_STATUSES)
-      .eq('order_status', 'preparing')
-      .limit(2000),
     // shipping + 7d+ → 배송 stuck (택배사 이슈 가능)
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('order_status', 'shipping')
       .lt('shipped_at', sevenDaysAgoIso),
-    // 정기배송 카드 재등록 대기
-    supabase
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('requires_billing_key_renewal', true),
     // 24h 내 결제 실패한 정기배송
     supabase
       .from('subscription_charges')
@@ -328,16 +358,6 @@ export default async function AdminHome() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active')
       .is('billing_key', null),
-    // 답 안 한 1:1 문의 — 고객이 기다리는 일인데 대시보드에 없었다(2026-08-07).
-    // ★단위는 **사람 수**다. /admin/cs-inbox 가 사용자별로 묶어 "N명" 을
-    //  보여주므로, 여기서 메시지 행 수를 세면 한 고객이 3번 보냈을 때
-    //  대시보드 "3" / 문의함 "1명" 으로 두 화면이 다른 말을 한다.
-    supabase
-      .from('cs_messages')
-      .select('user_id')
-      .eq('sender', 'user')
-      .is('read_at', null)
-      .limit(500),
   ])
 
   /**
@@ -366,43 +386,15 @@ export default async function AdminHome() {
     }
   })()
 
-  // 답 안 한 문의 = **사람 수**(문의함 화면과 같은 단위).
-  const csUnansweredUserCount = new Set(
-    ((csUnansweredRes.data ?? []) as Array<{ user_id: string }>).map(
-      (m) => m.user_id,
-    ),
-  ).size
-
   /**
    * 발송 stale = 결제됐고(결제됨 + preparing) **발송 화요일이 지났는데** 아직 안 나간 박스 (2026-10-01).
-   * 박스의 발송일은 그 구독의 지금 next_delivery_date 로 정한다(아래 paidBoxShipIso) — 해지·정지된 구독도
-   * 결제된 박스는 나가야 하므로 상태와 무관하게 읽는다. 조회가 실패하면 결제일 기준 첫 화요일로만 판정하고
-   * queueLoadFailed 배너로 '못 봄'을 알린다(규칙1).
+   * 판정은 이번 주 할 일과 같은 함수(lib/admin/weekly-todo-core classifyPaidBoxes → paidBoxShipIso, 2026-10-14 B2).
+   * 답 안 한 문의 = **사람 수**(문의함과 같은 단위)·카드 재등록도 같은 곳에서 온다. 그 조회가 실패하면 todo.failures 에
+   * 사유가 실리고, 아래 queueLoadFailed 배너가 '못 봄'을 알린다(규칙1).
    */
-  type PaidPrepRow = { id: string; subscription_id: string | null; paid_at: string | null; created_at: string }
-  const paidPrepRows = (unshippedRes.data ?? []) as PaidPrepRow[]
-  const paidPrepSubIds = [
-    ...new Set(paidPrepRows.map((o) => o.subscription_id).filter((x): x is string => !!x)),
-  ]
-  const paidPrepNextBySub = new Map<string, string | null>()
-  let paidPrepSubsErr: { message: string } | null = null
-  if (paidPrepSubIds.length > 0) {
-    const { data: ppSubs, error: ppSubsErr } = await supabase
-      .from('subscriptions')
-      .select('id, next_delivery_date')
-      .in('id', paidPrepSubIds)
-    paidPrepSubsErr = ppSubsErr
-    for (const s of (ppSubs ?? []) as Array<{ id: string; next_delivery_date: string | null }>) {
-      paidPrepNextBySub.set(s.id, s.next_delivery_date)
-    }
-  }
-  const overdueUnshippedCount = paidPrepRows.filter(
-    (o) =>
-      paidBoxShipIso(
-        o.subscription_id ? (paidPrepNextBySub.get(o.subscription_id) ?? null) : null,
-        o.paid_at ?? o.created_at,
-      ) < todayKst,
-  ).length
+  const overdueUnshippedCount = todo.numbers.overdueUnshipped
+  const csUnansweredUserCount = todo.numbers.csUnansweredUsers
+  const cardRenewalCount = todo.numbers.cardRenewal
 
   // 식품정보고시 14항목 채움률 — 별도 쿼리. 100개 이하 가정.
   // ★배합비(ingredients)는 service_role 로만 읽힌다 (2026-10-06, 규칙164) — anon·authenticated
@@ -444,27 +436,23 @@ export default async function AdminHome() {
     newSubsRes,
     churnedSubsRes,
     todayRevenueRes,
+    liveDogsRes,
   ]
   const statsLoadFailed = statResults.some((r) => r.error)
   const queueResults = [
-    unshippedRes,
     shippingStuckRes,
-    cardRenewalRes,
     recentFailedChargeRes,
     refundsPendingRes,
     stockOutRes,
     cronFailRes,
     noCardSubsRes,
-    csUnansweredRes,
   ]
   const queueLoadFailed =
     queueResults.some((r) => r.error) ||
     Boolean(cronRecentErr) ||
-    Boolean(paidPrepSubsErr) ||
-    // 상한(2000)에 닿으면 일부만 본 것이다 — 조용히 잘린 숫자를 '전부'라고 하지 않는다.
-    paidPrepRows.length >= 2000
-  if (paidPrepSubsErr)
-    console.error('[admin-home] 발송 대기 주문의 구독 조회 실패:', paidPrepSubsErr.message)
+    // 이번 주 할 일 쪽에서 못 센 것(발송 대기 주문 상한 2000 포함)이 있으면 미발송·카드·문의 숫자도 믿을 수 없다.
+    todo.failures.length > 0
+  for (const f of todo.failures) console.error('[admin-home] 이번 주 할 일 일부 못 셈:', f)
   for (const r of [
     ...statResults,
     ...queueResults,
@@ -552,13 +540,25 @@ export default async function AdminHome() {
   const failedOrderCount = failedOrdersRes.count ?? 0
 
   // 구독 30일 net 변화 (신규 - 해지). 음수면 churn 우세.
-  const newSubsCount = newSubsRes.count ?? 0
-  const churnedSubsCount = churnedSubsRes.count ?? 0
+  // ★'진짜'만 센다(lib/admin/churn, 2026-10-14 B3): 결제 0회로 닫힌 신청(카드 등록 전 포기·정리 크론)은 새 구독도 해지도
+  //   아니고, 같은 강아지로 다시 구독 중인 해지는 떠난 게 아니다. 내부 계정은 쿼리(ex)에서 이미 뺐다.
+  const liveDogIds = new Set(
+    ((liveDogsRes.data ?? []) as Array<{ dog_id: string | null }>).map((r) => r.dog_id).filter((x): x is string => !!x),
+  )
+  type SubLite = { id: string; dog_id: string | null; status?: string; last_charged_at: string | null; total_deliveries: number | null }
+  const newSubRows = (newSubsRes.data ?? []) as SubLite[]
+  const newSubsCount = newSubRows.filter(
+    (s) => !(s.status === 'cancelled' && classifyCancellation(s, liveDogIds) === 'never_charged'),
+  ).length
+  const cancelledRows = (churnedSubsRes.data ?? []) as SubLite[]
+  const churnedSubsCount = cancelledRows.filter((s) => classifyCancellation(s, liveDogIds) === 'real').length
   const netSubsDelta = newSubsCount - churnedSubsCount
-  // Churn rate = 해지 / (활성 + 해지) — 단순 근사치, 코호트 분석은 별도.
-  const churnDenom = activeSubCount + churnedSubsCount
-  const churnRatePct =
-    churnDenom > 0 ? (churnedSubsCount / churnDenom) * 100 : 0
+  // 해지율 = 진짜 해지 ÷ (진행 중 + 진짜 해지). 분모가 작으면(CHURN_MIN_SAMPLE 미만) 비율·빨간색 대신 '표본 적음'.
+  const churn = churnSummary({
+    activeCount: activeSubCount,
+    realCancelled: churnedSubsCount,
+    excludedCancelled: cancelledRows.length - churnedSubsCount,
+  })
 
   // 오늘 매출
   const todayRevenue = (todayRevenueRes.data ?? []).reduce(
@@ -658,9 +658,12 @@ export default async function AdminHome() {
           </h1>
         </div>
         <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          {`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 오늘 처리할 일과 매출·구독 현황을 한눈에 봐요. 바로 아래 '처리 대기'에 뜨는 건 그날 꼭 확인해 주세요.`}
+          {`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 맨 위 '이번 주 할 일'부터 보세요. 아래 '처리 대기'와 매출·구독 숫자는 사장님 시험 계정을 뺀 값이에요.`}
         </p>
       </div>
+
+      {/* 이번 주 할 일 — 요일별(토 결제·월 포장·화 발송·늘 확인). 아침 브리핑 푸시와 같은 함수(2026-10-14 B2). */}
+      <WeeklyTodoPanel todo={todo} />
 
       {/* 결제 모드 — 지금 진짜 돈이 오가는 설정인지(2026-07-26 결제 경로 감사).
           테스트키인 채로 출시하면 "결제 완료" 인데 입금이 없고, 키 짝이 안 맞으면
@@ -731,7 +734,7 @@ export default async function AdminHome() {
           // 발송 화요일이 지났는데 안 나간 결제 박스(위 overdueUnshippedCount — 2026-10-01).
           unshippedCount={overdueUnshippedCount}
           shippingStuckCount={shippingStuckRes.count ?? 0}
-          cardRenewalCount={cardRenewalRes.count ?? 0}
+          cardRenewalCount={cardRenewalCount}
           recentFailedCount={recentFailedChargeRes.count ?? 0}
           refundsPendingCount={refundsPendingRes.count ?? 0}
           stockOutCount={stockOutRes.count ?? 0}
@@ -745,6 +748,12 @@ export default async function AdminHome() {
         <QueryErrorCard
           what="지표 일부"
           detail="아래 매출·구독 숫자 일부가 0으로 보일 수 있어요 — 실제 0이 아니라 조회가 실패한 상태예요. 새로고침해 주세요."
+        />
+      )}
+      {!internal.ok && (
+        <QueryErrorCard
+          what="내부 계정 목록"
+          detail="사장님 시험 계정을 지표에서 빼지 못했어요 — 아래 매출·구독 숫자에 시험 결제가 섞였을 수 있어요. 새로고침해 주세요."
         />
       )}
 
@@ -794,7 +803,7 @@ export default async function AdminHome() {
             value={`${activeSubCount}건`}
             sub={`2주마다 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원(할인 반영${mrrDiscountLookupFailed ? ' 실패 — 할인 전 기준' : ''})${trialSubCount > 0 ? ` · 서포터즈 ${trialSubCount}건 포함` : ''}${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 미등록 ${noCardSubsRes.count}명` : ''}`}
             tone="green"
-            help="카드까지 등록해 실제로 결제되는 구독 수예요. '카드 미등록'은 신청만 하고 결제 수단을 안 붙인 고객 — 며칠 지나면 리마인드해 주세요."
+            help="카드까지 등록해 실제로 결제되는 구독 수예요(사장님 시험 계정은 빼요). '카드 미등록'은 신청만 하고 결제 수단을 안 붙인 고객 — 며칠 지나면 리마인드해 주세요."
           />
           <StatCard
             label="새 구독 (30일)"
@@ -807,18 +816,14 @@ export default async function AdminHome() {
                   : '늘지도 줄지도 않음'
             }
             tone={netSubsDelta >= 0 ? 'green' : 'red'}
-            help="최근 30일간 새로 구독을 시작한 고객 수예요. 아래 문구는 '새 구독에서 해지를 뺀' 실제 변화예요."
+            help="최근 30일간 새로 구독을 시작한 고객 수예요 — 카드 등록 전에 그만둔 신청과 사장님 시험 계정은 빼요. 아래 문구는 '새 구독에서 진짜 해지를 뺀' 실제 변화예요."
           />
           <StatCard
             label="구독 해지 (30일)"
             value={`${churnedSubsCount}명`}
-            sub={
-              churnRatePct === 0
-                ? '해지율 0%'
-                : `해지율 ${churnRatePct.toFixed(1)}%`
-            }
-            tone={churnRatePct > 5 ? 'red' : 'neutral'}
-            help="최근 30일간 구독을 끊은 고객 수예요. 해지율이 5%를 넘으면 왜 떠나는지 살펴보는 게 좋아요."
+            sub={churn.caption}
+            tone={churn.tone}
+            help={`최근 30일간 한 번이라도 결제된 뒤 끊은 고객만 세요 — 카드 등록 전에 그만둔 신청이나 같은 강아지로 다시 구독 중인 경우는 빼요. 구독이 ${CHURN_MIN_SAMPLE}건이 안 되면 한두 명이 큰 %가 돼서 비율 대신 사람 수로 보여 드려요(${CHURN_MIN_SAMPLE}건부터 ${CHURN_RED_PCT}%를 넘으면 빨간색).`}
           />
           <StatCard
             label="이번 주 매출"
