@@ -35,7 +35,7 @@ export default async function DesignCheckCheckinPage({
           userId="00000000-0000-4000-8000-0000000000aa"
           preview={s === 'first' ? { choice: 'great' } : { done: true }}
         />
-        {s === 'first-done' && <BoxToastDemo message="좋은 의견 고마워요. 다음 박스에 반영할게요." />}
+        {s === 'first-done' && <BoxToastDemo message="알려 주셔서 고마워요." />}
       </>
     )
   }

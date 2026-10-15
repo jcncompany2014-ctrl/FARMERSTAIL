@@ -172,7 +172,8 @@ async function runCheckinReminder(): Promise<Response> {
       const pushResult = await pushToUser(
         order.user_id,
         {
-          title: `${petName(dog.name)}는 어떠신가요? 🐾`,
+          // 이모지 없이(2026-10-15 사장님 — 체크인 화면에서 🐾 를 뺀 앱 시안 결정과 같게, 규칙282).
+          title: `${petName(dog.name)}는 어떠신가요?`,
           body: '첫 박스 한 주가 지났네요. 30초만 시간 내주실래요?',
           url: `/dogs/${dog.id}/first-checkin`,
           tag: `first-box-checkin-${dog.id}`,

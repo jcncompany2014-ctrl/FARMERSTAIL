@@ -333,7 +333,7 @@ export default function FirstCheckinClient({ dogId, dogName, userId, preview }: 
           onChange={(e) => setComment(e.target.value)}
           maxLength={200}
           rows={3}
-          placeholder="예: 변 상태가 좋아졌어요 / 활동량이 늘었어요 / 가려움이 줄었어요…"
+          placeholder="예: 첫날은 냄새만 맡더니 이틀째부터 잘 먹어요 / 조금씩 남겨요"
           className="placeholder:text-[#8A8A8A]"
           style={{
             marginTop: 10,
