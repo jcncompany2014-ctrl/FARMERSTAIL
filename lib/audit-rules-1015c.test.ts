@@ -5,6 +5,7 @@
  *   283 메모 칸 예시 = 사장님이 고른 세 가지(변 상태·가려움·잘 먹어요 — 10/15 결정, 광고에 옮길 땐 따로 판단)
  *   284 '잘 안 먹어요'는 사장님 폰에 바로 — 잠금 화면이라 이름·메모 없이, 한 번만(답한 지 1시간 안 + 경보 첫 생성), 관리자 목록 정본
  *   285 흑돼지 레시피 부위 = 안심 — 화면·정본 어디에도 뒷다리살이 없다(사장님 10/15 정정, 8/25 기록은 틀림)
+ *   286 가게 후기 — 질병 이름·치료 효과 문장 없음(로아 원문 '항암' → '치료 중이라', 사장님 10/15), 옮긴 방법 밝힘, 사진 실재
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -99,4 +100,30 @@ test('규칙285: 흑돼지 레시피 부위는 안심 — 화면·정본 어디�
   assert.match(src, /joint: \{[\s\S]*?main: '흑돼지 안심'/, "원재료 정본의 흑돼지 메인 부위가 '흑돼지 안심'이 아니다")
   const hits = sources().filter((f) => /뒷다리살/.test(f.src)).map((f) => f.rel)
   assert.deepEqual(hits, [], `화면·정본에 '뒷다리살'이 남아 있다: ${hits.join(', ')}`)
+})
+
+test('규칙286: 가게 후기 — 질병 이름·치료 효과 문장 없음, 옮긴 방법 밝힘, 사진 실재, 상품 화면이 정본을 읽음', async () => {
+  /**
+   * 상품 페이지에 올린 손님 후기는 우리 광고다. 로아 보호자님 후기 원문의 '항암 치료'는 사장님과 정해 '치료 중이라'로 옮겼다(10/15) —
+   * 병명이 다시 들어오거나, 먹고 나았다는 효과로 읽히는 문장이 들어오면 빨간불.
+   */
+  const { STORE_REVIEWS } = await import('./store/reviews.ts')
+  assert.ok(STORE_REVIEWS.length > 0, '후기 목록이 비었다(로아 후기가 빠졌다)')
+  const DISEASE = /암|종양|당뇨|신부전|신장병|췌장염|심장병|관절염|아토피|피부병|장염|백혈병|림프종/
+  const EFFECT = /나았|완치|낫게|좋아졌|개선|효과|치유|회복됐/
+  for (const r of STORE_REVIEWS) {
+    const text = `${r.title} ${r.body}`
+    assert.ok(!DISEASE.test(text), `후기에 질병 이름이 있다(${r.id}): ${text.match(DISEASE)?.[0]}`)
+    assert.ok(!EFFECT.test(text), `후기에 치료 효과로 읽히는 문장이 있다(${r.id}): ${text.match(EFFECT)?.[0]}`)
+    assert.ok(r.note.trim().length > 0, `후기를 어디서 어떻게 옮겼는지(note)가 없다(${r.id})`)
+    assert.ok(r.photos.length > 0, `후기 사진이 없다(${r.id})`)
+    for (const p of r.photos) {
+      assert.ok(p.alt.trim().length > 0, `후기 사진 설명(alt)이 없다(${r.id})`)
+      assert.ok(statSync(join(ROOT, 'public', ...p.src.split('/').filter(Boolean))).size > 0, `후기 사진 파일이 없다: ${p.src}`)
+    }
+  }
+  const pd = code('components', 'store', 'ProductDetail.tsx')
+  assert.match(pd, /const reviews = reviewsFor\(recipe\)/, '상품 화면이 후기 정본(lib/store/reviews)을 읽지 않는다')
+  assert.match(pd, /reviews\.length === 0 \?[\s\S]*?첫 후기를 모으는 중이에요/, '후기가 없는 레시피의 안내가 사라졌다')
+  assert.ok(!/고치지 않고 이 자리에/.test(pd), "후기를 줄여 옮기면서 '고치지 않고 올려요'라고 말한다")
 })

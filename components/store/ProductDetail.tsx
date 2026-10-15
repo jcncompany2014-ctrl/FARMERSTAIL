@@ -37,6 +37,7 @@ import {
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
+import { reviewsFor } from '@/lib/store/reviews'
 import type { RecipeLabel } from '@/lib/store/label'
 import { Acc, NoticeList, ShippingRefundInfo } from './ProductInfo'
 import { business } from '@/lib/business'
@@ -74,6 +75,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
   const ratioShort = ratio === 'light' ? '건사료에 곁들이면' : ratio === 'half' ? '건사료와 반반이면' : '화식만 주면'
   const monthKg = Math.round(((feed.gramsPerDay * 30) / 1000) * 10) / 10
   const advice = alternativeAdvice(recipe)
+  const reviews = reviewsFor(recipe)
 
   const photos = [
     { src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 팩` },
@@ -493,14 +495,45 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
 
       {/* 후기 */}
       <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
-          후기
-        </h2>
-        <div style={{ border: '2px solid #141414', borderRadius: 4, padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <strong style={{ fontSize: 17 }}>첫 후기를 모으는 중이에요</strong>
-          {/* 후기 쓰기 기능은 아직 없다(2026-07-16 폐기 · 기획서 §7 의 구매자 후기는 2단계) — 쓸 수 있다고 말하지 않는다. */}
-          <span style={{ fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
+            후기
+          </h2>
+          {reviews.length > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>{reviews.length}개</span>}
         </div>
+        {/* 후기 = 게시 동의를 받아 옮긴 손님 후기(lib/store/reviews, 규칙286). 후기 쓰기 기능은 아직 없다 — 쓸 수 있다고 말하지 않는다. */}
+        {reviews.length === 0 ? (
+          <div style={{ border: '2px solid #141414', borderRadius: 4, padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <strong style={{ fontSize: 17 }}>첫 후기를 모으는 중이에요</strong>
+            <span style={{ fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 이 자리에 올려요.</span>
+          </div>
+        ) : (
+          reviews.map((r) => (
+            <article key={r.id} style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: r.photos.length > 1 ? '2fr 1fr' : '1fr', gap: 2, background: '#141414' }}>
+                {r.photos.map((p, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={p.src} src={p.src} alt={p.alt} loading="lazy" width={i === 0 ? 900 : 508} height={i === 0 ? 900 : 446} style={{ width: '100%', height: 232, objectFit: 'cover', objectPosition: i === 0 ? '50% 50%' : '50% 20%', display: 'block' }} />
+                ))}
+              </div>
+              <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={{ alignSelf: 'flex-start', height: 26, padding: '0 12px', borderRadius: 999, background: color, color: '#fff', fontSize: 13, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                  {RECIPE_PRODUCT_NAME[r.recipe]}
+                </span>
+                <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
+                  &ldquo;{r.title}&rdquo;
+                </strong>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{r.body}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 12, borderTop: '1px solid #E5E5E5' }}>
+                  <span style={{ fontSize: 15, fontWeight: 800 }}>
+                    {r.dogName} 보호자님{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
+                  </span>
+                  <span style={{ fontSize: 14, color: '#595959' }}>{r.note}</span>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
         {business.kakaoChannelUrl && (
           <a
             href={business.kakaoChannelUrl}
