@@ -4,13 +4,14 @@
  *   282 손님 체크인 알림 제목에 이모지를 넣지 않는다(체크인 화면에서 🐾 를 뺀 앱 시안 결정과 같게)
  *   283 메모 칸 예시 = 사장님이 고른 세 가지(변 상태·가려움·잘 먹어요 — 10/15 결정, 광고에 옮길 땐 따로 판단)
  *   284 '잘 안 먹어요'는 사장님 폰에 바로 — 잠금 화면이라 이름·메모 없이, 한 번만(답한 지 1시간 안 + 경보 첫 생성), 관리자 목록 정본
+ *   285 흑돼지 레시피 부위 = 안심 — 화면·정본 어디에도 뒷다리살이 없다(사장님 10/15 정정, 8/25 기록은 틀림)
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
 
 const ROOT = process.env.AUDIT_ROOT ?? process.cwd()
 
@@ -69,4 +70,33 @@ test("규칙284: '잘 안 먹어요'는 사장님 폰에 바로 — 이름·메�
   assert.match(push, /url: `\/admin\/users\/\$\{customerId\}#dogs`/, '누르면 그 고객 화면(강아지 칸)으로 가지 않는다')
   // 알림 실패가 손님 답·경보를 깨지 않는다.
   assert.match(src, /try \{\s*await pushOwnerNow\([\s\S]*?\} catch/, '즉시 알림 예외가 손님 동작까지 깨뜨릴 수 있다')
+})
+
+/** app·lib·components 의 소스(테스트 제외) — 주석을 걷어 낸 본문과 함께. */
+function sources(): Array<{ rel: string; src: string }> {
+  const out: Array<{ rel: string; src: string }> = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) {
+        if (name === 'node_modules' || name.startsWith('.')) continue
+        walk(p)
+      } else if (/\.(ts|tsx)$/.test(name) && !/\.test\.ts$/.test(name)) {
+        out.push({ rel: relative(ROOT, p).split(sep).join('/'), src: stripComments(read(relative(ROOT, p))) })
+      }
+    }
+  }
+  for (const d of ['app', 'lib', 'components']) walk(join(ROOT, d))
+  return out
+}
+
+test('규칙285: 흑돼지 레시피 부위는 안심 — 화면·정본 어디에도 뒷다리살이 없다(사장님 2026-10-15 정정)', () => {
+  /**
+   * 2026-08-25 에 '안심 → 뒷다리살'로 바꿨다는 기록이 코드·DB·매거진에 퍼져 있었지만 사장님 확인(10/15)으로 틀렸다 — 안심이다.
+   * 정본(lib/recipe-ingredients)과 그것을 손으로 다시 적은 화면 문구가 다시 갈라지지 않게 소스 전체를 본다.
+   */
+  const src = code('lib', 'recipe-ingredients.ts')
+  assert.match(src, /joint: \{[\s\S]*?main: '흑돼지 안심'/, "원재료 정본의 흑돼지 메인 부위가 '흑돼지 안심'이 아니다")
+  const hits = sources().filter((f) => /뒷다리살/.test(f.src)).map((f) => f.rel)
+  assert.deepEqual(hits, [], `화면·정본에 '뒷다리살'이 남아 있다: ${hits.join(', ')}`)
 })

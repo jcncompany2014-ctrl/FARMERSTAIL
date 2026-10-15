@@ -65,9 +65,9 @@ describe('★ 규칙63: 고객 원재료 목록 = 사장님 확정 배합표, �
     }
   })
 
-  test('흑돼지는 뒷다리살 (부위 변경 2026-08-25)', () => {
-    assert.equal(RECIPE_INGREDIENTS.joint?.main, '흑돼지 뒷다리살')
-    assert.ok(!fullIngredientNames('joint').some((n) => n.includes('안심')))
+  test('흑돼지는 안심 (사장님 2026-10-15 정정 — 8/25 뒷다리살 기록은 틀림)', () => {
+    assert.equal(RECIPE_INGREDIENTS.joint?.main, '흑돼지 안심')
+    assert.ok(!fullIngredientNames('joint').some((n) => n.includes('뒷다리')))
   })
 
   test('프리믹스는 브랜드명으로 부른다', () => {

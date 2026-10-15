@@ -70,8 +70,8 @@ export const RECIPE_INGREDIENTS: Record<FoodLine, RecipeIngredients | null> = {
     base: COMMON_BASE,
   },
   joint: {
-    // 부위 변경 — 안심 → 뒷다리살 (사장님 2026-08-25)
-    main: '흑돼지 뒷다리살',
+    // 부위 = 안심(사장님 2026-10-15 정정 — 2026-08-25 의 '안심 → 뒷다리살' 기록은 틀렸다. 라벨·DB·화면 모두 안심)
+    main: '흑돼지 안심',
     organs: ['흑돼지간', '흑돼지염통'],
     toppings: ['무', '양배추'],
     veg: COMMON_VEG,

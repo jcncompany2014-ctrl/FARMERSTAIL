@@ -4866,7 +4866,7 @@ test('규칙127: 제품 사실은 확정본대로 · 이벤트 코드 목록 비
   // ① 사장님 확정 사실(v4.0 2026-07-18·배합표 2026-08-25)과 반대인 문구 금지
   const detail = read(join(ROOT, 'lib', 'recipe-detail.ts'))
   assert.ok(!/열량 밀도(가|를) (4종 가운데 )?가장 가(벼|볍)/.test(detail), "닭 = '열량 가장 가벼움'(v4.0 닭 130 > 오리·돼지 125)")
-  assert.ok(!/안심 부위|가장 기름기 적은 부위인 안심/.test(detail), "돼지 부위 = 뒷다리살(안심 아님, 2026-08-25)")
+  assert.ok(!/뒷다리/.test(detail), "돼지 부위 = 안심(사장님 2026-10-15 정정 — 8/25 의 뒷다리살 기록은 틀렸다)")
   assert.ok(!/name: '강황',\s*role: '커큐민/.test(detail) && !/name: '강황',\s*note:\s*'커큐민이 든 노란 향신 뿌리예요\. 관절과 노화/.test(detail), '강황을 닭 전용 컨셉 토핑으로 소개한다(4종 공통)')
   assert.ok(!/저칼로리/.test(stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'analysis', 'AnalysisView.tsx')))), "닭 '저칼로리' 태그")
   assert.ok(!/저지방으로 손질/.test(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'plan', 'PlanClient.tsx'))), "한우 '저지방'(4종 중 지방 최다)")

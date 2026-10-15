@@ -59,7 +59,7 @@ test('1kg 도 앱 정기배송(100g 구독가)보다 비싸다 — 앱으로 갈
 test('카드 한 줄 원재료 — 정본(lib/recipe-ingredients)에서, 고기 이름 반복 없이', () => {
   assert.equal(meatLine('chicken'), '닭가슴살·간·염통')
   assert.equal(meatLine('duck'), '오리 안심·간·염통')
-  assert.equal(meatLine('pork'), '흑돼지 뒷다리살·간·염통')
+  assert.equal(meatLine('pork'), '흑돼지 안심·간·염통')
   assert.equal(meatLine('beef'), '한우 목심·간·염통')
   assert.equal(toppingLine('chicken'), '브로콜리·블루베리')
   assert.ok(!Object.values(STORE_ITEMS).some((it) => /연어/.test(it.name)), '연어는 팔지 않는다')
@@ -68,7 +68,7 @@ test('카드 한 줄 원재료 — 정본(lib/recipe-ingredients)에서, 고기 
 test('상세 한 줄·다른 레시피 권유 — 정본 원재료·알레르기 교차 반응에서', () => {
   assert.equal(recipeIntro('chicken'), '무항생제 닭가슴살에 염통과 간까지, 브로콜리와 블루베리를 더했어요')
   assert.equal(recipeIntro('duck'), '무항생제 오리 안심에 염통과 간까지, 애호박과 사과를 더했어요')
-  assert.equal(recipeIntro('pork'), '흑돼지 뒷다리살에 염통과 간까지, 무와 양배추를 더했어요')
+  assert.equal(recipeIntro('pork'), '흑돼지 안심에 염통과 간까지, 무와 양배추를 더했어요')
   // 2026-10-13 E9 사장님 결정 — 닭이 안 맞아도 오리는 '권함'(예전엔 교차 반응이라 닭고기 대안에서 뺐다).
   assert.ok(alternativeRecipes('chicken').includes('duck'))
   for (const r of STORE_RECIPES) assert.ok(!alternativeRecipes(r).includes(r))

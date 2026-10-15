@@ -55,7 +55,7 @@ const num = Anton({ weight: '400', subsets: ['latin'], display: 'swap', preload:
 const MEAT: Record<StoreRecipe, { meat: string; tag?: string }> = {
   chicken: { meat: '닭가슴살·간·염통', tag: '무항생제 닭가슴살' },
   duck: { meat: '오리 안심·간·염통', tag: '무항생제 오리 안심' },
-  pork: { meat: '흑돼지 뒷다리살·간·염통' },
+  pork: { meat: '흑돼지 안심·간·염통' },
   beef: { meat: '한우 목심·간·염통' },
 }
 
