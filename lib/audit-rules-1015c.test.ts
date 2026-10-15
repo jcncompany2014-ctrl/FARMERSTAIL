@@ -6,6 +6,7 @@
  *   284 '잘 안 먹어요'는 사장님 폰에 바로 — 잠금 화면이라 이름·메모 없이, 한 번만(답한 지 1시간 안 + 경보 첫 생성), 관리자 목록 정본
  *   285 흑돼지 레시피 부위 = 안심 — 화면·정본 어디에도 뒷다리살이 없다(사장님 10/15 정정, 8/25 기록은 틀림)
  *   286 가게 후기 — 질병 이름·치료 효과 문장 없음(로아 원문 '항암' → '치료 중이라', 사장님 10/15), 옮긴 방법 밝힘, 사진 실재
+ *   287 앱 화면 비중 — 홈 인사 작게·추천 딱지 작게(이름 위)·둘러보기는 탭바 위까지(사장님 10/15 폰 캡처)
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -126,4 +127,24 @@ test('규칙286: 가게 후기 — 질병 이름·치료 효과 문장 없음, �
   assert.match(pd, /const reviews = reviewsFor\(recipe\)/, '상품 화면이 후기 정본(lib/store/reviews)을 읽지 않는다')
   assert.match(pd, /reviews\.length === 0 \?[\s\S]*?첫 후기를 모으는 중이에요/, '후기가 없는 레시피의 안내가 사라졌다')
   assert.ok(!/고치지 않고 이 자리에/.test(pd), "후기를 줄여 옮기면서 '고치지 않고 올려요'라고 말한다")
+})
+
+test('규칙287: 앱 화면 비중 — 홈 인사는 작게(제목 ≤ 24·아래 한 줄 기본 없음), 추천 딱지는 이름 위 작은 딱지, 둘러보기는 탭바 위까지 끌어온다', () => {
+  /**
+   * 사장님 10/15 폰 캡처 세 장: ① 레시피 고르기 '★ 추천'이 카드 오른쪽 위 검은 띠로 커서 영어 이름을 덮음 ② 둘러보기 3/3
+   * '기록이 쌓이는 곳'이 하단 탭바 밑에 깔려 숫자가 안 보임 ③ 홈 맨 위 인사가 34·세 줄로 첫 화면을 차지('딱히 중요한 멘트가 아닌데').
+   */
+  const g = code('components', 'v3', 'home', 'GreetingSection.tsx')
+  const h1 = /<h1 style=\{\{[^}]*fontSize: (\d+)/.exec(g)?.[1]
+  assert.ok(h1 !== undefined, '홈 인사 제목 크기를 찾지 못했다')
+  assert.ok(Number(h1) <= 24, `홈 인사 제목이 다시 커졌다(${h1})`)
+  assert.ok(!/subCopy = \{/.test(g), "홈 인사 아래 한 줄('정성스럽게')이 다시 기본으로 붙었다")
+  const p = code('app', '(main)', 'dogs', '[id]', 'plan', 'PlanClient.tsx')
+  const hero = p.slice(p.indexOf('function HeroCard('), p.indexOf('function', p.indexOf('function HeroCard(') + 20))
+  assert.ok(hero.length > 0, 'HeroCard 를 찾지 못했다')
+  assert.ok(!/position: 'absolute'[\s\S]{0,200}★ 추천/.test(hero), "추천 딱지가 다시 카드 위에 떠서(absolute) 이름을 덮는다")
+  assert.match(hero, /height: 20,[\s\S]{0,200}fontSize: 12,[\s\S]{0,200}★ 추천/, '추천 딱지가 작은 딱지(높이 20·글자 12)가 아니다')
+  const t = code('components', 'v3', 'tour', 'ResultTour.tsx')
+  assert.match(t, /nav\[aria-label="주 메뉴"\][\s\S]{0,200}getBoundingClientRect\(\)\.top/, '둘러보기가 하단 탭바 윗선을 아래 한계로 보지 않는다')
+  assert.match(t, /r0\.bottom > visibleBottom/, '둘러보기가 탭바에 가린 대상을 끌어오지 않는다')
 })

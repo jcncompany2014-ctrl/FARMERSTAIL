@@ -1026,25 +1026,6 @@ function HeroCard({
         color: V3.ink,
       }}
     >
-      {isRec && (
-        <span
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            height: 28,
-            padding: '0 10px',
-            background: V3.ink,
-            color: '#FFFFFF',
-            fontSize: 13,
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          ★ 추천
-        </span>
-      )}
       <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '76px 1fr', columnGap: 14, alignItems: 'center' }}>
         <span style={{ width: 76, height: 76, borderRadius: 4, overflow: 'hidden', background: '#FFFFFF', display: 'block' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 슬롯(레시피 팩 스튜디오 컷) */}
@@ -1056,6 +1037,25 @@ function HeroCard({
           />
         </span>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          {/* ★ 추천 — 이름 위 작은 딱지(2026-10-15 사장님 '추천이 너무 크다': 예전엔 카드 오른쪽 위 28px 검은 띠가 영어 이름을 덮었다). */}
+          {isRec && (
+            <span
+              style={{
+                alignSelf: 'flex-start',
+                height: 20,
+                padding: '0 7px',
+                borderRadius: 2,
+                background: V3.ink,
+                color: '#FFFFFF',
+                fontSize: 12,
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              ★ 추천
+            </span>
+          )}
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span aria-hidden style={{ width: 12, height: 12, background: RECIPE_COLOR[LINE_POUCH[line] ?? 'chicken'], flexShrink: 0 }} />
             {rt.en ? (

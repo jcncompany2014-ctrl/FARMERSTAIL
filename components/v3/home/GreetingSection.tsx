@@ -4,6 +4,8 @@
  * ★2026-10-09 앱 새 디자인('A 포스터', 캔버스 AppHome): 머리말 = 머스타드 네모 + 오늘 날짜(강아지가 없으면 "환영해요"),
  *   제목 = 시간대 인사 + 줄바꿈 + 보호자 이름(제목 글꼴 34), 아래 한 줄 = "오늘도 건강한 한 끼를 정성스럽게."(머스타드 밑줄).
  *   예전 우상단 서명 블록(이름 + 가족 N명)은 뺐다 — 이름이 제목으로 올라왔다.
+ * ★2026-10-15 사장님 "너무 크고 딱히 중요한 멘트가 아닌데 비중이 크다" — 제목 34 → 22, 아래 한 줄(정성스럽게)은 기본에서 뺐다.
+ *   첫 화면은 다음 정기배송·강아지 카드가 차지해야 한다.
  *
  * timeOfDay 는 KST 시간 기준 자동 분기:
  *   05-11 → morning / 12-16 → afternoon / 17-20 → evening / 21-04 → night
@@ -29,7 +31,7 @@ interface GreetingSectionProps {
   forceVariant?: number
   /** 머리말 날짜 override (점검 화면용 — "10월 7일 수요일"). */
   forceDateLabel?: string
-  /** 하단 카피. 기본 "오늘도 건강한 한 끼를 정성스럽게." */
+  /** 아래 한 줄(선택) — 기본은 없다(2026-10-15 사장님: 인사 영역이 너무 커서 덜 중요한 말이 화면을 차지했다). */
   subCopy?: { lead: string; mark: string }
 }
 
@@ -65,7 +67,7 @@ const HEADINGS_BY_TIME: Record<TimeOfDay, string[]> = {
     '좋은 밤이에요,',
     '늦은 시간 고생 많아요,',
     '푹 쉬는 밤 되세요,',
-    '오늘도 함께해 주셔서 고마워요,',
+    '함께해 주셔서 고마워요,',
     '편안한 밤 보내요,',
   ],
 }
@@ -110,7 +112,7 @@ export default function GreetingSection({
   forceTimeOfDay,
   forceVariant,
   forceDateLabel,
-  subCopy = { lead: '오늘도 건강한 한 끼를 ', mark: '정성스럽게.' },
+  subCopy,
 }: GreetingSectionProps) {
   const tod = forceTimeOfDay ?? computeTimeOfDay()
   const variants = HEADINGS_BY_TIME[tod]
@@ -130,14 +132,15 @@ export default function GreetingSection({
   const name = withHonorific(userName)
 
   return (
-    <section style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
+    <section style={{ padding: '18px 20px 0', display: 'flex', flexDirection: 'column' }}>
       <span
-        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: V3.inkMute }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: V3.inkMute }}
       >
         <span aria-hidden style={{ width: 8, height: 8, background: V3.mustard, flexShrink: 0 }} />
         {kickerLabel}
       </span>
-      <h1 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.15, color: V3.ink, wordBreak: 'keep-all' }}>
+      {/* 제목 22(lg) — 예전 34 는 세 줄로 첫 화면 위쪽을 다 차지했다(사장님 10/15 '비중이 너무 크다'). */}
+      <h1 style={{ margin: '6px 0 0', fontSize: 22, lineHeight: 1.3, color: V3.ink, wordBreak: 'keep-all' }}>
         {headingText}
         {name && (
           <>
@@ -146,12 +149,12 @@ export default function GreetingSection({
           </>
         )}
       </h1>
-      <p style={{ margin: '10px 0 0', fontSize: 17, color: V3.inkSoft, lineHeight: 1.5 }}>
-        {subCopy.lead}
-        <strong style={{ fontWeight: 800, color: V3.ink, borderBottom: `4px solid ${V3.mustard}` }}>
-          {subCopy.mark}
-        </strong>
-      </p>
+      {subCopy && (
+        <p style={{ margin: '8px 0 0', fontSize: 16, color: V3.inkSoft, lineHeight: 1.5 }}>
+          {subCopy.lead}
+          <strong style={{ fontWeight: 800, color: V3.ink, borderBottom: `3px solid ${V3.mustard}` }}>{subCopy.mark}</strong>
+        </p>
+      )}
     </section>
   )
 }

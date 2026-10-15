@@ -126,7 +126,11 @@ function useTargetRect(selector: string | null, canScroll: boolean): { rect: Rec
         // 화면이 밀려(늦게 그려진 사진·글 등) 비출 곳이 밖으로 나가도 다시 데려온다(0.5초에 한 번까지).
         const r0 = el.getBoundingClientRect()
         const now = performance.now()
-        if (canScroll && (r0.top < 120 || r0.bottom > window.innerHeight - 40) && now - lastScroll > 500) {
+        // 아래 한계 = 하단 탭바 윗선(사장님 10/15 — 홈 '기록이 쌓이는 곳'이 탭바 밑에 깔려 숫자가 안 보였다: 화면 끝에서 40px 만
+        // 비켜 줬는데 떠 있는 탭바는 그보다 훨씬 높다). 탭바가 없는 화면은 예전처럼 화면 끝 40px.
+        const tabBar = document.querySelector<HTMLElement>('nav[aria-label="주 메뉴"]')
+        const visibleBottom = tabBar ? tabBar.getBoundingClientRect().top - 12 : window.innerHeight - 40
+        if (canScroll && (r0.top < 120 || r0.bottom > visibleBottom) && now - lastScroll > 500) {
           lastScroll = now
           el.scrollIntoView({ block: 'center', behavior: 'auto' })
         }
