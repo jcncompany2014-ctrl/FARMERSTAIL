@@ -8,7 +8,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { QtyStepper } from './RecipeGrid'
 import { useStoreCart } from './useStoreCart'
-import { RECIPE_PRODUCT_NAME, STORE_SIZES, storeItem, type StoreRecipe, type StoreSize } from '@/lib/store/catalog'
+import { RECIPE_PRODUCT_NAME, RECIPE_TITLE, STORE_SIZES, storeItem, type StoreRecipe, type StoreSize } from '@/lib/store/catalog'
 import { shippingFeeFor, untilFreeShipping } from '@/lib/store/shipping'
 import { MAX_QTY } from '@/lib/store/cart'
 
@@ -64,7 +64,7 @@ export default function AddSheet({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <h2 className="d" style={{ margin: 0, fontSize: 21 }}>
-            {RECIPE_PRODUCT_NAME[recipe]}, 얼마나 담을까요?
+            {RECIPE_TITLE[recipe]}, 얼마나 담을까요?
           </h2>
           <button type="button" onClick={onClose} style={{ height: 44, border: 0, background: 'transparent', fontSize: 16, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', color: '#141414' }}>
             닫기

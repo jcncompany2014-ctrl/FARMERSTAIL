@@ -240,14 +240,14 @@ test('규칙198: 같은 택배사·송장번호가 다른 주문에 있으면 �
   }
 })
 
-test('규칙199: 체험팩은 13,900원(사장님 10/13) — 숫자는 상품표 한 곳에서만', async () => {
+test('규칙199: 체험팩은 14,900원(사장님 10/17, 10/13 은 13,900원) — 숫자는 상품표 한 곳에서만', async () => {
   const c = await load<typeof import('./store/catalog.ts')>('lib', 'store', 'catalog.ts')
-  assert.equal(c.TRIAL_PRICE, 13_900)
-  assert.equal(c.TRIAL_ITEM.price, 13_900)
+  assert.equal(c.TRIAL_PRICE, 14_900)
+  assert.equal(c.TRIAL_ITEM.price, 14_900)
   assert.equal(c.TRIAL_PRICE % 4, 0, '체험팩 값이 4로 나누어떨어지지 않으면 품목 합이 어긋난다')
   // 옛 가격을 글자로 적은 곳이 없어야 한다 — 숫자는 TRIAL_PRICE 를 따라간다.
   for (const f of [['lib', 'store', 'catalog.ts'], ['app', 'llms.txt', 'route.ts'], ['lib', 'store', 'faq.ts'], ['app', 'our-food', 'page.tsx'], ['app', 'store', 'page.tsx']]) {
-    assert.ok(!/14[,_]?000/.test(code(...f)), `${f.join('/')}: 옛 체험팩 가격(14,000)이 남았다`)
+    assert.ok(!/14[,_]?000|13[,_]?900/.test(code(...f)), `${f.join('/')}: 옛 체험팩 가격(14,000·13,900)이 남았다`)
   }
   // 체험팩은 50g 팩 — 100g(단품 팩)으로 소개하지 않는다.
   assert.ok(!/종을 \$\{PACK_G\}g씩 맛보는 체험팩/.test(code('app', 'our-food', 'page.tsx')), '체험팩을 100g씩이라고 소개한다(실제 50g)')

@@ -5,7 +5,8 @@ import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { SMARTSTORE_URL } from '@/lib/links'
-import { RECIPE_BAND, STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT, TRIAL_ITEM, TRIAL_PACK_G } from '@/lib/store/catalog'
+import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
+import TrialCard from '@/components/store/TrialCard'
 
 /**
  * 웹 후기 — /reviews. 웹 시안 WEB-C07(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
@@ -53,13 +54,8 @@ export const metadata: Metadata = {
   },
 }
 
-const won = (n: number) => n.toLocaleString('ko-KR')
-
 /** 후기 원칙(시안 C07) — 체크 세 줄. */
 const REVIEW_RULES = ['구매하신 분만, 주문 한 건에 하나씩', '사진과 별점을 함께 남길 수 있어요', '받은 그대로, 고치지 않고 올려요'] as const
-
-/** 체험팩 4색 띠(시안 C07) — 레시피 띠 색. 흑돼지 먹색은 얇은 띠에선 너무 무거워 회색(앱 RECIPE_CHIP 과 같은 규칙). */
-const TRIAL_BAND = STORE_RECIPES.map((r) => (r === 'pork' ? '#9AA0A6' : RECIPE_BAND[r]))
 
 function Chevron() {
   return (
@@ -177,36 +173,9 @@ export default async function ReviewsPage() {
             직접 먹여 보세요
           </h2>
           <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>남의 후기보다 우리 아이의 한 끼가 가장 정확한 후기예요.</p>
-          <Link
-            href="/store?tab=trial"
-            style={{ marginTop: 18, border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', color: '#141414', textDecoration: 'none', display: 'flex', flexDirection: 'column' }}
-          >
-            {/* 4종 색 띠(장식) — 닭·오리·흑돼지·한우 순서. */}
-            <span aria-hidden style={{ height: 10, display: 'grid', gridTemplateColumns: `repeat(${TRIAL_BAND.length}, minmax(0, 1fr))` }}>
-              {TRIAL_BAND.map((c) => (
-                <span key={c} style={{ background: c }} />
-              ))}
-            </span>
-            <span style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>처음이라면</span>
-                <span className="d" style={{ fontSize: 24, lineHeight: 1.1 }}>
-                  {TRIAL_ITEM.name}
-                </span>
-                <span style={{ fontSize: 15, color: '#3D3D3D' }}>
-                  {STORE_RECIPES.length}종 {TRIAL_PACK_G}g씩 맛보기
-                </span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>
-                <span className="n" style={{ fontSize: 28 }}>
-                  {won(TRIAL_ITEM.price)}
-                </span>
-                <span className="d" style={{ fontSize: 17 }}>
-                  원
-                </span>
-              </span>
-            </span>
-          </Link>
+          <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column' }}>
+            <TrialCard />
+          </div>
           <Link
             href="/app"
             style={{ marginTop: 12, minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}

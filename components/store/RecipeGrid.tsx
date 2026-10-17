@@ -1,7 +1,9 @@
 'use client'
 
 /**
- * 레시피 4종 2열 카드(웹 시안 Main·Store) — 팩 사진(위 6px 레시피 띠) · 이름 · 고기 부위 · 500g 가격 · [담기].
+ * 레시피 4종 목록(홈·스토어) — 한 줄에 한 레시피: 왼쪽 실제 사진(팩 + 한 그릇) · 오른쪽 이름 · 고기 부위 · 500g 가격 · [담기].
+ * 2026-10-17 사장님: 이름은 '치킨 레시피' 바로 옆에 작게 '닭고기 화식'(RecipeName) — 2열 카드 폭(170px)엔 두 이름이 나란히
+ * 들어가지 않아 한 줄 목록으로 바꿨다. 사진 위 레시피 색 띠는 뺐다("색 들어가는 데마다 위에 띠 — AI 티").
  * 담으면 버튼이 '− N개 담김 +' 로 바뀐다(500g 기준). 다른 용량(1kg)은 상품 페이지에서.
  * showDetail: 스토어 화면처럼 토핑·100g 값·kcal 줄까지 보일 때.
  * paused: 자사몰 결제 막음(storeSalesPaused) — 담기를 회색으로, 위에 스마트스토어 안내(규칙177).
@@ -9,10 +11,10 @@
 import Link from 'next/link'
 import { useStoreCart } from './useStoreCart'
 import { PAUSED_BTN, PayPausedNotice } from './PayPaused'
+import RecipeName from './RecipeName'
 import {
-  RECIPE_BAND,
-  RECIPE_NAME,
-  RECIPE_STUDIO_IMG,
+  RECIPE_REAL_IMG,
+  RECIPE_TITLE,
   STORE_RECIPES,
   kcalPer100g,
   meatLine,
@@ -69,67 +71,71 @@ export default function RecipeGrid({
           <PayPausedNotice />
         </div>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 10, rowGap: 28 }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: '2px solid #141414' }}>
         {recipes.map((r) => {
           const item = storeItem(`${r}-500g`)
           const qty = cart.qtyOf(item.id)
           return (
-            <article key={r} style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <li key={r} style={{ padding: '16px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, alignItems: 'stretch' }}>
               <Link
                 href={`/store/${r}`}
-                aria-label={`${RECIPE_NAME[r]} 화식 자세히 보기`}
-                style={{ position: 'relative', display: 'block', aspectRatio: '1 / 1', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}
+                aria-label={`${RECIPE_TITLE[r]} 자세히 보기`}
+                style={{ display: 'block', minHeight: 128, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={RECIPE_STUDIO_IMG[r]} alt="" width={400} height={400} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 6, background: RECIPE_BAND[r] }} />
+                <img src={RECIPE_REAL_IMG[r]} alt="" width={384} height={256} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '62% 50%', display: 'block' }} />
               </Link>
-              <Link href={`/store/${r}`} className="d" style={{ marginTop: 12, fontSize: 23, lineHeight: 1.1, color: '#141414', textDecoration: 'none' }}>
-                {RECIPE_NAME[r]}
-              </Link>
-              <span style={{ marginTop: 4, fontSize: 15, lineHeight: 1.45, color: '#595959' }}>
-                {showDetail ? `${meatLine(r)}에 ${toppingLine(r)}` : meatLine(r)}
-              </span>
-              {showDetail && (
-                <span style={{ marginTop: 2, fontSize: 14, color: '#595959' }}>
-                  100g당 {won(per100gPrice(r))}원 · {kcalPer100g(r)}kcal
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <Link href={`/store/${r}`} style={{ color: '#141414', textDecoration: 'none' }}>
+                  <RecipeName recipe={r} size={22} />
+                </Link>
+                <span style={{ marginTop: 6, fontSize: 15, lineHeight: 1.45, color: '#595959' }}>
+                  {showDetail ? `${meatLine(r)}에 ${toppingLine(r)}` : meatLine(r)}
                 </span>
-              )}
-              <span style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 2, whiteSpace: 'nowrap' }}>
-                <span className="n" style={{ fontSize: 24 }}>
-                  {won(item.price)}
-                </span>
-                <span className="d" style={{ fontSize: 16 }}>
-                  원
-                </span>
-              </span>
-              <div style={{ marginTop: 10 }}>
-                {paused ? (
-                  <button type="button" disabled style={{ width: '100%', height: 48, borderRadius: 4, fontSize: 17, fontWeight: 700, ...PAUSED_BTN }}>
-                    담기
-                  </button>
-                ) : qty === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => cart.add(item.id)}
-                    aria-label={`${item.name} 담기`}
-                    style={{ width: '100%', height: 48, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    담기
-                  </button>
-                ) : (
-                  <QtyStepper
-                    qty={qty}
-                    label={`${item.name} 담은 수량`}
-                    onMinus={() => cart.set(item.id, qty - 1)}
-                    onPlus={() => cart.set(item.id, qty + 1)}
-                  />
+                {showDetail && (
+                  <span style={{ marginTop: 2, fontSize: 14, color: '#595959' }}>
+                    100g당 {won(per100gPrice(r))}원 · {kcalPer100g(r)}kcal
+                  </span>
                 )}
+                <span style={{ marginTop: 'auto', paddingTop: 8, display: 'flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                    <span className="n" style={{ fontSize: 24 }}>
+                      {won(item.price)}
+                    </span>
+                    <span className="d" style={{ fontSize: 16 }}>
+                      원
+                    </span>
+                  </span>
+                  <span style={{ fontSize: 14, color: '#595959' }}>500g</span>
+                </span>
+                <div style={{ marginTop: 10 }}>
+                  {paused ? (
+                    <button type="button" disabled style={{ width: '100%', height: 48, borderRadius: 4, fontSize: 17, fontWeight: 700, ...PAUSED_BTN }}>
+                      담기
+                    </button>
+                  ) : qty === 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => cart.add(item.id)}
+                      aria-label={`${item.name} 담기`}
+                      style={{ width: '100%', height: 48, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 17, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      담기
+                    </button>
+                  ) : (
+                    <QtyStepper
+                      qty={qty}
+                      label={`${item.name} 담은 수량`}
+                      onMinus={() => cart.set(item.id, qty - 1)}
+                      onPlus={() => cart.set(item.id, qty + 1)}
+                    />
+                  )}
+                </div>
               </div>
-            </article>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </>
   )
 }

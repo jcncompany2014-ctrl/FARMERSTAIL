@@ -12,9 +12,9 @@ import { useRouter } from 'next/navigation'
 import { useStoreCart } from './useStoreCart'
 import { useShipDate } from './useShipDate'
 import { PAUSED_BTN, PayPausedNotice, SmartStoreButton } from './PayPaused'
+import RecipeName from './RecipeName'
 import {
   PACK_G,
-  RECIPE_BAND,
   RECIPE_STUDIO_IMG,
   STORE_RECIPES,
   TRIAL_ITEM,
@@ -36,15 +36,6 @@ function Thumb({ item, size = 64 }: { item: StoreItem; size?: number }) {
     <span style={{ position: 'relative', width: size, height: size, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5', flexShrink: 0 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'cover', display: 'block' }} />
-      {item.recipe ? (
-        <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[item.recipe] }} />
-      ) : (
-        <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          {STORE_RECIPES.map((r) => (
-            <span key={r} style={{ background: RECIPE_BAND[r] }} />
-          ))}
-        </span>
-      )}
     </span>
   )
 }
@@ -119,9 +110,13 @@ export default function CartView({ paused }: { paused: boolean }) {
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span className="d" style={{ fontSize: 18 }}>
-                      {l.item.recipe ? l.item.name.replace(/\s(500g|1kg)$/, '') : l.item.name}
-                    </span>
+                    {l.item.recipe ? (
+                      <RecipeName recipe={l.item.recipe} size={18} />
+                    ) : (
+                      <span className="d" style={{ fontSize: 18 }}>
+                        {l.item.name}
+                      </span>
+                    )}
                     <span style={{ fontSize: 14, color: '#595959' }}>{l.item.recipe ? `${l.item.size} · ${PACK_G}g 팩 ${l.item.packs}개` : `4종 ${TRIAL_PACK_G}g씩`}</span>
                   </span>
                   <button
@@ -189,9 +184,13 @@ export default function CartView({ paused }: { paused: boolean }) {
               <div key={g.id} style={{ padding: 10, background: '#FFFFFF', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Thumb item={g} size={52} />
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <span className="d" style={{ fontSize: 16 }}>
-                    {g.recipe ? g.name.replace(/\s500g$/, '') : g.name}
-                  </span>
+                  {g.recipe ? (
+                    <RecipeName recipe={g.recipe} size={16} />
+                  ) : (
+                    <span className="d" style={{ fontSize: 16 }}>
+                      {g.name}
+                    </span>
+                  )}
                   <span style={{ fontSize: 13, color: '#595959' }}>{won(g.price)}원</span>
                   <span style={{ fontSize: 13, color: '#595959' }}>
                     더 내는 돈 <strong style={{ color: '#141414' }}>{won(g.price - SHIPPING_FEE)}원</strong>

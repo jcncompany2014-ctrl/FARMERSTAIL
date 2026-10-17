@@ -100,8 +100,10 @@ function CompareTable() {
             <th scope="col" style={{ width: 64 }} />
             {STORE_RECIPES.map((r) => (
               <th key={r} scope="col" className="d" style={{ padding: '12px 2px 10px', fontSize: 16, fontWeight: 400, textAlign: 'center' }}>
-                <span aria-hidden style={{ display: 'block', height: 4, margin: '0 6px 8px', background: RECIPE_BAND[r] }} />
-                {AVOID_LABEL[r] === '돼지' ? '흑돼지' : AVOID_LABEL[r] === '소' ? '한우' : AVOID_LABEL[r]}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span aria-hidden style={{ width: 8, height: 8, flexShrink: 0, background: RECIPE_BAND[r] }} />
+                  {AVOID_LABEL[r] === '돼지' ? '흑돼지' : AVOID_LABEL[r] === '소' ? '한우' : AVOID_LABEL[r]}
+                </span>
               </th>
             ))}
           </tr>
@@ -187,9 +189,10 @@ function TrialPanel({ paused, notice }: { paused: boolean; notice: [string, stri
         </h2>
         <ol style={{ margin: '14px 0 0', padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
           {STORE_RECIPES.map((r, i) => (
-            <li key={r} style={{ background: '#FFFFFF', borderRadius: 4, borderTop: `4px solid ${RECIPE_BAND[r]}`, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <li key={r} style={{ background: '#FFFFFF', borderRadius: 4, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
               <span style={{ fontSize: 13, color: '#595959' }}>{DAY[i]}</span>
-              <span className="d" style={{ fontSize: 18 }}>
+              <span className="d" style={{ fontSize: 18, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span aria-hidden style={{ width: 8, height: 8, flexShrink: 0, background: RECIPE_BAND[r] }} />
                 {AVOID_LABEL[r] === '돼지' ? '흑돼지' : AVOID_LABEL[r] === '소' ? '한우' : AVOID_LABEL[r]}
               </span>
             </li>

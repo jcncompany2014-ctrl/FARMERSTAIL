@@ -2,7 +2,7 @@
  * 웹 가게(단품) 상품표 — 2026-10-10 웹 리뉴얼(docs/WEB_STORE_RENEWAL_PLAN_2026_10.md §4).
  *
  * 사장님 10/10: 웹은 '단품 가게', 맞춤·정기배송은 앱. 숫자는 웹 시안 그대로 —
- * 500g = 100g 팩 5개(정가) · 1kg = 100g 팩 10개(5% 할인) · 4종 체험팩(4종 50g씩) 13,900원(사장님 2026-10-13 — 시안은 100g씩 19,900원).
+ * 500g = 100g 팩 5개(정가) · 1kg = 100g 팩 10개(5% 할인) · 4종 체험팩(4종 50g씩) 14,900원(사장님 2026-10-17 — 10/13 13,900원, 시안은 100g씩 19,900원).
  *
  * # 왜 DB products 의 화식 4행을 쓰지 않나
  * 그 4행의 price·sale_price 는 **100g 당 정가·구독가**이고 정기배송 청구가 그 값을 그대로 쓴다(§4.3-1).
@@ -28,11 +28,11 @@ export const ONE_KG_DISCOUNT_PCT = 5
 /** 체험팩 팩 하나 = 50g — 4종을 50g씩 한 세트(사장님 2026-10-12 "50그램씩 4개 해서 하나"). 단품 팩(PACK_G)과 다르다. */
 export const TRIAL_PACK_G = 50
 /**
- * 4종 체험팩 가격 — 사장님 2026-10-13 결정 13,900원(10/12 "만사천원 정도" 14,000원 → 13,900원, 예전 시안: 4종 100g씩 19,900원).
- * 4로 나누어떨어져야 한다(주문 품목은 레시피 4줄로 나눠 적는다 — lib/store/order.ts). 13,900 ÷ 4 = 3,475원.
- * 100g당 값(화면 StoreBrowse)은 이 값에서 계산한다 — 13,900 ÷ 200g × 100 = 6,950원.
+ * 4종 체험팩 가격 — 사장님 2026-10-17 "체험팩 가격은 14900원으로" 14,900원(10/13 13,900원, 10/12 14,000원, 예전 시안: 4종 100g씩 19,900원).
+ * 4로 나누어떨어져야 한다(주문 품목은 레시피 4줄로 나눠 적는다 — lib/store/order.ts). 14,900 ÷ 4 = 3,725원.
+ * 100g당 값(화면 StoreBrowse)은 이 값에서 계산한다 — 14,900 ÷ 200g × 100 = 7,450원.
  */
-export const TRIAL_PRICE = 13_900
+export const TRIAL_PRICE = 14_900
 
 /** 웹 레시피 색(팩 라벨 띠) — 웹 시안 정본. 앱 화면은 파우치 몸통 색(lib/design/tokens POUCH)을 쓴다. */
 export const RECIPE_BAND: Record<StoreRecipe, string> = {
@@ -54,6 +54,17 @@ export const RECIPE_PRODUCT_NAME: Record<StoreRecipe, string> = {
   duck: '오리고기 화식',
   pork: '흑돼지 화식',
   beef: '한우 화식',
+}
+/**
+ * 가게 화면 큰 이름 — '치킨 레시피'(앱·QR 화면과 같은 이름, SKU_MODEL.nameKo). 바로 옆에 작게 상품 이름(닭고기 화식)을 붙인다
+ * (사장님 2026-10-17 "치킨 레시피 바로옆에 훨씬 작은 글씨로 닭고기 화식", 부품 components/store/RecipeName).
+ * 주문서·영수증·제공고시·검색 제목은 그대로 RECIPE_PRODUCT_NAME — 법정 표시와 주문 품목 이름이 바뀌지 않게.
+ */
+export const RECIPE_TITLE: Record<StoreRecipe, string> = {
+  chicken: `${SKU_MODEL.chicken.nameKo} 레시피`,
+  duck: `${SKU_MODEL.duck.nameKo} 레시피`,
+  pork: `${SKU_MODEL.pork.nameKo} 레시피`,
+  beef: `${SKU_MODEL.beef.nameKo} 레시피`,
 }
 /** 정기배송·DB 의 레시피 행 slug(products.slug) — 주문 품목이 가리키는 행. */
 export const RECIPE_DB_SLUG: Record<StoreRecipe, string> = {

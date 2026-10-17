@@ -24,6 +24,7 @@ import {
   RECIPE_PRODUCT_NAME,
   RECIPE_REAL_IMG,
   RECIPE_STUDIO_IMG,
+  RECIPE_TITLE,
   STORE_RECIPES,
   STORE_SIZES,
   alternativeAdvice,
@@ -37,6 +38,7 @@ import {
   type StoreSize,
 } from '@/lib/store/catalog'
 import RegisteredTable from './RegisteredTable'
+import RecipeName from './RecipeName'
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
@@ -57,7 +59,7 @@ const TAG: CSSProperties = { display: 'inline-flex', alignItems: 'center', heigh
 function Kicker({ color, children }: { color: string; children: ReactNode }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 800, color: '#595959' }}>
-      <span aria-hidden style={{ width: 22, height: 4, background: color, display: 'block' }} />
+      <span aria-hidden style={{ width: 10, height: 10, flexShrink: 0, background: color, display: 'block' }} />
       {children}
     </span>
   )
@@ -193,9 +195,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             무항생제 {ing.main}
           </span>
         )}
-        <h1 className="d" style={{ margin: 0, fontSize: 38, lineHeight: 1.1 }}>
-          {RECIPE_PRODUCT_NAME[recipe]}
-        </h1>
+        <RecipeName recipe={recipe} size={38} as="h1" />
         <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.55, color: '#3D3D3D' }}>{recipeIntro(recipe)}</p>
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <p style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -601,10 +601,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
                     </span>
                   )}
                 </span>
-                <span style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, borderTop: `4px solid ${RECIPE_BAND[r]}` }}>
-                  <strong className="d" style={{ fontSize: 19, fontWeight: 400 }}>
-                    {RECIPE_PRODUCT_NAME[r]}
-                  </strong>
+                <span style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <RecipeName recipe={r} size={18} as="strong" stack />
                   <span style={{ fontSize: 14, color: '#3D3D3D' }}>{toppingLine(r)}</span>
                   <span>
                     <span className="n" style={{ fontSize: 20 }}>
@@ -723,8 +721,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         ))}
       </section>
 
-      {/* ⑪ 후기 */}
-      <section style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* ⑪ 후기 — 홈 '먹어 본 아이 이야기'가 #reviews 로 바로 온다 */}
+      <section id="reviews" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
           <h2 className="d" style={{ margin: 0, fontSize: 32 }}>
             후기
@@ -755,8 +753,9 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
                 ))}
               </div>
               <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ alignSelf: 'flex-start', height: 26, padding: '0 12px', borderRadius: 999, background: color, color: '#fff', fontSize: 13, fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
-                  {RECIPE_PRODUCT_NAME[r.recipe]}
+                <span style={{ alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 2, background: '#F6F4F5', color: '#141414', fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span aria-hidden style={{ width: 8, height: 8, background: RECIPE_BAND[r.recipe] }} />
+                  {RECIPE_TITLE[r.recipe]}
                 </span>
                 <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
                   &ldquo;{r.title}&rdquo;

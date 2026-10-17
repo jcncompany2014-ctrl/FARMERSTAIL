@@ -465,7 +465,6 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
             <span style={{ position: 'relative', width: 60, height: 60, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={RECIPE_STUDIO_IMG[p]} alt="" width={120} height={120} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[p] }} />
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span className="d" style={{ fontSize: 19 }}>

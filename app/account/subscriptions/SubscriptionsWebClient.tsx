@@ -39,8 +39,6 @@ import {
   type UpcomingBox,
   weekdayKo,
 } from '@/lib/shipping-schedule'
-import { pouchLineFromName } from '@/lib/design/pouch'
-import { RECIPE_BAND } from '@/lib/store/catalog'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import {
@@ -653,10 +651,9 @@ export default function SubscriptionsWebClient({
               </div>
             )}
 
-            {/* 상품 라인 — 썸네일 위 레시피 띠(웹 레시피 색) */}
+            {/* 상품 라인 — 썸네일 · 이름 · 양(2026-10-17 썸네일 위 레시피 색 띠는 뺐다) */}
             <ul style={{ margin: 0, padding: '0 16px', listStyle: 'none', borderTop: lines ? '1px solid #E5E5E5' : 0, display: 'flex', flexDirection: 'column' }}>
               {sub.subscription_items.map((it, idx) => {
-                const line = pouchLineFromName(it.product_name)
                 return (
                   <li
                     key={idx}
@@ -677,7 +674,6 @@ export default function SubscriptionsWebClient({
                           <Soup className="w-5 h-5" strokeWidth={1.5} color="#8A8A8A" />
                         </span>
                       )}
-                      {line && <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[line] }} />}
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                       <span style={{ fontSize: 17, fontWeight: 800 }}>{it.product_name}</span>

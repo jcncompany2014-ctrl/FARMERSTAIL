@@ -13,9 +13,8 @@ import { createClient } from '@/lib/supabase/client'
 import KakaoLoginButton from '@/components/KakaoLoginButton'
 import AppleLoginButton from '@/components/AppleLoginButton'
 import { business, CUSTOMER_CENTER_HOURS } from '@/lib/business'
+import RecipeName from './RecipeName'
 import {
-  RECIPE_BAND,
-  RECIPE_PRODUCT_NAME,
   RECIPE_STUDIO_IMG,
   STORE_RECIPES,
   TRIAL_ITEM,
@@ -145,10 +144,9 @@ export default function StoreMenu({ open, onClose }: { open: boolean; onClose: (
               <span style={{ position: 'relative', width: 48, height: 48, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5', flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={RECIPE_STUDIO_IMG[r]} alt="" width={48} height={48} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block' }} />
-                <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[r] }} />
               </span>
-              <span className="d" style={{ flex: 1, fontSize: 19 }}>
-                {RECIPE_PRODUCT_NAME[r]}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <RecipeName recipe={r} size={19} />
               </span>
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 1, whiteSpace: 'nowrap' }}>
                 <span className="n" style={{ fontSize: 19 }}>
