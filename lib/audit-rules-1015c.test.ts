@@ -9,6 +9,7 @@
  *   287 앱 화면 비중 — 홈 인사 작게·추천 딱지 작게(이름 위)·둘러보기는 탭바 위까지(사장님 10/15 폰 캡처)
  *   288 가게 후기 사진 — 정사각형 파일·1:1 칸·세 장 다·토핑 사진은 밝힘(사장님 10/17 "애매하게 잘렸다")
  *   289 지운 사진 세 벌(주황 폰 스냅샷 팩·토핑 AI 그릇·옛 흰 봉투)이 파일로도 코드로도 돌아오지 않는다(사장님 10/17)
+ *   290 등록성분량 = 등록한 값 그대로(4종 × 7칸, 정본 한 곳) · '검사 결과 나오면 올려요' 문구 없음 · 상세 시안 v2 구획이 다 있다(사장님 10/17)
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -193,4 +194,35 @@ test('규칙289: 지운 사진 세 벌이 돌아오지 않는다 — 주황 폰 
   const BANNED = /\/pkg\/|\/bowl\/(chicken|duck|pork|beef)|meal-recipe|bowlImageFor|packageImageFor/
   const hits = sources().filter((f) => BANNED.test(f.src)).map((f) => `${f.rel}: ${f.src.match(BANNED)?.[0]}`)
   assert.deepEqual(hits, [], `지운 사진을 아직 부르는 코드가 있다: ${hits.join(' · ')}`)
+})
+
+test('규칙290: 등록성분량은 등록한 값 그대로 — 4종 × 7칸 정본, 미완성 문구 없음, 상세 v2 구획·사진이 다 있다', async () => {
+  /**
+   * 사장님 10/17: "'공인 기관의 검사 결과가 나오는 대로 올려요'라고 쓰면 미완성된 업장 같다 — 지금은 등록성분대로 올려",
+   * "상세페이지는 왜 안 올라갔어". 값의 출처 = 사장님 스마트스토어 상세의 '등록성분량' 표(10/15 받은 자료, 4장).
+   */
+  const { REGISTERED_ANALYSIS } = await import('./store/registered.ts')
+  const EXPECT: Record<string, string> = {
+    chicken: '조단백질 15.1이상 조지방 4.7이하 조섬유 0.3이하 조회분 2.2이하 수분 75.2이하 칼슘 0.3이상 인 0.3이상',
+    duck: '조단백질 13.1이상 조지방 5.2이하 조섬유 0.3이하 조회분 2.1이하 수분 76.3이하 칼슘 0.3이상 인 0.3이상',
+    pork: '조단백질 14.9이상 조지방 5.4이하 조섬유 0.2이하 조회분 2.1이하 수분 76.1이하 칼슘 0.3이상 인 0.3이상',
+    beef: '조단백질 13.9이상 조지방 5.5이하 조섬유 0.3이하 조회분 2.1이하 수분 75.1이하 칼슘 0.3이상 인 0.3이상',
+  }
+  for (const [r, want] of Object.entries(EXPECT)) {
+    const got = (REGISTERED_ANALYSIS as Record<string, ReadonlyArray<{ name: string; pct: number; bound: string }>>)[r]!
+      .map((x) => `${x.name} ${x.pct}${x.bound}`)
+      .join(' ')
+    assert.equal(got, want, `${r} 등록성분량이 등록 표와 다르다`)
+  }
+  const placeholder = sources().filter((f) => /검사 결과가 나오는 대로/.test(f.src)).map((f) => f.rel)
+  assert.deepEqual(placeholder, [], `'검사 결과가 나오는 대로 올려요' 미완성 문구가 남아 있다: ${placeholder.join(', ')}`)
+  const pd = code('components', 'store', 'ProductDetail.tsx')
+  assert.match(pd, /<Acc title="등록성분량" open>\s*<RegisteredTable recipe=\{recipe\} \/>/, '상품 정보의 등록성분량이 정본 표가 아니다(또는 접혀 있다)')
+  for (const t of ['한눈에', '한 그릇에', '만드는 법', '모자라기 쉬운 영양은', '4가지 레시피', '이런 아이에게 좋아요', '녹여서 담으면 끝', '믿고 먹일 수 있게', '자주 묻는 질문']) {
+    assert.ok(pd.includes(t), `상세 시안 v2 구획이 빠졌다: ${t}`)
+  }
+  assert.ok(!/100% 충족|영양 기준 충족/.test(pd), "상세에 '영양 기준 충족'류 표현이 다시 들어왔다(정직한 버전: '참고해 계산')")
+  const imgs = ['ingredients-chicken', 'ingredients-duck', 'ingredients-pork', 'ingredients-beef', 'serve-1', 'serve-2', 'serve-3', 'cert-maker', 'cert-recipes']
+  const missing = imgs.filter((n) => !existsSync(join(ROOT, 'public', 'store', `${n}.webp`)))
+  assert.deepEqual(missing, [], `상세 v2 사진 파일이 없다: ${missing.join(', ')}`)
 })

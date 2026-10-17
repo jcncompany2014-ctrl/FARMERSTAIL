@@ -3,13 +3,15 @@
 /**
  * 상품 상세(웹 시안 Product) — 레시피 하나. 위에서부터:
  * 사진(4장) · 레시피 바꾸기 · 이름·한 줄·가격 · "○kg 아이에게 500g이면 약 ○일"(계산기로) · 출고·배송비·보관·원산지 ·
- * 용량(500g·1kg) · [장바구니 담기][바로 구매] · 환불 한 줄 · 앱 정기배송 한 줄 · 하루에 얼마나(계산기) · 들어간 재료 ·
- * 이렇게 만들어요 · 상품 정보(원재료·등록성분·도착·배송환불·제공고시) · 후기 · 다른 레시피 · 아래 고정 구매 바.
+ * 용량(500g·1kg) · [장바구니 담기][바로 구매] · 환불 한 줄 · 앱 정기배송 한 줄 · 아래 고정 구매 바.
+ * ★2026-10-17 상세 시안 v2 적용(사장님 "상세페이지는 왜 안 올라갔어, 배포해 봐"): ② 한눈에 · ③ 한 그릇에 들어간 것(원물 사진) ·
+ *   ④ 하루에 얼마나(계산기) · ⑤ 이렇게 만들어요(공정 순서) · ⑥ 영양 채우기(정직한 버전 — '100% 충족' 표 대신) · ⑦ 4가지 레시피 ·
+ *   ⑧ 이런 아이에게 · ⑨ 이렇게 주세요 · ⑩ 등록(번호 안 보이게) · ⑪ 후기 · ⑫ 자주 묻는 질문 + 상품 정보(등록성분량 = lib/store/registered).
  * 숫자는 상품표(lib/store/catalog)·급여 계산(lib/store/feeding)·배송(lib/store/shipping), 법정 표시는 DB 라벨 칸.
  * 웹에는 '맞춤'이라는 말을 쓰지 않는다 — 양은 일반 기준 예상치, 정확한 양은 앱.
  * paused: 자사몰 결제 막음(storeSalesPaused) — 구매 버튼 두 곳(본문·아래 고정 바)을 회색으로, 바로 위에 스마트스토어(규칙177).
  */
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import AddSheet from './AddSheet'
 import DaysBox from './DaysBox'
@@ -26,7 +28,7 @@ import {
   STORE_SIZES,
   alternativeAdvice,
   fullIngredients,
-  meatLine,
+  kcalPer100g,
   recipeIntro,
   storeItem,
   subscriptionPer100g,
@@ -34,6 +36,7 @@ import {
   type StoreRecipe,
   type StoreSize,
 } from '@/lib/store/catalog'
+import RegisteredTable from './RegisteredTable'
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
@@ -46,6 +49,50 @@ import { SKU_MODEL } from '@/lib/personalization/skuModel'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
 const SHORT: Record<StoreRecipe, string> = { chicken: '닭', duck: '오리', pork: '흑돼지', beef: '한우' }
+
+/** 상세 시안 v2 구획 — 머리말(레시피 색 띠) + 제목 32. */
+const SEC: CSSProperties = { padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 20 }
+const TAG: CSSProperties = { display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 12px', borderRadius: 4, background: '#F6F4F5', fontSize: 15, fontWeight: 700 }
+
+function Kicker({ color, children }: { color: string; children: ReactNode }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 800, color: '#595959' }}>
+      <span aria-hidden style={{ width: 22, height: 4, background: color, display: 'block' }} />
+      {children}
+    </span>
+  )
+}
+
+function SecTitle({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <h2 id={id} className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
+      {children}
+    </h2>
+  )
+}
+
+function Glance({ k, v, s }: { k: string; v: string; s: string }) {
+  return (
+    <div style={{ border: '1px solid #E5E5E5', borderRadius: 4, padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 116 }}>
+      <span style={{ fontSize: 14, color: '#595959', fontWeight: 700 }}>{k}</span>
+      <strong className="d" style={{ fontSize: 24, lineHeight: 1.1, fontWeight: 400 }}>
+        {v}
+      </strong>
+      <span style={{ fontSize: 15, color: '#3D3D3D' }}>{s}</span>
+    </div>
+  )
+}
+
+/** 자주 묻는 질문 — 가게 화면이라 '맞춤'·'언제든'은 쓰지 않는다. 정기배송 값은 계산(15% — subscriptionPer100g). */
+function faqs(recipe: StoreRecipe): Array<[string, string]> {
+  const off = Math.round((1 - subscriptionPer100g(recipe) / (storeItem(`${recipe}-500g`).price / storeItem(`${recipe}-500g`).packs)) * 100)
+  return [
+    ['처음부터 화식만 줘도 되나요?', "먹던 사료에 조금씩 섞어 며칠에 걸쳐 바꾸는 게 좋아요. 양은 위 '하루에 얼마나'에서 몸무게를 넣어 보세요."],
+    ['4가지 레시피를 번갈아 줘도 되나요?', '네, 괜찮아요. 처음 바꿀 땐 하루이틀 섞어 주면 더 편하게 적응해요. 먹고 탈이 난 고기가 있다면 그 레시피만 빼 주세요.'],
+    ['언제 보내 주나요?', "위 '출고' 칸의 날짜에 얼린 채로 보냉 상자에 담아 보내 드려요. 받으면 바로 냉동실에 넣어 주세요."],
+    ['앱 정기배송과 뭐가 달라요?', `가게에서는 원하는 레시피를 한 봉씩 사요. 앱 정기배송은 우리 아이 몸무게와 나이로 하루 양을 계산해 2주마다 보내 드리고, 100g당 ${off}% 싸요.`],
+  ]
+}
 
 function Chevron({ size = 18 }: { size?: number }) {
   return (
@@ -295,9 +342,82 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         </Link>
       </section>
 
-      {/* 하루에 얼마나 */}
-      <section id="calc" aria-labelledby="calc-title" style={{ marginTop: 48, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
-        <h2 id="calc-title" className="d" style={{ margin: 0, fontSize: 30, lineHeight: 1.12 }}>
+      {/* ② 한눈에 */}
+      <section style={SEC}>
+        <Kicker color={color}>한눈에</Kicker>
+        <SecTitle>
+          국내산 고기를
+          <br />
+          수비드로 익힌 한 그릇
+        </SecTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Glance k="고기" v="모두 국내산" s={ANTIBIOTIC_FREE_MAIN[recipe] ? `무항생제 ${ing.main}` : ing.main} />
+          <div style={{ border: '2px solid #141414', borderRadius: 4, boxShadow: '4px 4px 0 #141414', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 116 }}>
+            <span style={{ fontSize: 14, color: '#595959', fontWeight: 700 }}>100g당</span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span className="n" style={{ fontSize: 46, lineHeight: 1 }}>
+                {kcalPer100g(recipe)}
+              </span>
+              <span style={{ fontSize: 17, fontWeight: 800 }}>kcal</span>
+            </span>
+            <span style={{ fontSize: 15, color: '#3D3D3D' }}>한 팩 100g 기준</span>
+          </div>
+          <Glance k="조리" v="저온 수비드" s="오래 끓이지 않아요" />
+          <Glance k="보관" v="냉동 180일" s="녹인 뒤엔 냉장 3일" />
+        </div>
+      </section>
+
+      {/* ③ 한 그릇에 들어간 것 — 원물 사진(흰 접시 탑다운, 사장님 10/15 고른 4장) + 재료 칩 */}
+      <section style={SEC}>
+        <Kicker color={color}>재료</Kicker>
+        <SecTitle>
+          한 그릇에
+          <br />
+          들어간 것
+        </SecTitle>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/store/ingredients-${recipe}.webp`}
+          alt={`흰 접시에 담은 ${[ing.main, ...ing.organs, ...ing.toppings, ...ing.veg].join('·')}와 작은 그릇에 담은 기름·영양 재료`}
+          width={1080}
+          height={724}
+          loading="lazy"
+          style={{ width: 'calc(100% + 40px)', maxWidth: 'none', margin: '0 -20px', aspectRatio: '1080 / 724', objectFit: 'cover', display: 'block' }}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[
+            { k: '고기', list: [ANTIBIOTIC_FREE_MAIN[recipe] ? `무항생제 ${ing.main}` : ing.main, ...ing.organs] },
+            { k: '이 레시피에 더한 것', list: [...ing.toppings] },
+            { k: '채소·곡물', list: ing.veg },
+            { k: '기름·영양', list: ing.base.map((b) => (b.includes('뉴트리 코어') ? '뉴트리 코어' : b)) },
+          ].map((g) => (
+            <div key={g.k} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 15, fontWeight: 800 }}>{g.k}</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {g.list.map((x, i) => (
+                  <span key={x} style={g.k === '고기' && i === 0 ? { ...TAG, background: color, color: recipe === 'chicken' ? '#141414' : '#FFFFFF' } : TAG}>
+                    {x}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {label && label.allergens.length > 0 && (
+          <p style={{ margin: 0, padding: '12px 14px', borderRadius: 4, background: '#F6F4F5', fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>
+            <strong style={{ color: '#141414' }}>알레르기 정보</strong> · {label.allergens.join(', ')}
+          </p>
+        )}
+        <a href="#info" style={{ marginTop: -8, height: 44, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414' }}>
+          원재료 전체 보기
+          <Chevron size={15} />
+        </a>
+      </section>
+
+      {/* ④ 하루에 얼마나 */}
+      <section id="calc" aria-labelledby="calc-title" style={{ marginTop: 64, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
+        <Kicker color={color}>급여량</Kicker>
+        <h2 id="calc-title" className="d" style={{ margin: '14px 0 0', fontSize: 32, lineHeight: 1.12 }}>
           하루에 얼마나 줄까요?
         </h2>
         <p style={{ margin: '8px 0 0', fontSize: 16, color: '#595959' }}>몸무게와 주는 방법만 고르면 돼요</p>
@@ -377,126 +497,236 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         </p>
       </section>
 
-      {/* 들어간 재료 */}
-      <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
-        <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
-          들어간 재료
-        </h2>
-        <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
+      {/* ⑤ 이렇게 만들어요 — 번호 = 실제 공정 순서 */}
+      <section style={SEC}>
+        <Kicker color={color}>만드는 법</Kicker>
+        <SecTitle>이렇게 만들어요</SecTitle>
+        <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
           {[
-            ['고기', meatLine(recipe).split('·').join(' · ')],
-            ['더한 것', toppingLine(recipe).split('·').join(' · ')],
-          ].map(([k, v]) => (
-            <div key={k} style={{ minHeight: 56, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '76px 1fr', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 15, color: '#595959' }}>{k}</span>
-              <span className="d" style={{ fontSize: 19 }}>
-                {v}
+            { t: '재료를 손질해 진공 포장해요', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.`, src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 고기를 손질하는 손' },
+            { t: '수비드로 천천히 익혀요', d: '정해진 온도의 물에서 오래 끓이지 않고 익혀 촉촉해요.', src: '/kitchen-sousvide.jpg', alt: '진공 포장한 재료를 수비드로 익히는 모습' },
+            { t: '채소와 고루 섞고 영양을 더해요', d: '비타민·미네랄(뉴트리 코어)과 연어유를 넣어요.', src: null, alt: '' },
+            { t: '바로 얼려 100g씩 나눠 담아요', d: '한 팩이 100g이라 양을 맞추기 쉬워요.', src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 100g 팩` },
+          ].map((s, i, all) => (
+            <li key={s.t} style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: 12, paddingBottom: i < all.length - 1 ? 24 : 0, position: 'relative' }}>
+              {i < all.length - 1 && <span aria-hidden style={{ position: 'absolute', left: 19, top: 40, bottom: 0, width: 2, background: '#E5E5E5' }} />}
+              <span className="n" style={{ width: 40, height: 40, borderRadius: '50%', background: '#141414', color: '#FFFFFF', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                {i + 1}
               </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 7, minWidth: 0 }}>
+                <strong style={{ fontSize: 18, fontWeight: 800 }}>{s.t}</strong>
+                <span style={{ fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>{s.d}</span>
+                {s.src && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.src} alt={s.alt} width={900} height={506} loading="lazy" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 4, display: 'block', background: '#F6F4F5' }} />
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ⑥ 영양 채우기 — 옛 '100% 충족' 표 자리의 정직한 버전. 배합 세부(아연·철 등)는 근거가 코드에 없어 재료로 확인되는 것만. */}
+      <section style={SEC}>
+        <Kicker color={color}>영양</Kicker>
+        <SecTitle>
+          모자라기 쉬운 영양은
+          <br />
+          따로 채워요
+        </SecTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 22px 1fr 22px 1fr', alignItems: 'center', gap: 4 }}>
+          {[
+            { a: '고기·채소', b: '간·염통·현미' },
+            { a: '뉴트리 코어', b: '비타민·미네랄' },
+          ].flatMap((x, i) => [
+            <div key={x.a} style={{ background: '#F6F4F5', borderRadius: 4, padding: '14px 6px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 100, justifyContent: 'center' }}>
+              <strong style={{ fontSize: 16 }}>{x.a}</strong>
+              <span style={{ fontSize: 13, color: '#595959' }}>{x.b}</span>
+            </div>,
+            <span key={`op${i}`} aria-hidden style={{ textAlign: 'center', fontSize: 22, fontWeight: 800 }}>
+              {i === 0 ? '+' : '='}
+            </span>,
+          ])}
+          <div style={{ border: `2px solid ${color}`, borderRadius: 4, padding: '14px 6px', textAlign: 'center', display: 'flex', minHeight: 100, alignItems: 'center', justifyContent: 'center' }}>
+            <strong className="d" style={{ fontSize: 19, lineHeight: 1.15, fontWeight: 400 }}>
+              {name}
+              <br />
+              화식
+            </strong>
+          </div>
+        </div>
+        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>
+          고기와 채소만으로는 모자라기 쉬운 비타민과 미네랄을 &lsquo;파머스테일 뉴트리 코어&rsquo;로 채워요. 식품으로 품목제조보고를 마친 프리믹스예요.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #E5E5E5' }}>
+          {[
+            ['비타민·미네랄', '뉴트리 코어'],
+            ['칼슘', '난각분말'],
+            ['오메가-3', '연어유'],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, padding: '13px 0', borderBottom: '1px solid #E5E5E5' }}>
+              <span style={{ fontSize: 15, color: '#595959', fontWeight: 700 }}>{k}</span>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>{v}</span>
             </div>
           ))}
         </div>
-        <a href="#info" style={{ marginTop: 12, height: 44, display: 'flex', alignItems: 'center', gap: 2, fontSize: 16, fontWeight: 700, color: '#141414' }}>
-          원재료 전체 보기
-          <Chevron size={15} />
-        </a>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#595959' }}>
+          미국 AAFCO·유럽 FEDIAF의 성견 영양 기준을 참고해 재료 하나하나의 영양을 계산해서 배합했어요. 등록한 성분량은 아래{' '}
+          <a href="#info" style={{ fontWeight: 700, color: '#141414' }}>
+            상품 정보
+          </a>
+          에 있어요.
+        </p>
+      </section>
+
+      {/* ⑦ 4가지 레시피 — 팩 사진 카드(보고 있는 것만 굵은 테두리) */}
+      <section style={SEC}>
+        <Kicker color={color}>다른 레시피</Kicker>
+        <SecTitle>
+          4가지 레시피
+          <br />
+          이렇게 달라요
+        </SecTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {STORE_RECIPES.map((r) => {
+            const on = r === recipe
+            const body = (
+              <>
+                <span style={{ position: 'relative', display: 'block', background: '#EDEDED' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={RECIPE_STUDIO_IMG[r]} alt={`${RECIPE_PRODUCT_NAME[r]} 팩`} width={400} height={240} loading="lazy" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+                  {on && (
+                    <span style={{ position: 'absolute', left: 8, top: 8, height: 24, padding: '0 8px', borderRadius: 999, background: '#141414', color: '#FFFFFF', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center' }}>
+                      보고 있어요
+                    </span>
+                  )}
+                </span>
+                <span style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, borderTop: `4px solid ${RECIPE_BAND[r]}` }}>
+                  <strong className="d" style={{ fontSize: 19, fontWeight: 400 }}>
+                    {RECIPE_PRODUCT_NAME[r]}
+                  </strong>
+                  <span style={{ fontSize: 14, color: '#3D3D3D' }}>{toppingLine(r)}</span>
+                  <span>
+                    <span className="n" style={{ fontSize: 20 }}>
+                      {kcalPer100g(r)}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#595959' }}> kcal</span>
+                  </span>
+                </span>
+              </>
+            )
+            const box: CSSProperties = { border: on ? '2px solid #141414' : '1px solid #E5E5E5', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }
+            return on ? (
+              <div key={r} style={box} aria-current="page">
+                {body}
+              </div>
+            ) : (
+              <Link key={r} href={`/store/${r}`} style={box}>
+                {body}
+              </Link>
+            )
+          })}
+        </div>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#595959' }}>모두 간·염통과 {ing.veg.join('·')}가 함께 들어가요. kcal은 100g 기준이에요.</p>
+      </section>
+
+      {/* ⑧ 이런 아이에게 */}
+      <section style={SEC}>
+        <Kicker color={color}>추천</Kicker>
+        <SecTitle>이런 아이에게 좋아요</SecTitle>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/bowl-eating.jpg" alt="그릇에 담긴 화식을 먹는 강아지" width={1200} height={750} loading="lazy" style={{ width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[
+            ['화식을 처음 시작하는 아이', '사료에 조금씩 섞어 시작해요'],
+            ['사료를 자주 남기는 아이', '고기 향이 살아 있는 한 그릇'],
+            ['물을 잘 안 마시는 아이', '물기 많은 한 그릇으로 수분도'],
+            ['씹기 편한 게 좋은 노령견', '부드러운 식감이에요'],
+          ].map(([a, b]) => (
+            <div key={a} style={{ border: '1px solid #E5E5E5', borderRadius: 4, padding: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <strong style={{ fontSize: 16, lineHeight: 1.35, wordBreak: 'keep-all' }}>{a}</strong>
+              <span style={{ fontSize: 14, lineHeight: 1.5, color: '#3D3D3D' }}>{b}</span>
+            </div>
+          ))}
+        </div>
         {advice && (
-          <div style={{ marginTop: 12, padding: '16px 18px', background: '#F6F4F5', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <strong style={{ fontSize: 16 }}>이런 아이에겐 다른 레시피를 권해요</strong>
-            <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>{advice}</p>
+          <div style={{ padding: '16px 18px', background: '#F6F4F5', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <strong style={{ fontSize: 17, fontWeight: 800 }}>이런 아이에겐 다른 레시피를 권해요</strong>
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>{advice}</p>
           </div>
         )}
       </section>
 
-      {/* 이렇게 만들어요 */}
-      <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
-          이렇게 만들어요
-        </h2>
-        {[
-          { src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 낀 손으로 고기를 손질하고 있어요', t: '국내산 고기만 써요', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.` },
-          { src: '/kitchen-sousvide.jpg', alt: '진공 포장한 고기를 수비드 기계로 익히고 있어요', t: '수비드로 천천히 익혀요', d: '진공 포장한 재료를 정해진 온도의 물에서 익히고, 바로 얼려 100g씩 나눠 담아요.' },
-          { src: RECIPE_REAL_IMG[recipe], alt: `그릇에 담은 ${RECIPE_PRODUCT_NAME[recipe]}`, t: '녹이면 바로 한 그릇', d: '데우지 않아도 돼요. 녹인 그대로 그릇에 담아 주세요.' },
-        ].map((f) => (
-          <figure key={f.t} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={f.src} alt={f.alt} width={1200} height={800} loading="lazy" style={{ width: '100%', aspectRatio: '350 / 210', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
-            <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <strong style={{ fontSize: 19, fontWeight: 800 }}>{f.t}</strong>
-              <span style={{ fontSize: 16, lineHeight: 1.55, color: '#595959' }}>{f.d}</span>
-            </figcaption>
-          </figure>
-        ))}
-      </section>
-
-      {/* 상품 정보 */}
-      <section id="info" style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
-        <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
-          상품 정보
-        </h2>
-        <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
-          <Acc title="원재료 전체">
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>{fullIngredients(recipe).join(', ')}</p>
-          </Acc>
-          <Acc title="등록성분">
-            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>
-              공인 기관의 검사 결과가 나오는 대로 이 자리에 그대로 올려요. 그 전까지는 팩 라벨의 표기가 기준이에요.
-            </p>
-          </Acc>
-          <Acc title="이렇게 도착해요" open>
-            <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                ['보냉 상자에 얼린 채로 와요.', '받으면 바로 냉동실에 넣어 주세요.'],
-                ['먹일 팩 하나를 전날 밤 냉장실로.', '천천히 녹여요.'],
-                ['녹인 팩은 3일 안에.', '다시 얼리지 마세요.'],
-              ].map(([a, b], i) => (
-                <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <span className="d" style={{ width: 28, height: 28, flexShrink: 0, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ fontSize: 16, lineHeight: 1.65 }}>
-                    <strong style={{ fontWeight: 800 }}>{a}</strong> {b}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </Acc>
-          {/* 처음부터 펼친다 — 반품 배송비·환불 조건을 찾지 않아도 보이게(토스 일반결제 심사 준비, 규칙210). */}
-          <Acc title="배송·교환·환불" id="shipping" open>
-            <ShippingRefundInfo />
-          </Acc>
-          <Acc title="상품정보 제공고시">
-            {label ? (
-              <NoticeList
-                rows={[
-                  ['제품명', `${RECIPE_PRODUCT_NAME[recipe]} ${size}`],
-                  ['내용량', `${item.grams}g (100g × ${item.packs}팩)`],
-                  ['가격', `${won(item.price)}원`],
-                  ['사료의 종류', label.petFoodClass],
-                  ['원산지', label.origin],
-                  ['제조원', [label.manufacturer, label.manufacturerAddress].filter(Boolean).join(' · ')],
-                  ['제조연월일', label.manufactureDatePolicy],
-                  ['유통기한', label.shelfLifeDays ? `제조일부터 냉동 ${label.shelfLifeDays}일` : null],
-                  ['보관 방법', label.storageMethod],
-                  ['알레르기 정보', label.allergens.length ? label.allergens.join(', ') : null],
-                  ['인증·원료', label.certifications.length ? label.certifications.join(' · ') : null],
-                  ['포장 국가', label.countryOfPackaging],
-                  ['상품 번호', label.sku],
-                  ['고객센터', business.phone],
-                ]}
-              />
-            ) : (
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>
-                정보를 불러오지 못했어요. 팩 라벨을 확인하시거나 {business.phone}로 물어봐 주세요.
-              </p>
-            )}
-          </Acc>
+      {/* ⑨ 이렇게 주세요 — 사진 = 사장님 상세 참고 자료의 실제 장면(serve-1~3) */}
+      <section style={SEC}>
+        <Kicker color={color}>주는 법</Kicker>
+        <SecTitle>녹여서 담으면 끝</SecTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+          {[
+            { src: '/store/serve-1.webp', alt: '녹인 팩을 그릇 옆에 든 손', t: '전날 냉장실로 옮겨 녹여요' },
+            { src: '/store/serve-2.webp', alt: '팩을 가위로 잘라 그릇에 담는 손', t: '팩을 잘라 그릇에 담아요' },
+            { src: '/store/serve-3.webp', alt: '그릇에 담은 화식', t: '데우지 않고 그대로 줘요' },
+          ].map((f, i) => (
+            <figure key={f.src} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={f.src} alt={f.alt} width={420} height={420} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+              <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="n" style={{ fontSize: 18 }}>
+                  {i + 1}
+                </span>
+                <strong style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'keep-all' }}>{f.t}</strong>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <div style={{ borderLeft: `4px solid ${color}`, padding: '4px 0 4px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>얼린 채로 보냉 상자에 와요 — 받으면 바로 냉동실에</span>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>녹인 뒤엔 냉장 3일 안에 주세요</span>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>한 번 녹인 팩은 다시 얼리지 마세요</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #E5E5E5' }}>
+          {[
+            ['입이 짧다면', '살짝 미지근하게 주면 고기 향이 더 살아나요'],
+            ['화식이 처음이면', '먹던 사료에 조금씩 섞어 며칠에 걸쳐 늘려요'],
+            ['이가 약하다면', '미지근한 물을 조금 더해 부드럽게 줘요'],
+          ].map(([a, b]) => (
+            <div key={a} style={{ padding: '14px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '118px 1fr', gap: 10 }}>
+              <strong style={{ fontSize: 16 }}>{a}</strong>
+              <span style={{ fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>{b}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 후기 */}
-      <section style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* ⑩ 등록 — 번호·주소는 싣지 않는다(사장님 10/15). 등록증 사진은 흐림을 파일에 구웠다(public/store/cert-*.webp). */}
+      <section style={SEC}>
+        <Kicker color={color}>믿고 먹일 수 있게</Kicker>
+        <SecTitle>
+          나라에 등록한
+          <br />
+          사료 제조 시설에서 만들어요
+        </SecTitle>
+        {[
+          { src: '/store/cert-maker.webp', w: 274, h: 346, alt: '사료제조업 등록증(번호 가림)', t: '사료제조업 등록', d: '인천광역시에 등록한 우리 제조 시설에서 직접 만들어요' },
+          { src: '/store/cert-recipes.webp', w: 308, h: 384, alt: '사료성분 등록증 4장(번호 가림)', t: '사료성분 등록 · 4가지 모두', d: '레시피마다 성분을 등록했어요. 등록한 성분량은 아래 상품 정보에 있어요' },
+        ].map((c) => (
+          <div key={c.t} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 16, alignItems: 'center', border: '1px solid #E5E5E5', borderRadius: 4, padding: 14 }}>
+            <span style={{ background: '#F6F4F5', borderRadius: 4, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={c.src} alt={c.alt} width={c.w} height={c.h} loading="lazy" style={{ height: 104, width: 'auto', display: 'block' }} />
+            </span>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <strong style={{ fontSize: 17 }}>{c.t}</strong>
+              <span style={{ fontSize: 15, lineHeight: 1.5, color: '#3D3D3D' }}>{c.d}</span>
+            </span>
+          </div>
+        ))}
+      </section>
+
+      {/* ⑪ 후기 */}
+      <section style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-          <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
+          <h2 className="d" style={{ margin: 0, fontSize: 32 }}>
             후기
           </h2>
           {reviews.length > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>{reviews.length}개</span>}
@@ -558,35 +788,61 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         )}
       </section>
 
-      {/* 다른 레시피 */}
-      <section style={{ padding: '56px 20px 120px', display: 'flex', flexDirection: 'column' }}>
-        <h2 className="d" style={{ margin: 0, fontSize: 30 }}>
-          다른 레시피
-        </h2>
+      {/* ⑫ 자주 묻는 질문 + 상품 정보 */}
+      <section style={{ ...SEC, gap: 0 }}>
+        <Kicker color={color}>궁금한 것</Kicker>
+        <div style={{ marginTop: 20 }}>
+          <SecTitle>자주 묻는 질문</SecTitle>
+        </div>
         <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
-          {STORE_RECIPES.filter((r) => r !== recipe).map((r) => (
-            <Link key={r} href={`/store/${r}`} style={{ minHeight: 80, borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', gap: 14, color: '#141414', textDecoration: 'none' }}>
-              <span style={{ position: 'relative', width: 58, height: 58, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5', flexShrink: 0 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={RECIPE_STUDIO_IMG[r]} alt="" width={58} height={58} loading="lazy" style={{ width: 58, height: 58, objectFit: 'cover', display: 'block' }} />
-                <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 4, background: RECIPE_BAND[r] }} />
-              </span>
-              <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                <span className="d" style={{ fontSize: 19 }}>
-                  {RECIPE_PRODUCT_NAME[r]}
-                </span>
-                <span style={{ fontSize: 14, color: '#595959' }}>{meatLine(r)}</span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 1, whiteSpace: 'nowrap' }}>
-                <span className="n" style={{ fontSize: 21 }}>
-                  {won(storeItem(`${r}-500g`).price)}
-                </span>
-                <span className="d" style={{ fontSize: 13 }}>
-                  원
-                </span>
-              </span>
-            </Link>
+          {faqs(recipe).map(([q, a], i) => (
+            <Acc key={q} title={q} open={i === 0}>
+              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{a}</p>
+            </Acc>
           ))}
+        </div>
+      </section>
+
+      <section id="info" style={{ padding: '48px 20px 120px', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
+        <SecTitle>상품 정보</SecTitle>
+        <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
+          <Acc title="원재료 전체">
+            <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>{fullIngredients(recipe).join(', ')}</p>
+          </Acc>
+          {/* 등록성분량 — 등록한 값 그대로(사장님 10/17: '검사 결과 나오면 올려요'는 미완성 업장 같다). 정본 lib/store/registered. */}
+          <Acc title="등록성분량" open>
+            <RegisteredTable recipe={recipe} />
+          </Acc>
+          {/* 처음부터 펼친다 — 반품 배송비·환불 조건을 찾지 않아도 보이게(토스 일반결제 심사 준비, 규칙210). */}
+          <Acc title="배송·교환·환불" id="shipping" open>
+            <ShippingRefundInfo />
+          </Acc>
+          <Acc title="상품정보 제공고시">
+            {label ? (
+              <NoticeList
+                rows={[
+                  ['제품명', `${RECIPE_PRODUCT_NAME[recipe]} ${size}`],
+                  ['내용량', `${item.grams}g (100g × ${item.packs}팩)`],
+                  ['가격', `${won(item.price)}원`],
+                  ['사료의 종류', label.petFoodClass],
+                  ['원산지', label.origin],
+                  ['제조원', [label.manufacturer, label.manufacturerAddress].filter(Boolean).join(' · ')],
+                  ['제조연월일', label.manufactureDatePolicy],
+                  ['유통기한', label.shelfLifeDays ? `제조일부터 냉동 ${label.shelfLifeDays}일` : null],
+                  ['보관 방법', label.storageMethod],
+                  ['알레르기 정보', label.allergens.length ? label.allergens.join(', ') : null],
+                  ['인증·원료', label.certifications.length ? label.certifications.join(' · ') : null],
+                  ['포장 국가', label.countryOfPackaging],
+                  ['상품 번호', label.sku],
+                  ['고객센터', business.phone],
+                ]}
+              />
+            ) : (
+              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>
+                정보를 불러오지 못했어요. 팩 라벨을 확인하시거나 {business.phone}로 물어봐 주세요.
+              </p>
+            )}
+          </Acc>
         </div>
       </section>
 

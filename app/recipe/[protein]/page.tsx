@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import StoreShell from '@/components/store/StoreShell'
 import '@/components/store/store.css'
 import AppTopBar from './AppTopBar'
+import RegisteredTable from '@/components/store/RegisteredTable'
 import { WEB_RECIPES, WEB_RECIPE_ORDER, type WebRecipe } from '@/lib/web-recipes'
 import { isAppContextServer } from '@/lib/app-context'
 import { RECIPE_DETAIL, RECIPE_FAQ, RECIPE_STORY, recipeLedger } from '@/lib/recipe-detail'
@@ -376,12 +377,12 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
         </ol>
       </section>
 
-      {/* ── 등록성분 — 검사 결과 전까지 숫자 없이(가게 상품 화면과 같은 말). 성분 % 는 싣지 않는다. ── */}
+      {/* ── 등록성분량 — 등록한 값 그대로(사장님 10/17 '검사 결과 나오면 올려요'는 미완성 업장 같다 — 규칙290). 가게 상품 화면과 같은 표. ── */}
       <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
-        <H2>등록성분</H2>
-        <p style={{ margin: '12px 0 0', padding: 16, borderRadius: 4, background: '#F6F4F5', fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>
-          공인 기관의 검사 결과가 나오는 대로 이 자리에 그대로 올려요. 그 전까지는 봉투 뒷면 라벨의 표기가 기준이에요.
-        </p>
+        <H2>등록성분량</H2>
+        <div style={{ marginTop: 8, borderTop: '2px solid #141414' }}>
+          <RegisteredTable recipe={key} />
+        </div>
       </section>
 
       {/* ── 처음 일주일 + 보관 ── */}
