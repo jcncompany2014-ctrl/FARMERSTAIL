@@ -120,7 +120,8 @@ test('규칙286: 가게 후기 — 질병 이름·치료 효과 문장 없음, �
     assert.ok(!DISEASE.test(text), `후기에 질병 이름이 있다(${r.id}): ${text.match(DISEASE)?.[0]}`)
     assert.ok(!EFFECT.test(text), `후기에 치료 효과로 읽히는 문장이 있다(${r.id}): ${text.match(EFFECT)?.[0]}`)
     assert.ok(r.note.trim().length > 0, `후기를 어디서 어떻게 옮겼는지(note)가 없다(${r.id})`)
-    assert.ok(r.photos.length > 0, `후기 사진이 없다(${r.id})`)
+    // 화면에 뜨는 후기(웹 레시피)는 사진이나 영상이 있다. 큐브·케이크처럼 웹 상세가 없는 상품 후기(recipe null)는 데이터로만 둔다(규칙294).
+    if (r.recipe !== null) assert.ok(r.photos.length > 0 || r.video !== undefined, `화면에 뜨는 후기에 사진·영상이 없다(${r.id})`)
     for (const p of r.photos) {
       assert.ok(p.alt.trim().length > 0, `후기 사진 설명(alt)이 없다(${r.id})`)
       assert.ok(statSync(join(ROOT, 'public', ...p.src.split('/').filter(Boolean))).size > 0, `후기 사진 파일이 없다: ${p.src}`)

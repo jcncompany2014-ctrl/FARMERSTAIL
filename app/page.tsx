@@ -10,7 +10,8 @@ import HomeCalculator from '@/components/store/HomeCalculator'
 import StoreFaq from '@/components/store/StoreFaq'
 import { ogImageUrl } from '@/lib/seo/jsonld'
 import { RECIPE_TITLE, STORE_RECIPES, storeItem } from '@/lib/store/catalog'
-import { STORE_REVIEWS } from '@/lib/store/reviews'
+import { HOME_FEATURED_REVIEW, HOME_MORE_REVIEWS, reviewById, reviewerLabel, smartstoreSummary } from '@/lib/store/reviews'
+import { SmartstoreReviewCard } from '@/components/store/ReviewMedia'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/pricing'
 import { SMARTSTORE_URL } from '@/lib/links'
@@ -55,10 +56,10 @@ export const metadata: Metadata = {
 }
 
 /**
- * 스마트스토어 별점·후기 수 — 손으로 옮긴 숫자라 **본 날짜를 같이 적는다**(화면에도 '○월 ○일 기준'). 숫자가 바뀌면 여기 셋을 같이 고친다.
- * 2026-10-17 웹 점검 때 스마트스토어 상품 화면에서 본 값.
+ * 스마트스토어 별점·후기 수 — 화식 상세에 옮겨 둔 스마트스토어 후기(lib/store/reviews)에서 센다. 화면에 '○월 ○일 기준'(가장 최근 후기 날).
+ * 10/17 오전엔 손으로 '10건'이라 적었는데 그날 후기가 하나 더 와서 바로 틀렸다 — 후기를 옮겨 넣으면 숫자가 같이 따라간다.
  */
-const SMARTSTORE_RATING = { stars: '5.0', reviews: 10, asOf: '10월 17일' } as const
+const SMARTSTORE_RATING = smartstoreSummary()
 
 const FAQ: { q: string; a: string }[] = [
   {
@@ -172,10 +173,15 @@ function ProofGrid() {
   )
 }
 
-/** 먹어 본 아이 이야기 — 게시 동의를 받아 옮긴 후기(lib/store/reviews) 첫 편. 후기가 없으면 칸을 그리지 않는다. */
+/**
+ * 먹어 본 아이 이야기 — 후기 정본(lib/store/reviews)에서: 크게 한 편(인스타 게시 동의 후기) + 아래 네이버 스마트스토어 후기 작은 카드
+ * (레시피마다 다른 것, 출처 딱지·가린 아이디 그대로 — 사장님 10/17). 화면에 뜨는(웹 레시피) 후기만, 없으면 칸을 그리지 않는다.
+ */
 function ReviewBlock() {
-  const r = STORE_REVIEWS[0]
-  if (!r) return null
+  const r = reviewById(HOME_FEATURED_REVIEW)
+  const more = HOME_MORE_REVIEWS.map(reviewById).filter((x) => x !== null)
+  if (!r || !r.recipe) return null
+  const recipe = r.recipe
   const photo = r.photos[0]!
   return (
     <section aria-labelledby="home-review" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
@@ -199,16 +205,23 @@ function ReviewBlock() {
         <figcaption style={{ paddingTop: 12, borderTop: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
             <span style={{ fontSize: 15, fontWeight: 800 }}>
-              {r.dogName} 보호자님{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
+              {reviewerLabel(r)}{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
             </span>
-            <span style={{ fontSize: 14, color: '#595959' }}>{RECIPE_TITLE[r.recipe]}를 먹었어요</span>
+            <span style={{ fontSize: 14, color: '#595959' }}>{RECIPE_TITLE[recipe]}를 먹었어요</span>
           </span>
-          <Link href={`/store/${r.recipe}#reviews`} style={{ flexShrink: 0, minHeight: 44, display: 'flex', alignItems: 'center', gap: 2, fontSize: 15, fontWeight: 700, color: '#141414' }}>
+          <Link href={`/store/${recipe}#reviews`} style={{ flexShrink: 0, minHeight: 44, display: 'flex', alignItems: 'center', gap: 2, fontSize: 15, fontWeight: 700, color: '#141414' }}>
             사진 더 보기
             <Chevron size={15} />
           </Link>
         </figcaption>
       </figure>
+      {more.length > 0 && (
+        <div style={{ marginTop: 24, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+          {more.map((m) => (
+            <SmartstoreReviewCard key={m.id} r={m} />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

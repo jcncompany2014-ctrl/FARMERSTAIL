@@ -6,6 +6,8 @@
  *   292 가게 이름 = 큰 '치킨 레시피' + 바로 옆 작은 '닭고기 화식'(부품 하나) — 주문서·영수증·제공고시 이름은 그대로 '닭고기 화식'
  *   293 홈 순서 = 증거 → 레시피 → 체험팩 → 후기 → 행사 → 계산기 → 만드는 과정 → 매거진 → 질문, 정기배송 줄은 한 번,
  *       행사는 진행 중인 것만, 매거진은 공개 글만(쿠키 없는 조회), 손으로 옮긴 별점엔 본 날짜
+ *   294 네이버 스마트스토어 후기(사장님 10/17 "스마트스토어 후기라는 거 달아 놓고, 아이디도 저 ***** 그대로") — 출처 딱지·가린 아이디·별점·날짜,
+ *       글은 그대로(맞춤법도), 다른 회사 이름·제품 사진은 뺌, 웹 상세가 없는 상품(큐브·케이크) 후기는 화면에 안 뜸, 영상은 소리 없이·포스터·저전력 대비
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -150,14 +152,100 @@ test('규칙293: 홈 순서·정기배송 줄 한 번·행사는 진행 중만·
   assert.doesNotMatch(home, /from '@\/lib\/supabase\/server'/, '홈이 쿠키 클라이언트를 쓴다(캐시가 깨진다)')
   assert.match(home, /export const revalidate = 3600/, '홈 캐시(1시간)가 빠졌다')
   // 손으로 옮긴 스마트스토어 숫자 = 본 날짜를 같이 적고 화면에도 보인다
-  assert.match(home, /const SMARTSTORE_RATING = \{ stars: '[\d.]+', reviews: \d+, asOf: '\d+월 \d+일' \} as const/, '스마트스토어 별점에 본 날짜가 없다')
+  // 10/17 오후: 손으로 적은 '10건'이 그날 후기 하나로 바로 틀려서 → 옮겨 둔 후기에서 센다(규칙294)
+  assert.match(home, /const SMARTSTORE_RATING = smartstoreSummary\(\)/, '스마트스토어 별점·후기 수를 손으로 적었다(옮긴 후기에서 세지 않는다)')
   assert.match(home, /\{SMARTSTORE_RATING\.asOf\} 기준/, '별점 칸에 "○월 ○일 기준"이 보이지 않는다')
+  const rvs = await load<typeof import('./store/reviews.ts')>('lib', 'store', 'reviews.ts')
+  const sum = rvs.smartstoreSummary()
+  const shownSs = rvs.STORE_REVIEWS.filter((r) => r.source === 'smartstore' && r.recipe !== null)
+  assert.equal(sum.reviews, shownSs.length, '홈 후기 수가 화식 상세에 옮긴 스마트스토어 후기 수와 다르다')
+  assert.ok(Number(sum.stars) <= Math.max(...shownSs.map((r) => r.rating ?? 0)), '홈 별점이 실제 후기 별점보다 높다')
+  assert.match(sum.asOf, /^\d{1,2}월 \d{1,2}일$/, '홈 별점 기준 날이 "○월 ○일"이 아니다')
   // 무항생제 = 닭가슴살·오리 안심만(흑돼지·한우에는 붙이지 않는다 — 메모리 정본)
   const c = await load<typeof import('./store/catalog.ts')>('lib', 'store', 'catalog.ts')
   assert.deepEqual(Object.keys(c.ANTIBIOTIC_FREE_MAIN).sort(), ['chicken', 'duck'])
   assert.match(home, />\s*무항생제\s*<\/span>\s*<span style=\{small\}>닭가슴살·오리 안심<\/span>/, '증거 칸 무항생제가 닭가슴살·오리 안심으로 한정되지 않는다')
-  // 후기 칸은 게시 동의를 받은 후기 정본에서만
-  assert.match(home, /const r = STORE_REVIEWS\[0\]\s*\n\s*if \(!r\) return null/, '홈 후기가 후기 정본(lib/store/reviews)에서 오지 않는다')
+  // 후기 칸은 후기 정본에서만(크게 한 편 + 스마트스토어 작은 카드 — 규칙294)
+  assert.match(home, /const r = reviewById\(HOME_FEATURED_REVIEW\)/, '홈 후기가 후기 정본(lib/store/reviews)에서 오지 않는다')
+  assert.match(home, /HOME_MORE_REVIEWS\.map\(reviewById\)/, '홈 작은 후기 카드가 후기 정본에서 오지 않는다')
   // 상세 후기 칸으로 바로 가는 주소가 실제로 있다
   assert.match(code('components', 'store', 'ProductDetail.tsx'), /<section id="reviews"/, "상세 화면에 '#reviews' 자리가 없다")
+})
+
+test('규칙294: 네이버 스마트스토어 후기 — 출처 딱지·가린 아이디 그대로·별점·날짜, 글은 그대로, 다른 회사 이름 없음, 웹 상세 없는 상품 후기는 안 뜸, 영상은 소리 없이', async () => {
+  /**
+   * 사장님 10/17: 스마트스토어 후기 캡처 14장을 보내며 "걍 올려, 네이버 스마트스토어 후기라는 거 달아 놓고, 네이버 아이디도 저 ***** 그대로".
+   * 큐브·케이크 후기는 "일단 리뷰로 만들어 놓고 — 지금은 상세페이지가 없음". 다른 회사 이름(디어니스트키친)은 가리고, 다른 회사 사료
+   * 봉지(닥터클라우더 '알러지 케어')가 크게 나온 사진은 뺐다 — 우리 광고에 남의 상표·효능 문구가 실린다.
+   */
+  const rv = await load<typeof import('./store/reviews.ts')>('lib', 'store', 'reviews.ts')
+  const c = await load<typeof import('./store/catalog.ts')>('lib', 'store', 'catalog.ts')
+  const ss = rv.STORE_REVIEWS.filter((r) => r.source === 'smartstore')
+  assert.ok(ss.length >= 13, `스마트스토어 후기가 ${ss.length}편뿐이다(10/17 옮긴 13편이 빠졌다)`)
+  assert.equal(new Set(rv.STORE_REVIEWS.map((r) => r.id)).size, rv.STORE_REVIEWS.length, '후기 id 가 겹친다')
+  for (const r of ss) {
+    assert.match(r.reviewerId ?? '', /^[0-9A-Za-z]+\*+$/, `${r.id}: 아이디가 네이버에 보이는 가린 모양(앞 몇 글자 + ***)이 아니다`)
+    assert.ok(Number.isInteger(r.rating) && (r.rating as number) >= 1 && (r.rating as number) <= 5, `${r.id}: 별점이 1~5 가 아니다`)
+    assert.match(r.date ?? '', /^\d{4}-\d{2}-\d{2}$/, `${r.id}: 남긴 날이 없다`)
+    assert.ok(r.note.includes('네이버 스마트스토어'), `${r.id}: 어디서 옮겼는지(네이버 스마트스토어)를 밝히지 않는다`)
+    assert.equal(r.title, null, `${r.id}: 스마트스토어 후기에 우리가 고른 제목을 붙였다(글은 그대로)`)
+    assert.equal(r.dogName, null, `${r.id}: 스마트스토어 후기에 강아지 이름을 지어 붙였다`)
+    assert.equal(rv.reviewerLabel(r), r.reviewerId, `${r.id}: 화면에 가린 아이디 그대로가 나오지 않는다`)
+  }
+  for (const r of rv.STORE_REVIEWS.filter((x) => x.source === 'instagram')) {
+    assert.equal(r.reviewerId, null, `${r.id}: 인스타 후기에 아이디가 있다`)
+    assert.equal(r.rating, null, `${r.id}: 인스타 후기에 별점이 있다(받지 않았다)`)
+  }
+  // 글은 그대로 — 맞춤법을 고치지 않았다(카나리아 두 편)
+  assert.equal(rv.STORE_REVIEWS.find((r) => r.id === 'ss-hatc-1017-chicken')?.body, '잘먹어서 두번째 구매입니다!')
+  assert.ok(rv.STORE_REVIEWS.find((r) => r.id === 'ss-zira-1009-duck')?.body.includes('저켓오요'), '손님 글의 맞춤법을 고쳤다(그대로 옮긴다)')
+  // 다른 회사 이름 없음
+  const OTHER_BRANDS = /디어니스트|닥터\s?클라우더|clauder|로얄\s?캐닌|royal\s?canin|오리젠|orijen|힐스|hill'?s|퓨리나|purina/i
+  for (const r of rv.STORE_REVIEWS) assert.doesNotMatch(`${r.body} ${r.photos.map((p) => p.alt + (p.caption ?? '')).join(' ')}`, OTHER_BRANDS, `${r.id}: 다른 회사 이름이 있다`)
+
+  // 웹 상세가 없는 상품(큐브·케이크) 후기 = 데이터로만 — 어떤 레시피 상세에도, 홈에도 안 뜬다
+  const hidden = rv.STORE_REVIEWS.filter((r) => r.recipe === null)
+  assert.ok(hidden.length >= 3, '큐브·케이크 후기(데이터로만 넣어 둔 것)가 빠졌다')
+  assert.ok(hidden.every((r) => r.productKey !== undefined), '웹 상세 없는 상품 후기에 상품 열쇠(productKey)가 없다 — 나중에 붙일 곳을 잃는다')
+  assert.ok(rv.STORE_REVIEWS.filter((r) => r.productKey).every((r) => r.recipe === null), '큐브·케이크 후기가 화식 레시피에 붙었다(다른 상품 후기가 화식 상세에 뜬다)')
+  // 스마트스토어 옵션 이름 = 붙인 레시피(닭고기 → 치킨 레시피 상세) — 다른 레시피 후기를 엉뚱한 상세에 붙이지 않는다
+  for (const r of ss.filter((x) => x.recipe !== null)) assert.ok(r.product.startsWith(c.RECIPE_NAME[r.recipe!]), `${r.id}: 산 상품(${r.product})과 붙인 레시피(${r.recipe})가 다르다`)
+  for (const recipe of c.STORE_RECIPES) {
+    const list = rv.reviewsFor(recipe)
+    assert.ok(list.every((r) => r.recipe === recipe), `${recipe} 상세에 다른 상품 후기가 섞였다`)
+  }
+  const shown = c.STORE_RECIPES.flatMap((recipe) => rv.reviewsFor(recipe))
+  assert.equal(shown.length + hidden.length, rv.STORE_REVIEWS.length, '어느 화면에도 안 가는 후기가 있다(레시피도 상품 열쇠도 아님)')
+  assert.ok(shown.length >= 12, '화식 상세에 뜨는 후기가 줄었다')
+  for (const r of shown) assert.ok(r.photos.length > 0 || r.video !== undefined, `${r.id}: 화면에 뜨는 후기에 사진·영상이 없다`)
+  assert.equal(rv.reviewById('ss-mjy1-1011-cube'), null, '웹 상세 없는 상품 후기를 홈이 고를 수 있다')
+  // 홈 = 크게 한 편 + 스마트스토어 작은 카드(레시피마다 다른 것)
+  assert.ok(rv.reviewById(rv.HOME_FEATURED_REVIEW), '홈 큰 후기가 없다')
+  const more = rv.HOME_MORE_REVIEWS.map((id) => rv.reviewById(id))
+  assert.ok(more.every((r) => r !== null && r.source === 'smartstore'), '홈 작은 카드가 화면에 뜨는 스마트스토어 후기가 아니다')
+  assert.equal(new Set(more.map((r) => r?.recipe)).size, more.length, '홈 작은 카드가 같은 레시피를 겹쳐 고른다')
+
+  // 영상 = 정사각형 포스터 · 3MB 이하 · 소리 트랙 없음
+  const sharp = (await import('sharp')).default
+  for (const r of rv.STORE_REVIEWS.filter((x) => x.video)) {
+    const v = r.video!
+    const file = join(ROOT, 'public', ...v.src.split('/').filter(Boolean))
+    const buf = readFileSync(file)
+    assert.ok(buf.length > 10_000 && buf.length < 3_000_000, `${v.src}: 영상 크기가 이상하다(${buf.length})`)
+    assert.ok(!buf.includes(Buffer.from('soun')), `${v.src}: 소리 트랙이 남았다(화면 녹화 소리 — 빼고 올린다)`)
+    const m = await sharp(join(ROOT, 'public', ...v.poster.split('/').filter(Boolean))).metadata()
+    assert.equal(m.width, m.height, `${v.poster}: 영상 포스터가 정사각형이 아니다`)
+  }
+  // 화면 부품 — 출처 딱지(초록 + 검정 글자), 영상은 소리 없이·화면에 보일 때만·막히면 재생 단추
+  const media = code('components', 'store', 'ReviewMedia.tsx')
+  assert.match(media, /네이버 스마트스토어 후기/, '출처 딱지 글자가 없다')
+  assert.match(media, /background: NAVER_GREEN, color: '#141414'/, '출처 딱지가 초록 바탕 검정 글자가 아니다(흰 글자는 대비 2.3:1)')
+  for (const re of [/\bmuted\b/, /\bplaysInline\b/, /poster=\{poster\}/, /preload="none"/, /new IntersectionObserver/, /\.catch\(\(\) => setBlocked\(true\)\)/, /controls=\{blocked\}/]) {
+    assert.match(media, re, `후기 영상 부품에 ${re} 가 없다(소리·자동 재생·저전력 대비)`)
+  }
+  assert.match(media, /\{reviewerLabel\(r\)\}/, '스마트스토어 후기 화면에 아이디가 안 나온다')
+  assert.match(media, /\{reviewDate\(r\.date\)\}/, '스마트스토어 후기 화면에 날짜가 안 나온다')
+  const pd = code('components', 'store', 'ProductDetail.tsx')
+  assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'smartstore'\)\.map\(\(r\) => \(\s*<SmartstoreReview key=\{r\.id\} r=\{r\} \/>/, '상세 화면이 스마트스토어 후기를 출처 딱지 부품으로 그리지 않는다')
+  assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'instagram'\)\.map\(/, '상세 화면 인스타 후기 큰 카드가 빠졌다')
 })

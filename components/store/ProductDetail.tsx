@@ -42,7 +42,9 @@ import RecipeName from './RecipeName'
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
-import { reviewsFor } from '@/lib/store/reviews'
+import { reviewerLabel, reviewsFor } from '@/lib/store/reviews'
+import { SmartstoreReview } from './ReviewMedia'
+import { SMARTSTORE_URL } from '@/lib/links'
 import type { RecipeLabel } from '@/lib/store/label'
 import { Acc, NoticeList, ShippingRefundInfo } from './ProductInfo'
 import { business } from '@/lib/business'
@@ -729,14 +731,16 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           </h2>
           {reviews.length > 0 && <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>{reviews.length}개</span>}
         </div>
-        {/* 후기 = 게시 동의를 받아 옮긴 손님 후기(lib/store/reviews, 규칙286). 후기 쓰기 기능은 아직 없다 — 쓸 수 있다고 말하지 않는다. */}
+        {/* 후기 = 정본 lib/store/reviews(규칙286·294) — 인스타 후기는 게시 동의를 받아, 스마트스토어 후기는 출처·가린 아이디 그대로(사장님 10/17).
+            후기 쓰기 기능은 아직 없다 — 쓸 수 있다고 말하지 않는다. */}
         {reviews.length === 0 ? (
           <div style={{ border: '2px solid #141414', borderRadius: 4, padding: '18px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             <strong style={{ fontSize: 17 }}>첫 후기를 모으는 중이에요</strong>
             <span style={{ fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 이 자리에 올려요.</span>
           </div>
         ) : (
-          reviews.map((r) => (
+          <>
+          {reviews.filter((r) => r.source === 'instagram').map((r) => (
             <article key={r.id} style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {/* 사진 = 첫 장 크게 + 나머지 두 칸씩, 전부 1:1(파일도 정사각형 — 규칙288). 예전 2:1 고정 높이 칸은 좁은 칸의 사진 양옆을 잘랐다. */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
@@ -754,22 +758,36 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               </div>
               <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <span style={{ alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 2, background: '#F6F4F5', color: '#141414', fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden style={{ width: 8, height: 8, background: RECIPE_BAND[r.recipe] }} />
-                  {RECIPE_TITLE[r.recipe]}
+                  <span aria-hidden style={{ width: 8, height: 8, background: RECIPE_BAND[recipe] }} />
+                  {RECIPE_TITLE[recipe]}
                 </span>
-                <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
-                  &ldquo;{r.title}&rdquo;
-                </strong>
+                {r.title && (
+                  <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
+                    &ldquo;{r.title}&rdquo;
+                  </strong>
+                )}
                 <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{r.body}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 12, borderTop: '1px solid #E5E5E5' }}>
                   <span style={{ fontSize: 15, fontWeight: 800 }}>
-                    {r.dogName} 보호자님{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
+                    {reviewerLabel(r)}{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
                   </span>
                   <span style={{ fontSize: 14, color: '#595959' }}>{r.note}</span>
                 </div>
               </div>
             </article>
-          ))
+          ))}
+          {reviews.some((r) => r.source === 'smartstore') && (
+            <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+              {reviews.filter((r) => r.source === 'smartstore').map((r) => (
+                <SmartstoreReview key={r.id} r={r} />
+              ))}
+              <a href={SMARTSTORE_URL} target="_blank" rel="noopener noreferrer" style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
+                스마트스토어에서 후기 전체 보기
+                <Chevron />
+              </a>
+            </div>
+          )}
+          </>
         )}
         {business.kakaoChannelUrl && (
           <a
