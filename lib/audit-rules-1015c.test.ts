@@ -8,12 +8,13 @@
  *   286 가게 후기 — 질병 이름·치료 효과 문장 없음(로아 원문 '항암' → '치료 중이라', 사장님 10/15), 옮긴 방법 밝힘, 사진 실재
  *   287 앱 화면 비중 — 홈 인사 작게·추천 딱지 작게(이름 위)·둘러보기는 탭바 위까지(사장님 10/15 폰 캡처)
  *   288 가게 후기 사진 — 정사각형 파일·1:1 칸·세 장 다·토핑 사진은 밝힘(사장님 10/17 "애매하게 잘렸다")
+ *   289 지운 사진 세 벌(주황 폰 스냅샷 팩·토핑 AI 그릇·옛 흰 봉투)이 파일로도 코드로도 돌아오지 않는다(사장님 10/17)
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
 const ROOT = process.env.AUDIT_ROOT ?? process.cwd()
@@ -175,4 +176,21 @@ test('규칙288: 가게 후기 사진 — 파일은 정사각형, 화면은 1:1 
   assert.match(gallery, /aspectRatio: '1 \/ 1'/, '후기 사진 칸이 1:1 이 아니다')
   assert.ok(!/height: \d+, objectFit: 'cover'/.test(gallery), '후기 사진을 다시 고정 높이 칸에 잘라 담는다')
   assert.match(gallery, /p\.caption &&/, '후기 사진 설명(caption)을 화면에 보이지 않는다')
+})
+
+test('규칙289: 지운 사진 세 벌이 돌아오지 않는다 — 주황 폰 스냅샷 팩(/pkg)·토핑 AI 그릇(/bowl/레시피)·옛 흰 봉투(meal-recipe)', () => {
+  /**
+   * 사장님 10/17 "이 사진 3개는 아예 삭제해 안 써 이제". 팩은 스튜디오 컷(/pouch-*.webp), 그릇은 사장님 실촬영 한 장
+   * (/bowl/fresh.webp)만 쓴다. 파일이 다시 생기거나, 화면·정본 코드가 그 경로를 다시 부르면 빨간불.
+   */
+  const gone = [
+    'meal-recipe.webp',
+    ...['chicken', 'duck', 'pork', 'beef'].flatMap((p) => [`pkg/${p}.webp`, `pkg/${p}-wide.webp`, `bowl/${p}.webp`]),
+  ]
+  const back = gone.filter((f) => existsSync(join(ROOT, 'public', ...f.split('/'))))
+  assert.deepEqual(back, [], `지운 사진 파일이 다시 있다: ${back.join(', ')}`)
+  assert.ok(existsSync(join(ROOT, 'public', 'bowl', 'fresh.webp')), '사장님 실촬영 그릇(/bowl/fresh.webp)까지 지워졌다 — 이건 쓴다')
+  const BANNED = /\/pkg\/|\/bowl\/(chicken|duck|pork|beef)|meal-recipe|bowlImageFor|packageImageFor/
+  const hits = sources().filter((f) => BANNED.test(f.src)).map((f) => `${f.rel}: ${f.src.match(BANNED)?.[0]}`)
+  assert.deepEqual(hits, [], `지운 사진을 아직 부르는 코드가 있다: ${hits.join(' · ')}`)
 })

@@ -65,7 +65,7 @@ import {
   TOPPER_KCAL_PER_100G,
 } from '@/lib/personalization/boxPricing'
 import { hasPancreatitisGate } from '@/lib/personalization/consultation-gate'
-import { bowlImageForLine } from '@/lib/personalization/packageImage'
+import { FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
 import { trackBeginCheckout, type AnalyticsItem } from '@/lib/analytics'
 import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
 import { FOOD_LINE_POUCH, POUCH_NAME } from '@/lib/design/pouch'
@@ -973,7 +973,7 @@ export default function OrderClient({
                       }
                       aria-hidden
                     >
-                      {/* 원형 = 완성된 화식 그릇(4종 공용 한 장, 사장님 2026-08-25).
+                      {/* 원형 = 완성된 화식 그릇(사장님 실촬영 4종 공용 한 장 — 레시피별 AI 그릇은 2026-10-17 지웠다).
                           레시피 구분은 사진이 아니라 **테두리 색**이 맡는다 —
                           4종 다 강황 베이스라 실제로 겉모습이 비슷하고, 없는
                           차이를 사진으로 지어내지 않는 편이 정직하다.
@@ -982,7 +982,7 @@ export default function OrderClient({
                           로드되지 않았다(naturalWidth 0). eager 로 즉시 로드. */}
                       {/* eslint-disable-next-line @next/next/no-img-element -- 46px 고정 슬롯 */}
                       <img
-                        src={bowlImageForLine(it.line)}
+                        src={FRESH_BOWL_IMAGE}
                         alt=""
                         className="ord-recipe-pkg"
                         decoding="async"

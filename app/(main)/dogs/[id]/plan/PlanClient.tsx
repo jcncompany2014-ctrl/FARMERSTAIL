@@ -31,7 +31,7 @@ import { SheetContent } from '@/components/v3/sheet/SheetParts'
 import FunnelSteps from '@/components/v3/funnel/FunnelSteps'
 import DogPawMark from '@/components/DogPawMark'
 import { FOOD_LINE_META } from '@/lib/personalization/lines'
-import { studioPouchImageForLine, bowlImageForLine } from '@/lib/personalization/packageImage'
+import { studioPouchImageForLine, FRESH_BOWL_IMAGE } from '@/lib/personalization/packageImage'
 import { cardIngredientNames, fullIngredientNames } from '@/lib/recipe-ingredients'
 import {
   computeBoxItems,
@@ -518,7 +518,7 @@ export function PlanView({
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element -- 고정 크기 썸네일(레시피 팩 스튜디오 컷)
                       <img
-                        src={pouch ?? bowlImageForLine(line)}
+                        src={pouch ?? FRESH_BOWL_IMAGE}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         decoding="async"
@@ -897,30 +897,27 @@ function RecipeDetail({
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- 시트 안 고정 비율 슬롯 */}
         <img
-          src={pouchSrc ?? bowlImageForLine(line)}
+          src={pouchSrc ?? FRESH_BOWL_IMAGE}
           alt={`${meta.nameKo} 화식 패키지`}
           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 52%', display: 'block' }}
           decoding="async"
         />
       </div>
 
-      {/* 완성 그릇 + 연출샷 고지 (사장님 2026-08-25).
-          화식 사진은 실제 원물로 만든 **연출샷**이라, 실물과 다르게 보일 수
-          있다는 걸 사진 바로 옆에서 밝힌다 — 표시광고 오인 방지이자 "왜 갈려
-          있나"를 미리 답해 주는 자리다. 원형 썸네일이라 카드·주문 화면의 그
-          사진과 같은 것임을 알아본다. */}
+      {/* 실제 담기는 모습 — 사장님 실촬영 그릇(4종 공용). 예전엔 토핑을 올린 AI 연출 그릇(레시피별)과
+          '연출한 컷' 고지였는데, 사장님이 그 사진들을 지웠다(2026-10-17, 규칙289). "왜 갈려 있나"를 미리 답하는 자리. */}
       <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '60px 1fr', columnGap: 12, alignItems: 'center' }}>
         <span style={{ width: 60, height: 60, borderRadius: 30, overflow: 'hidden', display: 'block' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 원형 썸네일 */}
           <img
-            src={bowlImageForLine(line)}
-            alt={`${meta.nameKo} 화식 완성 그릇`}
+            src={FRESH_BOWL_IMAGE}
+            alt="그릇에 담긴 파머스테일 화식"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             decoding="async"
           />
         </span>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: V3.inkMute, wordBreak: 'keep-all' }}>
-          사진은 실제 들어가는 원물로 연출한 컷이에요. 실제 제품은 같은 원물을 소화가 편하도록 곱게 갈아서 담아 드려요.
+          받으시면 이렇게 담겨 있어요. 원물을 소화가 편하도록 곱게 갈아서 담아 드려요.
         </p>
       </div>
 
@@ -1030,7 +1027,7 @@ function HeroCard({
         <span style={{ width: 76, height: 76, borderRadius: 4, overflow: 'hidden', background: '#FFFFFF', display: 'block' }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 고정 크기 슬롯(레시피 팩 스튜디오 컷) */}
           <img
-            src={pouch ?? bowlImageForLine(line)}
+            src={pouch ?? FRESH_BOWL_IMAGE}
             alt={`${rn?.name ?? meta.nameKo} 레시피 팩`}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             decoding="async"

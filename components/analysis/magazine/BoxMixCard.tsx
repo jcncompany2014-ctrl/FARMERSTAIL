@@ -16,7 +16,7 @@ import { V3 } from '@/lib/design/tokens'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { Reasoning, FoodLine } from '@/lib/personalization/types'
 import { plainTrigger, isPlainCustomerText, isCustomerVisibleReason } from '@/lib/personalization/plain-reason'
-import { bowlImageForLine, studioPouchImageForLine } from '@/lib/personalization/packageImage'
+import { FRESH_BOWL_IMAGE, studioPouchImageForLine } from '@/lib/personalization/packageImage'
 import { recipeColorOfLine, recipeTitleOfLine } from '../display'
 
 export interface BoxMixItem {
@@ -168,8 +168,8 @@ function BoxSkeleton() {
 }
 
 function BoxRow({ item }: { item: BoxMixItem }) {
-  // 레시피 팩 스튜디오 컷(시안 D08) — 판매하지 않는 라인(연어)은 그릇 사진, 그것도 없으면 레시피 색 원.
-  const photo = item.photoUrl ?? studioPouchImageForLine(item.key) ?? bowlImageForLine(item.key)
+  // 레시피 팩 스튜디오 컷(시안 D08) — 판매하지 않는 라인(연어)은 사장님 실촬영 그릇 사진.
+  const photo = item.photoUrl ?? studioPouchImageForLine(item.key) ?? FRESH_BOWL_IMAGE
   const color = recipeColorOfLine(item.key)
   // 큰 이름 = 팩에 찍힌 영어, 아래 회색 = 한글 상품 이름(사장님 2026-10-10). 팩이 없는 라인은 예전 한글 이름 그대로.
   const t = recipeTitleOfLine(item.key)
