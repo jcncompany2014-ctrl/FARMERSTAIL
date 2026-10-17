@@ -7,6 +7,7 @@
  *   285 흑돼지 레시피 부위 = 안심 — 화면·정본 어디에도 뒷다리살이 없다(사장님 10/15 정정, 8/25 기록은 틀림)
  *   286 가게 후기 — 질병 이름·치료 효과 문장 없음(로아 원문 '항암' → '치료 중이라', 사장님 10/15), 옮긴 방법 밝힘, 사진 실재
  *   287 앱 화면 비중 — 홈 인사 작게·추천 딱지 작게(이름 위)·둘러보기는 탭바 위까지(사장님 10/15 폰 캡처)
+ *   288 가게 후기 사진 — 정사각형 파일·1:1 칸·세 장 다·토핑 사진은 밝힘(사장님 10/17 "애매하게 잘렸다")
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -147,4 +148,31 @@ test('규칙287: 앱 화면 비중 — 홈 인사는 작게(제목 ≤ 24·아�
   const t = code('components', 'v3', 'tour', 'ResultTour.tsx')
   assert.match(t, /nav\[aria-label="주 메뉴"\][\s\S]{0,200}getBoundingClientRect\(\)\.top/, '둘러보기가 하단 탭바 윗선을 아래 한계로 보지 않는다')
   assert.match(t, /r0\.bottom > visibleBottom/, '둘러보기가 탭바에 가린 대상을 끌어오지 않는다')
+})
+
+test('규칙288: 가게 후기 사진 — 파일은 정사각형, 화면은 1:1 칸(고정 높이로 잘라 담지 않음), 보내 주신 사진은 다 씀, 토핑 사진은 밝힘', async () => {
+  /**
+   * 사장님 10/17 "리뷰 사진이 애매하게 잘렸다·다른 사진들도 보내줬잖아": 2:1 칸에 높이 232 를 고정해 오른쪽 좁은 칸의 팩 사진이
+   * 양옆으로 잘렸고, 세 장 중 그릇 사진(손님이 토핑을 올림)은 빼 두었다. 이제 미리 정사각형으로 잘라 1:1 칸에 그대로 담는다.
+   */
+  const sharp = (await import('sharp')).default
+  const { STORE_REVIEWS } = await import('./store/reviews.ts')
+  for (const r of STORE_REVIEWS) {
+    for (const p of r.photos) {
+      const m = await sharp(join(ROOT, 'public', ...p.src.split('/').filter(Boolean))).metadata()
+      assert.equal(m.width, m.height, `후기 사진이 정사각형이 아니다 — 1:1 칸에서 잘린다: ${p.src} (${m.width}x${m.height})`)
+    }
+  }
+  const roa = STORE_REVIEWS.find((r) => r.id === 'roa-2026-10')
+  assert.ok(roa, '로아 후기가 없다')
+  assert.equal(roa.photos.length, 3, '로아 보호자님이 보내 주신 사진 세 장(먹는 모습·팩·그릇)을 다 쓰지 않는다')
+  const bowl = roa.photos.find((p) => p.src.includes('bowl'))
+  assert.ok(bowl?.caption?.includes('토핑'), '토핑을 올린 그릇 사진에 "보호자님이 올린 토핑"이라는 설명이 없다(재료 오해)')
+  const pd = code('components', 'store', 'ProductDetail.tsx')
+  const gStart = pd.indexOf('r.photos.map(')
+  const gallery = gStart < 0 ? '' : pd.slice(gStart, pd.indexOf('</figure>', gStart))
+  assert.ok(gallery.length > 0, '후기 사진 칸을 찾지 못했다')
+  assert.match(gallery, /aspectRatio: '1 \/ 1'/, '후기 사진 칸이 1:1 이 아니다')
+  assert.ok(!/height: \d+, objectFit: 'cover'/.test(gallery), '후기 사진을 다시 고정 높이 칸에 잘라 담는다')
+  assert.match(gallery, /p\.caption &&/, '후기 사진 설명(caption)을 화면에 보이지 않는다')
 })

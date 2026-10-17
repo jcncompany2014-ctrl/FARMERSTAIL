@@ -510,10 +510,18 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         ) : (
           reviews.map((r) => (
             <article key={r.id} style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: r.photos.length > 1 ? '2fr 1fr' : '1fr', gap: 2, background: '#141414' }}>
+              {/* 사진 = 첫 장 크게 + 나머지 두 칸씩, 전부 1:1(파일도 정사각형 — 규칙288). 예전 2:1 고정 높이 칸은 좁은 칸의 사진 양옆을 잘랐다. */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
                 {r.photos.map((p, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={p.src} src={p.src} alt={p.alt} loading="lazy" width={i === 0 ? 900 : 508} height={i === 0 ? 900 : 446} style={{ width: '100%', height: 232, objectFit: 'cover', objectPosition: i === 0 ? '50% 50%' : '50% 20%', display: 'block' }} />
+                  <figure key={p.src} style={{ margin: 0, position: 'relative', gridColumn: i === 0 || (i === r.photos.length - 1 && i % 2 === 1) ? '1 / -1' : undefined }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.src} alt={p.alt} loading="lazy" width={600} height={600} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
+                    {p.caption && (
+                      <figcaption style={{ position: 'absolute', left: 8, bottom: 8, padding: '3px 8px', borderRadius: 2, background: 'rgba(20,20,20,0.78)', color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+                        {p.caption}
+                      </figcaption>
+                    )}
+                  </figure>
                 ))}
               </div>
               <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>

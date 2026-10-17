@@ -4,7 +4,9 @@
  * - 후기 쓰기 기능은 아직 없다(2026-07-16 폐기) — 이 목록이 정본이다. 레시피에 후기가 없으면 상품 화면은 '모으는 중' 안내를 보인다.
  * - 줄여 옮길 땐 그렇다고 밝힌다(note). 상품 페이지에 올린 후기는 우리 광고라서 질병 이름·치료 효과로 읽히는 문장은 옮기지 않는다
  *   (사료 표시·광고 — 규칙286 이 지킨다). 사정을 살릴 땐 병명 없이 쓴다(예: '치료 중이라' — 사장님 10/15 선택).
- * - 사진은 public/store/review-*.webp. 손님 사진에 우리 레시피에 없는 토핑이 올라가 있으면 쓰지 않는다(재료 오해).
+ * - 사진은 public/store/review-*.webp, **정사각형으로 미리 잘라 둔다**(규칙288) — 화면은 1:1 칸에 그대로 담는다.
+ *   10/17 사장님 "애매하게 잘렸다·다른 사진도 보냈잖아": 2:1 칸에 높이를 고정해 팩 사진이 좁은 칸에서 양옆이 잘렸고, 그릇 사진은 빠져 있었다.
+ * - 손님이 우리 레시피에 없는 토핑을 올린 사진은 caption 으로 그렇다고 밝힌다(재료 오해 방지 — 사장님 10/17 세 장 다 쓰기로).
  */
 import type { StoreRecipe } from './catalog.ts'
 
@@ -17,7 +19,8 @@ export type StoreReview = {
   /** 후기에서 고른 한 줄(따옴표 안에 보인다). */
   title: string
   body: string
-  photos: ReadonlyArray<{ src: string; alt: string }>
+  /** 첫 장이 크게, 나머지는 아래에 두 칸씩. 전부 정사각형 파일. */
+  photos: ReadonlyArray<{ src: string; alt: string; caption?: string }>
   /** 어디서 받았고 어떻게 옮겼는지(줄였으면 줄였다고). */
   note: string
 }
@@ -33,6 +36,11 @@ export const STORE_REVIEWS: readonly StoreReview[] = [
     photos: [
       { src: '/store/review-roa-eat.webp', alt: '흰 그릇에 담긴 닭고기 화식을 먹는 프렌치 불도그 로아' },
       { src: '/store/review-roa-packs.webp', alt: '닭고기 화식 팩들 앞에 앉은 로아' },
+      {
+        src: '/store/review-roa-bowl.webp',
+        alt: '보호자님이 토핑을 올려 차린 닭고기 화식 한 그릇',
+        caption: '토핑은 보호자님이 올리셨어요',
+      },
     ],
     note: '인스타그램으로 남겨 주신 후기를 줄여 옮겼어요',
   },
