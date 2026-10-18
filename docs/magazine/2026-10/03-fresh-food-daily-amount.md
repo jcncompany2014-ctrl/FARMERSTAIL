@@ -3,7 +3,7 @@ slug: dog-fresh-food-daily-amount   # 새 글
 title: 화식 하루 양, 이렇게 정해요
 excerpt: 몸무게와 주는 방법(건사료에 곁들여서·반반·화식만)에 따라 하루 양이 어떻게 달라지는지 3kg·5kg·10kg 예시로 정리했어요. 중성화·나이·활동량·체형이 왜 양을 바꾸는지도 함께 담았어요.
 category: 화식 처음
-cover: /magazine/fresh-food-daily-amount.webp
+cover: /magazine/fresh-food-daily-amount-v2.webp   # 2026-10-18 표지 교체(옛 폰 화면 그림은 PC 카드에서 흐렸다 — 보호자 1인칭·그릇·저울·강아지)
 잇는 곳: 닭고기 화식(본문 중간 카드) · 상품 화면 '하루에 얼마나 줄까요?' · 앱(몸무게에 맞춘 양) · 이 글과 이어지는 레시피(글 끝 카드)
 ---
 
