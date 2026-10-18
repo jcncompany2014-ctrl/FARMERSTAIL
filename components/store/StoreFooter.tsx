@@ -15,6 +15,7 @@ import { business, CUSTOMER_CENTER_HOURS, ftcLookupUrl } from '@/lib/business'
  */
 const BROWSE_LINKS: ReadonlyArray<readonly [href: string, label: string]> = [
   ['/store', '스토어'],
+  ['/reviews', '후기'],
   ['/blog', '매거진'],
   ['/our-food', '우리 음식'],
   ['/brand', '브랜드 이야기'],
@@ -26,7 +27,9 @@ export default function StoreFooter() {
   const year = new Date().getFullYear()
   return (
     <footer style={{ background: '#141414', color: '#FFFFFF' }}>
-      <div className="fts-col" style={{ padding: '48px 20px 52px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* PC(폭 1024 이상)에선 두 단 — 왼쪽 로고·물어보기(.fts-ft-l), 오른쪽 둘러보기·약관·사업자 정보(store.css .fts-ft). */}
+      <div className="fts-col fts-ft" style={{ padding: '48px 20px 52px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="fts-ft-l" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-paper.png" alt="파머스테일" width={117} height={20} style={{ height: 20, width: 'auto', alignSelf: 'flex-start', display: 'block' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -47,6 +50,7 @@ export default function StoreFooter() {
               카카오톡으로 물어보기
             </a>
           )}
+        </div>
         </div>
         <nav aria-label="둘러보기" style={{ display: 'flex', flexWrap: 'wrap', columnGap: 18, rowGap: 2 }}>
           {BROWSE_LINKS.map(([href, label]) => (

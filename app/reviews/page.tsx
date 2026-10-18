@@ -77,11 +77,11 @@ export default function ReviewsPage() {
   const byRecipe = STORE_RECIPES.map((r) => ({ recipe: r, list: reviewsFor(r) }))
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id="ld-reviews-crumbs" data={crumbLd} />
       <div style={{ lineHeight: 'normal' }}>
         {/* ── 머리말 · 제목 · 소개 ── */}
-        <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <section className="fts-sec fts-narrow" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>후기</span>
           <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
             먹어 본 아이들의
@@ -94,7 +94,7 @@ export default function ReviewsPage() {
         </section>
 
         {/* ── 별점 한 줄(옮긴 후기에서 셈) + 네이버에서 보기 ── */}
-        <section style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <section className="fts-sec fts-narrow" style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <a
             href={SMARTSTORE_URL}
             target="_blank"
@@ -127,7 +127,7 @@ export default function ReviewsPage() {
 
         {/* ── 레시피마다 후기 — 인스타 동의 후기(큰 카드) → 스마트스토어 후기(한 줄 목록) ── */}
         {byRecipe.map(({ recipe, list }) => (
-          <section key={recipe} id={`reviews-${recipe}`} aria-label={`${RECIPE_TITLE[recipe]} 후기`} style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
+          <section key={recipe} id={`reviews-${recipe}`} aria-label={`${RECIPE_TITLE[recipe]} 후기`} className="fts-sec fts-narrow" style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
               <RecipeName recipe={recipe} size={26} as="h2" />
               <span style={{ fontSize: 15, fontWeight: 700, color: '#595959', whiteSpace: 'nowrap' }}>{list.length}편</span>
@@ -159,7 +159,7 @@ export default function ReviewsPage() {
         ))}
 
         {/* ── 직접 먹여 보세요 — 체험팩(가게) · 앱 띠 ── */}
-        <section style={{ padding: '56px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+        <section className="fts-sec fts-narrow" style={{ padding: '56px 20px 64px', display: 'flex', flexDirection: 'column' }}>
           <h2 className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>
             직접 먹여 보세요
           </h2>

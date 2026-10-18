@@ -89,12 +89,12 @@ function CompareTable() {
     },
   ]
   return (
-    <section aria-labelledby="compare-title" style={{ padding: '56px 20px 0' }}>
+    <section aria-labelledby="compare-title" className="fts-sec fts-pt" style={{ padding: '56px 20px 0' }}>
       <h2 id="compare-title" className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.12 }}>
         한눈에 비교
       </h2>
       <p style={{ margin: '8px 0 0', fontSize: 16, color: '#595959' }}>열량이 높을수록 같은 500g이 조금 더 오래가요</p>
-      <table style={{ marginTop: 16, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', borderTop: '2px solid #141414', borderBottom: '2px solid #141414' }}>
+      <table className="fts-compare-table" style={{ marginTop: 16, width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', borderTop: '2px solid #141414', borderBottom: '2px solid #141414' }}>
         <thead>
           <tr>
             <th scope="col" style={{ width: 64 }} />
@@ -134,9 +134,10 @@ function TrialPanel({ paused, notice }: { paused: boolean; notice: [string, stri
   const saving = TRIAL_ITEM.listPrice - TRIAL_ITEM.price
   const DAY = ['첫날', '둘째 날', '셋째 날', '넷째 날']
   return (
-    <div style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column' }}>
+    // PC(폭 1024 이상): 왼쪽 팩 사진(따라 내려옴) · 오른쪽 가격·담기·먹이는 법·상품 정보(store.css .fts-trialpanel)
+    <div className="fts-sec fts-trialpanel" style={{ padding: '20px 20px 0', display: 'flex', flexDirection: 'column' }}>
       <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#3D3D3D' }}>네 가지 맛을 {TRIAL_PACK_G}g씩, 우리 아이가 직접 골라요.</p>
-      <div style={{ marginTop: 16, position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, borderRadius: 4, overflow: 'hidden' }}>
+      <div className="fts-trial-imgs" style={{ marginTop: 16, position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6, borderRadius: 4, overflow: 'hidden' }}>
         {STORE_RECIPES.map((r) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img key={r} src={RECIPE_STUDIO_IMG[r]} alt={`${RECIPE_NAME[r]} 화식`} width={400} height={400} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block', background: '#F6F4F5' }} />
@@ -249,7 +250,14 @@ export default function StoreBrowse({
 
   return (
     <>
-      <div role="tablist" aria-label="상품 종류" style={{ padding: '16px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+      {/* PC 만 — 화면 제목(폰은 탭부터 시작, 시안대로) */}
+      <div className="fts-pc-only fts-sec" style={{ paddingTop: 36 }}>
+        <h2 className="d" style={{ margin: 0, fontSize: 40, lineHeight: 1.1 }}>
+          스토어
+        </h2>
+        <p style={{ margin: '10px 0 0', fontSize: 18, color: '#595959' }}>화식 4종은 500g·1kg, 처음이라면 4종 체험팩부터</p>
+      </div>
+      <div role="tablist" aria-label="상품 종류" className="fts-sec fts-store-tabs" style={{ padding: '16px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
         {tabs.map((t) => {
           const on = t.id === tab
           return (
@@ -270,7 +278,7 @@ export default function StoreBrowse({
 
       {tab === 'recipes' ? (
         <>
-          <div style={{ padding: '20px 20px 0' }}>
+          <div className="fts-sec" style={{ padding: '20px 20px 0' }}>
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#3D3D3D' }}>
               모두 100g 팩 5개, 500g 한 봉이에요.
               <br />
@@ -279,7 +287,7 @@ export default function StoreBrowse({
             <span id="avoid-label" style={{ display: 'block', marginTop: 18, fontSize: 17, fontWeight: 800 }}>
               피하고 싶은 고기가 있나요?
             </span>
-            <div role="group" aria-labelledby="avoid-label" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+            <div role="group" aria-labelledby="avoid-label" className="fts-store-filter" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               {STORE_RECIPES.map((r) => {
                 const on = !!avoid[r]
                 return (
@@ -298,7 +306,7 @@ export default function StoreBrowse({
             <span style={{ display: 'block', marginTop: 8, fontSize: 14, color: '#595959' }}>알레르기가 있다면 상품마다 원재료 전체를 꼭 확인해 주세요.</span>
           </div>
 
-          <div style={{ padding: '22px 20px 0' }}>
+          <div className="fts-sec" style={{ padding: '22px 20px 0' }}>
             {shown.length > 0 ? (
               <RecipeGrid recipes={shown} showDetail paused={paused} />
             ) : (
@@ -322,14 +330,14 @@ export default function StoreBrowse({
           </div>
 
           <CompareTable />
-          <div style={{ padding: '28px 20px 64px' }}>
+          <div className="fts-sec" style={{ padding: '28px 20px 64px' }}>
             <AppLine />
           </div>
         </>
       ) : (
         <>
           <TrialPanel paused={paused} notice={trialNotice} />
-          <div style={{ padding: '28px 20px 64px' }}>
+          <div className="fts-sec" style={{ padding: '28px 20px 64px' }}>
             <AppLine />
           </div>
         </>

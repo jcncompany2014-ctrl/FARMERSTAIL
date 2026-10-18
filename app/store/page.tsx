@@ -35,7 +35,7 @@ export default async function StorePage({ searchParams }: { searchParams: Promis
   const labels = await fetchRecipeLabels()
   const trialNotice = labels ? trialNoticeRows(labels, { phone: business.phone }) : null
   return (
-    <StoreShell>
+    <StoreShell wide>
       {/* 2026-10-11 SEO: 스토어엔 h1 이 없었다(시안은 탭부터 시작) — 화면은 그대로 두고 읽기 장치·검색엔진용 제목만 단다. */}
       <h1 style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
         파머스테일 스토어 — 강아지 화식 4종·체험팩

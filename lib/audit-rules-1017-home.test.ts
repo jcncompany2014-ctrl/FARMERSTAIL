@@ -9,6 +9,7 @@
  *   294 네이버 스마트스토어 후기(사장님 10/17 "스마트스토어 후기라는 거 달아 놓고, 아이디도 저 ***** 그대로") — 출처 딱지·가린 아이디·별점·날짜,
  *       글은 그대로(맞춤법도), 다른 회사 이름·제품 사진은 뺌, 웹 상세가 없는 상품(큐브·케이크) 후기는 화면에 안 뜸, 영상은 소리 없이·포스터·저전력 대비
  *   295 웹 문구 정리(10/18) — 레시피 페르소나는 "○○ 같은 아이를 떠올리며"(손님 사연처럼 쓰지 않음), 후기 빈칸 문구 없음, 후기 화면 다시 열림, 웹엔 맞춤 없음
+ *   296 PC 화면(폭 1024 이상, 시안 A 가게형) — PC 규칙은 store.css 1024px 블록 안에만(폰 모양 불변), 가로 메뉴, 넓은 화면 4곳(홈·스토어·상세·후기)
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -136,7 +137,7 @@ test('규칙293: 홈 순서·정기배송 줄 한 번·행사는 진행 중만·
   const home = code('app', 'page.tsx')
   const body = home.slice(home.indexOf('export default async function HomePage'))
   assert.ok(body.length > 1000, '홈 화면 본문을 못 찾았다')
-  const ORDER = ['<ShipLine />', '<ProofGrid />', '<RecipeGrid paused={storeSalesPaused()} />', '<TrialCard />', '<ReviewBlock />', '<EventStrip events={events} />', '<HomeCalculator />', '손질부터 배송까지', '<MagazineList posts={posts} />', '<StoreFaq items={FAQ} />']
+  const ORDER = ['<ShipLine />', '<ProofGrid />', '<RecipeGrid paused={storeSalesPaused()} />', '<TrialCard />', '<ReviewBlock />', '<EventStrip events={events} />', '<HomeCalculator />', '손질부터 배송까지', '<MagazineList posts={posts} />', '<StoreFaq items={FAQ}']
   let at = -1
   for (const mark of ORDER) {
     const i = body.indexOf(mark)
@@ -249,6 +250,52 @@ test('규칙294: 네이버 스마트스토어 후기 — 출처 딱지·가린 �
   const pd = code('components', 'store', 'ProductDetail.tsx')
   assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'smartstore'\)\.map\(\(r\) => \(\s*<SmartstoreReview key=\{r\.id\} r=\{r\} \/>/, '상세 화면이 스마트스토어 후기를 출처 딱지 부품으로 그리지 않는다')
   assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'instagram'\)\.map\(/, '상세 화면 인스타 후기 큰 카드가 빠졌다')
+})
+
+test('규칙296: PC 화면(폭 1024 이상, 시안 A 가게형) — PC 규칙은 1024px 블록 안에만(폰 모양 불변)·가로 메뉴·넓은 화면 4곳', () => {
+  /**
+   * 사장님 10/18 "가게형 ㄱㄱ": PC 에서 폰 기둥 하나만 떠 있던 웹을 1200 폭 2단·4열로. 부품 모양은 인라인 스타일(폰 기준)이라 PC 는
+   * store.css 의 @media (min-width: 1024px) 블록에서 이름표(.fts-*)로 덮는다. 그 이름표 규칙이 블록 밖으로 새면 폰 화면이 바뀐다.
+   */
+  const css = read('components', 'store', 'store.css').replace(/\/\*[\s\S]*?\*\//g, ' ') // 주석 속 이름은 규칙이 아니다
+  const pcStart = css.indexOf('@media (min-width: 1024px)')
+  assert.ok(pcStart > 0, 'PC 규칙 블록(@media (min-width: 1024px))이 없다')
+  const before = css.slice(0, pcStart)
+  const pcBlock = css.slice(pcStart)
+  // 블록 밖에 허용된 것: PC 전용 숨김 두 개(.fts-pc-only · .fts-hd-pc — 폰에서 숨긴다)
+  const PC_CLASSES = ['fts-sec', 'fts-pt', 'fts-hero', 'fts-proof', 'fts-rgrid', 'fts-rcard', 'fts-rpic', 'fts-trial', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-', 'fts-faq-list', 'fts-pd-', 'fts-narrow', 'fts-ft', 'fts-hd-m', 'fts-m-only', 'fts-store-', 'fts-compare-table', 'fts-feat-photos', 'fts-main', 'fts-event']
+  for (const c of PC_CLASSES) assert.ok(!before.includes(`.${c}`), `PC 이름표 .${c} 규칙이 1024px 블록 밖에 있다 — 폰 화면이 바뀐다`)
+  assert.match(before, /\.fts-pc-only \{\s*display: none !important;\s*\}/, 'PC 전용 요소가 폰에서 숨지 않는다')
+  assert.match(before, /\.fts-hd-pc \{\s*display: none;\s*\}/, 'PC 가로 메뉴가 폰에서 숨지 않는다')
+  for (const c of ['.fts-hd-m', '.fts-sec', '.fts-hero', '.fts-rgrid', '.fts-pd-top', '.fts-pd-bar']) assert.ok(pcBlock.includes(c), `PC 블록에 ${c} 규칙이 없다`)
+  // 1024px 블록 뒤에 다른 미디어 블록이 끼어들지 않는다(블록 끝까지가 PC)
+  assert.equal((pcBlock.match(/@media/g) ?? []).length, 1, 'PC 블록 안이나 뒤에 다른 @media 가 있다 — 폰 범위로 샐 수 있다')
+  // 본문 넓이: 넓게 다시 짠 화면은 1200, 그 밖은 480 칸 그대로
+  assert.match(pcBlock, /\.fts-main:not\(\[data-wide='true'\]\) \{[^}]*max-width: 480px/, '넓게 다시 짜지 않은 화면이 PC 에서 480 칸을 벗어난다')
+  assert.match(pcBlock, /max\(32px, calc\(\(100% - 1200px\) \/ 2\)\)/, 'PC 본문 최대 폭 1200 규칙이 없다')
+
+  const shell = code('components', 'store', 'StoreShell.tsx')
+  assert.match(shell, /<main className="fts-main" data-wide=\{wide \? 'true' : undefined\}/, 'StoreShell 이 넓은 화면 표시(data-wide)를 달지 않는다')
+  for (const rel of [['app', 'page.tsx'], ['app', 'store', 'page.tsx'], ['app', 'store', '[slug]', 'page.tsx'], ['app', 'reviews', 'page.tsx']]) {
+    assert.match(code(...rel), /<StoreShell[^>]*\bwide\b/, `${rel.join('/')}: PC 에서 넓게 쓰는 화면인데 StoreShell wide 가 없다`)
+  }
+  const header = code('components', 'store', 'StoreHeader.tsx')
+  assert.match(header, /<header className="fts-hd-pc">/, 'PC 가로 메뉴 머리줄이 없다')
+  assert.match(header, /className="fts-hd-m"/, '폰 머리줄 이름표(.fts-hd-m)가 없다 — PC 에서 두 머리줄이 겹친다')
+  for (const href of ['/store', '/reviews', '/blog', '/our-food', '/brand', '/faq']) assert.ok(header.includes(`['${href}',`), `PC 가로 메뉴에 ${href} 가 없다`)
+  // 화면별 이름표
+  const home = code('app', 'page.tsx')
+  for (const c of ['fts-sec fts-hero', 'fts-hero-pic', 'fts-hero-card', 'fts-proof', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-list', 'fts-faq-list']) assert.ok(home.includes(c), `홈에 PC 이름표 ${c} 가 없다`)
+  const grid = code('components', 'store', 'RecipeGrid.tsx')
+  assert.ok(grid.includes('className="fts-rgrid"') && grid.includes('className="fts-rcard"'), '레시피 목록에 PC 4열 이름표가 없다')
+  const pd = code('components', 'store', 'ProductDetail.tsx')
+  for (const c of ['className="fts-pd-top"', 'className="fts-pd-media"', 'className="fts-pd-buy"', 'className="fts-pd-bar"']) assert.ok(pd.includes(c), `상품 상세에 PC 이름표 ${c} 가 없다`)
+  // 구매 상자(오른쪽)는 레시피 바꾸기부터 구매 버튼까지를 감싼다 — 사진 묶음 다음, ② 한눈에 앞에서 닫힌다
+  const buyAt = pd.indexOf('className="fts-pd-buy"')
+  assert.ok(buyAt > pd.indexOf('className="fts-pd-media"') && buyAt < pd.indexOf('aria-label="레시피 바꾸기"'), 'PC 구매 상자가 사진 다음 · 레시피 바꾸기 앞에서 열리지 않는다')
+  const glanceAt = pd.indexOf('<Kicker color={color}>한눈에</Kicker>')
+  assert.ok(glanceAt > 0, "상품 상세 '한눈에' 구획을 찾지 못했다")
+  assert.ok(pd.indexOf('onClick={openSheet}') > buyAt && pd.indexOf('onClick={openSheet}') < glanceAt, 'PC 구매 상자 안에 담기 버튼이 없다')
 })
 
 test('규칙295: 웹 문구 정리(10/18) — 레시피 페르소나는 손님 사연처럼 쓰지 않음·후기 빈칸 문구 없음·후기 화면 다시 열림·웹엔 맞춤 없음', async () => {

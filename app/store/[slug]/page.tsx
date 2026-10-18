@@ -117,7 +117,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     { name: RECIPE_PRODUCT_NAME[recipe], path: `/store/${recipe}` },
   ])
   return (
-    <StoreShell header={{ variant: 'back', backHref: '/store' }}>
+    <StoreShell header={{ variant: 'back', backHref: '/store' }} wide>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <JsonLd id={`ld-breadcrumb-store-${recipe}`} data={breadcrumbLd} />
       <ProductDetail recipe={recipe} label={label} paused={storeSalesPaused()} />

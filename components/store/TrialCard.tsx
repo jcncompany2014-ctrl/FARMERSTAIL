@@ -12,15 +12,16 @@ export default function TrialCard({ kicker = '처음이라면' }: { kicker?: str
   return (
     <Link
       href="/store?tab=trial"
+      className="fts-trial"
       style={{ border: '2px solid #141414', borderRadius: 4, padding: 14, color: '#141414', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}
     >
-      <span aria-hidden style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+      <span aria-hidden className="fts-trial-packs" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
         {STORE_RECIPES.map((r) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img key={r} src={RECIPE_STUDIO_IMG[r]} alt="" title={RECIPE_TITLE[r]} width={160} height={160} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 2, display: 'block', background: '#F6F4F5' }} />
         ))}
       </span>
-      <span style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+      <span className="fts-trial-row" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
         <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#595959' }}>{kicker}</span>
           <span className="d" style={{ fontSize: 24, lineHeight: 1.1 }}>

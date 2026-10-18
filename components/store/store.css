@@ -104,3 +104,421 @@
     box-shadow: 0 0 0 1px #e5e5e5;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * PC 화면(폭 1024 이상) — 2026-10-18 사장님 "가게형 ㄱㄱ"(PC 시안 A, scratchpad pc_mock/A_*.html).
+ * 폰 화면은 그대로 두고, 넓은 화면에서만 아래 이름표(.fts-*)가 모양을 바꾼다. 부품의 모양은 인라인 스타일(폰 기준)이라
+ * 여기서는 !important 로 덮는다 — 폭 1024 미만에서는 이 블록 전체가 먹지 않는다.
+ *  - 틀: 가운데 480 칸(위 600px 규칙)을 풀고, 머리줄·바닥은 화면 끝까지, 본문은 최대 1200.
+ *    넓게 다시 짠 화면(StoreShell wide — 홈·스토어·상품 상세·후기)만 본문을 넓힌다. 나머지 화면은 본문을 480 칸 그대로 가운데에.
+ *  - 구획(.fts-sec): 바탕은 끝까지, 글은 1200 안 — 좌우 여백을 max(32px, (100% - 1200px) / 2) 로.
+ * ───────────────────────────────────────────────────────────────────────────── */
+.fts-pc-only {
+  display: none !important;
+}
+.fts-hd-pc {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .fts {
+    background: #ffffff;
+  }
+  .fts-page {
+    max-width: none;
+    box-shadow: none;
+  }
+  .fts-pc-only {
+    display: revert !important;
+  }
+  .fts-m-only {
+    display: none !important;
+  }
+  /* 넓게 다시 짜지 않은 화면 — 본문만 예전처럼 가운데 480 칸 */
+  .fts-main:not([data-wide='true']) {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .fts-sec {
+    padding-left: max(32px, calc((100% - 1200px) / 2)) !important;
+    padding-right: max(32px, calc((100% - 1200px) / 2)) !important;
+  }
+  .fts-pt {
+    padding-top: 96px !important;
+  }
+
+  /* ── 머리줄: 폰(☰ · 로고 · 장바구니) ↔ PC(로고 · 가로 메뉴 · 장바구니) ── */
+  .fts-hd-m {
+    display: none !important;
+  }
+  .fts-hd-pc {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 76px;
+    box-sizing: border-box;
+    padding: 0 max(32px, calc((100% - 1200px) / 2));
+    display: flex;
+    align-items: center;
+    gap: 44px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+  }
+  .fts-hd-pc nav {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .fts-hd-pc nav a {
+    height: 76px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #141414;
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .fts-hd-pc nav a:hover,
+  .fts-hd-pc nav a[aria-current='page'] {
+    border-bottom-color: #141414;
+  }
+
+  /* ── 바닥: 두 단 ── */
+  .fts-ft {
+    max-width: none !important;
+    padding-left: max(32px, calc((100% - 1200px) / 2)) !important;
+    padding-right: max(32px, calc((100% - 1200px) / 2)) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 64px;
+    align-items: start;
+  }
+  .fts-ft > * {
+    grid-column: 2;
+  }
+  .fts-ft > .fts-ft-l {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+  }
+  .fts-ft-l a[href^="https"] {
+    max-width: 360px;
+  }
+
+  /* ── 홈 첫 화면: 좌 글 · 우 셸티 ── */
+  .fts-hero {
+    padding-top: 40px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    column-gap: 64px;
+    align-items: center;
+  }
+  .fts-hero-pic {
+    grid-column: 2;
+    grid-row: 1;
+    height: 600px !important;
+    border-radius: 4px;
+  }
+  .fts-hero-img {
+    height: 600px !important;
+    object-position: 85% 30% !important;
+  }
+  .fts-hero .hand {
+    right: 28px !important;
+    top: 40px !important;
+    font-size: 30px !important;
+  }
+  .fts-hero-card {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+  .fts-hero-card h1 {
+    font-size: 58px !important;
+  }
+  .fts-hero-card .fts-lead {
+    margin-top: 20px !important;
+    font-size: 20px !important;
+  }
+  .fts-hero-cta {
+    margin-top: 36px !important;
+    display: flex !important;
+    align-items: center;
+    gap: 20px;
+  }
+  .fts-hero-cta > a {
+    margin-top: 0 !important;
+    padding: 0 32px;
+  }
+  .fts-ship {
+    justify-content: flex-start !important;
+    margin-top: 22px !important;
+    font-size: 16px !important;
+  }
+
+  /* ── 증거 네 칸: 한 줄 ── */
+  .fts-proof-sec {
+    padding-top: 64px !important;
+  }
+  .fts-proof {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .fts-proof > * {
+    border-bottom: 0 !important;
+    border-right: 1px solid #e5e5e5 !important;
+    padding: 24px 24px 24px 24px !important;
+  }
+  .fts-proof > *:first-child {
+    padding-left: 0 !important;
+  }
+  .fts-proof > *:last-child {
+    border-right: 0 !important;
+  }
+
+  /* ── 레시피 4열 카드(홈·스토어 공용 RecipeGrid) ── */
+  .fts-rgrid {
+    padding-top: 28px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .fts-rcard {
+    padding: 0 !important;
+    border-bottom: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+  }
+  .fts-rpic {
+    min-height: 0 !important;
+    aspect-ratio: 4 / 3;
+  }
+  .fts-rbody {
+    margin-top: 18px;
+  }
+
+  /* ── 4종 체험팩: 가로로 긴 카드 ── */
+  .fts-trial {
+    padding: 22px 28px 22px 22px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 36px !important;
+  }
+  .fts-trial-packs {
+    grid-template-columns: repeat(4, 104px) !important;
+  }
+  .fts-trial-row {
+    display: contents !important;
+  }
+  .fts-trial-row > span:first-child .d {
+    font-size: 32px !important;
+  }
+  .fts-trial-row > span:last-child .n {
+    font-size: 40px !important;
+  }
+
+  /* ── 먹어 본 아이 이야기: 로아(왼쪽) · 스마트스토어 카드(오른쪽) ── */
+  .fts-rv {
+    display: grid !important;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 48px;
+    align-items: start;
+  }
+  .fts-rv > h2 {
+    grid-column: 1 / -1;
+  }
+  .fts-rv > .fts-rv-more {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 20px !important;
+  }
+  .fts-rv-top {
+    grid-template-columns: 220px minmax(0, 1fr) !important;
+    column-gap: 24px !important;
+  }
+  .fts-rv-photo {
+    width: 220px !important;
+    height: 220px !important;
+  }
+  .fts-rv-top .d {
+    font-size: 30px !important;
+  }
+
+  /* ── 진행 중인 행사 ── */
+  .fts-event a {
+    padding: 22px 28px !important;
+  }
+  .fts-event .d {
+    font-size: 28px !important;
+  }
+
+  /* ── 500g 며칠분: 왼쪽 제목 · 오른쪽 계산기 ── */
+  .fts-calc {
+    margin-top: 96px !important;
+    padding-top: 64px !important;
+    padding-bottom: 64px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 64px;
+    align-items: start;
+  }
+  .fts-calc h2 {
+    font-size: 40px !important;
+  }
+
+  /* ── 손질부터 배송까지: 큰 사진(왼쪽) · 작은 사진 둘(오른쪽) ── */
+  .fts-make {
+    display: grid !important;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+  .fts-make > h2 {
+    grid-column: 1 / -1;
+  }
+  .fts-make > figure {
+    grid-column: 1;
+  }
+  .fts-make-small {
+    grid-column: 2;
+    margin-top: 22px !important;
+  }
+
+  /* ── 매거진 3열 ── */
+  .fts-mag-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    padding-top: 24px !important;
+    border-bottom: 0;
+  }
+  .fts-mag-list > li {
+    border-bottom: 0 !important;
+  }
+  .fts-mag-item {
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column-reverse;
+    gap: 14px;
+  }
+  .fts-mag-thumb {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 10;
+  }
+
+  /* ── 자주 묻는 질문 두 단 ── */
+  .fts-faq-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 48px;
+    align-items: start;
+  }
+
+  /* ── 스토어: 탭·고르기는 좁게, 비교표는 820 안, 체험팩은 왼쪽 사진 · 오른쪽 정보 ── */
+  .fts-store-tabs {
+    grid-template-columns: repeat(2, 240px) !important;
+    padding-top: 24px !important;
+  }
+  .fts-store-filter {
+    max-width: 520px;
+  }
+  .fts-compare-table {
+    max-width: 820px;
+  }
+  .fts-trialpanel {
+    padding-top: 28px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+  .fts-trialpanel > * {
+    grid-column: 2;
+  }
+  .fts-trialpanel > .fts-trial-imgs {
+    grid-column: 1;
+    grid-row: 1 / span 9;
+    margin-top: 0 !important;
+    position: sticky !important; /* 인라인 position: relative 를 덮는다(안 덮으면 top 100 만큼 밀린다) */
+    top: 100px;
+  }
+
+  /* ── 상품 상세 위쪽: 왼쪽 사진 · 오른쪽 구매 상자 ── */
+  .fts-pd-top {
+    padding: 28px max(32px, calc((100% - 1200px) / 2)) 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+  .fts-pd-media {
+    position: sticky;
+    top: 100px;
+  }
+  .fts-pd-photo {
+    border-radius: 4px;
+  }
+  .fts-pd-thumbs {
+    padding: 12px 0 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px !important;
+  }
+  .fts-pd-thumbs > button {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+  .fts-pd-buy > nav {
+    margin-top: 0 !important;
+  }
+  .fts-pd-buy > section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .fts-pd-buy h1 .d {
+    font-size: 44px !important;
+  }
+  .fts-pd-cols4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .fts-pd-narrow,
+  .fts-narrow {
+    padding-left: max(32px, calc((100% - 820px) / 2)) !important;
+    padding-right: max(32px, calc((100% - 820px) / 2)) !important;
+  }
+  .fts-pd-bar {
+    padding-left: max(32px, calc((100% - 1200px) / 2)) !important;
+    padding-right: max(32px, calc((100% - 1200px) / 2)) !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px !important;
+  }
+  .fts-pd-bar > div {
+    width: 440px;
+  }
+
+  .fts-pd-steps img {
+    max-width: 440px;
+  }
+  .fts-feat-photos {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .fts-feat-photos > figure {
+    grid-column: auto !important;
+  }
+  .fts-pd-bleed {
+    width: 100% !important;
+    margin: 0 !important;
+    border-radius: 4px;
+  }
+}

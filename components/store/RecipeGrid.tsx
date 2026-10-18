@@ -71,21 +71,23 @@ export default function RecipeGrid({
           <PayPausedNotice />
         </div>
       )}
-      <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: '2px solid #141414' }}>
+      {/* PC(폭 1024 이상)에선 4열 카드 — 사진 위·글 아래(store.css .fts-rgrid). */}
+      <ul className="fts-rgrid" style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: '2px solid #141414' }}>
         {recipes.map((r) => {
           const item = storeItem(`${r}-500g`)
           const qty = cart.qtyOf(item.id)
           return (
-            <li key={r} style={{ padding: '16px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, alignItems: 'stretch' }}>
+            <li key={r} className="fts-rcard" style={{ padding: '16px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '128px minmax(0, 1fr)', columnGap: 14, alignItems: 'stretch' }}>
               <Link
                 href={`/store/${r}`}
                 aria-label={`${RECIPE_TITLE[r]} 자세히 보기`}
+                className="fts-rpic"
                 style={{ display: 'block', minHeight: 128, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={RECIPE_REAL_IMG[r]} alt="" width={384} height={256} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '62% 50%', display: 'block' }} />
               </Link>
-              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div className="fts-rbody" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Link href={`/store/${r}`} style={{ color: '#141414', textDecoration: 'none' }}>
                   <RecipeName recipe={r} size={22} />
                 </Link>

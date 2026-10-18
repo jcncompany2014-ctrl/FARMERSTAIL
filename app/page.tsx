@@ -133,8 +133,8 @@ function ProofGrid() {
   const big = { fontSize: 22, lineHeight: 1.1 } as const
   const small = { fontSize: 14, lineHeight: 1.45, color: '#595959' } as const
   return (
-    <section aria-label="파머스테일을 믿을 수 있는 이유" style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ borderTop: '2px solid #141414', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+    <section aria-label="파머스테일을 믿을 수 있는 이유" className="fts-sec fts-proof-sec" style={{ padding: '36px 20px 0', display: 'flex', flexDirection: 'column' }}>
+      <div className="fts-proof" style={{ borderTop: '2px solid #141414', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <a href={SMARTSTORE_URL} target="_blank" rel="noopener noreferrer" style={{ ...cell, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5', borderRight: '1px solid #E5E5E5' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span aria-hidden style={{ fontSize: 18, color: '#141414' }}>
@@ -184,14 +184,14 @@ function ReviewBlock() {
   const recipe = r.recipe
   const photo = r.photos[0]!
   return (
-    <section aria-labelledby="home-review" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
+    <section aria-labelledby="home-review" className="fts-sec fts-pt fts-rv" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
       <h2 id="home-review" className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
         먹어 본 아이 이야기
       </h2>
       <figure style={{ margin: '20px 0 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '132px minmax(0, 1fr)', columnGap: 16, alignItems: 'start' }}>
+        <div className="fts-rv-top" style={{ display: 'grid', gridTemplateColumns: '132px minmax(0, 1fr)', columnGap: 16, alignItems: 'start' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.src} alt={photo.alt} width={264} height={264} loading="lazy" style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+          <img src={photo.src} alt={photo.alt} width={440} height={440} loading="lazy" className="fts-rv-photo" style={{ width: 132, height: 132, objectFit: 'cover', borderRadius: 4, display: 'block' }} />
           <blockquote style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span aria-hidden className="d" style={{ fontSize: 44, lineHeight: 0.6, height: 22, color: '#D4A24C' }}>
               &ldquo;
@@ -216,7 +216,7 @@ function ReviewBlock() {
         </figcaption>
       </figure>
       {more.length > 0 && (
-        <div style={{ marginTop: 24, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+        <div className="fts-rv-more" style={{ marginTop: 24, borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
           {more.map((m) => (
             <SmartstoreReviewCard key={m.id} r={m} />
           ))}
@@ -234,7 +234,7 @@ function ReviewBlock() {
 function EventStrip({ events }: { events: LinkBanner[] }) {
   if (events.length === 0) return null
   return (
-    <section aria-label="진행 중인 행사" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <section aria-label="진행 중인 행사" className="fts-sec fts-pt fts-event" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
       {events.map((e) => {
         const external = /^https?:\/\//.test(e.href)
         const period = periodLabel(e.startsOn, e.endsOn)
@@ -275,7 +275,7 @@ function EventStrip({ events }: { events: LinkBanner[] }) {
 function MagazineList({ posts }: { posts: MagazinePost[] }) {
   if (posts.length === 0) return null
   return (
-    <section aria-labelledby="home-magazine" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
+    <section aria-labelledby="home-magazine" className="fts-sec fts-pt" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <h2 id="home-magazine" className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
           매거진
@@ -286,18 +286,18 @@ function MagazineList({ posts }: { posts: MagazinePost[] }) {
         </Link>
       </div>
       <p style={{ margin: '4px 0 0', fontSize: 17, lineHeight: 1.5, color: '#595959' }}>화식을 처음 시작할 때 궁금한 것들</p>
-      <ul style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414' }}>
+      <ul className="fts-mag-list" style={{ margin: '16px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414' }}>
         {posts.map((p) => (
           <li key={p.slug} style={{ borderBottom: '1px solid #E5E5E5' }}>
-            <Link href={`/blog/${p.slug}`} style={{ padding: '14px 0', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', columnGap: 14, alignItems: 'center', color: '#141414', textDecoration: 'none' }}>
+            <Link href={`/blog/${p.slug}`} className="fts-mag-item" style={{ padding: '14px 0', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', columnGap: 14, alignItems: 'center', color: '#141414', textDecoration: 'none' }}>
               <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <strong style={{ fontSize: 17, lineHeight: 1.4, fontWeight: 800 }}>{p.title}</strong>
                 {p.excerpt && (
                   <span style={{ fontSize: 14, lineHeight: 1.5, color: '#595959', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.excerpt}</span>
                 )}
               </span>
-              <span style={{ position: 'relative', width: 96, height: 72, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
-                {p.cover_url && <Image src={p.cover_url} alt="" fill sizes="96px" style={{ objectFit: 'cover' }} />}
+              <span className="fts-mag-thumb" style={{ position: 'relative', width: 96, height: 72, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                {p.cover_url && <Image src={p.cover_url} alt="" fill sizes="(min-width: 1024px) 400px, 96px" style={{ objectFit: 'cover' }} />}
               </span>
             </Link>
           </li>
@@ -310,10 +310,10 @@ function MagazineList({ posts }: { posts: MagazinePost[] }) {
 export default async function HomePage() {
   const [events, posts] = await Promise.all([activeEvents(), latestPosts()])
   return (
-    <StoreShell>
+    <StoreShell wide>
       {/* 첫 화면 — 셸티 사진 + 손글씨 말풍선(홈 한 곳만) + 흰 카드 */}
-      <section style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ position: 'relative', height: 560, overflow: 'hidden' }}>
+      <section className="fts-sec fts-hero" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="fts-hero-pic" style={{ position: 'relative', height: 560, overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/store/hero-sheltie-table.webp"
@@ -321,6 +321,7 @@ export default async function HomePage() {
             width={1200}
             height={800}
             fetchPriority="high"
+            className="fts-hero-img"
             style={{ width: '100%', height: 560, objectFit: 'cover', objectPosition: '80% 0%', display: 'block' }}
           />
           <p
@@ -332,13 +333,14 @@ export default async function HomePage() {
             맞죠?!
           </p>
         </div>
-        <div style={{ position: 'relative', zIndex: 2, marginTop: -40, background: '#FFFFFF', borderRadius: '12px 12px 0 0', padding: '26px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <div className="fts-hero-card" style={{ position: 'relative', zIndex: 2, marginTop: -40, background: '#FFFFFF', borderRadius: '12px 12px 0 0', padding: '26px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <h1 className="d" style={{ margin: 0, fontSize: 40, lineHeight: 1.1 }}>
             국내산 고기를
             <br />
             수비드로 익혔어요
           </h1>
-          <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: '#3D3D3D' }}>사료에 곁들여도, 한 끼로 줘도 돼요.</p>
+          <p className="fts-lead" style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: '#3D3D3D' }}>사료에 곁들여도, 한 끼로 줘도 돼요.</p>
+          <div className="fts-hero-cta">
           <Link
             href="/store"
             style={{ marginTop: 20, height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 19, fontWeight: 800 }}
@@ -348,6 +350,11 @@ export default async function HomePage() {
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </Link>
+          {/* PC 만 — 버튼 옆 시작 가격(폰은 버튼이 꽉 차 자리가 없다) */}
+          <span className="fts-pc-only" style={{ fontSize: 16, color: '#595959', whiteSpace: 'nowrap' }}>
+            500g <strong className="n" style={{ fontSize: 24, fontWeight: 400, color: '#141414' }}>{won(FROM_PRICE)}</strong>원부터
+          </span>
+          </div>
           <ShipLine />
         </div>
       </section>
@@ -355,7 +362,7 @@ export default async function HomePage() {
       <ProofGrid />
 
       {/* 레시피 4종 + 체험팩 */}
-      <section id="recipes" style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
+      <section id="recipes" className="fts-sec fts-pt" style={{ padding: '56px 20px 0', display: 'flex', flexDirection: 'column' }}>
         <H2 sub="모두 100g 팩 5개, 500g 한 봉이에요">레시피 4종</H2>
         <div style={{ marginTop: 16 }}>
           <RecipeGrid paused={storeSalesPaused()} />
@@ -370,13 +377,16 @@ export default async function HomePage() {
       <EventStrip events={events} />
 
       {/* 500g 며칠분 + 정기배송 줄(홈에 한 번만 — 매일 먹일 양을 본 자리) */}
-      <section style={{ marginTop: 64, padding: '48px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+      <section className="fts-sec fts-calc" style={{ marginTop: 64, padding: '48px 20px 40px', background: '#F6F4F5', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
         <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
           500g 한 봉,
           <br />
           며칠 먹을까요?
         </h2>
         <p style={{ margin: '10px 0 0', fontSize: 17, color: '#595959' }}>닭고기를 건사료에 곁들여 줄 때 기준이에요</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
         <HomeCalculator />
         <Link
           href="/app"
@@ -387,10 +397,11 @@ export default async function HomePage() {
           </span>
           <Chevron />
         </Link>
+        </div>
       </section>
 
       {/* 손질부터 배송까지 */}
-      <section style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
+      <section className="fts-sec fts-pt fts-make" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column' }}>
         <h2 className="d" style={{ margin: 0, fontSize: 32, lineHeight: 1.12 }}>
           손질부터 배송까지
           <br />
@@ -404,7 +415,7 @@ export default async function HomePage() {
             <span style={{ fontSize: 16, lineHeight: 1.55, color: '#595959' }}>진공 포장한 재료를 정해진 온도의 물에 담가 수비드로 익혀요.</span>
           </figcaption>
         </figure>
-        <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+        <div className="fts-make-small" style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
           <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/prep-hygiene-43.jpg" alt="위생 장갑을 낀 손으로 고기를 손질하고 있어요" width={600} height={700} loading="lazy" style={{ width: '100%', aspectRatio: '170 / 200', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
@@ -426,7 +437,7 @@ export default async function HomePage() {
 
       <MagazineList posts={posts} />
 
-      <StoreFaq items={FAQ} />
+      <StoreFaq items={FAQ} className="fts-sec fts-pt" listClassName="fts-faq-list" />
     </StoreShell>
   )
 }

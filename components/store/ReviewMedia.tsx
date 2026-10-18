@@ -143,7 +143,8 @@ export function FeaturedReview({ r }: { r: StoreReview }) {
   const recipe = r.recipe
   return (
     <article style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
+      {/* PC(폭 1024 이상)에선 사진 셋을 한 줄로(store.css .fts-feat-photos) — 첫 장을 칸 너비만큼 키우면 820px 정사각형이 된다 */}
+      <div className="fts-feat-photos" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
         {r.photos.map((p, i) => (
           <figure key={p.src} style={{ margin: 0, position: 'relative', gridColumn: i === 0 || (i === r.photos.length - 1 && i % 2 === 1) ? '1 / -1' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

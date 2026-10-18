@@ -6,7 +6,7 @@ import { useShipDate } from './useShipDate'
 export default function ShipLine() {
   const ship = useShipDate()
   return (
-    <p style={{ margin: '14px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, color: '#3D3D3D' }}>
+    <p className="fts-ship" style={{ margin: '14px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, color: '#3D3D3D' }}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M2.5 6.5h11v10h-11z" />
         <path d="M13.5 10h4l3 3.2v3.3h-7" />

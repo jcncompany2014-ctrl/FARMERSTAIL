@@ -141,16 +141,18 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
 
   return (
     <>
+      {/* PC(폭 1024 이상): 사진(왼쪽, 따라 내려옴) · 구매 상자(오른쪽) 2단 — store.css .fts-pd-top. 폰에선 그냥 위아래. */}
+      <div className="fts-pd-top">
       {/* 사진 */}
-      <section aria-label="상품 사진">
-        <div style={{ position: 'relative', aspectRatio: '1 / 1', background: '#F6F4F5', overflow: 'hidden' }}>
+      <section aria-label="상품 사진" className="fts-pd-media">
+        <div className="fts-pd-photo" style={{ position: 'relative', aspectRatio: '1 / 1', background: '#F6F4F5', overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={cur.src} alt={cur.alt} width={800} height={800} fetchPriority="high" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           <span className="n" style={{ position: 'absolute', right: 12, bottom: 12, background: '#141414', color: '#FFFFFF', borderRadius: 2, padding: '4px 9px', fontSize: 14 }}>
             {photo + 1} / {photos.length}
           </span>
         </div>
-        <div style={{ padding: '10px 20px 0', display: 'flex', gap: 8 }}>
+        <div className="fts-pd-thumbs" style={{ padding: '10px 20px 0', display: 'flex', gap: 8 }}>
           {photos.map((p, i) => (
             <button
               key={p.src}
@@ -161,12 +163,13 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               style={{ width: 62, height: 62, padding: 0, borderRadius: 4, overflow: 'hidden', border: i === photo ? '2px solid #141414' : '1px solid #E5E5E5', background: '#F6F4F5', cursor: 'pointer' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.src} alt="" width={62} height={62} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={p.src} alt="" width={240} height={240} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </button>
           ))}
         </div>
       </section>
 
+      <div className="fts-pd-buy">
       {/* 레시피 바꾸기 */}
       <nav aria-label="레시피 바꾸기" style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', borderTop: '1px solid #E5E5E5', borderBottom: '2px solid #141414' }}>
         {STORE_RECIPES.map((r) => {
@@ -342,16 +345,18 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           <Chevron />
         </Link>
       </section>
+      </div>
+      </div>
 
       {/* ② 한눈에 */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt" style={SEC}>
         <Kicker color={color}>한눈에</Kicker>
         <SecTitle>
           국내산 고기를
           <br />
           수비드로 익힌 한 그릇
         </SecTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="fts-pd-cols4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Glance k="고기" v="모두 국내산" s={ANTIBIOTIC_FREE_MAIN[recipe] ? `무항생제 ${ing.main}` : ing.main} />
           <div style={{ border: '2px solid #141414', borderRadius: 4, boxShadow: '4px 4px 0 #141414', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 116 }}>
             <span style={{ fontSize: 14, color: '#595959', fontWeight: 700 }}>100g당</span>
@@ -369,7 +374,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ③ 한 그릇에 들어간 것 — 원물 사진(흰 접시 탑다운, 사장님 10/15 고른 4장) + 재료 칩 */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>재료</Kicker>
         <SecTitle>
           한 그릇에
@@ -383,6 +388,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           width={1080}
           height={724}
           loading="lazy"
+          className="fts-pd-bleed"
           style={{ width: 'calc(100% + 40px)', maxWidth: 'none', margin: '0 -20px', aspectRatio: '1080 / 724', objectFit: 'cover', display: 'block' }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -416,7 +422,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ④ 하루에 얼마나 */}
-      <section id="calc" aria-labelledby="calc-title" style={{ marginTop: 64, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
+      <section id="calc" aria-labelledby="calc-title" className="fts-sec fts-pd-narrow" style={{ marginTop: 64, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
         <Kicker color={color}>급여량</Kicker>
         <h2 id="calc-title" className="d" style={{ margin: '14px 0 0', fontSize: 32, lineHeight: 1.12 }}>
           하루에 얼마나 줄까요?
@@ -499,10 +505,10 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑤ 이렇게 만들어요 — 번호 = 실제 공정 순서 */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>만드는 법</Kicker>
         <SecTitle>이렇게 만들어요</SecTitle>
-        <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
+        <ol className="fts-pd-steps" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
           {[
             { t: '재료를 손질해 진공 포장해요', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.`, src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 고기를 손질하는 손' },
             { t: '수비드로 천천히 익혀요', d: '정해진 온도의 물에서 오래 끓이지 않고 익혀 촉촉해요.', src: '/kitchen-sousvide.jpg', alt: '진공 포장한 재료를 수비드로 익히는 모습' },
@@ -528,7 +534,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑥ 영양 채우기 — 옛 '100% 충족' 표 자리의 정직한 버전. 배합 세부(아연·철 등)는 근거가 코드에 없어 재료로 확인되는 것만. */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>영양</Kicker>
         <SecTitle>
           모자라기 쉬운 영양은
@@ -581,14 +587,14 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑦ 4가지 레시피 — 팩 사진 카드(보고 있는 것만 굵은 테두리) */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt" style={SEC}>
         <Kicker color={color}>다른 레시피</Kicker>
         <SecTitle>
           4가지 레시피
           <br />
           이렇게 달라요
         </SecTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="fts-pd-cols4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {STORE_RECIPES.map((r) => {
             const on = r === recipe
             const body = (
@@ -630,7 +636,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑧ 이런 아이에게 */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>추천</Kicker>
         <SecTitle>이런 아이에게 좋아요</SecTitle>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -657,7 +663,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑨ 이렇게 주세요 — 사진 = 사장님 상세 참고 자료의 실제 장면(serve-1~3) */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>주는 법</Kicker>
         <SecTitle>녹여서 담으면 끝</SecTitle>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
@@ -698,7 +704,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑩ 등록 — 번호·주소는 싣지 않는다(사장님 10/15). 등록증 사진은 흐림을 파일에 구웠다(public/store/cert-*.webp). */}
-      <section style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
         <Kicker color={color}>믿고 먹일 수 있게</Kicker>
         <SecTitle>
           나라에 등록한
@@ -723,7 +729,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑪ 후기 — 홈 '먹어 본 아이 이야기'가 #reviews 로 바로 온다 */}
-      <section id="reviews" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
+      <section id="reviews" className="fts-sec fts-pt fts-pd-narrow" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
           <h2 className="d" style={{ margin: 0, fontSize: 32 }}>
             후기
@@ -772,7 +778,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑫ 자주 묻는 질문 + 상품 정보 */}
-      <section style={{ ...SEC, gap: 0 }}>
+      <section className="fts-sec fts-pt fts-pd-narrow" style={{ ...SEC, gap: 0 }}>
         <Kicker color={color}>궁금한 것</Kicker>
         <div style={{ marginTop: 20 }}>
           <SecTitle>자주 묻는 질문</SecTitle>
@@ -786,7 +792,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         </div>
       </section>
 
-      <section id="info" style={{ padding: '48px 20px 120px', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
+      <section id="info" className="fts-sec fts-pd-narrow" style={{ padding: '48px 20px 120px', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
         <SecTitle>상품 정보</SecTitle>
         <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
           <Acc title="원재료 전체">
@@ -830,7 +836,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* 아래 고정 구매 바 — 결제 막음이면 초록 스마트스토어 아래에 회색 버튼(값 줄은 본문에 있어 뺀다: 바가 너무 높아진다) */}
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, background: '#FFFFFF', borderTop: '1px solid #E5E5E5', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="fts-pd-bar" style={{ position: 'sticky', bottom: 0, zIndex: 20, background: '#FFFFFF', borderTop: '1px solid #E5E5E5', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {paused ? (
           <>
             <SmartStoreButton height={50} />
