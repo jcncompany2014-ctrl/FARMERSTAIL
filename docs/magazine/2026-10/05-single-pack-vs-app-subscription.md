@@ -3,7 +3,7 @@ slug: single-pack-vs-app-subscription   # 새 글
 title: 500g 한 봉 vs 앱 정기배송 — 우리 집엔 뭐가 맞을까
 excerpt: 웹 가게에서 한 봉씩 살지, 앱으로 2주마다 받을지 고민될 때 — 값·보내는 날·배송비·그만두는 법을 나란히 놓고, 어떤 집에 무엇이 맞는지 정리했어요.
 category: 화식 처음
-cover: /magazine/single-pack-vs-app.webp
+cover: /magazine/single-pack-vs-app-v2.webp   # 2026-10-18 표지 교체(폰 화면 그림 → 보호자 1인칭·보냉 상자·그릇·셸티)
 잇는 곳: 체험팩(본문 중간 카드) · 글 끝 '화식 4종'과 앱 정기배송 한 줄(저절로 붙음)
 ---
 
