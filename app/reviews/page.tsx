@@ -1,45 +1,43 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
+import TrialCard from '@/components/store/TrialCard'
+import RecipeName from '@/components/store/RecipeName'
+import { FeaturedReview, SmartstoreReview } from '@/components/store/ReviewMedia'
 import { buildBreadcrumbJsonLd, ogImageUrl } from '@/lib/seo/jsonld'
 import { SMARTSTORE_URL } from '@/lib/links'
-import { SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
-import TrialCard from '@/components/store/TrialCard'
+import { RECIPE_TITLE, STORE_RECIPES, SUBSCRIPTION_DISCOUNT_PCT } from '@/lib/store/catalog'
+import { reviewsFor, smartstoreSummary } from '@/lib/store/reviews'
 
 /**
- * 웹 후기 — /reviews. 웹 시안 WEB-C07(2026-10-10 웹 리뉴얼) — 가게 틀(StoreShell) 안에서 위에서부터:
- *   머리말·제목·소개 → 첫 후기를 기다려요(회색 상자 · 빈 평점 동그라미) + 후기 원칙 세 줄
- *   → 네이버에서 남겨 주신 후기(스마트스토어, 새 창) → 직접 먹여 보세요(4종 체험팩 카드 · 앱 띠).
- * ⚠️ 정직 원칙: 가짜 후기·평점·숫자·보증 절대 금지(규칙 28). 후기가 없으면 빈 상태만 보여 준다.
- * 옛 FD 판의 자리표시 카드·필터 탭·전문가 보증 자리·숫자 띠와 설문 버튼(/start)은 시안대로 뺐다 — 설문 링크를 고르던
- * 로그인 확인(getUser)도 함께 뺐다. 예전 FD 톤 판은 git 이력.
- * ⚠️ '후기 원칙 세 줄'(구매하신 분만·주문 한 건에 하나·사진과 별점)은 기획서 §7 의 **새로 만들 구매자 후기**(2단계) 기준이다 —
- *   고객이 후기를 쓰는 기능은 2026-07-16 에 폐기됐고(마이그 20260716070000) 아직 새로 만들지 않았다. 이 화면을 다시 열 때 그 기능이
- *   실제로 있는지 먼저 확인한다.
+ * 웹 후기 — /reviews. 2026-10-18 다시 열었다(사장님 "이 외에 전부 진행" — 9/5 부터 후기가 없어 홈으로 돌려보내 두었다).
+ * 정본 lib/store/reviews: 인스타 게시 동의 후기(큰 카드) + 네이버 스마트스토어 후기(출처 딱지·가린 아이디 그대로, 규칙294).
+ * 위에서부터 머리말·제목·소개 → 별점 한 줄(옮긴 후기에서 셈) → 레시피 바로가기 → 레시피마다 후기 → 직접 먹여 보세요(체험팩·앱 띠).
+ * ⚠️ 정직 원칙(규칙 28): 지어낸 후기·평점·숫자 금지. 웹에서 후기를 쓰는 기능은 없다(2026-07-16 폐기) — 쓸 수 있다고 말하지 않는다
+ *   (예전 '후기 원칙 세 줄 — 구매하신 분만·사진과 별점'은 없는 기능 기준이라 뺐다). 웹 상세가 없는 상품(큐브·케이크) 후기는 여기도 안 뜬다.
  */
 
 export const revalidate = 3600
 
-// R99-A 패턴: Next openGraph shallow-merge 라 페이지가 images 미지정 시 layout
-// 기본 OG 상속 못 함 → 공유 카드 썸네일 0. 명시 OG 추가(회차161).
+const SUM = smartstoreSummary()
+const TOTAL = STORE_RECIPES.reduce((n, r) => n + reviewsFor(r).length, 0)
+
 const REVIEWS_OG = ogImageUrl({
-  title: '보호자들의 진짜 이야기',
-  subtitle: '지어낸 후기 없이, 실제 경험만',
+  title: '먹어 본 아이들의 이야기',
+  subtitle: `네이버 스마트스토어 후기 ${SUM.reviews}건 · 별점 ${SUM.stars}`,
   tag: 'Reviews',
 })
+const DESCRIPTION = `네이버 스마트스토어와 인스타그램에 남겨 주신 파머스테일 화식 후기 ${TOTAL}편을 그대로 옮겼어요. 스마트스토어 별점 ${SUM.stars}.`
 
 export const metadata: Metadata = {
   // layout template "%s | 파머스테일" 가 브랜드명 1회 부착 → 페이지명만(중복 방지, 회차150).
-  title: '후기 — 보호자들의 진짜 이야기',
-  description:
-    '파머스테일을 먹은 아이와 보호자의 실제 후기가 이 자리에 모입니다. 지어낸 후기 대신 진짜 경험만. 직접 먹여 보고 확인해 보세요.',
+  title: '후기 — 먹어 본 아이들의 이야기',
+  description: DESCRIPTION,
   alternates: { canonical: '/reviews' },
   openGraph: {
-    title: '후기 — 보호자들의 진짜 이야기 | 파머스테일',
-    description:
-      '파머스테일을 먹은 아이와 보호자의 실제 후기가 이 자리에 모입니다. 지어낸 후기 대신 진짜 경험만.',
+    title: '후기 — 먹어 본 아이들의 이야기 | 파머스테일',
+    description: DESCRIPTION,
     type: 'website',
     locale: 'ko_KR',
     siteName: '파머스테일',
@@ -48,14 +46,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '후기 — 보호자들의 진짜 이야기 | 파머스테일',
-    description: '지어낸 후기 대신 진짜 경험만.',
+    title: '후기 — 먹어 본 아이들의 이야기 | 파머스테일',
+    description: DESCRIPTION,
     images: [REVIEWS_OG],
   },
 }
-
-/** 후기 원칙(시안 C07) — 체크 세 줄. */
-const REVIEW_RULES = ['구매하신 분만, 주문 한 건에 하나씩', '사진과 별점을 함께 남길 수 있어요', '받은 그대로, 고치지 않고 올려요'] as const
 
 function Chevron() {
   return (
@@ -74,105 +69,101 @@ function External() {
   )
 }
 
-export default async function ReviewsPage() {
-  // ★2026-09-05 사장님: 실제 제품 후기가 쌓이기 전까지 후기 페이지 숨김.
-  //   페이지 코드는 보존(빈 상태만 그려 삭제할 이유 없음) — 후기가
-  //   모이면 이 redirect 한 줄과 sitemap 의 링크 주석을 함께 되살린다
-  //   (예전 WebChrome·FdFooter 의 링크 주석은 새 웹 틀(StoreShell) 로 바뀌었으니 가게 메뉴에 줄을 새로 단다).
-  //   북마크·외부 링크는 홈으로 안내.
-  //
-  // ⚠️ 여기는 **307(`redirect`)이 정답**이다 — 되살릴 페이지이므로.
-  //   폐지된 낱개커머스 경로들은 2026-09-08 에 308(`permanentRedirect`)로
-  //   바꿨지만(검색 색인 이전 목적), 임시 숨김에 308 을 쓰면 브라우저가
-  //   영구 캐시해서 부활시켜도 방문자가 계속 홈으로 튕긴다.
-  redirect('/')
-
+export default function ReviewsPage() {
   const crumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
     { name: '후기', path: '/reviews' },
   ])
+  const byRecipe = STORE_RECIPES.map((r) => ({ recipe: r, list: reviewsFor(r) }))
 
   return (
     <StoreShell>
       <JsonLd id="ld-reviews-crumbs" data={crumbLd} />
-      {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
       <div style={{ lineHeight: 'normal' }}>
         {/* ── 머리말 · 제목 · 소개 ── */}
         <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>후기</span>
           <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
-            보호자들의
+            먹어 본 아이들의
             <br />
-            진짜 이야기
+            이야기
           </h1>
-          <p style={{ margin: '16px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>지어낸 후기는 한 줄도 싣지 않아요. 구매하신 분이 남긴 후기만, 받은 그대로 올려요.</p>
+          <p style={{ margin: '16px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>
+            네이버 스마트스토어와 인스타그램에 남겨 주신 후기를 옮겼어요. 스마트스토어 후기는 글도 아이디도 네이버에 보이는 그대로예요.
+          </p>
         </section>
 
-        {/* ── 첫 후기를 기다려요 — 빈 상태(채운 별 = 평점 암시 금지, 빈 동그라미만) + 후기 원칙 ── */}
-        <section style={{ padding: '28px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '28px 20px 24px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
-            <span aria-hidden style={{ width: 64, height: 64, borderRadius: 32, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 5h14v10H9l-4 4z" />
-                <path d="M9 9.5h6M9 12h4" />
-              </svg>
-            </span>
-            <strong className="d" style={{ fontSize: 26, fontWeight: 400, lineHeight: 1.2 }}>
-              첫 후기를 기다려요
-            </strong>
-            <span style={{ fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>
-              아직 등록된 후기가 없어요.
-              <br />
-              먹어 본 아이의 이야기가 이 자리에 차례로 올라와요.
-            </span>
-            <span style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: '#595959' }}>
-              <span aria-hidden style={{ display: 'flex', gap: 3 }}>
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span key={i} style={{ width: 12, height: 12, boxSizing: 'content-box', borderRadius: 6, border: '1.5px solid #BDBDBD' }} />
-                ))}
-              </span>
-              평점은 후기가 쌓이면 보여드려요
-            </span>
-          </div>
-          <ul style={{ margin: '20px 0 0', padding: 0, listStyle: 'none', borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
-            {REVIEW_RULES.map((t) => (
-              <li key={t} style={{ minHeight: 60, borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '30px 1fr', alignItems: 'center', fontSize: 17, fontWeight: 700 }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M5 12.5l4.5 4.5L19 7.5" />
-                </svg>
-                {t}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* ── 네이버에서 남겨 주신 후기 — 스마트스토어(바깥 주소, 새 창) ── */}
-        <section style={{ padding: '52px 20px 0', display: 'flex', flexDirection: 'column' }}>
-          <h2 className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>
-            네이버에서 남겨 주신 후기
-          </h2>
-          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>스마트스토어에서 사신 분들의 후기는 네이버에서 그대로 볼 수 있어요.</p>
+        {/* ── 별점 한 줄(옮긴 후기에서 셈) + 네이버에서 보기 ── */}
+        <section style={{ padding: '24px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <a
             href={SMARTSTORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="스마트스토어 후기 보기(새 창)"
-            style={{ marginTop: 16, minHeight: 64, padding: '0 16px', borderRadius: 4, border: '2px solid #141414', display: 'grid', gridTemplateColumns: '1fr 18px', alignItems: 'center', color: '#141414', textDecoration: 'none' }}
+            aria-label="스마트스토어에서 후기 보기(새 창)"
+            style={{ padding: '16px 16px', borderRadius: 4, border: '2px solid #141414', display: 'grid', gridTemplateColumns: '1fr 18px', alignItems: 'center', columnGap: 10, color: '#141414', textDecoration: 'none' }}
           >
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontSize: 17, fontWeight: 800 }}>스마트스토어 후기 보기</span>
-              <span style={{ fontSize: 15, color: '#595959' }}>네이버로 이동해요</span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+              <span className="n" style={{ fontSize: 34, lineHeight: 1 }}>
+                ★ {SUM.stars}
+              </span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 16, fontWeight: 800 }}>네이버 스마트스토어 후기 {SUM.reviews}건</span>
+                <span style={{ fontSize: 14, color: '#595959' }}>{SUM.asOf} 기준 · 네이버에서 보기</span>
+              </span>
             </span>
             <External />
           </a>
+          <nav aria-label="레시피별 후기 바로가기" style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+            {byRecipe.map(({ recipe, list }) => (
+              <a key={recipe} href={`#reviews-${recipe}`} style={{ minHeight: 48, padding: '0 12px', borderRadius: 4, border: '1px solid #BDBDBD', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none' }}>
+                <span className="d" style={{ fontSize: 16, fontWeight: 400 }}>
+                  {RECIPE_TITLE[recipe]}
+                </span>
+                <span style={{ color: '#595959' }}>{list.length}편</span>
+              </a>
+            ))}
+          </nav>
         </section>
 
+        {/* ── 레시피마다 후기 — 인스타 동의 후기(큰 카드) → 스마트스토어 후기(한 줄 목록) ── */}
+        {byRecipe.map(({ recipe, list }) => (
+          <section key={recipe} id={`reviews-${recipe}`} aria-label={`${RECIPE_TITLE[recipe]} 후기`} style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 64 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+              <RecipeName recipe={recipe} size={26} as="h2" />
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#595959', whiteSpace: 'nowrap' }}>{list.length}편</span>
+            </div>
+            {list.length === 0 ? (
+              <div style={{ padding: '18px 18px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <strong style={{ fontSize: 16 }}>아직 옮긴 후기가 없어요</strong>
+                <span style={{ fontSize: 15, lineHeight: 1.6, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 오면 이 자리에 옮겨요.</span>
+              </div>
+            ) : (
+              <>
+                {list.filter((r) => r.source === 'instagram').map((r) => (
+                  <FeaturedReview key={r.id} r={r} />
+                ))}
+                {list.some((r) => r.source === 'smartstore') && (
+                  <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+                    {list.filter((r) => r.source === 'smartstore').map((r) => (
+                      <SmartstoreReview key={r.id} r={r} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            <Link href={`/store/${recipe}`} style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 16, fontWeight: 800, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
+              이 레시피 보러 가기
+              <Chevron />
+            </Link>
+          </section>
+        ))}
+
         {/* ── 직접 먹여 보세요 — 체험팩(가게) · 앱 띠 ── */}
-        <section style={{ padding: '52px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+        <section style={{ padding: '56px 20px 64px', display: 'flex', flexDirection: 'column' }}>
           <h2 className="d" style={{ margin: 0, fontSize: 28, lineHeight: 1.15 }}>
             직접 먹여 보세요
           </h2>
-          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>남의 후기보다 우리 아이의 한 끼가 가장 정확한 후기예요.</p>
+          <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.65, color: '#3D3D3D' }}>어떤 고기를 좋아할지 모르겠다면 네 가지를 조금씩 먼저 맛보세요.</p>
           <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column' }}>
             <TrialCard />
           </div>

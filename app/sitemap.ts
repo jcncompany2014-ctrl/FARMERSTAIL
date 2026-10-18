@@ -82,13 +82,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.8,
     },
-    // /reviews — 실제 후기가 쌓일 때까지 숨김(2026-09-05, 홈 redirect 중).
-    // {
-    //   url: `${siteUrl}/reviews`,
-    //   lastModified: now,
-    //   changeFrequency: 'weekly',
-    //   priority: 0.7,
-    // },
+    // /reviews — 2026-09-05 숨김(후기 없음) → 2026-10-18 다시 열었다(스마트스토어·인스타 후기 정본 lib/store/reviews).
+    // lastmod 는 후기를 옮긴 날로 고정(매번 now 면 검색엔진이 무시한다 — 2026-10-11 SEO 점검).
+    {
+      url: `${siteUrl}/reviews`,
+      lastModified: new Date('2026-10-18T00:00:00+09:00'),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
     // 신규 콘텐츠 페이지 — FAQ / 뉴스레터 / 과학 alias
     // /partners(농장 파트너)는 뺐다 — 공개된 농가가 없는 빈 화면이라 noindex(2026-10-13, 규칙213). 농가를 공개하면 되돌린다.
     {

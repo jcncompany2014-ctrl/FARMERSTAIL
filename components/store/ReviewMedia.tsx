@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { RECIPE_TITLE } from '@/lib/store/catalog'
+import { RECIPE_BAND, RECIPE_TITLE } from '@/lib/store/catalog'
 import { reviewDate, reviewDogLine, reviewerLabel, type ReviewPhoto, type StoreReview } from '@/lib/store/reviews'
 
 export const NAVER_GREEN = '#03C75A'
@@ -131,6 +131,81 @@ export function SmartstoreReview({ r }: { r: StoreReview }) {
       </div>
       {zoom && <Zoom photo={zoom} onClose={() => setZoom(null)} />}
     </article>
+  )
+}
+
+/**
+ * 인스타 게시 동의 후기 큰 카드(상품 상세·후기 화면) — 사진은 첫 장 크게 + 나머지 두 칸씩, 전부 1:1(파일도 정사각형 — 규칙288).
+ * 예전 2:1 고정 높이 칸은 좁은 칸의 사진 양옆을 잘랐다. 레시피 딱지 · 고른 한 줄 · 글 · 누구 · 옮긴 방법.
+ */
+export function FeaturedReview({ r }: { r: StoreReview }) {
+  if (!r.recipe) return null
+  const recipe = r.recipe
+  return (
+    <article style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
+        {r.photos.map((p, i) => (
+          <figure key={p.src} style={{ margin: 0, position: 'relative', gridColumn: i === 0 || (i === r.photos.length - 1 && i % 2 === 1) ? '1 / -1' : undefined }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.src} alt={p.alt} loading="lazy" width={600} height={600} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
+            {p.caption && (
+              <figcaption style={{ position: 'absolute', left: 8, bottom: 8, padding: '3px 8px', borderRadius: 2, background: 'rgba(20,20,20,0.78)', color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+                {p.caption}
+              </figcaption>
+            )}
+          </figure>
+        ))}
+      </div>
+      <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <span style={{ alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 2, background: '#F6F4F5', color: '#141414', fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span aria-hidden style={{ width: 8, height: 8, background: RECIPE_BAND[recipe] }} />
+          {RECIPE_TITLE[recipe]}
+        </span>
+        {r.title && (
+          <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
+            &ldquo;{r.title}&rdquo;
+          </strong>
+        )}
+        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{r.body}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 12, borderTop: '1px solid #E5E5E5' }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>
+            {reviewerLabel(r)}
+            {r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
+          </span>
+          <span style={{ fontSize: 14, color: '#595959' }}>{r.note}</span>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+/**
+ * 후기 모아 보기(우리 음식·브랜드 이야기 화면) — 별점 한 줄 + 스마트스토어 후기 작은 카드 몇 개 + '후기 전체 보기'(/reviews).
+ * 10/18: 두 화면이 후기를 11편 올린 뒤에도 "첫 후기를 모으는 중이에요"라고 말하고 있었다.
+ */
+export function ReviewDigest({ reviews, summary }: { reviews: StoreReview[]; summary: { stars: string; reviews: number; asOf: string } }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', paddingBottom: 12 }}>
+        <span className="n" style={{ fontSize: 28, lineHeight: 1 }}>
+          ★ {summary.stars}
+        </span>
+        <span style={{ fontSize: 15, color: '#595959' }}>
+          네이버 스마트스토어 후기 {summary.reviews}건 · {summary.asOf} 기준
+        </span>
+      </span>
+      <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+        {reviews.map((r) => (
+          <SmartstoreReviewCard key={r.id} r={r} />
+        ))}
+        <Link href="/reviews" style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 16, fontWeight: 800, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
+          후기 전체 보기
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Link>
+      </div>
+    </div>
   )
 }
 

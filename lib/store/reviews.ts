@@ -344,6 +344,13 @@ export function reviewsFor(recipe: StoreRecipe): StoreReview[] {
 export const HOME_FEATURED_REVIEW = 'roa-2026-10'
 export const HOME_MORE_REVIEWS = ['ss-hatc-1003-chicken', 'ss-dalg-1009-duck', 'ss-mjy1-1011-pork'] as const
 
+/** 우리 음식·브랜드 이야기 '후기 모아 보기' — 홈과 겹치지 않게 다른 세 편(레시피마다 하나). */
+export const DIGEST_REVIEWS = ['ss-hatc-1017-chicken', 'ss-94-1008-duck', 'ss-dalg-1008-pork'] as const
+
+export function reviewsByIds(ids: readonly string[]): StoreReview[] {
+  return ids.map(reviewById).filter((r) => r !== null)
+}
+
 export function reviewById(id: string): StoreReview | null {
   const r = STORE_REVIEWS.find((x) => x.id === id)
   return r && r.recipe ? r : null

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { ReviewDigest } from '@/components/store/ReviewMedia'
+import { DIGEST_REVIEWS, reviewsByIds, smartstoreSummary } from '@/lib/store/reviews'
 import Link from 'next/link'
 import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
@@ -431,15 +433,12 @@ export default async function OurFoodPage() {
           <AppLine style={{ marginTop: 22 }} />
         </section>
 
-        {/* ── 후기 — 실제 후기가 모이기 전까지는 지어낸 카드 없이 상태만(규칙 28) ── */}
+        {/* ── 후기 — 옮겨 둔 실제 후기(lib/store/reviews, 규칙294) 모아 보기. 지어낸 카드는 싣지 않는다(규칙 28) ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <SecHead n={7} style={{ marginBottom: 14 }}>
             후기
           </SecHead>
-          <div style={{ padding: 20, borderRadius: 4, border: '2px solid #141414', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <strong style={{ fontSize: 18, fontWeight: 800 }}>첫 후기를 모으는 중이에요</strong>
-            <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
-          </div>
+          <ReviewDigest reviews={reviewsByIds(DIGEST_REVIEWS)} summary={smartstoreSummary()} />
         </section>
 
         {/* ── 자주 묻는 것 — details 라 JS 없이 열고 닫는다. 첫 질문만 열어 둔다. ── */}

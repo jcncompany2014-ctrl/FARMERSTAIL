@@ -220,6 +220,10 @@ function ReviewBlock() {
           {more.map((m) => (
             <SmartstoreReviewCard key={m.id} r={m} />
           ))}
+          <Link href="/reviews" style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 16, fontWeight: 800, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
+            후기 전체 보기
+            <Chevron />
+          </Link>
         </div>
       )}
     </section>

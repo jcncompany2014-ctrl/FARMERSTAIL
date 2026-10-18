@@ -8,6 +8,7 @@
  *       행사는 진행 중인 것만, 매거진은 공개 글만(쿠키 없는 조회), 손으로 옮긴 별점엔 본 날짜
  *   294 네이버 스마트스토어 후기(사장님 10/17 "스마트스토어 후기라는 거 달아 놓고, 아이디도 저 ***** 그대로") — 출처 딱지·가린 아이디·별점·날짜,
  *       글은 그대로(맞춤법도), 다른 회사 이름·제품 사진은 뺌, 웹 상세가 없는 상품(큐브·케이크) 후기는 화면에 안 뜸, 영상은 소리 없이·포스터·저전력 대비
+ *   295 웹 문구 정리(10/18) — 레시피 페르소나는 "○○ 같은 아이를 떠올리며"(손님 사연처럼 쓰지 않음), 후기 빈칸 문구 없음, 후기 화면 다시 열림, 웹엔 맞춤 없음
  *
  * 고친 코드를 일부러 되돌려 빨간불을 검산했다. if 안에 단언을 넣지 않는다.
  */
@@ -248,4 +249,51 @@ test('규칙294: 네이버 스마트스토어 후기 — 출처 딱지·가린 �
   const pd = code('components', 'store', 'ProductDetail.tsx')
   assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'smartstore'\)\.map\(\(r\) => \(\s*<SmartstoreReview key=\{r\.id\} r=\{r\} \/>/, '상세 화면이 스마트스토어 후기를 출처 딱지 부품으로 그리지 않는다')
   assert.match(pd, /reviews\.filter\(\(r\) => r\.source === 'instagram'\)\.map\(/, '상세 화면 인스타 후기 큰 카드가 빠졌다')
+})
+
+test('규칙295: 웹 문구 정리(10/18) — 레시피 페르소나는 손님 사연처럼 쓰지 않음·후기 빈칸 문구 없음·후기 화면 다시 열림·웹엔 맞춤 없음', async () => {
+  /**
+   * 사장님 10/18: "탄생 이야기는 거창함을 살짝만 줄이고 페르소나로 지정, 대놓고 지어냈다는 티는 안 나게 … 이 외에 전부 진행".
+   * 페르소나는 '○○ 같은 아이를 떠올리며' — 실제 있었던 일처럼 읽히던 전언(~했대요)·병원 장면은 뺐다(실제 손님 이야기는 후기에만).
+   * 후기를 11편 올린 뒤에도 우리 음식·브랜드 이야기 화면이 '첫 후기를 모으는 중이에요'라고 말하고 있었다.
+   */
+  const rd = await load<typeof import('./recipe-detail.ts')>('lib', 'recipe-detail.ts')
+  for (const [p, s] of Object.entries(rd.RECIPE_STORY)) {
+    assert.match(s.hand, /^.+ 같은 아이를 떠올리며$/, `${p}: 페르소나 제목이 '○○ 같은 아이를 떠올리며'가 아니다`)
+    const text = s.paragraphs.join(' ')
+    assert.doesNotMatch(text, /(했|었|였|있었)대요|병원에서|보호자는 /, `${p}: 페르소나가 실제 있었던 일(전언·병원·보호자 행동)처럼 쓰였다`)
+    assert.match(s.paragraphs[0]!, /그런 아이예요\.$/, `${p}: 첫 문단이 '○○는 그런 아이예요'로 끝나지 않는다(묘사형 페르소나)`)
+  }
+  const qr = code('app', 'recipe', '[protein]', 'page.tsx')
+  assert.match(qr, />만든 이유<\/span>/, "QR 레시피 화면 머리말이 '만든 이유'가 아니다(제목이 이미 '○○ 같은 아이를 떠올리며')")
+  assert.doesNotMatch(qr, />탄생 이야기</, "QR 레시피 화면에 '탄생 이야기' 머리말이 남았다")
+  assert.doesNotMatch(qr, /맞춤/, "QR 레시피 화면(웹)에 '맞춤'이 남았다")
+
+  // 후기 빈칸 문구 — 후기를 올렸으니 우리 음식·브랜드 이야기에서 사라진다(상품 상세는 후기 없는 레시피만 '모으는 중')
+  for (const rel of [['app', 'our-food', 'page.tsx'], ['app', 'about', 'page.tsx']]) {
+    const src = code(...rel)
+    assert.doesNotMatch(src, /첫 후기를 모으는 중/, `${rel.join('/')}: 후기를 올렸는데 '첫 후기를 모으는 중'이라고 한다`)
+    assert.match(src, /<ReviewDigest reviews=\{reviewsByIds\(DIGEST_REVIEWS\)\} summary=\{smartstoreSummary\(\)\} \/>/, `${rel.join('/')}: 후기 모아 보기가 없다`)
+  }
+  const rv = await load<typeof import('./store/reviews.ts')>('lib', 'store', 'reviews.ts')
+  const digest = rv.reviewsByIds(rv.DIGEST_REVIEWS)
+  assert.equal(digest.length, rv.DIGEST_REVIEWS.length, '후기 모아 보기의 후기 중 화면에 뜨지 않는 것이 있다')
+  assert.ok(rv.DIGEST_REVIEWS.every((id) => !(rv.HOME_MORE_REVIEWS as readonly string[]).includes(id)), '후기 모아 보기가 홈과 같은 후기를 고른다')
+
+  // 후기 화면 다시 열림 — 홈으로 돌려보내지 않고, 정본에서 그리고, 없는 기능(웹 후기 쓰기) 원칙을 말하지 않는다
+  const page = code('app', 'reviews', 'page.tsx')
+  assert.doesNotMatch(page, /redirect\(/, '후기 화면이 아직 홈으로 돌려보낸다')
+  assert.match(page, /reviewsFor\(r\)/, '후기 화면이 후기 정본(lib/store/reviews)을 읽지 않는다')
+  assert.match(page, /<FeaturedReview key=\{r\.id\} r=\{r\} \/>/, '후기 화면에 인스타 후기 큰 카드가 없다')
+  assert.match(page, /<SmartstoreReview key=\{r\.id\} r=\{r\} \/>/, '후기 화면에 스마트스토어 후기(출처 딱지)가 없다')
+  assert.doesNotMatch(page, /주문 한 건에 하나|사진과 별점을 함께 남길 수 있어요|첫 후기를 기다려요/, '후기 화면이 없는 기능(웹 후기 쓰기)이나 빈 상태를 말한다')
+  assert.match(code('app', 'sitemap.ts'), /url: `\$\{siteUrl\}\/reviews`/, '사이트맵에 후기 화면이 없다')
+  assert.match(code('components', 'store', 'StoreMenu.tsx'), /<Row href="\/reviews">후기<\/Row>/, '가게 메뉴에 후기 줄이 없다')
+  assert.match(code('app', 'page.tsx'), /<Link href="\/reviews"/, '홈 후기 칸에서 후기 화면으로 가는 길이 없다')
+
+  // DB 문구(FAQ·매거진)는 운영 DB 를 바꿨고, 같은 값을 기록용 마이그레이션에 남겼다
+  const mig = read('supabase', 'migrations', '20261018090000_faq_app_survey_and_blog_trial_50g.sql')
+  assert.ok((mig.match(/update public\.faqs/g) ?? []).length === 8, 'FAQ 갱신 기록이 8행이 아니다')
+  assert.match(mig, /앱에서 2분 설문으로 우리 아이 식단을 확인한 뒤/, "FAQ '설문'이 앱 설문으로 기록되지 않았다")
+  assert.match(mig, /네 가지 맛을 50g씩 담은 \*\*체험팩\*\*/, '매거진 체험팩 50g 정정 기록이 없다')
 })

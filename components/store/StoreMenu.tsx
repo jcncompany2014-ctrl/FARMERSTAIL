@@ -168,6 +168,8 @@ export default function StoreMenu({ open, onClose }: { open: boolean; onClose: (
             앱 정기배송
           </Row>
           <Row href="/mypage/orders">주문 조회</Row>
+          {/* 2026-10-18 후기 화면을 다시 열며 메뉴에 줄을 단다(9/5 숨길 때 '되살리면 가게 메뉴에 줄을 새로 단다'). */}
+          <Row href="/reviews">후기</Row>
           <Row href="/faq">자주 묻는 질문</Row>
           {/* 2026-10-11 SEO: 우리 음식·매거진은 새 웹 화면 어디에서도 들어가는 길이 없었다(검색엔진은 링크로 중요도를 본다). */}
           <Row href="/our-food">우리 음식</Row>

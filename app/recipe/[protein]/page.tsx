@@ -31,7 +31,7 @@ const PROTEIN_LINE: Record<WebRecipe['protein'], FoodLine> = {
  * # 2026-10-10 웹 리뉴얼 — 웹 시안 WEB-C01
  * 웹 = 가게 틀(StoreShell) 안에서 위에서부터:
  *   히어로(머리말·제목·소개·태그) → 실제 사진 + 겹친 요약 4칸 → 이 레시피 사기(/store/[recipe], 웹만)
- *   → 탄생 이야기 → 주요 재료(정본) + 전체 원재료 → 4종 열량 막대 → 만드는 과정 → 등록성분
+ *   → 이런 아이를 떠올리며(설계 페르소나) → 주요 재료(정본) + 전체 원재료 → 4종 열량 막대 → 만드는 과정 → 등록성분
  *   → 처음 일주일 + 보관 → 자주 묻는 것 → 다른 레시피 → 앱 띠(웹만)
  * 앱 = 같은 내용을 앱 윗줄(← + 레시피 이름) 아래에. 앱은 단품을 팔지 않으므로(/store 는 앱에서 앱 홈으로 간다)
  *   '이 레시피 사기' 줄과 '앱에서 15% 할인' 띠는 웹에만 둔다.
@@ -275,9 +275,9 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
         )}
       </section>
 
-      {/* ── 탄생 이야기 — 스펙보다 "왜 만들었나"부터 ── */}
+      {/* ── 만든 이유(○○ 같은 아이를 떠올리며) — 스펙보다 "왜 만들었나"부터(설계 페르소나, 사장님 10/18 — 실제 손님 이야기는 후기에만) ── */}
       <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>탄생 이야기</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>만든 이유</span>
         <H2 style={{ marginTop: 6 }}>{story.hand} 만들었어요</H2>
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {story.paragraphs.map((para, i) => (
@@ -477,7 +477,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
         ))}
       </section>
 
-      {/* ── 앱 띠 — 웹만. 하루 양·정기배송은 앱(웹엔 '맞춤' 상품이 없다 — 앱을 가리킬 때만 쓴다). ── */}
+      {/* ── 앱 띠 — 웹만. 하루 양·정기배송은 앱(웹엔 '맞춤'을 쓰지 않는다 — 10/18 '우리 아이 맞춤 정기배송' → '매일 먹인다면'). ── */}
       {isApp ? (
         <div aria-hidden style={{ height: 'calc(48px + env(safe-area-inset-bottom, 0px))' }} />
       ) : (
@@ -488,7 +488,7 @@ export default async function RecipeDetailPage({ params }: { params: Params }) {
             style={{ minHeight: 56, borderTop: '1px solid #E5E5E5', borderBottom: '1px solid #E5E5E5', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 17, color: '#141414', textDecoration: 'none' }}
           >
             <span>
-              우리 아이 맞춤 정기배송은 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱에서 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
+              매일 먹인다면 <strong style={{ fontWeight: 800, color: '#1D3B2F' }}>앱 정기배송 {SUBSCRIPTION_DISCOUNT_PCT}% 할인</strong>
             </span>
             <Chevron />
           </Link>

@@ -24,7 +24,6 @@ import {
   RECIPE_PRODUCT_NAME,
   RECIPE_REAL_IMG,
   RECIPE_STUDIO_IMG,
-  RECIPE_TITLE,
   STORE_RECIPES,
   STORE_SIZES,
   alternativeAdvice,
@@ -42,8 +41,8 @@ import RecipeName from './RecipeName'
 import { FEED_RATIOS, MAX_WEIGHT_KG, MIN_WEIGHT_KG, feedingSummary, type FeedRatioKey } from '@/lib/store/feeding'
 import { FREE_SHIPPING_MIN, SHIPPING_FEE } from '@/lib/store/shipping'
 import { REFUND_RULE_HAEYO } from '@/lib/store/refund-copy'
-import { reviewerLabel, reviewsFor } from '@/lib/store/reviews'
-import { SmartstoreReview } from './ReviewMedia'
+import { reviewsFor } from '@/lib/store/reviews'
+import { FeaturedReview, SmartstoreReview } from './ReviewMedia'
 import { SMARTSTORE_URL } from '@/lib/links'
 import type { RecipeLabel } from '@/lib/store/label'
 import { Acc, NoticeList, ShippingRefundInfo } from './ProductInfo'
@@ -741,40 +740,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
         ) : (
           <>
           {reviews.filter((r) => r.source === 'instagram').map((r) => (
-            <article key={r.id} style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {/* 사진 = 첫 장 크게 + 나머지 두 칸씩, 전부 1:1(파일도 정사각형 — 규칙288). 예전 2:1 고정 높이 칸은 좁은 칸의 사진 양옆을 잘랐다. */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, background: '#141414' }}>
-                {r.photos.map((p, i) => (
-                  <figure key={p.src} style={{ margin: 0, position: 'relative', gridColumn: i === 0 || (i === r.photos.length - 1 && i % 2 === 1) ? '1 / -1' : undefined }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.src} alt={p.alt} loading="lazy" width={600} height={600} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
-                    {p.caption && (
-                      <figcaption style={{ position: 'absolute', left: 8, bottom: 8, padding: '3px 8px', borderRadius: 2, background: 'rgba(20,20,20,0.78)', color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
-                        {p.caption}
-                      </figcaption>
-                    )}
-                  </figure>
-                ))}
-              </div>
-              <div style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span style={{ alignSelf: 'flex-start', height: 28, padding: '0 10px', borderRadius: 2, background: '#F6F4F5', color: '#141414', fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden style={{ width: 8, height: 8, background: RECIPE_BAND[recipe] }} />
-                  {RECIPE_TITLE[recipe]}
-                </span>
-                {r.title && (
-                  <strong className="d" style={{ fontSize: 24, lineHeight: 1.2, fontWeight: 400, textWrap: 'balance' }}>
-                    &ldquo;{r.title}&rdquo;
-                  </strong>
-                )}
-                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{r.body}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingTop: 12, borderTop: '1px solid #E5E5E5' }}>
-                  <span style={{ fontSize: 15, fontWeight: 800 }}>
-                    {reviewerLabel(r)}{r.breed ? <span style={{ fontWeight: 600, color: '#595959' }}> · {r.breed}</span> : null}
-                  </span>
-                  <span style={{ fontSize: 14, color: '#595959' }}>{r.note}</span>
-                </div>
-              </div>
-            </article>
+            <FeaturedReview key={r.id} r={r} />
           ))}
           {reviews.some((r) => r.source === 'smartstore') && (
             <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>

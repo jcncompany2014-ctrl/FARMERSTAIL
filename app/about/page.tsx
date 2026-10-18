@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { ReviewDigest } from '@/components/store/ReviewMedia'
+import { DIGEST_REVIEWS, reviewsByIds, smartstoreSummary } from '@/lib/store/reviews'
 import Link from 'next/link'
 import StoreShell from '@/components/store/StoreShell'
 import JsonLd from '@/components/JsonLd'
@@ -289,15 +291,12 @@ export default async function AboutPage() {
           </dl>
         </section>
 
-        {/* ── 함께하는 보호자들 — 실제 후기가 모이기 전까지는 지어낸 카드 없이 상태만(규칙 28) ── */}
+        {/* ── 함께하는 보호자들 — 옮겨 둔 실제 후기(lib/store/reviews, 규칙294) 모아 보기. 지어낸 카드는 싣지 않는다(규칙 28) ── */}
         <section style={{ padding: '48px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <h2 className="d" style={{ margin: '0 0 14px', fontSize: 30, lineHeight: 1.12 }}>
             함께하는 보호자들
           </h2>
-          <div style={{ padding: 20, borderRadius: 4, border: '2px solid #141414', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <strong style={{ fontSize: 18, fontWeight: 800 }}>첫 후기를 모으는 중이에요</strong>
-            <span style={{ fontSize: 16, lineHeight: 1.55, color: '#3D3D3D' }}>먹여 보신 분들의 이야기가 모이면 고치지 않고 이 자리에 올려요.</span>
-          </div>
+          <ReviewDigest reviews={reviewsByIds(DIGEST_REVIEWS)} summary={smartstoreSummary()} />
         </section>
 
         {/* ── 마무리 — 가게 · 우리 음식 · 앱 띠 ── */}
