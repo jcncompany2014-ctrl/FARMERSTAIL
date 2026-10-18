@@ -127,7 +127,7 @@ export function QaList({ items, style }: { items: { q: string; a: React.ReactNod
 /** 레시피 카드 2칸(가게 상품으로) — 이름·부위·가격·사진은 가게 정본, 닭·오리는 무항생제 꼬리표. */
 export function RecipeCards({ order = ['chicken', 'duck', 'pork', 'beef'], style }: { order?: readonly MagazineRecipeKey[]; style?: React.CSSProperties }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 10, rowGap: 18, ...style }}>
+    <div className="fts-cols4" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 10, rowGap: 18, ...style }}>
       {order.map((k) => {
         const c = magazineRecipeCard(k)
         const tag = ANTIBIOTIC_FREE_TAG[k]

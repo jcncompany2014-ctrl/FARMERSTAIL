@@ -96,7 +96,9 @@ export default function CartView({ paused }: { paused: boolean }) {
   const saving = s.lines.reduce((n, l) => n + subscriptionSaving(l.item) * l.qty, 0)
 
   return (
-    <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    // PC(폭 1024 이상): 왼쪽 묶음 · 오른쪽 묶음 2단(store.css .fts-cart). 폰에선 두 묶음이 display: contents — 화면·주문 바 동작이 예전과 같다.
+    <div className="fts-cart" style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="fts-cart-l" style={{ display: 'contents' }}>
       {paused && <PayPausedNotice />}
       <section aria-label="냉동 상품" style={{ border: '2px solid #141414', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -210,7 +212,9 @@ export default function CartView({ paused }: { paused: boolean }) {
           </>
         )}
       </section>
+      </div>
 
+      <div className="fts-cart-r" style={{ display: 'contents' }}>
       <section aria-label="결제 예정 금액">
         <dl style={{ margin: 0 }}>
           <div style={{ minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 16 }}>
@@ -246,7 +250,7 @@ export default function CartView({ paused }: { paused: boolean }) {
         </Link>
       )}
 
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, margin: '0 -16px', padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="fts-cart-bar" style={{ position: 'sticky', bottom: 0, zIndex: 20, margin: '0 -16px', padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {paused ? (
           <>
             <SmartStoreButton height={50} />
@@ -263,6 +267,7 @@ export default function CartView({ paused }: { paused: boolean }) {
             {won(s.total)}원 주문하기
           </button>
         )}
+      </div>
       </div>
     </div>
   )

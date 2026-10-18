@@ -124,11 +124,12 @@ export default async function BrandPage() {
   ])
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id="ld-brand-about" data={aboutLd} />
       <JsonLd id="ld-brand-crumbs" data={crumbLd} />
       {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
-      <div style={{ lineHeight: 'normal' }}>
+      {/* PC(폭 1024 이상): 가운데 읽기 칸 820(store.css .fts-read) */}
+      <div className="fts-read" style={{ lineHeight: 'normal' }}>
         <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>브랜드 이야기</span>
           <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
@@ -280,6 +281,7 @@ export default async function BrandPage() {
           </p>
           <Link
             href="/store"
+            className="fts-btn"
             style={{ marginTop: 24, height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 19, fontWeight: 800 }}
           >
             레시피 고르기

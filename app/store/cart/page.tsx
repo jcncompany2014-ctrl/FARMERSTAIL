@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function CartPage() {
   return (
-    <StoreShell header={{ variant: 'title', title: '장바구니', backHref: '/store' }} footer={false}>
+    <StoreShell header={{ variant: 'title', title: '장바구니', backHref: '/store' }} footer={false} wide>
       <CartView paused={storeSalesPaused()} />
     </StoreShell>
   )

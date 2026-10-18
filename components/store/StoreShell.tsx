@@ -25,7 +25,7 @@ export default function StoreShell({
   return (
     <div className="fts">
       <div className="fts-page" style={{ display: 'flex', flexDirection: 'column' }}>
-        <StoreHeader {...(header ?? { variant: 'home' })} />
+        <StoreHeader {...(header ?? { variant: 'home' })} wide={wide} />
         <main className="fts-main" data-wide={wide ? 'true' : undefined} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </main>

@@ -263,7 +263,7 @@ test('규칙296: PC 화면(폭 1024 이상, 시안 A 가게형) — PC 규칙은
   const before = css.slice(0, pcStart)
   const pcBlock = css.slice(pcStart)
   // 블록 밖에 허용된 것: PC 전용 숨김 두 개(.fts-pc-only · .fts-hd-pc — 폰에서 숨긴다)
-  const PC_CLASSES = ['fts-sec', 'fts-pt', 'fts-hero', 'fts-proof', 'fts-rgrid', 'fts-rcard', 'fts-rpic', 'fts-trial', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-', 'fts-faq-list', 'fts-pd-', 'fts-narrow', 'fts-ft', 'fts-hd-m', 'fts-m-only', 'fts-store-', 'fts-compare-table', 'fts-feat-photos', 'fts-main', 'fts-event']
+  const PC_CLASSES = ['fts-sec', 'fts-pt', 'fts-hero', 'fts-proof', 'fts-rgrid', 'fts-rcard', 'fts-rpic', 'fts-trial', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-', 'fts-faq-list', 'fts-pd-', 'fts-narrow', 'fts-ft', 'fts-hd-m', 'fts-m-only', 'fts-store-', 'fts-compare-table', 'fts-feat-photos', 'fts-main', 'fts-event', 'fts-read', 'fts-btn', 'fts-cols4', 'fts-blog-', 'fts-cart']
   for (const c of PC_CLASSES) assert.ok(!before.includes(`.${c}`), `PC 이름표 .${c} 규칙이 1024px 블록 밖에 있다 — 폰 화면이 바뀐다`)
   assert.match(before, /\.fts-pc-only \{\s*display: none !important;\s*\}/, 'PC 전용 요소가 폰에서 숨지 않는다')
   assert.match(before, /\.fts-hd-pc \{\s*display: none;\s*\}/, 'PC 가로 메뉴가 폰에서 숨지 않는다')
@@ -276,9 +276,19 @@ test('규칙296: PC 화면(폭 1024 이상, 시안 A 가게형) — PC 규칙은
 
   const shell = code('components', 'store', 'StoreShell.tsx')
   assert.match(shell, /<main className="fts-main" data-wide=\{wide \? 'true' : undefined\}/, 'StoreShell 이 넓은 화면 표시(data-wide)를 달지 않는다')
-  for (const rel of [['app', 'page.tsx'], ['app', 'store', 'page.tsx'], ['app', 'store', '[slug]', 'page.tsx'], ['app', 'reviews', 'page.tsx']]) {
+  for (const rel of [['app', 'page.tsx'], ['app', 'store', 'page.tsx'], ['app', 'store', '[slug]', 'page.tsx'], ['app', 'reviews', 'page.tsx'], ['app', 'store', 'cart', 'page.tsx'], ['app', 'blog', '(index)', 'page.tsx'], ['app', 'blog', '[slug]', 'page.tsx'], ['app', 'our-food', 'page.tsx'], ['app', 'brand', 'page.tsx'], ['app', 'about', 'page.tsx']]) {
     assert.match(code(...rel), /<StoreShell[^>]*\bwide\b/, `${rel.join('/')}: PC 에서 넓게 쓰는 화면인데 StoreShell wide 가 없다`)
   }
+  assert.match(code('app', 'faq', 'page.tsx'), /<SiteShell wide>/, 'FAQ 가 PC 에서 넓게 쓰지 않는다(SiteShell wide)')
+  // 읽는 화면은 가운데 읽기 칸(820·720) — 본문 전체를 감싼다
+  for (const rel of [['app', 'our-food', 'page.tsx'], ['app', 'brand', 'page.tsx'], ['app', 'about', 'page.tsx'], ['app', 'blog', '[slug]', 'page.tsx'], ['app', 'faq', 'page.tsx']]) {
+    assert.match(code(...rel), /className="fts-read( fts-read-720)?"/, `${rel.join('/')}: PC 읽기 칸(.fts-read)이 없다 — 넓게 펼치면 글줄이 1200 까지 늘어난다`)
+  }
+  assert.match(pcBlock, /\.fts-read \{[^}]*max-width: 820px/, 'PC 읽기 칸 폭(820)이 없다')
+  // 장바구니 두 묶음 = 폰에선 display: contents(아래 붙는 주문 바의 기준 상자가 바깥 칸이어야 화면 아래에 붙는다)
+  const cartView = code('components', 'store', 'CartView.tsx')
+  assert.match(cartView, /className="fts-cart-l" style=\{\{ display: 'contents' \}\}/, '장바구니 왼쪽 묶음이 폰에서 상자를 만든다(주문 바가 안 붙는다)')
+  assert.match(cartView, /className="fts-cart-r" style=\{\{ display: 'contents' \}\}/, '장바구니 오른쪽 묶음이 폰에서 상자를 만든다(주문 바가 안 붙는다)')
   const header = code('components', 'store', 'StoreHeader.tsx')
   assert.match(header, /<header className="fts-hd-pc">/, 'PC 가로 메뉴 머리줄이 없다')
   assert.match(header, /className="fts-hd-m"/, '폰 머리줄 이름표(.fts-hd-m)가 없다 — PC 에서 두 머리줄이 겹친다')

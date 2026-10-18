@@ -354,9 +354,11 @@ export default async function FaqPage() {
   const jump = [storeGroup, ...general, ...subs]
 
   return (
-    <SiteShell>
+    <SiteShell wide>
       <JsonLd id="ld-faq" data={faqLd} />
       <JsonLd id="ld-faq-crumbs" data={crumbLd} />
+      {/* PC(폭 1024 이상): 가운데 읽기 칸 820(store.css .fts-read) */}
+      <div className="fts-read">
       <div style={{ padding: '28px 20px 0' }}>
         <h1 className="d" style={{ margin: 0, fontSize: 36, lineHeight: 1.1 }}>
           자주 묻는 질문
@@ -400,6 +402,7 @@ export default async function FaqPage() {
         <Link href="/contact" style={{ height: 56, borderRadius: 4, border: '1.5px solid #141414', color: '#141414', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, textDecoration: 'none' }}>
           문의하기
         </Link>
+      </div>
       </div>
     </SiteShell>
   )

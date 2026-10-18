@@ -164,11 +164,11 @@ export default async function BlogIndexPage({
   const navCols = shownCats.length + 1 <= 4 ? 4 : 3
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id="ld-blog-crumbs" data={crumbLd} />
       <div style={{ lineHeight: 'normal' }}>
         {/* ── 머리말 · 큰 제목 · 소개 · 카테고리 ── */}
-        <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
+        <section className="fts-sec" style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>매거진</span>
           <h1 className="d" style={{ margin: '8px 0 0', fontSize: 40, lineHeight: 1.1 }}>
             파머스테일
@@ -176,7 +176,7 @@ export default async function BlogIndexPage({
             매거진
           </h1>
           <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.6, color: '#3D3D3D' }}>반려견 영양·건강·돌봄에 관한 파머스테일의 이야기예요.</p>
-          <nav aria-label="카테고리" style={{ marginTop: 20, display: 'grid', gridTemplateColumns: `repeat(${navCols}, minmax(0, 1fr))`, gap: 6 }}>
+          <nav aria-label="카테고리" className="fts-blog-cats" style={{ marginTop: 20, display: 'grid', gridTemplateColumns: `repeat(${navCols}, minmax(0, 1fr))`, gap: 6 }}>
             <CategoryButton href="/blog" active={!activeCategory}>
               전체
             </CategoryButton>
@@ -189,7 +189,7 @@ export default async function BlogIndexPage({
         </section>
 
         {rows.length === 0 || !hero ? (
-          <section style={{ padding: '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+          <section className="fts-sec" style={{ padding: '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '36px 20px', borderRadius: 4, background: '#F6F4F5', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6 }}>
               <strong style={{ fontSize: 18, fontWeight: 800 }}>아직 게시된 글이 없어요</strong>
               <span style={{ fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
@@ -200,17 +200,18 @@ export default async function BlogIndexPage({
         ) : (
           <>
             {/* ── 최신 글 한 편 — 큰 사진 · '최신 글' 딱지 · 제목 · 요약 · 날짜/읽기 ── */}
-            <section style={{ padding: rest.length > 0 ? '28px 20px 0' : '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
-              <Link href={`/blog/${hero.slug}`} style={{ display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }}>
+            {/* PC(폭 1024 이상): 최신 글은 왼쪽 사진 · 오른쪽 글 2단, 나머지는 3열 카드(store.css .fts-blog-*) */}
+            <section className="fts-sec" style={{ padding: rest.length > 0 ? '28px 20px 0' : '28px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+              <Link href={`/blog/${hero.slug}`} className="fts-blog-hero" style={{ display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }}>
                 {hero.cover_url && (
-                  <span style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '350 / 220', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                  <span className="fts-blog-hero-img" style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '350 / 220', borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
                     <Image
                       src={hero.cover_url}
                       alt={hero.title}
                       fill
                       loading="eager"
                       fetchPriority="high"
-                      sizes="(max-width: 480px) calc(100vw - 40px), 440px"
+                      sizes="(min-width: 1024px) 700px, (max-width: 480px) calc(100vw - 40px), 440px"
                       style={{ objectFit: 'cover' }}
                     />
                   </span>
@@ -235,14 +236,15 @@ export default async function BlogIndexPage({
 
             {/* ── 나머지 글 — 먹선 아래 한 줄씩(카테고리 · 제목 · 날짜 + 오른쪽 96 사진) ── */}
             {rest.length > 0 && (
-              <section style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+              <section className="fts-sec" style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column' }}>
+                <div className="fts-blog-grid" style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
                   {rest.map((p) => {
                     const cat = p.category_id ? catById.get(p.category_id) : undefined
                     return (
                       <Link
                         key={p.id}
                         href={`/blog/${p.slug}`}
+                        className="fts-blog-card"
                         style={{
                           padding: '16px 0',
                           borderBottom: '1px solid #E5E5E5',
@@ -260,8 +262,8 @@ export default async function BlogIndexPage({
                           <span style={{ fontSize: 14, color: '#595959' }}>{formatDate(p.published_at)}</span>
                         </span>
                         {p.cover_url && (
-                          <span style={{ position: 'relative', display: 'block', width: 96, height: 96, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
-                            <Image src={p.cover_url} alt="" fill loading="lazy" sizes="96px" style={{ objectFit: 'cover' }} />
+                          <span className="fts-blog-thumb" style={{ position: 'relative', display: 'block', width: 96, height: 96, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}>
+                            <Image src={p.cover_url} alt="" fill loading="lazy" sizes="(min-width: 1024px) 400px, 96px" style={{ objectFit: 'cover' }} />
                           </span>
                         )}
                       </Link>

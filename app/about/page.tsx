@@ -125,10 +125,11 @@ export default async function AboutPage() {
   ])
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id="ld-about-crumbs" data={crumbLd} />
       {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
-      <div style={{ lineHeight: 'normal' }}>
+      {/* PC(폭 1024 이상): 가운데 읽기 칸 820(store.css .fts-read) */}
+      <div className="fts-read" style={{ lineHeight: 'normal' }}>
         {/* ── 머리말 · 제목 · 소개 ── */}
         <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>우리 이야기</span>
@@ -306,6 +307,7 @@ export default async function AboutPage() {
           </h2>
           <Link
             href="/store"
+            className="fts-btn"
             style={{ marginTop: 18, height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 19, fontWeight: 800 }}
           >
             레시피 고르기
@@ -313,6 +315,7 @@ export default async function AboutPage() {
           </Link>
           <Link
             href="/our-food"
+            className="fts-btn"
             style={{ marginTop: 10, height: 56, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', color: '#141414', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}
           >
             우리 음식 보기

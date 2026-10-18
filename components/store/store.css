@@ -451,6 +451,91 @@
     top: 100px;
   }
 
+  /* ── 읽는 화면(우리 음식·브랜드·about·FAQ 820 · 매거진 글 720) — 글·사진은 칸 안에서 폰 모양 그대로 ── */
+  .fts-read {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding-top: 24px;
+  }
+  .fts-read-720 {
+    max-width: 720px;
+  }
+  .fts-btn {
+    max-width: 380px;
+  }
+  .fts-cols4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  /* ── 매거진 목록: 최신 글 2단(왼쪽 사진 · 오른쪽 글) + 나머지 3열 카드 ── */
+  .fts-blog-cats {
+    max-width: 520px;
+  }
+  .fts-blog-hero {
+    display: grid !important;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 40px;
+    align-items: center;
+  }
+  .fts-blog-hero > * {
+    grid-column: 2;
+  }
+  .fts-blog-hero > .fts-blog-hero-img {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+  }
+  .fts-blog-hero h2 {
+    font-size: 32px !important;
+  }
+  .fts-blog-grid {
+    padding-top: 28px;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 36px 24px;
+  }
+  .fts-blog-card {
+    padding: 0 !important;
+    border-bottom: 0 !important;
+    display: flex !important;
+    flex-direction: column-reverse;
+    gap: 14px;
+  }
+  .fts-blog-thumb {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 10;
+  }
+
+  /* ── 장바구니: 왼쪽 담은 상품·무료배송 · 오른쪽 금액·주문(따라옴) ── */
+  .fts-cart {
+    padding: 24px max(32px, calc((100% - 1200px) / 2)) 64px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    column-gap: 40px;
+    align-items: start;
+  }
+  .fts-cart-l,
+  .fts-cart-r {
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  .fts-cart-r {
+    position: sticky;
+    top: 100px;
+    padding: 20px;
+    border: 2px solid #141414;
+    border-radius: 4px;
+  }
+  .fts-cart-bar {
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-top: 0 !important;
+  }
+
   /* ── 상품 상세 위쪽: 왼쪽 사진 · 오른쪽 구매 상자 ── */
   .fts-pd-top {
     padding: 28px max(32px, calc((100% - 1200px) / 2)) 0;

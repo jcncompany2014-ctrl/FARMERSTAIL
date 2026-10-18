@@ -53,7 +53,8 @@ function CartButton({ withLabel = false }: { withLabel?: boolean }) {
         <span
           aria-hidden
           style={{
-            position: 'absolute',
+            // PC(글자 있는 단추)는 글자 옆에 나란히, 폰(아이콘만)은 아이콘 오른쪽 위에 얹는다
+            position: withLabel ? 'static' : 'absolute',
             top: 4,
             right: 2,
             minWidth: 20,
@@ -88,7 +89,7 @@ const PC_NAV: ReadonlyArray<readonly [href: string, label: string]> = [
   ['/app', '앱 정기배송'],
 ]
 
-export default function StoreHeader(props: StoreHeaderProps) {
+export default function StoreHeader(props: StoreHeaderProps & { wide?: boolean }) {
   const router = useRouter()
   const pathname = usePathname() ?? '/'
   const [menuOpen, setMenuOpen] = useState(false)
@@ -133,8 +134,8 @@ export default function StoreHeader(props: StoreHeaderProps) {
         <CartButton withLabel />
       </header>
       {variant === 'title' && 'title' in props && (
-        <div className="fts-pc-only">
-          <h1 className="d" style={{ margin: 0, maxWidth: 480, marginInline: 'auto', padding: '28px 20px 0', fontSize: 32, lineHeight: 1.1, boxSizing: 'border-box' }}>
+        <div className={props.wide ? 'fts-pc-only fts-sec' : 'fts-pc-only'}>
+          <h1 className="d" style={{ margin: 0, maxWidth: props.wide ? 'none' : 480, marginInline: 'auto', padding: props.wide ? '28px 0 0' : '28px 20px 0', fontSize: 32, lineHeight: 1.1, boxSizing: 'border-box' }}>
             {props.title}
           </h1>
         </div>

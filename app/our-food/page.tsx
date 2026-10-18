@@ -226,11 +226,12 @@ export default async function OurFoodPage() {
   const faqLd = buildFaqJsonLd(FOOD_FAQ.map((it) => ({ question: it.q, answer: it.a })))
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id="ld-our-food-crumbs" data={crumbLd} />
       <JsonLd id="ld-our-food-faq" data={faqLd} />
       {/* 줄 높이 기본값 = 시안(normal). 여러 줄 글은 각자 값을 준다. */}
-      <div style={{ lineHeight: 'normal' }}>
+      {/* PC(폭 1024 이상): 가운데 읽기 칸 820(store.css .fts-read) */}
+      <div className="fts-read" style={{ lineHeight: 'normal' }}>
         {/* ── 머리말 · 제목 · 소개 · 버튼 둘 ── */}
         <section style={{ padding: '32px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 15, fontWeight: 800, color: '#595959' }}>우리 음식</span>
@@ -256,12 +257,13 @@ export default async function OurFoodPage() {
               </>,
             ]}
           />
-          <Link href="/store" style={{ ...PRIMARY_BTN, marginTop: 22 }}>
+          <Link href="/store" className="fts-btn" style={{ ...PRIMARY_BTN, marginTop: 22 }}>
             레시피 고르기
             <Arrow />
           </Link>
           <Link
             href="/science"
+            className="fts-btn"
             style={{ marginTop: 10, height: 56, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', color: '#141414', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}
           >
             영양 근거 보기
@@ -459,7 +461,7 @@ export default async function OurFoodPage() {
             오늘 시작해요
           </H2>
           <p style={{ margin: '10px 0 0', fontSize: 17, lineHeight: 1.6, color: '#3D3D3D' }}>500g 한 봉부터 부담 없이 시작해요.</p>
-          <Link href="/store" style={{ ...PRIMARY_BTN, marginTop: 18 }}>
+          <Link href="/store" className="fts-btn" style={{ ...PRIMARY_BTN, marginTop: 18 }}>
             레시피 고르기
             <Arrow />
           </Link>

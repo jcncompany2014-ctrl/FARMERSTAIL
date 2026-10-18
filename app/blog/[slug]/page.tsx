@@ -230,13 +230,14 @@ export default async function BlogPostPage({ params }: { params: Params }) {
   const metaLine = [formatDate(post.published_at), `${readingMin}분 읽기`].filter(Boolean).join(' · ')
 
   return (
-    <StoreShell>
+    <StoreShell wide>
       <JsonLd id={`ld-article-${post.slug}`} data={articleLd} />
       <JsonLd id={`ld-breadcrumb-blog-${post.slug}`} data={breadcrumbLd} />
       {faqLd && <JsonLd id={`ld-faq-${post.slug}`} data={faqLd} />}
       <style>{MAGAZINE_POST_CSS}</style>
 
-      <div style={{ lineHeight: 'normal' }}>
+      {/* PC(폭 1024 이상): 가운데 읽기 칸 720(store.css .fts-read.fts-read-720) — 글은 한 줄이 너무 길면 읽기 힘들다 */}
+      <div className="fts-read fts-read-720" style={{ lineHeight: 'normal' }}>
         {/* ── ← 매거진 · 카테고리 · 큰 제목 · 요약 · 날짜/읽는 시간 + 공유 · 표지 ── */}
         <section style={{ padding: '8px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <Link
