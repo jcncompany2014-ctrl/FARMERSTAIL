@@ -212,7 +212,10 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput) {
     data.image = [absoluteUrl(input.coverUrl)]
   }
   if (input.mentions && input.mentions.length > 0) {
-    data.mentions = input.mentions.map((m) => ({ '@type': 'Product', name: m.name, url: absoluteUrl(m.url), brand: { '@type': 'Brand', name: SITE_NAME } }))
+    // ★Product 로 쓰지 않는다(2026-10-19 구글 서치 콘솔 "제품 스니펫 — 'offers', 'review' 또는 'aggregateRating'을 지정해야 합니다").
+    //   글 속 언급은 가격·후기·평점이 없는 상품이 되어 오류로 잡혔다. 이름·주소만 있는 Thing 이면 '이 글이 이 레시피를 다룬다'만
+    //   전하고 상품 검사 대상이 아니다. 가격은 상품 화면(/store/레시피)의 Product 가 정본(규칙304).
+    data.mentions = input.mentions.map((m) => ({ '@type': 'Thing', name: m.name, url: absoluteUrl(m.url) }))
   }
   if (input.publishedAt) {
     data.datePublished = input.publishedAt

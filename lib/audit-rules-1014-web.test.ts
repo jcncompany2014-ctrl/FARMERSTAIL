@@ -98,7 +98,8 @@ test("규칙220: 결제 시험 기간(운영 + 토스 테스트 결제창 키)�
   // 상품 구조화 데이터 — offers 는 storeSellable 로만. 화면 부품(ProductDetail)은 storeSalesPaused 그대로.
   const product = code('app', 'store', '[slug]', 'page.tsx')
   assert.match(product, /const paused = !storeSellable\(\)/, '상품 구조화 데이터가 시험 기간을 판다고 내보낸다(storeSellable 로 판정하지 않는다)')
-  assert.match(product, /\.\.\.\(paused \? \{\} : \{ offers:/, '못 팔 때 offers 를 빼는 갈래(막음 때와 같은 갈래)가 없다')
+  // 2026-10-19 — 못 팔 땐 offers 만이 아니라 Product 표시 통째로 뺀다(가격 없는 Product = 서치 콘솔 심각한 문제, 규칙304).
+  assert.match(product, /const jsonLd = paused \? null : \{/, '못 팔 때 상품 구조화 데이터를 빼는 갈래(막음 때와 같은 갈래)가 없다')
   assert.match(product, /<ProductDetail\b[^>]*\bpaused=\{storeSalesPaused\(\)\}/, '화면 부품의 결제 막음 판정이 바뀌었다 — 화면은 그대로여야 한다')
 
   // AI 안내서 — 같은 판정, 막음 때 운영에 나가던 '준비 중' 문구 그대로(새 문구 금지).

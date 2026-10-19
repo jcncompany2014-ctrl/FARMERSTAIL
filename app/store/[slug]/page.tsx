@@ -58,13 +58,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const item1k = storeItem(`${recipe}-1kg`)
   // ★자사몰 결제 막음(규칙177) 동안엔 '이 페이지에서 지금 살 수 있다'(offers — 재고·배송·반품)를 내보내지 않는다. 화면은 "자사몰
   //   결제는 아직 준비 중"인데 구조화 데이터만 InStock 이면 구글 판매자 정보·AI 답이 여기서 바로 주문하라고 안내한다(2026-10-12 점검).
-  //   상품 정보(이름·설명·열량·보관)는 그대로 두고, 결제가 열리면 offers 가 저절로 돌아온다.
+  //   (결제가 열리면 offers 가 저절로 돌아온다.)
   //   ★판정은 storeSellable(막음도 아니고 결제 시험 기간도 아닐 때만 참) — 시험 기간(운영 + 토스 테스트 결제창 키)엔 화면은 결제창까지
   //   열려 있어도 실제로는 팔지 않으니, 검색·AI 엔 막음 때와 같은 갈래(offers 없음)를 내보낸다(사장님 2026-10-14, 규칙220).
   //   화면 부품(ProductDetail paused)은 storeSalesPaused 그대로 — 토스 심사관이 결제창까지 가야 한다.
+  //   ★못 팔 땐 상품(Product) 표시 자체를 내보내지 않는다(2026-10-19 구글 서치 콘솔 "제품 스니펫 — 'offers', 'review' 또는
+  //   'aggregateRating'을 지정해야 합니다" 심각한 문제). offers 만 빼고 Product 를 남겼더니 가격·후기·평점이 하나도 없는 상품이 되어
+  //   구글이 오류로 잡았다. 셋 중 하나 없이는 어차피 가격 표시가 안 뜬다 — 열리면 Product 와 offers 가 함께 돌아온다(규칙304).
   const paused = !storeSellable()
   // 상품 구조화 데이터(검색 결과의 가격 표시) — 후기가 생기기 전이라 평점은 넣지 않는다.
-  const jsonLd = {
+  const jsonLd = paused ? null : {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: RECIPE_PRODUCT_NAME[recipe],
@@ -77,7 +80,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       { '@type': 'PropertyValue', name: '100g당 열량', value: kcalPer100g(recipe), unitText: 'kcal' },
       { '@type': 'PropertyValue', name: '보관', value: '냉동 180일' },
     ],
-    ...(paused ? {} : { offers: [item500, item1k].map((it) => ({
+    offers: [item500, item1k].map((it) => ({
       '@type': 'Offer',
       name: it.name,
       price: it.price,
@@ -109,7 +112,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         returnFees: 'https://schema.org/ReturnShippingFees',
         returnShippingFeesAmount: { '@type': 'MonetaryAmount', value: returnShippingFeeFor(shippingFeeFor(it.price)), currency: 'KRW' },
       },
-    })) }),
+    })),
   }
   const breadcrumbLd = buildBreadcrumbJsonLd([
     { name: '홈', path: '/' },
@@ -118,7 +121,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   ])
   return (
     <StoreShell header={{ variant: 'back', backHref: '/store' }} wide>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />}
       <JsonLd id={`ld-breadcrumb-store-${recipe}`} data={breadcrumbLd} />
       <ProductDetail recipe={recipe} label={label} paused={storeSalesPaused()} />
     </StoreShell>

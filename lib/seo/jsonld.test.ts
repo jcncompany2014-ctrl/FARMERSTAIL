@@ -135,9 +135,10 @@ describe('buildArticleJsonLd', () => {
       mentions: [{ name: '닭고기 화식', url: '/store/chicken' }],
     }) as { dateModified: string; mentions: { '@type': string; name: string; url: string }[] }
     assert.equal(ld.dateModified, '2026-10-11T00:00:00Z')
+    // Product 가 아니라 Thing — 가격·후기·평점 없는 Product 는 서치 콘솔 '제품 스니펫' 심각한 문제(2026-10-19, 규칙304).
     assert.deepEqual(
       ld.mentions.map((m) => [m['@type'], m.name, m.url]),
-      [['Product', '닭고기 화식', `${SITE_URL}/store/chicken`]],
+      [['Thing', '닭고기 화식', `${SITE_URL}/store/chicken`]],
     )
   })
 })
