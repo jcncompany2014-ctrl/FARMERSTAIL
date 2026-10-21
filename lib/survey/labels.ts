@@ -14,6 +14,7 @@
 import { CHRONIC_CONDITION_LABELS } from '../nutrition/guidelines.ts'
 import { snapBoxLines } from '../personalization/boxComposition.ts'
 import type { FoodLine } from '../personalization/types.ts'
+import { RISK_FLAG_INFO } from '../nutrition/risk-flags.ts'
 
 export type LabelTone = 'warn' | 'good' | 'muted'
 export type LabelItem = { label: string; value: string; tone?: LabelTone }
@@ -246,6 +247,56 @@ const RISK_KR: Record<string, string> = {
   TREAT_EXCESS: '간식 과다',
 }
 
+/**
+ * 분석 플래그 → 어드민 배지(2026-10-21 사장님 "코드 같은 '계수 감소'가 빨간 글씨로 떠, 알기 쉽게").
+ * 예전엔 모르는 플래그가 영어 코드(RELIABILITY_SAFETY_ADJUST) 그대로, 그리고 전부 빨간색이었다.
+ * 말 = 아래 ADMIN_RISK(사장님용 풀이) → 없으면 고객 분석 화면 정본(lib/nutrition/risk-flags)의 이름.
+ * 색 = 정본 응급도(critical 빨강 · high 주황 · info 회색). 그래도 모르는 코드는 '알 수 없는 표시(코드)' — 코드만 덩그러니 두지 않는다.
+ */
+export type RiskBadge = { key: string; label: string; desc: string; tone: 'red' | 'amber' | 'neutral' }
+const ADMIN_RISK: Record<string, { label: string; desc: string; tone?: RiskBadge['tone'] }> = {
+  RELIABILITY_SAFETY_ADJUST: { label: '체중이 정확하지 않아 양을 조금 적게 잡음', desc: '집 체중계·눈대중 체중이라 많이 주는 쪽으로 틀리지 않게 계산 체중을 살짝 낮췄어요. 병원 체중을 넣으면 풀려요.', tone: 'neutral' },
+  TREAT_LOAD_DAILY: { label: '간식을 자주 줘서 밥 양을 줄임', desc: '간식 열량(하루 열량의 최대 10%)만큼 화식 그램을 뺐어요.', tone: 'neutral' },
+  TREAT_EXCESS: { label: '간식이 너무 많음', desc: '보호자가 적은 간식 열량이 하루 열량의 10%를 넘어요. 간식 줄이기 안내 대상이에요.', tone: 'amber' },
+  BCS_WEIGHT_CONFLICT: { label: '체중 변화와 체형 답이 서로 안 맞음', desc: '체중은 줄었다는데 체형은 통통해졌다(또는 반대)고 답했어요. 둘 중 하나가 잘못 입력됐을 수 있어요.', tone: 'amber' },
+  FACTOR_CAPPED_HIGH: { label: '활동 계수가 너무 높아 상한으로 자름', desc: '답을 다 더한 계수가 안전 상한을 넘어 상한값으로 계산했어요.', tone: 'neutral' },
+  FACTOR_CAPPED_LOW: { label: '활동 계수가 너무 낮아 하한으로 올림', desc: '답을 다 더한 계수가 안전 하한보다 낮아 하한값으로 계산했어요.', tone: 'neutral' },
+  GIANT_BREED: { label: '50kg 이상 대형견', desc: '표준 공식이 많이 주는 쪽으로 틀릴 수 있어 수의사 상담을 권해요.', tone: 'amber' },
+}
+const SEVERITY_TONE = { critical: 'red', high: 'amber', info: 'neutral' } as const
+export function riskBadges(flags: unknown): RiskBadge[] {
+  return strs(flags).map((key) => {
+    const own = ADMIN_RISK[key]
+    const info = RISK_FLAG_INFO[key]
+    if (own) return { key, label: own.label, desc: own.desc, tone: own.tone ?? (info ? SEVERITY_TONE[info.severity] : 'neutral') }
+    if (info) return { key, label: RISK_KR[key] ?? info.label, desc: info.desc, tone: SEVERITY_TONE[info.severity] }
+    return { key, label: RISK_KR[key] ?? `알 수 없는 표시(${key})`, desc: '', tone: 'neutral' }
+  })
+}
+
+/**
+ * 같은 강아지의 두 설문 사이에 바뀐 답(2026-10-21 사장님 "한 강아지가 여러 번 했으면 보기 쉽게").
+ * describeSurvey 의 한글 줄을 항목 이름으로 맞대어 달라진 것만 '항목: 전 → 후'. 순서만 바뀐 목록은 같은 답으로 본다.
+ */
+export function surveyChanges(prev: { answers: unknown; meta?: SurveyRowMeta }, cur: { answers: unknown; meta?: SurveyRowMeta }): string[] {
+  const flat = (x: { answers: unknown; meta?: SurveyRowMeta }) => {
+    const m = new Map<string, string>()
+    for (const sec of describeSurvey(x.answers, x.meta ?? {})) for (const it of sec.items) m.set(`${sec.title}|${it.label}`, it.value)
+    return m
+  }
+  const norm = (v: string) => v.split(/\s*[·,]\s*/).map((t) => t.trim()).filter(Boolean).sort().join('·')
+  const a = flat(prev), b = flat(cur)
+  const nameOf = (k: string) => k.split('|').slice(1).join('|')
+  const out: string[] = []
+  for (const [k, v] of b) {
+    const old = a.get(k)
+    if (old === undefined) out.push(`${nameOf(k)}: (새로 답함) ${v}`)
+    else if (norm(old) !== norm(v)) out.push(`${nameOf(k)}: ${old} → ${v}`)
+  }
+  for (const [k, v] of a) if (!b.has(k)) out.push(`${nameOf(k)}: ${v} → (답 없음)`)
+  return out
+}
+
 export type AnalysisSummary = {
   rer: number | null
   mer: number | null
@@ -257,6 +308,8 @@ export type AnalysisSummary = {
   stage: string | null
   macros: string | null
   riskFlags: string[]
+  /** 위 riskFlags 를 사장님이 읽는 말 + 색으로(2026-10-21). 빨강 = 병원에 가 봐야, 주황 = 상담 권장, 회색 = 계산 안내. */
+  risks: RiskBadge[]
   vetConsult: boolean
   supplements: string[]
   nextReview: string | null
@@ -284,6 +337,7 @@ export function describeAnalysis(a: AnalysisLike | null | undefined): AnalysisSu
     stage: str(a.stage),
     macros: p !== null && f !== null ? `단백질 ${p}% · 지방 ${f}%${c !== null ? ` · 탄수화물 ${c}%` : ''}` : null,
     riskFlags: strs(a.risk_flags).map((k) => RISK_KR[k] ?? k),
+    risks: riskBadges(a.risk_flags),
     vetConsult: a.vet_consult_recommended === true,
     supplements: strs(a.supplements),
     nextReview: str(a.next_review_date),

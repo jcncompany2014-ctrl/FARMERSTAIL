@@ -8,6 +8,7 @@ import { AdminHeader, AdminCard, Badge, LoadError, StatCard } from '@/components
 import {
   describeAnalysis,
   describeBox,
+  surveyChanges,
   surveyChips,
   surveyOrigin,
   ORIGIN_LABEL,
@@ -122,8 +123,9 @@ export default async function AdminSurveysPage({
         </AdminCard>
       ) : (
         <div className="space-y-3">
-          {rows.map((r) => (
-            <SurveyCard key={r.id} r={r} />
+          {/* 한 강아지 = 카드 하나(2026-10-21 사장님 "한 강아지가 여러 번 했으면 보기 쉽게") — 맨 위는 최근 설문, 이전 설문은 카드 안 줄로. */}
+          {groupByDog(rows).map(([latest, ...older]) => (
+            <SurveyCard key={latest.id} r={latest} older={older} />
           ))}
         </div>
       )}
@@ -131,8 +133,21 @@ export default async function AdminSurveysPage({
   )
 }
 
-function SurveyCard({ r }: { r: SurveyRecord }) {
+/** 최신순 목록 → 강아지별 묶음(묶음 안도 최신순, 묶음 순서 = 그 강아지의 최근 설문 순). */
+function groupByDog(rows: SurveyRecord[]): Array<[SurveyRecord, ...SurveyRecord[]]> {
+  const byDog = new Map<string, [SurveyRecord, ...SurveyRecord[]]>()
+  for (const r of rows) {
+    const g = byDog.get(r.dog_id)
+    if (g) g.push(r)
+    else byDog.set(r.dog_id, [r])
+  }
+  return [...byDog.values()]
+}
+
+function SurveyCard({ r, older }: { r: SurveyRecord; older: SurveyRecord[] }) {
   const chips = surveyChips(r.answers, r.meta)
+  const prev = older[0]
+  const changes = prev ? surveyChanges({ answers: prev.answers, meta: prev.meta }, { answers: r.answers, meta: r.meta }) : []
   const analysis = describeAnalysis(r.analysis)
   const box = describeBox(r.formula)
   const originTone = r.origin === 'app_v4' ? 'green' : r.origin === 'web' ? 'blue' : 'neutral'
@@ -159,9 +174,26 @@ function SurveyCard({ r }: { r: SurveyRecord }) {
             ) : (
               <Badge>구독 없음</Badge>
             )}
+            {older.length > 0 && <Badge tone="blue">설문 {older.length + 1}번</Badge>}
             <span className="text-[11px] text-muted-foreground tabular-nums">{fmtKst(r.created_at)}</span>
           </div>
         </div>
+
+        {prev && (
+          <div className="mt-3 rounded-lg border border-border px-3 py-2.5">
+            <div className="text-[12px] font-bold text-muted-foreground">
+              이전 설문 {older.map((o) => fmtKst(o.created_at)).join(' · ')} — 지난번과 바뀐 답 {changes.length === 0 ? '없음(같은 답을 다시 함)' : `${changes.length}개`}
+            </div>
+            {changes.length > 0 && (
+              <ul className="mt-1 space-y-0.5">
+                {changes.slice(0, 4).map((c) => (
+                  <li key={c} className="text-[12.5px] text-foreground">· {c}</li>
+                ))}
+                {changes.length > 4 && <li className="text-[12px] text-muted-foreground">… 외 {changes.length - 4}개 (눌러서 보기)</li>}
+              </ul>
+            )}
+          </div>
+        )}
 
         {chips.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -184,8 +216,8 @@ function SurveyCard({ r }: { r: SurveyRecord }) {
                 <span className="text-[13px] tabular-nums text-foreground">{analysis.feedG ?? '—'} g/일</span>
                 <span className="text-[12px] text-muted-foreground tabular-nums">계수 {analysis.factor ?? '—'}</span>
                 {analysis.vetConsult && <Badge tone="amber">수의사 상담 권장</Badge>}
-                {analysis.riskFlags.map((f) => (
-                  <Badge key={f} tone="red">{f}</Badge>
+                {analysis.risks.map((f) => (
+                  <Badge key={f.key} tone={f.tone}>{f.label}</Badge>
                 ))}
               </div>
             ) : (

@@ -11,7 +11,9 @@ import {
   describeBox,
   describeSurvey,
   ORIGIN_LABEL,
+  surveyChanges,
   type LabelTone,
+  type SurveyRowMeta,
 } from '@/lib/survey/labels'
 import { loadSurveyRecords, fmtKst, dogLine } from '../_data'
 
@@ -61,6 +63,17 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
     )
   }
 
+  // 같은 강아지의 설문 전부(2026-10-21 사장님 "한 강아지가 여러 번 했으면 보기 쉽게") — 몇 번째인지·지난번과 바뀐 답.
+  const { data: sibRows, error: sibErr } = await createAdminClient()
+    .from('surveys')
+    .select('id, created_at, answers, iris_stage, expected_adult_weight_kg, pregnancy_week, litter_size, current_medications, daily_walk_minutes, current_food_brand')
+    .eq('dog_id', r.dog_id)
+    .order('created_at', { ascending: true })
+  const siblings = (sibRows ?? []) as Array<{ id: string; created_at: string; answers: unknown } & SurveyRowMeta>
+  const myIdx = siblings.findIndex((x) => x.id === r.id)
+  const prevSurvey = myIdx > 0 ? siblings[myIdx - 1] : null
+  const changes = prevSurvey ? surveyChanges({ answers: prevSurvey.answers, meta: prevSurvey }, { answers: r.answers, meta: r.meta }) : []
+
   const sections = describeSurvey(r.answers, r.meta)
   const analysis = describeAnalysis(r.analysis)
   const box = describeBox(r.formula)
@@ -87,6 +100,39 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
           </span>
         }
       />
+
+      {sibErr ? (
+        <div className="mb-4"><LoadError what="이 강아지의 다른 설문" hint={sibErr.message} /></div>
+      ) : siblings.length > 1 ? (
+        <AdminCard className="mb-4">
+          <SectionTitle title={`${r.dog?.name ?? '이 강아지'} 설문 ${siblings.length}번 중 ${myIdx + 1}번째`} desc="날짜를 누르면 그 설문으로 가요" />
+          <div className="flex flex-wrap gap-1.5">
+            {siblings.map((x, i) => (
+              <Link
+                key={x.id}
+                href={`/admin/surveys/${x.id}`}
+                className={`rounded-md border px-2.5 py-1 text-[12.5px] font-bold tabular-nums ${x.id === r.id ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-foreground hover:border-foreground/40'}`}
+              >
+                {i + 1}번째 · {fmtKst(x.created_at)}
+              </Link>
+            ))}
+          </div>
+          {prevSurvey && (
+            <div className="mt-3 rounded-lg bg-secondary px-3 py-2.5">
+              <div className="text-[12px] font-bold text-muted-foreground">지난 설문({fmtKst(prevSurvey.created_at)})과 바뀐 답</div>
+              {changes.length === 0 ? (
+                <p className="mt-1 text-[13px] text-foreground">바뀐 답이 없어요 — 같은 답을 다시 했어요.</p>
+              ) : (
+                <ul className="mt-1 space-y-0.5">
+                  {changes.map((c) => (
+                    <li key={c} className="text-[13px] text-foreground">· {c}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </AdminCard>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         {/* ── 답변 ── */}
@@ -150,11 +196,21 @@ export default async function AdminSurveyDetailPage({ params }: { params: Promis
                   )}
                 </div>
                 {analysis.macros && <div className="mt-3 text-[12.5px] text-foreground">{analysis.macros}</div>}
-                {(analysis.vetConsult || analysis.riskFlags.length > 0) && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {analysis.vetConsult && <Badge tone="amber">수의사 상담 권장</Badge>}
-                    {analysis.riskFlags.map((f) => <Badge key={f} tone="red">{f}</Badge>)}
+                {analysis.vetConsult && (
+                  <div className="mt-3">
+                    <Badge tone="amber">수의사 상담 권장</Badge>
                   </div>
+                )}
+                {/* 분석 표시 — 영어 코드 대신 사장님이 읽는 말 + 무슨 뜻인지 한 줄(2026-10-21). 빨강은 병원 쪽만. */}
+                {analysis.risks.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {analysis.risks.map((f) => (
+                      <li key={f.key}>
+                        <Badge tone={f.tone}>{f.label}</Badge>
+                        {f.desc && <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{f.desc}</p>}
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 {analysis.supplements.length > 0 && (
                   <div className="mt-3 text-[12px] text-muted-foreground">보충제: {analysis.supplements.join(' · ')}</div>

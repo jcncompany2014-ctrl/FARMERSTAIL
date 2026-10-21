@@ -5,8 +5,11 @@ import {
   describeBox,
   describeSurvey,
   pickSurveyFormula,
+  riskBadges,
+  surveyChanges,
   surveyChips,
   surveyOrigin,
+  type RiskBadge as RiskBadgeT,
 } from './labels.ts'
 
 const v4 = {
@@ -166,4 +169,25 @@ test('설문↔처방 짝짓기 — 다음 설문의 박스가 이전 설문 카
   assert.deepEqual(pickSurveyFormula([f, f2], s3, null), { formula: f2, source: 'previous' })
   // 처방이 전혀 없으면 null.
   assert.deepEqual(pickSurveyFormula([], s1, null), { formula: null, source: null })
+})
+
+test('어드민 분석 표시: 영어 코드 대신 쉬운 말 · 빨강은 병원 쪽만 · 모르는 코드도 코드만 두지 않음(2026-10-21)', () => {
+  const b = riskBadges(['RELIABILITY_SAFETY_ADJUST', 'REFEEDING_RISK', 'NEW_FLAG_X'])
+  const [p0, p1, p2] = b as [RiskBadgeT, RiskBadgeT, RiskBadgeT]
+  assert.equal(p0.tone, 'neutral')
+  assert.ok(!/[A-Z_]{6,}/.test(p0.label), '계수 보정 표시가 영어 코드 그대로다')
+  assert.ok(p0.desc.length > 0)
+  assert.equal(p1.tone, 'red')
+  assert.match(p2.label, /^알 수 없는 표시\(NEW_FLAG_X\)$/)
+  assert.deepEqual(riskBadges(null), [])
+})
+
+test('같은 강아지 두 설문의 바뀐 답 — 고기 순서만 바뀐 건 같은 답, 새로 답한 항목은 표시(낑콩 10/21)', () => {
+  const base = { surveyVersion: 4, bcsExact: 5, foodType: '반반', snackFreq: '가끔', vigorousExercise: 'none', preferredProteins: ['chicken', 'duck', 'beef'], allergies: [] }
+  const again = { ...base, vigorousExercise: 'self_report', giSensitivity: 'sometimes', preferredProteins: ['duck', 'beef', 'chicken'] }
+  const ch = surveyChanges({ answers: base }, { answers: again })
+  assert.ok(ch.some((c) => c.includes('안 해요 → 해요')), `격한 운동 변화가 안 잡혔다: ${ch.join(' / ')}`)
+  assert.ok(ch.some((c) => c.includes('(새로 답함)') && c.includes('가끔')), `배탈 빈도(새 답)가 안 잡혔다: ${ch.join(' / ')}`)
+  assert.ok(!ch.some((c) => c.includes('오리')), `고기 순서만 바뀐 걸 변화로 셌다: ${ch.join(' / ')}`)
+  assert.deepEqual(surveyChanges({ answers: base }, { answers: base }), [])
 })
