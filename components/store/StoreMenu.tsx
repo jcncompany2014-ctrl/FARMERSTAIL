@@ -122,6 +122,13 @@ export default function StoreMenu({ open, onClose }: { open: boolean; onClose: (
             <KakaoLoginButton next={pathname || '/'} look="app" />
             {/* 애플 기기에서만 보인다(버튼이 스스로 가린다) — 카카오가 있는 가입 화면엔 애플도(규칙108). */}
             <AppleLoginButton next={pathname || '/'} look="app" />
+            {/* 이메일 계정 길(2026-10-21 토스 결제경로 심사 — 메뉴에 카카오·애플만 있어 이메일 계정은 로그인할 곳이 없었다). */}
+            <Link
+              href={`/login?next=${encodeURIComponent(pathname || '/')}`}
+              style={{ height: 48, borderRadius: 4, border: '1.5px solid #141414', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#141414', textDecoration: 'none' }}
+            >
+              이메일로 로그인
+            </Link>
           </section>
         )}
         {signedIn && (

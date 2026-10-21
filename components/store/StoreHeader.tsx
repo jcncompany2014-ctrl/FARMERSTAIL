@@ -7,9 +7,10 @@
  *  - title: ← 뒤로 · 가운데 화면 이름(장바구니·주문·결제) — 장바구니·주문
  * 웹에서만 그린다(앱은 단품을 안 판다 — 상점 경로는 앱에서 열리면 앱 홈으로 보낸다).
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { useStoreCart } from './useStoreCart'
 import StoreMenu from './StoreMenu'
 
@@ -78,6 +79,37 @@ function CartButton({ withLabel = false }: { withLabel?: boolean }) {
   )
 }
 
+/**
+ * PC 머리줄 로그인 단추(2026-10-21 토스 결제경로 심사 — "로그인·회원가입 경로 캡처"인데 PC 엔 로그인으로 가는 길이 없었다).
+ * 로그인 전 = '로그인'(/login, 이메일·카카오·애플) · 로그인 뒤 = '내 주문'(/mypage/orders).
+ * 화면을 정적으로 두려고 서버에서 보지 않고, 붙은 뒤 쿠키 세션으로 본다(네트워크 없음 — StoreMenu 와 같은 방식). 모르는 동안은 '로그인'.
+ */
+function AccountLink() {
+  const pathname = usePathname() ?? '/'
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => {
+    let alive = true
+    createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (alive) setSignedIn(!!data.session)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+  const href = signedIn ? '/mypage/orders' : `/login?next=${encodeURIComponent(pathname)}`
+  return (
+    <Link
+      href={href}
+      style={{ height: 48, padding: '0 4px', display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 700, color: '#141414', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+    >
+      {signedIn ? '내 주문' : '로그인'}
+    </Link>
+  )
+}
+
 /** PC 가로 메뉴 — 폰 ☰ 메뉴(StoreMenu)의 주요 줄과 같은 곳. */
 const PC_NAV: ReadonlyArray<readonly [href: string, label: string]> = [
   ['/store', '스토어'],
@@ -131,6 +163,7 @@ export default function StoreHeader(props: StoreHeaderProps & { wide?: boolean }
             </Link>
           ))}
         </nav>
+        <AccountLink />
         <CartButton withLabel />
       </header>
       {variant === 'title' && 'title' in props && (
