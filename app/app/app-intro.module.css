@@ -596,3 +596,107 @@
   font-size: 14px;
   font-weight: 800;
 }
+
+/* ── PC(폭 1024 이상) — 2026-10-21 사장님 "전체적으로 업그레이드": PC 에서 폰 폭(460) 기둥 하나만 떠 있었다.
+   가게(store.css)와 같은 1200 폭 · 첫 화면은 글 왼쪽/사진 오른쪽 · 단계 3칸 · 레시피 4칸 · 문답 2칸. 폰 모양은 이 블록 밖 그대로. ── */
+@media (min-width: 1024px) {
+  .col {
+    max-width: none;
+    padding: 0 max(32px, calc((100% - 1200px) / 2));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 64px;
+    align-items: center;
+  }
+  .col > * {
+    grid-column: 1 / -1;
+  }
+  .header {
+    margin: 0 calc(-1 * max(32px, calc((100vw - 1200px) / 2)));
+    height: 76px;
+  }
+  .hero {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 64px 0;
+  }
+  .heroTitle {
+    font-size: 72px;
+  }
+  .heroAsk {
+    font-size: 22px;
+  }
+  .heroBody {
+    font-size: 20px;
+    max-width: 520px;
+  }
+  .badges {
+    max-width: 480px;
+  }
+  .heroPhoto {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+    aspect-ratio: 1 / 1;
+  }
+  .section {
+    padding: 96px 0 0;
+  }
+  .steps {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 32px;
+  }
+  .step {
+    grid-template-columns: 1fr;
+    row-gap: 14px;
+    padding-bottom: 0;
+    align-content: start;
+  }
+  .step::after {
+    display: none;
+  }
+  .stepPhone {
+    width: 200px;
+  }
+  .compare,
+  .dark {
+    margin-top: 96px;
+    padding-left: 48px;
+    padding-right: 48px;
+    border-radius: 4px;
+  }
+  .recipes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+  .phones {
+    grid-template-columns: repeat(2, minmax(0, 320px));
+    gap: 32px;
+  }
+  .stampCard {
+    margin: 96px 0 0;
+    max-width: 640px;
+  }
+  .faq {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 48px;
+    align-items: start;
+  }
+  .final {
+    padding: 96px 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .final .badges,
+  .storeCard,
+  .kakao {
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+  }
+}
