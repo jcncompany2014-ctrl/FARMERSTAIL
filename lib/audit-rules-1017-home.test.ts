@@ -263,7 +263,7 @@ test('규칙296: PC 화면(폭 1024 이상, 시안 A 가게형) — PC 규칙은
   const before = css.slice(0, pcStart)
   const pcBlock = css.slice(pcStart)
   // 블록 밖에 허용된 것: PC 전용 숨김 두 개(.fts-pc-only · .fts-hd-pc — 폰에서 숨긴다)
-  const PC_CLASSES = ['fts-sec', 'fts-pt', 'fts-hero', 'fts-proof', 'fts-rgrid', 'fts-rcard', 'fts-rpic', 'fts-trial', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-', 'fts-faq-list', 'fts-pd-', 'fts-narrow', 'fts-ft', 'fts-hd-m', 'fts-m-only', 'fts-store-', 'fts-compare-table', 'fts-feat-photos', 'fts-main', 'fts-event', 'fts-read', 'fts-btn', 'fts-cols4', 'fts-blog-', 'fts-cart', 'fts-ckout']
+  const PC_CLASSES = ['fts-sec', 'fts-pt', 'fts-hero', 'fts-proof', 'fts-rgrid', 'fts-rcard', 'fts-rpic', 'fts-trial', 'fts-rv', 'fts-calc', 'fts-make', 'fts-mag-', 'fts-faq-list', 'fts-pd-', 'fts-narrow', 'fts-ft', 'fts-hd-m', 'fts-m-only', 'fts-store-', 'fts-compare-table', 'fts-feat-photos', 'fts-main', 'fts-event', 'fts-read', 'fts-btn', 'fts-cols4', 'fts-blog-', 'fts-cart', 'fts-ckout', 'fts-pd-wide', 'fts-pd-ing', 'fts-pd-calc']
   for (const c of PC_CLASSES) assert.ok(!before.includes(`.${c}`), `PC 이름표 .${c} 규칙이 1024px 블록 밖에 있다 — 폰 화면이 바뀐다`)
   assert.match(before, /\.fts-pc-only \{\s*display: none !important;\s*\}/, 'PC 전용 요소가 폰에서 숨지 않는다')
   assert.match(before, /\.fts-hd-pc \{\s*display: none;\s*\}/, 'PC 가로 메뉴가 폰에서 숨지 않는다')

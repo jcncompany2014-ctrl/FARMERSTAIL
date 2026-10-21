@@ -152,7 +152,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             {photo + 1} / {photos.length}
           </span>
         </div>
-        <div className="fts-pd-thumbs" style={{ padding: '10px 20px 0', display: 'flex', gap: 8 }}>
+        {/* 2026-10-21: 폰 작은 사진 세 장이 왼쪽에 몰려 오른쪽이 비었다 — 4칸 격자로 폭을 채운다(PC 는 store.css 3칸). */}
+        <div className="fts-pd-thumbs" style={{ padding: '10px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
           {photos.map((p, i) => (
             <button
               key={p.src}
@@ -160,7 +161,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               onClick={() => setPhoto(i)}
               aria-label={p.alt}
               aria-pressed={i === photo}
-              style={{ width: 62, height: 62, padding: 0, borderRadius: 4, overflow: 'hidden', border: i === photo ? '2px solid #141414' : '1px solid #E5E5E5', background: '#F6F4F5', cursor: 'pointer' }}
+              style={{ width: '100%', aspectRatio: '1 / 1', padding: 0, borderRadius: 4, overflow: 'hidden', border: i === photo ? '2px solid #141414' : '1px solid #E5E5E5', background: '#F6F4F5', cursor: 'pointer' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.src} alt="" width={240} height={240} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -374,7 +375,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ③ 한 그릇에 들어간 것 — 원물 사진(흰 접시 탑다운, 사장님 10/15 고른 4장) + 재료 칩 */}
-      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow fts-pd-wide fts-pd-ing" style={SEC}>
         <Kicker color={color}>재료</Kicker>
         <SecTitle>
           한 그릇에
@@ -422,7 +423,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ④ 하루에 얼마나 */}
-      <section id="calc" aria-labelledby="calc-title" className="fts-sec fts-pd-narrow" style={{ marginTop: 64, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
+      <section id="calc" aria-labelledby="calc-title" className="fts-sec fts-pd-narrow fts-pd-wide fts-pd-calc" style={{ marginTop: 64, padding: '40px 20px 36px', background: '#F6F4F5', display: 'flex', flexDirection: 'column', scrollMarginTop: 64 }}>
         <Kicker color={color}>급여량</Kicker>
         <h2 id="calc-title" className="d" style={{ margin: '14px 0 0', fontSize: 32, lineHeight: 1.12 }}>
           하루에 얼마나 줄까요?
@@ -505,14 +506,14 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* ⑤ 이렇게 만들어요 — 번호 = 실제 공정 순서 */}
-      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
+      <section className="fts-sec fts-pt fts-pd-narrow fts-pd-wide" style={SEC}>
         <Kicker color={color}>만드는 법</Kicker>
         <SecTitle>이렇게 만들어요</SecTitle>
         <ol className="fts-pd-steps" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
           {[
             { t: '재료를 손질해 진공 포장해요', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.`, src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 고기를 손질하는 손' },
             { t: '수비드로 천천히 익혀요', d: '정해진 온도의 물에서 오래 끓이지 않고 익혀 촉촉해요.', src: '/kitchen-sousvide.jpg', alt: '진공 포장한 재료를 수비드로 익히는 모습' },
-            { t: '채소와 고루 섞고 영양을 더해요', d: '비타민·미네랄(뉴트리 코어)과 연어유를 넣어요.', src: null, alt: '' },
+            { t: '채소와 고루 섞고 영양을 더해요', d: '비타민·미네랄(뉴트리 코어)과 연어유를 넣어요.', src: '/bowl/fresh.webp', alt: '고루 섞어 그릇에 담은 화식' },
             { t: '바로 얼려 100g씩 나눠 담아요', d: '한 팩이 100g이라 양을 맞추기 쉬워요.', src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 100g 팩` },
           ].map((s, i, all) => (
             <li key={s.t} style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: 12, paddingBottom: i < all.length - 1 ? 24 : 0, position: 'relative' }}>
@@ -525,7 +526,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
                 <span style={{ fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>{s.d}</span>
                 {s.src && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.src} alt={s.alt} width={900} height={506} loading="lazy" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 4, display: 'block', background: '#F6F4F5' }} />
+                  <img src={s.src} alt={s.alt} width={900} height={506} loading="lazy" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: i === all.length - 1 ? 'contain' : 'cover', borderRadius: 4, display: 'block', background: i === all.length - 1 ? '#F3F2EF' : '#F6F4F5' }} />
                 )}
               </span>
             </li>
