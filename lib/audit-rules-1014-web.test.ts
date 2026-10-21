@@ -179,7 +179,7 @@ test("규칙223: 매거진 — 글이 없어 숨긴 카테고리 주소는 redir
   assert.match(page, /const rows = activeCategory \? allRows\.filter\(\(p\) => p\.category_id === activeCategory\.id\) : allRows/, "숨긴·없는 카테고리 값이 '전체' 목록으로 나오지 않는다")
   assert.match(page, /const shownCats = visibleMagazineCategories\(cats, postsErr \? null : allRows\)/, '단추 숨김·조회 실패 시 안 숨김(규칙212)이 바뀌었다')
   // 정본 주소 — 카테고리 값과 관계없이 /blog 하나(정적 metadata). 카테고리마다 따로 만드는 generateMetadata 는 없다.
-  assert.match(page, /export const metadata: Metadata = \{[\s\S]*?alternates: \{ canonical: '\/blog' \}/, '매거진 목록의 정본 주소가 /blog 가 아니다')
+  assert.match(page, /export const metadata: Metadata = \{[\s\S]*?alternates: \{ canonical: '\/blog'(?: \}|, types: )/, '매거진 목록의 정본 주소가 /blog 가 아니다')
   assert.ok(!/export (async )?function generateMetadata/.test(page), '매거진 목록이 카테고리마다 metadata 를 만든다 — 숨긴 카테고리의 정본 주소가 /blog 가 아닐 수 있다')
 })
 
