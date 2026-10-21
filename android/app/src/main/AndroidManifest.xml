@@ -56,6 +56,10 @@
                 <uri-relative-filter-group android:allow="false">
                     <data android:path="/link" />
                 </uri-relative-filter-group>
+                <!-- 서포터즈 링크 모음(/link/코드, 2026-10-19)도 웹 전용 -->
+                <uri-relative-filter-group android:allow="false">
+                    <data android:pathPrefix="/link/" />
+                </uri-relative-filter-group>
                 <uri-relative-filter-group android:allow="false">
                     <data android:path="/auth/callback" />
                 </uri-relative-filter-group>

@@ -37,6 +37,8 @@ export type PromotionLike = {
   max_signups: number | null
   /** 사장님이 손으로 끈 경우. */
   active: boolean
+  /** 최대 할인 금액(원). null·없음 = 상한 없음. */
+  max_discount_amount?: number | null
 }
 
 export type PromotionGate =
@@ -84,6 +86,27 @@ export const PROMOTION_GATE_LABEL: Record<
 export function promotionRate(p: PromotionLike): number {
   if (!Number.isFinite(p.discount_rate)) return 0
   return Math.max(0, Math.min(1, p.discount_rate))
+}
+
+/**
+ * 이벤트 할인의 최대 금액(원) — 비율대로 깎은 금액(amount)이 상한을 넘으면 상한까지만(사장님 2026-10-19 "최대 할인 금액 5만원").
+ * 상한 null = 없음(예전 이벤트 그대로). 상한이 걸리면 실제로 깎이는 비율이 줄어드니, 등급·이웃 할인과 견줄 때도
+ * **비율이 아니라 이 금액**으로 견준다(resolveAutoDiscount).
+ */
+export function capPromotionDiscount(amount: number, maxDiscount: number | null | undefined): number {
+  if (!(amount > 0)) return 0
+  if (maxDiscount == null) return amount
+  const cap = Math.floor(Number(maxDiscount))
+  // DB 가 0 이하를 막는다(check). 그래도 이상한 값이면 할인을 주지 않는다 — 상한을 모르는 채 비율대로 깎으면
+  // 약속보다 더 깎는다(정가는 사과 뒤 돌려주면 되지만 과할인은 되돌릴 수 없다, auto-discount 의 안전 폴백과 같은 판단).
+  if (!Number.isFinite(cap) || cap <= 0) return 0
+  return Math.min(amount, cap)
+}
+
+/** 상한 문구 — 50000 → '5만원', 35000 → '35,000원'. 화면·안내서가 같은 말을 쓰게 한 곳에. */
+export function formatPromoCap(maxDiscount: number): string {
+  const n = Math.floor(maxDiscount)
+  return n % 10000 === 0 ? `${n / 10000}만원` : `${n.toLocaleString('ko-KR')}원`
 }
 
 export type DiscountPick = {

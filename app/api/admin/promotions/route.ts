@@ -33,6 +33,7 @@ type PromoRow = {
   starts_at: string
   ends_at: string
   max_signups: number | null
+  max_discount_amount?: number | null
   active: boolean
   created_at: string
 }
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
     startsAt?: string
     endsAt?: string
     maxSignups?: number | null
+    maxDiscount?: number | null
   }
   try {
     body = await req.json()
@@ -162,6 +164,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ code: 'INVALID_MAX', message: '인원 상한을 확인해 주세요' }, { status: 400 })
   }
 
+  // 최대 할인 금액(원, 2026-10-19) — 비우면 상한 없음. 1,000원 ~ 100만원 정수만(그 밖은 오타로 본다).
+  const maxDiscount =
+    body.maxDiscount == null || body.maxDiscount === 0 ? null : Math.trunc(Number(body.maxDiscount))
+  if (maxDiscount != null && (!Number.isFinite(maxDiscount) || maxDiscount < 1000 || maxDiscount > 1_000_000)) {
+    return NextResponse.json(
+      { code: 'INVALID_MAX_DISCOUNT', message: '최대 할인 금액은 1,000원 ~ 1,000,000원이에요' },
+      { status: 400 },
+    )
+  }
+
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('promotions')
@@ -172,6 +184,7 @@ export async function POST(req: Request) {
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       max_signups: maxSignups,
+      max_discount_amount: maxDiscount,
     })
     .select('*')
     .single()
@@ -192,7 +205,7 @@ export async function POST(req: Request) {
     action: 'coupon_create',
     entityType: 'coupon',
     entityId: (data as { id?: string } | null)?.id ?? null,
-    diff: { after: { code, name, discount_rate: pct / 100, max_signups: maxSignups } },
+    diff: { after: { code, name, discount_rate: pct / 100, max_signups: maxSignups, max_discount_amount: maxDiscount } },
     req,
   })
 

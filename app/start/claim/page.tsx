@@ -24,8 +24,11 @@ import {
   clearAutosignupDraft,
 } from '@/lib/autosignup-draft'
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
+import { createDogFromDraft } from '@/lib/auth/createDogFromDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
 import { safeNextPath } from '@/lib/auth/safe-next'
+import { firstDogWithoutSurvey } from '@/lib/auth/surveyPendingDog'
+import { isFreshAccount, surveyStartHref } from '@/lib/survey/welcome'
 
 // PWA/Capacitor(앱) 여부 — 행선지(app=/dashboard vs web=/mypage/orders) 분기용.
 // useIsAppContext 훅은 SSR/하이드레이션 시 null 이라 이 전환 페이지(effect 1회)
@@ -94,6 +97,15 @@ export default function StartClaimPage() {
       const hasCompleteDraft = !!draft && isDogDraftComplete(draft.dog)
       if (count && count > 0 && !hasCompleteDraft) {
         clearAutosignupDraft()
+        // ★웹에서 가입만 하고 앱을 깐 손님(이벤트 /p/코드, 2026-10-19) — 강아지는 있는데 설문이 없으면 홈 대신 설문으로.
+        //   홈은 설문 여부를 안 봐서 설문까지 탭 4~5번이었다. 보던 곳(?to=)이 있으면 그쪽이 먼저. 모르면 홈(규칙1).
+        if (isApp && !to) {
+          const pending = await firstDogWithoutSurvey(supabase, user.id)
+          if (pending) {
+            if (!cancelled) router.replace(surveyStartHref(pending, isFreshAccount(user.created_at)))
+            return
+          }
+        }
         if (!cancelled) router.replace(home)
         return
       }
@@ -101,6 +113,31 @@ export default function StartClaimPage() {
       // ② 설문 초안 완성 → 계정으로 이관(첫째든 둘째든) → 분석 화면.
       if (draft && hasCompleteDraft) {
         const dogName = (draft.dog.name || '').trim()
+        // ★설문 전 초안(surveyDeferred — 앱 첫 화면·이벤트 화면 /p/코드)이면 강아지만 만든다(2026-10-19 검토).
+        //   이 허브는 예전에 표식을 안 보고 applyAutosignupDraft 로 답하지 않은 기본값(알레르기 없음·체형 보통)의 설문·분석까지
+        //   만들었다 — 카카오에서 취소하고 로그인 화면을 거쳐 다시 가입한 이벤트 손님이 그 길로 들어와, 앱이 남은 설문(알레르기)을
+        //   묻지 않았다. 로그인 화면(이메일)의 surveyDeferred 갈래와 같은 처리. 웹 이벤트 손님은 이벤트 완료 화면으로(혜택·동의 저장).
+        if (draft.surveyDeferred) {
+          try {
+            const deferredId = await createDogFromDraft(user.id, draft)
+            if (cancelled) return
+            if (deferredId) {
+              clearAutosignupDraft()
+              router.replace(
+                isApp
+                  ? surveyStartHref(deferredId, isFreshAccount(user.created_at))
+                  : draft.promo
+                    ? `/p/${draft.promo}/done`
+                    : home,
+              )
+              return
+            }
+          } catch {
+            /* 생성 실패 → 아래 ③(초안 보존) */
+          }
+          if (!cancelled) router.replace((count && count > 0) || !isApp ? home : '/start')
+          return
+        }
         try {
           const dogId = await applyAutosignupDraft(user.id, draft)
           if (cancelled) return

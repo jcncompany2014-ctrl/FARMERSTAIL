@@ -40,7 +40,9 @@ export async function GET(req: Request) {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.farmerstail.kr'
-  const target = `${siteUrl}/start?p=${code}`
+  // 이벤트 화면(/p/코드, 2026-10-19). 아이폰·새 안드로이드 앱이 /p/ 아래 주소를 앱으로 가져가지 않아 브라우저에서 안내서부터 본다.
+  //   이미 인쇄된 /start?p=코드 QR 은 그대로 살아 있다(규칙176).
+  const target = `${siteUrl}/p/${code}`
 
   const svg = await QRCode.toString(target, {
     type: 'svg',

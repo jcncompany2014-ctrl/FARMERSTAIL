@@ -1,0 +1,57 @@
+/* 맨 위 아이 사진 칸 — 높이 300(폰에서 사진 + 제목 + 혜택 단추가 첫 화면에 든다). 크림 바탕은 쓰지 않는다. */
+.hero {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  background: #e9e9e7;
+}
+.cover {
+  object-fit: cover;
+}
+/* 세로 사진·영상 — 같은 그림을 흐리게 깔아 빈 양옆을 채운다 */
+.backdrop {
+  object-fit: cover;
+  filter: blur(22px) saturate(1.1);
+  transform: scale(1.2);
+  opacity: 0.85;
+}
+.portrait {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100%;
+  display: block;
+}
+.media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 아이 이름표 — 오른쪽 위, 먹색 칸에 노란 이름(견종은 넣지 않는다) */
+.name {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #141414;
+  color: #f2c94c;
+  font-size: 15px;
+  font-weight: 800;
+}
+.tag {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #141414;
+  font-size: 14px;
+  font-weight: 800;
+}

@@ -465,7 +465,8 @@ test("규칙235: 앱 안에서 /link 가 열리면 웹 화면 대신 '링크 모
   assert.match(notice, /<AuthPrimaryAnchor href=\{LINK_WEB_URL\} target="_blank"/, '브라우저로 여는 링크가 target="_blank" 가 아니다(아이폰 앱에서 사파리로 못 나간다)')
   assert.match(notice, /androidChromeIntentUrl\(url\)/, '안드로이드가 크롬 intent 로 넘기지 않는다(WebView 는 _blank 를 같은 화면에서 연다)')
   assert.match(notice, /buildAtLeast\(info\.build, NATIVE_FEATURE_MIN_BUILD\.androidIntentLinks\)/, '옛 안드로이드 빌드(intent 처리 없음)에서 오류 화면이 뜬다 — 빌드 번호를 안 본다')
-  assert.match(notice, /const url = linkWebUrl\(window\.location\.search\)/, '브라우저로 넘기는 주소가 링크 모음 정본(linkWebUrl)이 아니다')
+  // 2026-10-19 — 서포터즈 링크(/link/코드)는 그 주소 그대로 넘긴다(규칙303).
+  assert.match(notice, /const url = linkWebUrl\(window\.location\.search, window\.location\.pathname\)/, '브라우저로 넘기는 주소가 링크 모음 정본(linkWebUrl)이 아니다')
   assert.match(notice.replace(/\s+/g, ' '), /<AuthOutlineLink href="\/dashboard"[^>]*> 앱 홈으로 <\/AuthOutlineLink>/, "'앱 홈으로'가 없다")
   assert.ok(!/['"`]\/app[?'"`]/.test(notice), '링크 모음 안내가 앱 소개(/app)로 보낸다 — 앱 안에서 앱을 받으라는 화면')
   for (const w of ['처방', '언제든']) assert.ok(!notice.includes(w), `링크 모음 안내에 금지어 '${w}'`)

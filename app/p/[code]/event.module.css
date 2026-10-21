@@ -1,0 +1,388 @@
+/* 이벤트 화면(/p/코드) — 웹 새 디자인('A 포스터')과 같은 결: 흰 바탕 · 먹색 · 제목 Black Han Sans · 큰 숫자 Anton ·
+   모서리 4 · 2px 먹선 · 단단한 그림자는 화면에 한 곳. 나가는 메뉴가 없는 한 칸(폭 480) 화면이다. */
+.page {
+  min-height: 100dvh;
+  background: #ffffff;
+  color: #141414;
+  display: flex;
+  justify-content: center;
+  font-family: var(--font-sans), 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+}
+.col {
+  width: 100%;
+  max-width: 480px;
+  padding: 0 20px 36px;
+  box-sizing: border-box;
+}
+.notice {
+  margin: 0 -20px;
+}
+.notice:empty {
+  display: none;
+}
+.header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e5e5e5;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+/* 시안 A(10/19) — 맨 위 실사진(components/web/DogHero) + 머스터드 포인트(형광펜·번호 칸·단추 그림자). 사진 칸은 한 칸 폭을 꽉 채운다. */
+.heroBleed {
+  margin: 0 -20px;
+}
+/* 큰 숫자 아래쪽에 노란 형광펜 */
+.hl {
+  background: linear-gradient(transparent 62%, #f2c94c 62%);
+  padding: 0 4px;
+}
+/* 할인 상한 — 큰 숫자 바로 밑 */
+.capNote {
+  margin: 10px 0 0;
+  display: inline-block;
+  padding: 4px 10px;
+  border: 2px solid #141414;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.kicker {
+  margin: 28px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #595959;
+}
+.kicker i {
+  width: 8px;
+  height: 8px;
+  background: #141414;
+  display: block;
+}
+.h1 {
+  margin: 10px 0 0;
+  font-family: var(--font-poster), 'Black Han Sans', sans-serif;
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+.big {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0 10px;
+}
+/* 폭이 좁은 폰(320~375)에서도 한 줄 — 숫자를 화면 폭에 맞춰 줄인다(390 이상은 124 그대로). */
+.bigNum {
+  font-family: var(--font-num), Anton, sans-serif;
+  font-size: min(124px, 30vw);
+  line-height: 0.92;
+}
+.bigUnit {
+  font-family: var(--font-poster), 'Black Han Sans', sans-serif;
+  font-size: min(46px, 11.5vw);
+  line-height: 1;
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+.lead {
+  margin: 18px 0 0;
+  font-size: 18px;
+  line-height: 1.65;
+  color: #3d3d3d;
+  word-break: keep-all;
+}
+.h2 {
+  margin: 34px 0 0;
+  padding-top: 14px;
+  border-top: 2px solid #141414;
+  font-family: var(--font-poster), 'Black Han Sans', sans-serif;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.steps {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 14px;
+  padding: 16px 0;
+  border-top: 1px solid #e5e5e5;
+}
+.step:first-child {
+  border-top: 0;
+  padding-top: 6px;
+}
+.stepNum {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: #d4a24c;
+  color: #141414;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-num), Anton, sans-serif;
+  font-size: 22px;
+}
+.step[data-done='true'] .stepNum {
+  background: #ffffff;
+  color: #141414;
+  border: 2px solid #141414;
+  box-sizing: border-box;
+}
+.step[data-done='true'] .stepTitle {
+  color: #8a867f;
+}
+.stepTitle {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.stepSub {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #595959;
+  word-break: keep-all;
+}
+.loginChip {
+  display: inline-block;
+  margin: 6px 0 0 6px;
+  padding: 3px 8px;
+  border: 1.5px solid #141414;
+  border-radius: 4px;
+  font-weight: 800;
+  color: #141414;
+  white-space: nowrap;
+}
+.cta {
+  width: 100%;
+  height: 60px;
+  margin-top: 26px;
+  border: 0;
+  border-radius: 4px;
+  background: #141414;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  /* 화면에 하나뿐인 단단한 그림자 — 머스터드(시안 A) */
+  box-shadow: 4px 4px 0 #d4a24c;
+}
+.ctaGhost {
+  composes: cta;
+  box-shadow: none;
+  background: #ffffff;
+  color: #141414;
+  border: 2px solid #141414;
+  height: 56px;
+  margin-top: 12px;
+}
+.terms {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #6b675f;
+  word-break: keep-all;
+}
+.foot {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: #8a867f;
+}
+.foot a {
+  color: inherit;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.foot span {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+}
+.badges {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.badge {
+  height: 56px;
+  border-radius: 4px;
+  background: #141414;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.badge img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+/* ── 가입 완료 ── */
+.check {
+  margin-top: 32px;
+  width: 64px;
+  height: 64px;
+  background: #141414;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.promoCard {
+  margin-top: 22px;
+  padding: 18px;
+  border: 2px solid #141414;
+  border-radius: 4px;
+  /* 가입 완료 화면엔 단추가 없다 — 이 카드가 그 화면의 그림자 하나(머스터드) */
+  box-shadow: 4px 4px 0 #d4a24c;
+}
+.promoTag {
+  font-size: 14px;
+  font-weight: 800;
+  color: #595959;
+}
+.promoLine {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.promoNum {
+  font-family: var(--font-num), Anton, sans-serif;
+  font-size: 56px;
+  line-height: 0.95;
+}
+.promoText {
+  font-family: var(--font-poster), 'Black Han Sans', sans-serif;
+  font-size: 24px;
+  line-height: 1.15;
+  padding-bottom: 4px;
+}
+.promoSub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #3d3d3d;
+  word-break: keep-all;
+}
+.muted {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #3d3d3d;
+  word-break: keep-all;
+}
+.guideStep {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 2px solid #141414;
+}
+.guideHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.guideTitle {
+  font-family: var(--font-poster), 'Black Han Sans', sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 0;
+}
+.guideText {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #3d3d3d;
+  word-break: keep-all;
+}
+.guideText b {
+  color: #141414;
+}
+.shot {
+  position: relative;
+  width: 236px;
+  margin: 16px auto 0;
+  border: 2px solid #141414;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #ffffff;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* 앱 첫 화면 캡처(390×844) 위 '이미 계정이 있어요 · 로그인' 자리(실측 x117 y750 w156 h18) — 빨간 테두리 */
+.ring {
+  position: absolute;
+  left: 26%;
+  top: 87.6%;
+  width: 48%;
+  height: 4.6%;
+  border: 3px solid #c8372d;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+.ringLabel {
+  position: absolute;
+  left: 50%;
+  top: 93.2%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #c8372d;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.spin {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e5e5;
+  border-top-color: #141414;
+  border-radius: 50%;
+  animation: evSpin 0.8s linear infinite;
+}
+@keyframes evSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.working {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}

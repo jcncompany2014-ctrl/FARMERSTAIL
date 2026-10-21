@@ -32,10 +32,11 @@ import { BREEDS } from '@/lib/breeds/registry'
 import { deriveAgeFromBirth } from '@/lib/dog-age'
 import { todayKstIsoDate } from '@/lib/datetime-kst'
 import { petName } from '@/lib/korean'
-import { normalizePromoCode } from '@/lib/promotions'
+import { formatPromoCap, normalizePromoCode } from '@/lib/promotions'
 import { isDogDraftComplete, loadAutosignupDraft, saveAutosignupDraft, type AutosignupDogDraft } from '@/lib/autosignup-draft'
 import { clearHeldStartPhoto, holdStartPhoto, readHeldStartPhoto, shrinkPhoto } from '@/lib/start-photo'
 import { markOnboarded } from '@/lib/onboarding'
+import { EVENT_CONSENT_KEY } from '@/lib/event-consent'
 
 type Gender = 'male' | 'female' | ''
 // 단계: 0 이름 · 1 생일 · 2 견종 · 3 성별·중성화 · 4 몸무게 · 5 사진 · 6 도장·가입
@@ -138,7 +139,14 @@ function Head({ step, title, sub }: { step: number; title: ReactNode; sub: strin
   )
 }
 
-export default function FirstScreenFlow() {
+/**
+ * 이벤트 화면(웹 /p/코드 — 약국 봉투 QR, 2026-10-19)에서 같은 첫 질문을 쓸 때. 앱 첫 실행 표식을 남기지 않고, 마지막 가입
+ * 카드가 바뀐다: 카카오·애플만(이메일 가입은 메일 인증 뒤 앱에서 처음 로그인하면 혜택·강아지가 안 붙는다) · 착지 =
+ * /p/코드/done(웹 — 혜택 저장·강아지 생성 뒤 앱 설치 안내) · 광고 수신 동의(선택) · 약관 고지. 할인율은 서버가 DB 에서 읽어 넘긴다.
+ */
+export type FirstScreenEvent = { code: string; ratePct: number; maxDiscount?: number | null }
+
+export default function FirstScreenFlow({ event }: { event?: FirstScreenEvent } = {}) {
   const sp = useSearchParams()
   const requested = Math.min(STAMP_STEP, Math.max(0, Number.parseInt(sp.get('step') ?? '0', 10) || 0))
 
@@ -156,12 +164,14 @@ export default function FirstScreenFlow() {
   const [photoBusy, setPhotoBusy] = useState(false)
   const [alert, setAlert] = useState('')
   const [ready, setReady] = useState(false)
+  const [consent, setConsent] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   // 첫 실행 표식 · 프로모션 링크(?p=) · 초안 이어 쓰기 · 들고 있던 사진 — 마운트 뒤 한 번(폰 저장소 = 바깥 상태).
   useEffect(() => {
-    markOnboarded()
-    const code = normalizePromoCode(new URLSearchParams(window.location.search).get('p'))
+    // 이벤트 화면은 웹이다 — 앱 첫 실행 표식은 앱에서만(웹 브라우저에 남겨 봐야 쓰이지 않지만 뜻이 섞이지 않게).
+    if (!event) markOnboarded()
+    const code = event ? normalizePromoCode(event.code) : normalizePromoCode(new URLSearchParams(window.location.search).get('p'))
     if (code) saveAutosignupDraft({ promo: code })
     const d = loadAutosignupDraft()?.dog
     if (d) {
@@ -180,7 +190,16 @@ export default function FirstScreenFlow() {
     }
     const held = readHeldStartPhoto()
     if (held) setPhoto(held)
+    if (event) {
+      try {
+        setConsent(window.localStorage.getItem(EVENT_CONSENT_KEY) === '1')
+      } catch {
+        /* 저장소를 못 쓰면 꺼진 채로 */
+      }
+    }
     setReady(true)
+    // 이벤트 코드는 서버가 정해 넘기는 고정값이라 마운트 한 번이면 된다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 조금씩 저장 — 중간에 앱을 닫아도 이어서(7일). 생일 → 나이 파생을 같이(칼로리 계산이 age_value/age_unit 을 읽는다).
@@ -318,7 +337,8 @@ export default function FirstScreenFlow() {
   const topBar =
     step === STAMP_STEP ? null : (
       <>
-        {step === 0 ? (
+        {/* 이벤트 화면은 첫 질문 앞에 안내서가 있다 — 첫 단계에서도 '←'로 안내서로 돌아간다. */}
+        {step === 0 && !event ? (
           <span className="fs-back-spacer" aria-hidden />
         ) : (
           <button type="button" className="s-back" onClick={back} aria-label="이전 단계로">
@@ -337,7 +357,7 @@ export default function FirstScreenFlow() {
 
   const below = alert ? (
     <SurveyAlert>{alert}</SurveyAlert>
-  ) : step === 0 ? (
+  ) : step === 0 && !event ? (
     <div style={{ position: 'absolute', left: 0, right: 0, top: 22, display: 'flex', justifyContent: 'center' }}>
       {/* replace — 로그인 화면의 '무료 맞춤 분석 시작하기'(/start)와 짝. 둘이 서로를 새 화면으로 쌓으면 하드웨어 '뒤로'가
           첫 화면 ↔ 로그인을 번갈아 보여 줬다(2026-10-14 점검, 규칙234). 둘 다 '←' 없는 뿌리 화면이라 바꿔 끼운다. */}
@@ -358,7 +378,7 @@ export default function FirstScreenFlow() {
       ['몸무게', `${Number.parseFloat(weight).toFixed(1).replace(/\.0$/, '')}kg`],
     ]
     return (
-      <div className="fs-root" data-ft-chrome="app">
+      <div className="fs-root" data-ft-chrome="app" data-event={event ? 'true' : undefined}>
         <div className="s-frame">
           <div className="s-glow s-glow-a" aria-hidden />
           <div className="s-glow s-glow-b" aria-hidden />
@@ -369,7 +389,7 @@ export default function FirstScreenFlow() {
               </svg>
             </button>
           </div>
-          <section className="fs-stampcard fs-shake" aria-label={`${who} 정보`}>
+          <section className="fs-stampcard fs-shake" data-event={event ? 'true' : undefined} aria-label={`${who} 정보`}>
             <div className="fs-dog">
               {photo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- 폰에 들고 있는 사진(data URL)
@@ -398,6 +418,46 @@ export default function FirstScreenFlow() {
                 </div>
               ))}
             </dl>
+            {event ? (
+              <>
+                <div className="fs-up">
+                  <h1 className="fs-ready-title">
+                    {who} 정보가
+                    <br />
+                    다 모였어요
+                  </h1>
+                  <p className="fs-ready-sub">
+                    가입하면 첫 박스 {event.ratePct}% 혜택{event.maxDiscount ? `(최대 ${formatPromoCap(event.maxDiscount)})` : ''}이 계정에 저장돼요
+                  </p>
+                </div>
+                <div className="fs-join fs-up">
+                  {/* 착지 = /p/코드/done(웹) — 혜택을 계정에 저장하고 강아지만 만든 뒤 앱 설치 안내. 이메일 가입은 넣지 않는다. */}
+                  <KakaoLoginButton variant="signup" next={`/p/${event.code}/done`} look="flow" label="카카오로 가입하고 혜택 받기" />
+                  <AppleLoginButton variant="signup" next={`/p/${event.code}/done`} look="flow" label="Apple로 가입하고 혜택 받기" />
+                  <label className="fs-consent">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => {
+                        const on = e.target.checked
+                        setConsent(on)
+                        try {
+                          if (on) window.localStorage.setItem(EVENT_CONSENT_KEY, '1')
+                          else window.localStorage.removeItem(EVENT_CONSENT_KEY)
+                        } catch {
+                          /* 저장소를 못 쓰면 동의는 저장되지 않는다(가입은 그대로) */
+                        }
+                      }}
+                    />
+                    <span>[선택] 혜택·이벤트 소식을 문자·이메일로 받을게요</span>
+                  </label>
+                  <p className="fs-terms">
+                    가입하면 <a href="/legal/terms">이용약관</a>과 <a href="/legal/privacy">개인정보처리방침</a>에 동의하게 돼요. 만 14세 이상만 가입할 수 있어요.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
             <div className="fs-up">
               <h1 className="fs-ready-title">
                 {who} 맞춤 설문이
@@ -414,6 +474,8 @@ export default function FirstScreenFlow() {
                 이메일로 가입할게요
               </Link>
             </div>
+              </>
+            )}
             <span className="fs-ring" aria-hidden />
             {[
               { left: 330, top: -46, s: 7 },
@@ -731,7 +793,7 @@ export default function FirstScreenFlow() {
   }
 
   return (
-    <div className="fs-root" data-ft-chrome="app">
+    <div className="fs-root" data-ft-chrome="app" data-event-col={event ? 'true' : undefined}>
       <SurveyFrame top={topBar} cta={cta} below={below} scrollKey={`first-${step}`}>
         <div style={{ paddingBottom: 4 }}>{body}</div>
       </SurveyFrame>

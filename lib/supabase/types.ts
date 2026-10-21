@@ -2569,6 +2569,7 @@ export type Database = {
           discount_rate: number
           ends_at: string
           id: string
+          max_discount_amount: number | null
           max_signups: number | null
           name: string
           starts_at: string
@@ -2580,6 +2581,7 @@ export type Database = {
           discount_rate: number
           ends_at: string
           id?: string
+          max_discount_amount?: number | null
           max_signups?: number | null
           name: string
           starts_at: string
@@ -2591,6 +2593,7 @@ export type Database = {
           discount_rate?: number
           ends_at?: string
           id?: string
+          max_discount_amount?: number | null
           max_signups?: number | null
           name?: string
           starts_at?: string
@@ -3939,6 +3942,10 @@ export type Database = {
       increment_blog_view: { Args: { post_slug: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       pending_promotion_rate: { Args: { p_user_id: string }; Returns: number }
+      pending_promotion_terms: {
+        Args: { p_user_id: string }
+        Returns: { rate: number; max_discount: number | null }[]
+      }
       record_reward_event: {
         Args: {
           p_arm_id: string

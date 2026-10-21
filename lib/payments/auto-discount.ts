@@ -1,14 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { tierMeta } from '@/lib/tiers'
-import {
-  computeAutoDiscount,
-  applyDiscount,
-  type DiscountReason,
-} from '@/lib/discount'
-import { pickBetterDiscount } from '@/lib/promotions'
+import { computeAutoDiscount, type DiscountReason } from '@/lib/discount'
+import { pickDiscount } from '@/lib/payments/discount-pick'
 import { advanceTrialState, trialPricing } from '@/lib/payments/trial'
-import { pickWithNeighbor } from '@/lib/payments/neighbor'
 import { hasPaidBox } from '@/lib/payments/customer-history'
 import { getTrialState } from '@/lib/payments/trial-state'
 
@@ -166,26 +161,43 @@ export async function resolveAutoDiscount(input: {
   //   돌았고, 이벤트 링크로 가입한 고객이 첫 박스를 **아무 신호 없이** 정가로 냈다.
   //   청구는 막지 않되(정가로 긁고 사람이 차액을 돌려준다 — 위 profile 조회와 같은 판단)
   //   반드시 error 로 남긴다.
+  //
+  // ★최대 할인 금액(2026-10-19 사장님 "50% · 최대 5만원") — 할인율과 상한을 **한 번에** 읽는다(pending_promotion_terms).
+  //   따로 읽으면 둘 사이에 다른 행을 볼 수 있다. 상한이 없는 이벤트는 max_discount 가 null.
   let promoRate = 0
+  let promoCap: number | null = null
+  const rpc = (
+    supabase as unknown as {
+      rpc: (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>
+    }
+  ).rpc.bind(supabase)
   // recurringOnly(반복 금액 미리보기)·앞선 구독이 있는 미리보기면 한 번만 붙는 이벤트 할인을 조회하지 않는다.
-  const { data: r, error: promoErr } = skipOneTime
-    ? { data: null, error: null }
-    : await (
-        supabase as unknown as {
-          rpc: (
-            fn: string,
-            args: Record<string, unknown>,
-          ) => Promise<{ data: unknown; error: { message: string } | null }>
-        }
-      ).rpc('pending_promotion_rate', { p_user_id: userId })
+  let { data: r, error: promoErr } = skipOneTime
+    ? { data: null as unknown, error: null as { message: string; code?: string } | null }
+    : await rpc('pending_promotion_terms', { p_user_id: userId })
+  // 배포 순서 안전판 — 상한 칸과 이 함수는 같은 마이그레이션(20261019000000)에서 생긴다. 함수가 아직 없으면(PGRST202)
+  // 상한 칸도 없어 상한 걸린 이벤트가 있을 수 없다 → 예전 함수의 할인율만 쓰는 게 정확하다. 남겨서 보이게 한다.
+  if (promoErr?.code === 'PGRST202') {
+    captureBusinessEvent('warning', 'billing.auto_discount.promotion_terms_missing', { userId })
+    const old = await rpc('pending_promotion_rate', { p_user_id: userId })
+    r = old.error ? null : [{ rate: old.data, max_discount: null }]
+    promoErr = old.error
+  }
   if (promoErr) {
     captureBusinessEvent('error', 'billing.auto_discount.promotion_lookup_failed', {
       userId,
       dbError: promoErr.message,
     })
   } else {
-    const n = Number(r)
-    if (Number.isFinite(n) && n > 0) promoRate = Math.min(1, n)
+    const row = (Array.isArray(r) ? r[0] : r) as { rate?: unknown; max_discount?: unknown } | null | undefined
+    const n = Number(row?.rate)
+    if (Number.isFinite(n) && n > 0) {
+      promoRate = Math.min(1, n)
+      promoCap = row?.max_discount == null ? null : Number(row.max_discount)
+    }
   }
 
   // 이웃 할인(어드민이 특정 고객에게 붙인 첫 박스 1회 할인, 2026-09-27) — 아직 안 쓴 것.
@@ -221,26 +233,23 @@ export async function resolveAutoDiscount(input: {
     }
   }
 
-  const picked = pickBetterDiscount(
-    { rate: tierDiscount.rate, label: tierDiscount.label },
-    promoRate > 0 ? { rate: promoRate, label: '이벤트 할인' } : null,
-  )
-  // 등급/이벤트 중 고른 것과 이웃 할인 중 더 큰 쪽 하나만(같으면 이웃 할인은 아껴 둔다).
-  const final = pickWithNeighbor(picked, neighborRate > 0 ? { rate: neighborRate } : null)
-  const discountAmount = applyDiscount(subtotal, final.rate)
+  // 셋 중 가장 많이 깎는 하나 — 최대 할인 금액이 걸린 이벤트는 **실제 금액**으로 견준다(lib/payments/discount-pick.ts).
+  const pick = pickDiscount({
+    subtotal,
+    tier: { rate: tierDiscount.rate, label: tierDiscount.label },
+    promo: promoRate > 0 ? { rate: promoRate, maxDiscount: promoCap, label: '이벤트 할인' } : null,
+    neighborRate,
+  })
+  const discountAmount = pick.discountAmount
   return {
-    reason: final.useNeighbor
-      ? 'neighbor'
-      : picked.reason === 'promotion'
-        ? 'promotion'
-        : tierDiscount.reason,
+    reason: pick.kind === 'neighbor' ? 'neighbor' : pick.kind === 'promotion' ? 'promotion' : tierDiscount.reason,
     discountAmount,
     chargeAmount: subtotal - discountAmount,
     // 프로모션을 실제로 **쓴** 경우에만 소진 표시 대상. 등급이 더 커서 안 쓴
     // 프로모션은 남겨 둔다 — 다음 기회에 쓸 수 있어야 한다. 이웃 할인도 같다.
-    promoClaimed: !final.useNeighbor && picked.reason === 'promotion',
-    neighborClaimed: final.useNeighbor,
-    label: discountAmount > 0 ? final.label : null,
+    promoClaimed: pick.kind === 'promotion',
+    neighborClaimed: pick.kind === 'neighbor',
+    label: discountAmount > 0 ? pick.label : null,
   }
 }
 

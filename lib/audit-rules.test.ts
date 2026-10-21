@@ -4288,7 +4288,8 @@ test('규칙101: 고객에게 가는 금액·시각·통지는 실제와 같다 
   }
   // ④ 프로모션 조회는 error 를 꺼낸다 — rpc 는 throw 하지 않아 try/catch 가 한 번도 안 돌았다.
   const disc = stripComments(read(join(ROOT, 'lib', 'payments', 'auto-discount.ts')))
-  assert.ok(/error:\s*promoErr[\s\S]{0,400}rpc\('pending_promotion_rate'/.test(disc), 'pending_promotion_rate 의 error 를 안 꺼낸다')
+  // 2026-10-19 — 할인율과 최대 할인 금액을 한 번에 읽는 pending_promotion_terms 로 바뀌었다(규칙302).
+  assert.ok(/error:\s*promoErr[\s\S]{0,400}rpc\('pending_promotion_terms'/.test(disc), 'pending_promotion_terms 의 error 를 안 꺼낸다')
 })
 
 test('규칙102: 구독 중인 강아지의 적용 중 처방은 재설문 재계산이 안전 사유 없이 덮지 않는다', () => {
@@ -4787,7 +4788,8 @@ test('규칙124: 링크 미리보기는 로고 한 장 · 앱 다운로드는 �
   assert.ok(!existsSync(join(ROOT, 'app', 'og', 'dog', 'route.tsx')), '/og/dog(쓰지 않는데 임의 URL 을 가져오던 카드)가 돌아왔다')
   const card = read(join(ROOT, 'lib', 'og', 'logo-card.tsx'))
   assert.ok(card.includes("join(process.cwd(), 'public', 'logo-stamp.png')"), '로고 카드가 도장 로고를 읽지 않는다')
-  const link = stripComments(read(join(ROOT, 'app', 'link', 'page.tsx')))
+  // 본문은 2026-10-19 LinkBody.tsx 로 옮겼다(서포터즈 /link/코드 와 같이 쓴다, 규칙303).
+  const link = stripComments(read(join(ROOT, 'app', 'link', 'LinkBody.tsx')))
   assert.ok(link.includes('src="/badge-googleplay-ko.png"') && link.includes('src="/badge-appstore-ko.svg"'), '/link 앱 다운로드가 공식 배지가 아니다')
   assert.ok(!/function (PlayStoreIcon|AppleIcon)\(/.test(link), '/link 에 직접 그린 스토어 아이콘이 남아 있다')
 })
@@ -5015,7 +5017,9 @@ test('규칙132: 이웃 할인(첫 박스 1회 지정 할인)은 판정·소진�
   // skipOneTime = recurringOnly || 앞선 구독 있음(규칙135) — 반복 금액·두 번째 구독 미리보기엔 1회 할인 제외.
   assert.match(resolver, /const skipOneTime = recurringOnly \|\|/, 'skipOneTime 이 recurringOnly 를 포함하지 않는다')
   assert.match(resolver, /if \(!skipOneTime\) \{[\s\S]{0,200}neighbor_discounts/, '반복 금액 미리보기(recurringOnly)에 1회 할인이 섞인다')
-  assert.match(resolver, /pickWithNeighbor\(/, '더 큰 쪽 하나만 규칙(pickWithNeighbor)이 빠졌다')
+  // 고르기는 순수 함수(discount-pick.ts)로 옮겼다(2026-10-19 최대 할인 금액, 규칙302) — 거기서 pickWithNeighbor 를 쓴다.
+  assert.match(resolver, /pickDiscount\(\{/, '판정이 할인 고르기 정본(pickDiscount)을 안 쓴다')
+  assert.match(stripComments(read(join(ROOT, 'lib', 'payments', 'discount-pick.ts'))), /pickWithNeighbor\(/, '더 큰 쪽 하나만 규칙(pickWithNeighbor)이 빠졌다')
 
   const cron = stripComments(read(join(ROOT, 'app', 'api', 'cron', 'subscription-charge', 'route.ts')))
   assert.match(cron, /if \(neighborClaimed\)[\s\S]{0,600}\.is\('redeemed_order_id', null\)[\s\S]{0,200}\.select\('user_id'\)/, '이웃 할인 소진이 CAS(.is null)+행 확인이 아니다')

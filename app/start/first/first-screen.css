@@ -269,6 +269,27 @@
   border-radius: 28px;
   box-shadow: 0 1px 2px rgba(20, 20, 20, 0.05), 0 14px 36px rgba(20, 20, 20, 0.09);
 }
+/* 이벤트 화면(웹 /p/코드) — 동의 칸·약관 고지가 더 붙어 카드가 내용만큼 늘어난다(600 고정이면 아래로 삐져나왔다). */
+.fs-stampcard[data-event='true'] {
+  flex: 0 0 auto;
+  margin-bottom: 20px;
+}
+/* 이벤트 가입 화면은 틀이 내용만큼 늘어나고 아래로 내려간다 — 화면이 짧은 폰(667)에서 단추·고지가 잘리지 않게.
+   가로는 빛 장식이 밖으로 나가지 않게 숨긴다. */
+.fs-root[data-event='true'] > .s-frame {
+  height: auto;
+  min-height: 100dvh;
+  /* clip — hidden 이면 세로가 auto 로 바뀌어 틀 안쪽이 따로 스크롤됐다(이중 스크롤, 10/19 검토). */
+  overflow: clip;
+}
+/* 웹(PC·태블릿)에서 열리는 이벤트 화면 — 안내서와 같은 한 칸(480) 폭. 앱 첫 화면은 그대로. */
+.fs-root[data-event='true'],
+.fs-root[data-event-col='true'] {
+  /* width 100% — 바깥(body)이 세로 flex 라 margin auto 만 주면 내용 폭으로 쪼그라든다(PC 에서 115px 기둥). */
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
 .fs-dog {
   display: flex;
   align-items: center;
@@ -350,6 +371,35 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* 이벤트 화면(웹 /p/코드) 가입 카드 — 광고 수신 동의(선택, 처음엔 꺼짐) · 약관 고지. */
+.fs-consent {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #3d3a35;
+  cursor: pointer;
+}
+.fs-consent input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: #141414;
+}
+.fs-terms {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #6b675f;
+}
+.fs-terms a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* 도장 '쾅' — 한 번만(시안의 3.8초 반복은 보드 미리보기용). 떨어짐 → 고리 퍼짐 → 먼지 → 카드 살짝 흔들림 → 글·버튼이 올라옴. */
 .fs-stamp,
@@ -364,7 +414,8 @@
 .fs-stamp {
   background: url(/logo-stamp.png) center / contain no-repeat;
   mix-blend-mode: multiply;
-  transform: rotate(-14deg);
+  /* 사장님 10/19 "왼쪽으로 기울었다 … +14도로" — 오른쪽(시계방향)으로 14도 */
+  transform: rotate(14deg);
   opacity: 0.94;
   animation: fsDrop 1.1s cubic-bezier(0.2, 0.8, 0.25, 1) 0.25s both;
 }
@@ -390,12 +441,12 @@
   animation: fsUp 1.1s ease-out 0.25s both;
 }
 @keyframes fsDrop {
-  0% { transform: rotate(-26deg) scale(3.1); opacity: 0; filter: blur(6px); }
+  0% { transform: rotate(2deg) scale(3.1); opacity: 0; filter: blur(6px); }
   18% { opacity: 0.25; }
-  55% { transform: rotate(-13deg) scale(0.88); opacity: 1; filter: blur(0); }
-  68% { transform: rotate(-14deg) scale(1.07); }
-  82% { transform: rotate(-14deg) scale(0.98); }
-  100% { transform: rotate(-14deg) scale(1); opacity: 0.94; filter: blur(0); }
+  55% { transform: rotate(15deg) scale(0.88); opacity: 1; filter: blur(0); }
+  68% { transform: rotate(14deg) scale(1.07); }
+  82% { transform: rotate(14deg) scale(0.98); }
+  100% { transform: rotate(14deg) scale(1); opacity: 0.94; filter: blur(0); }
 }
 @keyframes fsRing {
   0%, 50% { transform: scale(0.55); opacity: 0; }

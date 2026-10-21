@@ -14,6 +14,7 @@ import {
 import { applyAutosignupDraft } from '@/lib/auth/applyAutosignupDraft'
 import { createDogFromDraft } from '@/lib/auth/createDogFromDraft'
 import { claimPromotionOnSignup } from '@/lib/auth/claimPromotionOnSignup'
+import { firstDogWithoutSurvey } from '@/lib/auth/surveyPendingDog'
 import { isFreshAccount, surveyStartHref } from '@/lib/survey/welcome'
 import {
   loadAutosignupDraft,
@@ -296,6 +297,12 @@ function LoginInner() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', signedIn.id)
       if (!count) destination = '/start'
+      // ★강아지는 있는데 설문이 없으면 홈 대신 설문으로(2026-10-19 이벤트 /p/코드 — 웹에서 가입만 하고 앱을 깐 손님).
+      //   카카오·애플 허브(/start/claim)와 같은 판정. 모르면(조회 실패) 홈 그대로.
+      else {
+        const pending = await firstDogWithoutSurvey(supabase, signedIn.id)
+        if (pending) destination = surveyStartHref(pending, isFreshAccount(signedIn.created_at))
+      }
     }
     router.push(destination)
     router.refresh()

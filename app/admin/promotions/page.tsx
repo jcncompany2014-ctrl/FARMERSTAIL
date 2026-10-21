@@ -60,6 +60,7 @@ export default async function AdminPromotionsPage() {
       starts_at: string
       ends_at: string
       max_signups: number | null
+      max_discount_amount?: number | null
       active: boolean
     }>
   ).map((p) => ({

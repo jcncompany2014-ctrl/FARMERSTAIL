@@ -232,6 +232,8 @@ test('규칙204: 앱 링크는 www 만 · 안드로이드 15+ 는 가게·행사
     '<data android:pathPrefix="/store/" />',
     '<data android:pathPrefix="/p/" />',
     '<data android:path="/link" />',
+    // 서포터즈 링크 모음(/link/코드, 2026-10-19 규칙303)
+    '<data android:pathPrefix="/link/" />',
     '<data android:path="/auth/callback" />',
   ]
   assert.deepEqual(
@@ -244,7 +246,7 @@ test('규칙204: 앱 링크는 www 만 · 안드로이드 15+ 는 가게·행사
   assert.equal(groups.filter((g) => g.allow).length, 1, '허용 묶음은 맨 끝 하나뿐이어야 한다(앞에 있으면 제외보다 먼저 맞는다)')
   // 아이폰 AASA 와 같은 목록(AASA 는 /admin·/api·/.well-known 도 뺀다 — 안드로이드는 /api 링크를 앱이 서버로 넘긴다).
   const aasa = stripComments(read('app', '.well-known', 'apple-app-site-association', 'route.ts'))
-  for (const p of ['/store', '/store/*', '/p/*', '/link', '/auth/callback']) {
+  for (const p of ['/store', '/store/*', '/p/*', '/link', '/link/*', '/auth/callback']) {
     assert.ok(aasa.includes(`{ '/': '${p}', exclude: true }`), `AASA 가 ${p} 를 빼지 않는다 — 안드로이드와 목록이 어긋났다`)
   }
   // uri-relative-filter-group·android:allow 는 API 35 — 컴파일 SDK 가 그보다 낮으면 빌드가 깨진다.

@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import StoreShell from '@/components/store/StoreShell'
 import { APP_STORE_LINKS } from '@/lib/links'
+import { formatPromoCap } from '@/lib/promotions'
 
 /**
  * 웹 가입 완료 화면(그리기만) — 데이터는 page.tsx 가 읽어 넘긴다. 점검 화면(/design-check-store?s=start-done)이
  * 예시 값으로 같은 화면을 그린다(로그인한 행사 손님만 보는 혜택·추천 구성 칸을 로그인 없이 확인하려고).
  */
 export type DoneBox = { recipes: string; dailyGrams: number | null; total: number | null }
-export type DonePromo = { name: string; ratePct: number }
+export type DonePromo = { name: string; ratePct: number; maxDiscount?: number | null }
 
 const won = (n: number) => n.toLocaleString('ko-KR')
 
@@ -53,7 +54,7 @@ export default function DoneWebView({ who, box, promo }: { who: string; box: Don
                 혜택이 계정에 저장됐어요
               </strong>
               <span style={{ fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>
-                앱에서 처음 정기배송을 시작하면 첫 결제에서 <strong style={{ color: '#141414' }}>{promo.ratePct}% 할인</strong>돼요. 따로 입력할 건 없어요.
+                앱에서 처음 정기배송을 시작하면 첫 결제에서 <strong style={{ color: '#141414' }}>{promo.ratePct}% 할인</strong>돼요{promo.maxDiscount ? `(최대 ${formatPromoCap(promo.maxDiscount)})` : ''}. 따로 입력할 건 없어요.
               </span>
             </div>
           </section>

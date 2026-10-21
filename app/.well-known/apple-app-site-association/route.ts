@@ -55,6 +55,8 @@ export async function GET() {
               { '/': '/store/*', exclude: true },
               { '/': '/p/*', exclude: true },
               { '/': '/link', exclude: true },
+              // 서포터즈 링크 모음(/link/코드, 2026-10-19)도 웹 전용.
+              { '/': '/link/*', exclude: true },
               // 그 외 모든 경로 deep-link 허용.
               { '/': '/*' },
             ],

@@ -78,13 +78,13 @@ async function loadPendingPromo(): Promise<DonePromo | null> {
     if (claimErr || !claim || claim.redeemed_order_id) return null
     const { data: promo, error: promoErr } = await admin
       .from('promotions')
-      .select('name, discount_rate')
+      .select('name, discount_rate, max_discount_amount')
       .eq('id', claim.promotion_id)
       .maybeSingle()
     if (promoErr || !promo) return null
     const ratePct = Math.round(Number(promo.discount_rate) * 100)
     if (!(ratePct > 0)) return null
-    return { name: String(promo.name), ratePct }
+    return { name: String(promo.name), ratePct, maxDiscount: promo.max_discount_amount == null ? null : Number(promo.max_discount_amount) }
   } catch {
     return null
   }

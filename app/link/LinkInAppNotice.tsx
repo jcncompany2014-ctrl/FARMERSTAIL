@@ -22,7 +22,7 @@ export default function LinkInAppNotice() {
   const [oldAndroid, setOldAndroid] = useState(false)
 
   function openInBrowser(e: MouseEvent<HTMLAnchorElement>) {
-    const url = linkWebUrl(window.location.search)
+    const url = linkWebUrl(window.location.search, window.location.pathname)
     if (isNativeApp() && getPlatform() === 'android') {
       // 안드로이드 WebView 는 target="_blank" 를 같은 화면에서 연다 — 크롬 intent 로 넘긴다(옛 빌드는 오류 화면이라 막는다).
       e.preventDefault()

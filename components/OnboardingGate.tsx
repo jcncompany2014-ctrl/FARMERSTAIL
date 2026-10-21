@@ -55,6 +55,11 @@ export default function OnboardingGate() {
     if (pathname === '/store' || pathname.startsWith('/store/')) return
     // 링크 모음(인스타 프로필 링크)도 같다 — "링크 모음은 웹에서 열려요" 안내(app/link/layout, 규칙235)를 덮지 않는다.
     if (pathname === '/link') return
+    // 서포터즈 링크 모음(/link/코드, 2026-10-19)도 같다.
+    if (pathname.startsWith('/link/')) return
+    // 이벤트 화면(/p/코드, 2026-10-19) — 앱 안에서 열리면 서버가 이미 앱 첫 화면(/start?p=코드)으로 넘긴다. 관문이 먼저
+    //   /start(코드 없이)로 덮으면 이벤트 혜택이 빠진다.
+    if (pathname.startsWith('/p/')) return
     if (hasSeenOnboarding()) return
 
     // ★표식을 **옮기기 전에** 남긴다(2026-10-13, 규칙201 — 에뮬레이터 재현 무한 왕복).

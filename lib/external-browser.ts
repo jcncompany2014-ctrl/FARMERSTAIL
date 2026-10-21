@@ -47,8 +47,14 @@ export function storeWebUrl(pathname: string, search = ''): string {
 }
 
 /** 앱 안 링크 모음 → 브라우저로 열 주소(검색어 = 인스타 utm 등은 그대로). 경로는 언제나 /link 하나. */
-export function linkWebUrl(search = ''): string {
-  return `${LINK_WEB_URL}${safeSearch(search)}`
+/** 서포터즈 링크 모음 주소(/link/코드, 2026-10-19) — 행사 코드 모양(normalizePromoCode 와 같은 2~40자)만. */
+const SUPPORTER_LINK_PATH = /^\/link\/[a-z0-9][a-z0-9_-]{1,39}$/
+
+export function linkWebUrl(search = '', pathname = '/link'): string {
+  // 서포터즈 링크 모음은 그 주소 그대로 — 아니면 브라우저에서 기본 링크 모음이 열려 그 아이 몫 집계가 끊긴다.
+  //   모양이 맞는 코드만(이상한 경로는 기본 /link).
+  const path = SUPPORTER_LINK_PATH.test(pathname) ? pathname : '/link'
+  return `${STORE_WEB_ORIGIN}${path}${safeSearch(search)}`
 }
 
 /**
@@ -64,7 +70,7 @@ export function androidChromeIntentUrl(httpsUrl: string): string | null {
     return null
   }
   if (u.protocol !== 'https:' || u.origin !== STORE_WEB_ORIGIN || u.username || u.password) return null
-  if (u.pathname !== '/store' && !u.pathname.startsWith('/store/') && u.pathname !== '/link') return null
+  if (u.pathname !== '/store' && !u.pathname.startsWith('/store/') && u.pathname !== '/link' && !SUPPORTER_LINK_PATH.test(u.pathname)) return null
   return (
     `intent://${u.host}${u.pathname}${u.search}` +
     `#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=${ANDROID_CHROME_PACKAGE};end`

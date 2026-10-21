@@ -14,7 +14,7 @@
  */
 import { useState } from 'react'
 import { AdminCard, AdminButton, Badge, SectionTitle } from '@/components/admin/ui'
-import { promotionGate, PROMOTION_GATE_LABEL } from '@/lib/promotions'
+import { formatPromoCap, promotionGate, PROMOTION_GATE_LABEL } from '@/lib/promotions'
 
 export type PromoWithStat = {
   id: string
@@ -24,6 +24,7 @@ export type PromoWithStat = {
   starts_at: string
   ends_at: string
   max_signups: number | null
+  max_discount_amount?: number | null
   active: boolean
   signups: number
   orders: number
@@ -57,12 +58,16 @@ export default function PromotionsClient({
     name: '',
     code: '',
     discountPct: '50',
+    // 최대 할인 금액(원) — 비우면 상한 없음. 기본 5만원(사장님 10/19 약국 이벤트 '50% · 최대 5만원').
+    maxDiscount: '50000',
     startsAt: '',
     endsAt: '',
     maxSignups: '',
   })
 
-  const linkOf = (code: string) => `${siteUrl}/start?p=${code}`
+  // 새로 인쇄할 QR·링크는 이벤트 화면(/p/코드, 2026-10-19 — 안내서 → 강아지 정보 → 카카오 가입 → 앱 설치 안내).
+  //   이미 인쇄된 /start?p=코드 QR 은 그대로 살아 있다(규칙176).
+  const linkOf = (code: string) => `${siteUrl}/p/${code}`
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
@@ -71,9 +76,11 @@ export default function PromotionsClient({
     const pct = Number(form.discountPct)
     const cap = form.maxSignups ? `${Number(form.maxSignups).toLocaleString()}명` : '인원 제한 없음'
     const period = `${form.startsAt || '지금'} ~ ${form.endsAt || '종료일 없음'}`
+    const maxWon = form.maxDiscount ? Math.trunc(Number(form.maxDiscount)) : 0
+    const capLine = maxWon > 0 ? `최대 ${maxWon.toLocaleString()}원까지` : '할인 금액 상한 없음'
     if (!window.confirm(`'${form.name || form.code}' 이벤트를 만들까요?
 
-· 첫 박스 ${pct}% 할인
+· 첫 박스 ${pct}% 할인 (${capLine})
 · ${cap}
 · 기간 ${period}
 · 링크: ${linkOf(form.code)}`)) return
@@ -91,6 +98,7 @@ export default function PromotionsClient({
           startsAt: form.startsAt || undefined,
           endsAt: form.endsAt || undefined,
           maxSignups: form.maxSignups ? Number(form.maxSignups) : null,
+          maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : null,
         }),
       })
       const data = await res.json()
@@ -99,7 +107,7 @@ export default function PromotionsClient({
         return
       }
       setRows((r) => [{ ...data.promotion, signups: 0, orders: 0 }, ...r])
-      setForm({ name: '', code: '', discountPct: '50', startsAt: '', endsAt: '', maxSignups: '' })
+      setForm({ name: '', code: '', discountPct: '50', maxDiscount: '50000', startsAt: '', endsAt: '', maxSignups: '' })
     } catch {
       setErr('네트워크가 불안정해요')
     } finally {
@@ -169,7 +177,7 @@ export default function PromotionsClient({
               />
             </label>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <label className="block">
               <span className="text-[11px] font-bold text-muted-foreground">할인 %</span>
               <input
@@ -179,6 +187,18 @@ export default function PromotionsClient({
                 max={100}
                 value={form.discountPct}
                 onChange={(e) => setForm({ ...form, discountPct: e.target.value })}
+                className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px] tabular-nums"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-bold text-muted-foreground">최대 할인(원)</span>
+              <input
+                type="number"
+                min={1000}
+                step={1000}
+                value={form.maxDiscount}
+                onChange={(e) => setForm({ ...form, maxDiscount: e.target.value })}
+                placeholder="상한 없음"
                 className="mt-1 w-full rounded border border-input px-3 py-2 text-[13px] tabular-nums"
               />
             </label>
@@ -233,12 +253,13 @@ export default function PromotionsClient({
           const gate = promotionGate(p, new Date(), p.signups)
           return (
             <AdminCard key={p.id}>
-              <SectionTitle title={p.name} desc={`/start?p=${p.code}`} />
+              <SectionTitle title={p.name} desc={`/p/${p.code}`} />
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <Badge tone={gate.open ? 'green' : 'neutral'}>
                   {gate.open ? '진행 중' : PROMOTION_GATE_LABEL[gate.reason]}
                 </Badge>
                 <Badge tone="blue">{Math.round(p.discount_rate * 100)}% 할인</Badge>
+                {p.max_discount_amount ? <Badge tone="neutral">최대 {formatPromoCap(p.max_discount_amount)}</Badge> : null}
                 <span className="text-[11px] text-muted-foreground tabular-nums">
                   {fmt(p.starts_at)} ~ {fmt(p.ends_at)}
                 </span>
