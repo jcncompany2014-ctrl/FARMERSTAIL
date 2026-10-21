@@ -103,3 +103,15 @@ export function trialConsentLines(state: TrialState | null | undefined, from: nu
   void from
   return { head: '서포터즈 결제는 그대로예요', lines: [steps.join(' → ')] }
 }
+
+/** 100원 기간 동의 창의 작은 줄 — "그다음 반값 4번(17,700원) → 정상가 35,400원". 숫자는 trialPricing. */
+export function trialAfterCheapLine(state: TrialState, to: number): string {
+  const won = (n: number) => `${n.toLocaleString('ko-KR')}원`
+  const steps: string[] = []
+  if (state.half_remaining > 0) {
+    const ht = trialPricing({ ...state, cheap_remaining: 0 }, to)?.chargeAmount
+    if (ht != null) steps.push(`반값 ${state.half_remaining}번(${won(ht)})`)
+  }
+  steps.push(`정상가 ${won(to)}`)
+  return `그다음 ${steps.join(' → ')}`
+}

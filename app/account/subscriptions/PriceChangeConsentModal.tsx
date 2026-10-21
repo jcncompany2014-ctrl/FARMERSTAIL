@@ -37,7 +37,7 @@ import { petName } from '@/lib/korean'
 import { V3 } from '@/lib/design/tokens'
 import { RECIPE_COLOR } from '@/components/analysis/display'
 import { pouchLineFromName, type PouchLine } from '@/lib/design/pouch'
-import { trialConsentLines, type TrialState } from '@/lib/payments/trial'
+import { trialAfterCheapLine, trialConsentLines, type TrialState } from '@/lib/payments/trial'
 
 export type PriceChangeProposal = {
   dogId: string
@@ -277,6 +277,24 @@ export default function PriceChangeConsentModal({
                     {proposal.recipeLabel}
                   </dd>
                 </div>
+                {trialCheap && proposal.trial ? (
+                  // 서포터즈 100원 기간 — 제일 크게 보일 숫자는 '당장 내는 돈'(사장님 10/21 "숫자 큰 부분이 너무 강력, 2번 더 100원이 더 잘 읽혔으면").
+                  <div style={{ padding: '12px 0', borderBottom: `1px solid ${V3.rule}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <dt style={{ fontSize: 15, color: V3.inkMute }}>앞으로 {proposal.trial.cheap_remaining}번 결제</dt>
+                    <dd style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <span style={{ whiteSpace: 'nowrap' }}>
+                        <span className="ft-num" style={{ fontSize: 30 }}>
+                          {Math.max(100, Math.trunc(proposal.trial.cheap_price)).toLocaleString('ko-KR')}
+                        </span>
+                        <span style={{ fontSize: 17, fontWeight: 800 }}>원</span>
+                      </span>
+                      <span style={{ fontSize: 16, fontWeight: 800 }}>그대로예요</span>
+                    </dd>
+                    <span style={{ fontSize: 14, lineHeight: 1.5, color: V3.inkMute }}>
+                      {trialAfterCheapLine(proposal.trial, proposal.priceTo)}
+                    </span>
+                  </div>
+                ) : (
                 <div style={{ padding: '12px 0', borderBottom: `1px solid ${V3.rule}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <dt style={{ fontSize: 15, color: V3.inkMute }}>2주 상품 금액 (할인 전)</dt>
                   <dd style={{ margin: 0, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
@@ -295,8 +313,9 @@ export default function PriceChangeConsentModal({
                     </span>
                   </dd>
                 </div>
+                )}
               </dl>
-              <TrialNote proposal={proposal} app />
+              {!trialCheap && <TrialNote proposal={proposal} app />}
               <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: V3.inkSoft, wordBreak: 'keep-all' }}>
                 {trialCheap ? (
                   <>

@@ -32,3 +32,11 @@ test('규칙310: 동의 창(앱·웹 둘 다)이 풀이를 그리고, 두 화면
   assert.match(cron, /const trialCheap = !!trialNow && trialNow\.cheap_remaining > 0/)
   assert.match(cron, /서포터즈 결제는 그대로예요/)
 })
+
+test('규칙310: 100원 기간 동의 창은 "앞으로 N번 결제 100원 그대로"가 큰 숫자 — 정상가는 작은 줄', async () => {
+  const { trialAfterCheapLine } = await import('./payments/trial.ts')
+  assert.equal(trialAfterCheapLine({ cheap_remaining: 2, half_remaining: 4, cheap_price: 100, half_rate: 0.5 }, 35_400), '그다음 반값 4번(17,700원) → 정상가 35,400원')
+  const modal = read('app', 'account', 'subscriptions', 'PriceChangeConsentModal.tsx')
+  assert.match(modal, /앞으로 \{proposal\.trial\.cheap_remaining\}번 결제/)
+  assert.match(modal, /\{trialAfterCheapLine\(proposal\.trial, proposal\.priceTo\)\}/)
+})
