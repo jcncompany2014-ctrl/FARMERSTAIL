@@ -18,7 +18,8 @@ import type { HeroDog } from '@/lib/supporters'
 import { EventHero, EventSteps, Footer, Logo } from './EventParts'
 import s from './event.module.css'
 
-type Props = { code: string; promo: EventPromo; signedIn: boolean; heroDog: HeroDog }
+/** heroTag = 사진 왼쪽 아래 딱지 — 서포터즈 코드면 "○○네가 드리는 첫 박스 혜택"(page.tsx 가 정한다). */
+type Props = { code: string; promo: EventPromo; signedIn: boolean; heroDog: HeroDog; heroTag: string }
 
 export default function EventFlow(props: Props) {
   return (
@@ -28,11 +29,11 @@ export default function EventFlow(props: Props) {
   )
 }
 
-function Inner({ code, promo, signedIn, heroDog }: Props) {
+function Inner({ code, promo, signedIn, heroDog, heroTag }: Props) {
   const sp = useSearchParams()
   if (promo.state !== 'open') return <EventClosed reason={promo.state === 'closed' ? promo.reason : 'error'} heroDog={heroDog} />
   if (sp.has('step') && !signedIn) return <FirstScreenFlow event={{ code, ratePct: promo.ratePct, maxDiscount: promo.maxDiscount }} />
-  return <EventIntro code={code} ratePct={promo.ratePct} maxDiscount={promo.maxDiscount} endsAt={promo.endsAt} maxSignups={promo.maxSignups} signedIn={signedIn} heroDog={heroDog} />
+  return <EventIntro code={code} ratePct={promo.ratePct} maxDiscount={promo.maxDiscount} endsAt={promo.endsAt} maxSignups={promo.maxSignups} signedIn={signedIn} heroDog={heroDog} heroTag={heroTag} />
 }
 
 function EventIntro({
@@ -43,6 +44,7 @@ function EventIntro({
   maxSignups,
   signedIn,
   heroDog,
+  heroTag,
 }: {
   code: string
   ratePct: number
@@ -51,6 +53,7 @@ function EventIntro({
   maxSignups: number | null
   signedIn: boolean
   heroDog: HeroDog
+  heroTag: string
 }) {
   const ends = formatKoMonthDay(endsAt)
   const capText = maxDiscount ? formatPromoCap(maxDiscount) : null
@@ -62,7 +65,7 @@ function EventIntro({
           <InAppBrowserNotice />
         </div>
         <Logo />
-        <EventHero dog={heroDog} tag="파머스테일 첫 박스 혜택" />
+        <EventHero dog={heroDog} tag={heroTag} />
         <h1 className={s.h1} style={{ marginTop: 18 }}>
           첫 박스
         </h1>

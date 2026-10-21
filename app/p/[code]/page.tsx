@@ -16,6 +16,7 @@ import { isAppContextServer } from '@/lib/app-context'
 import { normalizePromoCode } from '@/lib/promotions'
 import { loadEventPromo } from '@/lib/promotions-load'
 import { DEFAULT_HERO_DOG, supporterByCode } from '@/lib/supporters'
+import { petName } from '@/lib/korean'
 import { createClient, getSafeUser } from '@/lib/supabase/server'
 import EventFlow from './EventFlow'
 
@@ -39,5 +40,8 @@ export default async function EventPage({ params }: { params: Promise<{ code: st
   const promo = await loadEventPromo(code)
   if (promo.state === 'missing') notFound()
   // 맨 위 사진 — 서포터즈 코드면 그 아이(/link/코드 와 같은 사진), 아니면 기본.
-  return <EventFlow code={code} promo={promo} signedIn={!!user} heroDog={supporterByCode(code) ?? DEFAULT_HERO_DOG} />
+  //   딱지도 — 서포터즈가 자기 팔로워에게 주는 혜택처럼(사장님 10/21).
+  const supporter = supporterByCode(code)
+  const heroTag = supporter ? `${petName(supporter.name)}네가 드리는 파머스테일 첫 박스 혜택` : '파머스테일 첫 박스 혜택'
+  return <EventFlow code={code} promo={promo} signedIn={!!user} heroDog={supporter ?? DEFAULT_HERO_DOG} heroTag={heroTag} />
 }

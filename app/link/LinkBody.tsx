@@ -215,8 +215,11 @@ function SupporterTop({ dog, promo }: { dog: Supporter; promo: EventPromo }) {
           className={`${s.fadeUp} ${s.d2}`}
           style={{ margin: '20px 20px 0', padding: 18, border: '2px solid #141414', borderRadius: 4, display: 'flex', flexDirection: 'column' }}
         >
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#595959' }}>{who}네 링크로 오신 분께</span>
-          <p style={{ margin: '6px 0 0', display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }} aria-label={`첫 박스 ${open.ratePct}퍼센트 할인`}>
+          {/* 서포터즈가 자기 팔로워에게 주는 선물처럼(사장님 10/21) — 혜택 내용은 행사표 그대로. */}
+          <span style={{ alignSelf: 'flex-start', padding: '4px 10px', borderRadius: 4, background: '#F2C94C', color: '#141414', fontSize: 15, fontWeight: 800 }}>
+            🎁 {who}네가 드리는 파머스테일 첫 박스 혜택
+          </span>
+          <p style={{ margin: '10px 0 0', display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }} aria-label={`첫 박스 ${open.ratePct}퍼센트 할인`}>
             <span className="d" style={{ fontSize: 24, lineHeight: 1.15, paddingBottom: 4 }}>
               첫 박스
             </span>
@@ -228,14 +231,14 @@ function SupporterTop({ dog, promo }: { dog: Supporter; promo: EventPromo }) {
             </span>
           </p>
           <span style={{ marginTop: 8, fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>
-            {cap ? `최대 ${cap} · ` : ''}앱 정기배송 첫 결제에 들어가요
+            {who} 보호자님 링크로 오신 분께만 열어 둔 혜택이에요. {cap ? `최대 ${cap} · ` : ''}앱 정기배송 첫 결제에 들어가요.
           </span>
           <a
             href={`/p/${dog.code}`}
             className={s.pressable}
             style={{ marginTop: 14, height: 56, borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, textDecoration: 'none', boxShadow: '4px 4px 0 #D4A24C' }}
           >
-            혜택 받고 시작하기
+            {who}네 혜택 받기
           </a>
         </section>
       )}
