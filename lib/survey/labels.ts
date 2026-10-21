@@ -515,3 +515,9 @@ export const APPROVAL_KR: Record<string, string> = {
   rejected: '고객 거절',
   expired: '동의 시한 지남',
 }
+
+/** 설문 보기 문구 묶음 — 고객 '설문 다시 하기' 요약 화면(lib/survey/review)이 같은 말을 쓴다(2026-10-21). */
+export const SURVEY_OPTION_TEXT = { RIBS, WAIST, ABDOMEN, WEIGHT_TREND, BRISTOL, GI, COOKING, PROTEIN_KR, CARE_GOAL, INDOOR, VIGOROUS, HOUSING, PREGNANCY } as const
+export function surveyWalkText(min: number | null): string | null {
+  return walkLabel(min)
+}

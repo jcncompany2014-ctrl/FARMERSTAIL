@@ -39,6 +39,7 @@ export default async function DesignCheckSurveyPage({
       dogId={DOG_ID}
       previous={c.previous ?? null}
       refineFrom={c.refine ? REFINE_SEED : null}
+      reviewFrom={c.review ? { seed: REFINE_SEED, lastAt: '9월 30일' } : null}
       preview={c.preview}
     />
   )

@@ -6457,7 +6457,8 @@ test('규칙170: 새 첫 화면·결과 둘러보기(앱) — 첫 실행은 새 
   assert.ok(login.includes('router.replace(surveyStartHref(deferredDogId, isFreshAccount(signedIn.created_at)))'), "이메일 가입 뒤 첫 로그인 설문에 '가입 완료' 표식이 없다(또는 오래된 계정에도 붙는다)")
   const sc = stripComments(read(join(ROOT, 'app', '(main)', 'dogs', '[id]', 'survey', 'SurveyClient.tsx')))
   assert.ok(sc.includes('q.delete(WELCOME_PARAM)') && sc.includes("window.history.replaceState(null, ''"), "설문이 '가입 완료' 표식을 주소에서 지우지 않는다 — 새로고침·뒤로가기마다 다시 뜬다")
-  assert.ok(sc.includes("if (!refineMode) setWelcome('on')"), "정확도 올리기(추가 답변)에도 '가입 완료' 띠가 뜬다")
+  // 2026-10-21 설문 다시 하기(요약 화면)도 가입 직후가 아니다 — 같은 줄에서 함께 막는다.
+  assert.ok(sc.includes("if (!refineMode && !reviewMode) setWelcome('on')"), "정확도 올리기(추가 답변)·다시 하기에도 '가입 완료' 띠가 뜬다")
 })
 
 test('규칙171: 앱 레시피 제목 = 팩에 찍힌 영어 + 아래 회색 한글 상품 이름 · 체형 꼬리표는 겁주지 않는 말', () => {

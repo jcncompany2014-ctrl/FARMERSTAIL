@@ -45,6 +45,33 @@ export default async function SurveyPage({
   // "정확도 올리기"(?refine=1) — 마지막 설문의 답으로 시작해 선택 묶음만 묻는다.
   // 마지막 설문이 없으면 일반 설문으로 떨어진다(시드 null).
   let refineFrom = null
+  // 설문 다시 하기(2026-10-21 사장님 "맨 처음 받은 설문을 또 맨 처음부터 하는 게 의미가 있냐") — v4 설문을 한 번 한 강아지는
+  // 지난 답을 채운 요약 한 장에서 시작한다(lib/survey/review). 정확도 올리기(?refine=1)는 그대로 선택 묶음부터.
+  let reviewFrom: { seed: ReturnType<typeof seedFromSurvey>; lastAt: string } | null = null
+  if (!refine) {
+    const { data: lastSurvey, error: lastSurveyErr } = await supabase
+      .from('surveys')
+      .select(
+        'created_at, answers, iris_stage, current_medications, current_food_brand, daily_walk_minutes, indoor_activity, expected_adult_weight_kg, pregnancy_week, litter_size',
+      )
+      .eq('dog_id', id)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    // 조회 실패면 처음부터(빈 설문) — 실패를 '지난 설문 없음'과 같게 다루지만, 결과는 예전과 같은 화면이라 손해가 없다.
+    if (lastSurveyErr) console.error('[survey] 지난 설문 조회 실패', lastSurveyErr.message)
+    const isV4 = !!lastSurvey && (lastSurvey.answers as { surveyVersion?: unknown } | null)?.surveyVersion === 4
+    if (!lastSurveyErr && lastSurvey && isV4) {
+      reviewFrom = {
+        seed: seedFromSurvey({
+          ...(lastSurvey as unknown as SurveyRowLike),
+          prescription_diet: (dog as { prescription_diet?: string | null }).prescription_diet ?? null,
+        }),
+        lastAt: new Date(lastSurvey.created_at as string).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' }),
+      }
+    }
+  }
   if (refine) {
     const { data: lastSurvey, error: lastSurveyErr } = await supabase
       .from('surveys')
@@ -182,5 +209,5 @@ export default async function SurveyPage({
       ? { bcs: lastAnalysis.bcs_score, weightKg: prevWeightKg }
       : null
 
-  return <SurveyClient dogId={id} previous={previous} refineFrom={refineFrom} />
+  return <SurveyClient dogId={id} previous={previous} refineFrom={refineFrom} reviewFrom={reviewFrom} />
 }

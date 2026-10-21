@@ -75,6 +75,8 @@ import { SurveyScreenContext } from './steps/ScreenShell'
 import { SurveyFrame, SurveyTopBar, SurveyAlert, SurveyWelcome } from './steps/Frame'
 import { WELCOME_PARAM } from '@/lib/survey/welcome'
 import { ExitSheet } from './steps/Sheet'
+import { ReviewScreen } from './steps/Review'
+import { reviewRows } from '@/lib/survey/review'
 import type { RefineSeed } from '@/lib/survey/refine'
 import { normalizeAllergyAnswers } from '@/lib/survey/allergy-options'
 import './survey.css'
@@ -107,7 +109,8 @@ import './survey.css'
  *  · preview 는 디자인 점검 화면(/design-check/survey) 전용 — 실제 화면은 넘기지 않는다.
  */
 
-type ScreenState = ScreenKey | 'loading'
+// 'review' = 설문 다시 하기 요약 한 장(lib/survey/review) — 화면 순서(flow)에는 없다.
+type ScreenState = ScreenKey | 'loading' | 'review'
 
 /**
  * 디자인 점검(/design-check/survey) 전용 — 로그인 없이 각 단계·상태를 띄운다. **실제 설문 화면(page.tsx)은
@@ -142,6 +145,7 @@ export default function SurveyClient({
   dogId,
   previous,
   refineFrom = null,
+  reviewFrom = null,
   preview,
 }: {
   dogId: string
@@ -153,6 +157,11 @@ export default function SurveyClient({
    * 무시한다(이전에 쓰다 만 초안이 튀어나오면 더 헷갈린다). lib/survey/refine.ts.
    */
   refineFrom?: RefineSeed | null
+  /**
+   * 설문 다시 하기(2026-10-21) — v4 설문을 한 번 한 강아지. 지난 답으로 채우고 **요약 한 장**에서 시작한다(줄을 누르면 그 질문만,
+   * '다음'이면 요약으로). lastAt = 지난 설문 날짜 문구. lib/survey/review.
+   */
+  reviewFrom?: { seed: RefineSeed; lastAt: string } | null
   /** 디자인 점검 전용(위 SurveyPreview). 실제 화면은 넘기지 않는다. */
   preview?: SurveyPreview
 }) {
@@ -160,14 +169,17 @@ export default function SurveyClient({
   const supabase = createClient()
   const toast = useToast()
   const refineMode = refineFrom !== null
+  const reviewMode = !refineMode && reviewFrom !== null
   const isPreview = preview !== undefined
-  // 점검 화면만 preview.seed 로 시작한다 — 실제 화면은 refineFrom(정확도 올리기) 그대로.
-  const seed: Partial<RefineSeed> | null = refineFrom ?? preview?.seed ?? null
+  // 점검 화면만 preview.seed 로 시작한다 — 실제 화면은 refineFrom(정확도 올리기)·reviewFrom(다시 하기) 그대로.
+  const seed: Partial<RefineSeed> | null = refineFrom ?? reviewFrom?.seed ?? preview?.seed ?? null
 
   const [dog, setDog] = useState<SurveyDog | null>(preview?.dog ?? null)
   const [screen, setScreen] = useState<ScreenState>(
-    preview?.screen ?? (refineMode ? 'optFood' : 'ribs'),
+    preview?.screen ?? (refineMode ? 'optFood' : reviewMode ? 'review' : 'ribs'),
   )
+  // 다시 하기에서 요약 줄을 눌러 연 질문들(체형은 세 화면) — 마지막 화면의 '다음' = 요약으로.
+  const [editGroup, setEditGroup] = useState<ScreenKey[] | null>(null)
   // 나가기 확인 창(ExitSheet) 열림.
   const [exitOpen, setExitOpen] = useState(false)
   // 가입 직후 '가입 완료' 띠(시안 Y7, lib/survey/welcome) — 'on' 떠 있음 · 'leaving' 사라지는 중 · null 없음(위 줄).
@@ -183,8 +195,8 @@ export default function SurveyClient({
     q.delete(WELCOME_PARAM)
     const rest = q.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
-    if (!refineMode) setWelcome('on')
-  }, [isPreview, refineMode])
+    if (!refineMode && !reviewMode) setWelcome('on')
+  }, [isPreview, refineMode, reviewMode])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // 강아지를 불러와 띠가 실제로 보인 때부터 3.5초 떠 있다가 사라진다(점검 화면은 'live' 일 때만 — 시안 촬영은 그대로 둔다).
@@ -278,7 +290,8 @@ export default function SurveyClient({
   // (점검 화면이 추가 질문 화면에서 시작하면 관문 답은 '답하기'였다 — 초안 복원과 같은 규칙.)
   const [optChoice, setOptChoice] = useState<OptionalChoice>(
     refineMode ||
-      (preview !== undefined && preview.screen !== 'loading' && isSkippable(preview.screen))
+      reviewMode ||
+      (preview !== undefined && preview.screen !== 'loading' && preview.screen !== 'review' && isSkippable(preview.screen))
       ? 'answer'
       : '',
   )
@@ -304,7 +317,8 @@ export default function SurveyClient({
   // refine 모드는 서버 시드가 정본 — localStorage 초안 복원을 건너뛴다(저장은 그대로).
   // 점검 화면은 preview.draft 가 있을 때만 복원 흐름을 탄다(localStorage 는 읽지 않는다).
   const previewDraftJson = preview?.draft ? JSON.stringify(preview.draft) : null
-  const restoredRef = useRef(refineMode || (isPreview && previewDraftJson === null))
+  // 다시 하기도 정확도 올리기처럼 초안을 복원·저장하지 않는다 — 시드는 서버(지난 설문)가 정본.
+  const restoredRef = useRef(refineMode || reviewMode || (isPreview && previewDraftJson === null))
 
   useEffect(() => {
     // 점검 화면 — 강아지는 preview.dog 로 이미 들고 있다(로그인·조회·분석 기록 없음).
@@ -437,7 +451,7 @@ export default function SurveyClient({
     // refine 모드는 저장하지 않는다 — 시드는 서버(마지막 설문)가 정본이고, 공용 초안 키에
     // 남기면 다음 일반 설문이 그 초안을 복원해 11개 질문을 건너뛴 채 선택 화면에서 시작한다
     // (2026-09-23 점검). 나가면 다음 ?refine=1 진입 때 다시 시드된다.
-    if (refineMode) return
+    if (refineMode || reviewMode) return
     // 점검 화면은 예시 값이라 저장하지 않는다.
     if (isPreview) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -528,6 +542,7 @@ export default function SurveyClient({
     optChoice,
     screen,
     refineMode,
+    reviewMode,
     isPreview,
   ])
 
@@ -566,7 +581,9 @@ export default function SurveyClient({
     : []
   const rawIdx = screens.findIndex((s) => s.key === screen)
   const idx = rawIdx >= 0 ? rawIdx : 0
-  const cur = screens[idx]
+  const isReview = screen === 'review'
+  // 요약 화면에선 질문 화면이 하나도 그려지면 안 된다(rawIdx -1 → 0 번 화면으로 떨어지지 않게).
+  const cur = isReview ? undefined : screens[idx]
   const isLoading = screen === 'loading'
   const isLastScreen = idx === screens.length - 1
 
@@ -622,6 +639,17 @@ export default function SurveyClient({
       haptic('warn')
       return
     }
+    if (reviewMode) {
+      // 다시 하기 — 고친 질문(묶음)이 끝나면 요약으로. 묶음 밖으로 이어 가지 않는다.
+      const group = editGroup ?? [cur.key]
+      const pos = group.indexOf(cur.key)
+      if (pos >= 0 && pos < group.length - 1) setScreen(group[pos + 1]!)
+      else {
+        setEditGroup(null)
+        setScreen('review')
+      }
+      return
+    }
     if (isLastScreen) {
       // 선택 묶음의 마지막(optMeds) → 제출. (관문은 자기 버튼으로 처리)
       startSubmit()
@@ -632,6 +660,18 @@ export default function SurveyClient({
 
   const firstIdx = refineMode ? Math.max(0, screens.findIndex((s) => s.key === 'optFood')) : 0
   function goPrev() {
+    if (reviewMode) {
+      // 다시 하기 — 묶음 안 앞 화면, 첫 화면이면 요약으로.
+      setErr('')
+      const group = editGroup ?? []
+      const pos = cur ? group.indexOf(cur.key) : -1
+      if (pos > 0) setScreen(group[pos - 1]!)
+      else {
+        setEditGroup(null)
+        setScreen('review')
+      }
+      return
+    }
     if (idx > firstIdx) {
       setErr('')
       setScreen(screens[idx - 1]!.key)
@@ -660,7 +700,7 @@ export default function SurveyClient({
   // 예전 공용 확인창(useConfirm)과 같은 조건·같은 뜻 — 모양만 설문 안에서 시안대로(사장님 결정 2번).
   function exitSurvey() {
     if (isLoading) return
-    if (hasAnyAnswer || refineMode) {
+    if (hasAnyAnswer || refineMode || reviewMode) {
       setExitOpen(true)
       return
     }
@@ -672,6 +712,11 @@ export default function SurveyClient({
       if (document.querySelector('dialog[open]')) return
       event.preventDefault()
       if (isLoading) return
+      if (reviewMode) {
+        if (isReview) exitSurvey()
+        else goPrev()
+        return
+      }
       if (idx > firstIdx) goPrev()
       else exitSurvey()
     }
@@ -970,7 +1015,36 @@ export default function SurveyClient({
     )
   }
 
-  const counter = isLoading ? '' : counterLabel(screens, idx)
+  const counter = isLoading || isReview ? '' : counterLabel(screens, idx)
+  // 다시 하기 요약 줄 — 지금 상태(고친 답 포함)로 매번 다시 만든다. 관문은 요약에 없다.
+  const reviewList = reviewMode
+    ? reviewRows(screens, {
+        bodyAssess,
+        weightTrend,
+        easyKeeper,
+        bristol,
+        stoolSkipped,
+        giSensitivity,
+        foodType,
+        snackFreq,
+        treatKcal,
+        homeCookingExp,
+        allergies,
+        preferredProteins,
+        hasChronic,
+        chronicConditions,
+        prescriptionDiet,
+        pregnancy,
+        careGoal,
+        currentBrand,
+        kibbleKcal,
+        walkMinutes,
+        indoorActivity,
+        vigorous,
+        housing,
+        medications,
+      })
+    : []
   // 진행 막대 — 본 질문 = n / 본 질문 수(시안 9%·18%…). 관문·추가 질문 동안은 꽉 찬 채(사장님 결정 1번 — 예전엔
   // 관문에서 '답하기'를 고르면 화면 수가 늘어 막대가 뒤로 갔다). 정확도 올리기는 추가 질문만 물으니 n / 4(시안 L19).
   let progress = 100
@@ -987,7 +1061,11 @@ export default function SurveyClient({
 
   // CTA 라벨 — 선택 화면은 답이 없으면 '건너뛰기'가 곧 다음.
   let ctaLabel = '다음'
-  if (cur && isSkippable(cur.key)) {
+  if (reviewMode) {
+    // 다시 하기 — 묶음 끝이면 요약으로 돌아간다('결과 보기'·'건너뛰기'가 아니다).
+    const group = editGroup ?? []
+    ctaLabel = cur && group.indexOf(cur.key) < group.length - 1 ? '다음' : '확인'
+  } else if (cur && isSkippable(cur.key)) {
     const answered = optionalAnswered(cur.key)
     if (isLastScreen) ctaLabel = answered ? '결과 보기' : '건너뛰고 결과 보기'
     else ctaLabel = answered ? '다음' : '건너뛰기'
@@ -1007,10 +1085,31 @@ export default function SurveyClient({
         onBack={() => {
           // 저장 실패로 loading 에 갇히지 않도록 — 마지막 입력 화면으로 복귀.
           setErr('')
-          setScreen(optChoice === 'answer' ? 'optMeds' : 'gate')
+          setScreen(reviewMode ? 'review' : optChoice === 'answer' ? 'optMeds' : 'gate')
         }}
       />
     ) : null
+  } else if (isReview) {
+    cta = (
+      <button
+        type="button"
+        className="s-next-btn s-next-full"
+        disabled={saving}
+        onClick={() => {
+          // 새로 생긴 질문 등 빈 답이 있으면 그 질문부터 연다 — 빈 답으로 저장하면 계산이 기본값으로 뭉개진다.
+          const firstEmpty = reviewList.find((r) => r.empty)
+          if (firstEmpty) {
+            haptic('warn')
+            setEditGroup(firstEmpty.keys)
+            setScreen(firstEmpty.keys[0]!)
+            return
+          }
+          startSubmit()
+        }}
+      >
+        이대로 저장
+      </button>
+    )
   } else if (cur?.key === 'gate') {
     cta = (
       <GateButtons
@@ -1038,8 +1137,14 @@ export default function SurveyClient({
             <SurveyTopBar
               progress={progress}
               progressLabel={counter || '진행률'}
-              backLabel={idx > firstIdx ? '이전 질문' : '설문 나가기'}
+              backLabel={reviewMode ? (isReview ? '설문 나가기' : '요약으로') : idx > firstIdx ? '이전 질문' : '설문 나가기'}
               onBack={() => {
+                // 다시 하기 — 요약의 ← = 나가기, 고치는 질문의 ← = 묶음 앞 화면 또는 요약.
+                if (reviewMode) {
+                  if (isReview) exitSurvey()
+                  else goPrev()
+                  return
+                }
                 // 첫 질문의 ← 는 하드웨어 뒤로가기와 같다 — '나갈까요?'(답이 없으면 바로 나감).
                 if (idx > firstIdx) goPrev()
                 else exitSurvey()
@@ -1053,6 +1158,18 @@ export default function SurveyClient({
         scrollKey={screen}
         previewScroll={preview?.scroll}
       >
+        {isReview && reviewFrom && (
+          <ReviewScreen
+            dogName={dog.name}
+            lastAt={reviewFrom.lastAt}
+            rows={reviewList}
+            onEdit={(r) => {
+              setErr('')
+              setEditGroup(r.keys)
+              setScreen(r.keys[0]!)
+            }}
+          />
+        )}
         {/* ── 화면 (lib/survey/flow 순서) ── */}
         {!isLoading && cur?.key === 'ribs' && (
           <RibsScreen

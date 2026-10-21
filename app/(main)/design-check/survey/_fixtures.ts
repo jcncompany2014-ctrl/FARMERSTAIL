@@ -104,12 +104,15 @@ export type SurveyCase = {
   previous?: { bcs: number; weightKg: number }
   /** 정확도 올리기(?refine=1)로 연다. */
   refine?: boolean
+  /** 설문 다시 하기 요약(지난 답 = 정확도 올리기 시드)으로 연다. */
+  review?: boolean
   /** 이 글자로 시작하는 버튼을 눌러 창을 띄운다. */
   click?: string
 }
 
 /** 목록 순서 = 점검 화면 목록 순서 = 시안 보드 순서. */
 export const CASES: SurveyCase[] = [
+  { key: 'review', title: '다시 하기 · 지난 답 요약', mock: '-', review: true, preview: { dog: DOG, screen: 'review' } },
   { key: 'ribs', title: '1 갈비뼈', mock: 'E01-Ribs', preview: { dog: DOG, screen: 'ribs', seed: { bodyAssess: { ribs: 'easy', waist: '', abdomen: '' } } } },
   { key: 'waist', title: '2 허리', mock: 'E02-Waist', preview: { dog: DOG, screen: 'waist', seed: { bodyAssess: { ribs: 'easy', waist: 'slight', abdomen: '' } } } },
   { key: 'belly', title: '3 배 + 체형 결과', mock: 'E03-Belly', preview: { dog: DOG, screen: 'abdomen', seed: BODY_5 } },
