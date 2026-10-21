@@ -195,6 +195,9 @@ test('규칙303: 서포터즈 링크 /link/코드 — 다섯 아이·사진 실�
   assert.match(top, /\{open && \(/)
   assert.match(top, /href=\{`\/p\/\$\{dog\.code\}`\}/, '혜택 단추가 이 아이 코드의 이벤트 화면이 아니다(집계가 끊긴다)')
   assert.doesNotMatch(top, /\b50%|5만원/, '할인율·상한을 손으로 적었다(행사표 값을 써야 한다)')
+  // 서포터즈 링크엔 바로 가기 버튼·'파머스테일의 하루'가 없다(사장님 10/21 "너무 파머스테일 페이지 같음").
+  assert.match(body, /\{!supporter && \(\s*<nav aria-label="바로 가기"/, '서포터즈 링크에 바로 가기 버튼이 나온다')
+  assert.match(body, /\{!supporter && content\.momentUrls\.length > 0 && \(/, "서포터즈 링크에 '파머스테일의 하루'가 나온다")
   assert.match(code('app', 'p', '[code]', 'page.tsx'), /heroDog=\{supporterByCode\(code\) \?\? DEFAULT_HERO_DOG\}/, '서포터즈 이벤트 화면 맨 위가 그 아이가 아니다')
 
   // 웹 전용 — 앱이 가져가지 않는다(아이폰 AASA·새 안드로이드 매니페스트), 첫 실행 관문이 덮지 않는다.

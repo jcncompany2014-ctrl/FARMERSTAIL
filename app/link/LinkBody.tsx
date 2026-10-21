@@ -63,12 +63,14 @@ export default function LinkBody({ content, supporter = null }: { content: LinkC
         </header>
         )}
 
-        {/* ── 바로 가기 ── */}
+        {/* ── 바로 가기 — 서포터즈 링크엔 없다(사장님 10/21 "너무 파머스테일 페이지 같음", 혜택 카드가 그 자리) ── */}
+        {!supporter && (
         <nav aria-label="바로 가기" className={`${s.fadeUp} ${s.d2}`} style={{ padding: '26px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {BIO_LINKS.map((l) => (
             <BioRow key={l.href} l={l} />
           ))}
         </nav>
+        )}
 
         {/* ── 알려드려요 — 번호 공지줄 + 배너 ── */}
         {noticeCount > 0 && (
@@ -87,7 +89,8 @@ export default function LinkBody({ content, supporter = null }: { content: LinkC
         )}
 
         {/* ── 파머스테일의 하루 — 사진 줄(옆으로 넘긴다) ── */}
-        {content.momentUrls.length > 0 && (
+        {/* 서포터즈 링크엔 '파머스테일의 하루'를 두지 않는다(같은 이유) */}
+        {!supporter && content.momentUrls.length > 0 && (
           <section className={`${s.fadeUp} ${s.d4} ${s.revealOnScroll}`} style={{ padding: '44px 0 0', display: 'flex', flexDirection: 'column' }}>
             <h2 className="d" style={{ margin: '0 20px', fontSize: 24, lineHeight: 1.2 }}>
               파머스테일의 하루
