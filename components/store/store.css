@@ -105,6 +105,35 @@
   }
 }
 
+/* 흐르는 글자 띠(상품 상세 '한눈에' 아래, 2026-10-22 레퍼런스 Nom Nom) — 같은 말 두 벌을 이어 붙여 반 칸씩 돈다.
+   움직임 줄이기 설정이면 멈춘다. 폰·PC 공통이라 PC 블록 밖에 둔다(이름표가 fts-pd- 가 아니어서 규칙296 범위 밖). */
+.fts-marq {
+  overflow: hidden;
+  background: #ffffff;
+  border-bottom: 2px solid #141414;
+}
+.fts-marq-track {
+  display: flex;
+  width: max-content;
+  animation: fts-marq 30s linear infinite;
+}
+.fts-marq-track > span {
+  padding: 13px 0;
+  font-size: 19px;
+  line-height: 1.2;
+  white-space: pre;
+}
+@keyframes fts-marq {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fts-marq-track {
+    animation: none;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * PC 화면(폭 1024 이상) — 2026-10-18 사장님 "가게형 ㄱㄱ"(PC 시안 A, scratchpad pc_mock/A_*.html).
  * 폰 화면은 그대로 두고, 넓은 화면에서만 아래 이름표(.fts-*)가 모양을 바꾼다. 부품의 모양은 인라인 스타일(폰 기준)이라
@@ -586,7 +615,7 @@
   .fts-pd-thumbs {
     padding: 12px 0 0 !important;
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px !important;
   }
   .fts-pd-thumbs > button {
@@ -708,5 +737,57 @@
   }
   .fts-pd-steps img {
     aspect-ratio: 4 / 3 !important;
+  }
+
+  /* ── 상품 상세 구조 다시 짜기(2026-10-22, 레퍼런스 20곳) ── */
+  /* 바로가기 줄: PC 머리줄(76) 바로 밑에 붙고, 글은 1200 시작선에 맞춰 왼쪽부터 */
+  .fts-pd-jump {
+    top: 76px !important;
+    margin-top: 64px !important;
+    padding: 0 max(32px, calc((100% - 1200px) / 2));
+    display: flex !important;
+    gap: 40px;
+  }
+  .fts-pd-jump a {
+    height: 56px !important;
+    font-size: 16px !important;
+  }
+  /* 한눈에 검정 띠: 왼쪽 제목 · 오른쪽 숫자 4칸 */
+  .fts-pd-glance {
+    padding-top: 72px !important;
+    padding-bottom: 64px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr);
+    column-gap: 56px;
+    align-items: end;
+  }
+  .fts-pd-glance > :nth-child(1) {
+    grid-column: 1 / -1;
+  }
+  .fts-pd-glance > h2 {
+    font-size: 48px !important;
+  }
+  .fts-pd-glance .fts-pd-cols4 {
+    column-gap: 28px !important;
+  }
+  .fts-marq-track > span {
+    padding: 16px 0;
+    font-size: 24px;
+  }
+  /* 믿고 먹일 수 있게: 왼쪽 등록증 · 오른쪽 영양 */
+  .fts-pd-trust {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+  .fts-pd-trust > :nth-child(1),
+  .fts-pd-trust > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  /* 바로가기로 건너뛸 때: 급여량 칸만 위 여백이 40 이라 머리줄 76 + 바로가기 56 아래로 더 내린다(다른 칸은 위 여백 96 이 덮는다).
+     웹 전체 scroll-padding-top 96(globals.css)에 더해지는 값이다. */
+  #calc {
+    scroll-margin-top: 14px !important;
   }
 }
