@@ -190,6 +190,9 @@ test('규칙289: 지운 사진 세 벌이 돌아오지 않는다 — 주황 폰 
    */
   const gone = [
     'meal-recipe.webp',
+    // 2026-10-21 사장님 '이 두 개 AI야' — 다른 회사 이름이 박힌 옛 AI 그릇 사진(어디서도 안 부르던 파일).
+    'fresh-bowl.jpg',
+    'food-bowl.jpg',
     ...['chicken', 'duck', 'pork', 'beef'].flatMap((p) => [`pkg/${p}.webp`, `pkg/${p}-wide.webp`, `bowl/${p}.webp`]),
   ]
   const back = gone.filter((f) => existsSync(join(ROOT, 'public', ...f.split('/'))))
