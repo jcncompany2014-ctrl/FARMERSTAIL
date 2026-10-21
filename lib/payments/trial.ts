@@ -92,17 +92,14 @@ export function trialPricing(state: TrialState | null, subtotal: number): TrialP
 export function trialConsentLines(state: TrialState | null | undefined, from: number, to: number): { head: string; lines: string[] } | null {
   if (!state || (state.cheap_remaining <= 0 && state.half_remaining <= 0)) return null
   const won = (n: number) => `${n.toLocaleString('ko-KR')}원`
-  const lines: string[] = []
-  if (state.cheap_remaining > 0) {
-    const cheap = trialPricing(state, to)?.chargeAmount ?? 100
-    lines.push(`남은 ${state.cheap_remaining}번은 지금처럼 박스당 ${won(cheap)}이에요`)
-  }
+  // 사장님 10/21 "글이 너무 많고 복잡하다" — 한 줄로: 100원 N번 → 반값 M번(새 금액) → 정상가(새 금액).
+  const steps: string[] = []
+  if (state.cheap_remaining > 0) steps.push(`${won(trialPricing(state, to)?.chargeAmount ?? 100)} ${state.cheap_remaining}번`)
   if (state.half_remaining > 0) {
-    const half = { ...state, cheap_remaining: 0 }
-    const hf = trialPricing(half, from)?.chargeAmount
-    const ht = trialPricing(half, to)?.chargeAmount
-    if (hf != null && ht != null) lines.push(`${state.cheap_remaining > 0 ? '그다음 ' : '남은 '}반값 ${state.half_remaining}번은 ${won(hf)} → ${won(ht)}`)
+    const ht = trialPricing({ ...state, cheap_remaining: 0 }, to)?.chargeAmount
+    if (ht != null) steps.push(`반값 ${state.half_remaining}번(${won(ht)})`)
   }
-  lines.push(`서포터즈 기간이 끝나면 ${won(from)} → ${won(to)}`)
-  return { head: state.cheap_remaining > 0 ? '서포터즈 기간이라 지금 내는 금액은 그대로예요' : '서포터즈 반값 기간이에요', lines }
+  steps.push(`정상가 ${won(to)}`)
+  void from
+  return { head: '서포터즈 결제는 그대로예요', lines: [steps.join(' → ')] }
 }

@@ -122,7 +122,6 @@ export default function PriceChangeConsentModal({
   const name = petName(proposal.dogName)
   // 서포터즈 100원 기간 — 레시피는 그대로일 수 있고(양만 바뀜) 새 금액은 100원 회차가 끝난 뒤부터다(2026-10-21 B안).
   const trialCheap = !!proposal.trial && proposal.trial.cheap_remaining > 0
-  const trialNext = proposal.trial && proposal.trial.half_remaining > 0 ? '반값 결제' : '정상 결제'
 
   async function submit(decision: 'approve' | 'decline') {
     setLoading(decision)
@@ -301,7 +300,7 @@ export default function PriceChangeConsentModal({
               <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: V3.inkSoft, wordBreak: 'keep-all' }}>
                 {trialCheap ? (
                   <>
-                    동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 박스부터</strong> 새로 계산한 양으로 보내 드려요. 100원 결제는 그대로이고, 새 금액은 {trialNext}부터예요. 지금 결제되지 않아요. 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                    동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 박스부터</strong> 양이 바뀌어요. 3일 안에 안 고르시면 그대로예요.
                   </>
                 ) : (
                   <>
@@ -443,7 +442,7 @@ export default function PriceChangeConsentModal({
             <p className="mt-3 text-[11px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
               {trialCheap ? (
                 <>
-                  동의하면 <b style={{ color: 'var(--fd-pine)' }}>다음 박스부터</b> 새로 계산한 양으로 보내 드려요. 100원 결제는 그대로이고, 새 금액은 {trialNext}부터예요(지금 청구 없음). 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                  동의하면 <b style={{ color: 'var(--fd-pine)' }}>다음 박스부터</b> 양이 바뀌어요. 3일 안에 안 고르시면 그대로예요.
                 </>
               ) : (
                 <>

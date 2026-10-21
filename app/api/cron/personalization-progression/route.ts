@@ -1015,7 +1015,7 @@ export async function GET(req: Request) {
         const trialCheap = !!trialNow && trialNow.cheap_remaining > 0
         if (trialCheap) {
           pushTitle = `${diff.forced ? '[중요] ' : ''}${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
-          pushBody = `새로 계산한 하루 양을 반영할게요. 서포터즈 기간이라 지금 내는 금액은 그대로예요(기간이 끝나면 2주 상품 금액 ${won(price.prevTotal)} → ${won(price.nextTotal)}원). 3일 안에 동의 또는 이전 유지를 골라주세요.`
+          pushBody = `다음 박스부터 양이 바뀌어요. 서포터즈 결제는 그대로예요. 3일 안에 골라 주세요.`
         } else if (diff.forced) {
           pushTitle = `[중요] ${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
           pushBody = `안전을 위해 레시피를 바꿔야 해서 2주 상품 금액이 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요(받고 계신 할인은 그대로예요). 3일 안에 동의 또는 이전 유지를 골라주세요.`
