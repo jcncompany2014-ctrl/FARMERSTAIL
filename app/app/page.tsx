@@ -28,10 +28,11 @@ import s from './app-intro.module.css'
  * 앱 안에서 이 주소가 열리면(앱 링크 등) 웹 화면이 앱에 뜨지 않게 앱 홈으로 보낸다.
  */
 // 2026-10-11 SEO: '파머스테일 앱 | 파머스테일' 은 이름만 두 번이었다 — 이 화면이 답하는 것(하루 양에 맞춰 나눈 정기배송)을 제목에.
-const APP_TITLE = '파머스테일 앱 — 하루 양에 맞춰 나눈 화식 정기배송'
+// 2026-10-21 네이버: 루트 템플릿('%s | 파머스테일')이 또 붙어 이름이 두 번 나왔다 — absolute 로 꼬리를 뗀다. '파머스테일 앱'으로 찾으면 이 화면이 1등이 되게.
+const APP_TITLE = '파머스테일 앱 — 하루 양에 맞춰 나눈 강아지 화식 정기배송'
 const APP_DESCRIPTION = '얼마나 줄지 고민 끝 — 우리 아이 하루 양을 그램까지 계산해 하루 한 팩씩 나눠 담아 2주마다 보내드려요. 받으면 녹여서 주면 끝.'
 export const metadata: Metadata = {
-  title: APP_TITLE,
+  title: { absolute: APP_TITLE },
   description: APP_DESCRIPTION,
   alternates: { canonical: '/app' },
   // 공유 카드 — 페이지가 openGraph 를 두면 루트의 것을 통째로 갈아끼우므로(얕은 병합) 이름·언어·그림도 같이 둔다.
@@ -40,11 +41,11 @@ export const metadata: Metadata = {
     locale: 'ko_KR',
     siteName: '파머스테일',
     url: '/app',
-    title: `${APP_TITLE} | 파머스테일`,
+    title: APP_TITLE,
     description: APP_DESCRIPTION,
     images: [{ url: '/og', width: 1200, height: 630, alt: '파머스테일' }],
   },
-  twitter: { card: 'summary_large_image', title: `${APP_TITLE} | 파머스테일`, description: APP_DESCRIPTION, images: ['/og'] },
+  twitter: { card: 'summary_large_image', title: APP_TITLE, description: APP_DESCRIPTION, images: ['/og'] },
 }
 
 // 글꼴은 이 화면에서만 — 다른 화면에 미리 받기(preload)를 퍼뜨리지 않는다.

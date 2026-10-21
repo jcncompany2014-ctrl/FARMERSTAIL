@@ -23,3 +23,10 @@ test('규칙307: /rss.xml — 공개 매거진 글 RSS 2.0 · 조회 실패는 5
     assert.match(read(...f), /types: \{ 'application\/rss\+xml': '\/rss\.xml' \}/, `${f.join('/')} 에 RSS 알림이 없다`)
   }
 })
+
+test('규칙308: /app 제목은 absolute — 루트 템플릿(| 파머스테일)이 붙어 이름이 두 번 나오지 않는다(네이버 "파머스테일 앱" 검색)', () => {
+  const page = read('app', 'app', 'page.tsx')
+  assert.match(page, /const APP_TITLE = '파머스테일 앱 — /)
+  assert.match(page, /title: \{ absolute: APP_TITLE \}/, '/app 제목에 루트 템플릿 꼬리가 붙는다')
+  assert.ok(!/\$\{APP_TITLE\} \| 파머스테일/.test(page), '공유 카드 제목에 이름이 두 번 들어간다')
+})
