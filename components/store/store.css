@@ -160,7 +160,8 @@
     padding: 0 max(32px, calc((100% - 1200px) / 2));
     display: flex;
     align-items: center;
-    gap: 44px;
+    /* 2026-10-21: 폭 1024~1100 에서 가로 메뉴와 로그인·장바구니가 맞붙었다 — 간격·글자를 화면 폭에 맞춰 줄인다(1440 에선 그대로). */
+    gap: clamp(20px, 3vw, 44px);
     background: #ffffff;
     border-bottom: 1px solid #e5e5e5;
   }
@@ -169,14 +170,14 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: clamp(16px, 1.95vw, 28px);
   }
   .fts-hd-pc nav a {
     height: 76px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    font-size: 16px;
+    font-size: clamp(15px, 1.12vw, 16px);
     font-weight: 700;
     color: #141414;
     text-decoration: none;
@@ -430,8 +431,9 @@
   .fts-store-filter {
     max-width: 520px;
   }
+  /* 2026-10-21: 820 으로 두니 위 4열 상품 격자(1200) 아래에서 오른쪽이 비었다 — 같은 폭으로. */
   .fts-compare-table {
-    max-width: 820px;
+    max-width: none;
   }
   .fts-trialpanel {
     padding-top: 28px !important;
