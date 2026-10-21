@@ -42,7 +42,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   const backHref = buyId ? `/store/${buyId.split('-')[0] === 'trial' ? '' : buyId.split('-')[0]}` : '/store/cart'
   return (
-    <StoreShell header={{ variant: 'title', title: '주문·결제', backHref: backHref.replace(/\/$/, '') || '/store' }} footer={false}>
+    <StoreShell wide header={{ variant: 'title', title: '주문·결제', backHref: backHref.replace(/\/$/, '') || '/store' }} footer={false}>
       <CheckoutClient
         signedIn={!!user}
         displayName={displayName}

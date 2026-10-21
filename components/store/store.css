@@ -536,6 +536,36 @@
     border-top: 0 !important;
   }
 
+  /* ── 주문·결제(2026-10-21): 왼쪽 주문자·배송지·결제 방법 · 오른쪽 확인·결제(따라옴) — 폰은 한 줄 그대로 ── */
+  .fts-ckout {
+    padding: 0 max(32px, calc((100% - 1200px) / 2)) 64px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    column-gap: 48px;
+    align-items: start;
+  }
+  .fts-ckout-l,
+  .fts-ckout-r {
+    display: flex !important;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .fts-ckout-l > section,
+  .fts-ckout-r > section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .fts-ckout-r {
+    position: sticky;
+    top: 88px;
+  }
+  .fts-ckout-bar {
+    position: static !important;
+    margin: 16px 0 0 !important;
+    padding: 0 !important;
+    border-top: 0 !important;
+  }
+
   /* ── 상품 상세 위쪽: 왼쪽 사진 · 오른쪽 구매 상자 ── */
   .fts-pd-top {
     padding: 28px max(32px, calc((100% - 1200px) / 2)) 0;

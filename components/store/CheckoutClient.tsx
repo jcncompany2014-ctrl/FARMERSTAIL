@@ -209,7 +209,9 @@ export default function CheckoutClient({
 
   const section: React.CSSProperties = { padding: '28px 20px 0', display: 'flex', flexDirection: 'column', gap: 14 }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: 24 }}>
+    <div className="fts-ckout" style={{ display: 'flex', flexDirection: 'column', paddingBottom: 24 }}>
+      {/* PC(1024 이상)는 왼쪽 = 주문자·배송지·결제 방법, 오른쪽 = 확인·결제(붙어 따라옴) — 장바구니와 같은 2단(store.css .fts-ckout). 폰에선 두 묶음이 상자를 만들지 않는다(display: contents). */}
+      <div className="fts-ckout-l" style={{ display: 'contents' }}>
       {/* 누가 주문하나요 */}
       <section aria-labelledby="who-title" style={section}>
         <h2 id="who-title" className="d" style={{ margin: 0, fontSize: 26 }}>
@@ -247,9 +249,10 @@ export default function CheckoutClient({
         </Field>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 800 }}>주소</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+          {/* 2026-10-21 사장님 '주소 찾기 박스가 여백 없이 답답하다' — 단추를 고정 폭(172) 칸에 가둬 글자가 테두리에 붙었다. 단추는 글자만큼 + 안쪽 여백. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8 }}>
             <span style={{ ...inputStyle, display: 'flex', alignItems: 'center', background: '#F6F4F5', color: zip ? '#141414' : '#9A9A9A' }}>{zip || '우편번호'}</span>
-            <div style={{ width: 172 }}>
+            <div className="ft-addr-btn" style={{ display: 'flex' }}>
               <AddressSearch
                 variant="app"
                 buttonText="우편번호 찾기"
@@ -267,7 +270,8 @@ export default function CheckoutClient({
           <span id="how-label" style={{ fontSize: 16, fontWeight: 800 }}>
             받는 방법
           </span>
-          <div role="radiogroup" aria-labelledby="how-label" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {/* 2026-10-21: 폰에서 세 단추가 2줄로 들쭉날쭉 접혔다 — 같은 폭 3칸, 긴 말은 칸 안에서 두 줄. */}
+          <div role="radiogroup" aria-labelledby="how-label" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
             {HOW.map((h) => {
               const on = h === how
               return (
@@ -277,7 +281,7 @@ export default function CheckoutClient({
                   role="radio"
                   aria-checked={on}
                   onClick={() => setHow(h)}
-                  style={{ height: 48, padding: '0 14px', borderRadius: 4, border: '1.5px solid #141414', background: on ? '#141414' : '#FFFFFF', color: on ? '#FFFFFF' : '#141414', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ minHeight: 56, padding: '6px 8px', borderRadius: 4, border: '1.5px solid #141414', background: on ? '#141414' : '#FFFFFF', color: on ? '#FFFFFF' : '#141414', fontSize: 16, fontWeight: 700, lineHeight: 1.3, wordBreak: 'keep-all', cursor: 'pointer' }}
                 >
                   {h}
                 </button>
@@ -329,6 +333,9 @@ export default function CheckoutClient({
         )}
       </section>
 
+      </div>
+
+      <div className="fts-ckout-r" style={{ display: 'contents' }}>
       {/* 마지막으로 확인 */}
       <section aria-labelledby="check-title" style={section}>
         <h2 id="check-title" className="d" style={{ margin: 0, fontSize: 26 }}>
@@ -396,7 +403,7 @@ export default function CheckoutClient({
         )}
       </section>
 
-      <div style={{ position: 'sticky', bottom: 0, zIndex: 20, marginTop: 20, padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="fts-ckout-bar" style={{ position: 'sticky', bottom: 0, zIndex: 20, marginTop: 20, padding: '10px 16px calc(12px + env(safe-area-inset-bottom))', background: '#FFFFFF', borderTop: '1px solid #E5E5E5', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {paused && <SmartStoreButton height={50} />}
         {/* 결제 시험 기간(토스 일반결제 심사, 규칙209) — 결제창은 열리지만 승인하지 않는다(승인 라우트 STORE_TEST_MODE). */}
         {testMode && !paused && (
@@ -436,6 +443,7 @@ export default function CheckoutClient({
                     : '위 내용에 동의하면 결제할 수 있어요'}
           </button>
         )}
+      </div>
       </div>
     </div>
   )

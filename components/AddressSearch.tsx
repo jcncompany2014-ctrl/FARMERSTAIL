@@ -78,6 +78,8 @@ export default function AddressSearch({
           style={{
             height: 56,
             boxSizing: 'border-box',
+            padding: '0 18px',
+            whiteSpace: 'nowrap',
             borderRadius: V3Radius.sm,
             border: `2px solid ${V3.ink}`,
             background: '#FFFFFF',
