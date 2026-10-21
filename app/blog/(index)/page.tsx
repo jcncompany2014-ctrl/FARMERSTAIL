@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   // (중복 '| 파머스테일' 방지, 회차147). OG/twitter 는 template 미적용=풀네임 유지.
   title: '매거진 — 강아지 화식·영양 이야기',
   description: BLOG_DESCRIPTION,
-  alternates: { canonical: '/blog' },
+  alternates: { canonical: '/blog', types: { 'application/rss+xml': '/rss.xml' } },
   openGraph: {
     title: '매거진 | 파머스테일',
     description: BLOG_DESCRIPTION,

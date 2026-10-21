@@ -43,7 +43,7 @@ const HOME_OG = ogImageUrl({
 export const metadata: Metadata = {
   title: '파머스테일 — 국내산 고기를 수비드로 익힌 강아지 화식',
   description: `닭고기·오리고기·흑돼지·한우 화식, 500g ${won(FROM_PRICE)}원부터. 사료에 곁들여도, 한 끼로 줘도 돼요. 화·목 출고, ${FREE_SHIPPING_MIN / 10_000}만 원 이상 무료배송.`,
-  alternates: { canonical: '/' },
+  alternates: { canonical: '/', types: { 'application/rss+xml': '/rss.xml' } },
   openGraph: {
     title: '파머스테일 — 국내산 고기를 수비드로 익힌 강아지 화식',
     description: `500g ${won(FROM_PRICE)}원부터. 사료에 곁들여도, 한 끼로 줘도 돼요.`,
