@@ -34,6 +34,9 @@ export const dynamic = 'force-dynamic'
 // tracker.delivery GraphQL — 2026-09 부터 API 키 필수(Authorization: TRACKQL-API-KEY id:secret).
 const DELIVERY_TRACKER_ENDPOINT = 'https://apis.tracker.delivery/graphql'
 
+/** 화면에 보일 최근 이력 수 — 연결의 마지막 N개(상류 순서가 오래된 → 최신이라 last). */
+const MAX_EVENTS = 50
+
 const QUERY = `
   query Track($carrierId: ID!, $trackingNumber: String!) {
     track(carrierId: $carrierId, trackingNumber: $trackingNumber) {
@@ -43,11 +46,15 @@ const QUERY = `
         description
         location { name }
       }
-      events {
-        time
-        status { code name }
-        description
-        location { name }
+      events(last: ${MAX_EVENTS}) {
+        edges {
+          node {
+            time
+            status { code name }
+            description
+            location { name }
+          }
+        }
       }
     }
   }
@@ -60,11 +67,18 @@ type DeliveryTrackerEvent = {
   location: { name: string | null } | null
 }
 
+/**
+ * ★events 는 Relay 연결(TrackEventConnection — edges.node, first/last/after/before)이다(2026-10-21 실측).
+ *   예전 조회문은 `events { time … }` 처럼 목록으로 물어서 상류가 조회문 형식 오류 HTTP 400 을 돌려줬고,
+ *   고객 배송 조회 화면이 송장마다 '택배 정보를 불러오지 못했어요'였다(로그 "[tracking] 택배사 응답 실패 400").
+ *   키 없이·틀린 키로는 200 + 인증 오류가 먼저 와서, 키를 넣은 뒤에야 드러났다. 순서는 오래된 → 최신.
+ *   tracking-poll 크론은 lastEvent 만 물어 영향이 없었다.
+ */
 type DeliveryTrackerResponse = {
   data?: {
     track?: {
       lastEvent: DeliveryTrackerEvent | null
-      events: DeliveryTrackerEvent[]
+      events: { edges: Array<{ node: DeliveryTrackerEvent | null } | null> | null } | null
     } | null
   }
   errors?: Array<{ message: string; extensions?: { code?: string | null } | null }>
@@ -188,7 +202,10 @@ export async function GET(req: Request) {
 
     if (!res.ok) {
       // 화면에서 뺀 상태코드는 여기 남긴다 — 진단 근거를 잃으면 안 된다.
-      console.error('[tracking] 택배사 응답 실패', res.status)
+      // ★상류 오류 본문(GraphQL 오류 문구)도 남긴다(2026-10-21) — 상태코드만 남겨서 조회문 형식 오류(400)를
+      //   찾는 데 한참 걸렸다. 개인정보는 조회문에서 뺐으므로(sender·recipient 없음) 본문에 없다.
+      const detail = await res.text().catch(() => '')
+      console.error('[tracking] 택배사 응답 실패', res.status, detail.slice(0, 300))
       return NextResponse.json(
         {
           code: 'UPSTREAM_ERROR',
@@ -230,10 +247,13 @@ export async function GET(req: Request) {
       )
     }
 
-    const events = (track.events ?? []).map(normalizeEvent)
+    const rawEvents = (track.events?.edges ?? [])
+      .map((e) => e?.node ?? null)
+      .filter((n): n is DeliveryTrackerEvent => n !== null)
+    const events = rawEvents.map(normalizeEvent)
     // Sort newest first for display.
     events.sort((a, b) => (a.time < b.time ? 1 : a.time > b.time ? -1 : 0))
-    const last = track.lastEvent ?? track.events[track.events.length - 1] ?? null
+    const last = track.lastEvent ?? rawEvents[rawEvents.length - 1] ?? null
     const state = mapTrackerStatusCode(last?.status?.code)
 
     const result: TrackingResult = {
