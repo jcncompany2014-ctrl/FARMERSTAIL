@@ -37,6 +37,7 @@ import { petName } from '@/lib/korean'
 import { V3 } from '@/lib/design/tokens'
 import { RECIPE_COLOR } from '@/components/analysis/display'
 import { pouchLineFromName, type PouchLine } from '@/lib/design/pouch'
+import { trialConsentLines, type TrialState } from '@/lib/payments/trial'
 
 export type PriceChangeProposal = {
   dogId: string
@@ -47,9 +48,41 @@ export type PriceChangeProposal = {
   forced: boolean
   priceFrom: number
   priceTo: number
+  /**
+   * 서포터즈 기간(100원·반값 회차가 남음)이면 그 상태(2026-10-21 사장님 B안). 금액 칸의 '정상가 A → B'만 보면 100원 내는 서포터즈가
+   * 당장 더 내는 줄 안다 — 아래 TrialNote 가 "지금 내는 금액은 그대로 · 반값은 X → Y · 끝나면 A → B"로 풀어 준다. 숫자는 청구와 같은 trialPricing.
+   */
+  trial?: TrialState | null
 }
 
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`
+
+/** 서포터즈 기간 풀이(금액 변경 동의 창 아래) — 문구·숫자는 lib/payments/trial trialConsentLines(청구와 같은 계산). */
+function TrialNote({ proposal, app }: { proposal: PriceChangeProposal; app: boolean }) {
+  const t = trialConsentLines(proposal.trial, proposal.priceFrom, proposal.priceTo)
+  if (!t) return null
+  return (
+    <div
+      role="note"
+      style={{
+        marginTop: 12,
+        padding: app ? '12px 14px' : '10px 12px',
+        borderRadius: 4,
+        background: app ? '#FFF4E0' : 'var(--fd-cream, #FFF4E0)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+      }}
+    >
+      <strong style={{ fontSize: app ? 16 : 13, fontWeight: 800 }}>{t.head}</strong>
+      {t.lines.map((l) => (
+        <span key={l} style={{ fontSize: app ? 15 : 12, lineHeight: 1.5 }}>
+          · {l}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 /** 앱 창 — 고르지 않은 칸 테두리·손잡이 색(시안). */
 const APP_IDLE = '#D5D3D4'
@@ -87,6 +120,9 @@ export default function PriceChangeConsentModal({
   if (dismissed) return null
 
   const name = petName(proposal.dogName)
+  // 서포터즈 100원 기간 — 레시피는 그대로일 수 있고(양만 바뀜) 새 금액은 100원 회차가 끝난 뒤부터다(2026-10-21 B안).
+  const trialCheap = !!proposal.trial && proposal.trial.cheap_remaining > 0
+  const trialNext = proposal.trial && proposal.trial.half_remaining > 0 ? '반값 결제' : '정상 결제'
 
   async function submit(decision: 'approve' | 'decline') {
     setLoading(decision)
@@ -222,7 +258,7 @@ export default function PriceChangeConsentModal({
               </div>
               {/* 제목 글꼴은 앱 틀의 h2 규칙이 준다 — fontFamily·fontWeight 를 여기서 주지 않는다. */}
               <h2 id={titleId} style={{ margin: '8px 0 0', fontSize: 26, lineHeight: 1.2, wordBreak: 'keep-all' }}>
-                {name} 레시피를
+                {name} {trialCheap ? '다음 박스를' : '레시피를'}
                 <br />
                 바꿔도 될까요?
               </h2>
@@ -261,9 +297,18 @@ export default function PriceChangeConsentModal({
                   </dd>
                 </div>
               </dl>
+              <TrialNote proposal={proposal} app />
               <p style={{ margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: V3.inkSoft, wordBreak: 'keep-all' }}>
-                동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 정기결제부터</strong> 새 금액이에요. 지금 결제되지
-                않아요. 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                {trialCheap ? (
+                  <>
+                    동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 박스부터</strong> 새로 계산한 양으로 보내 드려요. 100원 결제는 그대로이고, 새 금액은 {trialNext}부터예요. 지금 결제되지 않아요. 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                  </>
+                ) : (
+                  <>
+                    동의하면 <strong style={{ fontWeight: 800, color: V3.ink }}>다음 정기결제부터</strong> 새 금액이에요. 지금 결제되지
+                    않아요. 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                  </>
+                )}
               </p>
               <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button type="button" disabled={busy} onClick={() => submit('approve')} style={btn(true)}>
@@ -365,7 +410,7 @@ export default function PriceChangeConsentModal({
               className="mt-3 text-[18px]"
               style={{ fontWeight: 800, color: 'var(--fd-pine)', letterSpacing: '-0.015em' }}
             >
-              {name} 레시피를 바꿔도 될까요?
+              {name} {trialCheap ? '다음 박스를' : '레시피를'} 바꿔도 될까요?
             </h2>
 
             <p className="mt-3 text-[11px] font-bold" style={{ color: 'var(--fd-muted)' }}>
@@ -393,10 +438,19 @@ export default function PriceChangeConsentModal({
                 </span>
               </div>
             </div>
+            <TrialNote proposal={proposal} app={false} />
 
             <p className="mt-3 text-[11px] leading-relaxed" style={{ color: 'var(--fd-muted)' }}>
-              동의하면 <b style={{ color: 'var(--fd-pine)' }}>다음 정기결제부터</b> 새 금액이에요(지금
-              청구 없음). 3일 안에 안 고르시면 이전 그대로 유지돼요.
+              {trialCheap ? (
+                <>
+                  동의하면 <b style={{ color: 'var(--fd-pine)' }}>다음 박스부터</b> 새로 계산한 양으로 보내 드려요. 100원 결제는 그대로이고, 새 금액은 {trialNext}부터예요(지금 청구 없음). 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                </>
+              ) : (
+                <>
+                  동의하면 <b style={{ color: 'var(--fd-pine)' }}>다음 정기결제부터</b> 새 금액이에요(지금
+                  청구 없음). 3일 안에 안 고르시면 이전 그대로 유지돼요.
+                </>
+              )}
             </p>
 
             <div className="mt-4 flex flex-col gap-2">

@@ -22,6 +22,21 @@ export const PRICE_PROPOSALS: Record<string, { title: string; mock: string; prop
       priceTo: 80400,
     },
   },
+  'price-consent-trial': {
+    title: '금액 변경 동의 창 · 서포터즈 기간(100원 2번·반값 4번)',
+    mock: '-',
+    proposal: {
+      dogId: 'd1',
+      dogName: '땅콩',
+      cycleNumber: 2,
+      recipeLabel: '오리고기 레시피',
+      reason: '자라면서 필요한 양이 늘었어요.',
+      forced: false,
+      priceFrom: 32200,
+      priceTo: 35400,
+      trial: { cheap_remaining: 2, half_remaining: 4, cheap_price: 100, half_rate: 0.5 },
+    },
+  },
   'price-consent-forced': {
     title: "금액 변경 동의 창 · 알레르기 반영 — '이전 그대로 유지' 누르기",
     mock: 'S17-price-consent-keep-warn',

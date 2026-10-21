@@ -267,6 +267,8 @@ export default async function AccountSubscriptionsPage({
         forced: hit.formula.priceChange.forced,
         priceFrom: hit.formula.priceChange.from,
         priceTo: hit.formula.priceChange.to,
+        // 서포터즈 기간이면 창이 '지금 내는 금액은 그대로'를 풀어 준다(2026-10-21).
+        trial: await getTrialState(user.id),
       }
     }
   }

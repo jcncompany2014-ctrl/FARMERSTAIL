@@ -39,6 +39,7 @@ import {
   loadEarlyProposalRequests,
 } from '@/lib/personalization/early-proposal'
 import { recordSubscriptionEvent } from '@/lib/subscription-events-record'
+import { getTrialState } from '@/lib/payments/trial-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -1009,7 +1010,13 @@ export async function GET(req: Request) {
       } else if (requiresApproval && diff.priceChanged && price) {
         // 금액이 바뀌는 제안(몸무게·알레르기·건강) → 구독페이지 동의 모달.
         // 3일 안에 동의/거부, 무반응=거부. 모달은 pending 상태를 감지해 뜬다.
-        if (diff.forced) {
+        // 서포터즈 100원 기간이면 '정상가 A → B'만 말하면 당장 더 내는 줄 안다(2026-10-21 B안) — 지금 내는 금액이 그대로라는 걸 먼저.
+        const trialNow = await getTrialState(cur.user_id)
+        const trialCheap = !!trialNow && trialNow.cheap_remaining > 0
+        if (trialCheap) {
+          pushTitle = `${diff.forced ? '[중요] ' : ''}${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
+          pushBody = `새로 계산한 하루 양을 반영할게요. 서포터즈 기간이라 지금 내는 금액은 그대로예요(기간이 끝나면 2주 상품 금액 ${won(price.prevTotal)} → ${won(price.nextTotal)}원). 3일 안에 동의 또는 이전 유지를 골라주세요.`
+        } else if (diff.forced) {
           pushTitle = `[중요] ${petName(dogTyped.name)} 다음 박스 확인이 필요해요`
           pushBody = `안전을 위해 레시피를 바꿔야 해서 2주 상품 금액이 ${won(price.prevTotal)} → ${won(price.nextTotal)}원이 돼요(받고 계신 할인은 그대로예요). 3일 안에 동의 또는 이전 유지를 골라주세요.`
         } else {

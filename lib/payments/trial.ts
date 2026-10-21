@@ -84,3 +84,25 @@ export function trialPricing(state: TrialState | null, subtotal: number): TrialP
   return null
 }
 
+
+/**
+ * 금액 변경 동의 창의 서포터즈 풀이(2026-10-21 사장님 B안 — 낑콩이 다음 박스). 창의 '정상가 A → B'만 보면 100원 내는 서포터즈가
+ * 당장 더 내는 줄 안다. 숫자는 이 파일의 trialPricing(청구 크론과 같은 계산) — 화면이 따로 계산하지 않는다. 체험이 아니면 null.
+ */
+export function trialConsentLines(state: TrialState | null | undefined, from: number, to: number): { head: string; lines: string[] } | null {
+  if (!state || (state.cheap_remaining <= 0 && state.half_remaining <= 0)) return null
+  const won = (n: number) => `${n.toLocaleString('ko-KR')}원`
+  const lines: string[] = []
+  if (state.cheap_remaining > 0) {
+    const cheap = trialPricing(state, to)?.chargeAmount ?? 100
+    lines.push(`남은 ${state.cheap_remaining}번은 지금처럼 박스당 ${won(cheap)}이에요`)
+  }
+  if (state.half_remaining > 0) {
+    const half = { ...state, cheap_remaining: 0 }
+    const hf = trialPricing(half, from)?.chargeAmount
+    const ht = trialPricing(half, to)?.chargeAmount
+    if (hf != null && ht != null) lines.push(`${state.cheap_remaining > 0 ? '그다음 ' : '남은 '}반값 ${state.half_remaining}번은 ${won(hf)} → ${won(ht)}`)
+  }
+  lines.push(`서포터즈 기간이 끝나면 ${won(from)} → ${won(to)}`)
+  return { head: state.cheap_remaining > 0 ? '서포터즈 기간이라 지금 내는 금액은 그대로예요' : '서포터즈 반값 기간이에요', lines }
+}
