@@ -60,6 +60,12 @@ const SHORT: Record<StoreRecipe, string> = { chicken: '닭', duck: '오리', por
 /** 구획 — 머리(큰 번호 + 머리말) + 제목 32. scrollMarginTop: 웹 전체에 scroll-padding-top 96(globals.css)이 이미 걸려 있어 그만큼 빼고, 위 여백(64·PC 96)까지 빼서 번호가 바로가기 줄 바로 밑에 오게(실측 10/22). */
 const SEC: CSSProperties = { padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 20, scrollMarginTop: -40 }
 const TAG: CSSProperties = { display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 12px', borderRadius: 4, background: '#F6F4F5', fontSize: 15, fontWeight: 700 }
+/** 폰에선 화면에 안 그리고(첫 사진 위 큰 이름이 대신 보인다) 읽기 프로그램·검색엔 남긴다. PC 는 store.css .fts-pd-name 이 다시 보인다. */
+const SR_MOBILE: CSSProperties = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }
+
+/** 원물 카드 사진(2026-10-22 힉스필드 — 확정 톤: 흰 스튜디오·오프화이트 수제 접시·위에서, 접시 기준으로 같은 크기로 자름). public/store/ing/*.webp */
+const ING_IMG = '/store/ing/'
+const TOPPING_IMG: Record<string, string> = { 브로콜리: 'broccoli', 블루베리: 'blueberry', 애호박: 'zucchini', 사과: 'apple', 무: 'radish', 양배추: 'cabbage', 비트: 'beet' }
 
 /** 바로가기 줄 — 레퍼런스(Baymard): 내용을 가로 탭에 숨기지 말고 펼친 채 건너뛰기만. 한국 상세의 '상품정보·후기' 줄 자리. */
 const JUMP: ReadonlyArray<readonly [string, string]> = [
@@ -122,6 +128,7 @@ function faqs(recipe: StoreRecipe): Array<[string, string]> {
   return [
     ['처음부터 화식만 줘도 되나요?', "먹던 사료에 조금씩 섞어 일주일쯤 걸쳐 바꾸는 게 좋아요. 위 '처음 바꿀 땐'을 보시고, 양은 '하루에 얼마나'에서 몸무게를 넣어 보세요."],
     ['4가지 레시피를 번갈아 줘도 되나요?', '네, 괜찮아요. 처음 바꿀 땐 하루이틀 섞어 주면 더 편하게 적응해요. 먹고 탈이 난 고기가 있다면 그 레시피만 빼 주세요.'],
+    ['입이 짧거나 이가 약한 아이는요?', '입이 짧다면 살짝 미지근하게 주면 고기 향이 더 살아나요. 이가 약하다면 미지근한 물을 조금 더해 부드럽게 주세요.'],
     ['언제 보내 주나요?', "위 '출고' 칸의 날짜에 얼린 채로 보냉 상자에 담아 보내 드려요. 받으면 바로 냉동실에 넣어 주세요."],
     ['앱 정기배송과 뭐가 달라요?', `가게에서는 원하는 레시피를 한 봉씩 사요. 앱 정기배송은 우리 아이 몸무게와 나이로 하루 양을 계산해 2주마다 보내 드리고, 100g당 ${off}% 싸요.`],
   ]
@@ -191,13 +198,24 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
   // 별점 = 스마트스토어 후기 별점만(인스타 후기엔 별점이 없다). 없으면 후기 수만.
   const rated = reviews.filter((r) => typeof r.rating === 'number') as Array<(typeof reviews)[number] & { rating: number }>
   const avg = rated.length > 0 ? rated.reduce((s, r) => s + r.rating, 0) / rated.length : null
+  const reviewPhotos = reviews.flatMap((r) => r.photos)
+  const ssCount = reviews.filter((r) => r.source === 'smartstore').length
+  const [allReviews, setAllReviews] = useState(false)
 
-  // 사진마다 큰 한 줄(조사 Baymard: 사진부터 보는 사람이 절반 — 사진 위에 설명을 얹는다)
-  const photos = [
+  // 사진마다 큰 한 줄(조사 Baymard: 사진부터 보는 사람이 절반 — 사진 위에 설명을 얹는다).
+  // 첫 장 = 강아지·그릇·팩이 한 번에 보이는 실촬영(사장님 10/22 시안 A). 대표 썸네일(공유 미리보기·검색·가게 목록)은 스튜디오 팩 그대로 — 규칙311.
+  const photos: Array<{ src: string; alt: string; cap: string; pos?: string }> = [
+    { src: '/store/real-serving.webp', alt: '화식 그릇을 받는 셸티', cap: '셸티 땅콩이의 한 그릇', pos: '46% 50%' },
     { src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 팩`, cap: '100g씩 한 팩, 얼려서 와요' },
     { src: RECIPE_REAL_IMG[recipe], alt: `그릇에 담은 ${RECIPE_PRODUCT_NAME[recipe]}`, cap: '그릇에 담으면 이렇게' },
     { src: `/store/ingredients-${recipe}.webp`, alt: `흰 접시에 담은 ${name} 레시피 재료`, cap: '들어가는 재료 그대로' },
-    { src: '/store/real-serving.webp', alt: '화식 그릇을 받는 셸티', cap: '셸티 땅콩이의 한 그릇' },
+  ]
+  // 원물 카드 — 주재료 · 간·염통 · 이 레시피에 더한 두 가지 · 채소·곡물(공통)
+  const ingCards: Array<{ img: string; name: string; role: string; badge?: string }> = [
+    { img: `${ING_IMG}${recipe}-main.webp`, name: ing.main, role: '주재료 · 국내산', badge: ANTIBIOTIC_FREE_MAIN[recipe] ? '무항생제' : undefined },
+    { img: `${ING_IMG}${recipe}-organs.webp`, name: ing.organs.join('·'), role: '같은 고기의 간·염통' },
+    ...ing.toppings.map((t) => ({ img: `${ING_IMG}${TOPPING_IMG[t] ?? 'veg'}.webp`, name: t, role: '이 레시피에 더한 것' })),
+    { img: `${ING_IMG}veg.webp`, name: ing.veg.join('·'), role: '채소·곡물' },
   ]
   const cur = photos[photo]!
 
@@ -214,11 +232,24 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       <section aria-label="상품 사진" className="fts-pd-media">
         <div className="fts-pd-photo" style={{ position: 'relative', aspectRatio: '1 / 1', background: '#F6F4F5', overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={cur.src} alt={cur.alt} width={800} height={800} fetchPriority="high" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          <span aria-hidden className="d" style={{ position: 'absolute', left: 12, bottom: 12, maxWidth: 'calc(100% - 96px)', background: '#141414', color: '#FFFFFF', borderRadius: 2, padding: '7px 11px', fontSize: 17, lineHeight: 1.2 }}>
+          <img src={cur.src} alt={cur.alt} width={800} height={800} fetchPriority="high" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: cur.pos ?? '50% 50%', display: 'block' }} />
+          {/* 첫 장(강아지) 위엔 큰 포스터 이름(폰 — 사장님 10/22 시안 A). PC 는 오른쪽 구매 상자에 이름이 있어 숨긴다(store.css .fts-pd-poster).
+              나머지 사진엔 사진 한 줄 설명. 첫 장의 한 줄 설명은 PC 에서만(.fts-pd-cap0). */}
+          {photo === 0 && (
+            <div aria-hidden className="fts-pd-poster" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 20px 18px', background: 'linear-gradient(to top, rgba(10,10,10,0.72) 0%, rgba(10,10,10,0) 48%)', color: '#FFFFFF', pointerEvents: 'none' }}>
+              {ANTIBIOTIC_FREE_MAIN[recipe] && (
+                <span style={{ alignSelf: 'flex-start', marginBottom: 10, padding: '5px 10px', borderRadius: 2, background: '#1D3B2F', color: '#FFFFFF', fontSize: 14, fontWeight: 800 }}>
+                  무항생제 {ing.main}
+                </span>
+              )}
+              <RecipeName recipe={recipe} size={44} subColor="#FFFFFF" />
+            </div>
+          )}
+          <span aria-hidden className={photo === 0 ? 'd fts-pd-cap0' : 'd'} style={{ position: 'absolute', left: 12, bottom: 12, maxWidth: 'calc(100% - 96px)', background: '#141414', color: '#FFFFFF', borderRadius: 2, padding: '7px 11px', fontSize: 17, lineHeight: 1.2, display: photo === 0 ? 'none' : undefined }}>
             {cur.cap}
           </span>
-          <span className="n" style={{ position: 'absolute', right: 12, bottom: 12, background: '#FFFFFF', color: '#141414', borderRadius: 2, padding: '5px 9px', fontSize: 15 }}>
+          {/* 몇 번째 사진인지 = 오른쪽 위(아래는 첫 장 큰 이름·사진 설명 자리 — 겹쳤다, 10/22) */}
+          <span className="n" style={{ position: 'absolute', right: 12, top: 12, background: '#FFFFFF', color: '#141414', borderRadius: 2, padding: '5px 9px', fontSize: 15 }}>
             {photo + 1} / {photos.length}
           </span>
         </div>
@@ -233,7 +264,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               style={{ width: '100%', aspectRatio: '1 / 1', padding: 0, borderRadius: 4, overflow: 'hidden', border: i === photo ? '2px solid #141414' : '1px solid #E5E5E5', background: '#F6F4F5', cursor: 'pointer' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.src} alt="" width={240} height={240} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <img src={p.src} alt="" width={240} height={240} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: p.pos ?? '50% 50%', display: 'block' }} />
             </button>
           ))}
         </div>
@@ -263,13 +294,16 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
 
       {/* 이름·가격 */}
       <section style={{ padding: '22px 20px 0', display: 'flex', flexDirection: 'column' }}>
-        {/* 무항생제 꼬리표 — 닭가슴살·오리 안심만(사장님 2026-10-11, 정본 ANTIBIOTIC_FREE_MAIN) */}
-        {ANTIBIOTIC_FREE_MAIN[recipe] && (
-          <span style={{ alignSelf: 'flex-start', marginBottom: 10, padding: '5px 10px', borderRadius: 2, background: '#1D3B2F', color: '#FFFFFF', fontSize: 14, fontWeight: 800 }}>
-            무항생제 {ing.main}
-          </span>
-        )}
-        <RecipeName recipe={recipe} size={38} as="h1" />
+        {/* 무항생제 꼬리표 — 닭가슴살·오리 안심만(사장님 2026-10-11, 정본 ANTIBIOTIC_FREE_MAIN).
+            폰에선 첫 사진 위 큰 이름이 대신 보여 여기는 읽기 프로그램·검색용으로만 남긴다(PC 는 그대로 보임 — store.css .fts-pd-name). */}
+        <div className="fts-pd-name" style={SR_MOBILE}>
+          {ANTIBIOTIC_FREE_MAIN[recipe] && (
+            <span style={{ display: 'inline-block', marginBottom: 10, padding: '5px 10px', borderRadius: 2, background: '#1D3B2F', color: '#FFFFFF', fontSize: 14, fontWeight: 800 }}>
+              무항생제 {ing.main}
+            </span>
+          )}
+          <RecipeName recipe={recipe} size={38} as="h1" />
+        </div>
         {/* 별점·후기 수는 제목 바로 아래(조사: 레퍼런스 전부 같은 자리) — 누르면 후기로 */}
         {reviews.length > 0 && (
           <a href="#reviews" style={{ marginTop: 10, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none' }}>
@@ -463,7 +497,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </div>
 
       {/* 01 재료 — 원물 사진(흰 접시 탑다운, 사장님 10/15 고른 4장) + 재료 표(원산지는 재료 바로 옆 — 조사: 한국 상세 공통) */}
-      <section id="ing" className="fts-sec fts-pt fts-pd-narrow fts-pd-wide fts-pd-ing" style={SEC}>
+      <section id="ing" className="fts-sec fts-pt fts-pd-narrow fts-pd-wide" style={SEC}>
         <Head no="01" color={color}>
           재료
         </Head>
@@ -472,34 +506,33 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           <br />
           들어간 것
         </SecTitle>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/store/ingredients-${recipe}.webp`}
-          alt={`흰 접시에 담은 ${[ing.main, ...ing.organs, ...ing.toppings, ...ing.veg].join('·')}와 작은 그릇에 담은 기름·영양 재료`}
-          width={1080}
-          height={724}
-          loading="lazy"
-          className="fts-pd-bleed"
-          style={{ width: 'calc(100% + 40px)', maxWidth: 'none', margin: '0 -20px', aspectRatio: '1080 / 724', objectFit: 'cover', display: 'block' }}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '2px solid #141414' }}>
-          {[
-            { k: '고기', list: [ANTIBIOTIC_FREE_MAIN[recipe] ? `무항생제 ${ing.main}` : ing.main, ...ing.organs] },
-            { k: '더한 것', list: [...ing.toppings] },
-            { k: '채소·곡물', list: ing.veg },
-            { k: '기름·영양', list: ing.base.map((b) => (b.includes('뉴트리 코어') ? '뉴트리 코어' : b)) },
-          ].map((g) => (
-            <div key={g.k} style={{ padding: '14px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start' }}>
-              <span style={{ fontSize: 15, fontWeight: 800, paddingTop: 7 }}>{g.k}</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {g.list.map((x, i) => (
-                  <span key={x} style={g.k === '고기' && i === 0 ? { ...TAG, background: color, color: recipe === 'chicken' ? '#141414' : '#FFFFFF' } : TAG}>
-                    {x}
-                  </span>
-                ))}
-              </div>
-            </div>
+        {/* 원물 카드(조사: Lyka·Ollie·JFFD — 원물 하나하나 사진 + 이름. 성분 글을 안 읽어도 무엇이 들었는지 보인다) */}
+        <ul className="fts-pd-ingcards" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+          {ingCards.map((c) => (
+            <li key={c.name} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={{ position: 'relative', display: 'block', borderRadius: 4, overflow: 'hidden', background: '#F5F5F5' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.img} alt={`흰 접시에 담은 ${c.name}`} width={480} height={480} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
+                {c.badge && (
+                  <span style={{ position: 'absolute', left: 6, top: 6, padding: '3px 7px', borderRadius: 2, background: '#1D3B2F', color: '#FFFFFF', fontSize: 12, fontWeight: 800 }}>{c.badge}</span>
+                )}
+              </span>
+              <strong style={{ fontSize: 15, lineHeight: 1.3, wordBreak: 'keep-all' }}>{c.name}</strong>
+              <span style={{ marginTop: -4, fontSize: 13, color: '#595959', wordBreak: 'keep-all' }}>{c.role}</span>
+            </li>
           ))}
+        </ul>
+        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '2px solid #141414' }}>
+          <div style={{ padding: '14px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'start' }}>
+            <span style={{ fontSize: 15, fontWeight: 800, paddingTop: 7 }}>기름·영양</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {ing.base.map((b) => (b.includes('뉴트리 코어') ? '뉴트리 코어' : b)).map((x) => (
+                <span key={x} style={TAG}>
+                  {x}
+                </span>
+              ))}
+            </div>
+          </div>
           <div style={{ padding: '14px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '84px 1fr', gap: 10, alignItems: 'center' }}>
             <span style={{ fontSize: 15, fontWeight: 800 }}>원산지</span>
             <span style={{ fontSize: 16, fontWeight: 700 }}>{label?.origin ?? '국내산'}</span>
@@ -522,26 +555,24 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           만드는 법
         </Head>
         <SecTitle>이렇게 만들어요</SecTitle>
-        <ol className="fts-pd-steps" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
+        {/* 폰 2×2 · PC 4칸 — 예전엔 한 줄에 하나씩 16:9 사진이라 이 칸만 폰 세 화면이었다(10/22 '페이지가 길다') */}
+        <ol className="fts-pd-steps" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 12, rowGap: 22 }}>
           {[
-            { t: '재료를 손질해 진공 포장해요', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.`, src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 고기를 손질하는 손' },
-            { t: '수비드로 천천히 익혀요', d: '정해진 온도의 물에서 오래 끓이지 않고 익혀 촉촉해요.', src: '/kitchen-sousvide.jpg', alt: '진공 포장한 재료를 수비드로 익히는 모습' },
-            { t: '채소와 고루 섞고 영양을 더해요', d: '비타민·미네랄(뉴트리 코어)과 연어유를 넣어요.', src: '/bowl/fresh.webp', alt: '고루 섞어 그릇에 담은 화식' },
-            { t: '바로 얼려 100g씩 나눠 담아요', d: '한 팩이 100g이라 양을 맞추기 쉬워요.', src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 100g 팩` },
+            { t: '손질해 진공 포장', d: `${[ing.main, ...ing.organs].join('·')}을 위생 장갑을 끼고 하나하나 손질해요.`, src: '/prep-hygiene-43.jpg', alt: '위생 장갑을 끼고 고기를 손질하는 손' },
+            { t: '수비드로 천천히', d: '정해진 온도의 물에서 오래 끓이지 않고 익혀 촉촉해요.', src: '/kitchen-sousvide.jpg', alt: '진공 포장한 재료를 수비드로 익히는 모습' },
+            { t: '섞고 영양 더하기', d: '채소와 고루 섞고 뉴트리 코어·연어유를 넣어요.', src: '/bowl/fresh.webp', alt: '고루 섞어 그릇에 담은 화식' },
+            { t: '바로 얼려 100g씩', d: '한 팩이 100g이라 양을 맞추기 쉬워요.', src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 100g 팩` },
           ].map((s, i, all) => (
-            <li key={s.t} style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: 12, paddingBottom: i < all.length - 1 ? 24 : 0, position: 'relative' }}>
-              {i < all.length - 1 && <span aria-hidden style={{ position: 'absolute', left: 19, top: 40, bottom: 0, width: 2, background: '#E5E5E5' }} />}
-              <span className="n" style={{ width: 40, height: 40, borderRadius: '50%', background: '#141414', color: '#FFFFFF', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                {i + 1}
+            <li key={s.t} style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.src} alt={s.alt} width={600} height={450} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: i === all.length - 1 ? 'contain' : 'cover', borderRadius: 4, display: 'block', background: i === all.length - 1 ? '#F3F2EF' : '#F6F4F5' }} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="n" style={{ width: 28, height: 28, flexShrink: 0, borderRadius: '50%', background: '#141414', color: '#FFFFFF', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {i + 1}
+                </span>
+                <strong style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.25, wordBreak: 'keep-all' }}>{s.t}</strong>
               </span>
-              <span style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 7, minWidth: 0 }}>
-                <strong style={{ fontSize: 18, fontWeight: 800 }}>{s.t}</strong>
-                <span style={{ fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>{s.d}</span>
-                {s.src && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.src} alt={s.alt} width={900} height={506} loading="lazy" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: i === all.length - 1 ? 'contain' : 'cover', borderRadius: 4, display: 'block', background: i === all.length - 1 ? '#F3F2EF' : '#F6F4F5' }} />
-                )}
-              </span>
+              <span style={{ fontSize: 14, lineHeight: 1.55, color: '#3D3D3D', wordBreak: 'keep-all' }}>{s.d}</span>
             </li>
           ))}
         </ol>
@@ -725,18 +756,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             ))}
           </ol>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #E5E5E5' }}>
-          {[
-            ['입이 짧다면', '살짝 미지근하게 주면 고기 향이 더 살아나요'],
-            ['화식이 처음이면', '먹던 사료에 조금씩 섞어 며칠에 걸쳐 늘려요'],
-            ['이가 약하다면', '미지근한 물을 조금 더해 부드럽게 줘요'],
-          ].map(([a, b]) => (
-            <div key={a} style={{ padding: '14px 0', borderBottom: '1px solid #E5E5E5', display: 'grid', gridTemplateColumns: '118px 1fr', gap: 10 }}>
-              <strong style={{ fontSize: 16 }}>{a}</strong>
-              <span style={{ fontSize: 15, lineHeight: 1.55, color: '#3D3D3D' }}>{b}</span>
-            </div>
-          ))}
-        </div>
+        {/* 입이 짧은·이가 약한 아이 요령은 아래 '자주 묻는 질문'으로 옮겼다(같은 말이 두 번 나오던 칸 — 10/22 줄이기) */}
       </section>
 
       {/* 05 믿고 먹일 수 있게 — 등록(번호 안 보이게, 사장님 10/15) + 모자라기 쉬운 영양(정직한 버전 — '100% 충족' 표 대신).
@@ -820,7 +840,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* 후기 — 홈 '먹어 본 아이 이야기'가 #reviews 로 바로 온다. 머리에 별점 요약(조사: 요약 + 개수 먼저). */}
-      <section id="reviews" className="fts-sec fts-pt fts-pd-narrow" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: -40 }}>
+      <section id="reviews" className="fts-sec fts-pt fts-pd-narrow fts-pd-wide" style={{ padding: '64px 20px 0', display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: -40 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, paddingBottom: 6 }}>
           <h2 className="d" style={{ margin: 0, fontSize: 40, lineHeight: 1 }}>
             후기
@@ -848,19 +868,36 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           </div>
         ) : (
           <>
+          {/* 사진 후기 줄 — 후기 사진만 옆으로 넘겨 본다(조사 Baymard: 후기 사진은 후기 경계를 넘어 모아 보게) */}
+          {reviewPhotos.length > 0 && (
+            <div aria-label="후기 사진" role="group" className="fts-revstrip" style={{ margin: '0 -20px', padding: '0 20px 4px', display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {reviewPhotos.map((p) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={p.src} src={p.src} alt={p.alt} width={240} height={240} loading="lazy" style={{ width: 104, height: 104, flexShrink: 0, objectFit: 'cover', borderRadius: 4, display: 'block', background: '#F6F4F5' }} />
+              ))}
+            </div>
+          )}
           {reviews.filter((r) => r.source === 'instagram').map((r) => (
             <FeaturedReview key={r.id} r={r} />
           ))}
           {reviews.some((r) => r.source === 'smartstore') && (
-            <div style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
+            <>
+            {/* 글 후기는 처음 세 개만 — 나머지는 '더 보기'(store.css .fts-revlist). 지워지지 않고 화면에서만 접힌다. */}
+            <div className="fts-revlist" data-all={allReviews ? 'true' : undefined} style={{ borderTop: '2px solid #141414', display: 'flex', flexDirection: 'column' }}>
               {reviews.filter((r) => r.source === 'smartstore').map((r) => (
                 <SmartstoreReview key={r.id} r={r} />
               ))}
-              <a href={SMARTSTORE_URL} target="_blank" rel="noopener noreferrer" style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
-                스마트스토어에서 후기 전체 보기
-                <Chevron />
-              </a>
             </div>
+            {!allReviews && ssCount > 3 && (
+              <button type="button" onClick={() => setAllReviews(true)} style={{ height: 52, borderRadius: 4, border: '1.5px solid #141414', background: '#FFFFFF', color: '#141414', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+                후기 {ssCount - 3}개 더 보기
+              </button>
+            )}
+            <a href={SMARTSTORE_URL} target="_blank" rel="noopener noreferrer" style={{ minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 15, fontWeight: 700, color: '#141414', textDecoration: 'none', borderBottom: '1px solid #E5E5E5' }}>
+              스마트스토어에서 후기 전체 보기
+              <Chevron />
+            </a>
+            </>
           )}
           </>
         )}
@@ -881,11 +918,11 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* 우리 아이한테 맞을까요 — 이런 아이에게(자기 확인 목록) + 자주 묻는 질문을 한 덩어리로(조사: Lyka 레시피별 질문 · 한국 상세 '이런 아이에게') */}
-      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
+      {/* 큰 강아지 사진은 뺐다 — 첫 사진이 강아지가 됐고(시안 A) 같은 결의 사진이 두 번 나와 길기만 했다. PC 는 왼쪽 목록 · 오른쪽 질문(.fts-pd-fit). */}
+      <section className="fts-sec fts-pt fts-pd-narrow fts-pd-wide fts-pd-fit" style={SEC}>
         <Kicker color={color}>추천</Kicker>
         <SecTitle>이런 아이에게 좋아요</SecTitle>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/bowl-eating.jpg" alt="그릇에 담긴 화식을 먹는 강아지" width={1200} height={750} loading="lazy" style={{ width: '100%', aspectRatio: '350 / 220', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+        <div className="fts-pd-fit-a" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', borderTop: '2px solid #141414' }}>
           {[
             ['화식을 처음 시작하는 아이', '사료에 조금씩 섞어 시작해요'],
@@ -910,15 +947,18 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#3D3D3D' }}>{advice}</p>
           </div>
         )}
-        <h3 className="d" style={{ margin: '20px 0 0', fontSize: 24, lineHeight: 1.2, fontWeight: 400 }}>
-          자주 묻는 질문
-        </h3>
-        <div style={{ marginTop: -6, borderTop: '2px solid #141414' }}>
-          {faqs(recipe).map(([q, a], i) => (
-            <Acc key={q} title={q} open={i === 0}>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{a}</p>
-            </Acc>
-          ))}
+        </div>
+        <div className="fts-pd-fit-b" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <h3 className="d" style={{ margin: '20px 0 0', fontSize: 24, lineHeight: 1.2, fontWeight: 400 }}>
+            자주 묻는 질문
+          </h3>
+          <div style={{ borderTop: '2px solid #141414' }}>
+            {faqs(recipe).map(([q, a], i) => (
+              <Acc key={q} title={q} open={i === 0}>
+                <p style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#3D3D3D' }}>{a}</p>
+              </Acc>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -930,7 +970,8 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           <br />
           이렇게 달라요
         </SecTitle>
-        <div className="fts-pd-cols4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {/* 폰: 옆으로 넘기는 한 줄(2×2 격자는 화면 두 개 — 10/22 줄이기) · PC: 4칸(.fts-pd-cols4 · .fts-pd-recipes) */}
+        <div className="fts-pd-cols4 fts-pd-recipes" style={{ margin: '0 -20px', padding: '0 20px 4px', display: 'flex', gap: 12, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {STORE_RECIPES.map((r) => {
             const on = r === recipe
             const body = (
@@ -956,7 +997,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
                 </span>
               </>
             )
-            const box: CSSProperties = { border: on ? '2px solid #141414' : '1px solid #E5E5E5', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }
+            const box: CSSProperties = { width: 168, flexShrink: 0, border: on ? '2px solid #141414' : '1px solid #E5E5E5', borderRadius: 4, overflow: 'hidden', display: 'flex', flexDirection: 'column', color: '#141414', textDecoration: 'none' }
             return on ? (
               <div key={r} style={box} aria-current="page">
                 {body}

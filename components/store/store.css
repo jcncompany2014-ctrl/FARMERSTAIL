@@ -133,6 +133,13 @@
     animation: none;
   }
 }
+/* 상품 상세 글 후기: 처음 세 개만 보이고 '더 보기'를 누르면 전부(data-all). 사진 후기 줄은 스크롤 막대를 숨긴다. */
+.fts-revlist:not([data-all='true']) > :nth-child(n + 4) {
+  display: none !important; /* 후기 칸(article)이 인라인 display:flex 라 !important 없이는 안 접힌다(10/22 실측) */
+}
+.fts-revstrip::-webkit-scrollbar {
+  display: none;
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * PC 화면(폭 1024 이상) — 2026-10-18 사장님 "가게형 ㄱㄱ"(PC 시안 A, scratchpad pc_mock/A_*.html).
@@ -666,11 +673,6 @@
   .fts-feat-photos > figure {
     grid-column: auto !important;
   }
-  .fts-pd-bleed {
-    width: 100% !important;
-    margin: 0 !important;
-    border-radius: 4px;
-  }
 
   /* ── 상품 상세 아래쪽(2026-10-21 사장님 "상세페이지도 업그레이드"): 820 읽기 칸 안에 사진이 440 으로 떠 오른쪽이 비었다.
      재료·급여량·만드는 법은 1200 폭으로 펴고 안을 2단·4칸으로 나눈다. 글 위주 칸(영양·추천·주는 법·후기·정보)은 820 그대로. ── */
@@ -678,26 +680,10 @@
     padding-left: max(32px, calc((100% - 1200px) / 2)) !important;
     padding-right: max(32px, calc((100% - 1200px) / 2)) !important;
   }
-  .fts-pd-ing {
-    display: grid !important;
-    grid-auto-flow: row dense;
-    column-gap: 56px;
-    align-content: start;
-    align-items: start;
-  }
-  .fts-pd-ing {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  }
-  .fts-pd-ing > * {
-    grid-column: 2;
-  }
-  .fts-pd-ing > :nth-child(1),
-  .fts-pd-ing > :nth-child(2) {
-    grid-column: 1 / -1;
-  }
-  .fts-pd-ing > img {
-    grid-column: 1;
-    grid-row: 3 / span 4;
+  /* 재료 원물 카드: 폰 3칸 → PC 5칸 한 줄 */
+  .fts-pd-ingcards {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 20px !important;
   }
   /* 급여량: 왼쪽 제목 묶음은 위에서부터 쌓이고(왼쪽으로 띄움), 오른쪽 계산기는 그 옆으로 흐른다 — 격자로 하면 두 칸 줄 높이가 묶여 제목이 계산기 줄마다 벌어졌다. */
   .fts-pd-calc {
@@ -723,20 +709,8 @@
     font-size: 40px !important;
   }
   .fts-pd-steps {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 24px;
-  }
-  .fts-pd-steps > li {
-    grid-template-columns: 1fr !important;
-    padding-bottom: 0 !important;
-    align-content: start;
-  }
-  .fts-pd-steps > li > span[aria-hidden] {
-    display: none;
-  }
-  .fts-pd-steps img {
-    aspect-ratio: 4 / 3 !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    column-gap: 24px !important;
   }
 
   /* ── 상품 상세 구조 다시 짜기(2026-10-22, 레퍼런스 20곳) ── */
@@ -773,6 +747,59 @@
   .fts-marq-track > span {
     padding: 16px 0;
     font-size: 24px;
+  }
+  /* 첫 사진 위 큰 이름은 폰 전용 — PC 는 오른쪽 구매 상자에 이름이 보인다(폰에서 읽기용으로만 남긴 이름을 다시 그린다) */
+  .fts-pd-poster {
+    display: none !important;
+  }
+  .fts-pd-cap0 {
+    display: block !important;
+  }
+  .fts-pd-name {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+  }
+  /* 이런 아이에게: 왼쪽 목록·다른 레시피 권함 · 오른쪽 자주 묻는 질문 */
+  .fts-pd-fit {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+  .fts-pd-fit > :nth-child(1),
+  .fts-pd-fit > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+  .fts-pd-fit-b h3 {
+    margin-top: 0 !important;
+  }
+  /* 4가지 레시피: 폰의 옆으로 넘기는 줄 → PC 4칸 격자 */
+  .fts-pd-recipes {
+    display: grid !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .fts-pd-recipes > * {
+    width: auto !important;
+  }
+  /* 후기: 글 후기 2단 · 사진 후기 줄은 바깥 여백 없이 */
+  .fts-revlist {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 40px;
+  }
+  .fts-revstrip {
+    margin: 0 !important;
+    padding: 0 0 4px !important;
+  }
+  .fts-revstrip img {
+    width: 132px !important;
+    height: 132px !important;
   }
   /* 믿고 먹일 수 있게: 왼쪽 등록증 · 오른쪽 영양 */
   .fts-pd-trust {

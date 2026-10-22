@@ -7,7 +7,7 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.env.AUDIT_ROOT ?? process.cwd()
@@ -70,20 +70,51 @@ test('규칙311: 상품 상세 구조(10/22) — 바로가기 줄·제목 밑 �
   assert.match(pd, /className="fts-marq" aria-hidden/, '흐르는 글자 띠가 없다(또는 읽기 프로그램에 두 번 읽힌다)')
 
   // ⑤ 처음 바꿀 땐 — 비율%를 쓰지 않는다(고객 문구 규칙: 비율% 금지, 그릇 채움 그림으로만)
-  const sw = pd.slice(pd.indexOf('처음 바꿀 땐 일주일에 걸쳐'), pd.indexOf('입이 짧다면'))
+  const sw = pd.slice(pd.indexOf('처음 바꿀 땐 일주일에 걸쳐'), pd.indexOf('<Head no="05"'))
   assert.ok(sw.length > 100, "'처음 바꿀 땐' 단계를 찾지 못했다")
   assert.doesNotMatch(sw, /\d\s*%/, "'처음 바꿀 땐' 단계에 % 숫자가 들어갔다")
 
   // ⑥ 사진마다 큰 한 줄(사진부터 보는 사람이 절반)
-  const photos = /const photos = \[([\s\S]*?)\n {2}\]/.exec(pd)?.[1] ?? ''
+  const photos = /const photos[^=]*= \[([\s\S]*?)\n {2}\]/.exec(pd)?.[1] ?? ''
   assert.equal((photos.match(/cap: '/g) ?? []).length, 4, '상품 사진 4장에 한 줄 설명이 다 붙어 있지 않다')
   assert.doesNotMatch(photos, /pouch-ft|\/pkg\/|meal-recipe/, '상품 사진에 지운 사진(겉봉투·옛 팩)이 돌아왔다')
+  // 첫 장 = 강아지·그릇·팩 실촬영(사장님 10/22 시안 A) · 대표 썸네일(공유 미리보기·검색 구조화 정보)은 스튜디오 팩 그대로(사장님 "스튜디오 팩 사진이 썸네일로")
+  assert.match(photos.trim().split('\n')[0] ?? '', /real-serving\.webp/, '상세 첫 사진이 강아지 실촬영(real-serving)이 아니다')
+  const page = code('app', 'store', '[slug]', 'page.tsx')
+  assert.match(page, /openGraph: \{[^\n]*images: \[\{ url: RECIPE_STUDIO_IMG\[r\]/, '공유 미리보기 썸네일이 스튜디오 팩 사진이 아니다')
+  assert.match(page, /image: `\$\{SITE\}\$\{RECIPE_STUDIO_IMG\[recipe\]\}`/, '검색 구조화 정보 대표 이미지가 스튜디오 팩 사진이 아니다')
+  // 폰: 첫 사진 위 큰 이름(읽기 프로그램엔 숨김) + 구매 상자 이름은 화면 밖(검색·읽기용) / PC: 포스터 숨기고 이름 다시 보임
+  assert.match(pd, /\{photo === 0 && \(\s*<div aria-hidden className="fts-pd-poster"/, '첫 사진 위 포스터 이름이 없다(또는 읽기 프로그램에 두 번 읽힌다)')
+  assert.match(pd, /<div className="fts-pd-name" style=\{SR_MOBILE\}>[\s\S]{0,400}<RecipeName recipe=\{recipe\} size=\{38\} as="h1" \/>/, '구매 상자 이름(h1)이 폰 읽기용 칸 안에 없다')
+  const pcCss = read('components', 'store', 'store.css').slice(read('components', 'store', 'store.css').indexOf('@media (min-width: 1024px)'))
+  assert.match(pcCss, /\.fts-pd-poster \{\s*display: none !important;/, 'PC 에서 포스터 이름을 숨기지 않는다(이름이 두 번 보인다)')
+  assert.match(pcCss, /\.fts-pd-name \{\s*position: static !important;/, 'PC 에서 구매 상자 이름이 다시 보이지 않는다')
 
-  // ⑦ 바로가기 멈춤 위치는 웹 전체 scroll-padding-top 96 을 전제로 뺀 값이다 — 한쪽만 바뀌면 제목이 줄 밑에 숨거나 멀리 떨어진다
+  // ⑦ 재료 원물 카드 — 레시피마다 주재료·간염통 사진, 모든 '더한 것'에 사진이 있고 파일이 있다
+  const ri = read('lib', 'recipe-ingredients.ts')
+  const toppings = [...ri.matchAll(/toppings: \['([^']+)', '([^']+)'\]/g)].flatMap((m) => [m[1]!, m[2]!])
+  assert.ok(toppings.length >= 8, '레시피 재료표에서 더한 재료를 읽지 못했다')
+  const map = /const TOPPING_IMG[^=]*= \{([^}]*)\}/.exec(pd)?.[1] ?? ''
+  for (const t of new Set(toppings)) {
+    const key = new RegExp(`${t}: '([a-z]+)'`).exec(map)?.[1]
+    assert.ok(key, `더한 재료 '${t}'의 원물 사진이 정해지지 않았다(TOPPING_IMG)`)
+    assert.ok(existsSync(join(ROOT, 'public', 'store', 'ing', `${key}.webp`)), `원물 사진 파일이 없다: ${key}.webp`)
+  }
+  for (const r of ['chicken', 'duck', 'pork', 'beef']) {
+    for (const k of ['main', 'organs']) assert.ok(existsSync(join(ROOT, 'public', 'store', 'ing', `${r}-${k}.webp`)), `원물 사진 파일이 없다: ${r}-${k}.webp`)
+  }
+  assert.ok(existsSync(join(ROOT, 'public', 'store', 'ing', 'veg.webp')), '채소·곡물 원물 사진 파일이 없다')
+
+  // ⑧ 후기 — 사진 후기 줄 + 글 후기는 세 개만 보이고 '더 보기'(지우지 않고 화면에서만 접는다)
+  assert.match(pd, /const reviewPhotos = reviews\.flatMap\(\(r\) => r\.photos\)/, '사진 후기 줄이 후기 정본 사진을 모으지 않는다')
+  assert.match(pd, /className="fts-revlist" data-all=\{allReviews \? 'true' : undefined\}/, '글 후기 접기(fts-revlist)가 없다')
+  assert.match(read('components', 'store', 'store.css'), /\.fts-revlist:not\(\[data-all='true'\]\) > :nth-child\(n \+ 4\) \{\s*display: none !important;/, '글 후기 네 번째부터 접는 규칙이 없다(후기 칸이 인라인 display:flex 라 !important 가 있어야 접힌다)')
+
+  // ⑨ 바로가기 멈춤 위치는 웹 전체 scroll-padding-top 96 을 전제로 뺀 값이다 — 한쪽만 바뀌면 제목이 줄 밑에 숨거나 멀리 떨어진다
   assert.match(read('app', 'globals.css'), /html:not\(:has\(\[data-ft-chrome='app'\]\)\) \{\s*scroll-padding-top: 96px;/, '웹 scroll-padding-top 96 이 바뀌었다 — 상세 scrollMarginTop(-40·-16)도 같이 다시 재야 한다')
   assert.match(pd, /const SEC: CSSProperties = \{[^}]*scrollMarginTop: -40 \}/, '상세 구획 멈춤 위치가 바뀌었다(웹 scroll-padding 96 과 같이 잴 것)')
 
-  // ⑧ 흐르는 글자 띠는 움직임 줄이기 설정이면 멈춘다
+  // ⑩ 흐르는 글자 띠는 움직임 줄이기 설정이면 멈춘다
   const css = read('components', 'store', 'store.css')
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.fts-marq-track \{\s*animation: none;/, '흐르는 글자 띠가 움직임 줄이기 설정에서도 돈다')
 })
