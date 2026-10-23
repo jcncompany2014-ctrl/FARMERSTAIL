@@ -166,6 +166,11 @@ export default function AdminSubscriptionsPage() {
   const [paidBoxSubIds, setPaidBoxSubIds] = useState<Set<string>>(new Set())
   const [paidBoxPaidAt, setPaidBoxPaidAt] = useState<Map<string, string>>(new Map())
   const [paidBoxError, setPaidBoxError] = useState(false)
+  // ★시험 계정(사장님·푸린네)은 기본으로 숨긴다 (2026-10-24 규칙313) — 사장님 "내 계정 푸린이 구독도 일부러 미루기해 놨는데
+  //   왜 뜨는지 모르겠다". 판정은 서버 정본(admin_user_ids ∪ 명시 목록)을 받아 쓴다. 못 받으면 숨기지 못한 걸 화면에 알린다.
+  const [internalIds, setInternalIds] = useState<Set<string>>(new Set())
+  const [internalError, setInternalError] = useState(false)
+  const [showTest, setShowTest] = useState(false)
 
   useEffect(() => {
     void loadAll()
@@ -178,7 +183,7 @@ export default function AdminSubscriptionsPage() {
     //  `billing_key`·`billing_customer_key` 외에 `last_charge_lock_at`·
     //  `next_retry_at`·`last_failed_charge_code` 같은 서버 전용 칸도 함께
     //  빠진다(별표는 그것들까지 전부 내보냈다).
-    const [{ data, error, count }, trialRes, paidRes] = await Promise.all([
+    const [{ data, error, count }, trialRes, paidRes, internalRes] = await Promise.all([
       subsQuery().range(0, PER_PAGE - 1),
       fetch('/api/admin/trials?rounds=1')
         .then(async (r) =>
@@ -201,7 +206,16 @@ export default function AdminSubscriptionsPage() {
         .not('subscription_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(2000),
+      fetch('/api/admin/internal-accounts')
+        .then(async (r) => (r.ok ? ((await r.json()) as { ok?: boolean; ids?: string[] }) : null))
+        .catch(() => null),
     ])
+    if (internalRes?.ok && Array.isArray(internalRes.ids)) {
+      setInternalIds(new Set(internalRes.ids.map((x) => x.toLowerCase())))
+      setInternalError(false)
+    } else {
+      setInternalError(true)
+    }
     if (trialRes?.ok && Array.isArray(trialRes.trials)) {
       setTrials(new Map(trialRes.trials.map((t) => [t.user_id, t])))
       setTrialsError(false)
@@ -303,7 +317,13 @@ export default function AdminSubscriptionsPage() {
     return diff >= 0 && diff <= 7
   }
 
-  const filtered = subs.filter((s) => {
+  /** 시험 계정 구독인가 — 사장님(관리자)·명시 목록(푸린네). */
+  const isTestSub = (s: SubscriptionRow) => internalIds.has(s.user_id.toLowerCase())
+  // 목록·탭 숫자·머리 숫자는 전부 이 묶음으로 센다(시험 계정을 숨겼으면 숫자에서도 빠진다).
+  const visible = showTest ? subs : subs.filter((s) => !isTestSub(s))
+  const hiddenTestCount = subs.length - visible.length
+
+  const filtered = visible.filter((s) => {
     // 탭 필터
     if (tab === 'upcoming') {
       if (!isUpcoming(s)) return false
@@ -331,10 +351,10 @@ export default function AdminSubscriptionsPage() {
 
   // 서포터즈 — 구독별 실제 다음 결제 금액(청구와 같은 판정, lib/payments/trial-display).
   const supporter = supporterViews(subs, trials)
-  const supporterCount = subs.filter((s) => isLiveTrial(trials.get(s.user_id))).length
+  const supporterCount = visible.filter((s) => isLiveTrial(trials.get(s.user_id))).length
 
   // 배송 예정 건수 — 탭과 같은 판정(isUpcoming).
-  const upcomingCount = subs.filter(isUpcoming).length
+  const upcomingCount = visible.filter(isUpcoming).length
 
   async function handleStatusChange(subId: string, newStatus: string) {
     // 해지는 되돌리기 어려운 조치 — 모바일 오터치 가드(2026-07-19 검수).
@@ -507,7 +527,7 @@ export default function AdminSubscriptionsPage() {
                 위에서 숫자가 거짓말하면 배너를 안 읽는다(2026-08-07). */}
             {loadError
               ? ' — 건수를 불러오지 못했어요'
-              : ` — 전체 ${subs.length}건 · 활성 ${subs.filter((x) => x.status === 'active').length}`}
+              : ` — 전체 ${visible.length}건 · 활성 ${visible.filter((x) => x.status === 'active').length}`}
           </p>
         </div>
       </div>
@@ -543,6 +563,24 @@ export default function AdminSubscriptionsPage() {
           className="w-full rounded-full border border-input bg-card px-3 py-1.5 text-xs focus:border-primary focus:outline-none sm:w-56"
         />
       </div>
+
+      {/* 시험 계정 — 기본 숨김(규칙313). */}
+      {!loading && !loadError && internalError ? (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+          시험 계정 목록을 못 불러와서 사장님 시험 구독을 가리지 못했어요 — 새로고침해 주세요.
+        </p>
+      ) : !loading && !loadError && (showTest || hiddenTestCount > 0) ? (
+        <p className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[13px] text-muted-foreground">
+          <span>
+            {showTest
+              ? '시험 계정(사장님·푸린네) 구독도 같이 보고 있어요 — 시험 딱지가 붙어 있어요.'
+              : `시험 계정(사장님·푸린네) 구독 ${hiddenTestCount}건은 숨겼어요.`}
+          </span>
+          <button type="button" onClick={() => setShowTest((v) => !v)} className="font-semibold text-primary hover:underline">
+            {showTest ? '시험 계정 숨기기' : '보기'}
+          </button>
+        </p>
+      ) : null}
 
       {trialsError && !loading && (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
@@ -620,6 +658,7 @@ export default function AdminSubscriptionsPage() {
                       supporter={supporter.get(sub.id) ?? null}
                       round={nextRounds.get(sub.id) ?? null}
                       isSupporter={isLiveTrial(trials.get(sub.user_id))}
+                      isTest={isTestSub(sub)}
                       isLoading={actionLoading === sub.id}
                       onAction={handleStatusChange}
                       onShipDate={setShipDateSubId}
@@ -642,6 +681,7 @@ export default function AdminSubscriptionsPage() {
                 supporter={supporter.get(sub.id) ?? null}
                 round={nextRounds.get(sub.id) ?? null}
                 isSupporter={isLiveTrial(trials.get(sub.user_id))}
+                isTest={isTestSub(sub)}
                 isLoading={actionLoading === sub.id}
                 onAction={handleStatusChange}
                 onShipDate={setShipDateSubId}
@@ -783,6 +823,11 @@ function NextDelivery({
       {charge && <span className={`mt-0.5 text-[10px] font-semibold ${charge.cls}`}>{charge.text}</span>}
     </span>
   )
+}
+
+/** 시험 계정 배지 — 서포터즈(보라)·상태(초록·노랑)와 겹치지 않는 회색 점선. */
+function TestBadge() {
+  return <Badge className="border-dashed border-slate-400 bg-slate-100 text-slate-700">시험</Badge>
 }
 
 /** 서포터즈 배지 — 상태 배지(초록·노랑)와 겹치지 않는 보라. */
@@ -1016,6 +1061,7 @@ function SubRow({
   supporter,
   round = null,
   isSupporter,
+  isTest = false,
   isLoading,
   onAction,
   onShipDate,
@@ -1027,6 +1073,8 @@ function SubRow({
   supporter: SupporterView | null
   round?: NextRound | null
   isSupporter: boolean
+  /** 시험 계정(사장님·푸린네) 구독 — 시험 계정 보기를 켰을 때만 목록에 나온다(규칙313). */
+  isTest?: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
   onShipDate: (id: string) => void
@@ -1042,6 +1090,7 @@ function SubRow({
             {sub.profiles?.name || sub.recipient_name || '-'}
           </Link>
           {isSupporter && <SupporterBadge />}
+          {isTest && <TestBadge />}
         </div>
         <div className="text-[10px] text-muted-foreground">{sub.profiles?.email || ''}</div>
       </td>
@@ -1084,6 +1133,7 @@ function SubCard({
   supporter,
   round = null,
   isSupporter,
+  isTest = false,
   isLoading,
   onAction,
   onShipDate,
@@ -1095,6 +1145,8 @@ function SubCard({
   supporter: SupporterView | null
   round?: NextRound | null
   isSupporter: boolean
+  /** 시험 계정(사장님·푸린네) 구독 — 시험 계정 보기를 켰을 때만 목록에 나온다(규칙313). */
+  isTest?: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
   onShipDate: (id: string) => void
@@ -1110,6 +1162,7 @@ function SubCard({
               {sub.profiles?.name || sub.recipient_name || '-'}
             </Link>
             {isSupporter && <SupporterBadge />}
+            {isTest && <TestBadge />}
           </p>
           <p className="truncate text-[10px] text-muted-foreground">
             {sub.profiles?.email || ''}

@@ -19,6 +19,7 @@ import { advanceTrialState, type TrialState } from '@/lib/payments/trial'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { loadUpcomingCharges, type UpcomingRound } from '@/lib/admin/upcoming-charges'
 import UpcomingChargesView from './UpcomingChargesView'
+import { loadInternalUserIds, isInternalUser } from '@/lib/admin/internal-accounts'
 
 /**
  * /admin/subscriptions/calendar — 정기배송 일정 캘린더 뷰.
@@ -127,6 +128,8 @@ export default async function SubscriptionsCalendarPage({
 
   const supabase = await createClient()
   const todayKey = todayKstIsoDate()
+  // 시험 계정(사장님·푸린네) 박스엔 '시험' 을 붙인다(규칙313) — 달력은 조리·발주 계획이라 빼지 않고 표시만 한다(시험 박스도 실제로 나간다).
+  const internal = await loadInternalUserIds(createAdminClient())
   // 결제일이 이번 달인 회차까지 보려면 발송일은 달 끝 + 3일까지 읽어야 한다
   // (다음 달 1~3일 화요일 발송분 = 이번 달 토요일 결제).
   const shipLimit = addDaysKst(endKey, CHARGE_BEFORE_SHIP_DAYS)
@@ -542,6 +545,7 @@ export default async function SubscriptionsCalendarPage({
                           title={`${it.recipient_name ?? '수령인 미지정'} · ${boxLabel(it, todayKey)} · ${amountText(it)} · ${(it.subscription_items ?? []).map((x) => `${x.product_name}×${x.quantity}`).join(', ')}`}
                         >
                           <div className="font-bold truncate">
+                            {isInternalUser(it.user_id, internal.ids) && <span className="font-semibold text-slate-500">시험 · </span>}
                             {it.recipient_name ??
                               it.profiles?.name ??
                               '수령인 미지정'}
@@ -609,6 +613,7 @@ export default async function SubscriptionsCalendarPage({
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80"
                   >
                     <span className="text-[13px] font-bold text-foreground">
+                      {isInternalUser(it.user_id, internal.ids) && <span className="font-semibold text-slate-500">시험 · </span>}
                       {it.recipient_name ?? it.profiles?.name ?? '수령인 미지정'}
                     </span>
                     {/* 박스 상태 — 결제 완료(조리·포장 중) · 결제일 · 일시정지(2026-10-01). */}

@@ -71,7 +71,7 @@ export default async function AdminReportsPage({
     supabase
       .from('orders')
       .select(
-        'id, total_amount, points_used, discount_amount, shipping_fee, paid_at, payment_method, order_items(product_id, product_name, quantity, line_total)',
+        'id, total_amount, points_used, discount_amount, shipping_fee, paid_at, payment_method',
       )
       // ★gross 는 **환불된 주문까지** 포함해야 한다 — 환불액은 아래 refunds 에서
       //  따로 빼기 때문에, 여기서도 빼면 이중 차감이 된다. 부분 환불만 넣고
@@ -112,12 +112,6 @@ export default async function AdminReportsPage({
     shipping_fee: number
     paid_at: string
     payment_method: string | null
-    order_items: Array<{
-      product_id: string
-      product_name: string
-      quantity: number
-      line_total: number
-    }> | null
   }
   // ★조회 실패 표면화 (2026-09-05 전수감사, 규칙1) — 세무 기준 숫자가
   //   실패 시 0으로 위장되면 안 된다. 배너로 '못 봄'을 분리한다.
@@ -154,28 +148,6 @@ export default async function AdminReportsPage({
     (s, o) => s + (o.points_used ?? 0),
     0,
   )
-
-  // Top 5 상품 (수량 기준)
-  const productSales = new Map<
-    string,
-    { name: string; qty: number; revenue: number }
-  >()
-  for (const o of orders) {
-    for (const it of o.order_items ?? []) {
-      const cur = productSales.get(it.product_id) ?? {
-        name: it.product_name,
-        qty: 0,
-        revenue: 0,
-      }
-      cur.qty += it.quantity
-      cur.revenue += it.line_total
-      productSales.set(it.product_id, cur)
-    }
-  }
-  const topProducts = Array.from(productSales.entries())
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5)
 
   // 결제수단 비율
   const methodCount = new Map<string, number>()
@@ -365,50 +337,7 @@ export default async function AdminReportsPage({
         </div>
       </section>
 
-      {/* Top 5 상품 */}
-      {topProducts.length > 0 && (
-        <section className="mb-6 print:break-inside-avoid">
-          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">많이 팔린 상품 · 정가 기준(할인 전)</span>
-          <ol className="bg-card rounded-xl border border-border overflow-hidden">
-            {topProducts.map((p, i) => (
-              <li
-                key={p.id}
-                className={`flex items-center justify-between px-4 py-3 ${
-                  i < topProducts.length - 1 ? 'border-b border-border' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span
-                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-mono font-bold text-[11px] text-white"
-                    style={{
-                      background:
-                        i === 0
-                          ? 'var(--terracotta)'
-                          : i === 1
-                            ? '#059669'
-                            : 'var(--adm-muted-foreground)',
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="text-[13px] font-bold text-foreground truncate">
-                    {p.name}
-                  </span>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[12px] font-bold text-primary tabular-nums">
-                    {p.revenue.toLocaleString()}원
-                  </div>
-                  <div className="text-[10px] text-muted-foreground tabular-nums">
-                    {p.qty}개 판매
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
+      {/* 많이 팔린 상품 — 2026-10-24 뺐다(정가 기준이라 입금과 달랐고, 박스가 강아지별 맞춤이라 상품 순위가 뜻이 없다. 규칙313). */}
       {/* 결제수단 분포 */}
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">

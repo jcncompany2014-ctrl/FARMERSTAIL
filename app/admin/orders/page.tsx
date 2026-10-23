@@ -1,6 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Download, Search as SearchIcon } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getRequestUser } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/auth/admin'
+import { loadInternalUserIds, excludeInternalFilter, isInternalUser } from '@/lib/admin/internal-accounts'
 import AdminPagination from '@/components/admin/AdminPagination'
 import { Hl, Em } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
@@ -29,6 +33,8 @@ type SearchParams = Promise<{
   page?: string
   /** 'store' = 웹 가게(단품) 주문만 — 주문번호 FTS- (2026-10-10 웹 리뉴얼). */
   kind?: string
+  /** '1' = 시험 계정(사장님·푸린네) 주문도 보기 — 기본은 숨김(규칙313). */
+  test?: string
 }>
 
 // 서버(Vercel)는 UTC 라 raw Date getter 를 쓰면 주문 시각이 9시간 어긋난다.
@@ -52,10 +58,15 @@ function formatDate(iso: string) {
  * 상태 배지 — 라벨/색 의미는 구버전 그대로(준비=브랜드 테라코타, 배송=그린,
  * 완료=옅은 그린, 취소·실패=적색 계열, 미결제=회색). 부품만 shadcn Badge.
  */
-function statusBadge(paymentStatus: string, orderStatus: string): {
+function statusBadge(paymentStatus: string, orderStatus: string, paidAt: string | null): {
   label: string
   cls: string
 } {
+  // 한 번도 결제되지 않은 시도 — 결제창만 열고 닫았거나(만료), 정기결제 카드가 거절된 회차. 진짜 주문과 같은 색을 쓰지 않는다.
+  if (!paidAt) {
+    const label = paymentStatus === 'failed' ? '결제 실패' : paymentStatus === 'pending' ? '결제 안 함' : '결제 안 됨 · 만료'
+    return { label, cls: 'border-dashed border-border bg-transparent text-muted-foreground' }
+  }
   if (paymentStatus !== 'paid') {
     const labelMap: Record<string, string> = {
       pending: '결제 대기',
@@ -87,13 +98,19 @@ function statusBadge(paymentStatus: string, orderStatus: string): {
   }
 }
 
+/**
+ * ★'전체'는 **진짜 주문**(한 번이라도 결제된 것)만 (2026-10-24 규칙313). 사장님 "서포터즈도 주문 취소된 건이 같이 잡혀서
+ * 헷갈린다" — 정기결제 카드가 거절된 회차(실패 → 다음 날 다시 결제돼 성공)와 결제창만 열고 닫은 가게 주문(만료)이 진짜 주문
+ * 사이에 같은 무게로 끼어 있었다. 그런 시도는 '결제 안 된 시도' 칩으로 따로 본다. 기준 = paid_at(결제 승인 시각) — 결제가
+ * 승인되는 세 길(가게 결제 확인·정기결제 크론·웹훅)이 전부 paid_at 을 함께 쓴다.
+ */
 const FILTERS = [
   { key: 'all', label: '전체' },
-  { key: 'pending', label: '결제 전' },
   { key: 'preparing', label: '준비 중' },
   { key: 'shipping', label: '배송 중' },
   { key: 'delivered', label: '배송 완료' },
-  { key: 'cancelled', label: '취소' },
+  { key: 'cancelled', label: '취소·환불' },
+  { key: 'unpaid', label: '결제 안 된 시도' },
 ]
 
 export default async function AdminOrdersPage({
@@ -101,58 +118,74 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: SearchParams
 }) {
-  const { status = 'all', q = '', page: pageRaw, kind: kindRaw } = await searchParams
+  const { status: statusRaw = 'all', q = '', page: pageRaw, kind: kindRaw, test: testRaw } = await searchParams
+  // 옛 '결제 전'(status=pending) 주소는 새 '결제 안 된 시도'로 잇는다.
+  const status = statusRaw === 'pending' ? 'unpaid' : statusRaw
   const page = Math.max(1, parseInt(pageRaw ?? '1', 10) || 1)
   // ★웹 가게(단품) 주문 — 포장 목록(피킹·라벨·조리 합계)은 정기배송 기준이라 여기 안 나온다(기획서 §9.2). 가게 주문은
   //   냉동 재고에서 화·목 출고하므로 이 화면에서 '가게 주문만' + '준비 중'으로 골라 송장을 넣는다.
   const storeOnly = kindRaw === 'store'
-  /** 지금 보고 있는 거르기(상태·검색·가게)를 유지한 주소 — 칩·페이지가 같은 묶음을 잇는다. */
-  const hrefWith = (over: { status?: string; kind?: string | null }) => {
+  const showTest = testRaw === '1'
+  /** 지금 보고 있는 거르기(상태·검색·가게·시험 계정)를 유지한 주소 — 칩·페이지가 같은 묶음을 잇는다. */
+  const hrefWith = (over: { status?: string; kind?: string | null; test?: boolean }) => {
     const p = new URLSearchParams()
     const st = over.status ?? status
     if (st !== 'all') p.set('status', st)
     if (q) p.set('q', q)
     const k = over.kind === undefined ? (storeOnly ? 'store' : null) : over.kind
     if (k) p.set('kind', k)
+    if (over.test ?? showTest) p.set('test', '1')
     const s = p.toString()
     return `/admin/orders${s ? `?${s}` : ''}`
   }
 
   const supabase = await createClient()
+  // 시험 계정 판정은 service_role(admin_user_ids) — 이 페이지에서도 관리자부터 확인한다(레이아웃은 클라이언트 이동 때 다시 안 돈다).
+  const user = await getRequestUser()
+  if (!user) redirect('/login?next=/admin/orders')
+  if (!(await isAdmin(supabase, user))) redirect('/dashboard')
+  const internal = await loadInternalUserIds(createAdminClient())
+  const hideFilter = showTest ? null : excludeInternalFilter(internal.ids)
 
-  let query = supabase
-    .from('orders')
-    .select(
-      'id, order_number, total_amount, payment_status, order_status, created_at, recipient_name, recipient_phone',
-      { count: 'exact' },
-    )
-    .order('created_at', { ascending: false })
-    .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
-
-  // 상태 필터
-  if (status === 'pending') {
-    query = query.eq('payment_status', 'pending')
-  } else if (
-    status === 'preparing' ||
-    status === 'shipping' ||
-    status === 'delivered' ||
-    status === 'cancelled'
-  ) {
-    // ★결제됨 = paid + partially_refunded. 부분 환불된 주문도 박스는 나가야
-    //  하는데 예전엔 'paid' 만 걸러서 발송 큐에서 통째로 사라졌다
-    //  (lib/commerce/paid-status).
-    //
-    //  단 'cancelled' 는 예외다 — 취소된 주문은 결제도 함께 무효가 되므로
-    //  payment_status 가 refunded/cancelled 다. 결제 필터를 걸면 이 칩은
-    //  **구조적으로 항상 0건**이 된다(2026-08-07 재감사). 상태로만 거른다.
-    query =
-      status === 'cancelled'
-        ? query.eq('order_status', status)
-        : query.in('payment_status', PAID_STATUSES).eq('order_status', status)
+  /** 상태·가게·검색 거르기 — 목록과 '숨긴 시험 계정 건수'가 같은 묶음을 센다. */
+  const narrow = <Q extends {
+    not: (c: string, op: string, v: null) => Q
+    is: (c: string, v: null) => Q
+    in: (c: string, v: readonly string[]) => Q
+    eq: (c: string, v: string) => Q
+    like: (c: string, v: string) => Q
+    or: (f: string) => Q
+  }>(qb: Q): Q => {
+    let x = qb
+    if (status === 'unpaid') {
+      x = x.is('paid_at', null)
+    } else if (status === 'preparing' || status === 'shipping' || status === 'delivered') {
+      // ★결제됨 = paid + partially_refunded. 부분 환불된 주문도 박스는 나가야
+      //  하는데 예전엔 'paid' 만 걸러서 발송 큐에서 통째로 사라졌다
+      //  (lib/commerce/paid-status).
+      x = x.in('payment_status', PAID_STATUSES).eq('order_status', status)
+    } else {
+      // 전체·취소 = 결제된 적 있는 주문. 'cancelled' 는 결제 필터를 걸지 않는다 — 취소된 주문은 결제도 함께 무효가 되므로
+      //  payment_status 가 refunded/cancelled 다(2026-08-07 재감사: 결제 필터를 걸면 이 칩은 늘 0건).
+      x = x.not('paid_at', 'is', null)
+      if (status === 'cancelled') x = x.eq('order_status', 'cancelled')
+    }
+    // 가게(단품) 주문만 — 주문번호 머리글자(정본 STORE_ORDER_PREFIX)로 가른다.
+    if (storeOnly) x = x.like('order_number', `${STORE_ORDER_PREFIX}%`)
+    return x
   }
 
-  // 가게(단품) 주문만 — 주문번호 머리글자(정본 STORE_ORDER_PREFIX)로 가른다.
-  if (storeOnly) query = query.like('order_number', `${STORE_ORDER_PREFIX}%`)
+  let query = narrow(
+    supabase
+      .from('orders')
+      .select(
+        'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, created_at, recipient_name, recipient_phone',
+        { count: 'exact' },
+      ),
+  )
+    .order('created_at', { ascending: false })
+    .range((page - 1) * PER_PAGE, page * PER_PAGE - 1)
+  if (hideFilter) query = query.or(hideFilter)
 
   // 검색 — 주문번호 / 수령자명 / 전화번호 3중. 운영팀이 고객 문의 받을 때
   // 가장 흔한 키 세 가지. PostgREST `or()` 는 (%, _, (, ), \, ,) escape 안
@@ -178,7 +211,15 @@ export default async function AdminOrdersPage({
     )
   }
 
-  const { data: orders, error, count } = await query
+  const internalIds = [...internal.ids]
+  const [{ data: orders, error, count }, hiddenRes] = await Promise.all([
+    query,
+    // 숨긴 시험 계정 주문 — 같은 거르기로 센다('N건 숨김'이 지금 보는 칩과 맞게). 검색 중엔 세지 않는다(검색은 아래 안내로).
+    hideFilter && internalIds.length > 0 && !trimmed
+      ? narrow(supabase.from('orders').select('id', { count: 'exact', head: true })).in('user_id', internalIds)
+      : Promise.resolve({ count: 0, error: null }),
+  ])
+  const hiddenCount = hiddenRes.error ? null : (hiddenRes.count ?? 0)
   const total = count ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
 
@@ -245,6 +286,7 @@ export default async function AdminOrdersPage({
             <input type="hidden" name="status" value={status} />
           )}
           {storeOnly && <input type="hidden" name="kind" value="store" />}
+          {showTest && <input type="hidden" name="test" value="1" />}
           <Input
             type="search"
             name="q"
@@ -260,6 +302,27 @@ export default async function AdminOrdersPage({
           </Button>
         </form>
       </div>
+
+      {/* 시험 계정 — 기본 숨김(규칙313). 숨긴 게 있으면 몇 건인지, 보고 있으면 끄는 길을 한 줄로. */}
+      {!internal.ok ? (
+        <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+          시험 계정 목록을 못 불러와서 사장님 계정 주문은 가리지 못했어요 — 새로고침해 주세요.
+        </p>
+      ) : showTest ? (
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-[13px]">
+          <span>시험 계정(사장님·푸린네) 주문도 같이 보고 있어요 — <Em>시험</Em> 딱지가 붙어 있어요.</span>
+          <Link href={hrefWith({ test: false })} className="font-semibold text-primary hover:underline">
+            시험 계정 숨기기
+          </Link>
+        </p>
+      ) : hiddenCount ? (
+        <p className="flex flex-wrap items-center justify-between gap-2 px-1 text-[13px] text-muted-foreground">
+          <span>시험 계정(사장님·푸린네) 주문 {hiddenCount}건은 숨겼어요.</span>
+          <Link href={hrefWith({ test: true })} className="font-semibold text-primary hover:underline">
+            보기
+          </Link>
+        </p>
+      ) : null}
 
       {error ? (
         <Card className="py-4">
@@ -278,13 +341,14 @@ export default async function AdminOrdersPage({
           {/* 모바일 카드 — 테이블은 폰에서 셀이 부러진다(2026-07-19 사장님 폰). */}
           <div className="space-y-2.5 md:hidden">
             {orders.map((o) => {
-              const badge = statusBadge(o.payment_status, o.order_status)
+              const badge = statusBadge(o.payment_status, o.order_status, o.paid_at)
               return (
                 <Link key={o.id} href={`/admin/orders/${o.id}`} className="block">
                   <Card className="gap-0 py-3.5 transition active:bg-secondary">
                     <CardContent className="px-4">
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex min-w-0 items-center gap-1.5">
+                          {isInternalUser(o.user_id, internal.ids) && <TestBadge />}
                           {isStoreOrderNumber(o.order_number) && (
                             <Badge className="shrink-0 border-transparent bg-amber-100 text-amber-900">가게</Badge>
                           )}
@@ -329,11 +393,12 @@ export default async function AdminOrdersPage({
                 </TableHeader>
                 <TableBody>
                   {orders.map((o) => {
-                    const badge = statusBadge(o.payment_status, o.order_status)
+                    const badge = statusBadge(o.payment_status, o.order_status, o.paid_at)
                     return (
                       <TableRow key={o.id}>
                         <TableCell className="font-mono text-[11.5px]">
                           <span className="inline-flex items-center gap-1.5">
+                            {isInternalUser(o.user_id, internal.ids) && <TestBadge />}
                             {isStoreOrderNumber(o.order_number) && (
                               <Badge className="border-transparent bg-amber-100 font-sans text-amber-900">가게</Badge>
                             )}
@@ -380,10 +445,16 @@ export default async function AdminOrdersPage({
             status: status !== 'all' ? status : undefined,
             q: q || undefined,
             kind: storeOnly ? 'store' : undefined,
+            test: showTest ? '1' : undefined,
           }}
           total={total}
         />
       )}
     </div>
   )
+}
+
+/** 시험 계정 딱지 — 사장님·푸린네 주문이 보일 때(시험 계정 보기) 진짜 주문과 헷갈리지 않게. */
+function TestBadge() {
+  return <Badge className="shrink-0 border-dashed border-slate-400 bg-slate-100 font-sans text-slate-700">시험</Badge>
 }

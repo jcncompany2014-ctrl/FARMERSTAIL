@@ -57,14 +57,6 @@ type RecentOrder = {
   recipient_name: string
 }
 
-type OrderItemLite = {
-  product_id: string | null
-  product_name: string | null
-  product_image_url: string | null
-  quantity: number
-  line_total: number
-}
-
 const STATUS_LABEL: Record<string, string> = {
   pending: '결제 대기',
   preparing: '준비 중',
@@ -205,18 +197,21 @@ export default async function AdminHome() {
       ? supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null).or(profileFilter)
       : supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
 
-    // 최근 주문 10건
-    supabase
-      .from('orders')
-      .select('id, order_number, total_amount, payment_status, order_status, created_at, recipient_name')
-      .order('created_at', { ascending: false })
-      .limit(10),
-
-    // 최근 30일 매출 (일별 차트 + Top 상품 원자료)
+    // 최근 주문 10건 — 진짜 주문만(결제된 적 있는 것). 시험 계정·결제 안 된 시도(만료·카드 거절 회차)는 뺀다(규칙313).
     ex(
       supabase
         .from('orders')
-        .select('id, total_amount, refunded_amount, created_at, order_items(product_id, product_name, product_image_url, quantity, line_total)')
+        .select('id, order_number, total_amount, payment_status, order_status, created_at, recipient_name')
+        .not('paid_at', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ),
+
+    // 최근 30일 매출 (일별 차트)
+    ex(
+      supabase
+        .from('orders')
+        .select('id, total_amount, refunded_amount, created_at')
         .in('payment_status', PAID_STATUSES)
         .gte('created_at', thirtyDaysAgo),
     ),
@@ -431,7 +426,7 @@ export default async function AdminHome() {
   // 조회가 실패하면 처리 대기가 '모두 처리됨', 매출이 '0원'으로 **위장**됐다.
   // '없음'과 '못 봄'을 그룹 단위로 가른다: 지표 그룹 / 처리 대기 그룹 각각
   // 실패 여부를 계산해 배너로 표시하고, 빈 상태 문구가 있는 섹션(최근 주문·
-  // 재고 부족·Top 상품·식품정보고시)은 각자 오류 상태를 따로 그린다.
+  // 재고 부족·식품정보고시)은 각자 오류 상태를 따로 그린다.
   const statResults = [
     paidOrdersRes,
     todayOrdersRes,
@@ -591,12 +586,11 @@ export default async function AdminHome() {
         ? 100
         : 0
 
-  // 30일 매출 집계 (간단한 sparkline용) + Top 상품 집계
+  // 30일 매출 집계 (간단한 sparkline용)
   type ThirtyDayOrder = {
     created_at: string
     total_amount: number
     refunded_amount: number | null
-    order_items: OrderItemLite[] | null
   }
   const thirtyDayOrders =
     (thirtyDayOrdersRes.data ?? []) as unknown as ThirtyDayOrder[]
@@ -625,33 +619,6 @@ export default async function AdminHome() {
     ([date, revenue]) => ({ date, revenue }),
   )
   // 30일 합계는 RevenueChart 가 자체 계산해서 보여주므로 별도 변수 없음.
-
-  // Top 상품 (30일 매출 기준). product_id 가 없는 아이템(삭제된 상품) 은 스킵.
-  const productStats = new Map<
-    string,
-    { name: string; image: string | null; qty: number; revenue: number }
-  >()
-  for (const order of thirtyDayOrders) {
-    for (const item of order.order_items ?? []) {
-      if (!item.product_id) continue
-      const prev = productStats.get(item.product_id)
-      if (prev) {
-        prev.qty += item.quantity
-        prev.revenue += item.line_total
-      } else {
-        productStats.set(item.product_id, {
-          name: item.product_name ?? '(이름 없음)',
-          image: item.product_image_url,
-          qty: item.quantity,
-          revenue: item.line_total,
-        })
-      }
-    }
-  }
-  const topProducts = Array.from(productStats.entries())
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5)
 
   // (카테고리별 매출 도넛은 2026-07-19 검수에서 제거 — 구독 전용 전환 후 활성
   //  상품이 화식 4종뿐이라 도넛이 항상 '화식 ~100%' 원 하나였다. 정보가치 0.)
@@ -902,53 +869,9 @@ export default async function AdminHome() {
           ② 매일 볼 지표가 아니다 — /admin/cohort(가입 시기별 분석)로 옮겼다.
           거기서 시인성(고정 팔레트·대비 보장)까지 고쳐 두었다. */}
 
-      {/* Top 상품 + 재고 경고 — 2-column */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <SectionCard
-          title="많이 나간 상품 (최근 30일)"
-          desc="최근 30일간 많이 나간 상품 순서예요. 금액은 정가(할인 전) 기준이라 실제 입금액과 달라요 — 서포터즈 100원·등급·이벤트 할인 미반영."
-          action={
-            <Link
-              href="/admin/products"
-              className="whitespace-nowrap text-xs font-semibold text-primary hover:underline"
-            >
-              상품 관리 →
-            </Link>
-          }
-        >
-          {thirtyDayOrdersRes.error ? (
-            <p className="py-6 text-center text-sm text-destructive">
-              판매 데이터를 불러오지 못했어요 — 새로고침해 주세요
-            </p>
-          ) : topProducts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              30일 내 판매가 없어요
-            </p>
-          ) : (
-            <ol className="space-y-2">
-              {topProducts.map((p, idx) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-3 border-b border-border py-2 last:border-b-0"
-                >
-                  <span className="w-5 text-sm font-bold text-muted-foreground">
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{p.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {p.qty.toLocaleString()}개 판매
-                    </p>
-                  </div>
-                  <p className="whitespace-nowrap text-sm font-semibold text-primary tabular-nums">
-                    {p.revenue.toLocaleString()}원
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </SectionCard>
-
+      {/* 재고 부족 — 웹 가게 냉동 재고. ('많이 나간 상품' 카드는 2026-10-24 뺐다 — 정가 기준이라 실제 입금과 달랐고, 박스가 전부
+          강아지별 맞춤이라 상품 순위가 뜻이 없다(사장님 "어차피 다 맞춤이라 다 다른데"). 규칙313.) */}
+      <div className="grid grid-cols-1 gap-4">
         <SectionCard
           title="재고 부족 상품"
           desc={`재고가 ${STOCK_LOW_THRESHOLD}개 이하로 남은 상품이에요. 품절 전에 채워주세요.`}
@@ -1008,7 +931,7 @@ export default async function AdminHome() {
       {/* 최근 주문 — md 이상 테이블, 모바일은 카드 리스트(폰 운영·탭타겟). */}
       <SectionCard
         title="최근 들어온 주문"
-        desc="가장 최근 주문 10건이에요. 주문을 누르면 자세히 볼 수 있어요."
+        desc="결제된 주문 최근 10건이에요(시험 계정·결제 안 된 시도 제외). 누르면 자세히 볼 수 있어요."
         action={
           <Link
             href="/admin/orders"
