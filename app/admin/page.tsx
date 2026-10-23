@@ -36,6 +36,8 @@ import {
 import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
 import { loadWeeklyTodo } from '@/lib/admin/weekly-todo'
 import WeeklyTodoPanel from '@/components/admin/WeeklyTodoPanel'
+import NewArrivalsPanel from '@/components/admin/NewArrivalsPanel'
+import { loadNewArrivals } from '@/lib/admin/new-arrivals'
 import { loadInternalUserIds, excludeInternalFilter } from '@/lib/admin/internal-accounts'
 import { classifyCancellation, churnSummary, CHURN_MIN_SAMPLE, CHURN_RED_PCT } from '@/lib/admin/churn'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -138,7 +140,8 @@ export default async function AdminHome() {
    *    처리 대기(발송·환불·결제 실패)는 빼지 않는다 — 시험 박스도 실제로 나간다.
    */
   const opsDb = createAdminClient()
-  const [todo, internal] = await Promise.all([loadWeeklyTodo(opsDb, now), loadInternalUserIds(opsDb)])
+  // 새로 들어온 것(최근 7일 새 정기배송·가게 주문·결제 실패·해지 — 2026-10-24 규칙314)도 같은 service_role 로.
+  const [todo, internal, arrivals] = await Promise.all([loadWeeklyTodo(opsDb, now), loadInternalUserIds(opsDb), loadNewArrivals(opsDb, now)])
   const userFilter = excludeInternalFilter(internal.ids)
   const profileFilter = excludeInternalFilter(internal.ids, 'id')
   const ex = <Q extends { or: (filters: string) => Q }>(q: Q): Q => (userFilter ? q.or(userFilter) : q)
@@ -634,9 +637,12 @@ export default async function AdminHome() {
           </h1>
         </div>
         <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          {`${todayKst.slice(0, 4)}년 ${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 기준 — 맨 위 '이번 주 할 일'부터 보세요. 매출·구독·회원 숫자는 사장님 시험 계정을 뺀 값이에요('처리 대기'는 시험 계정도 포함 — 시험 박스도 실제로 나가요).`}
+          {`${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 · 숫자는 시험 계정(사장님·푸린네)을 뺀 값이에요.`}
         </p>
       </div>
+
+      {/* 새로 들어온 것 — 맨 위(2026-10-24 규칙314). 새 정기배송이 토요일 첫 결제 전까지 홈 어디에도 안 보였다. */}
+      <NewArrivalsPanel data={arrivals} nowMs={now.getTime()} />
 
       {/* 이번 주 할 일 — 요일별(토 결제·월 포장·화 발송·늘 확인). 아침 브리핑 푸시와 같은 함수(2026-10-14 B2). */}
       <WeeklyTodoPanel todo={todo} />

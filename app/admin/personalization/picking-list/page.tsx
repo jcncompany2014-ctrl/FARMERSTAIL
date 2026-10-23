@@ -883,9 +883,9 @@ export default async function PickingListPage({
   const nextShip = addDaysKst(shipDate, 7)
 
   return (
-    <main className="px-5 py-6 max-w-6xl mx-auto">
+    <main className="mx-auto max-w-6xl">
       <AdminHeader
-        title={`박스 패킹 — ${shipDate} (${weekdayKo(shipDate)})`}
+        title={`포장 목록 — ${Number(shipDate.slice(5, 7))}/${Number(shipDate.slice(8, 10))}(${weekdayKo(shipDate)}) 발송`}
         sub={
           <>
             화요일 발송분 박스를 싸기 위한 리스트예요 — 강아지별로 어떤
@@ -1002,7 +1002,7 @@ export default async function PickingListPage({
                     : `${r.freshLabel} ${r.freshRatio}%`}
                 </Badge>
                 {r.cycleNumber != null && (
-                  <Badge tone="neutral">cycle {r.cycleNumber}</Badge>
+                  <Badge tone="neutral">{r.cycleNumber}회차</Badge>
                 )}
                 {r.userAdjusted && <Badge tone="neutral">보호자 조정</Badge>}
                 {/* ★ 청구 불가를 **가장 먼저** 판정한다 (2026-07-31).
@@ -1241,9 +1241,9 @@ export default async function PickingListPage({
  */
 function PickingListUnreliable({ shipDate, detail }: { shipDate: string; detail: string }) {
   return (
-    <main className="px-5 py-6 max-w-6xl mx-auto">
+    <main className="mx-auto max-w-6xl">
       <AdminHeader
-        title={`박스 패킹 — ${shipDate} (${weekdayKo(shipDate)})`}
+        title={`포장 목록 — ${Number(shipDate.slice(5, 7))}/${Number(shipDate.slice(8, 10))}(${weekdayKo(shipDate)}) 발송`}
         sub="화요일 발송분 박스를 싸기 위한 리스트예요."
       />
       <AdminCard className="border-red-300 bg-red-50">

@@ -69,6 +69,7 @@ type SubRow = SubLike & {
   zip: string | null
   address: string | null
   address_detail: string | null
+  delivery_memo: string | null
 }
 
 type FormulaRow = {
@@ -142,7 +143,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
         'id, user_id, dog_id, status, has_billing_key, next_delivery_date, failed_charge_count, ' +
           'requires_billing_key_renewal, total_amount, fresh_ratio, billing_card_brand, billing_card_last4, ' +
           'total_deliveries, created_at, cancelled_at, last_failed_charge_reason, ' +
-          'recipient_name, recipient_phone, zip, address, address_detail',
+          'recipient_name, recipient_phone, zip, address, address_detail, delivery_memo',
       )
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
@@ -395,6 +396,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       cancelledAt: s.cancelled_at,
       lastFailReason: s.last_failed_charge_reason,
       nextDeliveryDate: s.next_delivery_date,
+      deliveryMemo: s.delivery_memo,
     }
   })
 

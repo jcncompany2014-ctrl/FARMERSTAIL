@@ -103,6 +103,8 @@ export type SubView = {
   cancelledAt: string | null
   lastFailReason: string | null
   nextDeliveryDate: string | null
+  /** 배송 메모(subscriptions.delivery_memo) — 정기배송 한 장에 보인다(포장 목록과 같은 칸). undefined = 예시 값이 안 줌. */
+  deliveryMemo?: string | null
 }
 
 export type OrderView = {

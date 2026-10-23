@@ -7,6 +7,8 @@ import { isStoreOrderNumber } from '@/lib/store/order-number'
 import { STORE_SHIP_WEEKDAYS } from '@/lib/store/shipping'
 import { nextChargeRunDate, weekdayOf } from '@/lib/shipping-schedule'
 import { withHonorific } from '@/lib/korean'
+import { subscriptionHref } from '@/lib/admin/customer-link'
+import { chargeProblemReason } from '@/lib/admin/charge-rows'
 import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 import { tossKeyStatus } from '@/lib/payments/key-mode'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
@@ -407,11 +409,8 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     const u = userId ? (userName.get(userId) ?? '보호자님') : '보호자님'
     return `${d} · ${u}`
   }
-  // 구독 상세 화면은 따로 없다 — 그 고객 화면(구독·주문이 함께 보이는 곳)으로 보낸다.
-  const subHref = (subId: string) => {
-    const m = subMeta.get(subId)
-    return m ? `/admin/users/${m.user_id}` : '/admin/subscriptions'
-  }
+  // 정기배송 한 장(2026-10-24 규칙314) — 예전엔 상세 화면이 없어 고객 화면으로 보내 정기배송 칸을 다시 찾아야 했다.
+  const subHref = (subId: string) => subscriptionHref(subId)
   const whoSub = (subId: string) => {
     const m = subMeta.get(subId)
     return m ? who(m.dog_id, m.user_id) : `구독 ${subId.slice(0, 8)}`
@@ -439,7 +438,8 @@ export async function loadWeeklyTodo(db: Db = createAdminClient(), now: Date = n
     href: charge.failed.length > 0 ? '/admin/subscriptions/charges?status=failed' : '/admin/subscriptions/charges',
     hrefLabel: charge.failed.length > 0 ? '실패한 결제 보러 가기' : '자동결제 이력',
     lines: [
-      ...charge.failed.map((x) => ({ text: `실패 — ${whoSub(x.subscriptionId)}${x.errorCode ? ` (${x.errorCode})` : ''}`, href: subHref(x.subscriptionId) })),
+      // 실패 사유는 쉬운 말(chargeProblemReason — 결제·청구 화면과 같은 말). 예전엔 토스 코드가 괄호에 그대로 붙었다.
+      ...charge.failed.map((x) => ({ text: `실패 — ${whoSub(x.subscriptionId)} · ${chargeProblemReason({ status: 'failed', error_code: x.errorCode, error_message: null })}`, href: subHref(x.subscriptionId) })),
       ...charge.succeeded.map((id) => ({ text: `성공 — ${whoSub(id)}`, href: subHref(id) })),
     ],
     error: chargesRes.error?.message,

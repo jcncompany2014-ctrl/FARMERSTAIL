@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { Repeat } from 'lucide-react'
-import { customerHref } from '@/lib/admin/customer-link'
+import { customerHref, subscriptionHref } from '@/lib/admin/customer-link'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/Spinner'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
@@ -18,7 +18,7 @@ import {
   type ChargeTiming,
   type UpcomingBox,
 } from '@/lib/shipping-schedule'
-import { todayKstIsoDate, diffDaysKst, addDaysKst } from '@/lib/datetime-kst'
+import { todayKstIsoDate, diffDaysKst, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
@@ -73,7 +73,7 @@ type SubscriptionRow = {
   total_amount: number
   created_at: string
   dog_id: string | null
-  dogs: { id: string; name: string } | null
+  dogs: { id: string; name: string; weight: number | null } | null
   profiles: { name: string | null; email: string | null } | null
   subscription_items: {
     product_name: string
@@ -90,7 +90,7 @@ const TABS = [
   { value: 'needs_card', label: '카드 등록 전' },
   { value: 'paused', label: '일시정지' },
   { value: 'cancelled', label: '해지' },
-  { value: 'upcoming', label: '📦 배송 예정' },
+  { value: 'upcoming', label: '배송 예정' },
   // 서포터즈(체험단) — 결제 금액이 정가와 달라 따로 본다(사장님 2026-10-01 "확실하게 구분감 있게").
   { value: 'supporters', label: '서포터즈' },
 ]
@@ -266,7 +266,7 @@ export default function AdminSubscriptionsPage() {
           'address_detail, zip, subtotal, shipping_fee, ' +
           'total_amount, created_at, dog_id, requires_billing_key_renewal, failed_charge_count, ' +
           'billing_card_brand, has_billing_key, ' +
-          'profiles(name, email), subscription_items(*), dogs(id, name)',
+          'profiles(name, email), subscription_items(*), dogs(id, name, weight)',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -319,6 +319,9 @@ export default function AdminSubscriptionsPage() {
 
   /** 시험 계정 구독인가 — 사장님(관리자)·명시 목록(푸린네). */
   const isTestSub = (s: SubscriptionRow) => internalIds.has(s.user_id.toLowerCase())
+  /** 새 정기배송 — 신청 7일 안 + 카드 등록됨(카드 등록 전 신청은 아직 정기배송이 아니다). */
+  const isNewSub = (s: SubscriptionRow) =>
+    s.has_billing_key && s.status !== 'cancelled' && diffDaysKst(today, kstDateOf(s.created_at)) <= 7
   // 목록·탭 숫자·머리 숫자는 전부 이 묶음으로 센다(시험 계정을 숨겼으면 숫자에서도 빠진다).
   const visible = showTest ? subs : subs.filter((s) => !isTestSub(s))
   const hiddenTestCount = subs.length - visible.length
@@ -659,6 +662,7 @@ export default function AdminSubscriptionsPage() {
                       round={nextRounds.get(sub.id) ?? null}
                       isSupporter={isLiveTrial(trials.get(sub.user_id))}
                       isTest={isTestSub(sub)}
+                      isNew={isNewSub(sub)}
                       isLoading={actionLoading === sub.id}
                       onAction={handleStatusChange}
                       onShipDate={setShipDateSubId}
@@ -682,6 +686,7 @@ export default function AdminSubscriptionsPage() {
                 round={nextRounds.get(sub.id) ?? null}
                 isSupporter={isLiveTrial(trials.get(sub.user_id))}
                 isTest={isTestSub(sub)}
+                isNew={isNewSub(sub)}
                 isLoading={actionLoading === sub.id}
                 onAction={handleStatusChange}
                 onShipDate={setShipDateSubId}
@@ -823,6 +828,29 @@ function NextDelivery({
       {charge && <span className={`mt-0.5 text-[10px] font-semibold ${charge.cls}`}>{charge.text}</span>}
     </span>
   )
+}
+
+/** 카드 머리 — 강아지 이름 + 몸무게(사장님이 가장 먼저 찾는 두 값). 강아지가 지워졌으면 보호자 이름. */
+function DogTitle({ sub }: { sub: SubscriptionRow }) {
+  if (!sub.dogs) return <>{sub.profiles?.name || sub.recipient_name || '-'}</>
+  return (
+    <>
+      {sub.dogs.name}
+      {sub.dogs.weight != null && <span className="ml-1 font-bold text-muted-foreground">{sub.dogs.weight}kg</span>}
+    </>
+  )
+}
+
+/** 레시피 짧은 이름 — '치킨 레시피 (80g · 하루 두 팩 중 하나)' → '치킨'. 앱 정기배송 카드(shortRecipe)와 같은 방식. */
+function shortRecipes(sub: SubscriptionRow): string {
+  const names = sub.subscription_items.map((i) =>
+    i.product_name.replace(/\s*\([^)]*\)\s*$/, '').replace(/\s*화식$/, '').replace(/\s*레시피$/, '').trim(),
+  )
+  return [...new Set(names.filter(Boolean))].join(' + ')
+}
+
+function NewBadge() {
+  return <span className="rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white">새</span>
 }
 
 /** 시험 계정 배지 — 서포터즈(보라)·상태(초록·노랑)와 겹치지 않는 회색 점선. */
@@ -1062,6 +1090,7 @@ function SubRow({
   round = null,
   isSupporter,
   isTest = false,
+  isNew = false,
   isLoading,
   onAction,
   onShipDate,
@@ -1075,6 +1104,8 @@ function SubRow({
   isSupporter: boolean
   /** 시험 계정(사장님·푸린네) 구독 — 시험 계정 보기를 켰을 때만 목록에 나온다(규칙313). */
   isTest?: boolean
+  /** 카드를 등록한 지 7일 안의 새 정기배송 — '새' 배지. */
+  isNew?: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
   onShipDate: (id: string) => void
@@ -1085,25 +1116,21 @@ function SubRow({
       style={isSupporter ? { boxShadow: 'inset 3px 0 0 rgb(124 58 237)' } : undefined}
     >
       <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5 text-xs font-bold">
-          <Link href={customerHref(sub.user_id)} className="underline-offset-2 hover:underline">
-            {sub.profiles?.name || sub.recipient_name || '-'}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link href={subscriptionHref(sub.id)} className="text-[15px] font-black underline-offset-2 hover:underline">
+            <DogTitle sub={sub} />
           </Link>
+          {isNew && <NewBadge />}
           {isSupporter && <SupporterBadge />}
           {isTest && <TestBadge />}
         </div>
-        <div className="text-[10px] text-muted-foreground">{sub.profiles?.email || ''}</div>
+        <Link href={customerHref(sub.user_id)} className="text-[13px] text-muted-foreground underline-offset-2 hover:underline">
+          {sub.profiles?.name || sub.recipient_name || '-'}
+        </Link>
       </td>
-      <td className="px-4 py-3">
-        {sub.subscription_items.map((item, i) => (
-          <div key={i} className="text-xs">
-            {item.product_name} ×{item.quantity}
-          </div>
-        ))}
-        <div className="mt-0.5 text-[10px] text-muted-foreground">
-          {freshTierLabel(sub.fresh_ratio)}
-          {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
-        </div>
+      <td className="px-4 py-3 text-[13px]">
+        <div className="font-semibold">{shortRecipes(sub)}</div>
+        <div className="mt-0.5 text-muted-foreground">{freshTierLabel(sub.fresh_ratio)}</div>
       </td>
       <td className="px-4 py-3 text-center">
         <StatusBadge sub={sub} />
@@ -1134,6 +1161,7 @@ function SubCard({
   round = null,
   isSupporter,
   isTest = false,
+  isNew = false,
   isLoading,
   onAction,
   onShipDate,
@@ -1147,6 +1175,8 @@ function SubCard({
   isSupporter: boolean
   /** 시험 계정(사장님·푸린네) 구독 — 시험 계정 보기를 켰을 때만 목록에 나온다(규칙313). */
   isTest?: boolean
+  /** 카드를 등록한 지 7일 안의 새 정기배송 — '새' 배지. */
+  isNew?: boolean
   isLoading: boolean
   onAction: (id: string, status: string) => void
   onShipDate: (id: string) => void
@@ -1155,42 +1185,38 @@ function SubCard({
     <div
       className={`rounded-xl border p-4 shadow-sm ${isSupporter ? 'border-violet-300 bg-violet-50/70' : 'border-border bg-card'} ${sub.status === 'cancelled' ? 'opacity-50' : ''}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 truncate text-[13px] font-bold">
-            <Link href={customerHref(sub.user_id)} className="underline-offset-2 hover:underline">
-              {sub.profiles?.name || sub.recipient_name || '-'}
-            </Link>
+      {/* ★카드 위쪽 전체가 정기배송 한 장 링크(2026-10-24 규칙314) — 예전엔 보호자 이름 글자만 눌렸다. 강아지 이름·몸무게가 머리. */}
+      <Link href={subscriptionHref(sub.id)} className="block">
+        <div className="flex items-start justify-between gap-2">
+          <p className="flex min-w-0 flex-wrap items-center gap-1.5 text-[17px] font-black leading-tight">
+            <DogTitle sub={sub} />
+            {isNew && <NewBadge />}
             {isSupporter && <SupporterBadge />}
             {isTest && <TestBadge />}
           </p>
-          <p className="truncate text-[10px] text-muted-foreground">
-            {sub.profiles?.email || ''}
-          </p>
+          <StatusBadge sub={sub} />
         </div>
-        <StatusBadge sub={sub} />
-      </div>
-      <div className="mt-2.5 text-[12px]">
-        {sub.subscription_items.map((item, i) => (
-          <div key={i}>
-            {item.product_name} ×{item.quantity}
-          </div>
-        ))}
-        <p className="mt-0.5 text-[10px] text-muted-foreground">
-          {freshTierLabel(sub.fresh_ratio)}
-          {sub.dogs ? ` · 🐶 ${sub.dogs.name}` : ''}
+        <p className="mt-1 truncate text-[13px] text-muted-foreground">
+          {[shortRecipes(sub), freshTierLabel(sub.fresh_ratio)].filter(Boolean).join(' · ')}
         </p>
-      </div>
-      {/* 발송일 + 결제일(2026-10-01) — 한 줄에 다 넣으면 폰에서 금액 칸과 겹쳐 두 줄로 나눴다. */}
-      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[12px]">
-        <span className="min-w-0 text-muted-foreground">
-          <strong className="text-foreground">
-            <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" round={round} />
-          </strong>
-          <span className="block text-[11px]">누적 {sub.total_deliveries}회</span>
-        </span>
-        <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
-      </div>
+        {/* 발송일 + 결제일(2026-10-01) — 한 줄에 다 넣으면 폰에서 금액 칸과 겹쳐 두 줄로 나눴다. */}
+        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[13px]">
+          <span className="min-w-0 text-muted-foreground">
+            <strong className="text-foreground">
+              <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" round={round} />
+            </strong>
+            <span className="block text-[12px]">받은 박스 {sub.total_deliveries}회</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1">
+            <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
+            <span aria-hidden className="text-muted-foreground">›</span>
+          </span>
+        </div>
+      </Link>
+      {/* 보호자 이름은 고객 화면으로(규칙253) — 위 한 장 링크 안에 넣으면 링크가 겹친다. */}
+      <Link href={customerHref(sub.user_id)} className="mt-2 inline-block text-[13px] font-semibold text-muted-foreground underline-offset-2 hover:underline">
+        보호자 {sub.profiles?.name || sub.recipient_name || '-'} ›
+      </Link>
       <div className="mt-3">
         <RowActions sub={sub} isLoading={isLoading} onAction={onAction} onShipDate={onShipDate} align="start" />
       </div>

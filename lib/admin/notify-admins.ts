@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
+import { subscriptionHref } from '@/lib/admin/customer-link'
 
 /**
  * 사장님(관리자 전원) 폰에 **바로** 알린다 — 새 정기배송·가게 주문 결제·토요일 결제 결과 (2026-10-24).
@@ -81,8 +82,8 @@ export function newSubscriptionNotice(i: {
   return {
     title: `새 정기배송이 들어왔어요${who ? ` — ${who}` : ''}`,
     body: parts.join(' · ') || '어드민에서 확인해 주세요.',
-    // 정기배송 상세 화면이 따로 없다 — 고객 상세(맨 위가 정기배송 칸)로 간다.
-    url: `/admin/users/${i.userId}`,
+    // 정기배송 한 장(2026-10-24 규칙314) — 누가·몇 kg·얼마·언제가 첫 화면에.
+    url: subscriptionHref(i.subscriptionId),
     tag: `admin-new-sub-${i.subscriptionId}`,
   }
 }

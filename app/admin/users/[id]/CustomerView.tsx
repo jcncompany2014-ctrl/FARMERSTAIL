@@ -23,6 +23,7 @@ import AdminNoteCard from './message/AdminNoteCard'
 import NotesPanel from './NotesPanel'
 import AddressEditor from './AddressEditor'
 import AllergyEditor from './AllergyEditor'
+import { subscriptionHref } from '@/lib/admin/customer-link'
 import type { CustomerData, DogView, SectionKey, SubView } from './_types'
 
 /**
@@ -183,6 +184,9 @@ function SubCard({ sub }: { sub: SubView }) {
         </Row>
         {sub.lastFailReason && sub.state === 'card_failed' && <Row label="마지막 실패">{sub.lastFailReason}</Row>}
       </dl>
+      <Link href={subscriptionHref(sub.id)} className="mt-2 inline-block text-[13px] font-bold text-primary underline-offset-2 hover:underline">
+        정기배송 한 장으로 보기 →
+      </Link>
     </div>
   )
 }

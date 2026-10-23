@@ -93,7 +93,7 @@ const NAV_GROUPS = [
       // 사장님이 직접 처리할 경보(2026-10-14 B1) — 홈 '이번 주 할 일'의 '안 본 경보'가 여기로 온다.
       { href: '/admin/alerts', label: '경보함', icon: Siren },
       { href: '/admin/orders', label: '주문', icon: Package },
-      { href: '/admin/personalization/picking-list', label: '피킹 리스트', icon: ClipboardList },
+      { href: '/admin/personalization/picking-list', label: '포장 목록', icon: ClipboardList },
       { href: '/admin/subscriptions', label: '구독', icon: Repeat },
       { href: '/admin/subscriptions/charges', label: '결제·청구', icon: CreditCard },
       { href: '/admin/refunds', label: '환불', icon: RotateCcw },

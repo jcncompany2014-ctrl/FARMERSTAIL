@@ -20,6 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { loadUpcomingCharges, type UpcomingRound } from '@/lib/admin/upcoming-charges'
 import UpcomingChargesView from './UpcomingChargesView'
 import { loadInternalUserIds, isInternalUser } from '@/lib/admin/internal-accounts'
+import { subscriptionHref } from '@/lib/admin/customer-link'
 
 /**
  * /admin/subscriptions/calendar — 정기배송 일정 캘린더 뷰.
@@ -540,7 +541,7 @@ export default async function SubscriptionsCalendarPage({
                       {c.items.slice(0, 3).map((it) => (
                         <Link
                           key={`${it.id}-${it.box}`}
-                          href={`/admin/subscriptions?focus=${it.id}`}
+                          href={subscriptionHref(it.id)}
                           className={`block text-[10px] px-1.5 py-1 rounded transition hover:opacity-80 ${chipCls(it, todayKey)}`}
                           title={`${it.recipient_name ?? '수령인 미지정'} · ${boxLabel(it, todayKey)} · ${amountText(it)} · ${(it.subscription_items ?? []).map((x) => `${x.product_name}×${x.quantity}`).join(', ')}`}
                         >
@@ -609,7 +610,7 @@ export default async function SubscriptionsCalendarPage({
               {(subsByDay.get(dayParam) ?? []).map((it) => (
                 <li key={`${it.id}-${it.box}`} className="py-2.5">
                   <Link
-                    href={`/admin/subscriptions?focus=${it.id}`}
+                    href={subscriptionHref(it.id)}
                     className="flex flex-wrap items-center gap-x-3 gap-y-1 hover:opacity-80"
                   >
                     <span className="text-[13px] font-bold text-foreground">

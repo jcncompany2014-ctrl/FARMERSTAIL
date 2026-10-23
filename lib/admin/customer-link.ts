@@ -16,3 +16,12 @@ export function customerHref(userId: string): string {
 export function customerHrefBySubscription(subscriptionId: string): string {
   return `/admin/users/by-subscription/${encodeURIComponent(subscriptionId)}`
 }
+
+/**
+ * 정기배송 한 장(/admin/subscriptions/[id]) — 2026-10-24 규칙314. 새 정기배송 알림·홈 '새로 들어온 것'·정기배송 목록 카드·
+ * 달력 칩·이번 주 할 일의 이름 줄이 전부 여기로 온다(예전엔 고객 화면으로 가서 정기배송 칸을 다시 찾아야 했고, 달력은
+ * 목록이 읽지도 않는 ?focus= 로 보내 헛걸음이었다).
+ */
+export function subscriptionHref(subscriptionId: string): string {
+  return `/admin/subscriptions/${encodeURIComponent(subscriptionId)}`
+}
