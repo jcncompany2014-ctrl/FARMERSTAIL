@@ -64,7 +64,7 @@ function statusBadge(paymentStatus: string, orderStatus: string, paidAt: string 
 } {
   // 한 번도 결제되지 않은 시도 — 결제창만 열고 닫았거나(만료), 정기결제 카드가 거절된 회차. 진짜 주문과 같은 색을 쓰지 않는다.
   if (!paidAt) {
-    const label = paymentStatus === 'failed' ? '결제 실패' : paymentStatus === 'pending' ? '결제 안 함' : '결제 안 됨 · 만료'
+    const label = paymentStatus === 'failed' ? '카드 결제 실패' : paymentStatus === 'pending' ? '결제 안 함' : '결제 안 하고 끝남'
     return { label, cls: 'border-dashed border-border bg-transparent text-muted-foreground' }
   }
   if (paymentStatus !== 'paid') {
@@ -110,7 +110,7 @@ const FILTERS = [
   { key: 'shipping', label: '배송 중' },
   { key: 'delivered', label: '배송 완료' },
   { key: 'cancelled', label: '취소·환불' },
-  { key: 'unpaid', label: '결제 안 된 시도' },
+  { key: 'unpaid', label: '결제 안 된 주문' },
 ]
 
 export default async function AdminOrdersPage({
@@ -306,18 +306,18 @@ export default async function AdminOrdersPage({
       {/* 시험 계정 — 기본 숨김(규칙313). 숨긴 게 있으면 몇 건인지, 보고 있으면 끄는 길을 한 줄로. */}
       {!internal.ok ? (
         <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
-          시험 계정 목록을 못 불러와서 사장님 계정 주문은 가리지 못했어요 — 새로고침해 주세요.
+          시험 계정 목록을 불러오지 못해서 시험 주문도 같이 보이고 있어요 — 새로고침해 주세요.
         </p>
       ) : showTest ? (
         <p className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-secondary px-3 py-2 text-[13px]">
-          <span>시험 계정(사장님·푸린네) 주문도 같이 보고 있어요 — <Em>시험</Em> 딱지가 붙어 있어요.</span>
+          <span>시험 계정(사장님·푸린네) 주문도 같이 보여요 — 앞에 <Em>시험</Em> 표시가 있어요.</span>
           <Link href={hrefWith({ test: false })} className="font-semibold text-primary hover:underline">
             시험 계정 숨기기
           </Link>
         </p>
       ) : hiddenCount ? (
         <p className="flex flex-wrap items-center justify-between gap-2 px-1 text-[13px] text-muted-foreground">
-          <span>시험 계정(사장님·푸린네) 주문 {hiddenCount}건은 숨겼어요.</span>
+          <span>시험 계정(사장님·푸린네) 주문 {hiddenCount}건은 안 보이게 했어요.</span>
           <Link href={hrefWith({ test: true })} className="font-semibold text-primary hover:underline">
             보기
           </Link>

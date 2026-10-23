@@ -45,34 +45,34 @@ function WhenBand({ sub, heldNext, today }: { sub: SubView; heldNext: boolean; t
     text = `해지됨${sub.cancelledAt ? ` · ${md(sub.cancelledAt)}` : ''}`
     tone = 'off'
   } else if (sub.state === 'needs_card') {
-    text = '카드 등록 전 — 결제·발송일은 카드를 등록할 때 잡혀요'
+    text = '아직 카드 등록 전이에요 — 카드를 등록하면 결제일·발송일이 정해져요'
     tone = 'off'
   } else if (!u) {
     text = '다음 발송일 없음'
     tone = 'off'
   } else if (u.kind === 'in_progress') {
     if (u.shipIso < today) {
-      text = `결제됨 · ${md(u.shipIso)} 발송일이 지났어요 — 송장을 확인해 주세요`
+      text = `결제 완료 · ${md(u.shipIso)} 발송일이 지났어요 — 보냈는지(송장) 확인해 주세요`
       tone = 'bad'
     } else {
-      text = `결제됨 → ${md(u.shipIso)} 발송 · 조리·포장 차례`
+      text = `결제 완료 · ${md(u.shipIso)}에 보내요`
     }
   } else if (u.kind === 'charge_check') {
-    text = `${md(u.chargeIso)} 결제가 확인 안 됐어요 — ${md(u.shipIso)} 발송분 박스 보내지 마세요`
+    text = `${md(u.chargeIso)} 결제가 아직 안 됐어요 — ${md(u.shipIso)} 박스는 보내지 마세요`
     tone = 'bad'
   } else if (sub.state === 'paused') {
-    text = `일시정지 중 — 다시 시작하기 전엔 결제·발송 안 해요(원래 ${md(u.shipIso)} 발송)`
+    text = '일시정지 중이에요 — 다시 시작할 때까지 결제도 발송도 안 해요'
     tone = 'warn'
   } else if (sub.state === 'card_failed') {
-    text = `카드 결제 실패 — 고객이 카드를 다시 등록해야 ${md(u.shipIso)} 박스가 나가요`
+    text = `카드 결제가 실패했어요 — 고객이 카드를 다시 등록해야 ${md(u.shipIso)} 박스를 보낼 수 있어요`
     tone = 'bad'
   } else if (heldNext) {
-    text = `${u.chargeIso ? md(u.chargeIso) : ''} 결제 보류 예정 — 서포터즈 인상 동의가 없어요`
+    text = `서포터즈 가격이 오르는 회차인데 고객 동의가 없어요 — ${u.chargeIso ? `${md(u.chargeIso)} ` : ''}결제를 하지 않아요`
     tone = 'bad'
   } else if (u.chargeIso) {
     text = `결제 ${md(u.chargeIso)} 아침 → 발송 ${md(u.shipIso)}`
   } else {
-    text = `발송 ${md(u.shipIso)} · 결제일 확인 못 함(서포터즈 정보를 못 읽음)`
+    text = `${md(u.shipIso)}에 보내요 · 결제일은 확인 못 했어요(새로고침해 주세요)`
     tone = 'warn'
   }
   const cls =
@@ -127,7 +127,6 @@ export default function SubscriptionSheet({
 }) {
   const e = data.errors
   const box = dog?.box ?? null
-  const packTotal = box ? box.packs.reduce((n, p) => n + p.count, 0) : 0
   // 하루 양 = 14일치 팩 g 합 ÷ 14(포장 목록·고객 화면과 같은 팩 정본에서).
   const dailyG = box && box.packs.length > 0 ? Math.round(box.packs.reduce((n, p) => n + p.packG * p.count, 0) / 14) : null
   const heldNext = !!data.supporterPlan?.next?.held
@@ -166,12 +165,12 @@ export default function SubscriptionSheet({
       )}
 
       {/* ── 박스 ── */}
-      <Block title={packTotal > 0 ? `박스 · 14일치 ${packTotal}팩` : '박스'} right={box?.cycle != null ? `${box.cycle}회차` : undefined}>
+      <Block title="박스 · 14일치" right={box?.cycle != null ? `${box.cycle}번째 식단` : undefined}>
         {e.box || e.surveys ? (
           <LoadError what="박스 구성" hint="팩 구성·알레르기를 못 읽었어요 — 새로고침해 주세요." />
         ) : !box ? (
           <p className="rounded-lg border border-border bg-card p-3 text-[14px] text-muted-foreground">
-            {sub.state === 'cancelled' ? '해지된 정기배송이에요.' : '지금 식단(처방)이 없어 박스를 계산하지 않았어요.'}
+            {sub.state === 'cancelled' ? '해지된 정기배송이에요.' : '아직 정해진 식단이 없어서 박스 구성을 보여 드릴 수 없어요.'}
           </p>
         ) : (
           <div className="rounded-lg border border-border bg-card p-3">
@@ -191,7 +190,7 @@ export default function SubscriptionSheet({
             )}
             {box.held.length > 0 && (
               <p className="mt-2 rounded bg-red-50 px-2 py-1.5 text-[14px] font-bold text-red-700 break-keep">
-                못 담은 몫 — {box.held.map((h) => `${h.name}(${h.reason})`).join(' · ')}. 포장 목록이 이 박스를 멈춰요.
+                넣지 못한 레시피가 있어요 — {box.held.map((h) => `${h.name}(${h.reason})`).join(' · ')}. 이 박스는 포장 목록에서 멈춰 있어요.
               </p>
             )}
             <p className="mt-2 text-[14px] text-muted-foreground break-keep">
@@ -223,7 +222,7 @@ export default function SubscriptionSheet({
       {/* ── 금액 — 이번에 실제로 결제될 금액 하나를 크게 ── */}
       <Block title={sub.state === 'cancelled' || sub.state === 'needs_card' ? '2주 금액' : '이번에 결제될 금액'}>
         {e.charge_preview ? (
-          <LoadError what="이번 결제 금액" hint={`저장된 금액은 ${won(sub.storedAmount)}이에요 — 할인 계산을 못 했어요.`} />
+          <LoadError what="이번 결제 금액" hint={`할인을 계산하지 못했어요. 할인 전 금액은 ${won(sub.storedAmount)}이에요.`} />
         ) : (
           <>
             <p className="flex flex-wrap items-baseline gap-x-2">
@@ -326,7 +325,7 @@ export default function SubscriptionSheet({
         </Link>
       </div>
       <p className="mt-2 text-[13px] text-muted-foreground break-keep">
-        발송일 바꾸기·일시정지·해지는 정기배송 목록에서, 결제·변경 기록은 고객 전체 보기에서 해요.
+        발송일 바꾸기·일시정지·해지는 정기배송 목록에서 할 수 있어요. 결제 기록은 &lsquo;고객 전체 보기&rsquo;에 있어요.
       </p>
     </div>
   )

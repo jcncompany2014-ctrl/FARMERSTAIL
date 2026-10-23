@@ -570,14 +570,14 @@ export default function AdminSubscriptionsPage() {
       {/* 시험 계정 — 기본 숨김(규칙313). */}
       {!loading && !loadError && internalError ? (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
-          시험 계정 목록을 못 불러와서 사장님 시험 구독을 가리지 못했어요 — 새로고침해 주세요.
+          시험 계정 목록을 불러오지 못해서 시험 구독도 같이 보이고 있어요 — 새로고침해 주세요.
         </p>
       ) : !loading && !loadError && (showTest || hiddenTestCount > 0) ? (
         <p className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[13px] text-muted-foreground">
           <span>
             {showTest
-              ? '시험 계정(사장님·푸린네) 구독도 같이 보고 있어요 — 시험 딱지가 붙어 있어요.'
-              : `시험 계정(사장님·푸린네) 구독 ${hiddenTestCount}건은 숨겼어요.`}
+              ? '시험 계정(사장님·푸린네) 구독도 같이 보여요 — 앞에 시험 표시가 있어요.'
+              : `시험 계정(사장님·푸린네) 구독 ${hiddenTestCount}건은 안 보이게 했어요.`}
           </span>
           <button type="button" onClick={() => setShowTest((v) => !v)} className="font-semibold text-primary hover:underline">
             {showTest ? '시험 계정 숨기기' : '보기'}

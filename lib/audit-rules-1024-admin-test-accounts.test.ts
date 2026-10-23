@@ -28,12 +28,12 @@ test('규칙313: 주문 목록 — 시험 계정은 기본 숨김, 전체는 결
   // 전체 = 결제된 적 있는 주문, 결제 안 된 시도 = paid_at 없음
   assert.match(page, /if \(status === 'unpaid'\) \{\s*x = x\.is\('paid_at', null\)/, "'결제 안 된 시도' 칩이 paid_at 없음으로 거르지 않는다")
   assert.match(page, /x = x\.not\('paid_at', 'is', null\)/, "'전체'에 결제 안 된 시도(만료·카드 거절 회차)가 섞인다")
-  assert.match(page, /key: 'unpaid', label: '결제 안 된 시도'/, "'결제 안 된 시도' 칩이 없다")
+  assert.match(page, /key: 'unpaid', label: '결제 안 된 주문'/, "'결제 안 된 주문' 칩이 없다")
   // 옛 주소(status=pending)는 새 칩으로
   assert.match(page, /statusRaw === 'pending' \? 'unpaid' : statusRaw/, '옛 결제 전 주소가 새 칩으로 안 이어진다')
   // 보일 땐 딱지, 숨겼으면 몇 건인지
   assert.ok(page.includes('isInternalUser(o.user_id, internal.ids) && <TestBadge />'), '시험 계정 주문에 딱지가 없다')
-  assert.ok(page.includes('주문 {hiddenCount}건은 숨겼어요'), '숨긴 시험 계정 건수를 안 알린다')
+  assert.ok(page.includes('주문 {hiddenCount}건은 안 보이게 했어요'), '숨긴 시험 계정 건수를 안 알린다')
   // 판정은 service_role 이라 페이지에서도 관리자 확인
   assert.ok(page.indexOf('isAdmin(supabase, user)') < page.indexOf('loadInternalUserIds(createAdminClient())'), '관리자 확인 전에 service_role 조회를 한다')
 })

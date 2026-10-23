@@ -937,7 +937,7 @@ export default async function AdminHome() {
       {/* 최근 주문 — md 이상 테이블, 모바일은 카드 리스트(폰 운영·탭타겟). */}
       <SectionCard
         title="최근 들어온 주문"
-        desc="결제된 주문 최근 10건이에요(시험 계정·결제 안 된 시도 제외). 누르면 자세히 볼 수 있어요."
+        desc="결제가 끝난 주문 최근 10건이에요(시험 계정·결제 안 된 주문은 빼고). 누르면 자세히 볼 수 있어요."
         action={
           <Link
             href="/admin/orders"

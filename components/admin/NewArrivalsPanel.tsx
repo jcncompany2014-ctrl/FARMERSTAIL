@@ -18,7 +18,7 @@ function Group({ title, count, children }: { title: string; count: number | null
   return (
     <div className="mt-3 first:mt-0">
       <p className="mb-1.5 text-[13px] font-bold text-muted-foreground">
-        {title} {count == null ? <span className="text-destructive">못 봄</span> : count}
+        {title} {count == null ? <span className="text-destructive">확인 못 함</span> : `${count}건`}
       </p>
       {children}
     </div>
@@ -26,7 +26,7 @@ function Group({ title, count, children }: { title: string; count: number | null
 }
 
 function Unread() {
-  return <p className="rounded-md bg-destructive/5 px-3 py-2 text-[13px] font-semibold text-destructive">못 불러왔어요 — 0건이 아니에요. 새로고침해 주세요.</p>
+  return <p className="rounded-md bg-destructive/5 px-3 py-2 text-[13px] font-semibold text-destructive">불러오지 못했어요 — 없는 게 아니에요. 새로고침해 주세요.</p>
 }
 
 export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; nowMs: number }) {
@@ -45,7 +45,7 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
       </div>
 
       {nothing ? (
-        <p className="text-[14px] text-muted-foreground">최근 7일 동안 새 정기배송·가게 주문·결제 실패·해지가 없어요.</p>
+        <p className="text-[14px] text-muted-foreground">최근 7일 동안 새로 들어온 정기배송·가게 주문이 없고, 결제 실패·해지도 없어요.</p>
       ) : (
         <>
           <Group title="새 정기배송" count={brandNew ? brandNew.length : null}>
@@ -90,7 +90,7 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
           </Group>
 
           {resumed.length > 0 && (
-            <Group title="카드 다시 등록(이어짐)" count={resumed.length}>
+            <Group title="카드를 다시 등록한 구독" count={resumed.length}>
               <ul className="space-y-1">
                 {resumed.map((s) => (
                   <li key={s.subscriptionId}>
@@ -124,7 +124,7 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
                         <b className="shrink-0 tabular-nums">{won(o.amount)} ›</b>
                       </div>
                       <p className={`text-[13px] ${o.tracked ? 'text-muted-foreground' : 'font-semibold text-amber-800'}`}>
-                        출고 {md(o.shipIso)} · {o.tracked ? '송장 넣음' : '송장 아직'}
+                        {md(o.shipIso)}에 보내요 · {o.tracked ? '송장 넣었어요' : '송장 아직 안 넣었어요'}
                       </p>
                     </Link>
                   </li>
@@ -149,7 +149,7 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
                           <b className="min-w-0 truncate text-red-800">{f.dogName}</b>
                           <span className="shrink-0 text-[12px] text-muted-foreground">{f.at ? formatKstShortDateTime(f.at) : ''} ›</span>
                         </div>
-                        <p className="text-[13px] text-red-800 break-keep">{f.reason} · 박스 보내지 마세요</p>
+                        <p className="text-[13px] text-red-800 break-keep">{f.reason} — 결제될 때까지 박스는 보내지 마세요</p>
                       </Link>
                     </li>
                   ))}
@@ -180,7 +180,7 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
       )}
 
       {data.failures.length > 0 && (
-        <p className="mt-3 text-[12px] text-destructive">일부를 못 읽었어요: {data.failures.join(' · ')}</p>
+        <p className="mt-3 text-[12px] text-destructive">일부 정보를 불러오지 못했어요(새로고침해 주세요): {data.failures.join(' · ')}</p>
       )}
     </section>
   )

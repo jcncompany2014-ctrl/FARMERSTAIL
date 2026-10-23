@@ -58,7 +58,7 @@ test('규칙314: 홈 맨 위 새로 들어온 것 — 첫 카드 등록 판정·
   assert.ok((lib.match(/notTest\(/g) ?? []).length >= 4, '새로 들어온 것에 시험 계정이 섞인다')
   const panel = code('components', 'admin', 'NewArrivalsPanel.tsx')
   assert.match(panel, /href=\{subscriptionHref\(s\.subscriptionId\)\}/, '새 정기배송 줄이 한 장을 안 연다')
-  assert.ok(panel.includes('못 불러왔어요 — 0건이 아니에요'), "조회 실패를 '없어요'로 그린다(규칙1)")
+  assert.ok(panel.includes('불러오지 못했어요 — 없는 게 아니에요'), "조회 실패를 '없어요'로 그린다(규칙1)")
   const home = code('app', 'admin', 'page.tsx')
   assert.ok(home.indexOf('<NewArrivalsPanel') > 0 && home.indexOf('<NewArrivalsPanel') < home.indexOf('<WeeklyTodoPanel'), "'새로 들어온 것'이 홈 맨 위(이번 주 할 일 위)에 없다")
 })
