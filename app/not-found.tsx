@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import StoreShell from '@/components/store/StoreShell'
+import WebNotFound from '@/components/store/WebNotFound'
 import AppChrome from '@/components/AppChrome'
 import AppNotFoundScreen from '@/components/v3/system/AppNotFoundScreen'
 import { isAppContextServer } from '@/lib/app-context'
@@ -35,47 +34,5 @@ export default async function NotFound() {
   }
 
   // 웹 = 웹 시안 WEB-A29(2026-10-10 웹 리뉴얼) — 새 웹 가게 틀. 길 안내는 가게로(웹 설문은 앱으로 옮겼다 — 기획서 D1).
-  return (
-    <StoreShell>
-      <section style={{ padding: '48px 20px 72px', display: 'flex', flexDirection: 'column' }}>
-        <span
-          aria-hidden
-          className="d"
-          style={{ width: 72, height: 72, background: '#141414', color: '#FFFFFF', fontSize: 46, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          ?
-        </span>
-        <h1 className="d" style={{ margin: '26px 0 0', fontSize: 42, lineHeight: 1.1 }}>
-          길을 잃으셨나요?
-        </h1>
-        <p style={{ margin: '14px 0 0', fontSize: 18, lineHeight: 1.65, color: '#3D3D3D' }}>주소가 바뀌었거나 사라진 페이지일 수 있어요. 아래에서 다시 시작해 보세요.</p>
-        <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Link
-            href="/store"
-            style={{ height: 60, borderRadius: 4, background: '#141414', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 18, fontWeight: 800, textDecoration: 'none' }}
-          >
-            레시피 고르기
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </Link>
-          <Link
-            href="/"
-            style={{ height: 58, boxSizing: 'border-box', borderRadius: 4, border: '2px solid #141414', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: '#141414', textDecoration: 'none' }}
-          >
-            홈으로
-          </Link>
-        </div>
-        <p style={{ margin: '22px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 16, color: '#595959' }}>
-          다른 도움이 필요하신가요?
-          <Link
-            href="/contact"
-            style={{ minHeight: 48, padding: '0 4px', display: 'flex', alignItems: 'center', fontWeight: 800, color: '#141414', textDecoration: 'underline', textUnderlineOffset: 3 }}
-          >
-            고객센터 문의
-          </Link>
-        </p>
-      </section>
-    </StoreShell>
-  )
+  return <WebNotFound />
 }

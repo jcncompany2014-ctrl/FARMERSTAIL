@@ -25,6 +25,9 @@ import {
 } from '@/lib/store/catalog'
 
 const won = (n: number) => n.toLocaleString('ko-KR')
+/** 폰 정사각 썸네일에 그 레시피 팩이 들어오게(사진마다 팩 자리가 다르다). 예전엔 모두 62%로 잘라 팩이 빠지고
+ *  노란 컵 세 장이 똑같아 보였다(10/22 디자인 점검). PC 칸은 사진 비율이 넓어 이 값의 영향이 작다. */
+const THUMB_POS: Record<StoreRecipe, string> = { chicken: '18% 50%', duck: '12% 50%', pork: '15% 50%', beef: '55% 50%' }
 
 export function QtyStepper({ qty, onMinus, onPlus, label }: { qty: number; onMinus: () => void; onPlus: () => void; label: string }) {
   const btn = (aria: string, onClick: () => void, d: string) => (
@@ -85,7 +88,7 @@ export default function RecipeGrid({
                 style={{ display: 'block', minHeight: 128, borderRadius: 4, overflow: 'hidden', background: '#F6F4F5' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={RECIPE_REAL_IMG[r]} alt="" width={384} height={256} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '62% 50%', display: 'block' }} />
+                <img src={RECIPE_REAL_IMG[r]} alt="" width={384} height={256} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: THUMB_POS[r], display: 'block' }} />
               </Link>
               <div className="fts-rbody" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Link href={`/store/${r}`} style={{ color: '#141414', textDecoration: 'none' }}>

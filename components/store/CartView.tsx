@@ -49,7 +49,8 @@ export default function CartView({ paused }: { paused: boolean }) {
 
   if (s.lines.length === 0) {
     return (
-      <div style={{ padding: '32px 20px 64px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+      // 빈 장바구니는 가운데 480 칸 — PC 에서 버튼이 창 끝에서 끝까지 늘어났다(10/22 디자인 점검). 폰은 원래 480 보다 좁아 그대로.
+      <div style={{ width: '100%', maxWidth: 480, margin: '0 auto', boxSizing: 'border-box', padding: '32px 20px 64px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
         {undo && (
           <div role="status" style={{ alignSelf: 'stretch', marginBottom: 12, padding: '12px 14px', background: '#141414', color: '#FFFFFF', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 15 }}>
             <span>{eulReul(storeItem(undo.id).name)} 뺐어요</span>

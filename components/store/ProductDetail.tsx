@@ -205,7 +205,7 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
   // 사진마다 큰 한 줄(조사 Baymard: 사진부터 보는 사람이 절반 — 사진 위에 설명을 얹는다).
   // 첫 장 = 강아지·그릇·팩이 한 번에 보이는 실촬영(사장님 10/22 시안 A). 대표 썸네일(공유 미리보기·검색·가게 목록)은 스튜디오 팩 그대로 — 규칙311.
   const photos: Array<{ src: string; alt: string; cap: string; pos?: string }> = [
-    { src: '/store/real-serving.webp', alt: '화식 그릇을 받는 셸티', cap: '셸티 땅콩이의 한 그릇', pos: '46% 50%' },
+    { src: '/store/real-serving.webp', alt: '화식 그릇을 받는 셸티', cap: '셸티 땅콩이의 한 그릇', pos: '15% 50%' },
     { src: RECIPE_STUDIO_IMG[recipe], alt: `${RECIPE_PRODUCT_NAME[recipe]} 팩`, cap: '100g씩 한 팩, 얼려서 와요' },
     { src: RECIPE_REAL_IMG[recipe], alt: `그릇에 담은 ${RECIPE_PRODUCT_NAME[recipe]}`, cap: '그릇에 담으면 이렇게' },
     { src: `/store/ingredients-${recipe}.webp`, alt: `흰 접시에 담은 ${name} 레시피 재료`, cap: '들어가는 재료 그대로' },
@@ -283,9 +283,10 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
               scroll={false}
               aria-current={on ? 'page' : undefined}
               className="d"
-              style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 17, textDecoration: 'none', background: on ? RECIPE_BAND[r] : '#FFFFFF', color: on && r === 'pork' ? '#FFFFFF' : '#141414' }}
+              style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 17, textDecoration: 'none', background: on ? '#141414' : '#FFFFFF', color: on ? '#FFFFFF' : '#141414' }}
             >
-              <span aria-hidden style={{ width: 9, height: 9, background: on ? (r === 'pork' ? '#FFFFFF' : '#141414') : RECIPE_BAND[r] }} />
+              {/* 고른 칸 = 먹색 칠(사이트의 다른 '고른 것' 표시와 같은 문법 — 10/22 점검: 칸을 레시피 색으로 칠하니 사진 밑에 색 띠가 생겼다). 레시피 색은 작은 네모에만. */}
+              <span aria-hidden style={{ width: 9, height: 9, background: RECIPE_BAND[r], outline: on ? '1px solid #FFFFFF' : 'none' }} />
               {SHORT[r]}
             </Link>
           )
@@ -507,9 +508,10 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
           들어간 것
         </SecTitle>
         {/* 원물 카드(조사: Lyka·Ollie·JFFD — 원물 하나하나 사진 + 이름. 성분 글을 안 읽어도 무엇이 들었는지 보인다) */}
-        <ul className="fts-pd-ingcards" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-          {ingCards.map((c) => (
-            <li key={c.name} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+        {/* 폰: 위 줄 고기 두 장은 크게(3칸씩), 아래 줄 세 장(2칸씩) — 5장을 3열에 넣으니 마지막 칸이 비었다(10/22 점검). PC 는 5칸 한 줄. */}
+        <ul className="fts-pd-ingcards" style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10 }}>
+          {ingCards.map((c, i) => (
+            <li key={c.name} style={{ gridColumn: i < 2 ? 'span 3' : 'span 2', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
               <span style={{ position: 'relative', display: 'block', borderRadius: 4, overflow: 'hidden', background: '#F5F5F5' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={c.img} alt={`흰 접시에 담은 ${c.name}`} width={480} height={480} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
@@ -696,12 +698,13 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       {/* 04 주는 법 — 사진 = 사장님 상세 참고 자료의 실제 장면(serve-1~3) + 처음 바꿀 땐 일주일(조사: Nom Nom '바꾸는 4단계' — %는 쓰지 않고 그릇 채움으로) */}
-      <section className="fts-sec fts-pt fts-pd-narrow" style={SEC}>
+      {/* PC: 왼쪽 사진 세 장 · 오른쪽 보관 줄·처음 바꿀 땐(.fts-pd-serve) — 820 에서 멈춰 오른쪽이 비던 칸(10/22 점검) */}
+      <section className="fts-sec fts-pt fts-pd-narrow fts-pd-wide fts-pd-serve" style={SEC}>
         <Head no="04" color={color}>
           주는 법
         </Head>
         <SecTitle>녹여서 담으면 끝</SecTitle>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+        <div className="fts-pd-serve-a" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
           {[
             { src: '/store/serve-1.webp', alt: '녹인 팩을 그릇 옆에 든 손', t: '전날 냉장실로 옮겨 녹여요' },
             { src: '/store/serve-2.webp', alt: '팩을 가위로 잘라 그릇에 담는 손', t: '팩을 잘라 그릇에 담아요' },
@@ -710,21 +713,22 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
             <figure key={f.src} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={f.src} alt={f.alt} width={420} height={420} loading="lazy" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
-              <figcaption style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span className="n" style={{ fontSize: 18 }}>
+              {/* 번호 = 02 만드는 법과 같은 검정 동그라미(한 화면 안 번호 모양을 하나로, 10/22 점검) */}
+              <figcaption style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <span className="n" style={{ width: 24, height: 24, flexShrink: 0, borderRadius: '50%', background: '#141414', color: '#FFFFFF', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {i + 1}
                 </span>
-                <strong style={{ fontSize: 15, lineHeight: 1.35, wordBreak: 'keep-all' }}>{f.t}</strong>
+                <strong style={{ fontSize: 14, lineHeight: 1.4, wordBreak: 'keep-all', paddingTop: 2 }}>{f.t}</strong>
               </figcaption>
             </figure>
           ))}
         </div>
-        <div style={{ borderLeft: `4px solid ${color}`, padding: '4px 0 4px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="fts-pd-serve-b" style={{ borderLeft: `4px solid ${color}`, padding: '4px 0 4px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>얼린 채로 보냉 상자에 와요 — 받으면 바로 냉동실에</span>
           <span style={{ fontSize: 16, fontWeight: 700 }}>녹인 뒤엔 냉장 3일 안에 주세요</span>
           <span style={{ fontSize: 16, fontWeight: 700 }}>한 번 녹인 팩은 다시 얼리지 마세요</span>
         </div>
-        <div style={{ border: '2px solid #141414', borderRadius: 4, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="fts-pd-serve-b" style={{ border: '2px solid #141414', borderRadius: 4, padding: '18px 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <strong className="d" style={{ fontSize: 22, fontWeight: 400 }}>
               처음 바꿀 땐 일주일에 걸쳐
@@ -920,7 +924,9 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       {/* 우리 아이한테 맞을까요 — 이런 아이에게(자기 확인 목록) + 자주 묻는 질문을 한 덩어리로(조사: Lyka 레시피별 질문 · 한국 상세 '이런 아이에게') */}
       {/* 큰 강아지 사진은 뺐다 — 첫 사진이 강아지가 됐고(시안 A) 같은 결의 사진이 두 번 나와 길기만 했다. PC 는 왼쪽 목록 · 오른쪽 질문(.fts-pd-fit). */}
       <section className="fts-sec fts-pt fts-pd-narrow fts-pd-wide fts-pd-fit" style={SEC}>
-        <Kicker color={color}>추천</Kicker>
+        <Head no="06" color={color}>
+          추천
+        </Head>
         <SecTitle>이런 아이에게 좋아요</SecTitle>
         <div className="fts-pd-fit-a" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', borderTop: '2px solid #141414' }}>
@@ -964,7 +970,10 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
 
       {/* 4가지 레시피 — 팩 사진 카드(보고 있는 것만 굵은 테두리). 조사: 다른 레시피는 주 정보 아래(후기·질문 뒤). */}
       <section className="fts-sec fts-pt" style={SEC}>
-        <Kicker color={color}>다른 레시피</Kicker>
+        {/* 머리말 = 01~05 와 같은 큰 번호(10/22 점검: 위 칸은 번호, 아래 칸은 작은 머리말만이라 리듬이 끊겼다) */}
+        <Head no="07" color={color}>
+          다른 레시피
+        </Head>
         <SecTitle>
           4가지 레시피
           <br />
@@ -1013,7 +1022,12 @@ export default function ProductDetail({ recipe, label, paused }: { recipe: Store
       </section>
 
       <section id="info" className="fts-sec fts-pt fts-pd-narrow" style={{ padding: '64px 20px 120px', display: 'flex', flexDirection: 'column', scrollMarginTop: -40 }}>
-        <SecTitle>상품 정보</SecTitle>
+        <Head no="08" color={color}>
+          꼭 알아 둘 것
+        </Head>
+        <div style={{ marginTop: 20 }}>
+          <SecTitle>상품 정보</SecTitle>
+        </div>
         <div style={{ marginTop: 14, borderTop: '2px solid #141414' }}>
           <Acc title="원재료 전체">
             <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: '#3D3D3D' }}>{fullIngredients(recipe).join(', ')}</p>

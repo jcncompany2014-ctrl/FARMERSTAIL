@@ -685,6 +685,26 @@
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 20px !important;
   }
+  .fts-pd-ingcards > li {
+    grid-column: auto !important;
+  }
+  /* 04 주는 법: 왼쪽 사진 세 장 · 오른쪽 보관 줄과 처음 바꿀 땐 */
+  .fts-pd-serve {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+  }
+  .fts-pd-serve > * {
+    grid-column: 1 / -1;
+  }
+  .fts-pd-serve > .fts-pd-serve-a {
+    grid-column: 1;
+    grid-row: 3 / span 2;
+  }
+  .fts-pd-serve > .fts-pd-serve-b {
+    grid-column: 2;
+  }
   /* 급여량: 왼쪽 제목 묶음은 위에서부터 쌓이고(왼쪽으로 띄움), 오른쪽 계산기는 그 옆으로 흐른다 — 격자로 하면 두 칸 줄 높이가 묶여 제목이 계산기 줄마다 벌어졌다. */
   .fts-pd-calc {
     display: block !important;

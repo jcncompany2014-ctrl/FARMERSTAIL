@@ -56,13 +56,13 @@ test('규칙311: 상품 상세 구조(10/22) — 바로가기 줄·제목 밑 �
     '<section id="reviews"',
     '이런 아이에게 좋아요',
     '자주 묻는 질문',
-    '<Kicker color={color}>다른 레시피</Kicker>',
+    '<Head no="07"',
     '<section id="info"',
   ]
   const at = order.map((s) => pd.indexOf(s))
   order.forEach((s, i) => assert.ok(at[i]! > 0, `상세에서 '${s}' 구획을 찾지 못했다`))
   for (let i = 1; i < order.length; i++) assert.ok(at[i]! > at[i - 1]!, `상세 순서가 어긋났다: '${order[i - 1]}' 다음에 '${order[i]}'가 와야 한다`)
-  for (const no of ['01', '02', '03', '04', '05']) assert.match(pd, new RegExp(`<Head no="${no}"`), `구획 번호 ${no} 가 없다`)
+  for (const no of ['01', '02', '03', '04', '05', '06', '07', '08']) assert.match(pd, new RegExp(`<Head no="${no}"`), `구획 번호 ${no} 가 없다`)
 
   // ④ 한눈에 = 검정 띠 + 숫자 칸(kcal 은 상품표에서) + 흐르는 글자 띠
   assert.match(pd, /className="fts-sec fts-pd-glance" style=\{\{[^}]*background: '#141414'/, '한눈에가 검정 띠가 아니다')
