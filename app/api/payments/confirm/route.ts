@@ -18,6 +18,7 @@ import { rateLimitDB, ipFromRequest } from '@/lib/rate-limit'
 // captureBusinessEvent 만 호출하던 흐름을 alert helper 로 통일해서
 // business.alert.kind 태그가 박혀 Sentry rule 가 라우팅 가능.
 import { alertAmountMismatch, alertFraud } from '@/lib/sentry/alerts'
+import { notifyAdmins } from '@/lib/admin/notify-admins'
 import {
   traceBusiness,
   captureBusinessEvent,
@@ -503,6 +504,19 @@ export async function POST(req: Request) {
     ).catch(() => {
       /* 푸시는 베스트 에포트 */
     })
+  }
+
+  // 7-1) 사장님 폰에 바로(2026-10-24) — 새 주문을 아침 브리핑까지 모르던 것. 실패해도 결제 응답은 그대로.
+  if (isActuallyPaid) {
+    await notifyAdmins(
+      {
+        title: '새 주문 결제가 끝났어요',
+        body: `${order.order_number} · ${amount.toLocaleString('ko-KR')}원 — 눌러서 주문 확인`,
+        url: `/admin/orders/${order.id}`,
+        tag: `admin-order-${order.id}`,
+      },
+      'payments-confirm',
+    )
   }
 
   // 8) 이메일 알림 — DONE 이면 주문 접수 메일, WAITING_FOR_DEPOSIT 이면 입금 안내.

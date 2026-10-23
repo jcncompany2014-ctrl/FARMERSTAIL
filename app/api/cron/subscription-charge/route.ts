@@ -46,6 +46,7 @@ import {
 } from '@/lib/personalization/skuMap'
 import { checkChargeAmount } from '@/lib/payments/charge-amount-guard'
 import { priceRiseGate, PRICE_RISE_LABEL } from '@/lib/payments/price-rise'
+import { notifyAdmins } from '@/lib/admin/notify-admins'
 import {
   loadPriceRiseContext,
   recordPriceRiseHold,
@@ -2224,6 +2225,20 @@ async function runSubscriptionCharge(): Promise<Response> {
         note: '청구 중 토스가 시크릿 키를 거부 — 남은 구독은 청구하지 않고 멈춤. 운영키 확인 후 재실행',
       },
       { status: 500 },
+    )
+  }
+
+  // 사장님 폰에 결제 결과 바로(2026-10-24) — 결제할 게 있었던 날만. 아침 브리핑(09:40)보다 30분 먼저, 실패를 빨리 안다.
+  const tried = succeeded + failed + declined
+  if (tried > 0) {
+    await notifyAdmins(
+      {
+        title: failed + declined > 0 ? `정기배송 결제 ${failed + declined}건이 안 됐어요` : `정기배송 결제 ${succeeded}건 끝났어요`,
+        body: `성공 ${succeeded}건 · 실패 ${failed + declined}건${priceConsentHeld ? ` · 동의 대기 보류 ${priceConsentHeld}건` : ''} — 눌러서 이번 주 할 일 보기`,
+        url: '/admin',
+        tag: `admin-charge-${today}`,
+      },
+      'subscription-charge',
     )
   }
 

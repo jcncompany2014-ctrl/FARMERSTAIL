@@ -8,7 +8,8 @@ import { billingBrandLabel } from '@/lib/payments/billing-methods'
 import { parseRequest } from '@/lib/api/parseRequest'
 import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
-import { nextShipDate, keepShipDateOnCardRegister } from '@/lib/shipping-schedule'
+import { nextShipDate, keepShipDateOnCardRegister, chargeDateFor } from '@/lib/shipping-schedule'
+import { notifyAdmins, newSubscriptionNotice } from '@/lib/admin/notify-admins'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import { isCurrentNoCancelConsent, NO_CANCEL_CONSENT_VERSION } from '@/lib/payments/no-cancel-consent'
@@ -401,6 +402,33 @@ export async function POST(req: Request) {
     },
     source: 'api/payments/billing-issue',
   })
+
+  // ★새 정기배송 = 첫 카드 등록(배송 일정이 없던 구독) → 사장님 폰에 바로(2026-10-24 — 10/21·10/23 주문이 폰에 안 떴다).
+  //   카드만 바꾼 재등록은 알리지 않는다. 알림이 실패해도 등록 완료 응답은 그대로(notifyAdmins 는 throw 하지 않는다).
+  if (!cur?.next_delivery_date && firstDeliveryIso) {
+    const [{ data: subRow }, { data: dogRow }] = await Promise.all([
+      admin.from('subscriptions').select('total_amount').eq('id', subscriptionId).maybeSingle(),
+      cur?.dog_id ? admin.from('dogs').select('name, weight').eq('id', cur.dog_id).maybeSingle() : Promise.resolve({ data: null }),
+    ])
+    const dog = dogRow as { name: string | null; weight: number | string | null } | null
+    await notifyAdmins(
+      newSubscriptionNotice({
+        subscriptionId,
+        userId: user.id,
+        dogName: dog?.name ?? null,
+        weightKg: dog?.weight != null ? Number(dog.weight) : null,
+        totalAmount: (subRow as { total_amount: number | null } | null)?.total_amount ?? null,
+        chargeIso: chargeDateFor(firstDeliveryIso, chargeTiming ?? 'before_cooking'),
+        shipIso: firstDeliveryIso,
+      }),
+      'billing-issue',
+    )
+  } else if (shouldResume) {
+    await notifyAdmins(
+      { title: '멈췄던 정기배송이 다시 시작됐어요', body: '고객이 카드를 다시 등록했어요. 다음 결제일에 청구돼요.', url: `/admin/users/${user.id}`, tag: `admin-resume-${subscriptionId}` },
+      'billing-issue-resume',
+    )
+  }
 
   return NextResponse.json({
     ok: true,
