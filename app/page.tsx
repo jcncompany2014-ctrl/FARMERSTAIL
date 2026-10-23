@@ -315,18 +315,20 @@ export default async function HomePage() {
       <section className="fts-sec fts-hero" style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="fts-hero-pic" style={{ position: 'relative', height: 560, overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/* 2026-10-23 사장님 새 메인 사진(세로 — 흰 식탁·셸티 정면·화식 그릇·팩 그릇). 폰 첫 화면 비율에 맞는 세로 사진이라 가로 사진을 세로로 자르던 것보다 덜 잘린다. */}
           <img
-            src="/store/hero-sheltie-table.webp"
-            alt="식탁 앞 의자에 앉아 화식 그릇을 기다리는 셸티"
+            src="/store/hero-sheltie-main.webp"
+            alt="식탁 앞 의자에 앉아 화식 그릇 앞에서 웃는 셸티"
             width={1200}
-            height={800}
+            height={1607}
             fetchPriority="high"
             className="fts-hero-img"
-            style={{ width: '100%', height: 560, objectFit: 'cover', objectPosition: '80% 0%', display: 'block' }}
+            style={{ width: '100%', height: 560, objectFit: 'cover', objectPosition: '50% 0%', display: 'block' }}
           />
+          {/* 말풍선: 폰은 왼쪽 위 빈 벽(오른쪽엔 강아지 귀가 걸린다) · PC 는 오른쪽 위(store.css .fts-hero .hand) */}
           <p
             className="hand"
-            style={{ position: 'absolute', right: 18, top: 44, margin: 0, background: '#FFFFFF', border: '2px solid #141414', borderRadius: 14, padding: '12px 16px 14px', fontSize: 26, lineHeight: 1.15, color: '#141414' }}
+            style={{ position: 'absolute', left: 18, top: 30, margin: 0, background: '#FFFFFF', border: '2px solid #141414', borderRadius: 14, padding: '12px 16px 14px', fontSize: 26, lineHeight: 1.15, color: '#141414' }}
           >
             이거 제 밥
             <br />
