@@ -88,7 +88,7 @@ import { V3 } from '@/lib/design/tokens'
 import { RECIPE_COLOR } from '@/components/analysis/display'
 import { boxRecipes, boxCardColors, boxCardFrame } from '@/lib/design/pouch'
 import './subscription.css'
-import { todayKstIsoDate, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
+import { todayKstIsoDate, addDaysKst, kstDateOf, diffDaysKst } from '@/lib/datetime-kst'
 
 export type DogSub = SubLike & {
   id: string
@@ -815,6 +815,42 @@ function SubCard({
             )
           : `2주에 한 번${perDayText}`
       : null
+  /**
+   * 영수증 줄(진행 중일 때만) — 결제일 · 결제수단 · 이번 박스 · 하루. 팩 개수는 말하지 않는다(하루 100g 넘는 아이는 실제 팩이
+   * 화면 수의 두 배라 헷갈린다 — '14일치'로만). 마감 = 원래 발송일의 신청 마감(미루기 시트의 되돌리기 마감과 같은 계산).
+   */
+  const ticket: { dday: string | null; rows: Array<{ k: string; v: ReactNode }>; deadline: string | null } | null =
+    state === 'active' && (chargeIso || nextShip)
+      ? (() => {
+          const rows: Array<{ k: string; v: ReactNode }> = []
+          if (chargeIso) {
+            rows.push({
+              k: '결제일',
+              v: overdue ? (
+                <>
+                  <strong>{dateLabel(chargeIso)}</strong> 예정이었어요 · 확인 중
+                </>
+              ) : (
+                <>
+                  <strong>{dateLabel(chargeIso)}</strong> 아침
+                </>
+              ),
+            })
+          } else if (nextShip) {
+            rows.push({ k: '다음 발송', v: <strong>{dateLabel(nextShip)}</strong> })
+          }
+          if (method) rows.push({ k: '결제수단', v: method })
+          if (recipeText) rows.push({ k: inProgress ? '그다음 박스' : '이번 박스', v: `${recipeText} · 14일치` })
+          if (perDay) rows.push({ k: '하루', v: `약 ${perDay.toLocaleString('ko-KR')}원` })
+          const n = chargeIso && !overdue ? diffDaysKst(chargeIso, today) : null
+          const dday = n == null ? null : n === 0 ? '오늘' : n === 1 ? '내일' : `${n}일 뒤`
+          const deadlineIso = nextShip && timing && !overdue ? addDaysKst(nextShip, -leadDaysFor(timing)) : null
+          const deadline =
+            deadlineIso && deadlineIso >= today ? `${dateLabel(deadlineIso)} 밤까지 미루거나 바꿀 수 있어요` : null
+          return { dday, rows, deadline }
+        })()
+      : null
+
   const noteNode: ReactNode =
     state === 'paused' ? (
       <>
@@ -925,13 +961,18 @@ function SubCard({
         </div>
       )}
 
-      {/* ── 금액 = 주인공 (박스 레시피 파우치 색 + 도장 그림자) ── */}
+      {/* ── 금액 = 주인공 (박스 레시피 파우치 색 + 도장 그림자) ──
+          2026-10-24 영수증 꼴로 다듬음(사장님 "다음 결제 정보 카드 … 업그레이드가 더 필요") — 색·그림자는 그대로(승인 방향),
+          금액 아래 절취선 + 결제일·결제수단·이번 박스·하루 줄 + 바꿀 수 있는 마감. 줄은 전부 위에서 이미 계산한 값이다. */}
       <section
         aria-label={state === 'active' ? '다음 결제' : '정기배송 금액'}
-        className="sub-hero"
+        className={'sub-hero' + (ticket ? ' is-ticket' : '')}
         style={{ ...boxCardFrame(colors), '--sub-hero-divider': colors.divider } as React.CSSProperties}
       >
-        <span className="sub-hero-kicker">{state === 'active' ? '다음 결제' : '2주마다'}</span>
+        <span className="sub-hero-top">
+          <span className="sub-hero-kicker">{state === 'active' ? '다음 결제' : '2주마다'}</span>
+          {ticket?.dday && <span className="sub-hero-dday">{ticket.dday}</span>}
+        </span>
         <span className="sub-hero-amount">
           <span className="ft-num">{shown.toLocaleString('ko-KR')}</span>
           <span className="ft-poster">원</span>
@@ -942,7 +983,22 @@ function SubCard({
             <span className="sub-hero-discount-chip">{discountText}</span>
           </span>
         )}
-        {whenNode && <span className="sub-hero-when">{whenNode}</span>}
+        {ticket ? (
+          <>
+            <span className="sub-hero-perf" aria-hidden />
+            <dl className="sub-hero-rows">
+              {ticket.rows.map((r) => (
+                <div key={r.k}>
+                  <dt>{r.k}</dt>
+                  <dd>{r.v}</dd>
+                </div>
+              ))}
+            </dl>
+            {ticket.deadline && <span className="sub-hero-deadline">{ticket.deadline}</span>}
+          </>
+        ) : (
+          whenNode && <span className="sub-hero-when">{whenNode}</span>
+        )}
         {noteNode && <span className="sub-hero-note">{noteNode}</span>}
       </section>
 

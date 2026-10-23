@@ -168,6 +168,59 @@
 .sub-hero-when strong,
 .sub-hero-note strong { font-weight: 800; }
 
+/* ── 영수증 꼴(2026-10-24) — 머리 줄(다음 결제 · N일 뒤) · 절취선 · 줄 · 마감 ─────────────────── */
+.sub-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* 며칠 뒤 — 먹 바탕 종이 글자(정기배송 상태 칩과 같은 결). 한우(흰 글자 카드)에서도 읽힌다. */
+.sub-hero-dday {
+  min-height: 28px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+/* 절취선 — 카드 끝까지(좌우 패딩만큼 밀어낸다). 색은 카드 구분선 색(파우치 색마다 대비가 맞게). */
+.sub-hero-perf {
+  display: block;
+  margin: 10px -18px 4px;
+  border-top: 2px dashed var(--sub-hero-divider, rgba(20, 20, 20, 0.2));
+}
+.sub-hero-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sub-hero-rows > div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--sub-hero-divider, rgba(20, 20, 20, 0.2));
+}
+.sub-hero-rows > div:last-child { border-bottom: 0; }
+.sub-hero-rows dt { font-size: 15px; opacity: 0.78; }
+.sub-hero-rows dd { margin: 0; font-size: 16px; line-height: 1.45; word-break: keep-all; }
+.sub-hero-rows strong { font-weight: 800; }
+/* 마감 — 바꿀 수 있는 마지막 날. 카드 안 맨 아래, 옅은 띠로(경고가 아니라 안내). */
+.sub-hero-deadline {
+  margin: 6px -18px -16px;
+  padding: 10px 18px 12px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
 /* ── 박스 여정 (결제 → 조리 → 발송 → 도착) ────────────────────────────── */
 .sub-journey {
   padding: 32px 20px 0;

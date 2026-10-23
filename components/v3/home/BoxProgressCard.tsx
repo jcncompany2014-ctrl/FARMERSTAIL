@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { V3 } from '@/lib/design/tokens'
 import { BOX_STAGES, type BoxStage } from '@/lib/commerce/box-progress'
 import { boxCardColors, boxCardFrame, type PouchLine } from '@/lib/design/pouch'
+import PouchStickers from './PouchStickers'
 
 interface BoxProgressCardProps {
   /** "땅콩이" — petName 을 거친 이름. */
@@ -80,22 +81,27 @@ export default function BoxProgressCard({
             {t2}
           </span>
         </span>
-        <span
-          style={{
-            flexShrink: 0,
-            height: 30,
-            padding: '0 10px',
-            borderRadius: 4,
-            background: V3.ink,
-            color: '#FFFFFF',
-            fontSize: 14,
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          {BOX_STAGES[idx]?.label}
-        </span>
+        {/* 2026-10-24 시안 — 단계 칩 대신 박스에 든 팩 사진 스티커(단계는 아래 막대가 굵게 말한다). 팩을 모르면 예전 칩. */}
+        {lines.length > 0 ? (
+          <PouchStickers lines={lines} />
+        ) : (
+          <span
+            style={{
+              flexShrink: 0,
+              height: 30,
+              padding: '0 10px',
+              borderRadius: 4,
+              background: V3.ink,
+              color: '#FFFFFF',
+              fontSize: 14,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            {BOX_STAGES[idx]?.label}
+          </span>
+        )}
       </div>
       {itemLabel && (
         <span style={{ fontSize: 16, fontWeight: 700, wordBreak: 'keep-all' }}>{itemLabel}</span>

@@ -12,6 +12,7 @@
 
 import Link from 'next/link'
 import { boxCardColors, boxCardFrame, type PouchLine } from '@/lib/design/pouch'
+import PouchStickers from './PouchStickers'
 
 interface DeliveryStripCardProps {
   /** 발송까지 남은 날(0 = 오늘). 확인 중이면 null. */
@@ -90,9 +91,14 @@ export default function DeliveryStripCard({
         )}
         {itemLabel && <span style={{ fontSize: 15, wordBreak: 'keep-all' }}>{itemLabel}</span>}
       </span>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M9 6l6 6-6 6" />
-      </svg>
+      {/* 2026-10-24 시안 — 박스에 든 팩 사진 스티커(홈 박스 카드와 같은 부품). 팩을 모르면 예전 화살표. */}
+      {lines.length > 0 ? (
+        <PouchStickers lines={lines.slice(0, 1)} size={52} />
+      ) : (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      )}
     </Link>
   )
 }
