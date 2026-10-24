@@ -25,11 +25,21 @@ describe('홈 박스 진행 카드 — 발송 준비 → 발송 → 배송 중 �
     // 밤 11시 KST(14:00Z)에 보낸 것도 그날
     assert.equal(boxStage({ ...shipping, shipped_at: '2026-10-13T14:00:00Z' }, '2026-10-13'), 'shipped')
   })
-  it('배송 완료는 이틀만 보이고, 완료 시각을 모르면 띄우지 않는다', () => {
+  it("배송 완료는 도착한 날(KST)만 보이고 다음 날엔 사라진다 — 완료 시각을 모르면 띄우지 않는다 (2026-10-24 사장님)", () => {
+    // 10-14 수 14:00 KST(05:00Z) 도착
     const done = { ...paid, order_status: 'delivered', delivered_at: '2026-10-14T05:00:00Z' }
     assert.equal(boxStage(done, '2026-10-14'), 'delivered')
-    assert.equal(boxStage(done, '2026-10-16'), 'delivered')
-    assert.equal(boxStage(done, '2026-10-17'), null)
+    assert.equal(boxStage(done, '2026-10-15'), null, "도착 다음 날에도 '박스가 도착했어요'가 홈에 남는다")
+    assert.equal(boxStage(done, '2026-10-16'), null)
+    // 밤 11시 30분 KST(14:30Z) 도착 — 그날이 도착일, 다음 날엔 없다(UTC 날짜로 세면 하루 밀린다).
+    const late = { ...done, delivered_at: '2026-10-14T14:30:00Z' }
+    assert.equal(boxStage(late, '2026-10-14'), 'delivered')
+    assert.equal(boxStage(late, '2026-10-15'), null)
+    // 실제 사례 — 10/22 12:18 KST 도착(18:30 크론이 기록), 10/24 에도 '도착했어요'가 떠 있었다.
+    const real = { ...paid, order_status: 'delivered', delivered_at: '2026-10-22T03:18:00Z' }
+    assert.equal(boxStage(real, '2026-10-22'), 'delivered')
+    assert.equal(boxStage(real, '2026-10-23'), null)
+    assert.equal(boxStage(real, '2026-10-24'), null)
     assert.equal(boxStage({ ...paid, order_status: 'delivered' }, '2026-10-14'), null)
   })
   it('발송 준비 한 줄 — 주말 조리 · 월 포장 · 화 발송 리듬과 같은 말', () => {

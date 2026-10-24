@@ -11,7 +11,7 @@
  *  · preparing  = 결제 완료·출고 준비 (order_status 'preparing')
  *  · shipped    = 택배사에 넘긴 **그날** (order_status 'shipping', shipped_at 의 KST 날짜 = 오늘)
  *  · in_transit = 그다음 날부터 배송 완료 전 (order_status 'shipping')
- *  · delivered  = 배송 완료 (order_status 'delivered' 또는 delivered_at) — 완료 뒤 이틀만 보인다
+ *  · delivered  = 배송 완료 (order_status 'delivered' 또는 delivered_at) — **도착한 날(KST)만** 보인다(아래 DELIVERED_SHOW_DAYS)
  * 도착 요일은 약속하지 않는다(지역·택배사 사정 — 사장님 "수요일 도착이라는 말을 쓰지 말고").
  */
 
@@ -24,8 +24,13 @@ export const BOX_STAGES: ReadonlyArray<{ key: BoxStage; label: string }> = [
   { key: 'delivered', label: '배송 완료' },
 ]
 
-/** 배송 완료 뒤 홈에 남겨 두는 기간(일). */
-export const DELIVERED_SHOW_DAYS = 2
+/**
+ * 배송 완료 뒤 홈에 남겨 두는 기간(일) — 0 = 도착한 날(KST)만, 다음 날 0시부터 카드가 없다.
+ * 2026-10-24 사장님 "배송이 도착했으면 다음날 쯤에는 '박스가 도착했어요'는 홈화면에서 사라져야지" — 예전 2일은 10/22 낮에
+ * 도착한 박스 6개가 10/24 까지 '도착했어요'로 남았다. 도착 시각은 택배사 기록(tracking-poll, 매일 18:30 KST)이라 저녁 늦게
+ * 도착한 박스는 다음 날 저녁에야 기록되고 그날은 이미 지난 날이라 카드가 바로 사라진다 — 도착 알림(푸시)은 그대로 간다.
+ */
+export const DELIVERED_SHOW_DAYS = 0
 
 export type BoxOrderLike = {
   order_status: string | null
@@ -43,7 +48,7 @@ function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000)
 }
 
-/** 지금 단계. 결제 전·취소·환불이거나 완료 뒤 이틀이 지났으면 null(카드 없음). */
+/** 지금 단계. 결제 전·취소·환불이거나 도착한 날이 지났으면 null(카드 없음). */
 export function boxStage(o: BoxOrderLike, todayKst: string): BoxStage | null {
   if (o.payment_status !== 'paid' && o.payment_status !== 'partially_refunded') return null
   if (o.order_status === 'cancelled' || o.order_status === 'pending') return null
