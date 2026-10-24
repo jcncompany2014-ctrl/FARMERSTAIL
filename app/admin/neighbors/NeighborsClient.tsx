@@ -4,6 +4,7 @@
  * 이웃 할인 화면 — 지인·쓰레드 등에서 온 고객을 찾아 첫 박스 할인율을 붙이고, 목록을 본다.
  * (사장님 2026-09-27) 체험단 도장 화면과 같은 동선.
  */
+import { subBadgeFromStatus } from '@/lib/admin/status-badge'
 import { useState } from 'react'
 import { AdminCard, AdminButton, Badge, SectionTitle } from '@/components/admin/ui'
 import { NEIGHBOR_RATES } from '@/lib/payments/neighbor'
@@ -28,11 +29,10 @@ type Candidate = {
   subscriptionStatus?: string | null
 }
 
-const SUB_LABEL: Record<string, string> = { active: '구독 중', paused: '일시정지', cancelled: '해지' }
 
 /** 후보 줄 설명 — 이름만 보고 엉뚱한 사람에게 누르지 않게(2026-09-28 9차 점검). */
 function candidateMeta(c: Candidate): string {
-  const sub = c.subscriptionStatus ? (SUB_LABEL[c.subscriptionStatus] ?? c.subscriptionStatus) : '구독 없음'
+  const sub = c.subscriptionStatus ? subBadgeFromStatus(c.subscriptionStatus).label : '정기배송 없음'
   const paid = c.paidBoxes ? `결제 ${c.paidBoxes}회` : '결제 없음'
   const joined = c.created_at ? `가입 ${c.created_at.slice(0, 10)}` : ''
   return [sub, paid, joined].filter(Boolean).join(' · ')

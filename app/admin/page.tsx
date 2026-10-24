@@ -16,24 +16,15 @@ import FoodInfoCompletion, {
 import ActionsPanel from '@/components/admin/ActionsPanel'
 import { Badge } from '@/components/adminui/badge'
 import { Card, CardContent } from '@/components/adminui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/adminui/table'
+import { HelpTip } from '@/components/admin/ui'
+import { weekdayKo } from '@/lib/shipping-schedule'
 import {
   tossKeyStatus,
   describeTossKeyStatus,
   describeStoreWidgetKeyStatus,
 } from '@/lib/payments/key-mode'
-import {
-  formatKstShortDateTime as formatDate,
-  todayKstIsoDate,
-} from '@/lib/datetime-kst'
-import { PAID_STATUSES, isPaidStatus, netPaidAmount } from '@/lib/commerce/paid-status'
+import { todayKstIsoDate } from '@/lib/datetime-kst'
+import { PAID_STATUSES, netPaidAmount } from '@/lib/commerce/paid-status'
 import { loadWeeklyTodo } from '@/lib/admin/weekly-todo'
 import WeeklyTodoPanel from '@/components/admin/WeeklyTodoPanel'
 import NewArrivalsPanel from '@/components/admin/NewArrivalsPanel'
@@ -48,60 +39,6 @@ import { findMissedCrons, type CronEntry } from '@/lib/cron-watchdog'
 import vercelConfig from '@/vercel.json'
 
 export const dynamic = 'force-dynamic'
-
-type RecentOrder = {
-  id: string
-  order_number: string
-  total_amount: number
-  payment_status: string
-  order_status: string
-  created_at: string
-  recipient_name: string
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: '결제 대기',
-  preparing: '준비 중',
-  shipping: '배송 중',
-  delivered: '배송 완료',
-  cancelled: '취소',
-}
-
-function statusBadge(paymentStatus: string, orderStatus: string) {
-  // ★결제 상태 판정은 정본(isPaidStatus)으로 (2026-08-19 5라운드 감사).
-  //   예전엔 `paymentStatus !== 'paid'` 자체 판정이라, 부분환불(박스는 나가는
-  //   결제됨 주문)과 전액취소가 전부 회색 '결제 전'으로 떴다 — 홈 최근주문 표가
-  //   결제 이력을 거짓 표시하고, 발송할 주문 카드 숫자와 배지가 모순됐다.
-  // 색은 /admin/orders 목록의 statusBadge 와 같은 토큰 팔레트(화면 간 일관).
-  if (paymentStatus === 'cancelled') {
-    return { label: '취소', cls: 'bg-destructive text-white border-transparent' }
-  }
-  if (paymentStatus === 'failed') {
-    return { label: '결제 실패', cls: 'bg-red-100 text-red-900 border-transparent' }
-  }
-  if (!isPaidStatus(paymentStatus)) {
-    // pending 등 — 아직 결제 안 됨.
-    return { label: '결제 전', cls: 'bg-secondary text-secondary-foreground border-transparent' }
-  }
-  if (paymentStatus === 'partially_refunded') {
-    return { label: '부분환불', cls: 'bg-amber-100 text-amber-900 border-transparent' }
-  }
-  switch (orderStatus) {
-    case 'preparing':
-      return { label: '준비 중', cls: 'bg-primary text-primary-foreground border-transparent' }
-    case 'shipping':
-      return { label: '배송 중', cls: 'bg-emerald-600 text-white border-transparent' }
-    case 'delivered':
-      return { label: '완료', cls: 'bg-emerald-100 text-emerald-900 border-transparent' }
-    case 'cancelled':
-      return { label: '취소', cls: 'bg-destructive text-white border-transparent' }
-    default:
-      return {
-        label: STATUS_LABEL[orderStatus] ?? orderStatus,
-        cls: 'bg-secondary text-secondary-foreground border-transparent',
-      }
-  }
-}
 
 export default async function AdminHome() {
   const supabase = await createClient()
@@ -153,13 +90,11 @@ export default async function AdminHome() {
     todayOrdersRes,
     pendingShipRes,
     usersRes,
-    recentOrdersRes,
     thirtyDayOrdersRes,
     activeSubscriptionsRes,
     lowStockRes,
     lastWeekOrdersRes,
     prevWeekOrdersRes,
-    failedOrdersRes,
     newSubsRes,
     churnedSubsRes,
     todayRevenueRes,
@@ -199,16 +134,6 @@ export default async function AdminHome() {
     profileFilter
       ? supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null).or(profileFilter)
       : supabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
-
-    // 최근 주문 10건 — 진짜 주문만(결제된 적 있는 것). 시험 계정·결제 안 된 시도(만료·카드 거절 회차)는 뺀다(규칙313).
-    ex(
-      supabase
-        .from('orders')
-        .select('id, order_number, total_amount, payment_status, order_status, created_at, recipient_name')
-        .not('paid_at', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10),
-    ),
 
     // 최근 30일 매출 (일별 차트)
     ex(
@@ -259,15 +184,6 @@ export default async function AdminHome() {
         .in('payment_status', PAID_STATUSES)
         .gte('created_at', twentyEightDaysAgo)
         .lt('created_at', fourteenDaysAgo),
-    ),
-
-    // 결제 실패 카운트 (최근 30일)
-    ex(
-      supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('payment_status', 'failed')
-        .gte('created_at', thirtyDaysAgo),
     ),
 
     // 30일 신규 구독 — created_at 기준. ★행을 받아 '카드 등록 전 포기(결제 0회로 해지)'를 뺀다(2026-10-14 B3) —
@@ -439,7 +355,6 @@ export default async function AdminHome() {
     activeSubscriptionsRes,
     lastWeekOrdersRes,
     prevWeekOrdersRes,
-    failedOrdersRes,
     newSubsRes,
     churnedSubsRes,
     todayRevenueRes,
@@ -463,7 +378,6 @@ export default async function AdminHome() {
   for (const r of [
     ...statResults,
     ...queueResults,
-    recentOrdersRes,
     lowStockRes,
   ]) {
     if (r.error) console.error('[admin-home] 조회 실패:', r.error.message)
@@ -479,7 +393,6 @@ export default async function AdminHome() {
   const todayOrderCount = todayOrdersRes.count ?? 0
   const pendingShipCount = pendingShipRes.count ?? 0
   const userCount = usersRes.count ?? 0
-  const recentOrders = (recentOrdersRes.data ?? []) as RecentOrder[]
 
   // 평균 주문 금액 카드는 뺐다(2026-10-24 어드민 금액 말 정리) — 결제 주문 대부분이 서포터즈 100원이라 평균이 뜻이 없었다.
 
@@ -532,7 +445,8 @@ export default async function AdminHome() {
     return subtotal - applyDiscount(subtotal, computeAutoDiscount({ tier }).rate)
   }
   const trialSubCount = activeSubs.filter((s) => trialByUser.has(s.user_id)).length
-  const estimatedMrr = activeSubs.reduce((sum, s) => sum + chargeOf(s) * 2, 0)
+  // 다음 2주 결제 예정 = 진행 중 정기배송이 2주에 한 번씩 결제되는 금액의 합(홈 숫자 4개, 2026-10-24 2묶음 2-1).
+  const nextTwoWeeksCharge = activeSubs.reduce((sum, s) => sum + chargeOf(s), 0)
 
   const lowStockCount = lowStockRes.count ?? 0
   const lowStockItems =
@@ -542,8 +456,6 @@ export default async function AdminHome() {
       slug: string
       stock: number
     }>
-
-  const failedOrderCount = failedOrdersRes.count ?? 0
 
   // 구독 30일 net 변화 (신규 - 해지). 음수면 churn 우세.
   // ★'진짜'만 센다(lib/admin/churn, 2026-10-14 B3): 결제 0회로 닫힌 신청(카드 등록 전 포기·정리 크론)은 새 구독도 해지도
@@ -625,436 +537,299 @@ export default async function AdminHome() {
   // (카테고리별 매출 도넛은 2026-07-19 검수에서 제거 — 구독 전용 전환 후 활성
   //  상품이 화식 4종뿐이라 도넛이 항상 '화식 ~100%' 원 하나였다. 정보가치 0.)
 
+  /**
+   * 결제 키 — 손볼 것만 크게(빨강·노랑), 괜찮은 건 맨 아래 회색 한 줄(2026-10-24 2묶음 2-1).
+   * 웹 가게는 토스 일반결제 심사 동안 '시험 모드'(또는 결제창 키 없음)가 정상이라(규칙209) 위험(danger)일 때만 크게 띄운다.
+   * 정기결제는 진짜 돈이 오가므로 정상(ok)이 아니면 크게. 키 값은 내보내지 않는다.
+   */
+  const keyRows = [
+    (() => {
+      const d = describeTossKeyStatus(
+        tossKeyStatus(
+          process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+          process.env.TOSS_SECRET_KEY,
+        ),
+      )
+      return { ...d, title: `정기결제 · ${d.title}`, quiet: d.tone === 'ok' }
+    })(),
+    (() => {
+      const d = describeStoreWidgetKeyStatus(
+        tossKeyStatus(
+          process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY,
+          process.env.TOSS_WIDGET_SECRET_KEY,
+        ),
+      )
+      return { ...d, quiet: d.tone !== 'danger' }
+    })(),
+  ]
+
   return (
     <div className="grid gap-4">
-      {/* 헤더 — orders/refunds 와 같은 패턴(lucide 아이콘 + xl/2xl 제목) */}
+      {/* 머리 — 이름은 메뉴와 같은 '홈'. 돈 숫자와 박스 할 일의 시험 계정 기준을 한 줄로(2026-10-24 2묶음 2-1). */}
       <div>
         <div className="flex items-center gap-2">
           <LayoutDashboard className="size-5 text-primary" strokeWidth={2} />
-          <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-            대시보드
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">홈</h1>
         </div>
-        <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          {`${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일 · 숫자는 시험 계정(사장님·푸린네)을 뺀 값이에요.`}
+        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+          {`${Number(todayKst.slice(5, 7))}월 ${Number(todayKst.slice(8, 10))}일(${weekdayKo(todayKst)}) · 돈은 시험 계정을 뺀 값 · 보낼 박스는 시험 박스 포함`}
         </p>
       </div>
 
-      {/* 새로 들어온 것 — 맨 위(2026-10-24 규칙314). 새 정기배송이 토요일 첫 결제 전까지 홈 어디에도 안 보였다. */}
+      {/* 찾기 — 강아지 이름·보호자·전화·주문번호(2-4). 결과는 찾기 화면(/admin/search-all), 강아지를 누르면 정기배송 한 장. */}
+      <form action="/admin/search-all" method="get" className="flex gap-2" role="search">
+        <input
+          type="search"
+          name="q"
+          aria-label="찾기"
+          placeholder="찾기 — 강아지 이름 · 보호자 · 전화 · 주문번호"
+          className="min-w-0 flex-1 rounded-full border border-border bg-card px-4 py-2.5 text-[15px] focus:border-primary focus:outline-none"
+        />
+        <button type="submit" className="shrink-0 rounded-full bg-primary px-5 text-[14px] font-bold text-primary-foreground transition hover:opacity-90">
+          찾기
+        </button>
+      </form>
+
+      {/* 새로 들어온 것 — 찾기 바로 아래(2026-10-24 규칙314). 새 정기배송이 토요일 첫 결제 전까지 홈 어디에도 안 보였다. */}
       <NewArrivalsPanel data={arrivals} nowMs={now.getTime()} />
 
-      {/* 이번 주 할 일 — 요일별(토 결제·월 포장·화 발송·늘 확인). 아침 브리핑 푸시와 같은 함수(2026-10-14 B2). */}
-      <WeeklyTodoPanel todo={todo} />
+      {/* 오늘 할 일 = 이번 주 할 일(요일 칸) + 처리 대기 + 결제 키 이상. 예전엔 같은 일(카드 재등록·미발송)이 이름만 바꿔
+          두세 덩어리에 나왔다. 숫자는 아침 브리핑 푸시와 같은 함수(lib/admin/weekly-todo, 2026-10-14 B2). */}
+      <section aria-label="오늘 할 일" className="grid gap-3">
+        <WeeklyTodoPanel todo={todo} />
 
-      {/* 결제 모드 — 지금 진짜 돈이 오가는 설정인지(2026-07-26 결제 경로 감사).
-          테스트키인 채로 출시하면 "결제 완료" 인데 입금이 없고, 키 짝이 안 맞으면
-          고객이 카드를 긁은 뒤 승인이 거부된다. 둘 다 첫 실결제에서만 드러나는
-          종류라 항상 보이는 자리에 띄운다. 정상(실결제 모드)일 땐 조용히 한 줄. */}
-      {/* 두 줄 — 정기결제(카드 등록·자동결제) 키와 웹 가게 결제(결제위젯) 키. 같은 판정(tossKeyStatus)에 말만 다르다.
-          웹 가게 줄은 토스 일반결제 심사 동안 '시험 모드'(테스트 결제창 키만)가 정상이다(2026-10-13, 규칙209). 키 값은 내보내지 않는다. */}
-      {[
-        // 정기결제 줄 — 두 줄이 되어 어느 결제인지 제목 앞에 붙인다(웹 가게 줄은 제목에 이미 '웹 가게').
-        (() => {
-          const d = describeTossKeyStatus(
-            tossKeyStatus(
-              process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-              process.env.TOSS_SECRET_KEY,
-            ),
-          )
-          return { ...d, title: `정기결제 · ${d.title}` }
-        })(),
-        describeStoreWidgetKeyStatus(
-          tossKeyStatus(
-            process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY,
-            process.env.TOSS_WIDGET_SECRET_KEY,
-          ),
-        ),
-      ].map((d, i) => {
-        const tone =
-          d.tone === 'ok'
-            ? 'text-muted-foreground'
-            : d.tone === 'warn'
-              ? 'border-amber-300 bg-amber-50 text-amber-900'
-              : 'border-destructive/40 bg-destructive/5 text-destructive'
-        const Icon =
-          d.tone === 'ok'
-            ? CheckCircle2
-            : d.tone === 'warn'
-              ? AlertTriangle
-              : ShieldAlert
-        return (
-          <Card key={i} className={`gap-0 py-3 ${d.tone === 'ok' ? '' : tone}`}>
-            <CardContent className="px-4">
-              <p
-                className={`flex items-center gap-1.5 text-[13px] font-bold ${d.tone === 'ok' ? tone : ''}`}
-              >
-                <Icon className="size-4 shrink-0" strokeWidth={2.2} />
-                {d.title}
-              </p>
-              {d.tone !== 'ok' && (
-                // 본문을 아이콘 폭만큼 들여 제목과 좌측 라인을 맞춘다(시각 QA).
-                <p className="mt-1 pl-[22px] text-[12px] leading-relaxed">
-                  {d.detail}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )
-      })}
+        {keyRows
+          .filter((d) => !d.quiet)
+          .map((d) => {
+            const Icon = d.tone === 'warn' ? AlertTriangle : ShieldAlert
+            const tone =
+              d.tone === 'warn'
+                ? 'border-amber-300 bg-amber-50 text-amber-900'
+                : 'border-destructive/40 bg-destructive/5 text-destructive'
+            return (
+              <Card key={d.title} className={`gap-0 py-3 ${tone}`}>
+                <CardContent className="px-4">
+                  <p className="flex items-center gap-1.5 text-[14px] font-bold">
+                    <Icon className="size-4 shrink-0" strokeWidth={2.2} />
+                    {d.title}
+                  </p>
+                  <p className="mt-1 pl-[22px] text-[13px] leading-relaxed">{d.detail}</p>
+                </CardContent>
+              </Card>
+            )
+          })}
 
-      {/* 처리 대기 큐 — admin hot path. ★조회 실패 시 '모두 처리됨'으로
-          위장되면 안 되므로 배너로 '못 봄'을 분리 표시(규칙1). */}
-      <div>
-        {queueLoadFailed && (
-          <QueryErrorCard
-            what="처리 대기 카운트 일부"
-            detail="아래 '처리 대기' 숫자가 실제보다 적게 보일 수 있어요 — 0이어도 '없음'이 아닐 수 있습니다. 새로고침해 주세요."
-          />
-        )}
-        <ActionsPanel
-          // 발송 화요일이 지났는데 안 나간 결제 박스(위 overdueUnshippedCount — 2026-10-01).
-          unshippedCount={overdueUnshippedCount}
-          shippingStuckCount={shippingStuckRes.count ?? 0}
-          cardRenewalCount={cardRenewalCount}
-          recentFailedCount={recentFailedChargeRes.count ?? 0}
-          refundsPendingCount={refundsPendingRes.count ?? 0}
-          stockOutCount={stockOutRes.count ?? 0}
-          cronFailureCount={cronFailRes.count ?? 0}
-          csUnansweredCount={csUnansweredUserCount}
-          // 웹 가게 출고일 지남·다시 볼 문의·첫 박스 '잘 안 먹어요' — 이번 주 할 일과 같은 숫자(2026-10-15 F-b).
-          storeOverdueCount={storeOverdueCount}
-          followUpDueCount={todo.numbers.followUpDue ?? 0}
-          firstCheckinPoorCount={todo.numbers.firstCheckinPoor}
-          missedCronCount={missedCronCount}
-        />
-      </div>
-
-      {statsLoadFailed && (
-        <QueryErrorCard
-          what="지표 일부"
-          detail="아래 매출·구독 숫자 일부가 0으로 보일 수 있어요 — 실제 0이 아니라 조회가 실패한 상태예요. 새로고침해 주세요."
-        />
-      )}
-      {!internal.ok && (
-        <QueryErrorCard
-          what="내부 계정 목록"
-          detail="사장님 시험 계정을 지표에서 빼지 못했어요 — 아래 매출·구독 숫자에 시험 결제가 섞였을 수 있어요. 새로고침해 주세요."
-        />
-      )}
-
-      {/* 오늘·전체 한눈에 — 쉬운 라벨 + 도움말(?) */}
-      <section>
-        <Kicker>한눈에 보기</Kicker>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            label="오늘 매출"
-            value={`${todayRevenue.toLocaleString()}원`}
-            sub={`오늘 결제된 주문 ${todayOrderCount}건`}
-          />
-          <StatCard
-            label="누적 매출"
-            value={`${totalRevenue.toLocaleString()}원`}
-            sub={`지금까지 결제 완료 ${totalPaidCount}건`}
-            help="가게를 연 뒤 지금까지 결제가 끝난 모든 주문 금액을 더한 값이에요."
-          />
-          {/* 2026-10-01 일정 변경 — 토·일 조리 → 월 포장 → 화 발송. 일반 고객은 토요일 아침에 결제되므로
-              토~화엔 이 숫자가 있는 게 정상이다. 빨강은 발송 화요일이 지났는데 안 나간 박스가 있을 때만. */}
-          <StatCard
-            label="발송할 주문"
-            value={`${pendingShipCount}건`}
-            sub={
-              overdueUnshippedCount + storeOverdueCount > 0
-                ? `결제됐고 아직 안 보낸 박스 · 발송일 지남 ${overdueUnshippedCount + storeOverdueCount}건${storeOverdueCount > 0 ? `(가게 ${storeOverdueCount})` : ''}`
-                : '결제됐고 아직 안 보낸 박스 · 정기 화요일 · 가게 화·목'
-            }
-            tone={overdueUnshippedCount + storeOverdueCount > 0 ? 'red' : pendingShipCount > 0 ? 'amber' : 'neutral'}
-            help="정기배송 박스는 토·일 조리 → 월 포장 → 화요일 발송, 웹 가게 주문은 결제 다음 첫 화·목 출고예요. 일반 고객은 토요일 아침에 결제돼서 토요일부터 화요일까지는 여기 숫자가 있는 게 정상이에요. 발송일·출고일이 지나도 남아 있으면 '발송일 지남'으로 빨갛게 바뀌고 처리 대기에 떠요 — 그건 바로 확인하세요."
-          />
-          <StatCard
-            label="가입 회원"
-            value={`${userCount}명`}
-            sub="탈퇴 회원·시험 계정 제외"
+        {/* 처리 대기 — ★조회 실패 시 '모두 처리됨'으로 위장되면 안 되므로 배너로 '못 봄'을 분리 표시(규칙1). */}
+        <div>
+          {queueLoadFailed && (
+            <QueryErrorCard
+              what="처리 대기 숫자 일부"
+              detail="아래 '처리 대기' 숫자가 실제보다 적게 보일 수 있어요 — 0이어도 '없음'이 아닐 수 있어요. 새로고침해 주세요."
+            />
+          )}
+          <ActionsPanel
+            // 발송 화요일이 지났는데 안 나간 결제 박스(위 overdueUnshippedCount — 2026-10-01).
+            unshippedCount={overdueUnshippedCount}
+            shippingStuckCount={shippingStuckRes.count ?? 0}
+            cardRenewalCount={cardRenewalCount}
+            recentFailedCount={recentFailedChargeRes.count ?? 0}
+            refundsPendingCount={refundsPendingRes.count ?? 0}
+            stockOutCount={stockOutRes.count ?? 0}
+            cronFailureCount={cronFailRes.count ?? 0}
+            csUnansweredCount={csUnansweredUserCount}
+            // 웹 가게 출고일 지남·다시 볼 문의·첫 박스 '잘 안 먹어요' — 이번 주 할 일과 같은 숫자(2026-10-15 F-b).
+            storeOverdueCount={storeOverdueCount}
+            followUpDueCount={todo.numbers.followUpDue ?? 0}
+            firstCheckinPoorCount={todo.numbers.firstCheckinPoor}
+            missedCronCount={missedCronCount}
           />
         </div>
       </section>
 
-      {/* 구독 현황 — 정기배송이 이 사업의 핵심 매출원 */}
+      {statsLoadFailed && (
+        <QueryErrorCard
+          what="숫자 일부"
+          detail="아래 매출·정기배송 숫자 일부가 0으로 보일 수 있어요 — 실제 0이 아니라 불러오지 못한 상태예요. 새로고침해 주세요."
+        />
+      )}
+      {!internal.ok && (
+        <QueryErrorCard
+          what="시험 계정 목록"
+          detail="사장님 시험 계정을 숫자에서 빼지 못했어요 — 아래 매출·정기배송 숫자에 시험 결제가 섞였을 수 있어요. 새로고침해 주세요."
+        />
+      )}
+
+      {/* 숫자 4개 — 매일 보는 것만. 나머지는 아래 '숫자 더 보기'와 매출 리포트(2026-10-24 2묶음 2-1). */}
       <section>
-        <Kicker>구독 현황</Kicker>
+        <Kicker>숫자</Kicker>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard
-            // 구독은 강아지마다 1건이라 사람 수가 아니다(2026-09-26).
-            label="진행 중인 구독"
-            value={`${activeSubCount}건`}
-            sub={`2주마다 자동결제 · 월 예상 ${Math.round(estimatedMrr).toLocaleString()}원(할인 반영${mrrDiscountLookupFailed ? ' 실패 — 할인 전 기준' : ''})${trialSubCount > 0 ? ` · 서포터즈 ${trialSubCount}건 포함` : ''}${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 미등록 ${noCardSubsRes.count}명` : ''}`}
-            tone="green"
-            help="카드까지 등록해 실제로 결제되는 구독 수예요(사장님 시험 계정은 빼요). '카드 미등록'은 신청만 하고 결제 수단을 안 붙인 고객 — 며칠 지나면 리마인드해 주세요."
-          />
-          <StatCard
-            label="새 구독 (30일)"
-            value={`${newSubsCount}명`}
-            sub={
-              netSubsDelta > 0
-                ? `실제 +${netSubsDelta}명 늘었어요`
-                : netSubsDelta < 0
-                  ? `실제 ${netSubsDelta}명 줄었어요`
-                  : '늘지도 줄지도 않음'
-            }
-            tone={netSubsDelta >= 0 ? 'green' : 'red'}
-            help="최근 30일간 새로 구독을 시작한 고객 수예요 — 카드 등록 전에 그만둔 신청과 사장님 시험 계정은 빼요. 아래 문구는 '새 구독에서 진짜 해지를 뺀' 실제 변화예요."
-          />
-          <StatCard
-            label="구독 해지 (30일)"
-            value={`${churnedSubsCount}명`}
-            sub={churn.caption}
-            tone={churn.tone}
-            help={`최근 30일간 한 번이라도 결제된 뒤 끊은 고객만 세요 — 카드 등록 전에 그만둔 신청이나 같은 강아지로 다시 구독 중인 경우는 빼요. 구독이 ${CHURN_MIN_SAMPLE}건이 안 되면 한두 명이 큰 %가 돼서 비율 대신 사람 수로 보여 드려요(${CHURN_MIN_SAMPLE}건부터 ${CHURN_RED_PCT}%를 넘으면 빨간색).`}
-          />
           <StatCard
             label="최근 2주 매출"
             value={`${lastWeekRevenue.toLocaleString()}원`}
             sub={
               wowDelta === 0
-                ? '그 전 2주와 같음'
-                : `그 전 2주보다 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
+                ? '결제 − 환불 · 그 전 2주와 같음'
+                : `결제 − 환불 · 그 전 2주보다 ${wowDelta > 0 ? '+' : ''}${wowDelta.toFixed(1)}%`
             }
             tone={wowDelta >= 0 ? 'green' : 'red'}
-            help="최근 14일 결제 합계를 그 전 14일과 비교한 거예요. 정기배송은 2주마다 결제돼서 7일씩 비교하면 아무 일 없어도 매주 −100%·+100%가 번갈아 떠요."
-          />
-        </div>
-      </section>
-
-      {/* 운영 체크 — 매일 확인하면 좋은 숫자 */}
-      <section>
-        <Kicker>운영 체크</Kicker>
-        {/* 평균 주문 금액 카드를 빼서 두 칸 — 폰·PC 모두 한 줄에 둘이라 고아 칸이 없다(2026-10-24 어드민 금액 말 정리). */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="재고 부족 상품"
-            value={`${lowStockCount}개`}
-            sub={`재고 ${STOCK_LOW_THRESHOLD}개 이하`}
-            tone={lowStockCount > 0 ? 'red' : 'neutral'}
-            help="재고가 얼마 안 남은 상품이에요. 품절되기 전에 미리 채워두세요."
+            help="최근 14일 결제 합계에서 환불을 뺀 값을 그 전 14일과 비교한 거예요. 정기배송은 2주마다 결제돼서 7일씩 비교하면 아무 일 없어도 매주 −100%·+100%가 번갈아 떠요."
           />
           <StatCard
-            label="결제 실패 (30일)"
-            value={`${failedOrderCount}건`}
-            sub="카드 문제 등으로 실패"
-            tone={failedOrderCount > 0 ? 'red' : 'neutral'}
-            help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
+            // 정기배송은 강아지마다 1건이라 '명'이 아니라 '마리'(2026-09-26).
+            label="진행 중 정기배송"
+            value={`${activeSubCount}마리`}
+            sub={`${trialSubCount > 0 ? `서포터즈 ${trialSubCount}마리 포함` : '카드 등록까지 끝난 것'}${(noCardSubsRes.count ?? 0) > 0 ? ` · 카드 등록 전 ${noCardSubsRes.count}마리 따로` : ''}`}
+            tone="green"
+            help="카드까지 등록해 실제로 결제되는 정기배송이에요(사장님 시험 계정은 빼요). '카드 등록 전'은 신청만 하고 카드를 안 붙인 것 — 며칠 지나면 연락해 주세요."
+          />
+          <StatCard
+            label="다음 2주 결제 예정"
+            value={`${nextTwoWeeksCharge.toLocaleString()}원`}
+            sub={`진행 중 정기배송이 2주에 한 번씩 · 할인 반영${mrrDiscountLookupFailed ? ' 실패 — 정가 기준' : ''}`}
+            help="진행 중인 정기배송이 다음 2주 동안 한 번씩 결제될 금액의 합이에요. 서포터즈·등급 할인은 결제와 같은 계산으로 반영하고, 이벤트 첫 박스 할인은 한 번뿐이라 넣지 않아요."
+          />
+          <StatCard
+            label="최근 30일 해지"
+            value={`${churnedSubsCount}마리`}
+            sub={churn.caption}
+            tone={churn.tone}
+            help={`최근 30일 동안 한 번이라도 결제된 뒤 끊은 것만 세요 — 카드 등록 전에 그만둔 신청이나 같은 강아지로 다시 시작한 경우는 빼요. 정기배송이 ${CHURN_MIN_SAMPLE}마리가 안 되면 한두 마리가 큰 %가 돼서 비율 대신 마릿수로 보여 드려요(${CHURN_MIN_SAMPLE}마리부터 ${CHURN_RED_PCT}%를 넘으면 빨간색).`}
           />
         </div>
+        <Link href="/admin/reports" className="mt-2 inline-flex min-h-9 items-center text-[13px] font-bold text-primary hover:underline">
+          매출 리포트에서 숫자 더 보기 →
+        </Link>
       </section>
 
-      {/* 30일 매출 — SVG line chart (RevenueChart) */}
-      <RevenueChart data={dailyChartData} title="최근 30일 매출" />
+      {/* 숫자 더 보기 — 매일 볼 건 아니라 접어 둔다(평균 주문 금액·지난 결제 실패는 뺐다 — 100원 주문과 다음 날 해결된 실패라 뜻이 없었다). */}
+      <details className="rounded-xl border border-border bg-card">
+        <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-2 px-4 text-[14px] font-bold">
+          <span>숫자 더 보기</span>
+          <span className="text-[12px] font-semibold text-muted-foreground">오늘 · 누적 · 회원 · 재고 · 그래프 · 식품 표시</span>
+        </summary>
+        <div className="grid gap-4 border-t border-border p-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <StatCard
+              label="오늘 매출"
+              value={`${todayRevenue.toLocaleString()}원`}
+              sub={`오늘 결제된 주문 ${todayOrderCount}건`}
+            />
+            <StatCard
+              label="누적 매출"
+              value={`${totalRevenue.toLocaleString()}원`}
+              sub={`지금까지 결제된 주문 ${totalPaidCount}건`}
+              help="가게를 연 뒤 지금까지 결제된 모든 주문 금액에서 환불을 뺀 값이에요."
+            />
+            {/* 2026-10-01 일정 변경 — 토·일 조리 → 월 포장 → 화 발송. 일반 고객은 토요일 아침에 결제되므로
+                토~화엔 이 숫자가 있는 게 정상이다. 빨강은 발송 화요일이 지났는데 안 나간 박스가 있을 때만. */}
+            <StatCard
+              label="발송할 주문"
+              value={`${pendingShipCount}건`}
+              sub={
+                overdueUnshippedCount + storeOverdueCount > 0
+                  ? `결제됐고 아직 안 보낸 박스 · 발송일 지남 ${overdueUnshippedCount + storeOverdueCount}건${storeOverdueCount > 0 ? `(가게 ${storeOverdueCount})` : ''}`
+                  : '결제됐고 아직 안 보낸 박스 · 정기 화요일 · 가게 화·목'
+              }
+              tone={overdueUnshippedCount + storeOverdueCount > 0 ? 'red' : pendingShipCount > 0 ? 'amber' : 'neutral'}
+              help="정기배송 박스는 토·일 조리 → 월 포장 → 화요일 발송, 웹 가게 주문은 결제 다음 첫 화·목 출고예요. 토요일부터 화요일까지는 여기 숫자가 있는 게 정상이에요. 발송일이 지나도 남아 있으면 빨갛게 바뀌고 처리 대기에 떠요."
+            />
+            <StatCard label="가입 회원" value={`${userCount}명`} sub="탈퇴 회원·시험 계정 제외" />
+            <StatCard
+              label="새 정기배송 (30일)"
+              value={`${newSubsCount}마리`}
+              sub={
+                netSubsDelta > 0
+                  ? `해지를 빼면 +${netSubsDelta}마리`
+                  : netSubsDelta < 0
+                    ? `해지를 빼면 ${netSubsDelta}마리`
+                    : '해지를 빼면 그대로'
+              }
+              tone={netSubsDelta >= 0 ? 'green' : 'red'}
+              help="최근 30일 동안 새로 시작한 정기배송이에요 — 카드 등록 전에 그만둔 신청과 사장님 시험 계정은 빼요."
+            />
+            <StatCard
+              label="재고 부족 상품"
+              value={`${lowStockCount}개`}
+              sub={`재고 ${STOCK_LOW_THRESHOLD}개 이하`}
+              tone={lowStockCount > 0 ? 'red' : 'neutral'}
+              help="재고가 얼마 안 남은 웹 가게 상품이에요. 품절되기 전에 채워 두세요."
+            />
+          </div>
 
-      {/* 식품정보고시 채움률 — 채움률 < 100% 면 시정명령 위험.
-          ★조회 실패 시 채움률 0% 로 위장되면 안 된다 — 오류 카드로 분리. */}
-      {foodInfoErr ? (
-        <QueryErrorCard
-          what="식품정보고시 채움률"
-          detail="상품 표시 정보 조회가 실패했어요 — 채움률이 낮아진 게 아니에요. 새로고침해 주세요."
-        />
-      ) : (
-        <FoodInfoCompletion products={productInfo} />
-      )}
+          {/* 30일 매출 — SVG line chart (RevenueChart) */}
+          <RevenueChart data={dailyChartData} title="최근 30일 매출" />
 
-      {/* 코호트 리텐션·LTV 표는 홈에서 제거(사장님 2026-07-25).
-          ① 주차 컬럼이 7개인 넓은 표라 폰에서 홈 전체가 옆으로 밀렸다.
-          ② 매일 볼 지표가 아니다 — /admin/cohort(가입 시기별 분석)로 옮겼다.
-          거기서 시인성(고정 팔레트·대비 보장)까지 고쳐 두었다. */}
-
-      {/* 재고 부족 — 웹 가게 냉동 재고. ('많이 나간 상품' 카드는 2026-10-24 뺐다 — 정가 기준이라 실제 입금과 달랐고, 박스가 전부
-          강아지별 맞춤이라 상품 순위가 뜻이 없다(사장님 "어차피 다 맞춤이라 다 다른데"). 규칙313.) */}
-      <div className="grid grid-cols-1 gap-4">
-        <SectionCard
-          title="재고 부족 상품"
-          desc={`재고가 ${STOCK_LOW_THRESHOLD}개 이하로 남은 상품이에요. 품절 전에 채워주세요.`}
-          action={
-            lowStockCount > 5 ? (
-              <Link
-                href="/admin/products"
-                className="whitespace-nowrap text-xs font-semibold text-primary hover:underline"
-              >
-                {lowStockCount}건 전체 →
-              </Link>
-            ) : undefined
-          }
-        >
-          {lowStockRes.error ? (
-            <p className="py-6 text-center text-sm text-destructive">
-              재고 정보를 불러오지 못했어요 — 새로고침해 주세요
-            </p>
-          ) : lowStockItems.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              모든 상품 재고가 안전 범위예요
-            </p>
+          {/* 식품정보고시 채움률 — 채움률 < 100% 면 시정명령 위험.
+              ★조회 실패 시 채움률 0% 로 위장되면 안 된다 — 오류 카드로 분리. */}
+          {foodInfoErr ? (
+            <QueryErrorCard
+              what="식품정보고시 채움률"
+              detail="상품 표시 정보를 불러오지 못했어요 — 채움률이 낮아진 게 아니에요. 새로고침해 주세요."
+            />
           ) : (
-            <ul className="space-y-2">
-              {lowStockItems.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center justify-between border-b border-border py-2 last:border-b-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/admin/products/${item.id}`}
-                      className="block truncate text-sm hover:text-primary"
-                    >
+            <FoodInfoCompletion products={productInfo} />
+          )}
+
+          {/* 재고 부족 — 웹 가게 냉동 재고. ('많이 나간 상품' 카드는 2026-10-24 뺐다 — 정가 기준이라 실제 입금과 달랐고, 박스가 전부
+              강아지별 맞춤이라 상품 순위가 뜻이 없다(사장님 "어차피 다 맞춤이라 다 다른데"). 규칙313.) */}
+          {lowStockRes.error ? (
+            <QueryErrorCard what="재고" detail="재고 정보를 불러오지 못했어요 — 새로고침해 주세요." />
+          ) : lowStockItems.length > 0 ? (
+            <SectionCard
+              title="재고 부족 상품"
+              desc={`재고가 ${STOCK_LOW_THRESHOLD}개 이하로 남은 상품이에요.`}
+              action={
+                <Link href="/admin/products" className="whitespace-nowrap text-[13px] font-semibold text-primary hover:underline">
+                  상품 화면 →
+                </Link>
+              }
+            >
+              <ul className="space-y-2">
+                {lowStockItems.map((item) => (
+                  <li key={item.id} className="flex items-center justify-between border-b border-border py-2 last:border-b-0">
+                    <Link href={`/admin/products/${item.id}`} className="min-w-0 flex-1 truncate text-[14px] hover:text-primary">
                       {item.name}
                     </Link>
-                    <p className="font-mono text-[10px] text-muted-foreground">
-                      /products/{item.slug}
-                    </p>
-                  </div>
-                  <Badge
-                    className={
-                      item.stock <= 0
-                        ? 'bg-destructive text-white border-transparent'
-                        : 'bg-amber-100 text-amber-900 border-transparent'
-                    }
-                  >
-                    {item.stock <= 0 ? '품절' : `${item.stock}개`}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* 최근 주문 — md 이상 테이블, 모바일은 카드 리스트(폰 운영·탭타겟). */}
-      <SectionCard
-        title="최근 들어온 주문"
-        desc="결제가 끝난 주문 최근 10건이에요(시험 계정·결제 안 된 주문은 빼고). 누르면 자세히 볼 수 있어요."
-        action={
-          <Link
-            href="/admin/orders"
-            className="whitespace-nowrap text-xs font-semibold text-primary hover:underline"
-          >
-            전체 보기 →
-          </Link>
-        }
-      >
-        {recentOrdersRes.error ? (
-          <p className="py-6 text-center text-sm text-destructive">
-            최근 주문을 불러오지 못했어요 — 새로고침해 주세요
-          </p>
-        ) : recentOrders.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            아직 주문이 없어요
-          </p>
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>주문번호</TableHead>
-                    <TableHead>주문자</TableHead>
-                    <TableHead className="text-right">금액</TableHead>
-                    <TableHead className="text-center">상태</TableHead>
-                    <TableHead className="text-right">시각</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentOrders.map((o) => {
-                    const badge = statusBadge(o.payment_status, o.order_status)
-                    return (
-                      <TableRow key={o.id}>
-                        <TableCell className="font-mono text-[11px]">
-                          <Link
-                            href={`/admin/orders/${o.id}`}
-                            className="hover:text-primary"
-                          >
-                            {o.order_number}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{o.recipient_name}</TableCell>
-                        <TableCell className="text-right font-semibold tabular-nums">
-                          {o.total_amount.toLocaleString()}원
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className={badge.cls}>{badge.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right text-[11px] text-muted-foreground tabular-nums">
-                          {formatDate(o.created_at)}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <ul className="space-y-2 md:hidden">
-              {recentOrders.map((o) => {
-                const badge = statusBadge(o.payment_status, o.order_status)
-                return (
-                  <li key={o.id}>
-                    <Link
-                      href={`/admin/orders/${o.id}`}
-                      className="block rounded-lg border border-border bg-card px-3 py-2.5 transition hover:border-ring"
+                    <Badge
+                      className={
+                        item.stock <= 0
+                          ? 'bg-destructive text-white border-transparent'
+                          : 'bg-amber-100 text-amber-900 border-transparent'
+                      }
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-mono text-[11px]">
-                          {o.order_number}
-                        </span>
-                        <Badge className={`shrink-0 ${badge.cls}`}>
-                          {badge.label}
-                        </Badge>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between gap-2 text-[12px]">
-                        <span className="truncate text-muted-foreground">
-                          {o.recipient_name} ·{' '}
-                          <span className="tabular-nums">
-                            {formatDate(o.created_at)}
-                          </span>
-                        </span>
-                        <span className="shrink-0 font-semibold tabular-nums">
-                          {o.total_amount.toLocaleString()}원
-                        </span>
-                      </div>
-                    </Link>
+                      {item.stock <= 0 ? '품절' : `${item.stock}개`}
+                    </Badge>
                   </li>
-                )
-              })}
-            </ul>
-          </>
-        )}
-      </SectionCard>
+                ))}
+              </ul>
+            </SectionCard>
+          ) : null}
+        </div>
+      </details>
+
+      {/* 최근 주문 10건은 홈에서 뺐다(2026-10-24 2묶음) — 새 가게 주문은 '새로 들어온 것', 전체는 주문 화면. */}
+
+      {/* 괜찮은 결제 키 — 회색 한 줄씩. */}
+      <div className="grid gap-1">
+        {keyRows
+          .filter((d) => d.quiet)
+          .map((d) => (
+            <p key={d.title} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+              {d.tone === 'ok' ? (
+                <CheckCircle2 className="size-4 shrink-0" strokeWidth={2.2} />
+              ) : (
+                <span className="inline-block size-4 shrink-0 text-center leading-4" aria-hidden="true">·</span>
+              )}
+              {d.title}
+              {d.tone !== 'ok' && ' (토스 심사 중이라 정상)'}
+            </p>
+          ))}
+      </div>
     </div>
   )
 }
 
 /* ── 로컬 부품 (adminui Card 기반 — refunds/page.tsx 패턴) ─────────────── */
-
-/**
- * 도움말 툴팁 — CSS hover 전용(클라이언트 JS 불필요 → 서버 컴포넌트 동작).
- * components/admin/ui.tsx 의 HelpTip 과 같은 동작, 색만 --adm- 토큰.
- */
-function HelpTip({ text }: { text: string }) {
-  return (
-    <span className="group/help relative inline-flex align-middle">
-      {/* ⚠️ bg-muted 금지 — --color-muted 는 (웹 보호 때문에) 사이트의 어두운
-          텍스트 토큰에 매핑돼 있어 어드민에서 검은 점으로 렌더된다.
-          어드민 표면색은 secondary 를 쓴다(globals.css @theme inline 참조). */}
-      <span
-        className="ml-1 inline-flex h-3.5 w-3.5 cursor-help select-none items-center justify-center rounded-full bg-secondary text-[9px] font-bold leading-none text-secondary-foreground"
-        aria-hidden="true"
-      >
-        ?
-      </span>
-      <span className="sr-only">{text}</span>
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 w-56 rounded-lg bg-foreground px-3 py-2 text-[11px] font-normal normal-case leading-relaxed tracking-normal text-background opacity-0 shadow-xl transition-opacity duration-150 group-hover/help:opacity-100"
-      >
-        {text}
-      </span>
-    </span>
-  )
-}
 
 const STAT_TONE_TEXT = {
   neutral: '',
@@ -1079,7 +854,7 @@ function StatCard({
   return (
     <Card className="h-full gap-1 py-3.5">
       <CardContent className="px-4">
-        <p className="flex items-center text-[11px] font-bold text-muted-foreground">
+        <p className="flex items-center text-[13px] font-bold text-muted-foreground">
           <span>{label}</span>
           {help && <HelpTip text={help} />}
         </p>
@@ -1089,7 +864,7 @@ function StatCard({
           {value}
         </p>
         {sub != null && (
-          <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground">
+          <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
             {sub}
           </p>
         )}
@@ -1101,7 +876,7 @@ function StatCard({
 /** 섹션 라벨 — refunds 의 kicker 스타일 통일. */
 function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+    <p className="mb-2.5 text-[13px] font-bold tracking-[-0.01em] text-muted-foreground">
       {children}
     </p>
   )

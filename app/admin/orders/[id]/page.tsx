@@ -16,6 +16,8 @@ import {
 } from '@/lib/commerce/order-fsm'
 import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 import { netPaidAmount } from '@/lib/commerce/paid-status'
+import AdminStatusBadge from '@/components/admin/AdminStatusBadge'
+import { orderBadge } from '@/lib/admin/status-badge'
 import { mdLabel } from '@/lib/admin/weekly-todo-core'
 
 export const dynamic = 'force-dynamic'
@@ -111,8 +113,9 @@ export default async function AdminOrderDetailPage({
             주문 상세
           </h1>
         </div>
-        <p className="mt-1 font-mono text-xs text-muted-foreground">
-          {order.order_number}
+        <p className="mt-1 flex flex-wrap items-center gap-2">
+          <AdminStatusBadge badge={orderBadge(order)} />
+          <span className="font-mono text-[12px] text-muted-foreground">{order.order_number}</span>
         </p>
       </div>
 

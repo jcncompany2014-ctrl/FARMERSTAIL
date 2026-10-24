@@ -1,7 +1,7 @@
 /**
  * 어드민 고객 화면 조회 — 서버 전용(service_role). 판정은 전부 정본 함수를 부른다(다시 짜지 않는다):
  *
- *   구독 상태        subscriptionState · SUB_STATE_LABEL · SUB_STATE_TONE      (lib/subscription-state)
+ *   구독 상태        subscriptionState · SUB_STATE_TONE (lib/subscription-state) · 이름 subBadge (lib/admin/status-badge, 규칙316)
  *   다음 발송·결제일  describeUpcomingBox · chargeTimingFor                       (lib/shipping-schedule)
  *   실제 나갈 금액    resolveAutoDiscount(구독 id 와 함께 — 화면 미리보기와 같은 규칙) (lib/payments/auto-discount)
  *   서포터즈 단계     supporterViews                                            (lib/payments/trial-display)
@@ -19,7 +19,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
-import { subscriptionState, SUB_STATE_LABEL, SUB_STATE_TONE, type SubLike } from '@/lib/subscription-state'
+import { subscriptionState, SUB_STATE_TONE, type SubLike } from '@/lib/subscription-state'
+import { subBadge } from '@/lib/admin/status-badge'
 import { chargeDateFor, chargeTimingFor, describeUpcomingBox, nextChargeRunDate, paidBoxShipIso } from '@/lib/shipping-schedule'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { supporterViews } from '@/lib/payments/trial-display'
@@ -384,7 +385,7 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       dogId: s.dog_id,
       dogName: (s.dog_id && dogName.get(s.dog_id)) || '(강아지 미상)',
       state: st,
-      stateLabel: SUB_STATE_LABEL[st],
+      stateLabel: subBadge(st).label,
       tone: SUB_STATE_TONE[st],
       freshRatio: s.fresh_ratio,
       freshLabel: freshTierLabel(s.fresh_ratio),

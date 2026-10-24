@@ -49,9 +49,12 @@ test('규칙313: 정기배송 목록 — 시험 계정 구독은 기본 숨김(�
   assert.match(api, /isAdmin\(supabase, user\)/, '내부 계정 API 에 관리자 확인이 없다')
 })
 
-test('규칙313: 홈 최근 주문은 진짜 주문만 · 정가 기준 상품 순위는 없다', () => {
+test('규칙313: 홈에 결제 안 된 시도가 섞인 주문 목록이 없다 · 정가 기준 상품 순위는 없다', () => {
   const home = code('app', 'admin', 'page.tsx')
-  assert.match(home, /ex\(\s*supabase\s*\.from\('orders'\)\s*\.select\('id, order_number, total_amount, payment_status, order_status, created_at, recipient_name'\)\s*\.not\('paid_at', 'is', null\)/, '홈 최근 주문에 시험 계정·결제 안 된 시도가 섞인다')
+  // 2026-10-24 2묶음: 홈 '최근 들어온 주문 10건'은 뺐다(새 가게 주문은 '새로 들어온 것', 전체는 주문 화면 — 진짜 주문만).
+  //   다시 생기면 진짜 주문(paid_at)·시험 계정 제외 기준을 지키는지 보고 여기를 되돌린다.
+  assert.ok(!home.includes('recentOrdersRes'), '홈에 최근 주문 목록이 다시 생겼다 — 진짜 주문만(paid_at)·시험 계정 제외 기준을 확인하라')
+  assert.ok(!/function statusBadge\(/.test(home), '홈이 주문 배지를 따로 만든다(배지 표는 lib/admin/status-badge 하나 — 규칙316)')
   assert.ok(!home.includes('많이 나간 상품'), '홈에 정가 기준 상품 순위가 다시 생겼다(맞춤 박스라 뜻이 없다)')
   assert.ok(!home.includes('topProducts'), '홈에 상품 순위 집계가 남아 있다')
   const reports = code('app', 'admin', 'reports', 'page.tsx')

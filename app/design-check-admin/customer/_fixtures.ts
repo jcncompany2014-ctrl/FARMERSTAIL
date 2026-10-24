@@ -67,7 +67,7 @@ const BASE: CustomerData = {
       dogId: DOG,
       dogName: '땅콩',
       state: 'active',
-      stateLabel: '구독 중',
+      stateLabel: '진행 중',
       tone: 'on',
       freshRatio: 50,
       freshLabel: '반반',
@@ -192,7 +192,7 @@ const FLAGS: CustomerData = {
     {
       ...BASE.subs[0]!,
       state: 'card_failed',
-      stateLabel: '결제 확인 필요',
+      stateLabel: '결제 실패',
       tone: 'bad',
       chargeAmount: 51500,
       chargeLabel: null,

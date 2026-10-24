@@ -8,6 +8,8 @@ import { loadInternalUserIds, excludeInternalFilter, isInternalUser } from '@/li
 import AdminPagination from '@/components/admin/AdminPagination'
 import { Hl, Em } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
+import AdminStatusBadge from '@/components/admin/AdminStatusBadge'
+import { orderBadge } from '@/lib/admin/status-badge'
 import { Button } from '@/components/adminui/button'
 import { Card, CardContent } from '@/components/adminui/card'
 import { Input } from '@/components/adminui/input'
@@ -52,50 +54,6 @@ function formatDate(iso: string) {
   const parts = KST_DATETIME.formatToParts(new Date(iso))
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
   return `${get('year')}.${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`
-}
-
-/**
- * 상태 배지 — 라벨/색 의미는 구버전 그대로(준비=브랜드 테라코타, 배송=그린,
- * 완료=옅은 그린, 취소·실패=적색 계열, 미결제=회색). 부품만 shadcn Badge.
- */
-function statusBadge(paymentStatus: string, orderStatus: string, paidAt: string | null): {
-  label: string
-  cls: string
-} {
-  // 한 번도 결제되지 않은 시도 — 결제창만 열고 닫았거나(만료), 정기결제 카드가 거절된 회차. 진짜 주문과 같은 색을 쓰지 않는다.
-  if (!paidAt) {
-    const label = paymentStatus === 'failed' ? '카드 결제 실패' : paymentStatus === 'pending' ? '결제 안 함' : '결제 안 하고 끝남'
-    return { label, cls: 'border-dashed border-border bg-transparent text-muted-foreground' }
-  }
-  if (paymentStatus !== 'paid') {
-    const labelMap: Record<string, string> = {
-      pending: '결제 대기',
-      failed: '결제 실패',
-      cancelled: '결제 취소',
-      partially_refunded: '부분 환불',
-      refunded: '환불',
-    }
-    const label = labelMap[paymentStatus] ?? paymentStatus
-    const cls =
-      paymentStatus === 'partially_refunded'
-        ? 'bg-amber-100 text-amber-900 border-transparent'
-        : paymentStatus === 'refunded' || paymentStatus === 'failed'
-          ? 'bg-red-100 text-red-900 border-transparent'
-          : 'bg-secondary text-secondary-foreground border-transparent'
-    return { label, cls }
-  }
-  switch (orderStatus) {
-    case 'preparing':
-      return { label: '준비 중', cls: 'bg-primary text-primary-foreground border-transparent' }
-    case 'shipping':
-      return { label: '배송 중', cls: 'bg-emerald-600 text-white border-transparent' }
-    case 'delivered':
-      return { label: '배송 완료', cls: 'bg-emerald-100 text-emerald-900 border-transparent' }
-    case 'cancelled':
-      return { label: '취소', cls: 'bg-destructive text-white border-transparent' }
-    default:
-      return { label: orderStatus, cls: 'bg-secondary text-secondary-foreground border-transparent' }
-  }
 }
 
 /**
@@ -341,7 +299,7 @@ export default async function AdminOrdersPage({
           {/* 모바일 카드 — 테이블은 폰에서 셀이 부러진다(2026-07-19 사장님 폰). */}
           <div className="space-y-2.5 md:hidden">
             {orders.map((o) => {
-              const badge = statusBadge(o.payment_status, o.order_status, o.paid_at)
+              const badge = orderBadge(o)
               return (
                 <Link key={o.id} href={`/admin/orders/${o.id}`} className="block">
                   <Card className="gap-0 py-3.5 transition active:bg-secondary">
@@ -356,7 +314,7 @@ export default async function AdminOrdersPage({
                             {o.order_number}
                           </span>
                         </span>
-                        <Badge className={`shrink-0 ${badge.cls}`}>{badge.label}</Badge>
+                        <AdminStatusBadge badge={badge} withNote={false} />
                       </div>
                       <div className="mt-1.5 flex items-center justify-between gap-2">
                         <span className="truncate text-[13px] font-bold">
@@ -393,7 +351,7 @@ export default async function AdminOrdersPage({
                 </TableHeader>
                 <TableBody>
                   {orders.map((o) => {
-                    const badge = statusBadge(o.payment_status, o.order_status, o.paid_at)
+                    const badge = orderBadge(o)
                     return (
                       <TableRow key={o.id}>
                         <TableCell className="font-mono text-[11.5px]">
@@ -413,7 +371,7 @@ export default async function AdminOrdersPage({
                           {o.total_amount.toLocaleString()}원
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge className={badge.cls}>{badge.label}</Badge>
+                          <AdminStatusBadge badge={badge} />
                         </TableCell>
                         <TableCell className="text-right text-[11.5px] tabular-nums text-muted-foreground">
                           {formatDate(o.created_at)}

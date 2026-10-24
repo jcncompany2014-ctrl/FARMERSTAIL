@@ -652,7 +652,7 @@ export default async function SubscriptionsCalendarPage({
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded bg-emerald-600" />
-          결제 전(구독 중)
+          결제 전(진행 중)
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded bg-red-600" />

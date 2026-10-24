@@ -14,6 +14,7 @@
  *  · 폰 운영(규칙269) — 결과·실패 문구는 누른 그 고객 카드 안에 보이고, 인터넷이 끊기면 위에 띠가 뜨고 누른 곳에 안내가 나온다.
  *    (예전엔 맨 위 '도장 찍기' 칸에만 떠서 폰에선 화면 밖이었고, 인터넷이 끊기면 아무 안내도 없었다.)
  */
+import { subBadgeFromStatus } from '@/lib/admin/status-badge'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminCard, AdminButton, Badge, SectionTitle } from '@/components/admin/ui'
@@ -61,7 +62,6 @@ type Candidate = {
 /** 카드 안 결과 문구 — 누른 고객 카드에 보인다. */
 type CardMsg = { userId: string; text: string; tone: 'ok' | 'error' }
 
-const SUB_LABEL: Record<string, string> = { active: '구독 중', paused: '일시정지', cancelled: '해지' }
 
 /** 연결이 끊겼을 때·서버에 닿지 못했을 때 — 폰에서 '눌렀는데 아무 일도 없음'이 되지 않게. */
 function networkMessage(): string {
@@ -73,7 +73,7 @@ function networkMessage(): string {
 
 /** 후보 줄 설명 — 이름만 보고 엉뚱한 사람에게 누르지 않게(2026-09-28 9차 점검). */
 function candidateMeta(c: Candidate): string {
-  const sub = c.subscriptionStatus ? (SUB_LABEL[c.subscriptionStatus] ?? c.subscriptionStatus) : '구독 없음'
+  const sub = c.subscriptionStatus ? subBadgeFromStatus(c.subscriptionStatus).label : '정기배송 없음'
   const paid = c.paidBoxes ? `결제 ${c.paidBoxes}회` : '결제 없음'
   const joined = c.created_at ? `가입 ${c.created_at.slice(0, 10)}` : ''
   return [sub, paid, joined].filter(Boolean).join(' · ')

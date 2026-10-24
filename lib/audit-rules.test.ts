@@ -5493,8 +5493,11 @@ test('규칙151: 어드민은 구독 상태를 정본 판정으로 보여주고,
    * 박스 패킹 화면은 판매 보류인 연어(skuModel deferred)를 매주 '상품 등록이 빠진 레시피'로 빨갛게 띄워 진짜 경고를 묻었다.
    */
   const subs = stripComments(read(join(ROOT, 'app', 'admin', 'subscriptions', 'page.tsx')))
-  assert.match(subs, /const STATUS_BADGE: Record<SubState,/, '어드민 상태 배지가 정본 상태(SubState)가 아니라 status 칸 기준이다')
-  assert.match(subs, /needs_card: \{ label: '카드 등록 전'/, "카드 미등록 구독이 '카드 등록 전'으로 구분되지 않는다")
+  // 2026-10-24 규칙316: 배지 표는 lib/admin/status-badge 하나(SubState 키) — 목록은 subBadge(stateOf(sub)) 로만 그린다.
+  assert.match(subs, /const badge = subBadge\(stateOf\(sub\)\)/, '어드민 상태 배지가 정본 상태(SubState)가 아니라 status 칸 기준이다')
+  const badgeLib = stripComments(read(join(ROOT, 'lib', 'admin', 'status-badge.ts')))
+  assert.match(badgeLib, /export const SUB_BADGE: Record<SubState, AdminBadge>/, '배지 표가 정본 상태(SubState) 키가 아니다')
+  assert.match(badgeLib, /needs_card: \{ label: '카드 등록 전'/, "카드 미등록 구독이 '카드 등록 전'으로 구분되지 않는다")
   assert.match(subs, /return subscriptionState\(\{/, '어드민이 상태를 정본 판정(subscriptionState)으로 내지 않는다')
   assert.doesNotMatch(subs, /<StatusBadge status=/, '상태 배지가 아직 status 칸만 받는 곳이 있다')
   assert.match(subs, /failed_charge_count, ' \+/, '상태 판정에 필요한 청구 실패 횟수를 조회하지 않는다')

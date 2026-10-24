@@ -192,10 +192,10 @@ export default function ActionsPanel(props: ActionsPanelProps) {
             strokeWidth={2.2}
             style={{ width: 16, height: 16 }}
           />
-          <span className="text-[12px] font-bold">처리 대기</span>
+          <span className="text-[14px] font-bold">처리 대기</span>
         </div>
         <span
-          className={`text-[11px] font-bold ${
+          className={`text-[13px] font-bold ${
             totalActions > 0 ? 'text-destructive' : 'text-muted-foreground'
           }`}
         >
@@ -223,10 +223,10 @@ export default function ActionsPanel(props: ActionsPanelProps) {
                   strokeWidth={2}
                   style={{ width: 14, height: 14 }}
                 />
-                <span className="text-[11.5px] font-bold">{it.label}</span>
+                <span className="text-[13px] font-bold">{it.label}</span>
               </span>
               <span
-                className={`text-[12px] font-bold tabular-nums ${
+                className={`text-[14px] font-bold tabular-nums ${
                   active ? 'text-destructive' : 'text-muted-foreground'
                 }`}
               >
@@ -238,7 +238,7 @@ export default function ActionsPanel(props: ActionsPanelProps) {
       </div>
       )}
       {pending.length > 0 && clearedCount > 0 && (
-        <p className="border-t border-border px-5 py-2.5 text-[11px] text-muted-foreground">
+        <p className="border-t border-border px-5 py-2.5 text-[12px] text-muted-foreground">
           나머지 {clearedCount}개 항목은 처리할 게 없어요.
         </p>
       )}

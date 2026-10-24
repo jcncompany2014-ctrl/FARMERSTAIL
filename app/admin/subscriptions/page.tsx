@@ -27,6 +27,7 @@ import { SUBS_TABS } from '@/components/admin/tabGroups'
 import { isLiveTrial, supporterViews, type SupporterView } from '@/lib/payments/trial-display'
 import type { TrialState } from '@/lib/payments/trial'
 import { subscriptionState, type SubState } from '@/lib/subscription-state'
+import { ADMIN_TONE_CLASS, subBadge } from '@/lib/admin/status-badge'
 
 type SubscriptionRow = {
   id: string
@@ -86,7 +87,7 @@ type SubscriptionRow = {
 
 const TABS = [
   { value: 'all', label: '전체' },
-  { value: 'active', label: '구독 중' },
+  { value: 'active', label: '진행 중' },
   // 플랜은 골랐지만 카드 등록을 안 끝낸 구독 — 결제·배송일이 아직 없다(2026-10-01 사장님 "왜 다음 배송일이 안 떠").
   { value: 'needs_card', label: '카드 등록 전' },
   { value: 'paused', label: '일시정지' },
@@ -96,18 +97,8 @@ const TABS = [
   { value: 'supporters', label: '서포터즈' },
 ]
 
-// 색은 orders/refunds 와 같은 토큰 팔레트(2026-09-05 어드민 개편).
-// ★키는 status 칸이 아니라 정본 판정(lib/subscription-state)이다 (2026-10-01).
-//   status='active' 인데 카드가 없는 구독(플랜만 고르고 카드 등록을 안 끝냄)이 초록 '구독 중'으로 떠서,
-//   사장님이 "왜 다음 배송일이 안 뜨냐"고 물었다 — 배송일은 카드 등록 때 잡힌다(billing-issue).
-const STATUS_BADGE: Record<SubState, { label: string; cls: string }> = {
-  active: { label: '구독 중', cls: 'bg-emerald-100 text-emerald-900 border-transparent' },
-  needs_card: { label: '카드 등록 전', cls: 'bg-sky-100 text-sky-900 border-transparent' },
-  card_failed: { label: '결제 실패', cls: 'bg-red-100 text-red-900 border-transparent' },
-  paused: { label: '일시정지', cls: 'bg-amber-100 text-amber-900 border-transparent' },
-  cancelled: { label: '해지', cls: 'bg-secondary text-secondary-foreground border-transparent' },
-}
-
+// 배지 이름·색은 lib/admin/status-badge 표 하나(2026-10-24 규칙316). ★키는 status 칸이 아니라 정본 판정(subscriptionState) —
+//   status='active' 인데 카드가 없는 구독이 초록으로 떠서 사장님이 "왜 다음 배송일이 안 뜨냐"고 물었다(2026-10-01).
 /** 화면이 읽을 상태 — status 칸 + 카드 등록·청구 실패를 합친 정본 판정. */
 function stateOf(sub: SubscriptionRow): SubState {
   return subscriptionState({
@@ -381,7 +372,7 @@ export default function AdminSubscriptionsPage() {
     } else if (tab === 'needs_card') {
       if (stateOf(s) !== 'needs_card') return false
     } else if (tab === 'active') {
-      // '구독 중' = 실제로 결제·배송이 도는 것(카드 미등록은 '카드 등록 전' 탭).
+      // '진행 중' = 실제로 결제·배송이 도는 것(카드 미등록은 '카드 등록 전' 탭).
       if (s.status !== 'active' || stateOf(s) === 'needs_card') return false
     } else if (tab !== 'all') {
       if (s.status !== tab) return false
@@ -392,8 +383,15 @@ export default function AdminSubscriptionsPage() {
       const name = (s.profiles?.name || '').toLowerCase()
       const email = (s.profiles?.email || '').toLowerCase()
       const recipient = (s.recipient_name || '').toLowerCase()
+      const dog = (s.dogs?.name || '').toLowerCase()
+      // 전화는 숫자만 비교 — '010-1234' 와 '0101234' 둘 다 찾는다.
+      const qDigits = q.replace(/\D/g, '')
+      const phone = (s.recipient_phone || '').replace(/\D/g, '')
       const products = s.subscription_items.map(i => i.product_name.toLowerCase()).join(' ')
-      if (!name.includes(q) && !email.includes(q) && !recipient.includes(q) && !products.includes(q)) return false
+      const hit =
+        dog.includes(q) || name.includes(q) || email.includes(q) || recipient.includes(q) || products.includes(q) ||
+        (qDigits.length >= 4 && phone.includes(qDigits))
+      if (!hit) return false
     }
     return true
   })
@@ -577,7 +575,7 @@ export default function AdminSubscriptionsPage() {
                 위에서 숫자가 거짓말하면 배너를 안 읽는다(2026-08-07). */}
             {loadError
               ? ' — 건수를 불러오지 못했어요'
-              : ` — 전체 ${visible.length}건 · 활성 ${visible.filter((x) => x.status === 'active').length}`}
+              : ` — 전체 ${visible.length}건 · 진행 중 ${visible.filter((x) => stateOf(x) === 'active').length}`}
           </p>
         </div>
       </div>
@@ -609,7 +607,7 @@ export default function AdminSubscriptionsPage() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="고객명 · 이메일 · 상품명"
+          placeholder="강아지 이름 · 보호자 · 전화"
           className="w-full rounded-full border border-input bg-card px-3 py-1.5 text-xs focus:border-primary focus:outline-none sm:w-56"
         />
       </div>
@@ -792,9 +790,9 @@ export default function AdminSubscriptionsPage() {
 /* ── 행 공통 조각 ──────────────────────────────────────────── */
 
 function StatusBadge({ sub }: { sub: SubscriptionRow }) {
-  const badge = STATUS_BADGE[stateOf(sub)]
+  const badge = subBadge(stateOf(sub))
   return (
-    <Badge className={`gap-1 ${badge.cls}`}>
+    <Badge className={`gap-1 ${ADMIN_TONE_CLASS[badge.tone]}`}>
       <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden />
       {badge.label}
     </Badge>
