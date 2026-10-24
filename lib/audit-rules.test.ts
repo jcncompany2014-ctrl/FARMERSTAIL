@@ -3911,9 +3911,9 @@ test('규칙89: 어드민 "설문 기록"(/admin/surveys) — 두 내비에 등�
    * 기본 창이라, 내비에서 빠지거나 조회 실패를 "설문 없음"으로 위장하면 다시 눈먼 상태가 된다.
    */
   const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
-  const nav = stripComments(read(join(ROOT, 'components', 'admin', 'AdminNav.tsx')))
-  assert.match(shell, /href:\s*'\/admin\/surveys'/, '데스크톱 어드민 내비에 설문 기록이 없다')
-  assert.match(nav, /href:\s*'\/admin\/surveys'/, '모바일 어드민 내비에 설문 기록이 없다')
+  // 옛 모바일 내비(components/admin/AdminNav.tsx)는 2026-10-24 지웠다 — 9/4 개편 뒤 죽은 파일. 내비는 admin-shell-next 하나(폰·PC 같음).
+  assert.match(shell, /nav\('\/admin\/surveys'/, '어드민 내비에 설문 기록이 없다')
+  assert.ok(!existsSync(join(ROOT, 'components', 'admin', 'AdminNav.tsx')), '죽은 내비 파일(AdminNav.tsx)이 다시 생겼다 — 거기에만 넣으면 사장님 화면엔 안 뜬다')
   for (const rel of ['app/admin/surveys/page.tsx', 'app/admin/surveys/[id]/page.tsx', 'app/admin/surveys/_data.ts', 'lib/survey/labels.ts']) {
     assert.ok(existsSync(join(ROOT, ...rel.split('/'))), `${rel} 가 없다`)
   }
@@ -4515,7 +4515,7 @@ test('규칙109: 체험단 가격 전환 예고는 푸시+메일 이중화·금�
   )
   assert.match(
     shell,
-    /href:\s*'\/admin\/trials'/,
+    /nav\('\/admin\/trials'/,
     '체험단(서포터즈) 도장 화면이 실제 어드민 내비(admin-shell-next NAV_GROUPS)에 없다',
   )
   const layout = stripComments(read(join(ROOT, 'app', 'admin', 'layout.tsx')))
@@ -4754,7 +4754,7 @@ test('규칙123: /link 콘텐츠는 어드민(/admin/link)이 정본 — 실제 
    *   (d) 기간 판정 순수 함수의 테스트가 사라짐
    */
   const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
-  assert.match(shell, /href:\s*'\/admin\/link'/, '링크 페이지 관리가 실제 어드민 내비에 없다')
+  assert.match(shell, /nav\('\/admin\/link'/, '링크 페이지 관리가 실제 어드민 내비에 없다')
 
   const page = stripComments(read(join(ROOT, 'app', 'admin', 'link', 'page.tsx')))
   assert.match(page, /isAdmin\(/, '/admin/link 가 관리자 판정 없이 열린다')
@@ -5032,7 +5032,7 @@ test('규칙132: 이웃 할인(첫 박스 1회 지정 할인)은 판정·소진�
   assert.match(mig, /create trigger trg_orders_reclaim_neighbor_discount/i, '환불 시 되돌림 트리거가 없다')
 
   const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
-  assert.match(shell, /href:\s*'\/admin\/neighbors'/, '이웃 할인 화면이 실제 어드민 내비에 없다')
+  assert.match(shell, /nav\('\/admin\/neighbors'/, '이웃 할인 화면이 실제 어드민 내비에 없다')
   const api = stripComments(read(join(ROOT, 'app', 'api', 'admin', 'neighbors', 'route.ts')))
   assert.match(api, /requireAdmin\(\)/, '이웃 할인 API 가 관리자 관문 없이 열린다')
   assert.match(api, /NEIGHBOR_RATES/, '할인율이 선택지(NEIGHBOR_RATES) 검증 없이 들어간다')
@@ -5066,7 +5066,7 @@ test('규칙133: 알림톡 — 보내기 전에 자리 잡기(한 번만) · 절
   assert.ok(del.includes("from('message_log')"), '탈퇴가 알림톡 발송 기록을 익명화하지 않는다')
 
   const shell = stripComments(read(join(ROOT, 'components', 'adminui', 'admin-shell-next.tsx')))
-  assert.match(shell, /href:\s*'\/admin\/messages'/, '알림톡 화면이 실제 어드민 내비에 없다')
+  assert.match(shell, /nav\('\/admin\/messages'/, '알림톡 화면이 실제 어드민 내비에 없다')
 })
 
 test('규칙134: 돈이 걸린 어드민 도장(서포터즈·이웃 할인) — 기존 결제 고객 차단 · 확인창 · 후보 이력 표시 · 감사 기록', () => {

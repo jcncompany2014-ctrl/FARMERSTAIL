@@ -13,7 +13,7 @@ import LabelPrintButton from './LabelPrintButton'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '라벨 PDF — Admin',
+  title: '라벨 인쇄 · 관리자',
   robots: { index: false, follow: false },
 }
 

@@ -12,7 +12,7 @@ import vercelConfig from '@/vercel.json'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '자동작업 상태 — Admin',
+  title: '자동작업 상태 · 관리자',
   robots: { index: false, follow: false },
 }
 

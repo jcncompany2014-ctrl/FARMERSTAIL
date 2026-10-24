@@ -69,7 +69,7 @@ export default async function InventionFlagsPage() {
       {/* 대개편 v2 T6 — 설정 그룹 탭 (뒤로가기·킥커 대체, serif 헤더 zinc 통일) */}
       <AdminTabs tabs={SETTINGS_TABS} active="/admin/invention-flags" />
       <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-        발명 기능 켜고 끄기
+        발명 기능
       </h1>
       <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
         특허 출원 전이라, 핵심 알고리즘을 고객·외부에 안 보이게 가려두는

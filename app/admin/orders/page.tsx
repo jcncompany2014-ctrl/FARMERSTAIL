@@ -194,7 +194,7 @@ export default async function AdminOrdersPage({
     <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight md:text-2xl">주문 관리</h1>
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">주문·송장</h1>
           <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
             <Hl>들어온 주문을 결제·배송 상태별로 찾고 관리</Hl>하는 곳이에요.
             정기배송 자동결제도 결제될 때마다 여기에 주문 한 건으로 쌓여요.{' '}

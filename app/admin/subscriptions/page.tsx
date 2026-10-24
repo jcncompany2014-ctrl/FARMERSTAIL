@@ -563,7 +563,7 @@ export default function AdminSubscriptionsPage() {
           <div className="flex items-center gap-2">
             <Repeat className="size-5 text-primary" strokeWidth={2} />
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-              정기배송 관리
+              정기배송
             </h1>
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">

@@ -14,7 +14,7 @@ import { CONTENT_TABS } from '@/components/admin/tabGroups'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '산지·공급자 관리 | Admin',
+  title: '산지·공급자 · 관리자',
   robots: { index: false, follow: false },
 }
 

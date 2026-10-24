@@ -12,7 +12,7 @@
  * app/admin/layout.tsx 가 쓰는 **실제** 어드민 내비다(2026-09-04 개편 완료). 시안 페이지
  * /dev/admin-preview 는 사장님 개인 메일이 박힌 채 공개돼 있어 2026-09-26 삭제했다(점검 8차).
  */
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
@@ -51,7 +51,9 @@ import {
   Gift,
   MessageSquare,
   Siren,
+  type LucideIcon,
 } from 'lucide-react'
+import { ADMIN_PAGE_LABEL, type AdminPageHref } from '@/lib/admin/page-labels'
 import {
   Sidebar,
   SidebarContent,
@@ -84,72 +86,69 @@ const CRUMB_ONLY: Array<{ href: string; label: string }> = [
   { href: '/admin/label', label: '라벨 인쇄' },
 ]
 
-/** 실제 39개 라우트를 업무 그룹으로 — Phase 2 에서 이 표가 정본이 된다. */
-const NAV_GROUPS = [
+/** 메뉴 한 줄 — 이름은 이름표 하나(lib/admin/page-labels, 규칙319)에서. 화면 제목·탭과 같은 말. */
+const nav = (href: AdminPageHref, icon: LucideIcon) => ({ href, label: ADMIN_PAGE_LABEL[href], icon })
+
+/**
+ * 메뉴 세 묶음(2026-10-24 어드민 2묶음 2-2) — 매일(늘 펼침) · 가끔 · 설정(기본 접힘).
+ * 예전엔 다섯 묶음 37개가 다 펼쳐져 있었고 '찾기'는 맨 아래 '시스템'에 있었다.
+ * ★이 표가 실제 어드민 내비의 유일한 정본이다 — 옛 components/admin/AdminNav.tsx 에만 넣었더니 사장님 화면엔 이틀간 안
+ *   떴다(2026-09-26). 그 죽은 파일은 2026-10-24 지웠다.
+ */
+const NAV_GROUPS: Array<{ label: string; foldable?: boolean; items: Array<ReturnType<typeof nav>> }> = [
   {
-    label: '운영',
+    label: '매일',
     items: [
-      { href: '/admin', label: '홈', icon: Home },
-      // 사장님이 직접 처리할 경보(2026-10-14 B1) — 홈 '이번 주 할 일'의 '안 본 경보'가 여기로 온다.
-      { href: '/admin/alerts', label: '경보함', icon: Siren },
-      { href: '/admin/orders', label: '주문', icon: Package },
-      { href: '/admin/personalization/picking-list', label: '포장 목록', icon: ClipboardList },
-      { href: '/admin/subscriptions', label: '구독', icon: Repeat },
-      { href: '/admin/subscriptions/charges', label: '결제·청구', icon: CreditCard },
-      { href: '/admin/refunds', label: '환불', icon: RotateCcw },
-      { href: '/admin/finance', label: '재무', icon: Wallet },
+      nav('/admin', Home),
+      nav('/admin/search-all', Search),
+      nav('/admin/personalization/picking-list', ClipboardList),
+      nav('/admin/orders', Package),
+      nav('/admin/subscriptions', Repeat),
+      nav('/admin/cs-inbox', Inbox),
+      // 사장님이 직접 처리할 경보(2026-10-14 B1) — 홈 '오늘 할 일'의 '안 본 경보'가 여기로 온다.
+      nav('/admin/alerts', Siren),
     ],
   },
   {
-    label: '고객',
+    label: '가끔',
     items: [
-      { href: '/admin/users', label: '고객', icon: Users },
-      { href: '/admin/surveys', label: '설문 기록', icon: ListChecks },
-      // 서포터즈(체험단) 도장 화면. ★이 표가 실제 어드민 내비의 유일한 정본 —
-      // components/admin/AdminNav.tsx 는 9/4 개편 뒤 죽은 파일이라 거기에만
-      // 넣었더니 사장님 화면엔 이틀간 안 떴다(2026-09-26).
-      { href: '/admin/trials', label: '체험단(서포터즈)', icon: Stamp },
-      // 이웃 할인 — 지인·쓰레드 유입 고객에게 첫 박스 할인율 도장(2026-09-27).
-      { href: '/admin/neighbors', label: '이웃 할인', icon: Gift },
-      { href: '/admin/cs-inbox', label: 'CS 인박스', icon: Inbox },
-      { href: '/admin/push-campaigns', label: '푸시 캠페인', icon: BellRing },
+      nav('/admin/refunds', RotateCcw),
+      nav('/admin/users', Users),
+      // 서포터즈 등록 화면(2026-09-26).
+      nav('/admin/trials', Stamp),
+      // 이웃 할인 — 지인·쓰레드 유입 고객에게 첫 박스 할인율(2026-09-27).
+      nav('/admin/neighbors', Gift),
+      nav('/admin/promotions', Ticket),
+      nav('/admin/personalization', Wand2),
+      nav('/admin/products', ShoppingBasket),
+      nav('/admin/surveys', ListChecks),
+      nav('/admin/push-campaigns', BellRing),
       // 카카오 알림톡 준비 상태·발송 내역(2026-09-28, docs/MARKET_HUB_AND_ALIMTALK_PLAN_2026_10.md).
-      { href: '/admin/messages', label: '알림톡', icon: MessageSquare },
-      { href: '/admin/push-stats', label: '푸시 지표', icon: BarChart3 },
-      { href: '/admin/loyalty', label: '스탬프·등급', icon: Medal },
-    ],
-  },
-  {
-    label: '상품·콘텐츠',
-    items: [
-      { href: '/admin/products', label: '상품', icon: ShoppingBasket },
-      { href: '/admin/algorithm', label: '처방 알고리즘', icon: FlaskConical },
-      { href: '/admin/personalization', label: '개인화', icon: Wand2 },
-      { href: '/admin/blog', label: '매거진', icon: Newspaper },
-      { href: '/admin/faqs', label: 'FAQ', icon: HelpCircle },
-      { href: '/admin/promotions', label: '프로모션', icon: Ticket },
+      nav('/admin/messages', MessageSquare),
+      nav('/admin/blog', Newspaper),
+      nav('/admin/faqs', HelpCircle),
       // 인스타 프로필 링크 페이지(/link) 콘텐츠 — 커버·배너(기간)·하루 사진(2026-09-26).
-      { href: '/admin/link', label: '링크 페이지', icon: Link2 },
+      nav('/admin/link', Link2),
+      nav('/admin/subscriptions/charges', CreditCard),
+      nav('/admin/finance', Wallet),
+      nav('/admin/reports', LineChart),
     ],
   },
   {
-    label: '분석',
+    label: '설정',
+    foldable: true,
     items: [
-      { href: '/admin/reports', label: '리포트', icon: LineChart },
-      { href: '/admin/funnel', label: '퍼널', icon: Filter },
-      { href: '/admin/cohort', label: '코호트', icon: Grid3x3 },
-      { href: '/admin/beta-cohort', label: '베타 현황', icon: PawPrint },
-      { href: '/admin/personalization-insights', label: '맞춤 분석 품질', icon: Gauge },
-    ],
-  },
-  {
-    label: '시스템',
-    items: [
-      { href: '/admin/cron-health', label: '크론 상태', icon: Activity },
-      { href: '/admin/automation', label: '자동화', icon: Workflow },
-      { href: '/admin/invention-flags', label: '발명 보호', icon: Lightbulb },
-      { href: '/admin/partners', label: '파트너', icon: Handshake },
-      { href: '/admin/search-all', label: '통합 검색', icon: Search },
+      nav('/admin/loyalty', Medal),
+      nav('/admin/algorithm', FlaskConical),
+      nav('/admin/cron-health', Activity),
+      nav('/admin/automation', Workflow),
+      nav('/admin/invention-flags', Lightbulb),
+      nav('/admin/partners', Handshake),
+      nav('/admin/funnel', Filter),
+      nav('/admin/cohort', Grid3x3),
+      nav('/admin/beta-cohort', PawPrint),
+      nav('/admin/personalization-insights', Gauge),
+      nav('/admin/push-stats', BarChart3),
     ],
   },
 ]
@@ -187,8 +186,12 @@ export default function AdminShellNext({
   const activeHref = current?.href ?? '/admin'
   const crumb =
     pathname === '/admin'
-      ? '대시보드'
+      ? ADMIN_PAGE_LABEL['/admin']
       : (current?.label ?? crumbOnly?.label ?? '관리자')
+  // '설정' 묶음은 기본 접힘 — 지금 보는 화면이 그 안에 있으면 펼친다.
+  const [settingsOpen, setSettingsOpen] = useState(() =>
+    NAV_GROUPS.some((g) => g.foldable && g.items.some((it) => it.href === activeHref)),
+  )
   return (
     <TooltipProvider>
     <SidebarProvider defaultOpen={defaultOpen}>
@@ -207,15 +210,24 @@ export default function AdminShellNext({
             />
             <div className="grid gap-1 leading-none group-data-[collapsible=icon]:hidden">
               <Image src="/logo-mark.png" alt="FARMER'S TAIL" width={118} height={20} priority className="h-5 w-auto" />
-              <span className="text-[10.5px] font-bold tracking-[0.08em] text-muted-foreground">관리자 콘솔</span>
+              <span className="text-[12px] font-bold text-muted-foreground">관리자</span>
             </div>
           </div>
         </SidebarHeader>
         <SidebarContent>
           {NAV_GROUPS.map((g) => (
             <SidebarGroup key={g.label}>
-              <SidebarGroupLabel>{g.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
+              {g.foldable ? (
+                <SidebarGroupLabel asChild>
+                  <button type="button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen((v) => !v)} className="flex w-full items-center justify-between">
+                    {g.label}
+                    <span aria-hidden="true">{settingsOpen ? '접기' : `펼치기 · ${g.items.length}`}</span>
+                  </button>
+                </SidebarGroupLabel>
+              ) : (
+                <SidebarGroupLabel>{g.label}</SidebarGroupLabel>
+              )}
+              <SidebarGroupContent hidden={g.foldable && !settingsOpen}>
                 <SidebarMenu>
                   {g.items.map((it) => (
                     <SidebarMenuItem key={it.href}>

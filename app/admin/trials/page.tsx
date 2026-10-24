@@ -45,7 +45,7 @@ export default async function AdminTrialsPage() {
   if (error) {
     return (
       <>
-        <AdminHeader title="체험단" sub="구독 체험단 도장 · 진행 현황" />
+        <AdminHeader title="서포터즈" sub="서포터즈 등록 · 진행 현황" />
         <LoadError what="체험단 목록" />
       </>
     )

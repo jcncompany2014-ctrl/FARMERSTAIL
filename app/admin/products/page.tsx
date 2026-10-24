@@ -102,7 +102,7 @@ export default async function AdminProductsPage({
           <div className="flex items-center gap-2">
             <Package className="size-5 text-primary" strokeWidth={2} />
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-              제품 관리
+              상품·재고
             </h1>
           </div>
           <p className="text-[13px] text-muted-foreground mt-1">

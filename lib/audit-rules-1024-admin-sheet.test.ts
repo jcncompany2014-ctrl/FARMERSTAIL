@@ -68,7 +68,7 @@ test('규칙314: 포장 목록 이름 하나·영어 배지 없음 · 점검 화
   assert.ok(!pick.includes('박스 패킹 —'), "포장 목록 제목이 '박스 패킹'(이름 세 벌)으로 남았다")
   assert.ok(!/>cycle \{/.test(pick), "포장 목록에 영어 'cycle n' 배지가 남았다")
   assert.ok(!pick.includes('px-5 py-6'), '포장 목록에 셸 여백과 겹치는 이중 여백이 남았다')
-  assert.match(code('components', 'adminui', 'admin-shell-next.tsx'), /label: '포장 목록'/, "메뉴 이름이 '포장 목록'이 아니다")
+  assert.match(code('lib', 'admin', 'page-labels.ts'), /'\/admin\/personalization\/picking-list': '포장 목록'/, "메뉴 이름이 '포장 목록'이 아니다")
   assert.ok(existsSync(join(ROOT, 'app', 'design-check-admin', 'subscription', 'page.tsx')), '정기배송 한 장 점검 화면이 없다')
   assert.ok(existsSync(join(ROOT, 'app', 'design-check-admin', 'arrivals', 'page.tsx')), '새로 들어온 것 점검 화면이 없다')
 })

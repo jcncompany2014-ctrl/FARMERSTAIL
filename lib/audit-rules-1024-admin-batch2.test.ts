@@ -122,6 +122,63 @@ test('규칙318: 어드민 홈은 네 덩어리 — 찾기 → 새로 들어온 
 
   const panel = code('components', 'admin', 'WeeklyTodoPanel.tsx')
   assert.match(panel, /return it\.count === 0 && it\.tone === 'ok' && !it\.error/, "할 게 없는 줄(0건·정상)을 숨기지 않는다 — 못 셈은 남겨야 한다")
+  assert.ok(!home.includes("'대시보드'"), "홈을 '대시보드'로 부른다")
   assert.match(panel, /\.filter\(\(d\) => d\.isToday \|\| d\.items\.length > 0\)/, '빈 요일 칸을 숨기지 않는다(오늘 칸은 남긴다)')
   assert.match(panel, /open=\{day\.isToday \|\| urgent\}/, '오늘 칸·손볼 것이 있는 칸이 펼쳐지지 않는다')
+})
+
+test('규칙319: 어드민 이름표 하나 — 메뉴(세 묶음)·탭·화면 제목이 lib/admin/page-labels 를 쓰고, 옛 말이 메뉴에 없다', async () => {
+  /**
+   * # 왜 (기획서 ④)
+   * 메뉴가 37개였고 메뉴 이름과 열리는 화면 이름이 다른 곳이 27군데쯤 있었다(메뉴 '구독' → 화면 '정기배송 관리', '처방 알고리즘' →
+   * '알고리즘 계수', 'CS 인박스' → '고객 답장'). '찾기'는 맨 아래 '시스템'에 있었다.
+   */
+  const { ADMIN_PAGE_LABEL } = await load<typeof import('./admin/page-labels.ts')>('lib', 'admin', 'page-labels.ts')
+  const shell = code('components', 'adminui', 'admin-shell-next.tsx')
+  // 세 묶음 — 매일(찾기가 두 번째)·가끔·설정(접힘).
+  assert.match(shell, /label: '매일',\s*items: \[\s*nav\('\/admin', Home\),\s*nav\('\/admin\/search-all', Search\),/, "메뉴 '매일' 묶음 맨 위가 홈 → 찾기가 아니다")
+  assert.match(shell, /label: '설정',\s*foldable: true,/, "'설정' 묶음이 접히지 않는다")
+  assert.match(shell, /const nav = \(href: AdminPageHref, icon: LucideIcon\) => \(\{ href, label: ADMIN_PAGE_LABEL\[href\], icon \}\)/, '메뉴 이름이 이름표 하나에서 오지 않는다')
+  assert.ok(!/label: '[^']+', icon:/.test(shell), '메뉴에 이름을 직접 적은 줄이 있다(이름표를 거치지 않음)')
+  // 메뉴에 걸린 화면은 전부 이름표에 있고, 이름표의 화면은 메뉴나 탭(배송 달력은 정기배송 탭) 어딘가에 있다.
+  const tabs = code('components', 'admin', 'tabGroups.ts')
+  const navHrefs = new Set([...shell.matchAll(/nav\('([^']+)'/g)].map((m) => m[1]))
+  const tabHrefs = new Set([...tabs.matchAll(/href: '([^']+)'/g)].map((m) => m[1]))
+  for (const h of navHrefs) assert.ok(h! in ADMIN_PAGE_LABEL, `메뉴의 ${h} 가 이름표에 없다`)
+  for (const h of Object.keys(ADMIN_PAGE_LABEL)) assert.ok(navHrefs.has(h) || tabHrefs.has(h), `이름표의 ${h} 가 메뉴·탭 어디에도 없다`)
+  // 탭도 같은 이름표.
+  assert.ok(!/label: '/.test(tabs), '탭에 이름을 직접 적었다(이름표를 거치지 않음)')
+  // 옛 말이 이름표에 없다.
+  for (const old of ['구독', '체험단', 'CS', '인박스', '크론', '처방', '개인화', '퍼널', '코호트', '대시보드', '재무', '원장', '블로그', 'FAQ']) {
+    for (const [href, label] of Object.entries(ADMIN_PAGE_LABEL)) assert.ok(!label.includes(old), `${href} 이름 '${label}'에 안 쓰는 말 '${old}'`)
+  }
+  // 화면 제목(h1·AdminHeader)이 메뉴 이름과 같다.
+  const titled: Array<[keyof typeof ADMIN_PAGE_LABEL, string[]]> = [
+    ['/admin/orders', ['app', 'admin', 'orders', 'page.tsx']],
+    ['/admin/subscriptions', ['app', 'admin', 'subscriptions', 'page.tsx']],
+    ['/admin/subscriptions/calendar', ['app', 'admin', 'subscriptions', 'calendar', 'page.tsx']],
+    ['/admin/subscriptions/charges', ['app', 'admin', 'subscriptions', 'charges', 'page.tsx']],
+    ['/admin/cs-inbox', ['app', 'admin', 'cs-inbox', 'page.tsx']],
+    ['/admin/users', ['app', 'admin', 'users', 'page.tsx']],
+    ['/admin/refunds', ['app', 'admin', 'refunds', 'page.tsx']],
+    ['/admin/products', ['app', 'admin', 'products', 'page.tsx']],
+    ['/admin/finance', ['app', 'admin', 'finance', 'page.tsx']],
+    ['/admin/algorithm', ['app', 'admin', 'algorithm', 'page.tsx']],
+    ['/admin/blog', ['app', 'admin', 'blog', 'page.tsx']],
+    ['/admin/search-all', ['app', 'admin', 'search-all', 'page.tsx']],
+    ['/admin/trials', ['app', 'admin', 'trials', 'page.tsx']],
+    ['/admin/promotions', ['app', 'admin', 'promotions', 'page.tsx']],
+    ['/admin/loyalty', ['app', 'admin', 'loyalty', 'page.tsx']],
+  ]
+  for (const [href, file] of titled) {
+    const c = code(...file)
+    const label = ADMIN_PAGE_LABEL[href]
+    const h1 = c.match(/<h1[^>]*>\s*([^<{]+?)\s*<\/h1>/)?.[1]
+    const header = c.match(/<AdminHeader\s+title="([^"]+)"/)?.[1]
+    assert.equal(h1 ?? header, label, `${file.join('/')} 제목이 메뉴 이름 '${label}'과 다르다`)
+  }
+  // 브라우저 탭 제목에 '— Admin'·'| Admin' 이 없다.
+  const offenders: string[] = []
+  for (const f of walk(join(ROOT, 'app', 'admin'))) if (/title: '[^']*[—|] Admin'/.test(readFileSync(f, 'utf8'))) offenders.push(f.slice(ROOT.length))
+  assert.deepEqual(offenders, [], `탭 제목에 영어 'Admin': ${offenders.join(', ')}`)
 })

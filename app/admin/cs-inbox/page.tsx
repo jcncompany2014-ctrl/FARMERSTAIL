@@ -81,7 +81,7 @@ export default async function AdminCsInboxPage() {
           <div className="flex items-center gap-2">
             <Inbox className="size-5 text-primary" strokeWidth={2} />
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-              고객 답장
+              고객 문의
             </h1>
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">

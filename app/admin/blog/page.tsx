@@ -98,7 +98,7 @@ export default async function AdminBlogPostsPage({
           <div className="flex items-center gap-2">
             <Newspaper className="size-5 text-primary" strokeWidth={2} />
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-              블로그
+              매거진
             </h1>
           </div>
           <p className="text-[13px] text-muted-foreground mt-1">

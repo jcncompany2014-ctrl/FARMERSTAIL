@@ -252,7 +252,7 @@ export default async function SubscriptionChargesPage({
       <AdminTabs tabs={SUBS_TABS} active="/admin/subscriptions/charges" />
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-          자동결제 이력
+          자동결제 기록
         </h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>정기배송 카드 자동결제가 언제 성공·실패했는지</Hl> 보는 곳이에요.

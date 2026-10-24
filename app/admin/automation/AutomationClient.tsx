@@ -61,7 +61,7 @@ export default function AutomationClient({
     <main className="px-1 py-2 max-w-2xl">
       <header className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-          설정 · 자동화
+          자동화 설정
         </h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>자동으로 나가는 알림·재제안을 켜고 끄거나 시각을 조절</Hl>하는

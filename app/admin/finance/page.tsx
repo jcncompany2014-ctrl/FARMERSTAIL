@@ -145,7 +145,7 @@ export default async function AdminFinancePage({
       {/* 대개편 v2 T3 — 매출·결제 그룹 탭 (뒤로가기 링크 대체·헤더 zinc 통일) */}
       <AdminTabs tabs={REVENUE_TABS} active="/admin/finance" />
       <div className="mb-5">
-        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">결제 원장</h1>
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">결제·환불 기록</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           <Hl>실제 카드 결제 기록</Hl>을 하루 단위로 쌓아 보여주는 곳이에요 —{' '}
           <Em>토스에서 승인된 금액 기준</Em>이라 &lsquo;진짜 들어온 돈&rsquo;에

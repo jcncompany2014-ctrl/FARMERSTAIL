@@ -46,7 +46,7 @@ import { subscriptionHref } from '@/lib/admin/customer-link'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '정기배송 캘린더 | Admin',
+  title: '배송 달력 · 관리자',
   robots: { index: false, follow: false },
 }
 
@@ -402,7 +402,7 @@ export default async function SubscriptionsCalendarPage({
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-            배송 캘린더
+            배송 달력
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>앞으로 나갈 배송을 달력으로</Hl> 봐요 (토·일 조리 → 월 포장 →{' '}

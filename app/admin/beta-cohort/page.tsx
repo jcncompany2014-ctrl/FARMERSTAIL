@@ -9,7 +9,7 @@ import { HelpTip, Hl, LoadError } from '@/components/admin/ui'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '베타 테스트 현황 — Admin',
+  title: '베타 현황 · 관리자',
   robots: { index: false, follow: false },
 }
 
@@ -169,7 +169,7 @@ export default async function BetaCohortPage() {
       <div className="flex items-end justify-between mb-6 no-print">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-            베타 테스트 현황
+            베타 현황
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>2026 비공개 베타(강아지 30마리)의 진행 현황</Hl>을 관리하는

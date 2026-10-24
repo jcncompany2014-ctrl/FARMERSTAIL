@@ -28,7 +28,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'Cohort 분석 — Admin',
+  title: '가입 시기별 · 관리자',
   robots: { index: false, follow: false },
 }
 
@@ -234,7 +234,7 @@ export default async function AdminCohortPage() {
   return (
     <div className="px-5 py-6">
       <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-        가입 시기별 분석
+        가입 시기별
       </h1>
       <p className="text-[13px] text-muted-foreground mt-1">
         같은 주에 가입한 고객끼리 묶어서, 시기별로 재주문·환불·별점·체크인

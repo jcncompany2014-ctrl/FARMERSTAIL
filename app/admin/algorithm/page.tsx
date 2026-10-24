@@ -49,7 +49,7 @@ export default async function AdminAlgorithmPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-            알고리즘 계수
+            레시피 계산 설정
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
             <Hl>맞춤 추천이 쓰는 계산 계수를 직접 손보는 고급 설정</Hl>이에요 —

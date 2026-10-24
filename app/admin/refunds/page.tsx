@@ -19,7 +19,7 @@ import { Card, CardContent } from '@/components/adminui/card'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '환불 관리 — Admin',
+  title: '환불 · 관리자',
   robots: { index: false, follow: false },
 }
 
@@ -110,7 +110,7 @@ export default async function AdminRefundsPage() {
       <div>
         <div className="flex items-center gap-2">
           <RefreshCcw className="size-5 text-primary" strokeWidth={2} />
-          <h1 className="text-xl font-bold tracking-tight md:text-2xl">환불 관리</h1>
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">환불</h1>
         </div>
         <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
           <Hl>지금까지 처리한 환불 내역</Hl>을 보는 곳이에요. 각 건은 토스

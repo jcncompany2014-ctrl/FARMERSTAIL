@@ -205,7 +205,7 @@ test('규칙248: 경보함 화면 — 안 본 것이 위, 종류별 필터, 각 
   assert.match(api, /if \(!data \|\| data\.length === 0\) \{[\s\S]{0,600}ALREADY_RESOLVED[\s\S]{0,80}status: 409/, "0행을 '저장됨'으로 말한다")
   assert.match(api, /recordAdminAction\(/, '처리함이 감사 기록을 안 남긴다')
   const shell = code('components', 'adminui', 'admin-shell-next.tsx')
-  assert.match(shell, /href: '\/admin\/alerts'/, '경보함이 어드민 메뉴에 없다')
+  assert.match(shell, /nav\('\/admin\/alerts'/, '경보함이 어드민 메뉴에 없다')
 })
 
 test('규칙249: 이번 주 할 일 — 요일별 칸(토 결제·월 포장·화 발송·늘), 포장은 포장 목록과 같은 판정, 홈과 아침 브리핑이 같은 함수 (B2)', async () => {

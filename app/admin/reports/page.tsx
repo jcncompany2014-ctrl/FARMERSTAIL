@@ -19,7 +19,7 @@ import PrintButtonClient from './PrintButtonClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '매출 리포트 — Admin',
+  title: '매출 리포트 · 관리자',
   robots: { index: false, follow: false },
 }
 

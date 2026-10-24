@@ -210,7 +210,7 @@ export default async function AdminUsersPage({
         <div className="flex items-center gap-2">
           <Users className="size-5 text-primary" strokeWidth={2} />
           <h1 className="text-xl font-bold tracking-tight md:text-2xl">
-            회원 관리
+            고객
           </h1>
         </div>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">

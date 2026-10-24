@@ -15,7 +15,7 @@ import { CONTENT_TABS } from '@/components/admin/tabGroups'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: 'FAQ 관리 | Admin',
+  title: '자주 묻는 질문 · 관리자',
   robots: { index: false, follow: false },
 }
 

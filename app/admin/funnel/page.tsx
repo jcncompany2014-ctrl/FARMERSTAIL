@@ -121,7 +121,7 @@ export default async function FunnelPage({
 
       <header className="mt-3 mb-6">
         <h1 className="text-[22px] font-bold tracking-tight text-foreground leading-tight">
-          가입 여정 분석
+          가입 여정
         </h1>
         <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
           고객이 가입 → 설문 → 분석 → 첫 정기배송 결제까지 오는 동안 어느
