@@ -369,6 +369,8 @@ export default async function AdminOrderDetailPage({
                   : 'unshipped'
                 : null
             }
+            // 이벤트 할인 박스 — 발송 전에 전액 환불하면만 할인이 되살아난다(DB 트리거와 같은 기준, 규칙322).
+            eventBox={order.discount_reason === 'promotion' ? (order.shipped_at ? 'shipped' : 'unshipped') : null}
           />
 
           {/* 현재 송장 (shipping 이후에만) */}

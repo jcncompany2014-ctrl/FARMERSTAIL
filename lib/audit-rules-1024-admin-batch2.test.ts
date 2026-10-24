@@ -1,8 +1,9 @@
 /**
- * 2026-10-24 어드민 2묶음 — 규칙 316·317·318.
+ * 2026-10-24 어드민 2묶음 — 규칙 316~322.
  *
  * 사장님 "그냥 전체적으로 너무 헷갈려 좀 안 헷갈리게 기획 잘해서 만들어 봐 어드민 부분" → 기획서(admin_clarity_plan) 2묶음.
- * 사장님 결정(10/24): 정기배송 배지 = '진행 중'('구독'이라는 말을 안 쓴다) · 이벤트 할인 박스 환불 시 할인 다시 안 줌(코드 그대로).
+ * 사장님 결정(10/24): 정기배송 배지 = '진행 중'('구독'이라는 말을 안 쓴다) · 이벤트 할인 박스 환불은 C — 발송 전 환불만
+ * 할인을 되살린다(처음엔 "코드가 안 되살린다"고 잘못 안내했다 — 실제론 늘 되살리고 있었다. 규칙322).
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -243,4 +244,35 @@ test('규칙321: 어드민 글씨 최소 12px · 말 사전(체험단·도장 �
   assert.ok(!/<Badge tone="red">[^<]*청구/.test(pick), "포장 목록 빨간 배지에 '청구' 말이 남아 있다")
   assert.equal((pick.match(/<Badge tone="red">결제 안 됨 — 보내지 마세요<\/Badge>/g) ?? []).length, 2, "돈 사유 빨간 배지가 '결제 안 됨 — 보내지 마세요' 하나가 아니다")
   assert.match(pick, /<Badge tone="green">\{`결제됨 · \$\{/, "결제된 박스 배지가 '결제됨 · 날짜 발송'이 아니다")
+})
+
+test('규칙322: 이벤트 할인은 발송 전 환불에만 되살아난다(사장님 결정 C) — 결제 도중 해지 자동 환불은 그대로 되살리고, 받은 박스 환불은 끝', () => {
+  /**
+   * # 왜
+   * 20260807000200 트리거가 이벤트 할인 주문이 전액 환불·취소되면 **언제나** 할인을 되살렸다 — 박스를 받은 뒤 환불해도 다음 결제에
+   * 또 50%(최대 5만원)가 붙었다. 사장님 결정 C(2026-10-24): 안 나간 박스만 되살린다. 기준은 서포터즈 회차 되돌림과 같은
+   * `new.shipped_at is null`. 8/7 에 막은 사고(결제 도중 해지 → 자동 환불로 박스도 못 받고 할인만 잃음)는 계속 막는다.
+   */
+  const dir = join(ROOT, 'supabase', 'migrations')
+  const defs = readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .filter((f) => /create or replace function public\.tg_orders_reclaim_promotion\(\)/i.test(readFileSync(join(dir, f), 'utf8')))
+  const latest = defs[defs.length - 1]!
+  assert.equal(latest, '20261024120000_promotion_reclaim_unshipped_only.sql', '이벤트 할인 되살리기 트리거의 마지막 정의가 결정 C 마이그레이션이 아니다')
+  const sql = readFileSync(join(dir, latest), 'utf8').replace(/--[^\n]*/g, '')
+  const body = sql.slice(sql.indexOf('begin'), sql.indexOf('end;'))
+  assert.match(body, /and new\.shipped_at is null/, '받은 박스를 환불해도 이벤트 할인이 되살아난다(결정 C 위반)')
+  assert.match(body, /old\.payment_status in \('pending', 'paid', 'partially_refunded'\)/, "결제 도중 해지 자동 환불(pending → cancelled)에서 할인을 안 되살린다 — 8/7 사고 재발")
+  assert.match(sql, /revoke execute on function public\.tg_orders_reclaim_promotion\(\) from public, anon, authenticated/, '트리거 함수가 RPC 로 열려 있다')
+
+  // 환불 화면이 같은 기준을 말한다.
+  const panel = code('app', 'admin', 'orders', '[id]', 'PartialCancelPanel.tsx')
+  assert.ok(panel.includes('전액 환불해도 이벤트 할인은 다시 생기지 않아요'), '나간 박스 환불 안내가 없다')
+  assert.ok(panel.includes('전액 환불하면 이벤트 할인이 다시 생겨서'), '안 나간 박스 환불 안내가 없다')
+  assert.match(
+    code('app', 'admin', 'orders', '[id]', 'page.tsx'),
+    /eventBox=\{order\.discount_reason === 'promotion' \? \(order\.shipped_at \? 'shipped' : 'unshipped'\) : null\}/,
+    '환불 화면 안내가 DB 와 같은 기준(shipped_at)으로 갈리지 않는다',
+  )
 })

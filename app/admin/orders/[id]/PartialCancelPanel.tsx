@@ -30,6 +30,12 @@ type Props = {
    * shipped = 이미 나간 박스(전액 환불해도 회차는 돌아오지 않는다) · unshipped = 발송 전(전액 환불하면 회차 1회가 돌아온다).
    */
   supporterBox?: 'shipped' | 'unshipped' | null
+  /**
+   * 이벤트 할인(50%·최대 5만원 등)으로 결제된 박스인가(2026-10-24 사장님 결정 C, 규칙322).
+   * shipped = 이미 나간 박스(전액 환불해도 할인은 돌아오지 않는다) · unshipped = 발송 전(전액 환불하면 다음 결제에 할인이 다시 붙는다).
+   * 판정은 DB 트리거(tg_orders_reclaim_promotion — new.shipped_at is null)와 같은 기준.
+   */
+  eventBox?: 'shipped' | 'unshipped' | null
 }
 
 const BANK_OPTIONS: { code: string; name: string }[] = [
@@ -61,6 +67,7 @@ export default function PartialCancelPanel({
   refundedAmount,
   paymentStatus,
   supporterBox = null,
+  eventBox = null,
 }: Props) {
   const router = useRouter()
   const remaining = totalAmount - refundedAmount
@@ -190,6 +197,16 @@ export default function PartialCancelPanel({
             <p className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-sky-900">
               아직 나가지 않은 서포터즈 박스예요. 전액 환불하면 서포터즈 회차 1회가 돌아와요(도장이 취소된 고객이면 도장을 다시
               찍을 때 돌려줘요).
+            </p>
+          )}
+          {eventBox === 'shipped' && (
+            <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] font-semibold leading-relaxed text-amber-900">
+              이미 나간 박스예요. 전액 환불해도 이벤트 할인은 다시 생기지 않아요 — 다음 결제부터 정가예요.
+            </p>
+          )}
+          {eventBox === 'unshipped' && (
+            <p className="rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-[13px] font-semibold leading-relaxed text-sky-900">
+              아직 나가지 않은 박스예요. 전액 환불하면 이벤트 할인이 다시 생겨서 다음 결제에 한 번 더 붙어요.
             </p>
           )}
           <div>
