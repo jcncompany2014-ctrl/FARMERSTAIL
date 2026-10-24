@@ -24,6 +24,9 @@ import {
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
 import { STORE_ORDER_PREFIX, isStoreOrderNumber } from '@/lib/store/order-number'
+import { storeShipDate } from '@/lib/store/shipping'
+import { paidBoxShipIso, weekdayKo } from '@/lib/shipping-schedule'
+import { kstDateOf } from '@/lib/datetime-kst'
 
 export const dynamic = 'force-dynamic'
 
@@ -137,7 +140,7 @@ export default async function AdminOrdersPage({
     supabase
       .from('orders')
       .select(
-        'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, created_at, recipient_name, recipient_phone',
+        'id, user_id, order_number, total_amount, payment_status, order_status, paid_at, created_at, recipient_name, recipient_phone, subscription_id, tracking_number',
         { count: 'exact' },
       ),
   )
@@ -180,6 +183,46 @@ export default async function AdminOrdersPage({
   const hiddenCount = hiddenRes.error ? null : (hiddenRes.count ?? 0)
   const total = count ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE))
+
+  /**
+   * 카드 한 줄(2026-10-24 2묶음 2-8) — '태리 · 정기배송 · 10/27(화) 발송 · 송장 아직'.
+   * 정기배송 주문은 강아지 이름과 그 박스 발송일(paidBoxShipIso 정본), 가게 주문은 출고일(storeShipDate 정본 — 손님 화면이 약속한 날).
+   * 강아지를 못 읽으면 받는 분 이름으로 쓰고 서버 로그에 남긴다(줄은 그대로 — 없는 것처럼 보이지 않게).
+   */
+  const subIdsOnPage = [...new Set((orders ?? []).map((o) => o.subscription_id).filter((x): x is string => !!x))]
+  const subInfo = new Map<string, { dogName: string | null; next: string | null }>()
+  if (subIdsOnPage.length > 0) {
+    const { data: subRows, error: subErr } = await createAdminClient()
+      .from('subscriptions')
+      .select('id, next_delivery_date, dogs(name)')
+      .in('id', subIdsOnPage)
+    if (subErr) console.error('[admin-orders] 강아지 이름 조회 실패:', subErr.message)
+    for (const s of (subRows ?? []) as unknown as Array<{ id: string; next_delivery_date: string | null; dogs: { name: string } | null }>) {
+      subInfo.set(s.id, { dogName: s.dogs?.name ?? null, next: s.next_delivery_date })
+    }
+  }
+  const mdw = (iso: string) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
+  const lineOf = (o: {
+    order_number: string
+    recipient_name: string | null
+    subscription_id: string | null
+    paid_at: string | null
+    order_status: string
+    tracking_number: string | null
+  }) => {
+    const store = isStoreOrderNumber(o.order_number)
+    const info = o.subscription_id ? subInfo.get(o.subscription_id) : undefined
+    const who = info?.dogName ?? o.recipient_name ?? '(이름 없음)'
+    const kind = store ? '가게' : o.subscription_id ? '정기배송' : '주문'
+    let ship: string | null = null
+    if (o.paid_at && o.order_status === 'preparing') {
+      const iso = store ? storeShipDate(kstDateOf(o.paid_at)) : o.subscription_id ? paidBoxShipIso(info?.next ?? null, o.paid_at) : null
+      ship = `${iso ? `${mdw(iso)} 발송 · ` : ''}${o.tracking_number ? '송장 넣었어요' : '송장 아직'}`
+    } else if (o.order_status === 'shipping' && !o.tracking_number) {
+      ship = '배송 중인데 송장이 없어요'
+    }
+    return { who, kind, ship }
+  }
 
   // CSV export URL — 현재 필터/검색을 그대로 전달.
   const exportParams = new URLSearchParams()
@@ -317,15 +360,19 @@ export default async function AdminOrdersPage({
                         <AdminStatusBadge badge={badge} withNote={false} />
                       </div>
                       <div className="mt-1.5 flex items-center justify-between gap-2">
-                        <span className="truncate text-[13px] font-bold">
-                          {o.recipient_name}
+                        <span className="min-w-0 truncate text-[15px] font-bold">
+                          {lineOf(o).who}
+                          <span className="ml-1 text-[13px] font-semibold text-muted-foreground">· {lineOf(o).kind}</span>
                         </span>
-                        <strong className="shrink-0 text-sm tabular-nums">
+                        <strong className={`shrink-0 text-[15px] tabular-nums ${o.paid_at ? '' : 'text-muted-foreground line-through'}`}>
                           {o.total_amount.toLocaleString()}원
                         </strong>
                       </div>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {o.recipient_phone} · {formatDate(o.created_at)}
+                      {lineOf(o).ship && (
+                        <p className={`mt-1 text-[13px] font-semibold ${o.tracking_number ? 'text-muted-foreground' : 'text-amber-800'}`}>{lineOf(o).ship}</p>
+                      )}
+                      <p className="mt-0.5 text-[12px] text-muted-foreground">
+                        {o.recipient_name} · {o.recipient_phone} · {formatDate(o.created_at)}
                       </p>
                     </CardContent>
                   </Card>

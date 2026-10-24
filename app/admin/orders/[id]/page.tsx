@@ -122,6 +122,16 @@ export default async function AdminOrderDetailPage({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* 왼쪽: 주문 정보 */}
         <div className="space-y-4 lg:col-span-2">
+          {/* 발송 처리(송장 넣기) — 맨 위(2026-10-24 2묶음 2-8). 화요일에 이 화면을 여는 이유의 대부분이라 폰에서 스크롤 없이.
+              보낼 수 없는 주문(결제 안 됨·이미 끝남)이면 부품이 스스로 아무것도 안 그린다. */}
+          <ShippingControl
+            orderId={order.id}
+            currentOrderStatus={order.order_status}
+            paymentStatus={order.payment_status}
+            currentCarrier={order.carrier}
+            currentTrackingNumber={order.tracking_number}
+          />
+
           {/* 주문 상품 */}
           <Panel title={`주문 상품 (${items.length})`}>
             <ul className="space-y-3">
@@ -336,15 +346,6 @@ export default async function AdminOrderDetailPage({
             orderId={order.id}
             currentOrderStatus={order.order_status}
             paymentStatus={order.payment_status}
-          />
-
-          {/* 발송 처리 (preparing → shipping) */}
-          <ShippingControl
-            orderId={order.id}
-            currentOrderStatus={order.order_status}
-            paymentStatus={order.payment_status}
-            currentCarrier={order.carrier}
-            currentTrackingNumber={order.tracking_number}
           />
 
           {/* R93 (D7): 부분/전액 환불 패널 — 이전엔 컴포넌트가 구현돼 있었으나

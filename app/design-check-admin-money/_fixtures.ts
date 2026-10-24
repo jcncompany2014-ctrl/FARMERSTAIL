@@ -121,6 +121,7 @@ export const CHARGE_ROWS: ChargeListRow[] = [
     error_message: 'Card payment rejected',
     attempted_at: '2026-11-07T00:10:12Z',
     detail: { customerName: '보호자 라', dogName: '두부', cardLast4: '4821', nextRetryAt: '2026-11-08T00:05:00Z', subStatus: 'active', reason: chargeProblemReason({ status: 'failed', error_code: 'REJECT_CARD_PAYMENT', error_message: null }) },
+    who: { dogName: '두부', customerName: '보호자 라', discount: null, test: false },
   },
   {
     ...base,
@@ -133,6 +134,7 @@ export const CHARGE_ROWS: ChargeListRow[] = [
     error_message: null,
     attempted_at: '2026-11-03T00:10:40Z',
     detail: { customerName: '보호자 가', dogName: '땅콩', cardLast4: '1093', nextRetryAt: null, subStatus: 'active', reason: chargeProblemReason({ status: 'pending', error_code: null, error_message: null }) },
+    who: { dogName: '땅콩', customerName: '보호자 가', discount: null, test: false },
   },
   {
     ...base,
@@ -145,6 +147,7 @@ export const CHARGE_ROWS: ChargeListRow[] = [
     error_message: '배송지가 등록되지 않아 결제를 진행할 수 없어요.',
     attempted_at: '2026-11-01T00:10:05Z',
     detail: { customerName: '보호자 다', dogName: '보리', cardLast4: null, nextRetryAt: null, subStatus: 'active', reason: chargeProblemReason({ status: 'failed', error_code: 'NO_SHIPPING_ADDRESS', error_message: null }) },
+    who: { dogName: '보리', customerName: '보호자 다', discount: null, test: true },
   },
   {
     ...base,
@@ -158,6 +161,7 @@ export const CHARGE_ROWS: ChargeListRow[] = [
     attempted_at: '2026-10-31T00:10:09Z',
     // 고객 정보 조회가 실패한 모양 — 행은 그대로 보이고 '불러오지 못했어요'.
     detail: null,
+    who: null,
   },
   {
     ...base,
@@ -172,6 +176,8 @@ export const CHARGE_ROWS: ChargeListRow[] = [
     attempted_at: '2026-10-20T00:10:02Z',
     completed_at: '2026-10-20T00:10:04Z',
     detail: null,
+    // 성공한 줄에도 누구·할인 이름이 붙는다(2026-10-24 2묶음 2-7).
+    who: { dogName: '땅콩', customerName: '보호자 가', discount: '서포터즈 100원', test: false },
   },
 ]
 

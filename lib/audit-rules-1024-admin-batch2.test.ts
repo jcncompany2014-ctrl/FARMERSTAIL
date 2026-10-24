@@ -182,3 +182,31 @@ test('규칙319: 어드민 이름표 하나 — 메뉴(세 묶음)·탭·화면 
   for (const f of walk(join(ROOT, 'app', 'admin'))) if (/title: '[^']*[—|] Admin'/.test(readFileSync(f, 'utf8'))) offenders.push(f.slice(ROOT.length))
   assert.deepEqual(offenders, [], `탭 제목에 영어 'Admin': ${offenders.join(', ')}`)
 })
+
+test('규칙320: 자동결제 기록 줄마다 누구·할인 이름·시험 딱지 · 주문 카드 한 줄(강아지·발송일·송장) · 주문 상세는 송장 칸이 맨 위', () => {
+  /**
+   * # 왜 (기획서 2-7·2-8)
+   * 자동결제 기록은 실패·보류 줄에만 고객이 붙어서, 성공한 100원 줄이 누구 것인지·서포터즈인지 몰랐다.
+   * 주문 목록 카드는 주문번호·받는 분 이름뿐이라 '태리 박스 송장 넣었나'를 보려면 하나씩 열어야 했다.
+   * 주문 상세는 송장 칸이 '주문 상태 관리' 아래 세 번째 칸이었다(화요일에 제일 많이 하는 일).
+   */
+  const page = code('app', 'admin', 'subscriptions', 'charges', 'page.tsx')
+  assert.match(page, /const subIds = \[\.\.\.new Set\(list\.map\(\(r\) => r\.subscription_id\)\)\]/, '누구 붙이기가 실패·보류 줄에만 한다')
+  assert.match(page, /test: isInternalUser\(r\.user_id, internal\.ids\)/, '자동결제 줄에 시험 딱지가 없다')
+  assert.match(page, /adminDiscountLabel\(o\.discount_reason\)/, '자동결제 줄의 할인 이름이 어드민 이름표가 아니다')
+  assert.match(page, /if \(discRes\.error\) enrichError = /, '할인 조회 실패를 감춘다(규칙1)')
+  const view = code('app', 'admin', 'subscriptions', 'charges', 'ChargeRowsView.tsx')
+  assert.match(view, /if \(!w\) return <span className="[^"]*text-destructive">누구인지 불러오지 못했어요<\/span>/, "누구를 못 읽은 줄이 빈칸으로 보인다")
+  assert.equal((view.match(/<WhoLine row=\{row\} \/>/g) ?? []).length, 2, '폰 카드·넓은 표 둘 다에 누구 줄이 있어야 한다')
+
+  const orders = code('app', 'admin', 'orders', 'page.tsx')
+  assert.match(orders, /paidBoxShipIso\(info\?\.next \?\? null, o\.paid_at\)/, '정기배송 주문 발송일을 정본(paidBoxShipIso)으로 안 낸다')
+  assert.match(orders, /storeShipDate\(kstDateOf\(o\.paid_at\)\)/, '가게 주문 출고일을 정본(storeShipDate)으로 안 낸다')
+  assert.match(orders, /if \(subErr\) console\.error\(/, '강아지 이름 조회 실패를 아무 데도 안 남긴다')
+
+  const detail = code('app', 'admin', 'orders', '[id]', 'page.tsx')
+  assert.ok(detail.indexOf('<ShippingControl') > 0 && detail.indexOf('<ShippingControl') < detail.indexOf('주문 상품 ('), '주문 상세 송장 칸이 맨 위가 아니다')
+  const ctl = code('app', 'admin', 'orders', '[id]', 'OrderStatusControl.tsx')
+  assert.match(ctl, /<details className="[^"]*">\s*<summary[^>]*>\s*주문 상태 바꾸기/, "'주문 상태 바꾸기'가 접혀 있지 않다")
+  assert.ok(!ctl.includes('클릭해서 상태를 변경하세요'), '어려운 말(클릭해서 상태를 변경하세요)이 남아 있다')
+})

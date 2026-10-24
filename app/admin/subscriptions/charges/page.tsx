@@ -5,7 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { chargeProblemReason, isProblemCharge } from '@/lib/admin/charge-rows'
-import { excludeInternalFilter, loadInternalUserIds } from '@/lib/admin/internal-accounts'
+import { excludeInternalFilter, isInternalUser, loadInternalUserIds } from '@/lib/admin/internal-accounts'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 import { staleHoldReason } from '@/lib/payments/price-rise'
 import { AdminTabs, StatCard, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
@@ -14,6 +15,7 @@ import {
   OpenHoldsView,
   type ChargeDetail,
   type ChargeListRow,
+  type ChargeWho,
   type ChargeRow,
   type OpenHold,
 } from './ChargeRowsView'
@@ -122,10 +124,10 @@ export default async function SubscriptionChargesPage({
    * 실패하면 행은 그대로 보이고 '고객 정보를 불러오지 못했어요'로 표시한다(없는 것처럼 보이지 않게).
    */
   const admin = createAdminClient()
-  const problemRows = list.filter((r) => isProblemCharge(r.status))
   const detailBySub = new Map<string, Omit<ChargeDetail, 'reason'>>()
   let enrichError: string | null = null
-  const subIds = [...new Set(problemRows.map((r) => r.subscription_id))]
+  // 모든 줄에 누구(강아지·보호자)를 붙인다 — 실패·보류 줄만이 아니라(2026-10-24 2묶음 2-7).
+  const subIds = [...new Set(list.map((r) => r.subscription_id))]
   if (subIds.length > 0) {
     const subsRes = await selectInChunks(subIds, (chunk) =>
       admin
@@ -157,14 +159,32 @@ export default async function SubscriptionChargesPage({
       }
     }
   }
+  // 할인 이름 — 결제된 줄은 그 주문의 할인 이유(orders.discount_reason)를 읽는다. 못 읽으면 할인 칸만 비고 '불러오지 못했어요'.
+  const orderIds = [...new Set(list.map((r) => r.order_id).filter((x): x is string => !!x))]
+  const discRes = orderIds.length
+    ? await selectInChunks(orderIds, (chunk) => admin.from('orders').select('id, discount_reason, discount_amount').in('id', chunk))
+    : { data: [] as Array<{ id: string; discount_reason: string | null; discount_amount: number | null }>, error: null }
+  const discountByOrder = new Map(
+    (discRes.data ?? []).map((o) => [o.id, (o.discount_amount ?? 0) > 0 ? adminDiscountLabel(o.discount_reason) : null]),
+  )
   const rows: ChargeListRow[] = list.map((r) => {
-    if (!isProblemCharge(r.status)) return { ...r, detail: null }
     const d = detailBySub.get(r.subscription_id)
+    const who: ChargeWho | null =
+      !d && enrichError
+        ? null
+        : {
+            dogName: d?.dogName ?? null,
+            customerName: d?.customerName ?? null,
+            discount: r.order_id ? (discountByOrder.get(r.order_id) ?? null) : null,
+            test: isInternalUser(r.user_id, internal.ids),
+          }
+    if (!isProblemCharge(r.status)) return { ...r, detail: null, who }
     // 조회가 실패해 모르는 것과 구독이 지워져 없는 것을 가른다 — 실패면 '불러오지 못했어요'(detail null).
-    if (!d && enrichError) return { ...r, detail: null }
+    if (!d && enrichError) return { ...r, detail: null, who }
     const empty = { customerName: null, dogName: null, cardLast4: null, nextRetryAt: null, subStatus: null }
-    return { ...r, detail: { ...empty, ...d, reason: chargeProblemReason(r) } }
+    return { ...r, detail: { ...empty, ...d, reason: chargeProblemReason(r) }, who }
   })
+  if (discRes.error) enrichError = enrichError ?? discRes.error.message
 
   // 가격 인상 동의가 없어 보류된 회차(열린 것) — 20261014200100.
   const holdsRes = await admin

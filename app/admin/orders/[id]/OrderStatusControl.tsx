@@ -135,12 +135,16 @@ export default function OrderStatusControl({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <h2 className="mb-1 text-sm font-bold">주문 상태 관리</h2>
-      <p className="mb-4 text-[11px] text-muted-foreground">
+    // 접어 둔다(2026-10-24 2묶음 2-8) — 발송은 위 송장 칸이 하고, 여기는 도착 확인·취소처럼 가끔 쓰는 것만 남는다.
+    <details className="rounded-xl border border-border bg-card p-4 shadow-sm">
+      <summary className="flex min-h-9 cursor-pointer items-center justify-between gap-2 text-[14px] font-bold">
+        주문 상태 바꾸기
+        <span className="text-[12px] font-semibold text-muted-foreground">도착 확인 · 취소</span>
+      </summary>
+      <p className="mb-4 mt-2 text-[13px] text-muted-foreground">
         {allowed.length === 0
-          ? '이 주문은 더 이상 상태를 변경할 수 없어요'
-          : '클릭해서 상태를 변경하세요'}
+          ? '이 주문은 더 이상 상태를 바꿀 수 없어요'
+          : '눌러서 바꿔요'}
       </p>
 
       <div className="space-y-2">
@@ -164,6 +168,6 @@ export default function OrderStatusControl({
           )
         })}
       </div>
-    </section>
+    </details>
   )
 }

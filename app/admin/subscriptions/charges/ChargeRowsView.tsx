@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Clock, PauseCircle, X } from 'lucide-react
 import { formatKstShortDateTime as formatDateTime } from '@/lib/datetime-kst'
 import { Badge } from '@/components/admin/ui'
 import { isProblemCharge } from '@/lib/admin/charge-rows'
+import { subscriptionHref } from '@/lib/admin/customer-link'
 import { HOLD_CLOSE_REASON_LABEL, PRICE_RISE_LABEL, type HoldCloseReason, type PriceRise } from '@/lib/payments/price-rise'
 
 /**
@@ -39,7 +40,26 @@ export type ChargeDetail = {
   reason: string
 }
 
-export type ChargeListRow = ChargeRow & { detail: ChargeDetail | null }
+/** 줄마다 누구 — 강아지·보호자·할인 이름·시험 딱지(2026-10-24 2묶음 2-7). 고객 조회가 실패하면 null. */
+export type ChargeWho = { dogName: string | null; customerName: string | null; discount: string | null; test: boolean }
+
+export type ChargeListRow = ChargeRow & { detail: ChargeDetail | null; who: ChargeWho | null }
+
+/** '태리 · 이나현님 · 이벤트 할인 · 시험' 한 줄 — 누르면 정기배송 한 장. */
+function WhoLine({ row }: { row: ChargeListRow }) {
+  const w = row.who
+  if (!w) return <span className="text-[12px] font-semibold text-destructive">누구인지 불러오지 못했어요</span>
+  return (
+    <Link href={subscriptionHref(row.subscription_id)} className="inline-flex flex-wrap items-center gap-x-1.5 text-[14px] hover:underline">
+      <b>{w.dogName ?? '(강아지 미상)'}</b>
+      {w.customerName && <span className="text-muted-foreground">· {w.customerName}님</span>}
+      {w.discount && <span className="font-semibold text-violet-700">· {w.discount}</span>}
+      {w.test && (
+        <span className="rounded-full border border-dashed border-slate-400 bg-slate-100 px-1.5 text-[12px] font-bold text-slate-700">시험</span>
+      )}
+    </Link>
+  )
+}
 
 export type OpenHold = {
   id: string
@@ -156,7 +176,10 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
               <StatusPill status={row.status} />
               <ChargeAmount row={row} layout="card" />
             </div>
-            <p className="mt-1.5 text-[12px] text-muted-foreground">
+            <div className="mt-1.5">
+              <WhoLine row={row} />
+            </div>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
               {formatDateTime(row.attempted_at)} 시도 · 예정일 {row.scheduled_for}
             </p>
             {isProblemCharge(row.status) && (
@@ -183,7 +206,7 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
                 <th className="px-4 py-2.5 text-left font-bold">상태</th>
                 <th className="px-4 py-2.5 text-right font-bold">결제한 금액</th>
                 <th className="px-4 py-2.5 text-left font-bold">예정일</th>
-                <th className="px-4 py-2.5 text-left font-bold">고객 · 사유</th>
+                <th className="px-4 py-2.5 text-left font-bold">누구 · 사유</th>
                 <th className="px-4 py-2.5 text-left font-bold">주문</th>
               </tr>
             </thead>
@@ -199,10 +222,11 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{row.scheduled_for}</td>
                   <td className="px-4 py-3">
-                    {isProblemCharge(row.status) ? (
-                      <ProblemDetail row={row} />
-                    ) : (
-                      <span className="text-muted-foreground/60">—</span>
+                    <WhoLine row={row} />
+                    {isProblemCharge(row.status) && (
+                      <div className="mt-1">
+                        <ProblemDetail row={row} />
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3">
