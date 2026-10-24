@@ -10,6 +10,7 @@ import { chargeProblemReason } from '@/lib/admin/charge-rows'
 import { cycleChargeResults, type ChargeAttempt } from '@/lib/admin/weekly-todo-core'
 import { freshTierLabel } from '@/lib/subscription/freshTier'
 import { loadInternalUserIds, isInternalUser } from '@/lib/admin/internal-accounts'
+import { abandonedBeforeCount, keepLiveNewSubs } from '@/lib/admin/new-arrivals-core'
 import type { TrialState } from '@/lib/payments/trial'
 
 /**
@@ -31,6 +32,8 @@ import type { TrialState } from '@/lib/payments/trial'
  *  · 가게 주문 = 주문번호 FTS- + 결제됨(PAID_STATUSES) · 출고일 storeShipDate(결제일).
  *  · 결제 실패 = 구독마다 **마지막 시도**가 실패(cycleChargeResults — 토 실패 → 일 재시도 성공이면 빠진다) · 사유 chargeProblemReason.
  *  · 해지 = 진짜 해지만(classifyCancellation 'real' — 카드 등록 전 포기·같은 강아지 재구독은 뺀다).
+ *  · 새 정기배송엔 해지된 구독을 안 넣는다 — 같은 강아지가 두 줄로 겹쳤다(보돌, 규칙323 — lib/admin/new-arrivals-core).
+ *    결제 전에 해지한 같은 강아지 신청은 남은 줄에 'N건 더'로만 말한다.
  *  · 시험 계정(사장님·푸린네)은 뺀다(규칙313).
  * 칸마다 조회 실패를 null + failures 로 돌려준다 — 0건과 '못 봄'을 같게 그리지 않는다(규칙1).
  */
@@ -64,6 +67,8 @@ export type NewSubArrival = {
   at: string
   /** 결제 실패 뒤 카드를 다시 등록해 이어진 것(새 고객이 아님). */
   reRegistered: boolean
+  /** 같은 강아지로 결제 전에 해지한 다른 신청 수(최근 7일, 규칙323). 해지 목록을 못 읽었으면 없음 — 0으로 단정하지 않는다. */
+  abandonedBefore?: number
 }
 
 export type StoreArrival = { orderId: string; orderNumber: string; who: string; amount: number; paidAt: string; shipIso: string; tracked: boolean }
@@ -148,6 +153,7 @@ export async function loadNewArrivals(db: Db, now: Date = new Date()): Promise<N
         type SubRow = {
           id: string
           user_id: string
+          dog_id: string | null
           status: string
           total_amount: number
           fresh_ratio: number | null
@@ -155,7 +161,11 @@ export async function loadNewArrivals(db: Db, now: Date = new Date()): Promise<N
           subscription_items: Array<{ product_name: string }> | null
           dogs: { name: string; weight: number | null } | null
         }
-        const rows = (subRows ?? []) as unknown as SubRow[]
+        // 해지된 구독은 '새 정기배송'이 아니다 — 같은 강아지가 두 줄로 겹쳤다(보돌, 규칙323).
+        const rows = keepLiveNewSubs((subRows ?? []) as unknown as SubRow[])
+        // 결제 전에 해지한 같은 강아지 신청(남은 줄의 'N건 더') — 해지 목록을 못 읽었으면 세지 않는다(규칙1).
+        type CancelledLite = { id: string; user_id: string; dog_id: string | null; last_charged_at: string | null; total_deliveries: number | null }
+        const cancelledLite = cancelRes.error ? null : ((cancelRes.data ?? []) as CancelledLite[])
         const userIds = [...new Set(rows.map((r) => r.user_id))]
         const [{ data: trialRows, error: trialErr }, { data: paidRows, error: paidErr }] = await Promise.all([
           userIds.length
@@ -232,6 +242,7 @@ export async function loadNewArrivals(db: Db, now: Date = new Date()): Promise<N
               paidUnknown: !!paidErr,
               at: ev.at,
               reRegistered: ev.reRegistered,
+              ...(cancelledLite ? { abandonedBefore: abandonedBeforeCount(r, cancelledLite) } : {}),
             }
           }),
         )

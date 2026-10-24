@@ -117,6 +117,12 @@ export default function NewArrivalsPanel({ data, nowMs }: { data: NewArrivals; n
                               : '발송일 없음'}
                         </p>
                         {fp && <p className="mt-0.5 text-[13px] text-muted-foreground">{nextChargeText(s)}</p>}
+                        {/* 같은 강아지로 결제 전에 해지한 신청 — 줄은 안 만들고 한 줄로만(보돌 두 줄 겹침, 규칙323). */}
+                        {!!s.abandonedBefore && (
+                          <p className="mt-0.5 text-[13px] text-muted-foreground break-keep">
+                            결제 전에 해지한 신청 {s.abandonedBefore}건이 더 있어요 · 정기배송 목록에 흐리게 보여요
+                          </p>
+                        )}
                         {!fp && s.paidUnknown && (
                           <p className="mt-0.5 text-[13px] font-semibold text-destructive">결제됐는지 확인 못 했어요 — 새로고침해 주세요</p>
                         )}

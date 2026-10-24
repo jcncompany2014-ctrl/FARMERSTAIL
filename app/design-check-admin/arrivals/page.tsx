@@ -7,7 +7,7 @@ import type { NewArrivals } from '@/lib/admin/new-arrivals'
  * /design-check-admin/arrivals — 어드민 홈 '새로 들어온 것'(2026-10-24 규칙314) 점검. 예시 값(땅콩·초코·보리) — 운영 데이터 아님.
  * **실제 사이트(production)에선 404**, noindex. ?s=errors 는 칸마다 '못 봄'.
  * 땅콩 = 첫 박스 결제됨(이벤트 할인 — '결제함 ○원' + 다음 결제 회색 줄) · 초코 = 결제 전(서포터즈 '다음 결제 100원') ·
- * 룽지 = 카드 바꿔서 다시 이어짐(2026-10-24 어드민 금액 말 정리).
+ * 룽지 = 카드 바꿔서 다시 이어짐(2026-10-24 어드민 금액 말 정리). 초코 = 결제 전에 해지한 신청 2건이 더 있음(보돌 겹침, 규칙323).
  */
 export const metadata: Metadata = {
   title: '디자인 점검 · 새로 들어온 것',
@@ -65,6 +65,8 @@ const SAMPLE: NewArrivals = {
       paidUnknown: false,
       at: '2026-10-21T13:57:00Z',
       reRegistered: false,
+      // 같은 날 두 번 신청했다가 결제 전에 해지 — 줄은 하나, 'N건 더' 한 줄.
+      abandonedBefore: 2,
     },
     {
       subscriptionId: '00000000-0000-4000-8000-0000000000a3',
