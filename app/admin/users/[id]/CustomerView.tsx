@@ -260,7 +260,7 @@ function SupporterPlanBlock({ plan }: { plan: NonNullable<CustomerData['supporte
         </ul>
       )}
       <Link href="/admin/trials" className="mt-1.5 inline-block text-[13px] font-bold text-primary underline-offset-2 hover:underline">
-        체험단 화면에서 동의 기록하기 →
+        서포터즈 화면에서 동의 기록하기 →
       </Link>
     </div>
   )

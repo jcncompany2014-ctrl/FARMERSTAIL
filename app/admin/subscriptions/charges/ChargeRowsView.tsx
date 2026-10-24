@@ -270,7 +270,7 @@ export function OpenHoldsView({ holds, loadFailed }: { holds: OpenHold[]; loadFa
             청구 보류 {live.length}건 — 가격 인상 동의 기록이 없어요
           </p>
           <p className="mt-1 text-[12px] text-red-700">
-            동의를 받아 체험단 화면에 기록하면 다음 아침 청구에서 결제돼요. 그 전엔 박스를 보내지 마세요.
+            동의를 받아 서포터즈 화면에 기록하면 다음 아침에 결제돼요. 그 전엔 박스를 보내지 마세요.
           </p>
           <ul className="mt-3 grid gap-2">
             {live.map((h) => (

@@ -146,7 +146,8 @@ test('규칙260: 도장 취소 — 서포터즈 가격 결제가 있었으면 �
 
   // ⑤ 화면 — 취소된 사람이 남아 동의를 기록할 수 있고, 다시 찍기가 있다.
   const client = code('app', 'admin', 'trials', 'TrialsClient.tsx')
-  assert.match(client, /isTrialCancelled\(t\)\) return <Badge tone="amber">도장 취소됨/, '취소된 도장이 화면에서 구분되지 않는다')
+  // 2026-10-24 말 사전: '도장'은 도장판에만 — 서포터즈 취소는 '서포터즈 취소됨'.
+  assert.match(client, /isTrialCancelled\(t\)\) return <Badge tone="amber">서포터즈 취소됨/, '취소된 서포터즈가 화면에서 구분되지 않는다')
   assert.match(client, /body: JSON\.stringify\(\{ userId: t\.user_id, restore: true \}\)/, "'도장 다시 찍기'가 없다")
   assert.match(client, /cancelled \? \([\s\S]{0,200}도장 다시 찍기[\s\S]{0,200}\) : \([\s\S]{0,200}도장 취소/, '취소된 도장에 다시 찍기 대신 취소 단추가 보인다')
 })

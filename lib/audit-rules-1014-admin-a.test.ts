@@ -306,7 +306,7 @@ test('규칙243: 포장 목록 — 인상 동의가 없어 청구가 보류될 �
   // 이번 발송분의 회차만 — 고객이 미룬 박스(+14일)의 다음 회차 금액·보류를 이번 박스에 붙이지 않는다.
   assert.match(page, /upcomingRound\.shipIso > shipDate \? null : upcomingRound/, '이번 발송분이 아닌(다음) 회차의 금액·보류를 이번 박스에 붙인다')
   assert.match(page, /if \(!proj\.ok\) \{\s*throw new Error\(/, '판정을 못 읽으면 "보류 아님"으로 접는다')
-  assert.match(page, /r\.skippedNotCharged \? \([\s\S]{0,200}\) : r\.priceConsentMissing \? \([\s\S]{0,200}인상 동의 없음[\s\S]{0,200}\) : r\.overdueNotCharged \?/, '화면 배지 순서가 ship-block 과 다르다')
+  assert.match(page, /if \(r\.skippedNotCharged\) return '[^']+'\s*if \(r\.priceConsentMissing\) return '인상 동의 기록이 없어요'\s*if \(r\.overdueNotCharged\)/, '화면 배지(이유) 순서가 ship-block 과 다르다')
   assert.match(page, /r\.skippedNotCharged \|\|\s*r\.priceConsentMissing \|\|/, "'확인 필요' 건수에 보류 박스가 빠진다")
   const csvType = code('app', 'admin', 'personalization', 'picking-list', 'PickingListExport.tsx')
   assert.match(csvType, /priceConsentMissing: boolean/, 'PickingRow 에 보류 칸이 없다')

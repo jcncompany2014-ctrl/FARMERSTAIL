@@ -2478,6 +2478,20 @@ select {
   --radius-xl: calc(var(--adm-radius, 0.625rem) + 4px);
 }
 
+/* 어드민 글씨 최소 12px (2026-10-24 어드민 2묶음 2-10, 규칙321).
+   어드민 화면 곳곳에 text-[9px]~text-[11.5px] 가 박혀 있어(배지·날짜·설명) 폰에서 사장님이 읽기 어려웠다.
+   파일마다 고치는 대신 어드민 범위(.admin-scope)에서 12px 로 올린다 — 앱의 시니어 매핑(위 [data-ft-chrome="app"])과 같은 다리.
+   새 코드는 처음부터 12px 이상을 쓴다. */
+.admin-scope .text-\[8px\],
+.admin-scope .text-\[9px\],
+.admin-scope .text-\[9\.5px\],
+.admin-scope .text-\[10px\],
+.admin-scope .text-\[10\.5px\],
+.admin-scope .text-\[11px\],
+.admin-scope .text-\[11\.5px\] {
+  font-size: 12px;
+}
+
 /* 어드민 라이트 팔레트(shadcn neutral) — 변수가 전부 --adm-* 라 충돌이
    없으므로 :root 전역 정의. 원래 .admin-scope 스코프였는데, 모바일 드로어·
    드롭다운·툴팁이 **포털로 body 에 직접 렌더**되며 스코프 밖으로 나가

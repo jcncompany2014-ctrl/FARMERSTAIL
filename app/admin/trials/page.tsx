@@ -25,7 +25,7 @@ import TrialsClient, { type TrialRow } from './TrialsClient'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: '체험단',
+  title: '서포터즈 · 관리자',
   robots: { index: false, follow: false },
 }
 
@@ -46,7 +46,7 @@ export default async function AdminTrialsPage() {
     return (
       <>
         <AdminHeader title="서포터즈" sub="서포터즈 등록 · 진행 현황" />
-        <LoadError what="체험단 목록" />
+        <LoadError what="서포터즈 목록" />
       </>
     )
   }
@@ -136,8 +136,8 @@ export default async function AdminTrialsPage() {
   return (
     <>
       <AdminHeader
-        title="체험단"
-        sub="도장 찍기 · 3단 가격(100원→반값→정상) 회차 일정 · 가격 인상 동의 기록"
+        title="서포터즈"
+        sub="서포터즈 등록 · 3단 가격(100원→반값→정가) 결제 일정 · 가격 인상 동의 기록"
       />
       {planError && (
         <div className="mb-4">

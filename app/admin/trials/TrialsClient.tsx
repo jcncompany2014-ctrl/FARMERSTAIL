@@ -9,7 +9,7 @@
  *   청구 크론은 인상 회차에 동의 기록이 없으면 청구하지 않고 보류한다 — 기록은 돈이 나가게 하는 스위치라 확인창을 띄운다.
  *
  * ★2026-10-15 F-a
- *  · 도장 취소(규칙260) — 서포터즈 가격으로 결제된 적이 있으면 목록에 '도장 취소됨'으로 남는다(지우지 않는다). 다음 결제는 정가
+ *  · 도장 취소(규칙260) — 서포터즈 가격으로 결제된 적이 있으면 목록에 '서포터즈 취소됨'으로 남는다(지우지 않는다). 다음 결제는 정가
  *    인상이라 정가 동의를 기록해야 결제된다 — 이 화면에서 바로 기록할 수 있다. '도장 다시 찍기'는 취소 때 남은 회차로 되살린다.
  *  · 폰 운영(규칙269) — 결과·실패 문구는 누른 그 고객 카드 안에 보이고, 인터넷이 끊기면 위에 띠가 뜨고 누른 곳에 안내가 나온다.
  *    (예전엔 맨 위 '도장 찍기' 칸에만 떠서 폰에선 화면 밖이었고, 인터넷이 끊기면 아무 안내도 없었다.)
@@ -80,7 +80,7 @@ function candidateMeta(c: Candidate): string {
 }
 
 function phaseBadge(t: TrialRow) {
-  if (isTrialCancelled(t)) return <Badge tone="amber">도장 취소됨 · 다음 결제부터 정가</Badge>
+  if (isTrialCancelled(t)) return <Badge tone="amber">서포터즈 취소됨 · 다음 결제부터 정가</Badge>
   if (t.cheap_remaining > 0) return <Badge tone="green">100원 구간 · {t.cheap_remaining}회 남음</Badge>
   if (t.half_remaining > 0) return <Badge tone="blue">반값 구간 · {t.half_remaining}회 남음</Badge>
   return <Badge tone="neutral">완료(정상가)</Badge>
@@ -236,9 +236,9 @@ export default function TrialsClient({
     const who = t.profile.name ?? t.profile.email ?? t.user_id
     if (
       !window.confirm(
-        `${who} 님의 체험단을 취소할까요?\n\n` +
-          '· 서포터즈 가격으로 결제된 적이 있으면 목록에 \'도장 취소됨\'으로 남고, 다음 결제는 정가예요.\n' +
-          '  가격이 오르는 결제라 정가 동의를 이 화면에 기록해야 결제돼요(없으면 청구 보류 — 박스를 보내지 마세요).\n' +
+        `${who} 님의 서포터즈를 취소할까요?\n\n` +
+          '· 서포터즈 가격으로 결제된 적이 있으면 목록에 \'서포터즈 취소됨\'으로 남고, 다음 결제는 정가예요.\n' +
+          '  가격이 오르는 결제라 정가 동의를 이 화면에 기록해야 결제돼요(없으면 결제 보류 — 박스를 보내지 마세요).\n' +
           '· 서포터즈 가격 결제가 한 번도 없으면 도장을 지워요.\n\n' +
           '고객에게 먼저 알리고 동의를 받아 두세요.',
       )
@@ -393,9 +393,9 @@ export default function TrialsClient({
         </p>
       )}
       <AdminCard>
-        <SectionTitle title="도장 찍기" />
+        <SectionTitle title="서포터즈 등록" />
         <p className="text-[13px] text-muted-foreground">
-          선발자가 <b className="text-foreground">가입을 마친 뒤</b>, 이메일이나 이름으로 찾아 도장을 찍어 주세요. 다음 결제부터 100원×4 → 반값×4 → 정상가로 자동 진행돼요.
+          선발자가 <b className="text-foreground">가입을 마친 뒤</b>, 이메일이나 이름으로 찾아 등록해 주세요. 다음 결제부터 100원×4 → 반값×4 → 정가로 자동 진행돼요.
         </p>
         <div className="mt-3 flex gap-2">
           <input
@@ -418,7 +418,7 @@ export default function TrialsClient({
                   <span className="block text-[12px] text-muted-foreground">{candidateMeta(c)}</span>
                 </span>
                 <AdminButton onClick={() => stamp(c)} disabled={busy}>
-                  체험단 도장
+                  서포터즈 등록
                 </AdminButton>
               </li>
             ))}
@@ -433,7 +433,7 @@ export default function TrialsClient({
 
       <AdminCard>
         <SectionTitle
-          title={`체험단 ${rows.length}명`}
+          title={`서포터즈 ${rows.length}명`}
           desc={`가격이 오르는 회차(100원→반값 첫 회 · 반값→정가 첫 회)는 고객 동의 기록이 있어야 청구돼요. 없으면 그 회차를 청구하지 않고 보류해요. 전환 ${CONSENT_RED_DAYS}일 전부터 빨간색이에요.`}
         />
         {rows.length === 0 ? (

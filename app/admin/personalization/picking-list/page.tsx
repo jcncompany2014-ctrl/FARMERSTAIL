@@ -1018,21 +1018,12 @@ export default async function PickingListPage({
                   <Badge tone="green">
                     발송 완료{r.alreadyShipped.trackingNumber ? ` · 송장 ${r.alreadyShipped.trackingNumber}` : ''}
                   </Badge>
-                ) : r.cannotCharge ? (
-                  <Badge tone="red">청구 불가 — 발송하지 마세요</Badge>
-                ) : r.chargeFailedToday ? (
-                  <Badge tone="red">오늘 청구 실패 — 보내지 마세요</Badge>
-                ) : r.pausedBeforeCharge ? (
-                  <Badge tone="red">고객이 정지 — 미결제, 보내지 마세요</Badge>
-                ) : r.skippedNotCharged ? (
-                  <Badge tone="red">고객이 미룸 — 미청구, 보내지 마세요</Badge>
-                ) : r.priceConsentMissing ? (
-                  // 가격 인상 회차인데 동의 기록이 없다 — 청구 크론이 보류한다(2026-10-14 A1, ship-block 과 같은 순서).
-                  <Badge tone="red">인상 동의 없음 — 청구 보류, 보내지 마세요</Badge>
-                ) : r.overdueNotCharged ? (
-                  <Badge tone="red">청구 지연 — 결제 전, 보내지 마세요</Badge>
-                ) : r.notChargedAfterRun ? (
-                  <Badge tone="red">청구 시각 지남 — 미청구, 보내지 마세요</Badge>
+                ) : payBlockReason(r) ? (
+                  // 돈 받은 증거가 없는 박스 — 빨간 배지는 하나, 이유는 회색 줄(2026-10-24 2묶음 ⑥). 순서는 lib/admin/ship-block 과 같다.
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    <Badge tone="red">결제 안 됨 — 보내지 마세요</Badge>
+                    <span className="text-[12px] text-muted-foreground">{payBlockReason(r)}</span>
+                  </span>
                 ) : r.held.length > 0 ? (
                   // 판정 순서 = lib/admin/ship-block(라벨·조리 합계·CSV 와 같은 기준, 2026-10-14 O1).
                   <Badge tone="red">알레르기 확인 필요 — 보내지 마세요</Badge>
@@ -1042,13 +1033,16 @@ export default async function PickingListPage({
                   <Badge tone="amber">결제됨 — 발송 대기 주문 있음</Badge>
                 ) : r.charged ? (
                   // 토요일(조리 직전)에 결제된 박스를 화요일에 보면 '오늘 아침'이 거짓이다(2026-10-01).
-                  <Badge tone="green">결제 완료</Badge>
+                  <Badge tone="green">{`결제됨 · ${Number(shipDate.slice(5, 7))}/${Number(shipDate.slice(8, 10))}(${weekdayKo(shipDate)}) 발송`}</Badge>
                 ) : r.overdue ? (
-                  <Badge tone="red">청구 지연 — 재시도 중</Badge>
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    <Badge tone="red">결제 안 됨 — 보내지 마세요</Badge>
+                    <span className="text-[12px] text-muted-foreground">다시 결제하는 중</span>
+                  </span>
                 ) : r.chargeTiming === 'ship_day' ? (
-                  <Badge tone="amber">서포터즈 — 발송일(화) 아침 청구 예정</Badge>
+                  <Badge tone="amber">서포터즈 — 발송일(화) 아침에 결제돼요</Badge>
                 ) : (
-                  <Badge tone="amber">토요일 아침(조리 전) 청구 예정</Badge>
+                  <Badge tone="amber">토요일 아침(조리 전)에 결제돼요</Badge>
                 )}
               </div>
 
@@ -1075,7 +1069,7 @@ export default async function PickingListPage({
                   ⛔ 이번 박스는 <strong>가격이 오르는 회차</strong>인데 고객 동의 기록이 없어요. 청구 크론이
                   결제하지 않고 보류해요 — 조리·발송하지 마세요. 동의를 받아{' '}
                   <Link href="/admin/trials" className="underline underline-offset-2">
-                    체험단 화면
+                    서포터즈 화면
                   </Link>
                   에 기록하면 다음 아침 결제돼요.
                 </p>
@@ -1265,4 +1259,28 @@ function PickingListUnreliable({ shipDate, detail }: { shipDate: string; detail:
       </AdminCard>
     </main>
   )
+}
+
+/**
+ * 포장 목록 '결제 안 됨 — 보내지 마세요'의 이유(회색 줄) — 판정 순서는 lib/admin/ship-block(라벨·조리 합계·CSV)과 같다.
+ * 예전엔 같은 뜻의 빨간 배지가 일곱 가지('청구 불가'·'청구 지연'·'청구 시각 지남'·'미청구'…)라 무엇이 다른지 읽기 어려웠다(2026-10-24 2묶음 ⑥).
+ * null = 결제 쪽으로는 막을 이유가 없다.
+ */
+function payBlockReason(r: {
+  cannotCharge?: boolean
+  chargeFailedToday?: boolean
+  pausedBeforeCharge?: boolean
+  skippedNotCharged?: boolean
+  priceConsentMissing?: boolean
+  overdueNotCharged?: boolean
+  notChargedAfterRun?: boolean
+}): string | null {
+  if (r.cannotCharge) return '카드를 다시 받아야 해요'
+  if (r.chargeFailedToday) return '오늘 카드가 거절됐어요'
+  if (r.pausedBeforeCharge) return '고객이 정지했어요'
+  if (r.skippedNotCharged) return '고객이 미뤘어요'
+  if (r.priceConsentMissing) return '인상 동의 기록이 없어요'
+  if (r.overdueNotCharged) return '결제가 밀렸어요'
+  if (r.notChargedAfterRun) return '아침 결제가 아직이에요'
+  return null
 }

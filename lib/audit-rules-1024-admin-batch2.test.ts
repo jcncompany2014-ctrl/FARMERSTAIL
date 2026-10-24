@@ -210,3 +210,37 @@ test('규칙320: 자동결제 기록 줄마다 누구·할인 이름·시험 딱
   assert.match(ctl, /<details className="[^"]*">\s*<summary[^>]*>\s*주문 상태 바꾸기/, "'주문 상태 바꾸기'가 접혀 있지 않다")
   assert.ok(!ctl.includes('클릭해서 상태를 변경하세요'), '어려운 말(클릭해서 상태를 변경하세요)이 남아 있다')
 })
+
+test('규칙321: 어드민 글씨 최소 12px · 말 사전(체험단·도장 찍기 → 서포터즈) · 포장 목록 빨간 배지는 "결제 안 됨 — 보내지 마세요" 하나', () => {
+  /**
+   * # 왜 (기획서 2-10·2-11·⑥)
+   * 어드민에 9~11.5px 글씨가 곳곳에 박혀 폰에서 읽기 어려웠다. 서포터즈 화면은 '체험단'·'도장 찍기'·'도장 취소됨'으로 불러 메뉴
+   * 이름과 달랐다('도장'은 도장판에만). 포장 목록은 같은 뜻의 빨간 배지가 일곱 가지('청구 불가'·'청구 지연'·'청구 시각 지남'·'미청구'…)였다.
+   */
+  const css = read('app', 'globals.css')
+  // CSS 선택자 안의 점·대괄호는 역슬래시로 이스케이프돼 있다(.text-\[9\.5px\]).
+  const BS = String.fromCharCode(92)
+  for (const px of ['9', '9.5', '10', '10.5', '11', '11.5']) {
+    const sel = `.admin-scope .text-${BS}[${px.replace('.', BS + '.')}px${BS}]`
+    assert.ok(css.includes(sel), `어드민 범위에서 text-[${px}px] 를 12px 로 안 올린다`)
+  }
+  const lastSel = `.admin-scope .text-${BS}[11${BS}.5px${BS}]`
+  const block = css.slice(css.indexOf(lastSel), css.indexOf('}', css.indexOf(lastSel)))
+  assert.match(block, /\{\s*font-size: 12px;\s*$/, '어드민 작은 글씨 매핑이 12px 가 아니다')
+
+  for (const f of [
+    ['app', 'admin', 'trials', 'page.tsx'],
+    ['app', 'admin', 'trials', 'TrialsClient.tsx'],
+    ['app', 'admin', 'personalization', 'picking-list', 'page.tsx'],
+    ['app', 'admin', 'subscriptions', 'charges', 'ChargeRowsView.tsx'],
+    ['app', 'admin', 'users', '[id]', 'CustomerView.tsx'],
+  ]) {
+    const c = code(...f)
+    for (const old of ['체험단', '도장 찍기', '도장 취소됨']) assert.ok(!c.includes(old), `${f.join('/')}: 안 쓰는 말 '${old}'`)
+  }
+
+  const pick = code('app', 'admin', 'personalization', 'picking-list', 'page.tsx')
+  assert.ok(!/<Badge tone="red">[^<]*청구/.test(pick), "포장 목록 빨간 배지에 '청구' 말이 남아 있다")
+  assert.equal((pick.match(/<Badge tone="red">결제 안 됨 — 보내지 마세요<\/Badge>/g) ?? []).length, 2, "돈 사유 빨간 배지가 '결제 안 됨 — 보내지 마세요' 하나가 아니다")
+  assert.match(pick, /<Badge tone="green">\{`결제됨 · \$\{/, "결제된 박스 배지가 '결제됨 · 날짜 발송'이 아니다")
+})
