@@ -20,7 +20,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { selectInChunks } from '@/lib/supabase/in-chunks'
 import { todayKstIsoDate, addDaysKst } from '@/lib/datetime-kst'
 import { subscriptionState, SUB_STATE_LABEL, SUB_STATE_TONE, type SubLike } from '@/lib/subscription-state'
-import { chargeTimingFor, describeUpcomingBox, nextChargeRunDate } from '@/lib/shipping-schedule'
+import { chargeDateFor, chargeTimingFor, describeUpcomingBox, nextChargeRunDate, paidBoxShipIso } from '@/lib/shipping-schedule'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { supporterViews } from '@/lib/payments/trial-display'
 import type { TrialState } from '@/lib/payments/trial'
@@ -159,9 +159,10 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       .order('created_at', { ascending: false })
       .limit(15),
     // 결제됐고 발송 대기 중인 정기배송 박스 — '이번 박스' 판정(describeUpcomingBox)과 주소 변경 대상 수.
+    // 2026-10-24 어드민 금액 말 정리: 주문번호·결제한 금액·정가·할인도 읽는다 — 한 장이 이미 낸 금액을 보이게.
     admin
       .from('orders')
-      .select('id, subscription_id, paid_at, created_at')
+      .select('id, subscription_id, order_number, total_amount, subtotal, discount_amount, discount_reason, paid_at, created_at')
       .eq('user_id', userId)
       .not('subscription_id', 'is', null)
       .in('payment_status', [...PAID_STATUSES])
@@ -281,9 +282,20 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
   const trial = (trialRes.data as (TrialState & { note: string | null }) | null) ?? null
 
   // 결제됐고 아직 안 나간 박스(구독별 가장 최근) — 화면·포장 목록과 같은 기준.
-  const paidAtBySub = new Map<string, string>()
-  for (const o of (paidBoxRes.data ?? []) as Array<{ subscription_id: string | null; paid_at: string | null; created_at: string }>) {
-    if (o.subscription_id && !paidAtBySub.has(o.subscription_id)) paidAtBySub.set(o.subscription_id, o.paid_at ?? o.created_at)
+  type PaidBoxRow = {
+    id: string
+    subscription_id: string | null
+    order_number: string
+    total_amount: number
+    subtotal: number | null
+    discount_amount: number | null
+    discount_reason: string | null
+    paid_at: string | null
+    created_at: string
+  }
+  const paidBoxBySub = new Map<string, PaidBoxRow>()
+  for (const o of (paidBoxRes.data ?? []) as unknown as PaidBoxRow[]) {
+    if (o.subscription_id && !paidBoxBySub.has(o.subscription_id)) paidBoxBySub.set(o.subscription_id, o)
   }
 
   // 서포터즈 단계(정본) — 체험 조회가 실패했으면 비워 둔다(정가로 단정하지 않게 화면이 칸 오류를 띄운다).
@@ -294,14 +306,14 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
   const timing = trialRes.error ? null : chargeTimingFor(trial)
 
   // 실제 나갈 금액 — 청구와 같은 함수(구독 id 를 넘겨 여러 구독 순서까지 같은 규칙).
-  const chargeById = new Map<string, { amount: number; label: string | null }>()
+  const chargeById = new Map<string, { amount: number; label: string | null; reason: string }>()
   await Promise.all(
     subs.map(async (s) => {
       const st = subscriptionState(s)
       if (st === 'cancelled' || st === 'needs_card') return
       try {
         const d = await resolveAutoDiscount({ userId, subtotal: s.total_amount ?? 0, subscriptionId: s.id })
-        chargeById.set(s.id, { amount: d.chargeAmount, label: d.label })
+        chargeById.set(s.id, { amount: d.chargeAmount, label: d.label, reason: d.reason })
       } catch (e) {
         errors.charge_preview = e instanceof Error ? e.message : String(e)
       }
@@ -365,6 +377,8 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
   const subViews: SubView[] = subs.map((s) => {
     const st = subscriptionState(s)
     const sv = supporter.get(s.id)
+    const pb = paidBoxBySub.get(s.id) ?? null
+    const pbPaidAt = pb ? (pb.paid_at ?? pb.created_at) : null
     return {
       id: s.id,
       dogId: s.dog_id,
@@ -377,6 +391,24 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
       storedAmount: s.total_amount,
       chargeAmount: chargeById.get(s.id)?.amount ?? null,
       chargeLabel: chargeById.get(s.id)?.label ?? null,
+      chargeReason: chargeById.get(s.id)?.reason ?? null,
+      // 다음 결제일 — 진행 중(정본 상태 active)이고 결제 시점을 알 때만. 결제가 끝난 박스가 있으면 next_delivery_date 는
+      // 이미 다음 주기라 그대로 다음 결제일이다. 일시정지·카드 문제는 다시 시작해야 정해지므로 날짜를 단정하지 않는다.
+      nextChargeIso: st === 'active' && timing && s.next_delivery_date ? chargeDateFor(s.next_delivery_date, timing) : null,
+      // 이번 박스(결제됐고 아직 안 나감) — 주문 표 값 그대로. 발송일은 정본 paidBoxShipIso(결제 뒤 미루기에도 맞다).
+      paidBox:
+        pb && pbPaidAt
+          ? {
+              orderId: pb.id,
+              orderNumber: pb.order_number,
+              amount: pb.total_amount,
+              list: pb.subtotal ?? pb.total_amount,
+              discountAmount: pb.discount_amount ?? 0,
+              discountReason: pb.discount_reason,
+              paidAt: pbPaidAt,
+              shipIso: paidBoxShipIso(s.next_delivery_date, pbPaidAt),
+            }
+          : null,
       supporterCaption: sv?.caption ?? null,
       upcoming:
         st === 'cancelled'
@@ -384,8 +416,8 @@ export async function loadCustomerData(userId: string): Promise<CustomerData | n
           : describeUpcomingBox({
               nextDeliveryDate: s.next_delivery_date,
               timing: s.status === 'active' ? timing : null,
-              hasPaidPreparingOrder: paidAtBySub.has(s.id),
-              paidAt: paidAtBySub.get(s.id) ?? null,
+              hasPaidPreparingOrder: !!pb,
+              paidAt: pbPaidAt,
               today,
             }),
       timingKnown: timing !== null,

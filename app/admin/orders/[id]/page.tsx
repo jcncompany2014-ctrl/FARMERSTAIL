@@ -9,11 +9,14 @@ import PaymentEventTimeline from './PaymentEventTimeline'
 import { Card, CardContent } from '@/components/adminui/card'
 import { carrierLabel } from '@/lib/tracking'
 import { customerHref } from '@/lib/admin/customer-link'
-import { formatKstDateTime as formatDateTime } from '@/lib/datetime-kst'
+import { formatKstDateTime as formatDateTime, kstDateOf } from '@/lib/datetime-kst'
 import {
   paymentStatusDisplay,
   type PaymentStatus,
 } from '@/lib/commerce/order-fsm'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
+import { netPaidAmount } from '@/lib/commerce/paid-status'
+import { mdLabel } from '@/lib/admin/weekly-todo-core'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,6 +86,13 @@ export default async function AdminOrderDetailPage({
   const items: AdminOrderItem[] = Array.isArray(order.order_items)
     ? (order.order_items as AdminOrderItem[])
     : []
+  // 정기배송 박스는 상품 줄에 원을 쓰지 않는다(2026-10-24 어드민 금액 말 정리) — 줄 단가가 팩 값을 반올림한 거라
+  // 줄 합이 정가와 20~80원 어긋나, 한 화면에 숫자가 셋(줄 합·정가·결제한 금액)이 됐다. 가게 주문은 단가 × 개수가 진짜 값이라 그대로.
+  const isSubscriptionOrder = Boolean(order.subscription_id)
+  const paidAtIso: string | null = order.paid_at ?? null
+  const refundedAmount: number = order.refunded_amount ?? 0
+  const discountAmount: number = order.discount_amount ?? 0
+  const pointsUsed: number = order.points_used ?? 0
 
   return (
     <div className="grid gap-4">
@@ -127,14 +137,22 @@ export default async function AdminOrderDetailPage({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm">{it.product_name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {it.unit_price.toLocaleString()}원 × {it.quantity}
+                    <p className="text-sm">
+                      {isSubscriptionOrder
+                        ? `${it.product_name} · ${it.quantity}일치`
+                        : it.product_name}
                     </p>
+                    {!isSubscriptionOrder && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {it.unit_price.toLocaleString()}원 × {it.quantity}
+                      </p>
+                    )}
                   </div>
-                  <p className="whitespace-nowrap text-sm font-semibold tabular-nums">
-                    {it.line_total.toLocaleString()}원
-                  </p>
+                  {!isSubscriptionOrder && (
+                    <p className="whitespace-nowrap text-sm font-semibold tabular-nums">
+                      {it.line_total.toLocaleString()}원
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
@@ -157,8 +175,75 @@ export default async function AdminOrderDetailPage({
             </dl>
           </Panel>
 
-          {/* 결제 정보 */}
+          {/* 결제 정보 — 2026-10-24 어드민 금액 말 정리: 맨 위에 카드에서 나간 돈(결제한 금액)을 크게, 그 아래 정가·할인 이름·배송비·환불을 작게.
+              예전엔 할인 줄이 없어 정가 128,500원 아래 결제 78,500원이 떠서 더해도 맞지 않았다(DB 에는 할인과 이유가 있었다). 값은 전부 주문에 저장된 그대로다. */}
           <Panel title="결제 정보">
+            {paidAtIso ? (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground">결제한 금액</p>
+                <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
+                  <span className="text-2xl font-bold tracking-tight text-primary tabular-nums">
+                    {order.total_amount.toLocaleString()}원
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    · {mdLabel(kstDateOf(paidAtIso))}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-secondary px-3 py-2.5">
+                <p className="text-lg font-bold">결제 안 됨</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  카드에서 나간 돈이 없어요 — 이 주문은 보내지 마세요.
+                </p>
+              </div>
+            )}
+            <dl className="mt-3 space-y-1.5 text-[13px]">
+              <InfoRow
+                label="정가"
+                value={`${order.subtotal.toLocaleString()}원`}
+              />
+              {discountAmount > 0 && (
+                <InfoRow
+                  label={adminDiscountLabel(order.discount_reason)}
+                  value={`−${discountAmount.toLocaleString()}원`}
+                />
+              )}
+              {/* 포인트는 없어진 제도(2026-07-16) — 옛 주문에 값이 남아 있을 때만 보여 합이 맞게 한다. */}
+              {pointsUsed > 0 && (
+                <InfoRow
+                  label="포인트(없어진 제도)"
+                  value={`−${pointsUsed.toLocaleString()}원`}
+                />
+              )}
+              <InfoRow
+                label="배송비"
+                value={
+                  order.shipping_fee === 0
+                    ? '무료'
+                    : `${order.shipping_fee.toLocaleString()}원`
+                }
+              />
+              {refundedAmount > 0 && (
+                <>
+                  <InfoRow
+                    label="환불한 금액"
+                    value={
+                      <span className="text-destructive">
+                        −{refundedAmount.toLocaleString()}원
+                      </span>
+                    }
+                  />
+                  <div className="flex justify-between gap-3 border-t border-border pt-1.5">
+                    <dt className="font-semibold">남은 결제</dt>
+                    <dd className="font-bold tabular-nums">
+                      {netPaidAmount(order).toLocaleString()}원
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+            <div className="my-3 border-t border-border" />
             <dl className="space-y-2 text-sm">
               <InfoRow
                 label="결제 상태"
@@ -170,39 +255,36 @@ export default async function AdminOrderDetailPage({
               {order.payment_method && (
                 <InfoRow label="결제 수단" value={order.payment_method} />
               )}
-              {order.paid_at && (
-                <InfoRow label="결제 일시" value={formatDateTime(order.paid_at)} />
+              {paidAtIso && (
+                <InfoRow label="결제 시각" value={formatDateTime(paidAtIso)} />
               )}
-              {order.payment_key && (
+            </dl>
+            {/* 영어 칸(토스 키·고객 UUID)은 문의할 때만 필요해서 접어 둔다(2026-10-24 어드민 금액 말 정리). */}
+            <details className="mt-3 rounded-lg border border-border px-3 py-2">
+              <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                토스 결제번호·고객 번호(문의용)
+              </summary>
+              <dl className="mt-2 space-y-1.5 text-xs">
+                {order.payment_key && (
+                  <InfoRow
+                    label="토스 결제번호"
+                    value={
+                      <span className="break-all font-mono text-xs">
+                        {order.payment_key}
+                      </span>
+                    }
+                  />
+                )}
                 <InfoRow
-                  label="Payment Key"
+                  label="고객 번호"
                   value={
-                    <span className="break-all font-mono text-[10px]">
-                      {order.payment_key}
+                    <span className="break-all font-mono text-xs">
+                      {order.user_id}
                     </span>
                   }
                 />
-              )}
-              <div className="my-3 border-t border-border" />
-              <InfoRow
-                label="상품 금액"
-                value={`${order.subtotal.toLocaleString()}원`}
-              />
-              <InfoRow
-                label="배송비"
-                value={
-                  order.shipping_fee === 0
-                    ? '무료'
-                    : `${order.shipping_fee.toLocaleString()}원`
-                }
-              />
-              <div className="flex items-center justify-between border-t border-border pt-2">
-                <dt className="font-semibold">총 결제 금액</dt>
-                <dd className="text-xl font-bold tracking-tight text-primary tabular-nums">
-                  {order.total_amount.toLocaleString()}원
-                </dd>
-              </div>
-            </dl>
+              </dl>
+            </details>
           </Panel>
         </div>
 
@@ -228,25 +310,18 @@ export default async function AdminOrderDetailPage({
                 <InfoRow
                   label="이메일"
                   value={
-                    <span className="text-[11px]">{profile?.email ?? '-'}</span>
+                    <span className="text-xs">{profile?.email ?? '-'}</span>
                   }
                 />
                 <InfoRow label="연락처" value={profile?.phone ?? '-'} />
-                <InfoRow
-                  label="User ID"
-                  value={
-                    <span className="break-all font-mono text-[9px]">
-                      {order.user_id}
-                    </span>
-                  }
-                />
+                {/* 고객 번호(UUID)는 결제 정보의 '문의용' 접기 안으로 옮겼다(2026-10-24 어드민 금액 말 정리). */}
               </dl>
             )}
             {/* 동선 단축 — CS 문의·환불 안내를 바로 1:1 메시지로(구독 목록과
                 같은 패턴, 2026-09-05 전수감사에서 이 화면에만 없던 것). */}
             <Link
               href={`/admin/users/${order.user_id}/message`}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition hover:border-ring hover:text-foreground"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:border-ring hover:text-foreground"
             >
               <MessageCircle className="size-3.5" strokeWidth={2} />
               1:1 메시지 보내기
@@ -303,7 +378,7 @@ export default async function AdminOrderDetailPage({
                   <InfoRow
                     label="송장번호"
                     value={
-                      <span className="break-all font-mono text-[11px]">
+                      <span className="break-all font-mono text-xs">
                         {order.tracking_number}
                       </span>
                     }
@@ -313,7 +388,7 @@ export default async function AdminOrderDetailPage({
                   <InfoRow
                     label="발송"
                     value={
-                      <span className="text-[11px]">
+                      <span className="text-xs">
                         {formatDateTime(order.shipped_at)}
                       </span>
                     }
@@ -323,7 +398,7 @@ export default async function AdminOrderDetailPage({
                   <InfoRow
                     label="도착"
                     value={
-                      <span className="text-[11px]">
+                      <span className="text-xs">
                         {formatDateTime(order.delivered_at)}
                       </span>
                     }
@@ -342,7 +417,7 @@ export default async function AdminOrderDetailPage({
               <InfoRow
                 label="생성"
                 value={
-                  <span className="text-[11px]">
+                  <span className="text-xs">
                     {formatDateTime(order.created_at)}
                   </span>
                 }
@@ -350,7 +425,7 @@ export default async function AdminOrderDetailPage({
               <InfoRow
                 label="수정"
                 value={
-                  <span className="text-[11px]">
+                  <span className="text-xs">
                     {formatDateTime(order.updated_at)}
                   </span>
                 }

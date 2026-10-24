@@ -11,6 +11,7 @@ import { CUSTOMER_FIXTURES } from '../customer/_fixtures'
  * 들어오는지 본다. **실제 사이트(production)에선 404**, noindex. 메모 버튼은 저장하지 않는다(demo).
  *  · ?s=full    서포터즈 100원 구간 + 알레르기로 못 담은 몫
  *  · ?s=flags   카드 재등록 필요 · 결제 확인 안 됨
+ *  · ?s=paid    첫 박스 결제 직후 — ① 이번 박스 결제함(이벤트 할인) ② 다음 결제 · 날짜(정가)(2026-10-24 어드민 금액 말 정리)
  *  · ?s=errors  칸마다 조회 실패
  */
 export const metadata: Metadata = {

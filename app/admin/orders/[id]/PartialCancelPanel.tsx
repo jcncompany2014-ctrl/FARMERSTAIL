@@ -1,15 +1,15 @@
 'use client'
 
 /**
- * 관리자 부분 취소 패널.
+ * 관리자 환불 패널(전액·일부). 화면 이름은 '환불하기(전액·일부)'(2026-10-24 어드민 금액 말 정리 — 예전 '부분 환불'은 전액도 여기서 하는데 이름이 일부만 말했다).
  *
  * 운영 시나리오:
  *   • 3개 품목 중 1개가 품절 → 해당 품목 금액만 환불
  *   • 고객이 배송 전 일부 품목만 취소 요청
- *   • 배송 후 하자 있는 품목 1개만 부분 환불
+ *   • 배송 후 하자 있는 품목 1개만 일부 환불
  *
  * UX:
- *   • 환불 가능 잔액(remainingAmount)을 상단에 큼직하게 표시
+ *   • 환불할 수 있는 금액(remaining)을 상단에 큼직하게 표시
  *   • 금액 입력 시 "전액" 버튼으로 잔액 전체 채우기
  *   • 가상계좌일 때만 계좌 정보 3필드가 드러남
  *   • 실행 전 한 번 더 confirm — 되돌릴 수 없음
@@ -86,18 +86,20 @@ export default function PartialCancelPanel({
   async function onSubmit() {
     setError(null)
     if (amount <= 0 || amount > remaining) {
-      setError(`환불 금액은 1원 이상, ${remaining.toLocaleString()}원 이하`)
+      setError(`환불 금액은 1원부터 ${remaining.toLocaleString()}원까지 넣을 수 있어요.`)
       return
     }
     if (isVirtualAccount && (!bank || !accountNumber || !holderName)) {
-      setError('가상계좌 환불은 은행/계좌번호/예금주가 모두 필요합니다')
+      setError('계좌로 돌려주려면 은행·계좌번호·예금주를 모두 넣어 주세요.')
       return
     }
 
+    // 어디로 돌아가는지·되돌릴 수 없다는 걸 확인창에서도 같은 말로(2026-10-24 어드민 금액 말 정리).
+    const destination = isVirtualAccount ? '입력한 계좌로' : '카드로'
     const confirmMsg =
       amount === remaining
-        ? `전액 ${amount.toLocaleString()}원을 환불합니다. 계속할까요?`
-        : `${amount.toLocaleString()}원을 부분 환불합니다. 계속할까요?`
+        ? `${amount.toLocaleString()}원 전액을 ${destination} 돌려줘요. 되돌릴 수 없어요. 계속할까요?`
+        : `${amount.toLocaleString()}원을 ${destination} 돌려줘요(일부 환불). 되돌릴 수 없어요. 계속할까요?`
     if (!confirm(confirmMsg)) return
 
     setSubmitting(true)
@@ -126,7 +128,7 @@ export default function PartialCancelPanel({
       )
       const data = await res.json()
       if (!res.ok) {
-        setError(data?.message ?? '환불 실패')
+        setError(data?.message ?? '환불하지 못했어요 — 새로고침된 금액을 확인한 뒤 다시 해 주세요.')
         // 실패해도 서버 쪽 상태가 바뀌었을 수 있다 — 누적 환불액을 새로 받아 다음 시도가 옛 값으로 가지 않게.
         router.refresh()
         return
@@ -148,16 +150,19 @@ export default function PartialCancelPanel({
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-bold">부분 환불</h2>
-        <span className="font-mono text-[10px] text-muted-foreground">
-          refunded {refundedAmount.toLocaleString()}/{totalAmount.toLocaleString()}
-        </span>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-bold">환불하기(전액·일부)</h2>
+        {/* 영어 'refunded N/M' 대신 쉬운 말로, 돌려준 적이 있을 때만(2026-10-24 어드민 금액 말 정리). */}
+        {refundedAmount > 0 && (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            환불한 금액 {refundedAmount.toLocaleString()}원
+          </span>
+        )}
       </div>
 
       <div className="mb-4 rounded-lg bg-secondary px-4 py-3">
-        <div className="text-[10px] font-semibold text-muted-foreground">
-          환불 가능 잔액
+        <div className="text-xs font-semibold text-muted-foreground">
+          환불할 수 있는 금액
         </div>
         <div className="mt-0.5 text-lg font-black text-primary tabular-nums">
           {/* 야간점검(2026-07-25): 미결제 취소 주문에도 total 이 '환불 가능'으로
@@ -168,9 +173,9 @@ export default function PartialCancelPanel({
 
       {!canRefund ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          {paymentStatus === 'refunded'
-            ? '이미 전액 환불된 주문입니다.'
-            : '결제 완료 상태가 아니라 부분 환불이 불가합니다.'}
+          {paymentStatus === 'refunded' || refundedAmount > 0
+            ? '이미 전부 돌려준 주문이에요. 더 환불할 돈이 없어요.'
+            : '결제가 안 된 주문이라 돌려줄 돈이 없어요.'}
         </p>
       ) : (
         <div className="space-y-3">
@@ -188,7 +193,7 @@ export default function PartialCancelPanel({
             </p>
           )}
           <div>
-            <label className="mb-1 block text-[11px] font-semibold">
+            <label className="mb-1 block text-xs font-semibold">
               환불 금액
             </label>
             <div className="flex gap-2">
@@ -222,8 +227,8 @@ export default function PartialCancelPanel({
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] font-semibold">
-              취소 사유
+            <label className="mb-1 block text-xs font-semibold">
+              환불 이유
             </label>
             <input
               type="text"
@@ -236,7 +241,7 @@ export default function PartialCancelPanel({
 
           {isVirtualAccount && (
             <div className="space-y-2 border-t border-border pt-3">
-              <div className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              <div className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
                 <AlertTriangle
                   className="mt-0.5 size-3 shrink-0 text-primary"
                   strokeWidth={2}
@@ -246,7 +251,7 @@ export default function PartialCancelPanel({
                 </span>
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold">
+                <label className="mb-1 block text-xs font-semibold">
                   은행
                 </label>
                 <select
@@ -263,7 +268,7 @@ export default function PartialCancelPanel({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold">
+                <label className="mb-1 block text-xs font-semibold">
                   계좌번호
                 </label>
                 <input
@@ -276,7 +281,7 @@ export default function PartialCancelPanel({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-semibold">
+                <label className="mb-1 block text-xs font-semibold">
                   예금주
                 </label>
                 <input
@@ -290,7 +295,7 @@ export default function PartialCancelPanel({
           )}
 
           {error && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] font-semibold text-destructive">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive">
               {error}
             </div>
           )}
@@ -301,12 +306,13 @@ export default function PartialCancelPanel({
             disabled={submitting || amount <= 0}
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-black text-primary-foreground transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? '처리 중…' : `${amount.toLocaleString()}원 환불 실행`}
+            {submitting ? '돌려주는 중…' : `${amount.toLocaleString()}원 환불하기`}
           </button>
-          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-            실행 후 되돌릴 수 없으며, 토스페이먼츠 결제 상태가 즉시 업데이트됩니다.
-            포인트/쿠폰은 부분 환불 시 자동 조정되지 않으므로 필요 시 별도 조치해
-            주세요.
+          {/* 없어진 포인트·쿠폰 안내는 지웠다 — 지금은 해당하는 고객이 없다(2026-10-24 어드민 금액 말 정리). */}
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {isVirtualAccount
+              ? '누르면 바로 입력한 계좌로 돌려줘요. 되돌릴 수 없어요.'
+              : '누르면 바로 카드로 돌려줘요. 되돌릴 수 없어요.'}
           </p>
         </div>
       )}

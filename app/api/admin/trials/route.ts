@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic'
  *
  *   GET    — 도장 목록(+프로필) / ?q= 로 도장 찍을 후보 검색(이메일·이름)
  *            ?rounds=1 — 구독별 다음 결제 회차(실제 금액·인상 동의 보류 예정) — 구독 목록 화면용(2026-10-15 F-a)
+ *                        서포터즈만이 아니라 청구 대상 전체(2026-10-24 어드민 금액 말 정리 — 이벤트·이웃·등급 할인도 보이게)
  *   POST   — 도장 찍기 { userId, note?, cheapBoxes?, halfBoxes? } / 다시 찍기 { userId, restore: true }(취소 때 남은 회차로)
  *   DELETE — 도장 취소 { userId }
  *
@@ -37,6 +38,8 @@ type NextRoundView = {
   chargeIso: string
   chargeAmount: number
   listAmount: number
+  /** 할인 이름(청구와 같은 함수가 낸 것) — 할인이 없으면 null. 2026-10-24 어드민 금액 말 정리('할인 이름 −금액'). */
+  label: string | null
   held: boolean
   rise: string | null
   phase: string
@@ -101,14 +104,15 @@ export async function GET(req: Request) {
    * ?rounds=1 — 구독별 다음 결제 회차(2026-10-15 F-a, 규칙264). 구독 목록이 '인상 동의 없음 → 청구 보류'를 몰라
    * 보류될 박스를 '결제 예정'으로 보였다. 체험단 화면·달력과 같은 정본 펼치기(loadChargeProjection, 보류에서 멈춤)를 쓴다.
    * 대상 = 청구 크론과 같은 조건(진행 중 · 카드 있음 · 재등록 불필요 · 발송일 있음). 실패는 roundsError — 화면이 알린다(규칙1).
+   * ★서포터즈만 펼치던 조건(user_id IN 도장 있는 사람)을 뺐다(2026-10-24 어드민 금액 말 정리) — 이벤트·이웃·등급 할인 손님은
+   *   결제 전에도 정가로 보였다(사장님 "할인 가격은 할인 가격으로 떠야지"). 이 값을 쓰는 곳은 구독 목록 하나뿐이다.
    */
   let nextRounds: Record<string, NextRoundView> | null = null
   let roundsError: string | null = null
-  if (params.get('rounds') === '1' && ids.length > 0) {
+  if (params.get('rounds') === '1') {
     const { data: subs, error: subsErr } = await admin
       .from('subscriptions')
       .select('id, user_id, next_delivery_date, total_amount')
-      .in('user_id', ids)
       .eq('status', 'active')
       .eq('requires_billing_key_renewal', false)
       .not('billing_key', 'is', null)
@@ -138,6 +142,7 @@ export async function GET(req: Request) {
               chargeIso: r.chargeIso,
               chargeAmount: r.chargeAmount,
               listAmount: r.listAmount,
+              label: r.label,
               held: r.held,
               rise: r.rise,
               phase: r.phase,

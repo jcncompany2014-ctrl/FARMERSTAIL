@@ -20,3 +20,20 @@ export function discountReasonLabel(reason: string | null | undefined): string {
   if (!reason) return '할인'
   return DISCOUNT_REASON_LABEL[reason] ?? '할인'
 }
+
+/**
+ * 어드민이 읽는 할인 이름 (2026-10-24 어드민 금액 말 정리). 사장님은 할인 종류를 구분해야 해서 고객용보다 구체적이다 —
+ * 행사 할인은 '이벤트 할인'(설정 화면 이름과 같게), 서포터즈는 단계(100원·반값)까지. 모르는 값·none·null 은 '할인'.
+ */
+const ADMIN_DISCOUNT_LABEL: Record<string, string> = {
+  promotion: '이벤트 할인',
+  trial_cheap: '서포터즈 100원',
+  trial_half: '서포터즈 반값',
+  neighbor: '이웃 할인',
+  tier: '등급 할인',
+}
+
+export function adminDiscountLabel(reason: string | null | undefined): string {
+  if (!reason) return '할인'
+  return ADMIN_DISCOUNT_LABEL[reason] ?? '할인'
+}

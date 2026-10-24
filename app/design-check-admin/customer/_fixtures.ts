@@ -74,6 +74,10 @@ const BASE: CustomerData = {
       storedAmount: 51500,
       chargeAmount: 100,
       chargeLabel: '서포터즈 100원',
+      chargeReason: 'trial_cheap',
+      // 서포터즈 체험 구간은 발송일 아침 결제(chargeDateFor 'ship_day').
+      nextChargeIso: '2026-10-20',
+      paidBox: null,
       supporterCaption: '서포터즈 100원 구간 · 42일치 남음',
       upcoming: { kind: 'upcoming', shipIso: '2026-10-20', chargeIso: '2026-10-20' },
       timingKnown: true,
@@ -192,6 +196,10 @@ const FLAGS: CustomerData = {
       tone: 'bad',
       chargeAmount: 51500,
       chargeLabel: null,
+      chargeReason: 'none',
+      // 카드 문제는 다시 등록해야 결제일이 정해진다 — 날짜를 단정하지 않는다(_data.ts 와 같은 규칙).
+      nextChargeIso: null,
+      paidBox: null,
       supporterCaption: null,
       upcoming: { kind: 'charge_check', shipIso: '2026-10-13', chargeIso: '2026-10-10' },
       lastFailReason: '한도 초과',
@@ -220,6 +228,64 @@ const FLAGS: CustomerData = {
   notes: [],
   proposals: [],
   messages: { thread: [], push: [], awaitingReply: false },
+}
+
+/**
+ * 첫 박스를 이벤트 할인으로 결제한 직후(2026-10-24 어드민 금액 말 정리) — 이번 박스 '결제함 78,500원' · 정가 128,500원 ·
+ * 이벤트 할인 −50,000원(50% · 최대 5만원),
+ * 다음 결제 11/7(토)은 정가(이벤트 할인은 첫 박스만). 금액 모양은 10/24 실제 흐름과 같게, 이름·번호는 예시.
+ */
+const PAID: CustomerData = {
+  ...BASE,
+  today: '2026-10-24',
+  account: { providerLabel: '카카오', lastSignInAt: '2026-10-24T01:00:00Z', extras: ['행사 가입 약국 봉투'] },
+  flags: [],
+  emailBounced: false,
+  supporter: null,
+  supporterPlan: null,
+  dogs: [{ ...BASE.dogs[0]!, box: { ...BASE.dogs[0]!.box!, packs: [{ name: '한우 화식', packG: 130, count: 14 }], held: [] } }],
+  subs: [
+    {
+      ...BASE.subs[0]!,
+      storedAmount: 128500,
+      chargeAmount: 128500,
+      chargeLabel: null,
+      chargeReason: 'none',
+      nextChargeIso: '2026-11-07',
+      paidBox: {
+        orderId: '00000000-0000-4000-8000-0000000000f3',
+        orderNumber: 'FT-20261024-AAAAAA',
+        amount: 78500,
+        list: 128500,
+        discountAmount: 50000,
+        discountReason: 'promotion',
+        paidAt: '2026-10-24T00:10:00Z',
+        shipIso: '2026-10-27',
+      },
+      supporterCaption: null,
+      upcoming: { kind: 'in_progress', shipIso: '2026-10-27' },
+      totalDeliveries: 1,
+      createdAt: '2026-10-21T13:57:00Z',
+      nextDeliveryDate: '2026-11-10',
+    },
+  ],
+  orders: [
+    {
+      id: '00000000-0000-4000-8000-0000000000f3',
+      orderNumber: 'FT-20261024-AAAAAA',
+      createdAt: '2026-10-24T00:10:00Z',
+      totalAmount: 78500,
+      refundedAmount: 0,
+      paymentStatus: 'paid',
+      orderStatus: 'preparing',
+      isSubscription: true,
+      trackingNumber: null,
+    },
+  ],
+  charges: [{ id: 'c1', scheduledFor: '2026-10-24', status: 'succeeded', amount: 78500, errorMessage: null, attemptedAt: '2026-10-24T00:10:00Z' }],
+  address: { ...BASE.address, pendingPaidBoxes: 1 },
+  events: [],
+  proposals: [],
 }
 
 /** 막 가입한 회원 — 강아지·구독 없음. */
@@ -260,6 +326,7 @@ const ERRORS: CustomerData = {
 export const CUSTOMER_FIXTURES: Record<string, CustomerData> = {
   full: BASE,
   flags: FLAGS,
+  paid: PAID,
   empty: EMPTY,
   errors: ERRORS,
 }

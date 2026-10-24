@@ -487,7 +487,9 @@ test('규칙246: 다가오는 결제·포장 목록 금액 — 실제 나갈 금
   assert.match(up, /stopAtHold: true/)
   const cal = code('app', 'admin', 'subscriptions', 'calendar', 'page.tsx')
   assert.match(cal, /<UpcomingChargesView rounds=\{upcomingInWindow\}/, '캘린더에 다가오는 결제가 없다')
-  assert.match(cal, /실제 결제 합계/, '캘린더 합계가 아직 할인 전 구독가다')
+  // 2026-10-24 어드민 금액 말 정리: '실제 결제 합계' → '결제 합계'. 뜻은 그대로 — 합계는 실제 금액(monthTotalRevenue)이다.
+  assert.match(cal, /`결제 합계 \$\{monthTotalRevenue\.toLocaleString/, '캘린더 합계가 아직 할인 전 구독가다')
+  assert.ok(!cal.includes('실제 결제 합계'), "캘린더에 옛 말 '실제 결제 합계'가 남았다")
   const upView = code('app', 'admin', 'subscriptions', 'calendar', 'UpcomingChargesView.tsx')
   assert.match(upView, /groupRoundsByChargeDate\(rounds\)/)
   assert.match(upView, /r\.chargeAmount !== r\.listAmount/, '정가를 같이 보이지 않는다')
@@ -497,8 +499,10 @@ test('규칙246: 다가오는 결제·포장 목록 금액 — 실제 나갈 금
   assert.ok(!/r\.totalAmount|totalAmount: sub\.total_amount/.test(page), '포장 목록 금액이 아직 할인 전 구독가(total_amount)다')
   assert.equal((page.match(/paidAmount: o\.total_amount/g) ?? []).length, 2, '발송 대기·발송 완료 주문의 결제액을 읽지 않는다')
   assert.match(page, /amount: paidAmount \?\? nextRound\?\.chargeAmount \?\? null/, '결제 전 박스 금액이 결제 예정액이 아니다')
-  assert.match(page, /`결제액 \$\{/)
-  assert.match(page, /`결제 예정액 \$\{/)
+  // 2026-10-24 어드민 금액 말 정리: 결제액 → 결제함, 결제 예정액 → 다음 결제(뜻은 그대로 — 결제된 박스와 결제 전 박스를 가른다).
+  assert.match(page, /`결제함 \$\{/)
+  assert.match(page, /`다음 결제 \$\{/)
+  assert.ok(!/`결제액 \$\{|`결제 예정액 \$\{/.test(page), "포장 목록에 옛 말 '결제액'·'결제 예정액'이 남았다")
   assert.match(page, /r\.amountKind === 'expected' && !r\.priceConsentMissing/, '보류될 박스 금액을 합계에 더한다')
   const csv = code('app', 'admin', 'personalization', 'picking-list', 'PickingListExport.tsx')
   assert.ok(csv.includes("'결제액(원)'") && csv.includes("'결제 예정액(원)'"), 'CSV 금액 칸 이름이 결제액·결제 예정액이 아니다')

@@ -27,6 +27,21 @@ test('규칙312: 새 정기배송·주문 결제·토요일 결제 결과가 사
   // 알림은 저장 성공 뒤에만(저장 실패를 '새 주문'으로 알리지 않는다)
   assert.ok(issue.indexOf('newSubscriptionNotice(') > issue.indexOf("if (saveErr) {"), '새 정기배송 알림이 카드 저장 확인보다 앞에 있다')
 
+  // 2026-10-24 어드민 금액 말 정리 — 정가가 아니라 할인까지 넣은 첫 결제 금액(화면·청구와 같은 함수). 조회는 error 를 꺼내고,
+  // 계산이 실패·지연돼도 알림은 금액 없이 나간다(손님 '등록 완료'를 막지 않는다).
+  const factsAt = issue.indexOf('async function newSubNoticeFacts(')
+  assert.ok(factsAt > 0, '새 정기배송 알림이 첫 결제 금액을 내지 않는다')
+  const facts = issue.slice(factsAt)
+  assert.match(facts, /resolveAutoDiscount\(\{ userId: i\.userId, subtotal: total, subscriptionId: i\.subscriptionId \}\)/, '첫 결제 금액이 청구와 같은 함수(resolveAutoDiscount, 구독 id 와 함께)가 아니다')
+  assert.ok(!/const \[\{ data: \w+ \}/.test(issue) && !/\{ data: subRow \}/.test(issue), '새 정기배송 알림 조회가 error 를 안 꺼낸다(규칙1)')
+  assert.match(facts, /if \(subRes\.error\) \{[\s\S]{0,160}return\s*\}/, '금액 조회 실패를 금액 0·정가로 그린다(규칙1)')
+  assert.match(facts, /Promise\.race\(\[run\(\), new Promise<void>/, '첫 결제 금액 계산에 시간 한도가 없다 — 손님 등록 완료가 기다린다')
+  assert.match(facts, /\} catch \(e\) \{/, '첫 결제 금액 계산 실패가 손님 요청을 깨뜨릴 수 있다')
+  const notice = lib.slice(lib.indexOf('export function firstChargeText('), lib.indexOf('export function newSubscriptionNotice('))
+  assert.match(notice, /`첫 결제 \$\{won\(i\.firstChargeAmount\)\}\(\$\{adminDiscountLabel\(i\.discountReason\)\} · 정가 \$\{won\(i\.listAmount\)\}\)`/, "알림이 '첫 결제 ○원(할인 이름 · 정가 ○원)'이 아니다")
+  assert.match(notice, /첫 결제 금액 확인 못 함/, "금액을 못 냈을 때 '확인 못 함'이라고 말하지 않는다")
+  assert.ok(!lib.includes('`2주 ${'), "알림이 아직 '2주 정가'를 보낸다(서포터즈 100원도 정가로 온다)")
+
   const confirm = code('app', 'api', 'payments', 'confirm', 'route.ts')
   assert.match(confirm, /if \(isActuallyPaid\) \{\s*await notifyAdmins\(/, '주문 결제 완료 때 사장님 알림이 없다')
 

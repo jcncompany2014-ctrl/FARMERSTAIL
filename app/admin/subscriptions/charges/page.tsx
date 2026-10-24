@@ -294,8 +294,9 @@ export default async function SubscriptionChargesPage({
           }건`}
           tone={successRate >= 95 ? 'green' : successRate >= 85 ? 'amber' : 'red'}
         />
+        {/* 기간을 앞에 붙인다(2026-10-24 어드민 금액 말 정리) — '누적'은 언제부터인지 안 보였다. */}
         <StatCard
-          label="30일 누적 매출"
+          label="최근 30일 정기결제 매출"
           value={last30dRevenue.toLocaleString()}
           unit="원"
           sub="성공 건만 · 시험 계정 제외"

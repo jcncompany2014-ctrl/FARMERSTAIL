@@ -1,6 +1,6 @@
 import type { createAdminClient } from '@/lib/supabase/admin'
 import { addDaysKst, kstDateOf, todayKstIsoDate } from '@/lib/datetime-kst'
-import { chargeDateFor, chargeTimingFor } from '@/lib/shipping-schedule'
+import { chargeDateFor, chargeTimingFor, paidBoxShipIso } from '@/lib/shipping-schedule'
 import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { STORE_ORDER_PREFIX } from '@/lib/store/order-number'
@@ -24,6 +24,9 @@ import type { TrialState } from '@/lib/payments/trial'
  *    결제 실패 뒤 카드를 다시 등록한 것(before 에 날짜가 있음)은 '카드 다시 등록'으로 따로 센다.
  *  · 금액 = 이번에 **실제로** 결제될 금액(resolveAutoDiscount — 청구·고객 화면과 같은 함수). 정가만 보이면 서포터즈 100원
  *    박스가 51,500원처럼 읽힌다(사장님 "가격이 정가로 나와 있어서 헷갈려").
+ *  · 첫 결제 = 그 구독의 결제된 주문(PAID_STATUSES) 중 paid_at 이 가장 이른 것 — 주문 표 값 그대로(2026-10-24 어드민 금액 말
+ *    정리). 결제가 끝나면 next_delivery_date 가 다음 주기로 밀려, 어제 78,500원이던 카드가 오늘 128,500원(다음 결제)으로 바뀌어
+ *    첫 박스가 사라졌다. 결제된 첫 박스가 있으면 그걸 크게, 다음 결제는 작은 회색 줄로 보인다.
  *  · 결제일 = chargeDateFor(발송일, chargeTimingFor(서포터즈)) — 서포터즈 정보를 못 읽으면 결제일을 단정하지 않는다(null).
  *  · 가게 주문 = 주문번호 FTS- + 결제됨(PAID_STATUSES) · 출고일 storeShipDate(결제일).
  *  · 결제 실패 = 구독마다 **마지막 시도**가 실패(cycleChargeResults — 토 실패 → 일 재시도 성공이면 빠진다) · 사유 chargeProblemReason.
@@ -41,12 +44,22 @@ export type NewSubArrival = {
   weightKg: number | null
   recipes: string
   freshLabel: string
-  /** 이번에 실제로 결제될 금액. null = 계산 못 함(저장 금액 storedAmount 를 대신 보인다). */
+  /** 다음 결제 때 실제로 나갈 금액. null = 계산 못 함(정가 storedAmount 를 대신 보인다). */
   chargeAmount: number | null
   chargeLabel: string | null
+  /** 다음 결제 할인 이유(resolveAutoDiscount reason) — 어드민 할인 이름(adminDiscountLabel)용. */
+  chargeReason: string | null
+  /** 정가(subscriptions.total_amount, 2주). */
   storedAmount: number
+  /** 다음 결제일·그 박스 발송일(next_delivery_date 기준). */
   chargeIso: string | null
   shipIso: string | null
+  /**
+   * 결제된 첫 박스(주문 표 값 그대로). null = 아직 결제 전 · paidUnknown 이 true 면 결제 여부를 못 읽었다(규칙1 — '결제 전'으로
+   * 단정하지 않는다).
+   */
+  firstPaid: { orderId: string; amount: number; list: number; discount: number; reason: string | null; paidAt: string; shipIso: string } | null
+  paidUnknown: boolean
   /** 카드 등록 시각 — '새' 배지(48시간)·정렬. */
   at: string
   /** 결제 실패 뒤 카드를 다시 등록해 이어진 것(새 고객이 아님). */
@@ -144,26 +157,54 @@ export async function loadNewArrivals(db: Db, now: Date = new Date()): Promise<N
         }
         const rows = (subRows ?? []) as unknown as SubRow[]
         const userIds = [...new Set(rows.map((r) => r.user_id))]
-        const { data: trialRows, error: trialErr } = userIds.length
-          ? await db.from('subscription_trials').select('user_id, cheap_remaining, half_remaining').in('user_id', userIds)
-          : { data: [], error: null }
+        const [{ data: trialRows, error: trialErr }, { data: paidRows, error: paidErr }] = await Promise.all([
+          userIds.length
+            ? db.from('subscription_trials').select('user_id, cheap_remaining, half_remaining').in('user_id', userIds)
+            : Promise.resolve({ data: [], error: null }),
+          // 결제된 첫 박스 — 구독마다 paid_at 이 가장 이른 결제된 주문(주문 표 값 그대로, 2026-10-24 어드민 금액 말 정리).
+          db
+            .from('orders')
+            .select('id, subscription_id, total_amount, subtotal, discount_amount, discount_reason, paid_at')
+            .in('subscription_id', ids)
+            .in('payment_status', [...PAID_STATUSES])
+            .not('paid_at', 'is', null)
+            .order('paid_at', { ascending: true })
+            .limit(1000),
+        ])
         if (trialErr) failures.push(`서포터즈(결제일): ${trialErr.message}`)
         const trialBy = new Map(((trialRows ?? []) as Array<TrialState & { user_id: string }>).map((t) => [t.user_id, t]))
+        if (paidErr) failures.push(`첫 결제: ${paidErr.message}`)
+        type PaidRow = {
+          id: string
+          subscription_id: string | null
+          total_amount: number
+          subtotal: number | null
+          discount_amount: number | null
+          discount_reason: string | null
+          paid_at: string
+        }
+        const firstPaidBy = new Map<string, PaidRow>()
+        for (const o of (paidRows ?? []) as unknown as PaidRow[]) {
+          if (o.subscription_id && !firstPaidBy.has(o.subscription_id)) firstPaidBy.set(o.subscription_id, o)
+        }
         newSubs = await Promise.all(
           rows.map(async (r): Promise<NewSubArrival> => {
             const ev = firstBySub.get(r.id)!
             let chargeAmount: number | null = null
             let chargeLabel: string | null = null
+            let chargeReason: string | null = null
             if (r.status !== 'cancelled') {
               try {
                 const d = await resolveAutoDiscount({ userId: r.user_id, subtotal: r.total_amount ?? 0, subscriptionId: r.id })
                 chargeAmount = d.chargeAmount
                 chargeLabel = d.label
+                chargeReason = d.reason
               } catch (e) {
                 failures.push(`금액(${r.dogs?.name ?? r.id.slice(0, 8)}): ${e instanceof Error ? e.message : String(e)}`)
               }
             }
             const shipIso = r.next_delivery_date
+            const fp = firstPaidBy.get(r.id)
             return {
               subscriptionId: r.id,
               userId: r.user_id,
@@ -173,9 +214,22 @@ export async function loadNewArrivals(db: Db, now: Date = new Date()): Promise<N
               freshLabel: freshTierLabel(r.fresh_ratio),
               chargeAmount,
               chargeLabel,
+              chargeReason,
               storedAmount: r.total_amount ?? 0,
               shipIso,
               chargeIso: shipIso && !trialErr ? chargeDateFor(shipIso, chargeTimingFor(trialBy.get(r.user_id))) : null,
+              firstPaid: fp
+                ? {
+                    orderId: fp.id,
+                    amount: fp.total_amount,
+                    list: fp.subtotal ?? fp.total_amount,
+                    discount: fp.discount_amount ?? 0,
+                    reason: fp.discount_reason,
+                    paidAt: fp.paid_at,
+                    shipIso: paidBoxShipIso(r.next_delivery_date, fp.paid_at),
+                  }
+                : null,
+              paidUnknown: !!paidErr,
               at: ev.at,
               reRegistered: ev.reRegistered,
             }

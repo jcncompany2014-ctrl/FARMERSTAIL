@@ -20,6 +20,7 @@ import {
 } from '@/lib/shipping-schedule'
 import { todayKstIsoDate, diffDaysKst, addDaysKst, kstDateOf } from '@/lib/datetime-kst'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 import { AdminTabs, Hl, Em, FilterChip, LoadError } from '@/components/admin/ui'
 import { Badge } from '@/components/adminui/badge'
 import { SUBS_TABS } from '@/components/admin/tabGroups'
@@ -120,7 +121,8 @@ function stateOf(sub: SubscriptionRow): SubState {
 
 
 /**
- * 서포터즈 구독의 다음 결제 회차 — 서버(/api/admin/trials?rounds=1)가 정본 펼치기(loadChargeProjection, 보류에서 멈춤)로 낸 값.
+ * 정기배송의 다음 결제 회차 — 서버(/api/admin/trials?rounds=1)가 정본 펼치기(loadChargeProjection, 보류에서 멈춤)로 낸 값.
+ * 대상은 청구 크론과 같은 전체 구독(2026-10-24 어드민 금액 말 정리 — 예전엔 서포터즈만이라 이벤트·이웃·등급 할인 손님이 정가로 보였다).
  * held = 가격이 오르는 회차인데 고객 동의 기록이 없다 → 청구 크론이 결제하지 않고 보류(규칙264, 2026-10-15 F-a).
  */
 type NextRound = {
@@ -128,9 +130,39 @@ type NextRound = {
   chargeIso: string
   chargeAmount: number
   listAmount: number
+  /** 할인 이름(청구와 같은 함수) — 할인이 없으면 null. */
+  label?: string | null
   held: boolean
   rise: string | null
   phase: string
+}
+
+/** 결제됐고 아직 안 나간 박스 — 그 주문에서 읽은 값 그대로(결제한 금액 = orders.total_amount). */
+type PaidBox = {
+  paidAt: string
+  amount: number
+  discountAmount: number
+  discountReason: string | null
+}
+
+/** 청구 크론이 결제할 구독인가 — 크론 대상 조건 그대로(진행 중 · 카드 있음 · 재등록 불필요 · 발송일 있음). */
+function inChargeQueue(sub: SubscriptionRow): boolean {
+  return sub.status === 'active' && sub.has_billing_key && !sub.requires_billing_key_renewal && !!sub.next_delivery_date
+}
+
+/** 'yyyy-mm-dd' → '10/27(화)'. 어드민 날짜 꼴(2026-10-24 말 사전). */
+function mdShort(iso: string): string {
+  return `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}(${weekdayKo(iso)})`
+}
+
+/**
+ * 다음 결제 회차의 할인 이름 — 서포터즈 구간은 어드민 이름표(adminDiscountLabel), 정가 구간은 청구 함수가 붙인 이름
+ * ('이벤트 할인' · '이웃 할인' · '나무 등급 할인'). 할인이 없으면 null.
+ */
+function roundDiscountName(r: NextRound): string | null {
+  if (r.phase === 'cheap') return adminDiscountLabel('trial_cheap')
+  if (r.phase === 'half') return adminDiscountLabel('trial_half')
+  return r.label ?? null
 }
 
 const PER_PAGE = 200
@@ -156,7 +188,7 @@ export default function AdminSubscriptionsPage() {
   // 못 받으면 서포터즈도 정가로 보이므로 그 사실을 화면에 알린다(규칙1 — 실패를 '없음'으로 위장 금지).
   const [trials, setTrials] = useState<Map<string, TrialState>>(new Map())
   const [trialsError, setTrialsError] = useState(false)
-  // 서포터즈(도장 있는 사람)의 구독별 다음 결제 회차 — 실제 금액·인상 동의 보류 예정(2026-10-15 F-a, 규칙264).
+  // 구독별 다음 결제 회차 — 실제 금액·인상 동의 보류 예정(2026-10-15 F-a, 규칙264). 청구 대상 전체(2026-10-24 — 예전엔 서포터즈만).
   //   체험단 화면·달력과 같은 정본 펼치기(loadChargeProjection)를 서버가 돌려 준다. 못 받으면 roundsError(화면에 알림).
   const [nextRounds, setNextRounds] = useState<Map<string, NextRound>>(new Map())
   const [roundsError, setRoundsError] = useState(false)
@@ -164,7 +196,8 @@ export default function AdminSubscriptionsPage() {
   //   일반 고객은 토요일에 결제되고 청구 크론이 그 즉시 next_delivery_date 를 다음 주기(+14)로 민다.
   //   이걸 모르면 토~화엔 사흘 뒤 나갈 박스가 '배송 예정'에서 빠지고 다음 주기 날짜만 보인다.
   const [paidBoxSubIds, setPaidBoxSubIds] = useState<Set<string>>(new Set())
-  const [paidBoxPaidAt, setPaidBoxPaidAt] = useState<Map<string, string>>(new Map())
+  // 구독별 가장 최근 결제 박스 — 결제 시각(발송일 계산)·결제한 금액·할인(2026-10-24 어드민 금액 말 정리: 금액 칸 위 '박스 결제함').
+  const [paidBoxes, setPaidBoxes] = useState<Map<string, PaidBox>>(new Map())
   const [paidBoxError, setPaidBoxError] = useState(false)
   // ★시험 계정(사장님·푸린네)은 기본으로 숨긴다 (2026-10-24 규칙313) — 사장님 "내 계정 푸린이 구독도 일부러 미루기해 놨는데
   //   왜 뜨는지 모르겠다". 판정은 서버 정본(admin_user_ids ∪ 명시 목록)을 받아 쓴다. 못 받으면 숨기지 못한 걸 화면에 알린다.
@@ -200,7 +233,7 @@ export default function AdminSubscriptionsPage() {
       // 결제 증거 = 결제됨(부분환불 포함) + 발송 대기 주문 — 피킹 리스트·ship-block 과 같은 기준.
       supabase
         .from('orders')
-        .select('subscription_id, paid_at, created_at')
+        .select('subscription_id, paid_at, created_at, total_amount, discount_amount, discount_reason')
         .in('payment_status', [...PAID_STATUSES])
         .eq('order_status', 'preparing')
         .not('subscription_id', 'is', null)
@@ -238,14 +271,25 @@ export default function AdminSubscriptionsPage() {
         subscription_id: string | null
         paid_at: string | null
         created_at: string
+        total_amount: number | null
+        discount_amount: number | null
+        discount_reason: string | null
       }>
       setPaidBoxSubIds(new Set(paidRows.map((o) => o.subscription_id).filter((x): x is string => !!x)))
-      // 구독별 가장 최근 결제 박스의 결제 시각 — 발송일 바꾸기가 그 박스와 같은 회차를 고르지 않게(10차 점검 B).
-      const paidAtMap = new Map<string, string>()
+      // 구독별 가장 최근 결제 박스 — 결제 시각은 발송일 바꾸기가 그 박스와 같은 회차를 고르지 않게(10차 점검 B),
+      //   금액·할인은 목록 금액 칸 위 '박스 결제함' 한 줄(2026-10-24). 최신순 조회라 첫 행이 가장 최근.
+      const boxMap = new Map<string, PaidBox>()
       for (const o of paidRows) {
-        if (o.subscription_id && !paidAtMap.has(o.subscription_id)) paidAtMap.set(o.subscription_id, o.paid_at ?? o.created_at)
+        if (o.subscription_id && !boxMap.has(o.subscription_id)) {
+          boxMap.set(o.subscription_id, {
+            paidAt: o.paid_at ?? o.created_at,
+            amount: o.total_amount ?? 0,
+            discountAmount: o.discount_amount ?? 0,
+            discountReason: o.discount_reason,
+          })
+        }
       }
-      setPaidBoxPaidAt(paidAtMap)
+      setPaidBoxes(boxMap)
     }
 
     setLoadError(Boolean(error))
@@ -299,6 +343,8 @@ export default function AdminSubscriptionsPage() {
       nextDeliveryDate: s.next_delivery_date,
       timing: s.status === 'active' && !trialsError ? chargeTimingFor(trials.get(s.user_id)) : null,
       hasPaidPreparingOrder: paidBoxSubIds.has(s.id),
+      // 결제 시각을 같이 준다 — 결제 뒤 미루기에도 이번 박스 발송일이 금액 칸의 '박스 결제함' 줄과 같다(2026-10-24).
+      paidAt: paidBoxes.get(s.id)?.paidAt ?? null,
       today,
     })
 
@@ -365,8 +411,9 @@ export default function AdminSubscriptionsPage() {
     //   붙어 있어 다른 카드의 해지를 눌러도 "이 구독을" 만 보고 확인하게 됐다. 해지는 카드 정보가 지워지고(트리거)
     //   다시 켤 수 없다(부활 가드) — 고객이 새로 신청해야 한다.
     const target = subs.find((s) => s.id === subId)
+    // 금액은 이름표를 붙인다 — 할인 전 저장 금액이라 '정가'(2026-10-24 어드민 금액 말 정리).
     const who = target
-      ? `${target.profiles?.name || target.recipient_name || '고객'}${target.dogs ? ` · 🐶 ${target.dogs.name}` : ''} · ${target.total_amount.toLocaleString()}원`
+      ? `${target.profiles?.name || target.recipient_name || '고객'}${target.dogs ? ` · 🐶 ${target.dogs.name}` : ''} · 정가 ${target.total_amount.toLocaleString()}원`
       : '이 구독'
     if (
       newStatus === 'cancelled' &&
@@ -546,12 +593,12 @@ export default function AdminSubscriptionsPage() {
               label={t.label}
             >
               {t.value === 'upcoming' && upcomingCount > 0 && (
-                <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
+                <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-[12px] text-primary-foreground">
                   {upcomingCount}
                 </span>
               )}
               {t.value === 'supporters' && supporterCount > 0 && (
-                <span className="ml-1 rounded-full bg-violet-600 px-1.5 py-0.5 text-[10px] text-white">
+                <span className="ml-1 rounded-full bg-violet-600 px-1.5 py-0.5 text-[12px] text-white">
                   {supporterCount}
                 </span>
               )}
@@ -587,12 +634,12 @@ export default function AdminSubscriptionsPage() {
 
       {trialsError && !loading && (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
-          서포터즈 정보를 불러오지 못했어요 — 지금은 서포터즈 고객도 정가로 보여요. 새로고침해 주세요.
+          서포터즈 정보를 불러오지 못했어요 — 지금은 서포터즈·이벤트·이웃·등급 할인 손님도 정가로 보여요. 새로고침해 주세요.
         </p>
       )}
       {roundsError && !trialsError && !loading && (
         <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
-          서포터즈의 다음 결제(실제 금액·인상 동의 보류)를 불러오지 못했어요 — 동의가 없어 보류될 박스도 &lsquo;결제 예정&rsquo;으로 보일 수 있어요. 새로고침해 주세요.
+          다음 결제 금액(할인·인상 동의 보류)을 불러오지 못했어요 — 지금은 이벤트·이웃·등급 할인 손님도 정가로 보이고, 동의가 없어 보류될 박스도 결제될 것처럼 보일 수 있어요. 새로고침해 주세요.
         </p>
       )}
       {paidBoxError && !loading && (
@@ -640,13 +687,14 @@ export default function AdminSubscriptionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-[11px] text-muted-foreground">
+                  {/* 칸 이름 — 어드민 돈 말 4개(2026-10-24): '회당 금액' → '다음 결제', '누적' → '결제된 박스'. */}
+                  <tr className="border-b border-border text-[12px] text-muted-foreground">
                     <th className="text-left px-4 py-2.5 font-medium">고객</th>
                     <th className="text-left px-4 py-2.5 font-medium">구성</th>
                     <th className="text-center px-4 py-2.5 font-medium">상태</th>
                     <th className="text-center px-4 py-2.5 font-medium">다음 발송 · 결제</th>
-                    <th className="text-right px-4 py-2.5 font-medium">회당 금액</th>
-                    <th className="text-center px-4 py-2.5 font-medium">누적</th>
+                    <th className="text-right px-4 py-2.5 font-medium">다음 결제</th>
+                    <th className="text-center px-4 py-2.5 font-medium">결제된 박스</th>
                     <th className="text-center px-4 py-2.5 font-medium">관리</th>
                   </tr>
                 </thead>
@@ -657,6 +705,7 @@ export default function AdminSubscriptionsPage() {
                       sub={sub}
                       box={boxOf(sub)}
                       paidBox={paidBoxSubIds.has(sub.id)}
+                      paid={paidBoxes.get(sub.id) ?? null}
                       today={today}
                       supporter={supporter.get(sub.id) ?? null}
                       round={nextRounds.get(sub.id) ?? null}
@@ -681,6 +730,7 @@ export default function AdminSubscriptionsPage() {
                 sub={sub}
                 box={boxOf(sub)}
                 paidBox={paidBoxSubIds.has(sub.id)}
+                paid={paidBoxes.get(sub.id) ?? null}
                 today={today}
                 supporter={supporter.get(sub.id) ?? null}
                 round={nextRounds.get(sub.id) ?? null}
@@ -703,7 +753,7 @@ export default function AdminSubscriptionsPage() {
                   sub={s}
                   timing={timingOfSub(s)}
                   paidShipIso={
-                    paidBoxPaidAt.has(s.id) ? paidBoxShipIso(s.next_delivery_date, paidBoxPaidAt.get(s.id)!) : null
+                    paidBoxes.has(s.id) ? paidBoxShipIso(s.next_delivery_date, paidBoxes.get(s.id)!.paidAt) : null
                   }
                   paidUnknown={paidBoxError}
                   today={today}
@@ -726,7 +776,7 @@ export default function AdminSubscriptionsPage() {
                   : `더 불러오기 (${subs.length}/${totalCount})`}
               </button>
               {search && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 text-[12px] text-muted-foreground">
                   검색은 불러온 {subs.length}건 안에서만 찾아요 — 못 찾으면 더
                   불러온 뒤 다시 검색해 주세요.
                 </p>
@@ -782,7 +832,7 @@ function NextDelivery({
     // 해지로 날짜가 지워졌어도 결제된 박스는 나간다(결제 후 자동 환불 없음 — 사장님 2026-10-01).
     if (paidBox) return <span className="text-emerald-700">결제됨 · 발송 대기</span>
     if (stateOf(sub) === 'needs_card') {
-      return <span className="text-[11px] font-normal text-muted-foreground">카드 등록 후 잡혀요</span>
+      return <span className="text-[12px] font-normal text-muted-foreground">카드 등록 후 잡혀요</span>
     }
     return <>-</>
   }
@@ -803,8 +853,9 @@ function NextDelivery({
   } else if (sub.requires_billing_key_renewal) {
     charge = { text: '카드 재등록 전엔 결제 안 됨', cls: 'text-destructive' }
   } else if (box.chargeIso) {
+    // '결제 예정' 대신 '다음 결제'(2026-10-24 어드민 금액 말 정리).
     charge = {
-      text: `결제 ${box.chargeIso === today ? '오늘' : mdKo(box.chargeIso)} 예정`,
+      text: `다음 결제 ${box.chargeIso === today ? '오늘' : mdKo(box.chargeIso)}`,
       cls: 'text-muted-foreground',
     }
   } else if (sub.status === 'active') {
@@ -818,14 +869,14 @@ function NextDelivery({
     return (
       <>
         {ship}
-        {charge && <span className={`ml-1 text-[11px] font-semibold ${charge.cls}`}>· {charge.text}</span>}
+        {charge && <span className={`ml-1 text-[12px] font-semibold ${charge.cls}`}>· {charge.text}</span>}
       </>
     )
   }
   return (
     <span className="inline-flex flex-col items-center leading-tight">
       <span>{ship}</span>
-      {charge && <span className={`mt-0.5 text-[10px] font-semibold ${charge.cls}`}>{charge.text}</span>}
+      {charge && <span className={`mt-0.5 text-[12px] font-semibold ${charge.cls}`}>{charge.text}</span>}
     </span>
   )
 }
@@ -850,7 +901,7 @@ function shortRecipes(sub: SubscriptionRow): string {
 }
 
 function NewBadge() {
-  return <span className="rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white">새</span>
+  return <span className="rounded-full bg-red-600 px-1.5 text-[12px] font-black text-white">새</span>
 }
 
 /** 시험 계정 배지 — 서포터즈(보라)·상태(초록·노랑)와 겹치지 않는 회색 점선. */
@@ -864,12 +915,10 @@ function SupporterBadge() {
 }
 
 /**
- * 금액 칸 — 서포터즈면 **실제 다음 결제 금액**을 크게, 정가는 취소선으로 작게, 남은 기간 한 줄.
- * 정가만 크게 보이면 100원 결제 고객이 51,500원 고객처럼 읽힌다(사장님 2026-10-01 캡처).
- */
-/**
- * 금액 칸 겉 — 서포터즈(도장 있는 사람)의 다음 결제 회차(정본 펼치기)가 '인상 동의 없음 → 보류 예정'이거나 실제 금액이 구독가와
- * 다르면 그것을 보인다(규칙264, 2026-10-15 F-a). 도장이 취소된 사람의 정가 인상도 여기로 보인다. 그 밖엔 안의 금액 칸 그대로.
+ * 금액 칸 겉 — 다음 결제 회차(정본 펼치기)가 '인상 동의 없음 → 보류 예정'이거나 실제 금액이 구독가와 다르면 그것을 보인다
+ * (규칙264, 2026-10-15 F-a). 도장이 취소된 사람의 정가 인상도 여기로 보인다. 그 밖엔 안의 금액 칸 그대로.
+ * ★2026-10-24 어드민 금액 말 정리 — 회차를 청구 대상 전체가 받으므로 이벤트·이웃·등급 할인도 '할인 금액 + 정가 취소선 +
+ *   할인 이름 −금액'으로 보인다. 결제가 돌지 않는 구독(일시정지·해지·카드 등록 전)엔 '다음 결제'가 없어 정가로만 말한다.
  */
 function RoundAmount({
   sub,
@@ -891,18 +940,33 @@ function RoundAmount({
     )
   }
   if (!supporter && round && round.chargeAmount !== sub.total_amount) {
+    const name = roundDiscountName(round) ?? '할인'
     return (
       <span className="inline-flex flex-col items-end">
         <strong className="tabular-nums">{round.chargeAmount.toLocaleString()}원</strong>
         <span className="text-[12px] tabular-nums text-muted-foreground line-through">
           정가 {round.listAmount.toLocaleString()}원
         </span>
+        {round.chargeAmount < round.listAmount && (
+          <span className="text-[12px] font-semibold tabular-nums text-violet-700">
+            {name} −{(round.listAmount - round.chargeAmount).toLocaleString()}원
+          </span>
+        )}
       </span>
+    )
+  }
+  if (!supporter && !round && !inChargeQueue(sub)) {
+    return (
+      <span className="text-[12px] font-normal tabular-nums text-muted-foreground">정가 {sub.total_amount.toLocaleString()}원</span>
     )
   }
   return <>{children}</>
 }
 
+/**
+ * 금액 칸 — 서포터즈면 **실제 다음 결제 금액**을 크게, 정가는 취소선으로 작게, 남은 기간 한 줄.
+ * 정가만 크게 보이면 100원 결제 고객이 51,500원 고객처럼 읽힌다(사장님 2026-10-01 캡처).
+ */
 function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: SupporterView | null }) {
   if (!supporter) {
     return <strong className="tabular-nums">{sub.total_amount.toLocaleString()}원</strong>
@@ -912,10 +976,24 @@ function AmountCell({ sub, supporter }: { sub: SubscriptionRow; supporter: Suppo
       <strong className="text-[15px] tabular-nums text-violet-700">
         {supporter.chargeAmount.toLocaleString()}원
       </strong>
-      <span className="text-[10px] tabular-nums text-muted-foreground line-through">
+      <span className="text-[12px] tabular-nums text-muted-foreground line-through">
         정가 {supporter.listAmount.toLocaleString()}원
       </span>
-      <span className="mt-0.5 text-[10px] font-semibold text-violet-700">{supporter.caption}</span>
+      <span className="mt-0.5 text-[12px] font-semibold text-violet-700">{supporter.caption}</span>
+    </span>
+  )
+}
+
+/**
+ * 결제된 박스 한 줄 — '10/27(화) 박스 결제함 78,500원 · 이벤트 할인'(2026-10-24 어드민 금액 말 정리).
+ * 이미 낸 돈과 다음 결제(아래 큰 금액)가 한 칸에서 섞여 보이던 것 — 발송일·이름을 붙여 둘을 가른다. 값은 그 주문 그대로.
+ */
+function PaidBoxLine({ sub, paid }: { sub: SubscriptionRow; paid: PaidBox }) {
+  const ship = paidBoxShipIso(sub.next_delivery_date, paid.paidAt)
+  const name = paid.discountAmount > 0 ? adminDiscountLabel(paid.discountReason) : null
+  return (
+    <span className="block text-[12px] font-semibold tabular-nums text-emerald-800">
+      {mdShort(ship)} 박스 결제함 {paid.amount.toLocaleString()}원{name ? ` · ${name}` : ''}
     </span>
   )
 }
@@ -974,7 +1052,7 @@ function ShipDateModal({
             결제된 박스 정보를 불러오지 못해 지금은 바꿀 수 없어요(같은 박스를 두 번 청구할 수 있어요). 새로고침 후 다시 해 주세요.
           </p>
         )}
-        <p className="mt-1 text-[11px] text-muted-foreground">
+        <p className="mt-1 text-[12px] text-muted-foreground">
           조리가 시작된 주는 고를 수 없어요(신청 마감 {timing === 'ship_day' ? '일요일 · 서포터즈' : '금요일 밤'}).
           {timing == null ? ' 서포터즈 정보를 못 받아 결제일은 표시하지 않아요.' : ''}
         </p>
@@ -993,7 +1071,7 @@ function ShipDateModal({
                   {label(iso)} 발송{current ? ' · 지금' : ''}
                 </span>
                 {timing && (
-                  <span className="block text-[11px] text-muted-foreground">결제 {label(chargeDateFor(iso, timing))}</span>
+                  <span className="block text-[12px] text-muted-foreground">결제 {label(chargeDateFor(iso, timing))}</span>
                 )}
               </button>
             )
@@ -1038,7 +1116,7 @@ function RowActions({
         <button
           onClick={() => onShipDate(sub.id)}
           disabled={isLoading}
-          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition disabled:opacity-50"
+          className="px-2.5 py-1.5 rounded-full text-[12px] font-bold bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition disabled:opacity-50"
         >
           발송일
         </button>
@@ -1049,7 +1127,7 @@ function RowActions({
         <button
           onClick={() => onAction(sub.id, 'paused')}
           disabled={isLoading}
-          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50"
+          className="px-2.5 py-1.5 rounded-full text-[12px] font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50"
         >
           일시정지
         </button>
@@ -1058,7 +1136,7 @@ function RowActions({
         <button
           onClick={() => onAction(sub.id, 'active')}
           disabled={isLoading}
-          className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition disabled:opacity-50"
+          className="px-2.5 py-1.5 rounded-full text-[12px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition disabled:opacity-50"
         >
           재개
         </button>
@@ -1066,14 +1144,14 @@ function RowActions({
       <button
         onClick={() => onAction(sub.id, 'cancelled')}
         disabled={isLoading}
-        className="px-2.5 py-1.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition disabled:opacity-50"
+        className="px-2.5 py-1.5 rounded-full text-[12px] font-bold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition disabled:opacity-50"
       >
         해지
       </button>
       {/* 동선 단축 — 카드 문제·배송 문의 시 바로 1:1 메시지로. */}
       <a
         href={`/admin/users/${sub.user_id}/message`}
-        className="rounded-full border border-border bg-card px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground transition hover:border-ring hover:text-foreground"
+        className="rounded-full border border-border bg-card px-2.5 py-1.5 text-[12px] font-bold text-muted-foreground transition hover:border-ring hover:text-foreground"
       >
         메시지
       </a>
@@ -1085,6 +1163,7 @@ function SubRow({
   sub,
   box,
   paidBox,
+  paid = null,
   today,
   supporter,
   round = null,
@@ -1098,6 +1177,8 @@ function SubRow({
   sub: SubscriptionRow
   box: UpcomingBox | null
   paidBox: boolean
+  /** 결제됐고 아직 안 나간 박스(그 주문의 결제한 금액·할인) — 금액 칸 위 한 줄. */
+  paid?: PaidBox | null
   today: string
   supporter: SupporterView | null
   round?: NextRound | null
@@ -1138,8 +1219,17 @@ function SubRow({
       <td className="px-4 py-3 text-center text-xs">
         <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="stack" round={round} />
       </td>
+      {/* 금액 칸 = 다음 결제(2026-10-24) — 결제된 박스가 있으면 위에 작게 '○ 박스 결제함', 아래에 다음 결제일. */}
       <td className="px-4 py-3 text-right text-xs font-bold tabular-nums">
+        {paid && (
+          <span className="mb-1 block">
+            <PaidBoxLine sub={sub} paid={paid} />
+          </span>
+        )}
         <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
+        {round && !round.held && (
+          <span className="mt-0.5 block text-[12px] font-normal text-muted-foreground">{mdShort(round.chargeIso)} 결제</span>
+        )}
       </td>
       <td className="px-4 py-3 text-center text-xs">
         {sub.total_deliveries}회
@@ -1156,6 +1246,7 @@ function SubCard({
   sub,
   box,
   paidBox,
+  paid = null,
   today,
   supporter,
   round = null,
@@ -1169,6 +1260,8 @@ function SubCard({
   sub: SubscriptionRow
   box: UpcomingBox | null
   paidBox: boolean
+  /** 결제됐고 아직 안 나간 박스(그 주문의 결제한 금액·할인) — 금액 위 한 줄. */
+  paid?: PaidBox | null
   today: string
   supporter: SupporterView | null
   round?: NextRound | null
@@ -1199,18 +1292,33 @@ function SubCard({
         <p className="mt-1 truncate text-[13px] text-muted-foreground">
           {[shortRecipes(sub), freshTierLabel(sub.fresh_ratio)].filter(Boolean).join(' · ')}
         </p>
-        {/* 발송일 + 결제일(2026-10-01) — 한 줄에 다 넣으면 폰에서 금액 칸과 겹쳐 두 줄로 나눴다. */}
-        <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[13px]">
-          <span className="min-w-0 text-muted-foreground">
-            <strong className="text-foreground">
-              <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" round={round} />
-            </strong>
-            <span className="block text-[12px]">받은 박스 {sub.total_deliveries}회</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-1">
-            <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
-            <span aria-hidden className="text-muted-foreground">›</span>
-          </span>
+        {/* 발송일 + 결제일(2026-10-01) — 한 줄에 다 넣으면 폰에서 금액 칸과 겹쳐 두 줄로 나눴다.
+            금액 이름표(2026-10-24 어드민 금액 말 정리): 결제된 박스는 맨 위 한 줄(폭이 좁아 따로 둔다), 금액 앞엔 '다음 결제 ○/○'. */}
+        <div className="mt-2.5 border-t border-border pt-2.5 text-[13px]">
+          {paid && (
+            <div className="mb-1.5 text-right">
+              <PaidBoxLine sub={sub} paid={paid} />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 text-muted-foreground">
+              <strong className="text-foreground">
+                <NextDelivery sub={sub} box={box} paidBox={paidBox} today={today} layout="inline" round={round} />
+              </strong>
+              <span className="block text-[12px]">결제된 박스 {sub.total_deliveries}회</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1">
+              <span className="inline-flex flex-col items-end">
+                {inChargeQueue(sub) && (
+                  <span className="text-[12px] font-semibold text-muted-foreground">
+                    다음 결제{round && !round.held ? ` ${mdShort(round.chargeIso)}` : ''}
+                  </span>
+                )}
+                <RoundAmount sub={sub} supporter={supporter} round={round}><AmountCell sub={sub} supporter={supporter} /></RoundAmount>
+              </span>
+              <span aria-hidden className="text-muted-foreground">›</span>
+            </span>
+          </div>
         </div>
       </Link>
       {/* 보호자 이름은 고객 화면으로(규칙253) — 위 한 장 링크 안에 넣으면 링크가 겹친다. */}

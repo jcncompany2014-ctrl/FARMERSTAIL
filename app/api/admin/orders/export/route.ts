@@ -6,6 +6,7 @@ import { dbError } from '@/lib/api/errors'
 import { PAID_STATUSES } from '@/lib/commerce/paid-status'
 import { safeOrTerm } from '@/lib/supabase/or-filter'
 import { STORE_ORDER_PREFIX } from '@/lib/store/order-number'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -28,6 +29,11 @@ type OrderRow = {
   total_amount: number
   subtotal: number | null
   shipping_fee: number | null
+  // 2026-10-24 어드민 금액 말 정리 — 할인·환불 칸이 없어 '정가 128,500 · 결제 78,500' 차이를 파일에서 설명할 수 없었다.
+  discount_amount: number | null
+  discount_reason: string | null
+  refunded_amount: number | null
+  subscription_id: string | null
   payment_status: string
   payment_method: string | null
   order_status: string
@@ -117,6 +123,7 @@ export async function GET(request: Request) {
     .select(
       `
       id, order_number, total_amount, subtotal, shipping_fee,
+      discount_amount, discount_reason, refunded_amount, subscription_id,
       payment_status, payment_method, order_status,
       created_at, paid_at,
       recipient_name, recipient_phone, zip,
@@ -175,12 +182,15 @@ export async function GET(request: Request) {
 
   const rows = ((data ?? []) as unknown as OrderRow[]).map((o) => {
     const items = o.order_items ?? []
+    // 정기배송 박스는 줄 금액 없이 'N일치'만 — 팩 단가를 반올림한 줄 합이 정가와 20~80원 어긋난다(주문 상세와 같게, 2026-10-24 어드민 금액 말 정리).
     const itemsSummary = items
-      .map(
-        (it) =>
-          `${it.product_name ?? '-'} × ${it.quantity} (${it.line_total.toLocaleString()}원)`,
+      .map((it) =>
+        o.subscription_id
+          ? `${it.product_name ?? '-'} · ${it.quantity}일치`
+          : `${it.product_name ?? '-'} × ${it.quantity} (${it.line_total.toLocaleString()}원)`,
       )
       .join(' | ')
+    const discount = o.discount_amount ?? 0
     const address = [o.address, o.address_detail]
       .filter(Boolean)
       .join(' ')
@@ -198,9 +208,13 @@ export async function GET(request: Request) {
       배송메모: o.delivery_memo ?? '',
       상품요약: itemsSummary,
       상품수: items.reduce((s, it) => s + it.quantity, 0),
-      상품금액: o.subtotal ?? '',
+      // 돈 칸은 어드민 화면과 같은 이름으로: 정가 − 할인 + 배송비 = 결제한 금액. 결제 안 된 주문은 결제한 금액을 비워 합계가 부풀지 않게.
+      정가: o.subtotal ?? '',
+      '할인 이름': discount > 0 ? adminDiscountLabel(o.discount_reason) : '',
+      '할인 금액': discount,
       배송비: o.shipping_fee ?? '',
-      결제금액: o.total_amount,
+      '결제한 금액': o.paid_at ? o.total_amount : '',
+      '환불한 금액': o.refunded_amount ?? 0,
       택배사: sanitizeCarrier(o.carrier),
       송장번호: o.tracking_number ?? '',
     }
@@ -220,9 +234,12 @@ export async function GET(request: Request) {
     '배송메모',
     '상품요약',
     '상품수',
-    '상품금액',
+    '정가',
+    '할인 이름',
+    '할인 금액',
     '배송비',
-    '결제금액',
+    '결제한 금액',
+    '환불한 금액',
     '택배사',
     '송장번호',
   ]

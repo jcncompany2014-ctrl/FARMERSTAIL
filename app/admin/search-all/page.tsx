@@ -293,7 +293,8 @@ export default async function AdminUnifiedSearch({
                           </p>
                           <p className="text-[11px] text-muted-foreground">
                             {s.profiles?.email ?? '—'} ·{' '}
-                            {s.total_amount.toLocaleString()}원/2주 ·{' '}
+                            {/* 저장 금액은 할인 전 2주 금액 — '정가'로 부른다(2026-10-24 어드민 금액 말 정리). */}
+                            정가 {s.total_amount.toLocaleString()}원(2주) ·{' '}
                             <span className="font-bold text-primary">
                               {SUB_STATUS_MAP[
                                 s.status as 'active' | 'paused' | 'cancelled'

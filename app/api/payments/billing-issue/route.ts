@@ -10,6 +10,7 @@ import { rateLimit, ipFromRequest } from '@/lib/rate-limit'
 import { tagSentryUser, tagSentryRoute } from '@/lib/sentry/trace'
 import { nextShipDate, keepShipDateOnCardRegister, chargeDateFor } from '@/lib/shipping-schedule'
 import { notifyAdmins, newSubscriptionNotice } from '@/lib/admin/notify-admins'
+import { resolveAutoDiscount } from '@/lib/payments/auto-discount'
 import { getChargeTiming } from '@/lib/payments/charge-timing'
 import { isPausedByBillingFailure } from '@/lib/payments/billing-error-classify'
 import { isCurrentNoCancelConsent, NO_CANCEL_CONSENT_VERSION } from '@/lib/payments/no-cancel-consent'
@@ -406,18 +407,13 @@ export async function POST(req: Request) {
   // ★새 정기배송 = 첫 카드 등록(배송 일정이 없던 구독) → 사장님 폰에 바로(2026-10-24 — 10/21·10/23 주문이 폰에 안 떴다).
   //   카드만 바꾼 재등록은 알리지 않는다. 알림이 실패해도 등록 완료 응답은 그대로(notifyAdmins 는 throw 하지 않는다).
   if (!cur?.next_delivery_date && firstDeliveryIso) {
-    const [{ data: subRow }, { data: dogRow }] = await Promise.all([
-      admin.from('subscriptions').select('total_amount').eq('id', subscriptionId).maybeSingle(),
-      cur?.dog_id ? admin.from('dogs').select('name, weight').eq('id', cur.dog_id).maybeSingle() : Promise.resolve({ data: null }),
-    ])
-    const dog = dogRow as { name: string | null; weight: number | string | null } | null
+    // 첫 결제 금액은 할인까지 넣은 값(2026-10-24 어드민 금액 말 정리) — 조회·계산이 실패하거나 늦으면 금액 없이 보낸다.
+    const facts = await newSubNoticeFacts(admin, { userId: user.id, subscriptionId, dogId: cur?.dog_id ?? null })
     await notifyAdmins(
       newSubscriptionNotice({
         subscriptionId,
         userId: user.id,
-        dogName: dog?.name ?? null,
-        weightKg: dog?.weight != null ? Number(dog.weight) : null,
-        totalAmount: (subRow as { total_amount: number | null } | null)?.total_amount ?? null,
+        ...facts,
         chargeIso: chargeDateFor(firstDeliveryIso, chargeTiming ?? 'before_cooking'),
         shipIso: firstDeliveryIso,
       }),
@@ -436,4 +432,69 @@ export async function POST(req: Request) {
     last4,
     resumed: shouldResume,
   })
+}
+
+/** 사장님 알림용 조회·계산의 시간 한도 — notifyAdmins(4초)와 합쳐도 손님 '등록 완료'가 오래 기다리지 않게. */
+const NOTICE_FACTS_TIMEOUT_MS = 3000
+
+/**
+ * 새 정기배송 알림에 넣을 강아지·정가·첫 결제 금액 (2026-10-24 어드민 금액 말 정리).
+ *
+ * 예전엔 정가(total_amount)만 보내 이벤트 할인 손님(78,500원)·서포터즈(100원)도 '2주 128,500원'으로 왔다. 첫 결제 금액은
+ * 화면·청구와 같은 함수(resolveAutoDiscount, 구독 id 와 함께)로 낸다 — 이 함수는 **알림 문구용**이고 청구 금액을 정하지 않는다.
+ * 손님 흐름을 막지 않는다: 절대 throw 하지 않고, 시간 한도 안에 끝난 것까지만 쓴다(못 낸 칸은 null — 문구가 '금액 확인 못 함').
+ * 조회는 { data, error } 로 error 를 꺼낸다 — 실패를 '0원'·'강아지 없음'으로 그리지 않는다(규칙1).
+ */
+async function newSubNoticeFacts(
+  admin: ReturnType<typeof createAdminClient>,
+  i: { userId: string; subscriptionId: string; dogId: string | null },
+): Promise<{
+  dogName: string | null
+  weightKg: number | null
+  listAmount: number | null
+  firstChargeAmount: number | null
+  discountReason: string | null
+}> {
+  const out = {
+    dogName: null as string | null,
+    weightKg: null as number | null,
+    listAmount: null as number | null,
+    firstChargeAmount: null as number | null,
+    discountReason: null as string | null,
+  }
+  const run = async () => {
+    const [subRes, dogRes] = await Promise.all([
+      admin.from('subscriptions').select('total_amount').eq('id', i.subscriptionId).eq('user_id', i.userId).maybeSingle(),
+      i.dogId
+        ? admin.from('dogs').select('name, weight').eq('id', i.dogId).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ])
+    if (dogRes.error) {
+      console.error('[billing-issue] 새 정기배송 알림 — 강아지 조회 실패:', dogRes.error.message)
+    } else {
+      const dog = dogRes.data as { name: string | null; weight: number | string | null } | null
+      out.dogName = dog?.name ?? null
+      out.weightKg = dog?.weight != null ? Number(dog.weight) : null
+    }
+    if (subRes.error) {
+      console.error('[billing-issue] 새 정기배송 알림 — 금액 조회 실패:', subRes.error.message)
+      return
+    }
+    const total = (subRes.data as { total_amount: number | null } | null)?.total_amount ?? null
+    if (total == null) return
+    out.listAmount = total
+    const d = await resolveAutoDiscount({ userId: i.userId, subtotal: total, subscriptionId: i.subscriptionId })
+    out.firstChargeAmount = d.chargeAmount
+    out.discountReason = d.reason
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([run(), new Promise<void>((resolve) => (timer = setTimeout(resolve, NOTICE_FACTS_TIMEOUT_MS)))])
+  } catch (e) {
+    console.error('[billing-issue] 새 정기배송 알림 — 첫 결제 금액 계산 실패:', e instanceof Error ? e.message : e)
+  } finally {
+    clearTimeout(timer)
+  }
+  // 한도가 지나 끝난 조회가 뒤늦게 out 을 바꿔도 이미 만든 문구에는 영향이 없게 지금 값을 복사해 돌려준다.
+  return { ...out }
 }

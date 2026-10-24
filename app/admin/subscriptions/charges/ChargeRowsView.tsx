@@ -81,6 +81,22 @@ function StatusPill({ status }: { status: ChargeRow['status'] }) {
   )
 }
 
+/**
+ * 금액 칸 — 성공한 시도만 '결제한 금액'이다(2026-10-24 어드민 금액 말 정리). 실패·건너뜀은 받지 못한 돈이라 흐리게
+ * '못 받은 금액', 결과 확인 중은 받았는지 아직 모르니 '확인 중'. 폰 카드엔 칸 이름이 없어 성공에 '결제함'을 붙인다.
+ */
+function ChargeAmount({ row, layout }: { row: ChargeRow; layout: 'card' | 'table' }) {
+  const won = `${row.amount.toLocaleString('ko-KR')}원`
+  if (row.status === 'succeeded') {
+    return layout === 'card' ? <b className="tabular-nums text-[14px] text-foreground">결제함 {won}</b> : <>{won}</>
+  }
+  return (
+    <span className="tabular-nums text-[12px] text-muted-foreground">
+      {row.status === 'pending' ? '확인 중' : '못 받은 금액'} {won}
+    </span>
+  )
+}
+
 function who(d: ChargeDetail | null): string {
   if (!d) return '고객 정보를 불러오지 못했어요'
   return [d.customerName ?? '(이름 없음)', d.dogName].filter(Boolean).join(' · ')
@@ -138,7 +154,7 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <StatusPill status={row.status} />
-              <b className="tabular-nums text-[14px] text-foreground">{row.amount.toLocaleString('ko-KR')}원</b>
+              <ChargeAmount row={row} layout="card" />
             </div>
             <p className="mt-1.5 text-[12px] text-muted-foreground">
               {formatDateTime(row.attempted_at)} 시도 · 예정일 {row.scheduled_for}
@@ -161,11 +177,11 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
       <div className="hidden overflow-hidden rounded-xl border border-border bg-card md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-[13px]">
-            <thead className="bg-secondary text-[11px] text-muted-foreground">
+            <thead className="bg-secondary text-[12px] text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 text-left font-bold">시도일</th>
                 <th className="px-4 py-2.5 text-left font-bold">상태</th>
-                <th className="px-4 py-2.5 text-right font-bold">금액</th>
+                <th className="px-4 py-2.5 text-right font-bold">결제한 금액</th>
                 <th className="px-4 py-2.5 text-left font-bold">예정일</th>
                 <th className="px-4 py-2.5 text-left font-bold">고객 · 사유</th>
                 <th className="px-4 py-2.5 text-left font-bold">주문</th>
@@ -179,7 +195,7 @@ export function ChargeRowsView({ rows, loadFailed }: { rows: ChargeListRow[]; lo
                     <StatusPill status={row.status} />
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums">
-                    {row.amount.toLocaleString('ko-KR')}원
+                    <ChargeAmount row={row} layout="table" />
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{row.scheduled_for}</td>
                   <td className="px-4 py-3">
@@ -241,7 +257,8 @@ export function OpenHoldsView({ holds, loadFailed }: { holds: OpenHold[]; loadFa
                 </div>
                 <p className="mt-1 text-muted-foreground">
                   발송 {h.shipDate} 박스 · 원래 결제일 {h.chargeDate}
-                  {h.chargeAmount != null && ` · ${h.chargeAmount.toLocaleString('ko-KR')}원`}
+                  {/* 이름 없는 금액 금지(2026-10-24 어드민 금액 말 정리) — 보류 회차는 동의가 기록돼야 결제된다. */}
+                  {h.chargeAmount != null && ` · 동의하면 결제될 금액 ${h.chargeAmount.toLocaleString('ko-KR')}원`}
                   {' · '}보류 시작 {formatDateTime(h.firstHeldAt)}
                 </p>
                 <div className="mt-1 flex gap-3">

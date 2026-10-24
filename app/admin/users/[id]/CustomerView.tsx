@@ -24,6 +24,7 @@ import NotesPanel from './NotesPanel'
 import AddressEditor from './AddressEditor'
 import AllergyEditor from './AllergyEditor'
 import { subscriptionHref } from '@/lib/admin/customer-link'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 import type { CustomerData, DogView, SectionKey, SubView } from './_types'
 
 /**
@@ -121,9 +122,10 @@ function UpcomingLine({ sub }: { sub: SubView }) {
   if (sub.state === 'needs_card') return <span className="text-muted-foreground">카드 등록 전 — 발송일 없음</span>
   if (!u) return <span className="text-muted-foreground">다음 발송일 없음</span>
   if (u.kind === 'in_progress') {
+    // 결제된 박스 문구 하나 — '결제됨 · ○/○(화) 발송'(2026-10-24 어드민 금액 말 정리, 정기배송 한 장 띠와 같게).
     return (
       <span>
-        <b>{dayLabel(u.shipIso)} 발송</b> · 결제됨(포장 대기)
+        <b>결제됨 · {dayLabel(u.shipIso)} 발송</b>
       </span>
     )
   }
@@ -148,8 +150,17 @@ function UpcomingLine({ sub }: { sub: SubView }) {
   )
 }
 
-function SubCard({ sub }: { sub: SubView }) {
+/**
+ * 정기배송 카드 금액 말(2026-10-24 어드민 금액 말 정리) — 예전 두 줄(DB 저장값·다음 결제값)은 날짜가 없어 10/27 박스가
+ * 128,500원처럼 읽혔다. 이번 박스(이미 결제함) → 다음 결제 · 날짜 → 정가(2주) 순서로, 할인은 어드민 이름표로.
+ */
+function SubCard({ sub, today }: { sub: SubView; today: string }) {
   const discounted = sub.chargeAmount != null && sub.chargeAmount !== sub.storedAmount
+  const pb = sub.paidBox ?? null
+  const nextDiscountName = !discounted ? null : sub.chargeReason !== undefined ? adminDiscountLabel(sub.chargeReason) : sub.chargeLabel
+  const nextLabel = sub.nextChargeIso
+    ? `다음 결제 · ${dayLabel(sub.nextChargeIso)}${sub.nextChargeIso < today ? '(지남)' : ''}`
+    : '다음 결제'
   return (
     <div className={`rounded-lg border p-3 ${sub.state === 'cancelled' ? 'border-border opacity-60' : 'border-border'}`}>
       <div className="flex items-center justify-between gap-2">
@@ -162,22 +173,32 @@ function SubCard({ sub }: { sub: SubView }) {
         <UpcomingLine sub={sub} />
       </p>
       <dl className="mt-2">
-        <Row label="저장 금액(2주)">{won(sub.storedAmount)}</Row>
-        <Row label="다음 결제 실제 금액">
+        {pb && (
+          <Row label="이번 박스">
+            <Link href={`/admin/orders/${encodeURIComponent(pb.orderId)}`} className="underline-offset-2 hover:underline">
+              결제함 {won(pb.amount)}
+              {pb.discountAmount > 0 ? (
+                <span className="ml-1 text-[12px] font-semibold text-violet-700">({adminDiscountLabel(pb.discountReason)})</span>
+              ) : null}
+            </Link>
+          </Row>
+        )}
+        <Row label={nextLabel}>
           {sub.chargeAmount == null ? (
             <span className="text-muted-foreground">{sub.state === 'cancelled' || sub.state === 'needs_card' ? '—' : '계산 못 함'}</span>
           ) : (
             <span className={discounted ? 'text-violet-700' : ''}>
               {won(sub.chargeAmount)}
-              {sub.chargeLabel ? <span className="ml-1 text-[12px] font-semibold">({sub.chargeLabel})</span> : null}
+              {nextDiscountName ? <span className="ml-1 text-[12px] font-semibold">({nextDiscountName})</span> : null}
             </span>
           )}
         </Row>
+        <Row label="정가(2주)">{won(sub.storedAmount)}</Row>
         {sub.supporterCaption && <Row label="서포터즈">{sub.supporterCaption}</Row>}
         <Row label="카드">
           {sub.cardLast4 ? `${sub.cardBrand ?? '카드'} 끝 ${sub.cardLast4}` : <span className="text-muted-foreground">등록 안 됨</span>}
         </Row>
-        <Row label="받은 박스">{sub.totalDeliveries}회</Row>
+        <Row label="결제된 박스">{sub.totalDeliveries}회</Row>
         <Row label="신청">
           {formatKstDate(sub.createdAt)}
           {sub.cancelledAt ? ` · 해지 ${formatKstDate(sub.cancelledAt)}` : ''}
@@ -460,7 +481,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
         <div className="space-y-4">
           <Section icon={<Repeat className="size-4" strokeWidth={2.2} />} title="정기배송" desc="상태·다음 발송·결제일·금액은 청구와 같은 함수로 계산해요.">
             <SectionError errors={errors} keys={['subs']} what="정기배송" />
-            <SectionError errors={errors} keys={['trial', 'charge_preview', 'paid_box']} what="서포터즈·결제 예정 금액" />
+            <SectionError errors={errors} keys={['trial', 'charge_preview', 'paid_box']} what="서포터즈·다음 결제 금액·결제된 박스" />
             {data.supporter && (
               <p className="mb-2 rounded-md bg-violet-50 px-2.5 py-1.5 text-[13px] text-violet-900">
                 서포터즈 — 100원 {data.supporter.cheapRemaining}회 · 반값 {data.supporter.halfRemaining}회 남음
@@ -474,7 +495,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
             ) : (
               <div className="space-y-2">
                 {liveSubs.map((s) => (
-                  <SubCard key={s.id} sub={s} />
+                  <SubCard key={s.id} sub={s} today={data.today} />
                 ))}
               </div>
             )}
@@ -483,7 +504,7 @@ export default function CustomerView({ data, demo = false }: { data: CustomerDat
                 <summary className="cursor-pointer text-[13px] font-semibold text-muted-foreground">지난 정기배송 {pastSubs.length}건</summary>
                 <div className="mt-2 space-y-2">
                   {pastSubs.map((s) => (
-                    <SubCard key={s.id} sub={s} />
+                    <SubCard key={s.id} sub={s} today={data.today} />
                   ))}
                 </div>
               </details>

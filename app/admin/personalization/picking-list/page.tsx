@@ -485,7 +485,7 @@ export default async function PickingListPage({
         { fromIso, untilChargeIso: until, stopAtHold: true },
       )
       if (!proj.ok) {
-        throw new Error(`결제 예정액·가격 인상 동의 조회 실패 — 목록을 신뢰할 수 없어요: ${proj.error}`)
+        throw new Error(`다음 결제 금액·가격 인상 동의를 불러오지 못했어요 — 목록을 믿을 수 없어요: ${proj.error}`)
       }
       for (const rs of proj.roundsByUser.values()) {
         for (const r of rs) if (!nextRoundBySub.has(r.subId)) nextRoundBySub.set(r.subId, r)
@@ -1206,12 +1206,13 @@ export default async function PickingListPage({
                     주문 {r.order.orderNumber} →
                   </Link>
                 )}
+                {/* 돈 말 4개(2026-10-24 어드민 금액 말 정리): 결제액 → 결제함, 결제 예정액 → 다음 결제. */}
                 <span className="ml-auto font-bold text-foreground">
                   {r.amountKind === 'paid'
-                    ? `결제액 ${(r.amount ?? 0).toLocaleString()}원`
+                    ? `결제함 ${(r.amount ?? 0).toLocaleString()}원`
                     : r.amountKind === 'expected'
-                      ? `결제 예정액 ${(r.amount ?? 0).toLocaleString()}원${r.priceConsentMissing ? ' (보류 — 인상 동의 없음)' : ''}`
-                      : '결제 예정 없음'}
+                      ? `다음 결제 ${(r.amount ?? 0).toLocaleString()}원${r.priceConsentMissing ? ' (보류 — 인상 동의 없음)' : ''}`
+                      : '다음 결제 없음'}
                 </span>
               </div>
             </AdminCard>
@@ -1226,7 +1227,7 @@ export default async function PickingListPage({
           <strong className="text-foreground">
             {(paidAmountSum + expectedAmountSum).toLocaleString()}원
           </strong>{' '}
-          (결제액 {paidAmountSum.toLocaleString()}원 + 결제 예정액 {expectedAmountSum.toLocaleString()}원){' '}
+          (결제함 {paidAmountSum.toLocaleString()}원 + 다음 결제 {expectedAmountSum.toLocaleString()}원){' '}
           · {rows.length}박스 · {totalPacks}팩 ·{' '}
           {(totalGrams / 1000).toFixed(1)}kg
         </p>

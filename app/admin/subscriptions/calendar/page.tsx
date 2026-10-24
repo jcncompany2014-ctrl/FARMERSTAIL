@@ -105,11 +105,14 @@ function chipCls(it: BoxMark, today: string): string {
   return 'bg-emerald-600/15 text-emerald-700'
 }
 
-/** '그날 전체' 목록 금액 — 실제 금액(결제액·결제 예정액). 모를 때만 구독가에 '정가'를 붙인다(규칙264). */
+/**
+ * '그날 전체' 목록 금액 — 실제 금액(결제한 금액·다음 결제). 모를 때만 구독가를 '정가 ○원'으로 쓴다(규칙264).
+ * 2026-10-24 어드민 금액 말 정리 — '○원(정가)' → '정가 ○원', 결제된 박스 '결제' → '결제함'.
+ */
 function amountText(it: BoxMark & { total_amount: number | null }): string {
-  if (it.amount == null) return `${(it.total_amount ?? 0).toLocaleString('ko-KR')}원(정가)`
+  if (it.amount == null) return `정가 ${(it.total_amount ?? 0).toLocaleString('ko-KR')}원`
   const won = `${it.amount.toLocaleString('ko-KR')}원`
-  if (it.box === 'paid') return `결제 ${won}`
+  if (it.box === 'paid') return `결제함 ${won}`
   if (it.box === 'held') return `보류 예정 ${won}`
   return it.total_amount != null && it.total_amount !== it.amount ? `${won} (정가 ${it.total_amount.toLocaleString('ko-KR')}원)` : won
 }
@@ -406,9 +409,10 @@ export default async function SubscriptionsCalendarPage({
             <Em>화요일 발송</Em>). 박스는 발송일(화) 칸에, 결제는 결제일 칸에 💳로 보여요 — 일반 고객은
             발송 3일 전 토요일 아침, 서포터즈 체험 구간은 발송일 아침에 결제돼요. — 이번 달 결제될 회차{' '}
             {monthTotalCount}건 ·{' '}
+            {/* 돈 말 4개(2026-10-24 어드민 금액 말 정리): '실제 결제 합계' → '결제 합계', '할인 전 구독가' → '정가'. */}
             {upcomingError
-              ? `합계(할인 전 구독가 — 실제 금액을 못 불러왔어요) ${monthTotalRevenue.toLocaleString('ko-KR')}원`
-              : `실제 결제 합계 ${monthTotalRevenue.toLocaleString('ko-KR')}원${monthListRevenue !== monthTotalRevenue ? ` (정가 ${monthListRevenue.toLocaleString('ko-KR')}원)` : ''}`}
+              ? `정가 합계 ${monthTotalRevenue.toLocaleString('ko-KR')}원(할인 반영 금액을 못 불러왔어요 — 새로고침해 주세요)`
+              : `결제 합계 ${monthTotalRevenue.toLocaleString('ko-KR')}원${monthListRevenue !== monthTotalRevenue ? ` (정가 ${monthListRevenue.toLocaleString('ko-KR')}원)` : ''}`}
             {paidBoxCount > 0 ? ` · 결제 완료·발송 대기 ${paidBoxCount}박스` : ''}
           </p>
         </div>
@@ -469,7 +473,7 @@ export default async function SubscriptionsCalendarPage({
       <UpcomingChargesView rounds={upcomingInWindow} days={UPCOMING_DAYS} error={upcomingError} />
       {upcomingError && (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
-          그래서 아래 달력 칸은 정가·14일 간격으로만 그렸어요 — 인상 동의가 없어 보류될 박스도 &lsquo;결제 예정&rsquo;으로 보일 수 있어요. 새로고침해 주세요.
+          그래서 아래 달력 칸은 정가·14일 간격으로만 그렸어요 — 인상 동의가 없어 보류될 박스도 결제될 것처럼 보일 수 있어요. 새로고침해 주세요.
         </p>
       )}
 

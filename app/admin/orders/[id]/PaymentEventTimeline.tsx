@@ -87,6 +87,9 @@ const META_HIDDEN = new Set([
   'idempotencyKey',
   'idempotency_key',
   'transactionKey',
+  // 정기결제 기록에 붙는 정기배송 UUID — 그대로 찍히고 있었다(2026-10-24 어드민 금액 말 정리).
+  'subscriptionId',
+  'subscription_id',
 ])
 
 function formatMetaValue(v: unknown): string {
@@ -135,11 +138,12 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-sm font-bold">결제 원장 (Payment Events)</h2>
+      {/* 제목·합계를 쉬운 말로 — '결제 원장 (Payment Events)'·'잔액'은 사장님이 읽기 어려웠다(2026-10-24 어드민 금액 말 정리). */}
+      <div className="mb-4 flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-bold">결제·환불 기록</h2>
         {!eventsErr && (
           <div className="text-xs text-muted-foreground">
-            잔액:{' '}
+            남은 결제 금액{' '}
             <span className="font-mono font-semibold text-foreground">
               {balance.toLocaleString()}원
             </span>
@@ -149,12 +153,11 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
 
       {eventsErr ? (
         <p className="py-4 text-center text-xs text-destructive">
-          결제 원장을 불러오지 못했어요 — 새로고침해 주세요. (기록이 없는 게
-          아니라 조회가 실패한 상태예요)
+          결제·환불 기록을 불러오지 못했어요 — 없는 게 아니에요. 새로고침해 주세요.
         </p>
       ) : events.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">
-          기록된 이벤트가 없어요. 결제·환불이 발생하면 자동으로 누적됩니다.
+          아직 결제·환불 기록이 없어요. 결제나 환불이 생기면 여기에 쌓여요.
         </p>
       ) : (
         <ol className="space-y-3">
@@ -183,7 +186,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                       {e.amount > 0 ? '+' : ''}{e.amount.toLocaleString()}원
                     </span>
                   </div>
-                  <div className="mt-0.5 text-[10.5px] text-muted-foreground">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {formatDateTime(e.created_at)}
                     {' · '}
                     출처: {SOURCE_LABEL[e.source] ?? e.source}
@@ -206,7 +209,7 @@ export default async function PaymentEventTimeline({ orderId }: Props) {
                         {entries.map(([k, v]) => (
                           <li
                             key={k}
-                            className="break-keep text-[11px] leading-snug"
+                            className="break-keep text-xs leading-snug"
                           >
                             <span className="text-muted-foreground">
                               {META_LABEL[k] ?? k}

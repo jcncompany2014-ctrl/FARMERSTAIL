@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { pushToUser } from '@/lib/push'
 import { captureBusinessEvent } from '@/lib/sentry/trace'
 import { subscriptionHref } from '@/lib/admin/customer-link'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 
 /**
  * 사장님(관리자 전원) 폰에 **바로** 알린다 — 새 정기배송·가게 주문 결제·토요일 결제 결과 (2026-10-24).
@@ -63,19 +64,37 @@ const md = (iso: string) => {
   return `${m}/${d}(${w})`
 }
 
+/**
+ * 첫 결제 금액 한 토막 (2026-10-24 어드민 금액 말 정리). 예전엔 카드 등록 순간의 정가('2주 128,500원')를 보내서, 이벤트
+ * 할인 손님(78,500원)·서포터즈(100원)도 정가로 왔다. 할인까지 넣은 첫 결제 금액(화면·청구와 같은 함수 resolveAutoDiscount)을
+ * 크게, 할인 이름·정가는 괄호로. 금액을 못 냈으면 '금액 확인 못 함'(알림 자체는 보낸다).
+ */
+export function firstChargeText(i: { listAmount: number | null; firstChargeAmount: number | null; discountReason: string | null }): string {
+  if (i.firstChargeAmount == null) return i.listAmount != null ? `첫 결제 금액 확인 못 함(정가 ${won(i.listAmount)})` : '첫 결제 금액 확인 못 함'
+  if (i.listAmount != null && i.firstChargeAmount < i.listAmount) {
+    return `첫 결제 ${won(i.firstChargeAmount)}(${adminDiscountLabel(i.discountReason)} · 정가 ${won(i.listAmount)})`
+  }
+  return `첫 결제 ${won(i.firstChargeAmount)}`
+}
+
 /** 새 정기배송(첫 카드 등록) 알림 문구 — 누가·얼마·언제 결제·언제 발송. 이름은 강아지만(보호자 실명은 폰 잠금 화면에 안 띄운다). */
 export function newSubscriptionNotice(i: {
   subscriptionId: string
   userId: string
   dogName: string | null
   weightKg: number | null
-  totalAmount: number | null
+  /** 정가(subscriptions.total_amount). 못 읽었으면 null. */
+  listAmount: number | null
+  /** 할인까지 넣은 첫 결제 금액(resolveAutoDiscount chargeAmount). 못 냈으면 null. */
+  firstChargeAmount: number | null
+  /** 할인 이유(resolveAutoDiscount reason) — 이름은 adminDiscountLabel. */
+  discountReason: string | null
   chargeIso: string | null
   shipIso: string | null
 }): AdminNotice {
   const who = [i.dogName, i.weightKg ? `${i.weightKg}kg` : null].filter(Boolean).join(' ')
   const parts = [
-    i.totalAmount != null ? `2주 ${won(i.totalAmount)}` : null,
+    firstChargeText(i),
     i.chargeIso ? `결제 ${md(i.chargeIso)}` : null,
     i.shipIso ? `첫 발송 ${md(i.shipIso)}` : null,
   ].filter(Boolean)

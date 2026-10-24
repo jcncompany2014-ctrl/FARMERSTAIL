@@ -481,8 +481,7 @@ export default async function AdminHome() {
   const userCount = usersRes.count ?? 0
   const recentOrders = (recentOrdersRes.data ?? []) as RecentOrder[]
 
-  // 평균 주문가 (AOV) — 결제 완료 기준. 분모 0 방어.
-  const aov = totalPaidCount > 0 ? Math.round(totalRevenue / totalPaidCount) : 0
+  // 평균 주문 금액 카드는 뺐다(2026-10-24 어드민 금액 말 정리) — 결제 주문 대부분이 서포터즈 100원이라 평균이 뜻이 없었다.
 
   // 월 예상 매출 (MRR) — 배송 주기는 **2주 하나로 고정**이라(2026-07-13) 월 2회.
   // 2026-07-16: 예전엔 interval_weeks 로 나눠 환산하고 값이 없으면 4주로 폴백했는데,
@@ -828,13 +827,8 @@ export default async function AdminHome() {
       {/* 운영 체크 — 매일 확인하면 좋은 숫자 */}
       <section>
         <Kicker>운영 체크</Kicker>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <StatCard
-            label="평균 주문 금액"
-            value={`${aov.toLocaleString()}원`}
-            sub="주문 1건당 평균"
-            help="결제 완료된 주문들의 평균 금액이에요. (누적 매출 ÷ 주문 수)"
-          />
+        {/* 평균 주문 금액 카드를 빼서 두 칸 — 폰·PC 모두 한 줄에 둘이라 고아 칸이 없다(2026-10-24 어드민 금액 말 정리). */}
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
             label="재고 부족 상품"
             value={`${lowStockCount}개`}
@@ -842,17 +836,13 @@ export default async function AdminHome() {
             tone={lowStockCount > 0 ? 'red' : 'neutral'}
             help="재고가 얼마 안 남은 상품이에요. 품절되기 전에 미리 채워두세요."
           />
-          {/* 2열(모바일)에서 3번째 카드가 반폭 고아로 남지 않게 전폭으로
-              (2026-09-05 시각 QA — 오른쪽 빈칸이 어색했다). */}
-          <div className="col-span-2 lg:col-span-1">
-            <StatCard
-              label="결제 실패 (30일)"
-              value={`${failedOrderCount}건`}
-              sub="카드 문제 등으로 실패"
-              tone={failedOrderCount > 0 ? 'red' : 'neutral'}
-              help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
-            />
-          </div>
+          <StatCard
+            label="결제 실패 (30일)"
+            value={`${failedOrderCount}건`}
+            sub="카드 문제 등으로 실패"
+            tone={failedOrderCount > 0 ? 'red' : 'neutral'}
+            help="카드 한도·유효기간 만료 등으로 결제가 안 된 건이에요. 많으면 고객에게 안내가 필요해요."
+          />
         </div>
       </section>
 

@@ -4,10 +4,11 @@ import { ArrowLeft, MessageCircle, Phone, MessageSquare, User } from 'lucide-rea
 import CopyField from '@/components/admin/CopyField'
 import { LoadError } from '@/components/admin/ui'
 import { weekdayKo } from '@/lib/shipping-schedule'
-import { formatKstShortDateTime } from '@/lib/datetime-kst'
+import { formatKstShortDateTime, kstDateOf } from '@/lib/datetime-kst'
 import { customerHref } from '@/lib/admin/customer-link'
+import { adminDiscountLabel } from '@/lib/commerce/discount-reason'
 import NotesPanel from '@/app/admin/users/[id]/NotesPanel'
-import type { CustomerData, DogView, SubView } from '@/app/admin/users/[id]/_types'
+import type { CustomerData, DogView, PaidBoxView, SubView } from '@/app/admin/users/[id]/_types'
 
 /**
  * 정기배송 한 장 — 그리기만 (2026-10-24 규칙314). 조회는 고객 화면과 같은 정본(loadCustomerData)이고, 예시 값은
@@ -17,6 +18,11 @@ import type { CustomerData, DogView, SubView } from '@/app/admin/users/[id]/_typ
  * 긴 스크롤(배송지는 8칸 중 7번째)이었다. 폰(390폭) 첫 화면에 **누구·몇 kg·무슨 레시피·얼마·언제 결제→발송**을 다 놓고,
  * 한 번 내리면 받는 곳(전화·문자·복사)과 배송 메모가 나온다. 글씨는 13px 이상.
  * 칸마다 조회 실패를 따로 보인다 — '없음'과 '못 불러옴'을 같게 그리지 않는다(규칙1).
+ *
+ * 금액 칸은 둘(2026-10-24 어드민 금액 말 정리 — 사장님 "실결제 내역이랑 주문 내역 가격이 달라"). 맨 위 띠는 '결제 완료 ·
+ * 10/27 발송'인데 바로 밑 '이번' 금액 칸에 11/7 결제분 128,500원이 떠서, 이미 낸 78,500원이 안 보였다.
+ *  ① 이번 박스 — 결제됐고 아직 안 나간 박스(주문 표 값 그대로): 결제한 금액 · 정가 · 할인 이름 −금액 · 주문 보기.
+ *  ② 다음 결제 · 날짜 — 청구와 같은 함수(resolveAutoDiscount)로 낸 금액. 해지·카드 등록 전은 '정가(2주)'.
  */
 
 const won = (n: number | null | undefined) => (typeof n === 'number' ? `${n.toLocaleString('ko-KR')}원` : '—')
@@ -42,7 +48,7 @@ function WhenBand({ sub, heldNext, today }: { sub: SubView; heldNext: boolean; t
   let text: ReactNode
   let tone: 'ok' | 'warn' | 'bad' | 'off' = 'ok'
   if (sub.state === 'cancelled') {
-    text = `해지됨${sub.cancelledAt ? ` · ${md(sub.cancelledAt)}` : ''}`
+    text = `해지됨${sub.cancelledAt ? ` · ${md(kstDateOf(sub.cancelledAt))}` : ''}`
     tone = 'off'
   } else if (sub.state === 'needs_card') {
     text = '아직 카드 등록 전이에요 — 카드를 등록하면 결제일·발송일이 정해져요'
@@ -51,11 +57,12 @@ function WhenBand({ sub, heldNext, today }: { sub: SubView; heldNext: boolean; t
     text = '다음 발송일 없음'
     tone = 'off'
   } else if (u.kind === 'in_progress') {
+    // 결제된 박스 문구 하나 — '결제됨 · ○/○(화) 발송'(2026-10-24 어드민 금액 말 정리, 기획서 상태 배지 표와 같게).
     if (u.shipIso < today) {
-      text = `결제 완료 · ${md(u.shipIso)} 발송일이 지났어요 — 보냈는지(송장) 확인해 주세요`
+      text = `결제됨 · ${md(u.shipIso)} 발송일이 지났어요 — 보냈는지(송장) 확인해 주세요`
       tone = 'bad'
     } else {
-      text = `결제 완료 · ${md(u.shipIso)}에 보내요`
+      text = `결제됨 · ${md(u.shipIso)} 발송`
     }
   } else if (u.kind === 'charge_check') {
     text = `${md(u.chargeIso)} 결제가 아직 안 됐어요 — ${md(u.shipIso)} 박스는 보내지 마세요`
@@ -106,6 +113,50 @@ function Allergy({ dog }: { dog: DogView }) {
   return <span className="font-bold text-red-700">{s.allergies.join(', ')}</span>
 }
 
+/** ① 이번 박스 — 이미 결제한 금액을 크게, 정가·할인 이름은 작게, 주문으로 가는 길. 값은 주문 표 그대로(다시 계산하지 않는다). */
+function PaidBoxCard({ pb }: { pb: PaidBoxView }) {
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+      <p className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-[26px] font-black tabular-nums">{won(pb.amount)}</span>
+        <span className="text-[14px] font-bold text-emerald-800">결제함 {md(kstDateOf(pb.paidAt))}</span>
+      </p>
+      <p className="text-[14px] text-muted-foreground break-keep">
+        {pb.discountAmount > 0 ? (
+          <>
+            정가 <s>{won(pb.list)}</s> ·{' '}
+            <span className="font-semibold text-violet-700">
+              {adminDiscountLabel(pb.discountReason)} −{won(pb.discountAmount)}
+            </span>
+          </>
+        ) : (
+          `정가 ${won(pb.list)} · 할인 없음`
+        )}
+      </p>
+      <Link
+        href={`/admin/orders/${encodeURIComponent(pb.orderId)}`}
+        className="mt-1.5 inline-block text-[14px] font-bold text-primary underline-offset-2 hover:underline"
+      >
+        주문 보기 → <span className="font-normal text-muted-foreground">{pb.orderNumber}</span>
+      </Link>
+    </div>
+  )
+}
+
+/** ② 다음 결제 제목 — 날짜를 같이 쓴다. 날짜를 정할 수 없으면 왜 없는지 한 줄로(결제일을 지어내지 않는다). */
+function nextChargeTitle(sub: SubView, today: string): string {
+  if (sub.state === 'cancelled' || sub.state === 'needs_card') return '정가(2주)'
+  if (sub.nextChargeIso) {
+    return sub.nextChargeIso < today
+      ? `다음 결제 · ${md(sub.nextChargeIso)} — 결제일이 지났는데 아직 안 됐어요`
+      : `다음 결제 · ${md(sub.nextChargeIso)} 아침`
+  }
+  if (sub.state === 'paused') return '다음 결제 · 다시 시작하면 정해져요'
+  if (sub.state === 'card_failed') return '다음 결제 · 카드를 다시 등록하면 정해져요'
+  if (!sub.timingKnown) return '다음 결제 · 날짜 확인 못 함'
+  return '다음 결제'
+}
+
 export default function SubscriptionSheet({
   data,
   sub,
@@ -131,6 +182,17 @@ export default function SubscriptionSheet({
   const dailyG = box && box.packs.length > 0 ? Math.round(box.packs.reduce((n, p) => n + p.packG * p.count, 0) / 14) : null
   const heldNext = !!data.supporterPlan?.next?.held
   const discounted = sub.chargeAmount != null && sub.chargeAmount !== sub.storedAmount
+  const pb = sub.paidBox ?? null
+  // 다음 결제 할인 이름 — 어드민 이름표(adminDiscountLabel). 예시 값이 이유를 안 주면 고객용 이름으로.
+  const nextDiscountName = !discounted ? null : sub.chargeReason !== undefined ? adminDiscountLabel(sub.chargeReason) : sub.chargeLabel
+  // 첫 박스 한 번만 붙는 할인(이벤트·이웃)이 이번 박스에서 쓰여 다음 결제가 정가로 돌아갔으면 한 줄로 알린다
+  // — 78,500원 다음에 128,500원이 나오면 '왜 올랐지'로 읽힌다.
+  const oneTimeEnded =
+    !!pb &&
+    pb.discountAmount > 0 &&
+    (pb.discountReason === 'promotion' || pb.discountReason === 'neighbor') &&
+    sub.chargeAmount != null &&
+    sub.chargeAmount === sub.storedAmount
   const ship = data.address.current
   const deleted = !!data.profile.deletedAt
   const who = data.profile.name || ship?.name || '보호자'
@@ -156,7 +218,8 @@ export default function SubscriptionSheet({
         {isNew && <span className="rounded-full bg-red-600 px-2 text-[12px] font-black text-white">새</span>}
       </p>
 
-      {e.subs || e.trial ? (
+      {/* 결제된 박스를 못 읽으면 띠가 다음 회차를 이번 박스처럼 말한다 — 같이 '못 불러옴'으로. */}
+      {e.subs || e.trial || e.paid_box ? (
         <div className="mt-3">
           <LoadError what="정기배송 일정" hint="결제일·금액이 틀려 보일 수 있어요 — 새로고침해 주세요." />
         </div>
@@ -219,26 +282,46 @@ export default function SubscriptionSheet({
         )}
       </Block>
 
-      {/* ── 금액 — 이번에 실제로 결제될 금액 하나를 크게 ── */}
-      <Block title={sub.state === 'cancelled' || sub.state === 'needs_card' ? '2주 금액' : '이번에 결제될 금액'}>
+      {/* ── 금액 ① 이번 박스(이미 결제함) — 결제된 박스가 있을 때만 ── */}
+      {e.paid_box ? (
+        <Block title="이번 박스">
+          <LoadError what="이번 박스 결제" hint="결제된 박스를 확인하지 못했어요 — 이미 낸 금액이 안 보일 수 있어요. 새로고침해 주세요." />
+        </Block>
+      ) : (
+        pb && (
+          <Block title={`이번 박스 · ${md(pb.shipIso)} 발송`}>
+            <PaidBoxCard pb={pb} />
+          </Block>
+        )
+      )}
+
+      {/* ── 금액 ② 다음 결제 · 날짜 — 청구와 같은 함수로 낸 금액(해지·카드 등록 전은 정가) ── */}
+      <Block title={nextChargeTitle(sub, data.today)}>
         {e.charge_preview ? (
-          <LoadError what="이번 결제 금액" hint={`할인을 계산하지 못했어요. 할인 전 금액은 ${won(sub.storedAmount)}이에요.`} />
+          <LoadError what="다음 결제 금액" hint={`할인을 계산하지 못했어요. 정가는 ${won(sub.storedAmount)}이에요.`} />
         ) : (
           <>
             <p className="flex flex-wrap items-baseline gap-x-2">
-              <span className="text-[26px] font-black tabular-nums">{won(sub.chargeAmount ?? sub.storedAmount)}</span>
+              <span className={`${pb ? 'text-[22px]' : 'text-[26px]'} font-black tabular-nums`}>{won(sub.chargeAmount ?? sub.storedAmount)}</span>
               {discounted && (
                 <span className="text-[14px] text-muted-foreground">
                   정가 <s>{won(sub.storedAmount)}</s>
                   {/* 서포터즈면 아래 줄(남은 구간)이 같은 말을 더 자세히 한다 — 두 번 말하지 않는다. */}
-                  {sub.chargeLabel && !sub.supporterCaption ? ` · ${sub.chargeLabel}` : ''}
+                  {nextDiscountName && !sub.supporterCaption
+                    ? ` · ${nextDiscountName} −${won(sub.storedAmount - (sub.chargeAmount ?? sub.storedAmount))}`
+                    : ''}
                 </span>
               )}
             </p>
+            {oneTimeEnded && pb && (
+              <p className="text-[14px] text-muted-foreground break-keep">
+                {adminDiscountLabel(pb.discountReason)}은 첫 박스만이라 다음부터 정가예요
+              </p>
+            )}
             <p className="text-[14px] text-muted-foreground">
               {[
                 sub.cardLast4 ? `${sub.cardBrand ?? '카드'} 끝 ${sub.cardLast4}` : '카드 없음',
-                `받은 박스 ${sub.totalDeliveries}회`,
+                `결제된 박스 ${sub.totalDeliveries}회`,
                 sub.supporterCaption,
               ]
                 .filter(Boolean)

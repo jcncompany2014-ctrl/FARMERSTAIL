@@ -78,6 +78,25 @@ export type DogView = {
   firstCheckin?: { label: string; comment: string | null; answeredAt: string; needsOwner: boolean; poor: boolean } | null
 }
 
+/**
+ * 결제됐고 아직 안 나간 이번 박스 — 주문 표(orders)의 값 그대로(2026-10-24 어드민 금액 말 정리).
+ * 정기배송 한 장의 금액 칸이 다음 회차 금액만 '이번' 금액처럼 보여 줘서, 이미 낸 78,500원이 안 보이고 128,500원만 떴다.
+ */
+export type PaidBoxView = {
+  orderId: string
+  orderNumber: string
+  /** 결제한 금액 = orders.total_amount. */
+  amount: number
+  /** 정가 = orders.subtotal(할인 전). */
+  list: number
+  /** 할인 금액 = orders.discount_amount — 이름은 discountReason 으로 adminDiscountLabel. */
+  discountAmount: number
+  discountReason: string | null
+  paidAt: string
+  /** 이 박스가 나가는 화요일(정본 paidBoxShipIso). */
+  shipIso: string
+}
+
 export type SubView = {
   id: string
   dogId: string | null
@@ -87,17 +106,24 @@ export type SubView = {
   tone: SubStateTone
   freshRatio: number | null
   freshLabel: string
-  /** subscriptions.total_amount — 할인 전 저장 금액(청구 기준). */
+  /** subscriptions.total_amount — 정가(2주, 할인 전 · 청구 기준). */
   storedAmount: number
   /** 다음 결제 때 실제로 나갈 금액(정본 resolveAutoDiscount). null = 못 냄(해지·조회 실패). */
   chargeAmount: number | null
   chargeLabel: string | null
+  /** 다음 결제 할인 이유(resolveAutoDiscount reason) — 어드민 할인 이름(adminDiscountLabel)용. undefined = 예시 값이 안 줌. */
+  chargeReason?: string | null
+  /** 다음 결제일 = chargeDateFor(next_delivery_date, 결제 시점). null = 정할 수 없음(진행 중이 아님·결제 시점 모름). */
+  nextChargeIso?: string | null
+  /** 결제됐고 아직 안 나간 박스(구독별 가장 최근). null = 없음 · undefined = 예시 값이 안 줌. 조회 실패는 errors.paid_box. */
+  paidBox?: PaidBoxView | null
   supporterCaption: string | null
   upcoming: UpcomingBox | null
   /** 결제 시점(서포터즈 여부)을 알았나 — 모르면 결제일을 단정하지 않는다. */
   timingKnown: boolean
   cardBrand: string | null
   cardLast4: string | null
+  /** subscriptions.total_deliveries — 결제할 때 올라간다(보낸 수가 아니다). 화면 이름은 '결제된 박스'. */
   totalDeliveries: number
   createdAt: string
   cancelledAt: string | null

@@ -184,8 +184,7 @@ export default async function AdminReportsPage({
           </h1>
           <p className="text-[13px] text-muted-foreground mt-1">
             <Hl>장사가 얼마나 됐는지 달별로</Hl> 보는 곳이에요 — 매출·환불·정기배송
-            수· 많이 나간 레시피를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수
-            있어요.
+            수를 한눈에 봐요. 오른쪽 인쇄 버튼으로 저장할 수 있어요.
           </p>
         </div>
         <PrintButtonClient />
@@ -220,24 +219,25 @@ export default async function AdminReportsPage({
         <div className="flex items-center gap-2 no-print">
           <Link
             href={prevHref}
-            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-[11px] font-bold hover:border-zinc-800 transition"
+            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-xs font-bold hover:border-zinc-800 transition"
           >
             ← 이전 달
           </Link>
           <Link
             href={nextHref}
-            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-[11px] font-bold hover:border-zinc-800 transition"
+            className="px-3 py-1.5 rounded-xl bg-card border border-border shadow-sm text-xs font-bold hover:border-zinc-800 transition"
           >
             다음 달 →
           </Link>
         </div>
       </div>
 
-      {/* Hero 매출 카드 — 클린 zinc 다크 (2026-07 잔재청소: 웜브라운+골드 serif 제거) */}
+      {/* Hero 매출 카드 — 클린 zinc 다크 (2026-07 잔재청소: 웜브라운+골드 serif 제거)
+          2026-10-24 어드민 금액 말 정리: 옛 영어·회계 말 대신 '매출(결제 − 환불)' = '결제 합계' − '환불' 한 줄 식으로. */}
       <section className="rounded-lg px-6 py-5 text-white mb-5 bg-zinc-900 print:break-inside-avoid print:bg-card print:text-foreground print:border print:border-input">
-        <span className="inline-flex items-center gap-1 text-[10.5px] font-bold tracking-[0.16em] uppercase text-muted-foreground print:text-muted-foreground">
-          순매출
-          <HelpTip text="이번 달 결제 완료 합계(매출)에서 환불을 뺀, 실제로 남는 매출이에요. 세무 신고·운영 리뷰의 기준 숫자." />
+        <span className="inline-flex items-center gap-1 text-xs font-bold tracking-[-0.01em] text-white/70 print:text-muted-foreground">
+          매출(결제 − 환불)
+          <HelpTip text="이번 달 결제 합계에서 환불을 뺀, 실제로 남는 매출이에요. 할인은 결제할 때 이미 빠져 있어서 여기서 또 빼지 않아요. 세무 신고·운영 리뷰의 기준 숫자예요." />
         </span>
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="font-bold leading-none tabular-nums tracking-tight text-white text-[40px] print:text-foreground">
@@ -247,9 +247,9 @@ export default async function AdminReportsPage({
             원
           </span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 text-[11px]">
+        <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
           <div>
-            <span className="text-white/60">매출 (gross)</span>
+            <span className="text-white/60">결제 합계</span>
             <div className="font-bold text-white tabular-nums">
               {grossRevenue.toLocaleString()}원
             </div>
@@ -273,7 +273,7 @@ export default async function AdminReportsPage({
           tone="ink"
         />
         <ReportStat
-          kicker="평균 주문가"
+          kicker="1건 평균 결제 금액"
           value={aov}
           unit="원"
           Icon={Coins}
@@ -283,7 +283,7 @@ export default async function AdminReportsPage({
           kicker="정기배송"
           value={subCount}
           unit="건"
-          sub={`${subRevenue.toLocaleString()}원`}
+          sub={`결제함 ${subRevenue.toLocaleString()}원`}
           Icon={Repeat}
           tone="moss"
         />
@@ -296,52 +296,44 @@ export default async function AdminReportsPage({
         />
       </section>
 
-      {/* 차감 합계 */}
+      {/* 할인은 '빼는 돈'이 아니라 참고 숫자 — 2026-10-24 어드민 금액 말 정리. 예전 '차감 항목'에 할인이 환불과 나란히 마이너스로
+          있어서 매출에서 두 번 뺀 것처럼 보였다. 할인은 결제한 금액에 이미 반영돼 있고, 매출에서 빼는 건 위 카드의 환불 하나다. */}
       <section className="bg-card rounded-xl border border-border px-5 py-4 mb-6 print:break-inside-avoid">
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          차감 항목
-          <HelpTip
-            text={
-              totalPointsUsed > 0
-                ? '할인은 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요. 포인트는 폐지된 제도라 과거 달에만 값이 남아있어요.'
-                : '할인은 결제 전에 이미 빠진 금액(참고용), 환불만 순매출에서 실제로 차감돼요.'
-            }
-          />
-        </span>
         <div
-          className={`mt-2 grid gap-2 text-[12px] ${
-            totalPointsUsed > 0 ? 'grid-cols-3' : 'grid-cols-2'
+          className={`grid gap-3 text-xs ${
+            totalPointsUsed > 0 ? 'grid-cols-2' : 'grid-cols-1'
           }`}
         >
           <div>
-            <span className="text-muted-foreground">할인</span>
-            <div className="font-bold tabular-nums text-foreground">
-              -{totalDiscount.toLocaleString()}원
+            <span className="font-semibold text-muted-foreground">
+              할인해 준 금액(이미 빠진 돈 · 참고)
+            </span>
+            <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+              {totalDiscount.toLocaleString()}원
             </div>
           </div>
-          {/* 포인트는 폐지된 제도(2026-07-16) — 과거 이력이 있을 때만 표시. */}
+          {/* 포인트는 폐지된 제도(2026-07-16) — 과거 이력이 있을 때만 표시. 할인처럼 결제 전에 이미 빠진 돈이다. */}
           {totalPointsUsed > 0 && (
             <div>
-              <span className="text-muted-foreground">포인트 사용 (폐지)</span>
-              <div className="font-bold tabular-nums text-foreground">
-                -{totalPointsUsed.toLocaleString()}원
+              <span className="font-semibold text-muted-foreground">
+                포인트(없어진 제도 · 이미 빠진 돈)
+              </span>
+              <div className="mt-0.5 text-sm font-bold tabular-nums text-foreground">
+                {totalPointsUsed.toLocaleString()}원
               </div>
             </div>
           )}
-          <div>
-            <span className="text-muted-foreground">환불</span>
-            <div className="font-bold tabular-nums text-destructive">
-              -{refundTotal.toLocaleString()}원
-            </div>
-          </div>
         </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          결제할 때 이미 빠진 돈이라 위 매출에서 또 빼지 않아요. 매출에서 빼는 건 환불뿐이에요.
+        </p>
       </section>
 
       {/* 많이 팔린 상품 — 2026-10-24 뺐다(정가 기준이라 입금과 달랐고, 박스가 강아지별 맞춤이라 상품 순위가 뜻이 없다. 규칙313). */}
       {/* 결제수단 분포 */}
       {methodCount.size > 0 && (
         <section className="mb-6 print:break-inside-avoid">
-          <span className="block mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">결제수단</span>
+          <span className="block mb-2 text-xs font-bold text-muted-foreground">결제수단</span>
           <div className="bg-card rounded-xl border border-border px-4 py-3">
             {Array.from(methodCount.entries()).map(([method, count]) => {
               const pct =
@@ -349,10 +341,10 @@ export default async function AdminReportsPage({
               return (
                 <div key={method} className="mb-2 last:mb-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11.5px] font-bold text-foreground">
+                    <span className="text-xs font-bold text-foreground">
                       {method}
                     </span>
-                    <span className="text-[10.5px] text-muted-foreground tabular-nums">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {count}건 · {pct}%
                     </span>
                   </div>
@@ -375,7 +367,7 @@ export default async function AdminReportsPage({
         </section>
       )}
 
-      <p className="text-[10px] text-muted-foreground text-center mt-8 no-print">
+      <p className="text-xs text-muted-foreground text-center mt-8 no-print">
         * 결제 완료 주문과 환불 완료 건을 기준으로 해요. 입금 대기(가상계좌)는
         입금된 날짜로 자동 합산돼요.
       </p>
@@ -414,7 +406,7 @@ function ReportStat({
           strokeWidth={2.5}
         />
         <span
-          className="text-[10px] font-bold"
+          className="text-xs font-bold"
           style={{ color: accent }}
         >
           {kicker}
@@ -430,12 +422,12 @@ function ReportStat({
         }}
       >
         {value.toLocaleString()}
-        <span className="text-[10px] text-muted-foreground ml-0.5 font-sans">
+        <span className="text-xs text-muted-foreground ml-0.5 font-sans">
           {unit}
         </span>
       </div>
       {sub && (
-        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{sub}</div>
+        <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">{sub}</div>
       )}
     </div>
   )

@@ -72,3 +72,79 @@ test('규칙314: 포장 목록 이름 하나·영어 배지 없음 · 점검 화
   assert.ok(existsSync(join(ROOT, 'app', 'design-check-admin', 'subscription', 'page.tsx')), '정기배송 한 장 점검 화면이 없다')
   assert.ok(existsSync(join(ROOT, 'app', 'design-check-admin', 'arrivals', 'page.tsx')), '새로 들어온 것 점검 화면이 없다')
 })
+
+test('규칙314 보강: 금액 말 정리 — 한 장·고객 화면·새로 들어온 것이 이미 낸 금액(주문 표)과 다음 결제(날짜)를 나눠 보인다', () => {
+  /**
+   * 2026-10-24 사장님 "실결제 내역이랑 주문 내역 가격이 달라. 할인 가격은 할인 가격으로 떠야지. 전체적으로 너무 헷갈려".
+   * 잘못 나간 돈은 없었다 — 한 장 맨 위 띠는 '10/27 발송'인데 바로 밑 금액 칸에 11/7 결제분 정가(128,500원)가 '이번' 금액으로
+   * 떠서 이미 낸 78,500원이 안 보였고, 홈 '새로 들어온 것'은 결제가 끝나자 첫 박스 대신 다음 회차를 보였다.
+   * 돈 말은 넷만: 결제한 금액(줄 안에선 '결제함') · 다음 결제(날짜와 함께) · 정가 · '할인 이름 −금액'. 값은 정본만(새 계산 금지).
+   */
+  const data = code('app', 'admin', 'users', '[id]', '_data.ts')
+  assert.match(
+    data,
+    /select\('id, subscription_id, order_number, total_amount, subtotal, discount_amount, discount_reason, paid_at, created_at'\)/,
+    '결제된 박스 조회가 결제한 금액·정가·할인을 안 읽는다',
+  )
+  assert.match(data, /amount: pb\.total_amount,/, '이번 박스 결제한 금액이 주문의 결제 금액(orders.total_amount)이 아니다')
+  assert.match(data, /list: pb\.subtotal \?\? pb\.total_amount,/, '이번 박스 정가가 주문의 정가(orders.subtotal)가 아니다')
+  assert.match(data, /shipIso: paidBoxShipIso\(s\.next_delivery_date, pbPaidAt\)/, '이번 박스 발송일이 정본(paidBoxShipIso)이 아니다')
+  assert.match(
+    data,
+    /nextChargeIso: st === 'active' && timing && s\.next_delivery_date \? chargeDateFor\(s\.next_delivery_date, timing\) : null/,
+    '다음 결제일이 정본(chargeDateFor + 결제 시점)이 아니거나, 진행 중이 아닌데(일시정지·카드 문제) 날짜를 단정한다',
+  )
+  assert.match(data, /hasPaidPreparingOrder: !!pb,\s*paidAt: pbPaidAt,/, "띠('이번 박스' 판정)와 금액 칸이 다른 결제된 박스를 본다")
+
+  const sheet = code('app', 'admin', 'subscriptions', '[id]', 'SubscriptionSheet.tsx')
+  for (const old of ['이번에 결제될 금액', '받은 박스', "'2주 금액'", '이번 결제 금액']) {
+    assert.ok(!sheet.includes(old), `한 장에 옛 금액 말 '${old}'이 남았다`)
+  }
+  assert.match(sheet, /<Block title=\{`이번 박스 · \$\{md\(pb\.shipIso\)\} 발송`\}>\s*<PaidBoxCard pb=\{pb\} \/>/, "한 장에 '이번 박스(이미 결제함)' 칸이 없다")
+  const card = sheet.slice(sheet.indexOf('function PaidBoxCard('), sheet.indexOf('function nextChargeTitle('))
+  assert.match(card, /won\(pb\.amount\)/, '이번 박스 큰 금액이 결제한 금액이 아니다')
+  assert.match(card, /adminDiscountLabel\(pb\.discountReason\)\} −\{won\(pb\.discountAmount\)\}/, "할인이 '할인 이름 −금액'이 아니다")
+  assert.match(card, /href=\{`\/admin\/orders\/\$\{encodeURIComponent\(pb\.orderId\)\}`\}/, '이번 박스에서 주문으로 가는 길이 없다')
+  assert.match(sheet, /\{e\.paid_box \? \(\s*<Block title="이번 박스">\s*<LoadError/, "결제된 박스 조회 실패를 '결제 전'으로 그린다(규칙1)")
+  assert.match(sheet, /e\.subs \|\| e\.trial \|\| e\.paid_box \?/, '결제된 박스를 못 읽었는데 띠가 다음 회차를 이번 박스처럼 말한다')
+  const title = sheet.slice(sheet.indexOf('function nextChargeTitle('), sheet.indexOf('export default function SubscriptionSheet('))
+  assert.match(title, /return '정가\(2주\)'/, "해지·카드 등록 전 금액 이름이 '정가(2주)'가 아니다")
+  assert.match(title, /`다음 결제 · \$\{md\(sub\.nextChargeIso\)\} 아침`/, '다음 결제에 날짜가 없다')
+  assert.match(sheet, /은 첫 박스만이라 다음부터 정가예요/, "첫 박스 할인이 끝나 정가로 돌아갈 때 '왜 올랐지'를 막는 한 줄이 없다")
+  assert.match(sheet, /`결제된 박스 \$\{sub\.totalDeliveries\}회`/, "'받은 박스'가 '결제된 박스'로 안 바뀌었다(결제할 때 오르는 숫자다)")
+
+  const view = code('app', 'admin', 'users', '[id]', 'CustomerView.tsx')
+  for (const old of ['저장 금액', '다음 결제 실제 금액', '"받은 박스"', '결제 예정 금액', '결제됨(포장 대기)']) {
+    assert.ok(!view.includes(old), `고객 화면에 옛 말 '${old}'이 남았다`)
+  }
+  assert.match(view, /<Row label="정가\(2주\)">\{won\(sub\.storedAmount\)\}<\/Row>/, "고객 화면 정기배송 카드에 '정가(2주)'가 없다")
+  assert.match(view, /`다음 결제 · \$\{dayLabel\(sub\.nextChargeIso\)\}/, '고객 화면 다음 결제에 날짜가 없다')
+  assert.match(view, /결제함 \{won\(pb\.amount\)\}/, "고객 화면에 '이번 박스 결제함' 줄이 없다")
+  assert.match(view, /<Row label="결제된 박스">/, "고객 화면 '받은 박스'가 '결제된 박스'로 안 바뀌었다")
+
+  const lib = code('lib', 'admin', 'new-arrivals.ts')
+  assert.match(
+    lib,
+    /\.in\('subscription_id', ids\)\s*\.in\('payment_status', \[\.\.\.PAID_STATUSES\]\)\s*\.not\('paid_at', 'is', null\)\s*\.order\('paid_at', \{ ascending: true \}\)/,
+    '첫 결제를 구독의 결제된 주문 중 가장 이른 것으로 고르지 않는다',
+  )
+  assert.match(lib, /if \(paidErr\) failures\.push\(/, '첫 결제 조회 실패를 알리지 않는다(규칙1)')
+  assert.match(lib, /paidUnknown: !!paidErr,/, "첫 결제 조회 실패를 '결제 전'으로 그린다(규칙1)")
+  assert.match(lib, /amount: fp\.total_amount,/, '첫 결제 금액이 주문의 결제 금액이 아니다')
+  assert.match(lib, /shipIso: paidBoxShipIso\(r\.next_delivery_date, fp\.paid_at\)/, '첫 박스 발송일이 정본(paidBoxShipIso)이 아니다')
+  const panel = code('components', 'admin', 'NewArrivalsPanel.tsx')
+  assert.match(
+    panel,
+    /\{fp \? `결제함 \$\{won\(fp\.amount\)\}` : `다음 결제 \$\{won\(s\.chargeAmount \?\? s\.storedAmount\)\}`\} ›/,
+    "새 정기배송 금액 자리가 '결제함 ○원'(결제됨) / '다음 결제 ○원'(결제 전)으로 나뉘지 않는다",
+  )
+  assert.match(panel, /`\$\{md\(kstDateOf\(fp\.paidAt\)\)\} 결제함 → \$\{md\(fp\.shipIso\)\} 발송`/, "결제된 첫 박스의 '결제일 결제함 → 발송일 발송' 줄이 없다(결제일은 KST)")
+  assert.match(panel, /\{fp && <p className="[^"]*text-muted-foreground">\{nextChargeText\(s\)\}<\/p>\}/, '결제된 뒤 다음 결제가 회색 줄로 안 보인다')
+  assert.match(panel, /!fp && s\.paidUnknown && \(/, "첫 결제 조회 실패를 '결제 전'으로 그린다(규칙1)")
+  assert.ok(panel.includes('카드 바꿔서 다시 이어짐') && !panel.includes('카드를 다시 등록한 구독'), "'카드를 다시 등록한 구독'이 '카드 바꿔서 다시 이어짐'으로 안 바뀌었다")
+  assert.ok(!/text-\[(9|10|11)(\.5)?px\]/.test(panel), '새로 들어온 것에 12px 미만 글씨가 있다')
+
+  // 예시 화면도 새 모양(결제된 첫 박스·이번 박스가 실제로 그려지는지 사람이 본다).
+  assert.match(code('app', 'design-check-admin', 'arrivals', 'page.tsx'), /firstPaid: \{\s*orderId:/, '새로 들어온 것 점검 화면에 결제된 첫 박스 예시가 없다')
+  assert.match(code('app', 'design-check-admin', 'customer', '_fixtures.ts'), /paidBox: \{\s*orderId:/, '한 장·고객 화면 점검에 이번 박스(결제함) 예시가 없다')
+})
